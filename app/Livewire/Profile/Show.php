@@ -4,9 +4,9 @@ namespace App\Livewire\Profile;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -15,6 +15,7 @@ class Show extends Component
 {
     use WithFileUploads;
 
+    // Profile fields
     public string $name = '';
     public string $email = '';
     public string $gender = '';
@@ -54,17 +55,36 @@ class Show extends Component
             'phone' => ['nullable', 'string', 'max:30'],
         ]);
 
+        $emailChanged = $user->email !== $validated['email'];
+
         $user->update([
             ...$validated,
-            'profile_version' => $user->profile_version + 1,
+            'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),
         ]);
+
+        if ($emailChanged) {
+            $user->update(['email_verified_at' => null]);
+            Log::info('Profile email changed', [
+                'user_id' => $user->id,
+                'old_email' => $user->email,
+                'new_email' => $validated['email'],
+            ]);
+        }
 
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
             $user->addMediaFromTemporaryUpload($this->avatar)
                 ->toMediaCollection('avatar');
+
+            Log::info('Avatar uploaded', ['user_id' => $user->id]);
         }
+
+        Log::info('Profile updated', [
+            'user_id' => $user->id,
+            'fields_updated' => array_keys($validated),
+            'profile_version' => $user->profile_version,
+        ]);
 
         $this->saved = true;
     }
@@ -79,6 +99,10 @@ class Show extends Component
         ]);
 
         if (! Hash::check($this->current_password, $user->password)) {
+            Log::warning('Password change failed: incorrect current password', [
+                'user_id' => $user->id,
+            ]);
+
             $this->addError('current_password', 'The provided password is incorrect.');
 
             return;
@@ -86,12 +110,27 @@ class Show extends Component
 
         $user->update(['password' => Hash::make($this->password)]);
 
+        Log::info('Password changed', ['user_id' => $user->id]);
+
         $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
         session()->flash('password_updated', 'Password updated successfully.');
     }
 
+    public function removeAvatar(): void
+    {
+        $user = Auth::user();
+        $user->clearMediaCollection('avatar');
+
+        Log::info('Avatar removed', ['user_id' => $user->id]);
+    }
+
     public function render()
     {
-        return view('livewire.profile.show');
+        $user = Auth::user();
+
+        return view('livewire.profile.show', [
+            'linkedAccounts' => $user->linkedAccounts()->get(),
+            'gameSystemPreferences' => $user->gameSystemPreferences()->get(),
+        ]);
     }
 }

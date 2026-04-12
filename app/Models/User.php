@@ -11,6 +11,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Paddle\Billable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
@@ -135,6 +136,23 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
             ->wherePivot('preference_type', 'favorite');
+    }
+
+    // ── Spatie Media Library ──────────────────────────
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->acceptMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10);
     }
 
     // ── Helpers ────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,7 @@ use Illuminate\Support\Str;
 
 class GameSystem extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name', 'slug', 'description', 'images', 'min_players', 'max_players',
         'optimal_players', 'average_play_time', 'age_rating', 'complexity_rating', 'year_released',

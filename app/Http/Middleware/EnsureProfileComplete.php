@@ -21,6 +21,8 @@ class EnsureProfileComplete
                 'onboarding.index',
                 'onboarding.complete',
                 'logout',
+                'profile.show',
+                'profile.edit-form',
                 'profile.edit',
                 'profile.update',
                 'profile.destroy',
