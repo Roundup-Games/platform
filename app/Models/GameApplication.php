@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class GameApplication extends Model
 {
@@ -11,6 +12,15 @@ class GameApplication extends Model
     public $incrementing = false;
 
     protected $fillable = ['game_id', 'user_id', 'status', 'message'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $application) {
+            if (empty($application->id)) {
+                $application->id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function game(): BelongsTo
     {

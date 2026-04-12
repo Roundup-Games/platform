@@ -54,6 +54,8 @@ Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.d
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::get('/games/create', App\Livewire\Games\CreateGame::class)->name('games.create');
+    Route::get('/games/{id}/manage-participants', App\Livewire\Games\ManageParticipants::class)->name('games.manage-participants');
+    Route::get('/games/{id}/apply', App\Livewire\Games\ApplyToGame::class)->name('games.apply');
 });
 
 Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail');
@@ -62,6 +64,7 @@ Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.det
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::get('/campaigns/create', App\Livewire\Campaigns\CreateCampaign::class)->name('campaigns.create');
+    Route::get('/campaigns/{id}/manage-participants', App\Livewire\Campaigns\ManageParticipants::class)->name('campaigns.manage-participants');
 });
 
 Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail');
