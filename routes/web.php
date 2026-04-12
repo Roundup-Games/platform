@@ -57,6 +57,11 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
 
 Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.detail');
 
+// ── Events (Public) ────────────────────────────────────
+
+Route::get('/events', App\Livewire\Events\EventListing::class)->name('events.index');
+Route::get('/events/{slug}', App\Livewire\Events\EventDetail::class)->name('events.detail');
+
 // ── Games ──────────────────────────────────────────────
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {

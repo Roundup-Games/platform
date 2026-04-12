@@ -10,6 +10,15 @@ class EventAnnouncement extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $announcement) {
+            if (empty($announcement->id)) {
+                $announcement->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
         'event_id', 'author_id', 'title', 'content',
         'is_pinned', 'is_published', 'visibility',
