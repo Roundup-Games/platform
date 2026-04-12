@@ -11,4 +11,31 @@
     body {
         font-family: 'Montserrat', sans-serif;
     }
+
+    /* Brand focus ring override */
+    *:focus {
+        --tw-ring-color: #C12E26;
+    }
+}
+
+@layer components {
+    /* Brand button base */
+    .btn-brand {
+        @apply inline-flex items-center justify-center px-5 py-2.5 bg-brand border border-transparent rounded-lg font-heading font-semibold text-sm text-white uppercase tracking-wider hover:bg-brand-dark active:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+    }
+
+    /* Brand outline button */
+    .btn-brand-outline {
+        @apply inline-flex items-center justify-center px-5 py-2.5 bg-white border-2 border-brand rounded-lg font-heading font-semibold text-sm text-brand uppercase tracking-wider hover:bg-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+    }
+
+    /* Brand input styling */
+    .input-brand {
+        @apply border-gray-300 focus:border-brand focus:ring-brand rounded-lg shadow-sm;
+    }
+
+    /* Google OAuth button */
+    .btn-google {
+        @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+    }
 }

@@ -7,24 +7,29 @@
 
         <title>{{ config('app.name', 'Roundup Games') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fonts: Oswald for headers, Montserrat for body -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=montserrat:400,500,600,700&family=oswald:500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-['Montserrat'] text-gray-900 antialiased">
+    <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
-            <div>
+            <!-- Brand Header -->
+            <div class="mb-2">
                 <a href="/" class="flex items-center gap-2">
-                    <span class="text-2xl font-['Oswald'] font-bold uppercase text-[#C12E26]">Roundup Games</span>
+                    <span class="text-3xl font-heading font-bold uppercase text-brand">Roundup<span class="text-gray-800 dark:text-gray-200">Games</span></span>
                 </a>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">
+            <!-- Auth Card -->
+            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-white dark:bg-gray-800 shadow-lg overflow-hidden sm:rounded-2xl border border-gray-100 dark:border-gray-700">
                 {{ $slot }}
             </div>
+
+            <!-- Footer -->
+            <p class="mt-6 text-xs text-gray-400 dark:text-gray-600">&copy; {{ date('Y') }} Roundup Games. All rights reserved.</p>
         </div>
     </body>
 </html>
