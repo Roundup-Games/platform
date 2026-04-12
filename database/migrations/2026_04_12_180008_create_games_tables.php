@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
             $table->uuid('campaign_id')->nullable();
-            $table->foreignId('game_system_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('game_system_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->timestamp('date_time');
             $table->text('description');

@@ -50,6 +50,22 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
 
 Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.detail');
 
+// ── Games ──────────────────────────────────────────────
+
+Route::middleware(['auth', 'profile.complete'])->group(function () {
+    Route::get('/games/create', App\Livewire\Games\CreateGame::class)->name('games.create');
+});
+
+Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail');
+
+// ── Campaigns ──────────────────────────────────────────
+
+Route::middleware(['auth', 'profile.complete'])->group(function () {
+    Route::get('/campaigns/create', App\Livewire\Campaigns\CreateCampaign::class)->name('campaigns.create');
+});
+
+Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail');
+
 // ── Onboarding (authenticated, profile NOT complete) ──
 
 Route::middleware('auth')->group(function () {

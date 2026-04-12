@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('campaigns', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('game_system_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('game_system_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description');
             $table->json('images')->nullable();

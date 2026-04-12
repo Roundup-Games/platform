@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class CampaignParticipant extends Model
 {
@@ -13,6 +14,15 @@ class CampaignParticipant extends Model
     protected $fillable = ['campaign_id', 'user_id', 'role', 'status'];
 
     public $timestamps = false;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $participant) {
+            if (empty($participant->id)) {
+                $participant->id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function campaign(): BelongsTo
     {
