@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Paddle\Billable;
 use Spatie\MediaLibrary\HasMedia;
@@ -29,7 +31,7 @@ use Spatie\Permission\Traits\HasRoles;
     'profile_updated_at',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
-class User extends Authenticatable implements HasMedia
+class User extends Authenticatable implements FilamentUser, HasMedia
 {
     use Billable;
     use HasFactory;
@@ -174,5 +176,16 @@ class User extends Authenticatable implements HasMedia
             ->wherePivot('role', 'captain')
             ->wherePivot('status', 'active')
             ->exists();
+    }
+
+    /**
+     * Determine if the user can access the Filament admin panel.
+     *
+     * All authenticated users can access the panel itself.
+     * Resource-level access is controlled by policies.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
     }
 }
