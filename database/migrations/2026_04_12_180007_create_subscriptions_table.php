@@ -8,18 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('billable');
+            $table->string('paddle_id')->unique();
+            $table->string('name');
+            $table->string('email');
+            $table->timestamp('trial_ends_at')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id');
+            $table->morphs('billable');
             $table->string('type');
-            $table->string('paddle_id');
+            $table->string('paddle_id')->unique();
             $table->string('status');
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamp('paused_at')->nullable();
             $table->timestamp('ends_at')->nullable();
             $table->timestamps();
-
-            $table->index(['user_id', 'paddle_id']);
         });
 
         Schema::create('subscription_items', function (Blueprint $table) {
@@ -27,22 +35,23 @@ return new class extends Migration
             $table->foreignId('subscription_id');
             $table->string('product_id');
             $table->string('price_id');
-            $table->integer('quantity')->default(1);
+            $table->string('status');
+            $table->integer('quantity');
             $table->timestamps();
+
+            $table->unique(['subscription_id', 'price_id']);
         });
 
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id');
-            $table->foreignId('subscription_item_id')->nullable();
-            $table->string('paddle_id');
+            $table->morphs('billable');
+            $table->string('paddle_id')->unique();
+            $table->string('paddle_subscription_id')->nullable()->index();
+            $table->string('invoice_number')->nullable();
             $table->string('status');
-            $table->string('customer_id')->nullable();
-            $table->string('product_id')->nullable();
-            $table->string('price_id')->nullable();
+            $table->string('total');
+            $table->string('tax');
             $table->string('currency', 3);
-            $table->unsignedBigInteger('amount');
-            $table->unsignedBigInteger('tax')->default(0);
             $table->timestamp('billed_at');
             $table->timestamps();
         });
@@ -53,5 +62,6 @@ return new class extends Migration
         Schema::dropIfExists('transactions');
         Schema::dropIfExists('subscription_items');
         Schema::dropIfExists('subscriptions');
+        Schema::dropIfExists('customers');
     }
 };

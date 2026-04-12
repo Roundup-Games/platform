@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\PaddleBillingController;
+use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,6 +11,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// ── Paddle Webhook (no auth — called by Paddle) ──────
+
+Route::post('paddle/webhook', PaddleWebhookController::class)
+    ->name('cashier.webhook');
 
 // ── OAuth ──────────────────────────────────────────────
 
@@ -68,6 +75,15 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
 });
 
 Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail');
+
+// ── Billing (authenticated) ────────────────────────────
+
+Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
+    Route::get('/billing', App\Livewire\Billing\BillingPortal::class)->name('billing.portal');
+    Route::get('/billing/checkout/{planId?}', App\Livewire\Billing\Checkout::class)->name('billing.checkout');
+    Route::post('/billing/one-time', [PaddleBillingController::class, 'oneTimeCheckout'])
+        ->name('billing.one-time-checkout');
+});
 
 // ── Onboarding (authenticated, profile NOT complete) ──
 
