@@ -80,6 +80,7 @@ Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->nam
 
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     Route::get('/billing', App\Livewire\Billing\BillingPortal::class)->name('billing.portal');
+    Route::get('/membership', App\Livewire\Billing\MembershipPage::class)->name('membership');
     Route::get('/billing/checkout/{planId?}', App\Livewire\Billing\Checkout::class)->name('billing.checkout');
     Route::post('/billing/one-time', [PaddleBillingController::class, 'oneTimeCheckout'])
         ->name('billing.one-time-checkout');
