@@ -326,3 +326,100 @@ it('logs profile edit event', function () {
         ->set('name', 'New Name')
         ->call('save');
 });
+
+// ── Avatar management ─────────────────────────────────
+
+it('can remove avatar', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Log::shouldReceive('info')
+        ->with('Avatar removed', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $user->id))
+        ->once();
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->call('removeAvatar');
+});
+
+// ── Password change: additional validation ────────────
+
+it('validates new password minimum length', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('current_password', 'password')
+        ->set('password', 'short')
+        ->set('password_confirmation', 'short')
+        ->call('changePassword')
+        ->assertHasErrors(['password']);
+});
+
+it('validates current password is required for password change', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('current_password', '')
+        ->set('password', 'newpassword123')
+        ->set('password_confirmation', 'newpassword123')
+        ->call('changePassword')
+        ->assertHasErrors(['current_password']);
+});
+
+it('logs warning on incorrect password change attempt', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Log::shouldReceive('warning')
+        ->with('Password change failed: incorrect current password', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $user->id))
+        ->once();
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('current_password', 'wrongpassword')
+        ->set('password', 'newpassword123')
+        ->set('password_confirmation', 'newpassword123')
+        ->call('changePassword');
+});
+
+it('resets password form fields after successful change', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    $component = Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('current_password', 'password')
+        ->set('password', 'newpassword123')
+        ->set('password_confirmation', 'newpassword123')
+        ->set('showPasswordForm', true)
+        ->call('changePassword');
+
+    $component->assertSet('current_password', '')
+        ->assertSet('password', '')
+        ->assertSet('password_confirmation', '')
+        ->assertSet('showPasswordForm', false);
+});
+
+// ── Profile show: observability ───────────────────────
+
+it('logs email change event in profile show', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+
+    Log::shouldReceive('info')
+        ->with('Profile email changed', \Mockery::on(fn ($ctx) => (
+            $ctx['user_id'] === $user->id && isset($ctx['new_email'])
+        )))
+        ->once();
+
+    // Also expect the general profile update log
+    Log::shouldReceive('info')
+        ->with('Profile updated', \Mockery::type('array'))
+        ->once();
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('email', 'changed@example.com')
+        ->call('saveProfile');
+});

@@ -432,3 +432,103 @@ it('replaces game system preferences on re-sync', function () {
     $prefIds = $fresh->favoriteGameSystems->pluck('id')->toArray();
     expect($prefIds)->toBe([$gs2->id]);
 });
+
+// ── Phone validation ─────────────────────────────────
+
+it('validates phone max length on step 2', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'female')
+        ->set('pronouns', 'she/her')
+        ->call('nextStep')
+        ->assertSet('step', 2)
+        ->set('phone', str_repeat('1', 31))
+        ->call('nextStep')
+        ->assertHasErrors('phone')
+        ->assertSet('step', 2);
+});
+
+it('accepts valid phone number on step 2', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'male')
+        ->set('pronouns', 'he/him')
+        ->call('nextStep')
+        ->set('phone', '+1 (555) 123-4567')
+        ->call('nextStep')
+        ->assertSet('step', 3);
+});
+
+// ── Middleware: additional allowed routes for incomplete users ──
+
+it('allows profile update route for incomplete user', function () {
+    $user = User::factory()->create([
+        'profile_complete' => false,
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->patch('/profile', [
+        'name' => $user->name,
+        'email' => $user->email,
+    ]);
+
+    // Should not redirect to onboarding — middleware allows this route
+    $response->assertRedirect('/profile');
+});
+
+it('allows logout route for incomplete user', function () {
+    $user = User::factory()->create([
+        'profile_complete' => false,
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->post('/logout');
+
+    $this->assertGuest();
+    $response->assertRedirect('/');
+});
+
+it('allows profile edit-form route for incomplete user', function () {
+    $user = User::factory()->create([
+        'profile_complete' => false,
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get('/profile/edit');
+
+    $response->assertOk();
+});
+
+// ── Observability: profile completion funnel ──────────
+
+it('logs profile version and updated_at on completion for funnel tracking', function () {
+    $user = User::factory()->create([
+        'profile_complete' => false,
+        'profile_version' => 0,
+        'profile_updated_at' => null,
+    ]);
+
+    Log::shouldReceive('info')
+        ->once()
+        ->with('Onboarding completed', \Mockery::on(function ($context) use ($user) {
+            return $context['user_id'] === $user->id
+                && isset($context['profile_version'])
+                && $context['game_systems_count'] === 0;
+        }));
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'female')
+        ->set('pronouns', 'she/her')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->call('complete');
+
+    $fresh = $user->fresh();
+    expect($fresh->profile_version)->toBe(1);
+    expect($fresh->profile_updated_at)->not->toBeNull();
+});

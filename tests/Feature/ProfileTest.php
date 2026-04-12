@@ -96,3 +96,66 @@ test('correct password must be provided to delete account', function () {
 
     $this->assertNotNull($user->fresh());
 });
+
+// ── Auth gate tests ──────────────────────────────────
+
+test('profile page redirects unauthenticated users to login', function () {
+    $response = $this->get('/profile');
+    $response->assertRedirect('/login');
+});
+
+test('profile update requires authentication', function () {
+    $response = $this->patch('/profile', [
+        'name' => 'Hacker',
+        'email' => 'hacker@example.com',
+    ]);
+    $response->assertRedirect('/login');
+});
+
+test('profile delete requires authentication', function () {
+    $response = $this->delete('/profile', [
+        'password' => 'password',
+    ]);
+    $response->assertRedirect('/login');
+});
+
+test('profile edit page requires authentication', function () {
+    $response = $this->get('/profile/edit');
+    $response->assertRedirect('/login');
+});
+
+test('profile information update validates name is required', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from('/profile')
+        ->patch('/profile', [
+            'name' => '',
+            'email' => 'test@example.com',
+        ]);
+
+    $response->assertSessionHasErrors(['name']);
+    $response->assertRedirect('/profile');
+});
+
+test('profile information update validates email format', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->from('/profile')
+        ->patch('/profile', [
+            'name' => 'Test User',
+            'email' => 'not-an-email',
+        ]);
+
+    $response->assertSessionHasErrors(['email']);
+    $response->assertRedirect('/profile');
+});

@@ -368,3 +368,119 @@ it('logs OAuth callback failures', function () {
 
     $this->get('/auth/google/callback');
 });
+
+// ── Name fallback and redirect logic ───────────────────
+
+it('uses email prefix as name when OAuth provider returns no name', function () {
+    $socialiteUser = Mockery::mock();
+    $socialiteUser->shouldReceive('getId')->andReturn('10001');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('john.doe@gmail.com');
+    $socialiteUser->shouldReceive('getName')->andReturn(null);
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $this->get('/auth/google/callback');
+
+    $user = User::where('email', 'john.doe@gmail.com')->first();
+    expect($user)->not->toBeNull();
+    expect($user->name)->toBe('john.doe');
+});
+
+it('redirects new OAuth user to onboarding (not dashboard)', function () {
+    $socialiteUser = Mockery::mock();
+    $socialiteUser->shouldReceive('getId')->andReturn('10002');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('onboard@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Onboard User');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $response = $this->get('/auth/google/callback');
+
+    $response->assertRedirect(route('onboarding.index'));
+});
+
+it('redirects incomplete OAuth user to onboarding on email match login', function () {
+    $user = User::factory()->create([
+        'email' => 'incomplete@google.com',
+        'profile_complete' => false,
+    ]);
+
+    $socialiteUser = Mockery::mock();
+    $socialiteUser->shouldReceive('getId')->andReturn('10003');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('incomplete@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Incomplete User');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    $response = $this->get('/auth/google/callback');
+
+    $this->assertAuthenticatedAs($user);
+    $response->assertRedirect(route('onboarding.index'));
+});
+
+it('returns success when linking an already-linked provider to the same user', function () {
+    $user = User::factory()->create();
+
+    LinkedAccount::create([
+        'user_id' => $user->id,
+        'provider' => 'google',
+        'provider_user_id' => '10004',
+        'token' => 'existing-tok',
+    ]);
+
+    $socialiteUser = Mockery::mock();
+    $socialiteUser->shouldReceive('getId')->andReturn('10004');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('same@google.com');
+    $socialiteUser->shouldReceive('getName')->andReturn('Same User');
+    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
+    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+    $socialiteUser->token = 'tok';
+    $socialiteUser->refreshToken = null;
+
+    Socialite::shouldReceive('driver->redirect')->andReturn(redirect('https://google.com'));
+    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
+
+    // Start and complete linking flow
+    $this->actingAs($user)->get('/auth/google/redirect');
+    $response = $this->actingAs($user)->get('/auth/google/callback');
+
+    // Should still have exactly one linked account
+    expect(LinkedAccount::where('user_id', $user->id)->where('provider', 'google')->count())->toBe(1);
+    $response->assertRedirect(route('profile.edit'));
+    $response->assertSessionHas('status');
+});
+
+it('sets oauth_linking session flag when authenticated user initiates redirect', function () {
+    $user = User::factory()->create();
+
+    Socialite::shouldReceive('driver->redirect')
+        ->once()
+        ->andReturn(redirect('https://accounts.google.com/oauth/authorize'));
+
+    $response = $this->actingAs($user)->get('/auth/google/redirect');
+
+    $this->assertTrue(session()->has('oauth_linking'));
+    expect(session('oauth_linking'))->toBeTrue();
+});
+
+it('does not set oauth_linking session for guest user', function () {
+    Socialite::shouldReceive('driver->redirect')
+        ->once()
+        ->andReturn(redirect('https://accounts.google.com/oauth/authorize'));
+
+    $this->get('/auth/google/redirect');
+
+    expect(session('oauth_linking'))->toBeNull();
+});
