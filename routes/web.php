@@ -37,6 +37,17 @@ Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// ── Teams ──────────────────────────────────────────────
+
+Route::get('/teams', App\Livewire\Teams\BrowseTeams::class)->name('teams.browse');
+
+Route::middleware(['auth', 'profile.complete'])->group(function () {
+    Route::get('/teams/create', App\Livewire\Teams\CreateTeam::class)->name('teams.create');
+    Route::get('/teams/{slug}/manage', App\Livewire\Teams\ManageTeam::class)->name('teams.manage');
+});
+
+Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.detail');
+
 // ── Onboarding (authenticated, profile NOT complete) ──
 
 Route::middleware('auth')->group(function () {
