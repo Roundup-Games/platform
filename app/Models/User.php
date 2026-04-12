@@ -17,6 +17,7 @@ use Spatie\Permission\Traits\HasRoles;
     'name',
     'email',
     'password',
+    'email_verified_at',
     'avatar_url',
     'profile_complete',
     'gender',
@@ -49,6 +50,11 @@ class User extends Authenticatable implements HasMedia
     }
 
     // ── Relationships ──────────────────────────────────
+
+    public function linkedAccounts()
+    {
+        return $this->hasMany(LinkedAccount::class);
+    }
 
     public function teams()
     {
