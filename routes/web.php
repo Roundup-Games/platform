@@ -43,7 +43,9 @@ Route::get('/teams', App\Livewire\Teams\BrowseTeams::class)->name('teams.browse'
 
 Route::middleware(['auth', 'profile.complete'])->group(function () {
     Route::get('/teams/create', App\Livewire\Teams\CreateTeam::class)->name('teams.create');
+    Route::get('/teams/invites', App\Livewire\Teams\PendingInvites::class)->name('teams.invites');
     Route::get('/teams/{slug}/manage', App\Livewire\Teams\ManageTeam::class)->name('teams.manage');
+    Route::get('/teams/{slug}/roster', App\Livewire\Teams\ManageRoster::class)->name('teams.roster');
 });
 
 Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.detail');
