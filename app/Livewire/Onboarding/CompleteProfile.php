@@ -4,11 +4,12 @@ namespace App\Livewire\Onboarding;
 
 use App\Models\GameSystem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-#[Layout('layouts.guest')]
+#[Layout('onboarding.layout')]
 class CompleteProfile extends Component
 {
     public int $step = 1;
@@ -27,22 +28,23 @@ class CompleteProfile extends Component
 
     public function mount(): void
     {
-        if (Auth::user()->profile_complete) {
+        $user = Auth::user();
+
+        if ($user->profile_complete) {
             $this->redirectRoute('dashboard');
+
+            return;
         }
+
+        // Pre-fill from any existing user data (e.g. from OAuth)
+        $this->gender = $user->gender ?? '';
+        $this->pronouns = $user->pronouns ?? '';
+        $this->phone = $user->phone ?? '';
     }
 
     public function nextStep(): void
     {
-        if ($this->step === 1) {
-            $this->validateOnly('gender');
-            $this->validateOnly('pronouns');
-        }
-
-        if ($this->step === 2) {
-            $this->validateOnly('phone');
-        }
-
+        $this->validateStep($this->step);
         $this->step++;
     }
 
@@ -53,6 +55,10 @@ class CompleteProfile extends Component
 
     public function complete(): void
     {
+        // Validate all steps before completing
+        $this->validateStep(1);
+        $this->validateStep(2);
+
         $user = Auth::user();
 
         $user->update([
@@ -60,19 +66,22 @@ class CompleteProfile extends Component
             'pronouns' => $this->pronouns,
             'phone' => $this->phone ?: null,
             'profile_complete' => true,
-            'profile_version' => $user->profile_version + 1,
+            'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),
         ]);
 
-        // Sync favorite game systems
-        if (! empty($this->favoriteGameSystemIds)) {
-            $user->gameSystemPreferences()->detach();
-            foreach ($this->favoriteGameSystemIds as $gameSystemId) {
-                $user->gameSystemPreferences()->attach($gameSystemId, [
-                    'preference_type' => 'favorite',
-                ]);
-            }
-        }
+        // Sync favorite game systems using syncWithPivotValues for idempotency
+        $syncData = collect($this->favoriteGameSystemIds)->mapWithKeys(fn ($id) => [
+            $id => ['preference_type' => 'favorite'],
+        ])->toArray();
+        $user->gameSystemPreferences()->sync($syncData);
+
+        Log::info('Onboarding completed', [
+            'user_id' => $user->id,
+            'gender' => $this->gender,
+            'game_systems_count' => count($this->favoriteGameSystemIds),
+            'profile_version' => $user->profile_version,
+        ]);
 
         $this->redirectRoute('dashboard');
     }
@@ -82,5 +91,17 @@ class CompleteProfile extends Component
         return view('livewire.onboarding.complete-profile', [
             'gameSystems' => GameSystem::orderBy('name')->get(),
         ]);
+    }
+
+    private function validateStep(int $step): void
+    {
+        match ($step) {
+            1 => (function () {
+                $this->validateOnly('gender');
+                $this->validateOnly('pronouns');
+            })(),
+            2 => $this->validateOnly('phone'),
+            default => null,
+        };
     }
 }
