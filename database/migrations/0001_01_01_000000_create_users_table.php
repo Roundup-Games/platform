@@ -17,6 +17,14 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('avatar_url')->nullable();
+            $table->boolean('profile_complete')->default(false);
+            $table->string('gender')->nullable();
+            $table->string('pronouns')->nullable();
+            $table->string('phone')->nullable();
+            $table->json('privacy_settings')->nullable();
+            $table->unsignedInteger('profile_version')->default(1);
+            $table->timestamp('profile_updated_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

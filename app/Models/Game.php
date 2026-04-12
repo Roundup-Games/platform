@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Game extends Model
+{
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected $fillable = [
+        'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
+        'description', 'expected_duration', 'price', 'language', 'location',
+        'status', 'minimum_requirements', 'visibility', 'safety_rules',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'date_time' => 'datetime',
+            'expected_duration' => 'float',
+            'price' => 'float',
+            'location' => 'array',
+            'minimum_requirements' => 'array',
+            'safety_rules' => 'array',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $game) {
+            if (empty($game->id)) {
+                $game->id = (string) Str::uuid();
+            }
+        });
+    }
+
+    // ── Relationships ──────────────────────────────────
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    public function gameSystem(): BelongsTo
+    {
+        return $this->belongsTo(GameSystem::class);
+    }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(GameParticipant::class);
+    }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(GameApplication::class);
+    }
+
+    // ── Scopes ─────────────────────────────────────────
+
+    public function scopePublic($query)
+    {
+        return $query->where('visibility', 'public');
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', 'scheduled');
+    }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('date_time', '>', now())->orderBy('date_time');
+    }
+}
