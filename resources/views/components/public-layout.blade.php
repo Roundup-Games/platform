@@ -15,79 +15,95 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans text-gray-900 antialiased">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-[#C12E26] focus:rounded-lg focus:text-sm focus:font-semibold">Skip to content</a>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+<body class="font-sans text-on-surface antialiased bg-surface">
+    {{-- Skip to content link --}}
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">Skip to content</a>
+
+    <div class="min-h-screen flex flex-col bg-surface">
+
         {{-- Public Navigation --}}
-        <nav class="bg-[#C12E26] dark:bg-brand-dark" aria-label="Main navigation">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6">
-                <div class="flex items-center justify-between h-16">
-                    <a href="{{ url('/') }}" wire:navigate class="flex items-center gap-2">
-                        <span class="text-xl font-heading font-bold uppercase text-white">Roundup<span class="text-white/70">Games</span></span>
-                    </a>
+        <header class="sticky top-0 z-50 bg-surface/90 backdrop-blur-md">
+            <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-screen-2xl mx-auto" aria-label="Main navigation">
 
-                    {{-- Desktop Nav --}}
-                    <div class="hidden sm:flex items-center gap-6">
-                        <a href="{{ route('events.index') }}" wire:navigate class="text-sm font-medium text-white/90 hover:text-white transition-colors {{ request()->routeIs('events.*') ? 'text-white' : '' }}">Events</a>
-                        <a href="{{ route('teams.browse') }}" wire:navigate class="text-sm font-medium text-white/90 hover:text-white transition-colors">Teams</a>
+                {{-- Logo --}}
+                <a href="{{ url('/') }}" wire:navigate class="text-2xl font-heading font-bold text-primary tracking-tight">
+                    Roundup Games
+                </a>
 
-                        @auth
-                            <a href="{{ route('dashboard') }}" wire:navigate class="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 text-sm font-medium transition-colors">
-                                Dashboard
-                            </a>
-                        @else
-                            <a href="{{ route('login') }}" wire:navigate class="text-sm font-medium text-white/90 hover:text-white transition-colors">Log in</a>
-                            <a href="{{ route('register') }}" wire:navigate class="px-4 py-2 bg-white text-[#C12E26] rounded-lg hover:bg-white/90 text-sm font-medium transition-colors">
-                                Sign up
-                            </a>
-                        @endauth
-                    </div>
+                {{-- Desktop Nav Links --}}
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="{{ route('events.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">Events</a>
+                    <a href="{{ route('teams.browse') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('teams.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">Teams</a>
+                    <a href="{{ route('about') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">About</a>
+                    <a href="{{ route('contact') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">Contact</a>
+                </div>
 
-                    {{-- Mobile menu button --}}
-                    <div class="sm:hidden text-white" x-data="{ open: false }">
-                        <button @click="open = !open" class="p-2" aria-label="Toggle navigation menu" aria-expanded="false" :aria-expanded="open.toString()">
-                            <svg class="h-6 w-6" :class="{'hidden': open, 'block': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                            <svg class="h-6 w-6" :class="{'block': open, 'hidden': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                {{-- Desktop CTA Buttons --}}
+                <div class="hidden md:flex items-center gap-4">
+                    @auth
+                        <a href="{{ route('dashboard') }}" wire:navigate class="px-5 py-2 text-primary font-medium hover:text-primary transition-colors text-sm">
+                            Dashboard
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" wire:navigate class="px-5 py-2 text-primary font-medium hover:text-primary transition-colors text-sm">
+                            Log in
+                        </a>
+                    @endauth
+                    @auth
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
+                                Log Out
+                            </button>
+                        </form>
+                    @else
+                        <a href="{{ route('register') }}" wire:navigate class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
+                            Sign Up
+                        </a>
+                    @endauth
+                </div>
 
-                        {{-- Mobile Nav Dropdown --}}
-                        <div x-show="open"
-                             x-transition:enter="transition ease-out duration-200"
-                             x-transition:enter-start="opacity-0 -translate-y-1"
-                             x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150"
-                             x-transition:leave-start="opacity-100 translate-y-0"
-                             x-transition:leave-end="opacity-0 -translate-y-1"
-                             class="absolute left-0 right-0 bg-[#C12E26] dark:bg-brand-dark border-t border-white/10 z-50">
-                            <div class="px-4 py-3 space-y-1">
-                                <a href="{{ url('/') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Home</a>
-                                <a href="{{ route('events.index') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('events.*') ? 'bg-white/20 text-white' : '' }}">Events</a>
-                                <a href="{{ route('teams.browse') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Teams</a>
-                                <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">About</a>
-                                <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Contact</a>
+                {{-- Mobile menu button --}}
+                <div class="md:hidden" x-data="{ open: false }">
+                    <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="Toggle navigation menu" :aria-expanded="open.toString()">
+                        <span class="material-symbols-outlined text-2xl" :class="{'hidden': open, 'block': !open}">menu</span>
+                        <span class="material-symbols-outlined text-2xl" :class="{'block': open, 'hidden': !open}">close</span>
+                    </button>
 
-                                <div class="pt-2 border-t border-white/20 mt-2 space-y-1">
-                                    @auth
-                                        <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Dashboard</a>
-                                        <form method="POST" action="{{ route('logout') }}">
-                                            @csrf
-                                            <button type="submit" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Log Out</button>
-                                        </form>
-                                    @else
-                                        <a href="{{ route('login') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</a>
-                                        <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium bg-white text-[#C12E26] rounded-lg hover:bg-white/90">Sign up</a>
-                                    @endauth
-                                </div>
+                    {{-- Mobile Nav Dropdown --}}
+                    <div x-show="open"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 -translate-y-1"
+                         @click.away="open = false"
+                         class="absolute left-0 right-0 bg-surface/95 backdrop-blur-md border-b border-outline-variant/15 z-50">
+                        <div class="px-6 py-4 space-y-1 max-w-screen-2xl mx-auto">
+                            <a href="{{ url('/') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('home') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">Home</a>
+                            <a href="{{ route('events.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">Events</a>
+                            <a href="{{ route('teams.browse') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('teams.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">Teams</a>
+                            <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">About</a>
+                            <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">Contact</a>
+
+                            <div class="pt-3 mt-2 border-t border-outline-variant/15 space-y-1">
+                                @auth
+                                    <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">Dashboard</a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">Log Out</button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('login') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">Log in</a>
+                                    <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight font-bold bg-gradient-to-r from-primary to-primary-container text-on-primary mt-2">Sign Up</a>
+                                @endauth
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
 
         {{-- Main Content --}}
         <main id="main-content" class="flex-1">
@@ -95,32 +111,51 @@
         </main>
 
         {{-- Footer --}}
-        <footer class="bg-gray-900 dark:bg-gray-950 text-white">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
-                    <div>
-                        <span class="text-lg font-heading font-bold uppercase">Roundup<span class="text-white/70">Games</span></span>
-                        <p class="mt-2 text-sm text-gray-400">Organize. Compete. Connect.</p>
-                    </div>
-                    <div>
-                        <h4 class="font-heading font-semibold uppercase text-sm tracking-wide mb-3">Quick Links</h4>
-                        <ul class="space-y-2 text-sm text-gray-400">
-                            <li><a href="{{ route('events.index') }}" wire:navigate class="hover:text-white transition-colors">Events</a></li>
-                            <li><a href="{{ route('teams.browse') }}" wire:navigate class="hover:text-white transition-colors">Teams</a></li>
-                            <li><a href="{{ route('about') }}" wire:navigate class="hover:text-white transition-colors">About</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="font-heading font-semibold uppercase text-sm tracking-wide mb-3">Contact</h4>
-                        <ul class="space-y-2 text-sm text-gray-400">
-                            <li><a href="{{ route('contact') }}" wire:navigate class="hover:text-white transition-colors">Contact Us</a></li>
-                        </ul>
+        <footer class="bg-surface-container-low w-full mt-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center px-8 sm:px-12 py-12 w-full max-w-screen-2xl mx-auto border-t border-outline-variant/10">
+                {{-- Logo & tagline --}}
+                <div class="space-y-4 mb-8 md:mb-0">
+                    <div class="font-heading font-semibold text-primary text-xl tracking-tight">Roundup Games</div>
+                    <p class="text-sm text-on-surface-variant max-w-xs">
+                        &copy; {{ date('Y') }} Roundup Games. The Digital Parlor for Tabletop Enthusiasts.
+                    </p>
+                    <div class="flex gap-4">
+                        <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">public</span>
+                        <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">forum</span>
+                        <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">contact_support</span>
                     </div>
                 </div>
-                <div class="mt-8 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
-                    &copy; {{ date('Y') }} Roundup Games. All rights reserved.
+
+                {{-- Link columns --}}
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-4">
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">Platform</span>
+                        <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Events</a>
+                        <a href="{{ route('teams.browse') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Teams</a>
+                        <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">About</a>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">Support</span>
+                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Contact Us</a>
+                    </div>
+                    <div class="flex flex-col gap-2 col-span-2 md:col-span-1">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">Account</span>
+                        @auth
+                            <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Dashboard</a>
+                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                                @csrf
+                                <button type="submit" class="text-on-surface-variant hover:text-primary text-sm transition-colors">Log Out</button>
+                            </form>
+                        @else
+                            <a href="{{ route('login') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Log in</a>
+                            <a href="{{ route('register') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">Sign Up</a>
+                        @endauth
+                    </div>
                 </div>
             </div>
+
+            {{-- Amber gradient strip at bottom --}}
+            <div class="w-full h-2 bg-gradient-to-r from-primary via-primary-container to-secondary"></div>
         </footer>
     </div>
 </body>
