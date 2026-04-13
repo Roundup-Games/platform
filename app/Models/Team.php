@@ -40,7 +40,27 @@ class Team extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('logo')->singleFile();
+        $this->addMediaCollection('logo')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(150)
+            ->height(150)
+            ->sharpen(10);
+
+        $this->addMediaConversion('medium')
+            ->width(400)
+            ->height(400)
+            ->sharpen(8);
+
+        $this->addMediaConversion('large')
+            ->width(800)
+            ->height(800)
+            ->sharpen(5);
     }
 
     // ── Relationships ──────────────────────────────────
