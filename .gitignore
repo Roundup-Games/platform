@@ -36,6 +36,7 @@ Thumbs.db
 *.code-workspace
 .env.*
 !.env.example
+!.env.production.example
 node_modules/
 .next/
 dist/

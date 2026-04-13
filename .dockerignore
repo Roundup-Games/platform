@@ -1,0 +1,16 @@
+.git
+.github
+.gsd
+node_modules
+vendor
+.env
+.env.backup
+.env.production
+phpunit.xml
+tests
+docker-compose.yml
+Dockerfile
+*.md
+.editorconfig
+.phpunit.result.cache
+.php-cs-fixer.cache
