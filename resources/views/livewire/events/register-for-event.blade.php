@@ -3,7 +3,7 @@
     <div class="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Back to {{ $event->name }}
             </a>
         </div>
@@ -21,7 +21,7 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {{-- Flash messages --}}
         @if(session()->has('error'))
-            <div class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400">
+            <div class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400" role="alert" aria-live="polite">
                 {{ session('error') }}
             </div>
         @endif
@@ -39,7 +39,7 @@
                                     ? 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }}">
-                            <svg class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'individual' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'individual' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-[#C12E26]' : 'text-gray-600 dark:text-gray-400' }}">Individual</span>
                         </button>
                         <button type="button"
@@ -49,7 +49,7 @@
                                     ? 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }}">
-                            <svg class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'team' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'team' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-[#C12E26]' : 'text-gray-600 dark:text-gray-400' }}">Team</span>
                         </button>
                     </div>

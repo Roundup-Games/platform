@@ -23,7 +23,7 @@
 
     {{-- Flash --}}
     @if(session()->has('success'))
-        <div class="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-700 dark:text-green-400">
+        <div class="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-700 dark:text-green-400" role="status" aria-live="polite">
             {{ session('success') }}
         </div>
     @endif
@@ -165,13 +165,13 @@
                                 @endif
                                 <button wire:click="editAnnouncement('{{ $announcement->id }}')"
                                         class="p-1.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-xs"
-                                        title="Edit">
-                                    ✏️
+                                        aria-label="Edit announcement">
+                                    Edit
                                 </button>
                                 <button wire:click="deleteAnnouncement('{{ $announcement->id }}')" wire:confirm="Delete this announcement?"
                                         class="p-1.5 rounded text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors text-xs"
-                                        title="Delete">
-                                    🗑️
+                                        aria-label="Delete announcement">
+                                    Delete
                                 </button>
                             </div>
                         </div>

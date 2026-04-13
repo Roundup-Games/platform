@@ -9,14 +9,14 @@
         {{-- Flash Messages --}}
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
-                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4" role="status" aria-live="polite">
                 <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
             </div>
         @endif
 
         @if(session()->has('error'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 5000)"
-                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4" role="alert" aria-live="polite">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
         @endif
@@ -24,7 +24,7 @@
         {{-- Invites List --}}
         @if($pendingInvites->isEmpty())
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
                 <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No pending invites</h3>

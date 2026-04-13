@@ -4,7 +4,7 @@
         <div>
             <div class="flex items-center gap-3 mb-1">
                 <a href="{{ route('teams.detail', $team->slug) }}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </a>
@@ -16,17 +16,17 @@
         {{-- Flash Messages --}}
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
-                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4" role="status" aria-live="polite">
                 <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
             </div>
         @endif
 
         @if(session()->has('error'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 5000)"
-                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4" role="alert" aria-live="polite">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
-        @endif
+        @endif>
 
         {{-- Invite Member --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">

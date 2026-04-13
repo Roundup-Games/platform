@@ -9,13 +9,13 @@
         {{-- Flash Messages --}}
         @if(session('success'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 4000)"
-                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4" role="status" aria-live="polite">
                 <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
             </div>
         @endif
         @if(session('error'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 4000)"
-                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4" role="alert" aria-live="polite">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
         @endif
@@ -79,7 +79,7 @@
                 </div>
             @else
                 <div class="text-center py-6">
-                    <svg class="mx-auto w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" class="mx-auto w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No active subscription</h3>

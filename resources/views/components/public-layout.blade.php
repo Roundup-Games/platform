@@ -14,9 +14,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans text-gray-900 antialiased">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-[#C12E26] focus:rounded-lg focus:text-sm focus:font-semibold">Skip to content</a>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
         {{-- Public Navigation --}}
-        <nav class="bg-[#C12E26] dark:bg-brand-dark">
+        <nav class="bg-[#C12E26] dark:bg-brand-dark" aria-label="Main navigation">
             <div class="max-w-6xl mx-auto px-4 sm:px-6">
                 <div class="flex items-center justify-between h-16">
                     <a href="{{ url('/') }}" class="flex items-center gap-2">
@@ -42,11 +43,11 @@
 
                     {{-- Mobile menu button --}}
                     <div class="sm:hidden text-white" x-data="{ open: false }">
-                        <button @click="open = !open" class="p-2">
-                            <svg class="h-6 w-6" :class="{'hidden': open, 'block': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="open = !open" class="p-2" aria-label="Toggle navigation menu" aria-expanded="false" :aria-expanded="open.toString()">
+                            <svg class="h-6 w-6" :class="{'hidden': open, 'block': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
-                            <svg class="h-6 w-6" :class="{'block': open, 'hidden': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-6 w-6" :class="{'block': open, 'hidden': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -87,7 +88,7 @@
         </nav>
 
         {{-- Main Content --}}
-        <main class="flex-1">
+        <main id="main-content" class="flex-1">
             {{ $slot }}
         </main>
 

@@ -2,7 +2,7 @@
     <div class="max-w-4xl mx-auto space-y-6">
         {{-- Back --}}
         <a href="{{ route('games.detail', $game->id) }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Game
         </a>
 
@@ -21,7 +21,7 @@
 
         {{-- Flash Messages --}}
         @if(session()->has('info'))
-            <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 p-4">
+            <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 p-4" role="status" aria-live="polite">
                 <p class="text-sm text-blue-700 dark:text-blue-400">{{ session('info') }}</p>
             </div>
         @endif

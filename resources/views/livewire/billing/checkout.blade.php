@@ -8,7 +8,7 @@
         {{-- Flash Messages --}}
         @if(session('error'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 4000)"
-                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4">
+                 class="rounded-md bg-red-50 dark:bg-red-900/30 p-4" role="alert" aria-live="polite">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
         @endif
