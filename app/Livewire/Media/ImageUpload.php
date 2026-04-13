@@ -5,6 +5,7 @@ namespace App\Livewire\Media;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -13,7 +14,11 @@ class ImageUpload extends Component
 {
     use WithFileUploads;
 
-    public Model $model;
+    #[Locked]
+    public string $model_type;
+
+    #[Locked]
+    public string $model_id;
 
     /** The media collection name (e.g. 'logo', 'banner'). */
     public string $collection;
@@ -42,9 +47,18 @@ class ImageUpload extends Component
 
     public function mount(Model $model, string $collection = 'logo', string $label = 'Image'): void
     {
-        $this->model = $model;
+        $this->model_type = get_class($model);
+        $this->model_id = $model->getKey();
         $this->collection = $collection;
         $this->label = $label;
+    }
+
+    /**
+     * Resolve the Eloquent model from stored type and ID.
+     */
+    private function resolveModel(): Model
+    {
+        return app($this->model_type)::findOrFail((string) $this->model_id);
     }
 
     public function rules(): array
@@ -70,17 +84,19 @@ class ImageUpload extends Component
 
         $this->uploading = true;
 
+        $model = $this->resolveModel();
+
         try {
             // Clear existing media in this collection (singleFile behavior)
-            $this->model->clearMediaCollection($this->collection);
+            $model->clearMediaCollection($this->collection);
 
-            $this->model->addMedia($this->image->getRealPath())
+            $model->addMedia($this->image->getRealPath())
                 ->usingName($this->image->getClientOriginalName())
                 ->toMediaCollection($this->collection);
 
             Log::info('Media uploaded', [
-                'model_type' => get_class($this->model),
-                'model_id' => $this->model->getKey(),
+                'model_type' => $this->model_type,
+                'model_id' => $this->model_id,
                 'collection' => $this->collection,
                 'uploaded_by' => Auth::id(),
             ]);
@@ -90,8 +106,8 @@ class ImageUpload extends Component
             $this->image = null;
         } catch (\Throwable $e) {
             Log::error('Media upload failed', [
-                'model_type' => get_class($this->model),
-                'model_id' => $this->model->getKey(),
+                'model_type' => $this->model_type,
+                'model_id' => $this->model_id,
                 'collection' => $this->collection,
                 'uploaded_by' => Auth::id(),
                 'error' => $e->getMessage(),
@@ -106,12 +122,14 @@ class ImageUpload extends Component
 
     public function remove(): void
     {
+        $model = $this->resolveModel();
+
         try {
-            $this->model->clearMediaCollection($this->collection);
+            $model->clearMediaCollection($this->collection);
 
             Log::info('Media removed', [
-                'model_type' => get_class($this->model),
-                'model_id' => $this->model->getKey(),
+                'model_type' => $this->model_type,
+                'model_id' => $this->model_id,
                 'collection' => $this->collection,
                 'removed_by' => Auth::id(),
             ]);
@@ -120,8 +138,8 @@ class ImageUpload extends Component
             $this->messageType = 'success';
         } catch (\Throwable $e) {
             Log::error('Media removal failed', [
-                'model_type' => get_class($this->model),
-                'model_id' => $this->model->getKey(),
+                'model_type' => $this->model_type,
+                'model_id' => $this->model_id,
                 'collection' => $this->collection,
                 'error' => $e->getMessage(),
             ]);
@@ -133,12 +151,12 @@ class ImageUpload extends Component
 
     public function getHasMediaProperty(): bool
     {
-        return $this->model->fresh()->hasMedia($this->collection);
+        return $this->resolveModel()->hasMedia($this->collection);
     }
 
     public function getCurrentMediaProperty(): ?Media
     {
-        return $this->model->fresh()->getFirstMedia($this->collection);
+        return $this->resolveModel()->getFirstMedia($this->collection);
     }
 
     public function render()

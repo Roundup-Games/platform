@@ -71,7 +71,7 @@
                wire:model="image"
                accept="{{ $accept }}"
                class="hidden"
-               id="image-upload-{{ $collection }}-{{ $model->getKey() }}"
+               id="image-upload-{{ $collection }}-{{ $model_id }}"
                x-on:change="handleFileSelect($event)" />
 
         <div x-show="!preview && !$wire.image" class="space-y-2">
@@ -82,7 +82,7 @@
             </svg>
             <p class="text-sm text-gray-600 dark:text-gray-400">
                 Drag and drop or
-                <label for="image-upload-{{ $collection }}-{{ $model->getKey() }}"
+                <label for="image-upload-{{ $collection }}-{{ $model_id }}"
                        class="text-[#C12E26] hover:text-[#9A231F] cursor-pointer font-medium transition-colors">
                     browse
                 </label>
