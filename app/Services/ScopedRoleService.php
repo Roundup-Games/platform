@@ -36,14 +36,16 @@ class ScopedRoleService
         // Set the team context for Spatie's team-aware assignment
         setPermissionsTeamId($team->id);
 
-        $role = Role::where('name', $roleName)
-            ->whereNull('team_id')
-            ->firstOrFail();
+        try {
+            $role = Role::where('name', $roleName)
+                ->whereNull('team_id')
+                ->firstOrFail();
 
-        $user->assignRole($role);
-
-        // Reset team context
-        setPermissionsTeamId(null);
+            $user->assignRole($role);
+        } finally {
+            // Reset team context — guaranteed even on exception
+            setPermissionsTeamId(null);
+        }
     }
 
     /**
@@ -57,14 +59,16 @@ class ScopedRoleService
         // Use the event's ID as the team scope
         setPermissionsTeamId($event->id);
 
-        $role = Role::where('name', $roleName)
-            ->whereNull('team_id')
-            ->firstOrFail();
+        try {
+            $role = Role::where('name', $roleName)
+                ->whereNull('team_id')
+                ->firstOrFail();
 
-        $user->assignRole($role);
-
-        // Reset team context
-        setPermissionsTeamId(null);
+            $user->assignRole($role);
+        } finally {
+            // Reset team context — guaranteed even on exception
+            setPermissionsTeamId(null);
+        }
     }
 
     /**
@@ -74,9 +78,11 @@ class ScopedRoleService
     {
         setPermissionsTeamId($team->id);
 
-        $user->removeRole($roleName);
-
-        setPermissionsTeamId(null);
+        try {
+            $user->removeRole($roleName);
+        } finally {
+            setPermissionsTeamId(null);
+        }
     }
 
     /**
@@ -86,9 +92,11 @@ class ScopedRoleService
     {
         setPermissionsTeamId($event->id);
 
-        $user->removeRole($roleName);
-
-        setPermissionsTeamId(null);
+        try {
+            $user->removeRole($roleName);
+        } finally {
+            setPermissionsTeamId(null);
+        }
     }
 
     /**
@@ -113,11 +121,13 @@ class ScopedRoleService
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         $user->unsetRelations();
 
-        $hasPermission = $this->checkPermission($user, $permission);
-
-        setPermissionsTeamId(null);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        $user->unsetRelations();
+        try {
+            $hasPermission = $this->checkPermission($user, $permission);
+        } finally {
+            setPermissionsTeamId(null);
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            $user->unsetRelations();
+        }
 
         return $hasPermission;
     }
@@ -139,11 +149,13 @@ class ScopedRoleService
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         $user->unsetRelations();
 
-        $hasPermission = $this->checkPermission($user, $permission);
-
-        setPermissionsTeamId(null);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        $user->unsetRelations();
+        try {
+            $hasPermission = $this->checkPermission($user, $permission);
+        } finally {
+            setPermissionsTeamId(null);
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            $user->unsetRelations();
+        }
 
         return $hasPermission;
     }
@@ -290,24 +302,26 @@ class ScopedRoleService
 
         $originalTeamId = getPermissionsTeamId();
 
-        foreach ($scopedTeamIds as $teamId) {
-            setPermissionsTeamId($teamId);
+        try {
+            foreach ($scopedTeamIds as $teamId) {
+                setPermissionsTeamId($teamId);
+                app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+                $user->unsetRelations();
+
+                try {
+                    if ($user->hasPermissionTo($permission)) {
+                        return true;
+                    }
+                } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+                    continue;
+                }
+            }
+        } finally {
+            // Restore original context — guaranteed even on exception
+            setPermissionsTeamId($originalTeamId);
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
-
-            try {
-                if ($user->hasPermissionTo($permission)) {
-                    return true;
-                }
-            } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
-                continue;
-            }
         }
-
-        // Restore original context
-        setPermissionsTeamId($originalTeamId);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        $user->unsetRelations();
 
         return false;
     }
