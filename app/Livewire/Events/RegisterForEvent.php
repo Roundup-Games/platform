@@ -160,20 +160,18 @@ class RegisterForEvent extends Component
 
         $this->validate();
 
-        // Check for duplicate registration
-        $existingQuery = EventRegistration::where('event_id', $this->event->id)
-            ->where('user_id', $user->id)
-            ->whereNotIn('status', ['cancelled']);
+        // Check for duplicate registration (user or team, scoped to this event)
+        $existing = EventRegistration::where('event_id', $this->event->id)
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+                if ($this->registrationMode === 'team' && $this->selectedTeamId) {
+                    $q->orWhere('team_id', $this->selectedTeamId);
+                }
+            })
+            ->exists();
 
-        if ($this->registrationMode === 'team' && $this->selectedTeamId) {
-            $existingQuery->orWhere(function ($q) {
-                $q->where('event_id', $this->event->id)
-                    ->where('team_id', $this->selectedTeamId)
-                    ->whereNotIn('status', ['cancelled']);
-            });
-        }
-
-        if ($existingQuery->exists()) {
+        if ($existing) {
             session()->flash('error', 'You are already registered for this event.');
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
