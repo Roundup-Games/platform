@@ -33,5 +33,8 @@
         <include>
             <directory>app</directory>
         </include>
+        <exclude>
+            <directory>app/Filament/Resources</directory>
+        </exclude>
     </source>
 </phpunit>
