@@ -64,8 +64,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     {
         return $this->belongsToMany(Team::class, 'team_members')
             ->using(TeamMember::class)
-            ->withPivot(['role', 'status', 'jersey_number', 'position', 'joined_at', 'left_at', 'invited_by', 'notes'])
-            ->withTimestamps();
+            ->withPivot(['role', 'status', 'jersey_number', 'position', 'joined_at', 'left_at', 'invited_by', 'notes']);
     }
 
     public function activeTeam()

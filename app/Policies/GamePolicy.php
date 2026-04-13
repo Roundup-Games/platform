@@ -80,30 +80,6 @@ class GamePolicy
         return $this->checkPermission($user, 'delete game');
     }
 
-    /**
-     * Restore a soft-deleted game.
-     */
-    public function restore(User $user, Game $game): bool
-    {
-        if ($game->owner_id === $user->id) {
-            return true;
-        }
-
-        return $this->checkPermission($user, 'update game');
-    }
-
-    /**
-     * Force-delete a game permanently.
-     */
-    public function forceDelete(User $user, Game $game): bool
-    {
-        if ($game->owner_id === $user->id) {
-            return true;
-        }
-
-        return $this->checkPermission($user, 'delete game');
-    }
-
     private function checkPermission(User $user, string $permission): bool
     {
         return app(ScopedRoleService::class)->checkPermission($user, $permission);

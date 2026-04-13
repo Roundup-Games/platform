@@ -104,30 +104,6 @@ class TeamPolicy
         return app(ScopedRoleService::class)->hasTeamPermission($user, 'update team', $team);
     }
 
-    /**
-     * Restore a soft-deleted team.
-     */
-    public function restore(User $user, Team $team): bool
-    {
-        if ($team->isCaptain($user)) {
-            return true;
-        }
-
-        return app(ScopedRoleService::class)->hasTeamPermission($user, 'update team', $team);
-    }
-
-    /**
-     * Force-delete a team permanently.
-     */
-    public function forceDelete(User $user, Team $team): bool
-    {
-        if ($team->isCaptain($user)) {
-            return true;
-        }
-
-        return app(ScopedRoleService::class)->hasTeamPermission($user, 'delete team', $team);
-    }
-
     // ── Helpers ────────────────────────────────────────
 
     private function isCaptainOrCoach(User $user, Team $team): bool

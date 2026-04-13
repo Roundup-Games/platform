@@ -67,22 +67,6 @@ class MembershipTypePolicy
     }
 
     /**
-     * Restore a soft-deleted membership type.
-     */
-    public function restore(User $user, MembershipType $membershipType): bool
-    {
-        return $this->checkPermission($user, 'update membership');
-    }
-
-    /**
-     * Force-delete a membership type permanently.
-     */
-    public function forceDelete(User $user, MembershipType $membershipType): bool
-    {
-        return $this->checkPermission($user, 'delete membership');
-    }
-
-    /**
      * Check permission without throwing on missing permission.
      */
     private function checkPermission(User $user, string $permission): bool

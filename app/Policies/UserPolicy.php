@@ -75,26 +75,6 @@ class UserPolicy
     }
 
     /**
-     * Restore a soft-deleted user.
-     */
-    public function restore(User $user, User $targetUser): bool
-    {
-        return $this->checkPermission($user, 'update user');
-    }
-
-    /**
-     * Force-delete a user permanently.
-     */
-    public function forceDelete(User $user, User $targetUser): bool
-    {
-        if ($user->id === $targetUser->id) {
-            return false;
-        }
-
-        return $this->checkPermission($user, 'delete user');
-    }
-
-    /**
      * Check permission without throwing on missing permission.
      */
     private function checkPermission(User $user, string $permission): bool

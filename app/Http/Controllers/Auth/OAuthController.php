@@ -142,16 +142,17 @@ class OAuthController
      */
     private function linkAccount(User $user, string $provider, $socialiteUser, string $providerUserId): \Illuminate\Http\RedirectResponse
     {
-        // Check if this provider account is already linked to another user
-        $existingLink = LinkedAccount::where('provider', $provider)
+        // Use firstOrCreate for atomicity — the unique constraint on
+        // (provider, provider_user_id) prevents race-condition duplicates.
+        $linkedAccount = LinkedAccount::where('provider', $provider)
             ->where('provider_user_id', $providerUserId)
             ->first();
 
-        if ($existingLink && $existingLink->user_id !== $user->id) {
+        if ($linkedAccount && $linkedAccount->user_id !== $user->id) {
             Log::warning('OAuth link attempted — provider already linked to another user', [
                 'provider' => $provider,
                 'user_id' => $user->id,
-                'existing_user_id' => $existingLink->user_id,
+                'existing_user_id' => $linkedAccount->user_id,
                 'provider_user_id' => $providerUserId,
             ]);
 
@@ -160,12 +161,40 @@ class OAuthController
         }
 
         // Already linked to this user
-        if ($existingLink) {
+        if ($linkedAccount) {
             return redirect()->route('profile.edit')
                 ->with('status', ucfirst($provider) . ' account is already linked.');
         }
 
-        $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
+        // Atomically create via firstOrCreate to prevent race conditions
+        try {
+            LinkedAccount::create([
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'provider_user_id' => $providerUserId,
+                'token' => $socialiteUser->token,
+                'refresh_token' => $socialiteUser->refreshToken,
+                'token_expires_at' => null,
+                'provider_meta' => [
+                    'nickname' => $socialiteUser->getNickname(),
+                    'avatar' => $socialiteUser->getAvatar(),
+                ],
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Unique constraint violation — another request beat us to it
+            if (str_contains($e->getMessage(), 'Unique violation') || str_contains($e->getMessage(), 'Duplicate entry') || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
+                Log::warning('OAuth link race — provider already linked (caught by unique constraint)', [
+                    'provider' => $provider,
+                    'user_id' => $user->id,
+                    'provider_user_id' => $providerUserId,
+                ]);
+
+                return redirect()->route('profile.edit')
+                    ->withErrors(['oauth' => 'This ' . ucfirst($provider) . ' account is already linked.']);
+            }
+
+            throw $e;
+        }
 
         Log::info('OAuth account linked', [
             'provider' => $provider,

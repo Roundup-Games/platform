@@ -80,30 +80,6 @@ class CampaignPolicy
         return $this->checkPermission($user, 'delete campaign');
     }
 
-    /**
-     * Restore a soft-deleted campaign.
-     */
-    public function restore(User $user, Campaign $campaign): bool
-    {
-        if ($campaign->owner_id === $user->id) {
-            return true;
-        }
-
-        return $this->checkPermission($user, 'update campaign');
-    }
-
-    /**
-     * Force-delete a campaign permanently.
-     */
-    public function forceDelete(User $user, Campaign $campaign): bool
-    {
-        if ($campaign->owner_id === $user->id) {
-            return true;
-        }
-
-        return $this->checkPermission($user, 'delete campaign');
-    }
-
     private function checkPermission(User $user, string $permission): bool
     {
         return app(ScopedRoleService::class)->checkPermission($user, $permission);

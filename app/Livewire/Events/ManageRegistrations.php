@@ -10,11 +10,13 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use App\Traits\EscapesLikeWildcards;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class ManageRegistrations extends Component
 {
+    use EscapesLikeWildcards;
     use WithPagination;
 
     public Event $event;
@@ -45,12 +47,13 @@ class ManageRegistrations extends Component
             ->with(['user', 'team']);
 
         if ($this->search) {
-            $query->where(function ($q) {
-                $q->whereHas('user', function ($uq) {
-                    $uq->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('email', 'like', "%{$this->search}%");
-                })->orWhereHas('team', function ($tq) {
-                    $tq->where('name', 'like', "%{$this->search}%");
+            $escaped = $this->escapeLikeWildcards($this->search);
+            $query->where(function ($q) use ($escaped) {
+                $q->whereHas('user', function ($uq) use ($escaped) {
+                    $uq->where('name', 'like', "%{$escaped}%")
+                        ->orWhere('email', 'like', "%{$escaped}%");
+                })->orWhereHas('team', function ($tq) use ($escaped) {
+                    $tq->where('name', 'like', "%{$escaped}%");
                 });
             });
         }

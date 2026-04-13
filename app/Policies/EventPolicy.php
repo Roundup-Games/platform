@@ -88,30 +88,6 @@ class EventPolicy
     }
 
     /**
-     * Restore a soft-deleted event.
-     */
-    public function restore(User $user, Event $event): bool
-    {
-        if ($event->organizer_id === $user->id) {
-            return true;
-        }
-
-        return app(ScopedRoleService::class)->hasEventPermission($user, 'update event', $event);
-    }
-
-    /**
-     * Force-delete an event permanently.
-     */
-    public function forceDelete(User $user, Event $event): bool
-    {
-        if ($event->organizer_id === $user->id) {
-            return true;
-        }
-
-        return app(ScopedRoleService::class)->hasEventPermission($user, 'delete event', $event);
-    }
-
-    /**
      * Check permission without throwing on missing permission.
      */
     private function checkPermission(User $user, string $permission): bool

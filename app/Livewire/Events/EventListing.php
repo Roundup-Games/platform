@@ -6,11 +6,13 @@ use App\Models\Event;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use App\Traits\EscapesLikeWildcards;
 use Livewire\WithPagination;
 
 #[Layout('components.public-layout')]
 class EventListing extends Component
 {
+    use EscapesLikeWildcards;
     use WithPagination;
 
     #[Url(as: 'q')]
@@ -57,9 +59,10 @@ class EventListing extends Component
             ->where('is_public', true)
             ->whereIn('status', ['published', 'registration_open', 'registration_closed', 'in_progress'])
             ->when($this->search, fn ($q) => $q->where(function ($q) {
-                $q->where('name', 'like', "%{$this->search}%")
-                  ->orWhere('city', 'like', "%{$this->search}%")
-                  ->orWhere('venue_name', 'like', "%{$this->search}%");
+                $escaped = $this->escapeLikeWildcards($this->search);
+                $q->where('name', 'like', "%{$escaped}%")
+                  ->orWhere('city', 'like', "%{$escaped}%")
+                  ->orWhere('venue_name', 'like', "%{$escaped}%");
             }))
             ->when($this->type, fn ($q) => $q->where('type', $this->type))
             ->when($this->status, fn ($q) => $q->where('status', $this->status))

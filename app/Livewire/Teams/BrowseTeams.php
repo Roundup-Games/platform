@@ -7,11 +7,13 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use App\Traits\EscapesLikeWildcards;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class BrowseTeams extends Component
 {
+    use EscapesLikeWildcards;
     use WithPagination;
 
     #[Url(as: 'q')]
@@ -30,9 +32,10 @@ class BrowseTeams extends Component
         $teams = Team::query()
             ->where('is_active', true)
             ->when($this->search, fn ($q) => $q->where(function ($q) {
-                $q->where('name', 'like', "%{$this->search}%")
-                  ->orWhere('city', 'like', "%{$this->search}%")
-                  ->orWhere('country', 'like', "%{$this->search}%");
+                $escaped = $this->escapeLikeWildcards($this->search);
+                $q->where('name', 'like', "%{$escaped}%")
+                  ->orWhere('city', 'like', "%{$escaped}%")
+                  ->orWhere('country', 'like', "%{$escaped}%");
             }))
             ->when($this->sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))
             ->when($this->sort === 'name', fn ($q) => $q->orderBy('name'))

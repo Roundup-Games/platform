@@ -10,14 +10,19 @@ use Illuminate\Support\Facades\Gate;
 
 // ═══════════════════════════════════════════════════════════
 // POLICY RESTORE / FORCE-DELETE COVERAGE
+//
+// No model uses SoftDeletes, so restore/forceDelete are always
+// denied (Laravel's default behaviour when the policy method
+// does not exist). These tests confirm the dead-code removal
+// is safe — the actions are correctly rejected.
 // ═══════════════════════════════════════════════════════════
 
-describe('CampaignPolicy — Restore & ForceDelete', function () {
-    it('allows owner to restore', function () {
+describe('CampaignPolicy — Restore & ForceDelete denied', function () {
+    it('denies owner from restoring (no SoftDeletes)', function () {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
-        expect(Gate::forUser($owner)->allows('restore', $campaign))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('restore', $campaign))->toBeFalse();
     });
 
     it('denies stranger from restoring', function () {
@@ -27,11 +32,11 @@ describe('CampaignPolicy — Restore & ForceDelete', function () {
         expect(Gate::forUser($stranger)->allows('restore', $campaign))->toBeFalse();
     });
 
-    it('allows owner to forceDelete', function () {
+    it('denies owner from forceDeleting (no SoftDeletes)', function () {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
-        expect(Gate::forUser($owner)->allows('forceDelete', $campaign))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('forceDelete', $campaign))->toBeFalse();
     });
 
     it('denies stranger from forceDeleting', function () {
@@ -42,12 +47,12 @@ describe('CampaignPolicy — Restore & ForceDelete', function () {
     });
 });
 
-describe('GamePolicy — Restore & ForceDelete', function () {
-    it('allows owner to restore', function () {
+describe('GamePolicy — Restore & ForceDelete denied', function () {
+    it('denies owner from restoring (no SoftDeletes)', function () {
         $owner = User::factory()->create();
         $game = Game::factory()->create(['owner_id' => $owner->id]);
 
-        expect(Gate::forUser($owner)->allows('restore', $game))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('restore', $game))->toBeFalse();
     });
 
     it('denies stranger from restoring', function () {
@@ -57,11 +62,11 @@ describe('GamePolicy — Restore & ForceDelete', function () {
         expect(Gate::forUser($stranger)->allows('restore', $game))->toBeFalse();
     });
 
-    it('allows owner to forceDelete', function () {
+    it('denies owner from forceDeleting (no SoftDeletes)', function () {
         $owner = User::factory()->create();
         $game = Game::factory()->create(['owner_id' => $owner->id]);
 
-        expect(Gate::forUser($owner)->allows('forceDelete', $game))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('forceDelete', $game))->toBeFalse();
     });
 
     it('denies stranger from forceDeleting', function () {
@@ -72,12 +77,12 @@ describe('GamePolicy — Restore & ForceDelete', function () {
     });
 });
 
-describe('EventPolicy — Restore & ForceDelete', function () {
-    it('allows organizer to restore', function () {
+describe('EventPolicy — Restore & ForceDelete denied', function () {
+    it('denies organizer from restoring (no SoftDeletes)', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create(['organizer_id' => $organizer->id]);
 
-        expect(Gate::forUser($organizer)->allows('restore', $event))->toBeTrue();
+        expect(Gate::forUser($organizer)->allows('restore', $event))->toBeFalse();
     });
 
     it('denies stranger from restoring', function () {
@@ -87,11 +92,11 @@ describe('EventPolicy — Restore & ForceDelete', function () {
         expect(Gate::forUser($stranger)->allows('restore', $event))->toBeFalse();
     });
 
-    it('allows organizer to forceDelete', function () {
+    it('denies organizer from forceDeleting (no SoftDeletes)', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create(['organizer_id' => $organizer->id]);
 
-        expect(Gate::forUser($organizer)->allows('forceDelete', $event))->toBeTrue();
+        expect(Gate::forUser($organizer)->allows('forceDelete', $event))->toBeFalse();
     });
 
     it('denies stranger from forceDeleting', function () {
@@ -102,8 +107,8 @@ describe('EventPolicy — Restore & ForceDelete', function () {
     });
 });
 
-describe('TeamPolicy — Restore & ForceDelete', function () {
-    it('allows captain to restore', function () {
+describe('TeamPolicy — Restore & ForceDelete denied', function () {
+    it('denies captain from restoring (no SoftDeletes)', function () {
         $captain = User::factory()->create();
         $team = Team::factory()->create();
         \App\Models\TeamMember::create([
@@ -114,7 +119,7 @@ describe('TeamPolicy — Restore & ForceDelete', function () {
             'joined_at' => now(),
         ]);
 
-        expect(Gate::forUser($captain)->allows('restore', $team))->toBeTrue();
+        expect(Gate::forUser($captain)->allows('restore', $team))->toBeFalse();
     });
 
     it('denies player from restoring', function () {
@@ -131,7 +136,7 @@ describe('TeamPolicy — Restore & ForceDelete', function () {
         expect(Gate::forUser($player)->allows('restore', $team))->toBeFalse();
     });
 
-    it('allows captain to forceDelete', function () {
+    it('denies captain from forceDeleting (no SoftDeletes)', function () {
         $captain = User::factory()->create();
         $team = Team::factory()->create();
         \App\Models\TeamMember::create([
@@ -142,7 +147,7 @@ describe('TeamPolicy — Restore & ForceDelete', function () {
             'joined_at' => now(),
         ]);
 
-        expect(Gate::forUser($captain)->allows('forceDelete', $team))->toBeTrue();
+        expect(Gate::forUser($captain)->allows('forceDelete', $team))->toBeFalse();
     });
 
     it('denies player from forceDeleting', function () {
