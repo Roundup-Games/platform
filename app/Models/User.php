@@ -72,7 +72,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         return $this->belongsToMany(Team::class, 'team_members')
             ->using(TeamMember::class)
             ->wherePivot('status', 'active')
-            ->withPivot(['role', 'status', 'jersey_number', 'position'])
+            ->withPivot(['role', 'status', 'jersey_number', 'position', 'joined_at'])
+            ->orderByPivot('joined_at', 'desc')
             ->limit(1);
     }
 

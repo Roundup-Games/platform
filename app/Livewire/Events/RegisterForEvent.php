@@ -293,8 +293,21 @@ class RegisterForEvent extends Component
             ]);
 
             $checkout = $user->pay($priceId)
-                ->returnTo(route('events.detail', ['slug' => $this->event->slug]))
+                ->returnTo(route('events.detail', [
+                    'slug' => $this->event->slug,
+                    'registration' => $registration->id,
+                ]))
                 ->create();
+
+            // Store the Paddle checkout/session ID on the registration for reconciliation
+            $registration->update([
+                'payment_id' => $checkout->id(),
+            ]);
+
+            Log::info('Stored payment_id on registration', [
+                'registration_id' => $registration->id,
+                'payment_id' => $checkout->id(),
+            ]);
 
             $this->redirect($checkout);
 
