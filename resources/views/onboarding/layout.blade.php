@@ -7,23 +7,34 @@
 
         <title>{{ config('app.name', 'Roundup Games') }} — Complete Your Profile</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=montserrat:400,500,600,700&family=oswald:500,600,700&display=swap" rel="stylesheet" />
+        {{-- Dark mode: apply class before paint to prevent flash --}}
+        <script>
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
 
-        <!-- Scripts -->
+        {{-- Fonts: Noto Serif for headings, Inter for body, Material Symbols for icons --}}
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+        {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-['Montserrat'] text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <body class="font-sans text-on-surface antialiased">
+        <div class="min-h-screen flex flex-col items-center justify-center bg-surface dark:bg-[#1b1c17] px-4">
             <div class="w-full max-w-lg">
+                {{-- Logo --}}
                 <div class="text-center mb-8">
                     <a href="/" wire:navigate class="inline-flex items-center gap-2">
-                        <span class="text-2xl font-heading font-bold uppercase text-brand-dark">Roundup Games</span>
+                        <span class="text-2xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface dark:text-[#eae8e0]">Games</span></span>
                     </a>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Complete your profile to get started</p>
+                    <p class="mt-2 text-sm text-on-surface-variant">Complete your profile to get started</p>
                 </div>
 
+                {{-- Content --}}
                 {{ $slot }}
             </div>
         </div>

@@ -7,36 +7,38 @@
 
         <title>{{ config('app.name', 'Roundup Games') }}</title>
 
-        <!-- Dark mode: apply class before paint to prevent flash -->
+        {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>
             if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             }
         </script>
 
-        <!-- Fonts: Oswald for headers, Montserrat for body -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=montserrat:400,500,600,700&family=oswald:500,600,700&display=swap" rel="stylesheet" />
+        {{-- Fonts: Noto Serif for headings, Inter for body, Material Symbols for icons --}}
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
+        {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 dark:text-gray-100 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
-            <!-- Brand Header -->
+    <body class="font-sans text-on-surface antialiased">
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-surface dark:bg-[#1b1c17]">
+            {{-- Brand Header --}}
             <div class="mb-2">
                 <a href="/" wire:navigate class="flex items-center gap-2">
-                    <span class="text-3xl font-heading font-bold uppercase text-brand">Roundup<span class="text-gray-800 dark:text-gray-200">Games</span></span>
+                    <span class="text-3xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface dark:text-[#eae8e0]">Games</span></span>
                 </a>
             </div>
 
-            <!-- Auth Card -->
-            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-white dark:bg-gray-800 shadow-lg overflow-hidden sm:rounded-2xl border border-gray-100 dark:border-gray-700">
+            {{-- Auth Card — surface_container_lowest bg, editorial shadow, xl+ rounded --}}
+            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-surface-container-lowest dark:bg-[#2a2b24] editorial-shadow overflow-hidden sm:rounded-2xl border border-outline-variant/15">
                 {{ $slot }}
             </div>
 
-            <!-- Footer -->
-            <p class="mt-6 text-xs text-gray-400 dark:text-gray-600">&copy; {{ date('Y') }} Roundup Games. All rights reserved.</p>
+            {{-- Footer --}}
+            <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} Roundup Games. All rights reserved.</p>
         </div>
     </body>
 </html>
