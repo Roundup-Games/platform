@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Mail\ContactFormSubmitted;
 use App\Models\ContactMessage;
 use App\Models\Event;
+use App\Models\EventRegistration;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -26,7 +28,10 @@ class PageController extends Controller
             ->take(3)
             ->get();
 
-        return view('pages.home', compact('upcomingEvents', 'featuredEvents'));
+        $teamCount = Team::count();
+        $registrationCount = EventRegistration::count();
+
+        return view('pages.home', compact('upcomingEvents', 'featuredEvents', 'teamCount', 'registrationCount'));
     }
 
     public function about()

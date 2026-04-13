@@ -248,7 +248,7 @@
                         </div>
                         @endif
                     </div>
-                    <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 pt-2">Fees <span class="text-xs text-gray-400">(cents)</span></h3>
+                    <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 pt-2">Fees <span class="text-xs text-gray-400">(enter amount in cents, e.g. 500 = $5.00)</span></h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         @if(in_array($registration_type, ['team', 'both']))
                         <div>

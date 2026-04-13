@@ -49,12 +49,12 @@
                     <div class="text-sm text-gray-400 mt-1">Featured</div>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-heading font-bold text-[#E8483F]">Teams</div>
-                    <div class="text-sm text-gray-400 mt-1">Community</div>
+                    <div class="text-2xl sm:text-3xl font-heading font-bold text-[#E8483F]">{{ $teamCount }}</div>
+                    <div class="text-sm text-gray-400 mt-1">Teams</div>
                 </div>
                 <div>
-                    <div class="text-2xl sm:text-3xl font-heading font-bold text-[#E8483F]">Weekly</div>
-                    <div class="text-sm text-gray-400 mt-1">Competitions</div>
+                    <div class="text-2xl sm:text-3xl font-heading font-bold text-[#E8483F]">{{ $registrationCount }}</div>
+                    <div class="text-sm text-gray-400 mt-1">Registrations</div>
                 </div>
             </div>
         </div>

@@ -7,7 +7,6 @@
         </div>
 
         {{-- Flash Messages --}}
-        @flash
         @if(session('success'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 4000)"
                  class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">

@@ -6,7 +6,12 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your account information and preferences.</p>
         </div>
 
-        @flash
+        @if(session()->has('success'))
+            <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
+                 class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
+                <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            </div>
+        @endif
         @if($saved)
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
                  class="rounded-md bg-green-50 dark:bg-green-900/30 p-4">
