@@ -33,7 +33,7 @@ class Team extends Model implements HasMedia
     {
         static::creating(function (self $team) {
             if (empty($team->slug)) {
-                $team->slug = Str::slug($team->name);
+                $team->slug = Str::slug($team->name) . '-' . Str::random(6);
             }
         });
     }
