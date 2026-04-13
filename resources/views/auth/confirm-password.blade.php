@@ -1,8 +1,8 @@
 <x-guest-layout>
     <!-- Page Title -->
     <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl font-bold uppercase text-gray-900 dark:text-gray-100">Confirm Password</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">This is a secure area. Please confirm your password.</p>
+        <h1 class="font-heading text-2xl font-bold text-on-surface">Confirm Password</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">This is a secure area. Please confirm your password.</p>
     </div>
 
     <form method="POST" action="{{ route('password.confirm') }}">

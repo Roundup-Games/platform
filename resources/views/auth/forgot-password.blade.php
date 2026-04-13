@@ -1,8 +1,8 @@
 <x-guest-layout>
     <!-- Page Title -->
     <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl font-bold uppercase text-gray-900 dark:text-gray-100">Reset Password</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No problem. We'll send you a reset link.</p>
+        <h1 class="font-heading text-2xl font-bold text-on-surface">Reset Password</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">No problem. We'll send you a reset link.</p>
     </div>
 
     <!-- Session Status -->
