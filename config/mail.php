@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', env('RESEND_API_KEY') ? 'resend' : 'log'),
 
     /*
     |--------------------------------------------------------------------------
@@ -111,8 +111,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@roundupgames.com'),
+        'name' => env('MAIL_FROM_NAME', 'Roundup Games'),
     ],
 
 ];
