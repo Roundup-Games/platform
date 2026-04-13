@@ -41,11 +41,47 @@
                     </div>
 
                     {{-- Mobile menu button --}}
-                    <button class="sm:hidden text-white p-2" x-data="{ open: false }" @click="open = !open">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                    <div class="sm:hidden text-white" x-data="{ open: false }">
+                        <button @click="open = !open" class="p-2">
+                            <svg class="h-6 w-6" :class="{'hidden': open, 'block': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                            <svg class="h-6 w-6" :class="{'block': open, 'hidden': !open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        {{-- Mobile Nav Dropdown --}}
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 -translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 -translate-y-1"
+                             class="absolute left-0 right-0 bg-[#C12E26] dark:bg-brand-dark border-t border-white/10 z-50">
+                            <div class="px-4 py-3 space-y-1">
+                                <a href="{{ url('/') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Home</a>
+                                <a href="{{ route('events.index') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('events.*') ? 'bg-white/20 text-white' : '' }}">Events</a>
+                                <a href="{{ route('teams.browse') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Teams</a>
+                                <a href="{{ route('about') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">About</a>
+                                <a href="{{ route('contact') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Contact</a>
+
+                                <div class="pt-2 border-t border-white/20 mt-2 space-y-1">
+                                    @auth
+                                        <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Dashboard</a>
+                                        <form method="POST" action="{{ route('logout') }}">
+                                            @csrf
+                                            <button type="submit" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Log Out</button>
+                                        </form>
+                                    @else
+                                        <a href="{{ route('login') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Log in</a>
+                                        <a href="{{ route('register') }}" class="block px-3 py-2 rounded-lg text-sm font-medium bg-white text-[#C12E26] rounded-lg hover:bg-white/90">Sign up</a>
+                                    @endauth
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>

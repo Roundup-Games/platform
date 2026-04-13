@@ -41,7 +41,11 @@
                 <!-- Mobile Nav Menu -->
                 <div :class="{'block': open, 'hidden': !open}" class="px-4 pb-4 space-y-1">
                     <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white' : '' }}">Dashboard</a>
+                    <a href="{{ route('events.index') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('events.*') ? 'bg-white/20 text-white' : '' }}">Events</a>
+                    <a href="{{ route('games.create') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('games.*') ? 'bg-white/20 text-white' : '' }}">Games</a>
+                    <a href="{{ route('campaigns.create') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('campaigns.*') ? 'bg-white/20 text-white' : '' }}">Campaigns</a>
                     <a href="{{ route('teams.browse') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('teams.*') ? 'bg-white/20 text-white' : '' }}">Teams</a>
+                    <a href="{{ route('billing.portal') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('billing.*') ? 'bg-white/20 text-white' : '' }}">Billing</a>
                     <a href="{{ route('profile.show') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('profile.*') ? 'bg-white/20 text-white' : '' }}">Profile</a>
                     <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
@@ -69,10 +73,38 @@
                             </span>
                         </x-responsive-nav-link>
 
+                        <x-responsive-nav-link :href="route('events.index')" :active="request()->routeIs('events.*')">
+                            <span class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                Events
+                            </span>
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('games.create')" :active="request()->routeIs('games.*')">
+                            <span class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Games
+                            </span>
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('campaigns.create')" :active="request()->routeIs('campaigns.*')">
+                            <span class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.5 1.5 0 01-2.646.967L5.5 16.5H4a1.5 1.5 0 01-1.5-1.5v-6A1.5 1.5 0 014 7.5h1.5l2.854-3.707A1.5 1.5 0 0111 5.882zM17.25 12a3.75 3.75 0 01-1.5 3.025M19.5 12a6 6 0 01-2.25 4.813" /></svg>
+                                Campaigns
+                            </span>
+                        </x-responsive-nav-link>
+
                         <x-responsive-nav-link :href="route('teams.browse')" :active="request()->routeIs('teams.*')">
                             <span class="flex items-center gap-3">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 Teams
+                            </span>
+                        </x-responsive-nav-link>
+
+                        <x-responsive-nav-link :href="route('billing.portal')" :active="request()->routeIs('billing.*')">
+                            <span class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                Billing
                             </span>
                         </x-responsive-nav-link>
 
