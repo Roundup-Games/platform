@@ -60,11 +60,14 @@ Route::get('/teams/{slug}', App\Livewire\Teams\TeamDetail::class)->name('teams.d
 // ── Events (Public) ────────────────────────────────────
 
 Route::get('/events', App\Livewire\Events\EventListing::class)->name('events.index');
-Route::get('/events/{slug}', App\Livewire\Events\EventDetail::class)->name('events.detail');
+Route::get('/events/create', App\Livewire\Events\CreateEvent::class)->name('events.create')->middleware(['auth', 'verified', 'profile.complete']);
+Route::get('/events/{slug}', App\Livewire\Events\EventDetail::class)->name('events.detail')->where('slug', '[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*+');
 
 // ── Events (Authenticated) ─────────────────────────────
 
 Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
+    Route::get('/events/{slug}/manage', App\Livewire\Events\ManageEvent::class)->name('events.manage');
+    Route::get('/events/{slug}/announcements', App\Livewire\Events\EventAnnouncements::class)->name('events.announcements');
     Route::get('/events/{slug}/register', App\Livewire\Events\RegisterForEvent::class)->name('events.register');
     Route::get('/events/{slug}/registrations', App\Livewire\Events\ManageRegistrations::class)->name('events.manage-registrations');
 });
