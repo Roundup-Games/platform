@@ -7,13 +7,6 @@
 
         <title>{{ config('app.name', 'Roundup Games') }}</title>
 
-        {{-- Dark mode: apply class before paint to prevent flash --}}
-        <script>
-            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            }
-        </script>
-
         {{-- Fonts: Noto Serif for headings, Inter for body, Material Symbols for icons --}}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,17 +16,17 @@
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-on-surface antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-surface dark:bg-[#1b1c17]">
+    <body class="font-body text-on-surface antialiased">
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-surface">
             {{-- Brand Header --}}
             <div class="mb-2">
                 <a href="/" wire:navigate class="flex items-center gap-2">
-                    <span class="text-3xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface dark:text-[#eae8e0]">Games</span></span>
+                    <span class="text-3xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
                 </a>
             </div>
 
             {{-- Auth Card — surface_container_lowest bg, editorial shadow, xl+ rounded --}}
-            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-surface-container-lowest dark:bg-[#2a2b24] editorial-shadow overflow-hidden sm:rounded-2xl border border-outline-variant/15">
+            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-surface-container-lowest editorial-shadow overflow-hidden sm:rounded-2xl border border-outline-variant/15">
                 {{ $slot }}
             </div>
 
