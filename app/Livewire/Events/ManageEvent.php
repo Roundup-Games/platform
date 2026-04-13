@@ -3,6 +3,7 @@
 namespace App\Livewire\Events;
 
 use App\Models\Event;
+use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -179,6 +180,22 @@ class ManageEvent extends Component
         $this->authorize('update', $this->event);
         $this->validate();
 
+        // Only global admins can change is_featured — non-admins keep the current value
+        $isFeatured = $this->is_featured;
+        if ($isFeatured !== (bool) $this->event->getOriginal('is_featured')) {
+            $user = Auth::user();
+            $isAdmin = $user && app(ScopedRoleService::class)->isGlobalAdmin($user);
+
+            if (! $isAdmin) {
+                Log::warning('Non-admin attempted to change is_featured', [
+                    'user_id' => $user?->id,
+                    'event_id' => $this->event->id,
+                    'attempted_value' => $isFeatured,
+                ]);
+                $isFeatured = (bool) $this->event->getOriginal('is_featured');
+            }
+        }
+
         $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
         $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
 
@@ -212,7 +229,7 @@ class ManageEvent extends Component
             'contact_email' => $this->contact_email ?: null,
             'contact_phone' => $this->contact_phone ?: null,
             'is_public' => $this->is_public,
-            'is_featured' => $this->is_featured,
+            'is_featured' => $isFeatured,
         ], fn ($value) => $value !== null));
 
         Log::info('Event updated', [

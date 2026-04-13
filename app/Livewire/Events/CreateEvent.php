@@ -49,7 +49,6 @@ class CreateEvent extends Component
     public string $contact_email = '';
     public string $contact_phone = '';
     public bool $is_public = true;
-    public bool $is_featured = false;
 
     public function mount(): void
     {
@@ -144,7 +143,6 @@ class CreateEvent extends Component
             'contact_phone' => $this->contact_phone ?: null,
             'organizer_id' => Auth::id(),
             'is_public' => $this->is_public,
-            'is_featured' => $this->is_featured,
         ], fn ($value) => $value !== null));
 
         Log::info('Event created', [
@@ -197,7 +195,6 @@ class CreateEvent extends Component
                 'contact_email' => 'nullable|email',
                 'contact_phone' => 'nullable|string|max:30',
                 'is_public' => 'boolean',
-                'is_featured' => 'boolean',
             ],
             default => null,
         };

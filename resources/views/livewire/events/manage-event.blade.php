@@ -370,10 +370,12 @@
                             <input type="checkbox" wire:model="is_public" class="rounded border-gray-300 text-[#C12E26] focus:ring-[#C12E26]" />
                             <span class="text-sm text-gray-700 dark:text-gray-300">Public Event</span>
                         </label>
+                        @if(auth()->user() && app(\App\Services\ScopedRoleService::class)->isGlobalAdmin(auth()->user()))
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" wire:model="is_featured" class="rounded border-gray-300 text-[#C12E26] focus:ring-[#C12E26]" />
                             <span class="text-sm text-gray-700 dark:text-gray-300">Featured</span>
                         </label>
+                        @endif
                     </div>
                 </div>
             @endif
