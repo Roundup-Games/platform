@@ -103,7 +103,7 @@
                             <div>
                                 <h3 class="font-medium text-gray-900 dark:text-gray-100">Community</h3>
                                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Join events, connect with other players, and be part of the community.</p>
-                                <a href="{{ route('events.index') }}" class="mt-2 inline-flex items-center text-sm font-medium text-[#C12E26] hover:underline">
+                                <a href="{{ route('events.index') }}" wire:navigate class="mt-2 inline-flex items-center text-sm font-medium text-brand-dark hover:underline">
                                     Browse Events →
                                 </a>
                             </div>

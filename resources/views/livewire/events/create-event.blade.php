@@ -3,12 +3,12 @@
         {{-- Page Header --}}
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('events.index') }}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <a href="{{ route('events.index') }}" wire:navigate class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                     <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </a>
-                <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Create Event</h1>
+                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Create Event</h1>
             </div>
             <p class="ml-8 text-sm text-gray-500 dark:text-gray-400">Set up a new event for your participants.</p>
         </div>
@@ -21,7 +21,7 @@
                 @endphp
                 @foreach($stepLabels as $num => $label)
                     <button wire:click="goToStep({{ $num }})"
-                            class="flex items-center gap-2 text-sm {{ $step === $num ? 'text-[#C12E26] font-semibold' : ($step > $num ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500') }}">
+                            class="flex items-center gap-2 text-sm {{ $step === $num ? 'text-brand-dark font-semibold' : ($step > $num ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500') }}">
                         <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 {{ $step === $num ? 'border-[#C12E26] bg-[#C12E26] text-white' : ($step > $num ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 dark:border-gray-600 text-gray-400') }}">
                             @if($step > $num)
                                 ✓
@@ -346,7 +346,7 @@
                         ← Back
                     </button>
                 @else
-                    <a href="{{ route('events.index') }}"
+                    <a href="{{ route('events.index') }}" wire:navigate
                        class="px-4 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-sm transition-colors">
                         Cancel
                     </a>

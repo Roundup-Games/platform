@@ -63,7 +63,7 @@
                         {{ str_replace('_', ' ', ucfirst($date)) }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-[#C12E26] hover:underline">Clear all</button>
+                <button wire:click="clearFilters" class="text-xs text-brand-dark hover:underline">Clear all</button>
             </div>
         @endif
 
@@ -71,7 +71,7 @@
         @if($events->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($events as $event)
-                    <a href="{{ route('events.detail', $event->slug) }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 overflow-hidden group">
+                    <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 overflow-hidden group">
                         {{-- Featured indicator --}}
                         @if($event->is_featured)
                             <div class="h-1.5 bg-gradient-to-r from-[#C12E26] to-[#E8483F]"></div>
@@ -81,7 +81,7 @@
 
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-2">
-                                <h3 class="font-['Oswald'] font-semibold text-lg text-gray-900 dark:text-gray-100 uppercase tracking-wide group-hover:text-[#C12E26] transition-colors">
+                                <h3 class="font-heading font-semibold text-lg text-gray-900 dark:text-gray-100 uppercase tracking-wide group-hover:text-[#C12E26] transition-colors">
                                     {{ $event->name }}
                                 </h3>
                                 @if($event->is_featured)

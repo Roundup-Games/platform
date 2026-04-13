@@ -2,7 +2,7 @@
     {{-- Back link --}}
     <div class="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
-            <a href="{{ route('events.index') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+            <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                 <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Back to Events
             </a>
@@ -80,7 +80,7 @@
                 {{-- Description --}}
                 @if($event->description)
                     <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">About This Event</h2>
+                        <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">About This Event</h2>
                         <div class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
                             {{ $event->description }}
                         </div>
@@ -90,7 +90,7 @@
                 {{-- Divisions --}}
                 @if($event->divisions && count($event->divisions) > 0)
                     <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Divisions</h2>
+                        <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Divisions</h2>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             @foreach($event->divisions as $division)
                                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -111,7 +111,7 @@
                 {{-- Schedule --}}
                 @if($event->schedule && count($event->schedule) > 0)
                     <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Schedule</h2>
+                        <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Schedule</h2>
                         <div class="space-y-3">
                             @foreach($event->schedule as $item)
                                 <div class="flex items-start gap-3 py-2 {{ !$loop->last ? 'border-b border-gray-100 dark:border-gray-700' : '' }}">
@@ -133,14 +133,14 @@
                 {{-- Announcements --}}
                 @if($announcements->count())
                     <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                        <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Announcements</h2>
+                        <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Announcements</h2>
                         <div class="space-y-4">
                             @foreach($announcements as $announcement)
                                 <div class="border-l-4 {{ $announcement->is_pinned ? 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10' : 'border-gray-300 dark:border-gray-600' }} pl-4 py-2">
                                     <div class="flex items-center gap-2">
                                         <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ $announcement->title }}</h3>
                                         @if($announcement->is_pinned)
-                                            <span class="text-xs text-[#C12E26]">📌 Pinned</span>
+                                            <span class="text-xs text-brand-dark">📌 Pinned</span>
                                         @endif
                                     </div>
                                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ $announcement->content }}</p>
@@ -253,11 +253,11 @@
                     <div class="mt-6">
                         @if($event->isRegistrationOpen() && $event->hasCapacity())
                             @auth
-                                <a href="{{ route('events.register', ['slug' => $event->slug]) }}" class="block w-full text-center px-4 py-3 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors font-medium">
+                                <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate class="block w-full text-center px-4 py-3 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors font-medium">
                                     Register Now
                                 </a>
                             @else
-                                <a href="{{ route('login') }}" class="block w-full text-center px-4 py-3 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors font-medium">
+                                <a href="{{ route('login') }}" wire:navigate class="block w-full text-center px-4 py-3 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors font-medium">
                                     Sign in to Register
                                 </a>
                             @endauth
@@ -296,7 +296,7 @@
                         <div class="mt-3 text-sm space-y-1">
                             @if($event->contact_email)
                                 <p class="text-gray-600 dark:text-gray-300">
-                                    <a href="mailto:{{ $event->contact_email }}" class="text-[#C12E26] hover:underline">{{ $event->contact_email }}</a>
+                                    <a href="mailto:{{ $event->contact_email }}" class="text-brand-dark hover:underline">{{ $event->contact_email }}</a>
                                 </p>
                             @endif
                             @if($event->contact_phone)

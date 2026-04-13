@@ -8,7 +8,7 @@
                 </h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $event->name }}</p>
             </div>
-            <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" class="text-sm text-[#C12E26] hover:underline">
+            <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="text-sm text-brand-dark hover:underline">
                 ← Back to Event
             </a>
         </div>
@@ -112,7 +112,7 @@
                                         <p class="font-medium text-gray-900 dark:text-gray-100">{{ $registration->user?->name ?? 'Unknown' }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ $registration->user?->email }}</p>
                                         @if($registration->team)
-                                            <p class="text-xs text-[#C12E26]">Team: {{ $registration->team->name }}</p>
+                                            <p class="text-xs text-brand-dark">Team: {{ $registration->team->name }}</p>
                                         @endif
                                     </div>
                                 </td>

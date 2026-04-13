@@ -17,7 +17,7 @@
 
             <!-- Quick Actions -->
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('profile.show') }}" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brand dark:hover:border-brand transition-colors group">
+                <a href="{{ route('profile.show') }}" wire:navigate class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brand dark:hover:border-brand transition-colors group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center">
                             <svg aria-hidden="true" class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>

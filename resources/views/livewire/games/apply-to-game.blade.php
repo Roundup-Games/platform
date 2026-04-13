@@ -1,7 +1,7 @@
 <div class="py-8">
     <div class="max-w-4xl mx-auto space-y-6">
         {{-- Back --}}
-        <a href="{{ route('games.detail', $game->id) }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+        <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
             <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Game
         </a>
@@ -10,11 +10,11 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
             <div class="h-3 bg-[#C12E26]"></div>
             <div class="p-6">
-                <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
+                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
                     {{ $game->name }}
                 </h1>
                 @if($game->gameSystem)
-                    <p class="mt-1 text-sm text-[#C12E26] font-medium">{{ $game->gameSystem->name }}</p>
+                    <p class="mt-1 text-sm text-brand-dark font-medium">{{ $game->gameSystem->name }}</p>
                 @endif
             </div>
         </div>
@@ -36,14 +36,14 @@
                         You have already applied to this game.
                     @endif
                 </p>
-                <a href="{{ route('games.detail', $game->id) }}" class="mt-4 inline-flex items-center px-4 py-2 bg-[#C12E26] hover:bg-[#9A231F] text-white text-sm font-medium rounded-md transition-colors">
+                <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center px-4 py-2 bg-[#C12E26] hover:bg-[#9A231F] text-white text-sm font-medium rounded-md transition-colors">
                     View Game
                 </a>
             </div>
         @else
             {{-- Application Form --}}
             <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">
+                <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">
                     @if($game->visibility === 'public')
                         Join Game
                     @else

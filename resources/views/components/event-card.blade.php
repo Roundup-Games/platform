@@ -1,7 +1,7 @@
 @props(['event'])
 
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
-    <a href="{{ route('events.detail', $event->slug) }}" class="block">
+    <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block">
         {{-- Card Header --}}
         <div class="bg-gradient-to-br from-[#C12E26] to-[#9A231F] dark:from-gray-700 dark:to-gray-800 px-4 py-3">
             <div class="flex items-center justify-between">
@@ -57,14 +57,14 @@
 
             {{-- Fee / Capacity footer --}}
             <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <span class="text-sm font-medium {{ ($event->individual_registration_fee || $event->team_registration_fee) ? 'text-[#C12E26]' : 'text-green-600 dark:text-green-400' }}">
+                <span class="text-sm font-medium {{ ($event->individual_registration_fee || $event->team_registration_fee) ? 'text-brand-dark' : 'text-green-600 dark:text-green-400' }}">
                     @if($event->individual_registration_fee || $event->team_registration_fee)
                         {{ '$' . ($event->individual_registration_fee ?: $event->team_registration_fee) }}+ to register
                     @else
                         Free Entry
                     @endif
                 </span>
-                <span class="text-xs text-[#C12E26] font-medium hover:underline">View Details →</span>
+                <span class="text-xs text-brand-dark font-medium hover:underline">View Details →</span>
             </div>
         </div>
     </a>

@@ -3,11 +3,11 @@
         {{-- Page Header --}}
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Browse Teams</h1>
+                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Browse Teams</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Discover and join teams in your area.</p>
             </div>
             @auth
-                <a href="{{ route('teams.create') }}"
+                <a href="{{ route('teams.create') }}" wire:navigate
                    class="px-4 py-2 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors text-sm font-medium">
                     + Create Team
                 </a>
@@ -35,13 +35,13 @@
         @if($teams->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($teams as $team)
-                    <a href="{{ route('teams.detail', $team->slug) }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 overflow-hidden group">
+                    <a href="{{ route('teams.detail', $team->slug) }}" wire:navigate class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 overflow-hidden group">
                         {{-- Color banner --}}
                         <div class="h-2" style="background-color: {{ $team->primary_color ?: '#C12E26' }}"></div>
 
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-2">
-                                <h3 class="font-['Oswald'] font-semibold text-lg text-gray-900 dark:text-gray-100 uppercase tracking-wide group-hover:text-[#C12E26] transition-colors">
+                                <h3 class="font-heading font-semibold text-lg text-gray-900 dark:text-gray-100 uppercase tracking-wide group-hover:text-[#C12E26] transition-colors">
                                     {{ $team->name }}
                                 </h3>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">

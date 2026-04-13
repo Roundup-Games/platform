@@ -1,7 +1,7 @@
 <div class="py-8">
     <div class="max-w-4xl mx-auto space-y-6">
         {{-- Back --}}
-        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+        <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
             <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Dashboard
         </a>
@@ -13,11 +13,11 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h1 class="text-3xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
+                        <h1 class="text-3xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
                             {{ $game->name }}
                         </h1>
                         @if($game->gameSystem)
-                            <p class="mt-1 text-sm text-[#C12E26] font-medium">{{ $game->gameSystem->name }}</p>
+                            <p class="mt-1 text-sm text-brand-dark font-medium">{{ $game->gameSystem->name }}</p>
                         @endif
                     </div>
 
@@ -72,7 +72,7 @@
 
         {{-- Participants --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Participants</h2>
+            <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Participants</h2>
 
             @if($game->participants->count())
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -104,7 +104,7 @@
         {{-- Applications (visible to owner) --}}
         @if($isOwner && $game->applications->count())
             <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Applications</h2>
+                <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Applications</h2>
 
                 <div class="divide-y divide-gray-100 dark:divide-gray-700">
                     @foreach($game->applications as $application)
@@ -130,7 +130,7 @@
 
         {{-- Game Owner Info --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Hosted by</h2>
+            <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Hosted by</h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold uppercase bg-[#C12E26]/10 text-[#C12E26]">
                     {{ strtoupper($game->owner->name[0] ?? '?') }}

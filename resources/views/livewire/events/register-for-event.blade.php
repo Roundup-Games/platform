@@ -2,7 +2,7 @@
     {{-- Back link --}}
     <div class="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3">
-            <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+            <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                 <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Back to {{ $event->name }}
             </a>
@@ -30,7 +30,7 @@
             {{-- Registration Mode --}}
             @if($event->registration_type === 'both')
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Registration Type</h2>
+                    <h2 class="text-lg font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Registration Type</h2>
                     <div class="grid grid-cols-2 gap-4">
                         <button type="button"
                             wire:click="$set('registrationMode', 'individual')"
@@ -39,8 +39,8 @@
                                     ? 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }}">
-                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'individual' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-[#C12E26]' : 'text-gray-600 dark:text-gray-400' }}">Individual</span>
+                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'individual' ? 'text-brand-dark' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-brand-dark' : 'text-gray-600 dark:text-gray-400' }}">Individual</span>
                         </button>
                         <button type="button"
                             wire:click="$set('registrationMode', 'team')"
@@ -49,8 +49,8 @@
                                     ? 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10'
                                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                             }}">
-                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'team' ? 'text-[#C12E26]' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-[#C12E26]' : 'text-gray-600 dark:text-gray-400' }}">Team</span>
+                            <svg aria-hidden="true" class="w-8 h-8 mx-auto mb-2 {{ $registrationMode === 'team' ? 'text-brand-dark' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-brand-dark' : 'text-gray-600 dark:text-gray-400' }}">Team</span>
                         </button>
                     </div>
                     @error('registrationMode')
@@ -62,12 +62,12 @@
             {{-- Team Selection (team mode only) --}}
             @if($registrationMode === 'team')
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Select Team</h2>
+                    <h2 class="text-lg font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Select Team</h2>
 
                     @if($this->userTeams->isEmpty())
                         <div class="text-center py-6">
                             <p class="text-gray-500 dark:text-gray-400 text-sm">You are not a member of any teams.</p>
-                            <a href="{{ route('teams.create') }}" class="mt-3 inline-block text-sm text-[#C12E26] hover:underline">Create a Team</a>
+                            <a href="{{ route('teams.create') }}" wire:navigate class="mt-3 inline-block text-sm text-brand-dark hover:underline">Create a Team</a>
                         </div>
                     @else
                         <div class="space-y-2">
@@ -116,7 +116,7 @@
             {{-- Division (if applicable) --}}
             @if($event->divisions && count($event->divisions) > 0)
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                    <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Division</h2>
+                    <h2 class="text-lg font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Division</h2>
                     <div class="space-y-2">
                         @foreach($event->divisions as $div)
                             @php $divName = is_array($div) ? ($div['name'] ?? '') : $div @endphp
@@ -136,7 +136,7 @@
 
             {{-- Notes --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Additional Notes</h2>
+                <h2 class="text-lg font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Additional Notes</h2>
                 <textarea id="registration-notes" wire:model="notes" rows="3" placeholder="Any special requests, dietary requirements, or notes for the organizer..."
                     class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-[#C12E26] focus:ring-[#C12E26] text-sm"></textarea>
                 @error('notes')
@@ -146,7 +146,7 @@
 
             {{-- Fee Summary --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Fee Summary</h2>
+                <h2 class="text-lg font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Fee Summary</h2>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-600 dark:text-gray-400">
@@ -181,7 +181,7 @@
 
             {{-- Submit --}}
             <div class="flex items-center justify-between">
-                <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                     Cancel
                 </a>
                 <button type="submit"

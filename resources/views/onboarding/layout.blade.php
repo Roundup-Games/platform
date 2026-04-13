@@ -18,8 +18,8 @@
         <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
             <div class="w-full max-w-lg">
                 <div class="text-center mb-8">
-                    <a href="/" class="inline-flex items-center gap-2">
-                        <span class="text-2xl font-['Oswald'] font-bold uppercase text-[#C12E26]">Roundup Games</span>
+                    <a href="/" wire:navigate class="inline-flex items-center gap-2">
+                        <span class="text-2xl font-heading font-bold uppercase text-brand-dark">Roundup Games</span>
                     </a>
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Complete your profile to get started</p>
                 </div>

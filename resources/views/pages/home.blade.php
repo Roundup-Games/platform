@@ -17,17 +17,17 @@
                     Roundup Games brings communities together through competitive events. Find tournaments, join teams, and compete in your favorite games.
                 </p>
                 <div class="mt-8 flex flex-wrap gap-4">
-                    <a href="{{ route('events.index') }}" class="inline-flex items-center px-6 py-3 bg-white text-[#C12E26] rounded-lg font-semibold hover:bg-white/90 transition-colors text-sm">
+                    <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-white text-[#C12E26] rounded-lg font-semibold hover:bg-white/90 transition-colors text-sm">
                         <svg aria-hidden="true" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         Browse Events
                     </a>
                     @auth
-                        <a href="{{ route('events.create') }}" class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
+                        <a href="{{ route('events.create') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
                             <svg aria-hidden="true" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                             Create Event
                         </a>
                     @else
-                        <a href="{{ route('register') }}" class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
+                        <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
                             Get Started
                         </a>
                     @endauth
@@ -94,7 +94,7 @@
                         See what's coming up next.
                     </p>
                 </div>
-                <a href="{{ route('events.index') }}" class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium text-[#C12E26] border border-[#C12E26] rounded-lg hover:bg-[#C12E26] hover:text-white transition-colors">
+                <a href="{{ route('events.index') }}" wire:navigate class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium text-[#C12E26] border border-[#C12E26] rounded-lg hover:bg-[#C12E26] hover:text-white transition-colors">
                     View All Events
                 </a>
             </div>
@@ -106,7 +106,7 @@
                 @endforeach
             </div>
             <div class="mt-8 text-center sm:hidden">
-                <a href="{{ route('events.index') }}" class="inline-flex items-center px-6 py-3 text-sm font-medium text-[#C12E26] border border-[#C12E26] rounded-lg hover:bg-[#C12E26] hover:text-white transition-colors">
+                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 text-sm font-medium text-[#C12E26] border border-[#C12E26] rounded-lg hover:bg-[#C12E26] hover:text-white transition-colors">
                     View All Events
                 </a>
             </div>
@@ -193,11 +193,11 @@
                 Join the Roundup Games community and start organizing or participating in events today.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-                <a href="{{ route('events.index') }}" class="inline-flex items-center px-6 py-3 bg-[#C12E26] text-white rounded-lg font-semibold hover:bg-[#9A231F] transition-colors text-sm">
+                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-[#C12E26] text-white rounded-lg font-semibold hover:bg-[#9A231F] transition-colors text-sm">
                     Browse Events
                 </a>
                 @guest
-                    <a href="{{ route('register') }}" class="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                    <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
                         Create Account
                     </a>
                 @endguest

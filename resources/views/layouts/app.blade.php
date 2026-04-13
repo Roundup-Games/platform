@@ -27,7 +27,7 @@
             <!-- Mobile Header -->
             <div class="lg:hidden bg-brand dark:bg-brand-dark" x-data="{ open: false }">
                 <div class="flex items-center justify-between px-4 py-3">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                    <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
                         <span class="text-xl font-heading font-bold uppercase text-white">Roundup<span class="text-white/70">Games</span></span>
                     </a>
                     <button @click="open = !open" class="text-white p-2" aria-label="Toggle navigation menu" aria-expanded="false" :aria-expanded="open.toString()">
@@ -41,13 +41,13 @@
                 </div>
                 <!-- Mobile Nav Menu -->
                 <div :class="{'block': open, 'hidden': !open}" class="px-4 pb-4 space-y-1">
-                    <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white' : '' }}">Dashboard</a>
-                    <a href="{{ route('events.index') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('events.*') ? 'bg-white/20 text-white' : '' }}">Events</a>
-                    <a href="{{ route('games.create') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('games.*') ? 'bg-white/20 text-white' : '' }}">Games</a>
-                    <a href="{{ route('campaigns.create') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('campaigns.*') ? 'bg-white/20 text-white' : '' }}">Campaigns</a>
-                    <a href="{{ route('teams.browse') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('teams.*') ? 'bg-white/20 text-white' : '' }}">Teams</a>
-                    <a href="{{ route('billing.portal') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('billing.*') ? 'bg-white/20 text-white' : '' }}">Billing</a>
-                    <a href="{{ route('profile.show') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('profile.*') ? 'bg-white/20 text-white' : '' }}">Profile</a>
+                    <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white' : '' }}">Dashboard</a>
+                    <a href="{{ route('events.index') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('events.*') ? 'bg-white/20 text-white' : '' }}">Events</a>
+                    <a href="{{ route('games.create') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('games.*') ? 'bg-white/20 text-white' : '' }}">Games</a>
+                    <a href="{{ route('campaigns.create') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('campaigns.*') ? 'bg-white/20 text-white' : '' }}">Campaigns</a>
+                    <a href="{{ route('teams.browse') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('teams.*') ? 'bg-white/20 text-white' : '' }}">Teams</a>
+                    <a href="{{ route('billing.portal') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('billing.*') ? 'bg-white/20 text-white' : '' }}">Billing</a>
+                    <a href="{{ route('profile.show') }}" wire:navigate class="block px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 {{ request()->routeIs('profile.*') ? 'bg-white/20 text-white' : '' }}">Profile</a>
                     <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
                         <button type="submit" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:text-white hover:bg-white/10">Log Out</button>
@@ -60,7 +60,7 @@
                 <aside class="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen">
                     <!-- Logo -->
                     <div class="flex items-center h-16 px-6 border-b border-gray-200 dark:border-gray-700">
-                        <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
                             <span class="text-xl font-heading font-bold uppercase text-brand">Roundup<span class="text-gray-800 dark:text-gray-200">Games</span></span>
                         </a>
                     </div>

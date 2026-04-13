@@ -2,7 +2,7 @@
     <div class="max-w-2xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div>
-            <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Checkout</h1>
+            <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Checkout</h1>
         </div>
 
         {{-- Flash Messages --}}
@@ -15,7 +15,7 @@
 
         {{-- Order Summary --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Order Summary</h2>
+            <h2 class="text-lg font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Order Summary</h2>
 
             @if($mode === 'subscription' && $membershipType)
                 <div class="space-y-3">
@@ -47,7 +47,7 @@
 
         {{-- Back Link --}}
         <div>
-            <a href="{{ route('billing.portal') }}" class="text-sm text-[#C12E26] hover:text-[#9A231F] transition-colors">&larr; Back to Billing</a>
+            <a href="{{ route('billing.portal') }}" wire:navigate class="text-sm text-brand-dark hover:text-brand transition-colors">&larr; Back to Billing</a>
         </div>
     </div>
 </div>

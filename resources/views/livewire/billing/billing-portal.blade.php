@@ -2,7 +2,7 @@
     <div class="max-w-4xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div>
-            <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Billing &amp; Membership</h1>
+            <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Billing &amp; Membership</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your subscription, payment methods, and invoices.</p>
         </div>
 
@@ -22,7 +22,7 @@
 
         {{-- Current Subscription Status --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Current Plan</h2>
+            <h2 class="text-lg font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Current Plan</h2>
 
             @if($subscription && $subscription->active())
                 <div class="space-y-3">
@@ -91,13 +91,13 @@
         {{-- Available Plans --}}
         @if(!$subscription || !$subscription->active())
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Available Plans</h2>
+            <h2 class="text-lg font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Available Plans</h2>
 
             @if($membershipTypes->count())
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($membershipTypes as $plan)
                         <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-5 flex flex-col">
-                            <h3 class="font-['Oswald'] font-semibold text-lg uppercase text-gray-900 dark:text-gray-100 tracking-wide">{{ $plan->name }}</h3>
+                            <h3 class="font-heading font-semibold text-lg uppercase text-gray-900 dark:text-gray-100 tracking-wide">{{ $plan->name }}</h3>
                             @if($plan->description)
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $plan->description }}</p>
                             @endif
@@ -107,7 +107,7 @@
                             </div>
                             <div class="mt-auto pt-4">
                                 @if($plan->paddle_price_id)
-                                    <a href="{{ route('billing.checkout', ['planId' => $plan->id]) }}"
+                                    <a href="{{ route('billing.checkout', ['planId' => $plan->id]) }}" wire:navigate
                                        class="block w-full text-center px-4 py-2 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors text-sm font-medium">
                                         Subscribe
                                     </a>
@@ -128,7 +128,7 @@
 
         {{-- Transaction History --}}
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Payment History</h2>
+            <h2 class="text-lg font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Payment History</h2>
 
             @if($transactions->count())
                 <div class="overflow-x-auto">

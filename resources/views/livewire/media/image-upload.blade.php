@@ -83,7 +83,7 @@
             <p class="text-sm text-gray-600 dark:text-gray-400">
                 Drag and drop or
                 <label for="image-upload-{{ $collection }}-{{ $model_id }}"
-                       class="text-[#C12E26] hover:text-[#9A231F] cursor-pointer font-medium transition-colors">
+                       class="text-brand-dark hover:text-brand cursor-pointer font-medium transition-colors">
                     browse
                 </label>
             </p>

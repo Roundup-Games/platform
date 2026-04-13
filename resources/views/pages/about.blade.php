@@ -97,10 +97,10 @@
                 Whether you want to organize events or compete in them, we'd love to have you.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-                <a href="{{ route('events.index') }}" class="inline-flex items-center px-6 py-3 bg-white text-[#C12E26] rounded-lg font-semibold hover:bg-white/90 transition-colors text-sm">
+                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-white text-[#C12E26] rounded-lg font-semibold hover:bg-white/90 transition-colors text-sm">
                     Browse Events
                 </a>
-                <a href="{{ route('contact') }}" class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
+                <a href="{{ route('contact') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-white/20 text-white rounded-lg font-semibold hover:bg-white/30 transition-colors text-sm border border-white/30">
                     Get in Touch
                 </a>
             </div>

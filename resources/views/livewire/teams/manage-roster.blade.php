@@ -3,12 +3,12 @@
         {{-- Page Header --}}
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('teams.detail', $team->slug) }}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                <a href="{{ route('teams.detail', $team->slug) }}" wire:navigate class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                     <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </a>
-                <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Manage Roster</h1>
+                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Manage Roster</h1>
             </div>
             <p class="ml-8 text-sm text-gray-500 dark:text-gray-400">Manage members for <strong>{{ $team->name }}</strong></p>
         </div>

@@ -2,7 +2,7 @@
     <div class="max-w-5xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div class="text-center">
-            <h1 class="text-3xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Membership</h1>
+            <h1 class="text-3xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Membership</h1>
             <p class="mt-2 text-gray-500 dark:text-gray-400">Join the community and get access to games, campaigns, and events.</p>
         </div>
 
@@ -24,7 +24,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="font-['Oswald'] font-semibold uppercase text-amber-800 dark:text-amber-200 tracking-wide">Membership Expiring Soon</h3>
+                        <h3 class="font-heading font-semibold uppercase text-amber-800 dark:text-amber-200 tracking-wide">Membership Expiring Soon</h3>
                         <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
                             @if($daysUntilExpiry <= 0)
                                 Your membership expires today! Renew now to keep your access.
@@ -33,7 +33,7 @@
                             @endif
                         </p>
                         <div class="mt-3">
-                            <a href="{{ route('billing.portal') }}"
+                            <a href="{{ route('billing.portal') }}" wire:navigate
                                class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium">
                                 Manage Subscription
                             </a>
@@ -54,7 +54,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h2 class="text-lg font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Active Member</h2>
+                            <h2 class="text-lg font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Active Member</h2>
                             <p class="text-sm text-gray-500 dark:text-gray-400">
                                 @if($subscription->onGracePeriod())
                                     <span class="text-yellow-600 dark:text-yellow-400 font-medium">Canceling</span> &mdash; access until {{ $subscription->ends_at?->format('M d, Y') }}
@@ -69,7 +69,7 @@
                             </p>
                         </div>
                     </div>
-                    <a href="{{ route('billing.portal') }}"
+                    <a href="{{ route('billing.portal') }}" wire:navigate
                        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium">
                         Manage Billing
                     </a>
@@ -81,7 +81,7 @@
         @if(!$subscription || !$subscription->active())
             @if($membershipTypes->count())
                 <section>
-                    <h2 class="text-xl font-['Oswald'] font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide text-center mb-6">Choose Your Plan</h2>
+                    <h2 class="text-xl font-heading font-semibold uppercase text-gray-900 dark:text-gray-100 tracking-wide text-center mb-6">Choose Your Plan</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-{{ $membershipTypes->count() >= 3 ? '3' : '2' }} gap-6">
                         @foreach($membershipTypes as $plan)
@@ -97,7 +97,7 @@
 
                                 {{-- Plan Details --}}
                                 <div class="text-center">
-                                    <h3 class="font-['Oswald'] font-semibold text-xl uppercase text-gray-900 dark:text-gray-100 tracking-wide">{{ $plan->name }}</h3>
+                                    <h3 class="font-heading font-semibold text-xl uppercase text-gray-900 dark:text-gray-100 tracking-wide">{{ $plan->name }}</h3>
                                     @if($plan->description)
                                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $plan->description }}</p>
                                     @endif
@@ -168,7 +168,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
-                    <h3 class="mt-2 font-['Oswald'] font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Community</h3>
+                    <h3 class="mt-2 font-heading font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Community</h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Join a vibrant community of tabletop gamers.</p>
                 </div>
                 <div>
@@ -177,7 +177,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <h3 class="mt-2 font-['Oswald'] font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Unlimited Games</h3>
+                    <h3 class="mt-2 font-heading font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Unlimited Games</h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Play as many sessions as you want, any time.</p>
                 </div>
                 <div>
@@ -186,7 +186,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                     </div>
-                    <h3 class="mt-2 font-['Oswald'] font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Secure Payments</h3>
+                    <h3 class="mt-2 font-heading font-semibold uppercase text-sm text-gray-900 dark:text-gray-100 tracking-wide">Secure Payments</h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">All payments processed securely via Paddle.</p>
                 </div>
             </div>

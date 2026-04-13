@@ -2,7 +2,7 @@
     <div class="max-w-2xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div>
-            <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Team Invites</h1>
+            <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Team Invites</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your pending team invitations.</p>
         </div>
 
@@ -37,7 +37,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                    <a href="{{ route('teams.detail', $invite->team->slug) }}" class="hover:text-[#C12E26] transition-colors">
+                                    <a href="{{ route('teams.detail', $invite->team->slug) }}" wire:navigate class="hover:text-[#C12E26] transition-colors">
                                         {{ $invite->team->name }}
                                     </a>
                                 </h3>

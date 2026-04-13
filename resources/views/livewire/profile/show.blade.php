@@ -2,7 +2,7 @@
     <div class="max-w-2xl mx-auto space-y-8">
         <!-- Page Header -->
         <div>
-            <h1 class="text-2xl font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">My Profile</h1>
+            <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">My Profile</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your account information and preferences.</p>
         </div>
 
@@ -84,8 +84,8 @@
         <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 font-['Montserrat']">Profile Information</h2>
-                <a href="{{ route('profile.edit-form') }}"
-                   class="text-sm text-[#C12E26] hover:text-[#9A231F] transition-colors">
+                <a href="{{ route('profile.edit-form') }}" wire:navigate
+                   class="text-sm text-brand-dark hover:text-brand transition-colors transition-colors">
                     Edit
                 </a>
             </div>
@@ -188,7 +188,7 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
                             </div>
                         </div>
-                        <a href="{{ route('oauth.redirect', 'google') }}"
+                        <a href="{{ route('oauth.redirect', 'google') }}" wire:navigate
                            class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             Connect
                         </a>
@@ -202,8 +202,8 @@
             <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 font-['Montserrat']">Game Preferences</h2>
-                    <a href="{{ route('profile.edit-form') }}"
-                       class="text-sm text-[#C12E26] hover:text-[#9A231F] transition-colors">
+                    <a href="{{ route('profile.edit-form') }}" wire:navigate
+                       class="text-sm text-brand-dark hover:text-brand transition-colors transition-colors">
                         Edit
                     </a>
                 </div>
@@ -223,7 +223,7 @@
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 font-['Montserrat']">Password</h2>
                 @if(!$showPasswordForm)
                     <button wire:click="$set('showPasswordForm', true)"
-                            class="text-sm text-[#C12E26] hover:text-[#9A231F] transition-colors">
+                            class="text-sm text-brand-dark hover:text-brand transition-colors transition-colors">
                         Change Password
                     </button>
                 @endif

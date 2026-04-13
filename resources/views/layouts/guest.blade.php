@@ -25,7 +25,7 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
             <!-- Brand Header -->
             <div class="mb-2">
-                <a href="/" class="flex items-center gap-2">
+                <a href="/" wire:navigate class="flex items-center gap-2">
                     <span class="text-3xl font-heading font-bold uppercase text-brand">Roundup<span class="text-gray-800 dark:text-gray-200">Games</span></span>
                 </a>
             </div>
