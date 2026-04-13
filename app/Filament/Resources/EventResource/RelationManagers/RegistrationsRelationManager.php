@@ -61,6 +61,7 @@ class RegistrationsRelationManager extends RelationManager
                                 'refunded' => 'Refunded',
                                 'failed' => 'Failed',
                                 'waived' => 'Waived',
+                                'not_required' => 'Not Required',
                             ])
                             ->required()
                             ->default('pending'),
@@ -104,6 +105,7 @@ class RegistrationsRelationManager extends RelationManager
                         'failed' => 'danger',
                         'refunded' => 'info',
                         'waived' => 'gray',
+                        'not_required' => 'gray',
                         default => 'gray',
                     }),
                 TextColumn::make('created_at')

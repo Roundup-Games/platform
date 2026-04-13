@@ -29,20 +29,21 @@ class ParticipantsRelationManager extends RelationManager
                     ->required(),
                 Select::make('role')
                     ->options([
-                        'gm' => 'Game Master',
+                        'owner' => 'Owner',
                         'player' => 'Player',
-                        'observer' => 'Observer',
+                        'invited' => 'Invited',
+                        'applicant' => 'Applicant',
                     ])
                     ->required()
                     ->default('player'),
                 Select::make('status')
                     ->options([
-                        'active' => 'Active',
-                        'left' => 'Left',
-                        'kicked' => 'Kicked',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        'pending' => 'Pending',
                     ])
                     ->required()
-                    ->default('active'),
+                    ->default('pending'),
             ]);
     }
 
@@ -57,17 +58,18 @@ class ParticipantsRelationManager extends RelationManager
                 TextColumn::make('role')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'gm' => 'warning',
+                        'owner' => 'warning',
                         'player' => 'success',
-                        'observer' => 'info',
+                        'invited' => 'info',
+                        'applicant' => 'gray',
                         default => 'gray',
                     }),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'active' => 'success',
-                        'left' => 'gray',
-                        'kicked' => 'danger',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        'pending' => 'warning',
                         default => 'gray',
                     }),
             ])

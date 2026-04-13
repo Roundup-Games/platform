@@ -50,11 +50,11 @@ class AnnouncementsRelationManager extends RelationManager
                             ]),
                         Select::make('visibility')
                             ->options([
-                                'public' => 'Public',
+                                'all' => 'All',
                                 'registered' => 'Registered Only',
                                 'private' => 'Private (Admins)',
                             ])
-                            ->default('public')
+                            ->default('all')
                             ->required(),
                     ]),
             ]);
