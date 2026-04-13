@@ -179,13 +179,16 @@ describe('Theme Toggle', function () {
         expect($template)->toContain('aria-label="Toggle dark mode"');
     });
 
-    it('SVGs have aria-hidden', function () {
+    it('icons have aria-hidden', function () {
         $template = file_get_contents(resource_path('views/components/theme-toggle.blade.php'));
 
-        preg_match_all('/<svg\b[^>]*>/s', $template, $matches);
+        // Material Symbol spans replaced SVGs — verify they all have aria-hidden
+        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $template, $matches);
 
-        foreach ($matches[0] as $svgTag) {
-            expect($svgTag)->toContain('aria-hidden="true"');
+        expect($matches[0])->not->toBeEmpty('Expected at least one Material Symbol icon in theme-toggle');
+
+        foreach ($matches[0] as $iconTag) {
+            expect($iconTag)->toContain('aria-hidden="true"');
         }
     });
 });
