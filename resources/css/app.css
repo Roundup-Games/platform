@@ -16,6 +16,11 @@
     *:focus {
         --tw-ring-color: #835500;
     }
+
+    /* Material Symbols Outlined — variable font with FILL and wght axes */
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
 }
 
 @layer components {
