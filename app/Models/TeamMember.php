@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\ScopedSettings;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TeamMember extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'team_id', 'user_id', 'role', 'status', 'jersey_number',
         'position', 'joined_at', 'left_at', 'invited_by', 'notes',
