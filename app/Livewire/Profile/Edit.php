@@ -47,6 +47,8 @@ class Edit extends Component
             'gender' => ['nullable', 'string', 'max:50'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'favoriteGameSystemIds' => ['array'],
+            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];

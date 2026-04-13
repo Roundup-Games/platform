@@ -532,3 +532,55 @@ it('logs profile version and updated_at on completion for funnel tracking', func
     expect($fresh->profile_version)->toBe(1);
     expect($fresh->profile_updated_at)->not->toBeNull();
 });
+
+// ── Game system validation (M2) ───────────────────────
+
+it('rejects invalid game system IDs during onboarding', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+    $gs = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
+
+    // Use a non-existent game system ID
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'male')
+        ->set('pronouns', 'he/him')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('favoriteGameSystemIds', [$gs->id, 999999])
+        ->call('complete')
+        ->assertHasErrors(['favoriteGameSystemIds.1']);
+});
+
+it('rejects all non-existent game system IDs during onboarding', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'male')
+        ->set('pronouns', 'he/him')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('favoriteGameSystemIds', [888888, 999999])
+        ->call('complete')
+        ->assertHasErrors(['favoriteGameSystemIds.0', 'favoriteGameSystemIds.1']);
+});
+
+it('accepts valid game system IDs during onboarding', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+    $gs1 = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
+    $gs2 = GameSystem::create(['name' => 'Pathfinder', 'slug' => 'pathfinder']);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('gender', 'male')
+        ->set('pronouns', 'he/him')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->set('favoriteGameSystemIds', [$gs1->id, $gs2->id])
+        ->call('complete')
+        ->assertRedirect(route('dashboard'));
+
+    $fresh = $user->fresh();
+    expect($fresh->favoriteGameSystems->pluck('id')->sort()->values()->toArray())
+        ->toBe([$gs1->id, $gs2->id]);
+});

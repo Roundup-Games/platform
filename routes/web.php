@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PageController::class, 'home'])->name('home');
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
-Route::post('/contact', [PageController::class, 'submitContact'])->name('contact.submit');
+Route::post('/contact', [PageController::class, 'submitContact'])->middleware('throttle:5,1')->name('contact.submit');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
 
@@ -25,6 +25,7 @@ Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirect'])
     ->name('oauth.redirect');
 
 Route::get('auth/{provider}/callback', [OAuthController::class, 'callback'])
+    ->middleware('throttle:10,1')
     ->name('oauth.callback');
 
 // ── Authenticated (Breeze) ────────────────────────────

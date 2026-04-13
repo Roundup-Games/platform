@@ -423,3 +423,51 @@ it('logs email change event in profile show', function () {
         ->set('email', 'changed@example.com')
         ->call('saveProfile');
 });
+
+// ── Game system validation (M2) ───────────────────────
+
+it('rejects invalid game system IDs on profile edit', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+    $gs = GameSystem::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Edit::class)
+        ->set('favoriteGameSystemIds', [$gs->id, 999999])
+        ->call('save')
+        ->assertHasErrors(['favoriteGameSystemIds.1']);
+});
+
+it('rejects all non-existent game system IDs on profile edit', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Edit::class)
+        ->set('favoriteGameSystemIds', [888888, 999999])
+        ->call('save')
+        ->assertHasErrors(['favoriteGameSystemIds.0', 'favoriteGameSystemIds.1']);
+});
+
+it('accepts valid game system IDs on profile edit', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
+    $gs1 = GameSystem::factory()->create();
+    $gs2 = GameSystem::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Edit::class)
+        ->set('favoriteGameSystemIds', [$gs1->id, $gs2->id])
+        ->call('save')
+        ->assertSet('saved', true);
+
+    $fresh = $user->fresh();
+    expect($fresh->gameSystemPreferences()->pluck('game_systems.id')->sort()->values()->toArray())
+        ->toBe([$gs1->id, $gs2->id]);
+});

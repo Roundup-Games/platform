@@ -24,7 +24,15 @@ class CompleteProfile extends Component
     public string $phone = '';
 
     /** @var array<int> */
+    #[Validate(['array'])]
     public array $favoriteGameSystemIds = [];
+
+    public function rules(): array
+    {
+        return [
+            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+        ];
+    }
 
     public function mount(): void
     {
@@ -58,6 +66,12 @@ class CompleteProfile extends Component
         // Validate all steps before completing
         $this->validateStep(1);
         $this->validateStep(2);
+
+        // Validate game system IDs against actual GameSystem records
+        $this->validate([
+            'favoriteGameSystemIds' => ['array'],
+            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+        ]);
 
         $user = Auth::user();
 
