@@ -28,19 +28,8 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: must drop PK, alter column, recreate PK
-            $this->makeNullablePgsql(
-                $tableNames['model_has_permissions'],
-                $teamFk,
-                'model_has_permissions_permission_model_type_primary',
-                [$teamFk, 'permission_id', 'model_id', 'model_type']
-            );
-            $this->makeNullablePgsql(
-                $tableNames['model_has_roles'],
-                $teamFk,
-                'model_has_roles_role_model_type_primary',
-                [$teamFk, 'role_id', 'model_id', 'model_type']
-            );
+            $this->makeNullablePgsql($tableNames['model_has_permissions'], $teamFk);
+            $this->makeNullablePgsql($tableNames['model_has_roles'], $teamFk);
         } else {
             // SQLite/MySQL: doctrine/dbal handles this directly
             Schema::table($tableNames['model_has_roles'], function (Blueprint $t) use ($teamFk) {
@@ -53,18 +42,37 @@ return new class extends Migration
         }
     }
 
-    private function makeNullablePgsql(string $table, string $teamFk, string $pkName, array $pkColumns): void
+    private function makeNullablePgsql(string $table, string $teamFk): void
     {
-        $pkCols = implode(', ', $pkColumns);
+        // 1. Find the actual PK constraint name (PostgreSQL may auto-generate or use Spatie's custom name)
+        $constraint = DB::selectOne("
+            SELECT tc.constraint_name
+            FROM information_schema.table_constraints tc
+            WHERE tc.table_name = ?
+              AND tc.constraint_type = 'PRIMARY KEY'
+              AND tc.table_schema = 'public'
+        ", [$table]);
 
-        // Drop the primary key constraint
-        DB::statement("ALTER TABLE {$table} DROP CONSTRAINT IF EXISTS {$pkName}");
+        if (! $constraint) {
+            return; // No PK to worry about
+        }
 
-        // Alter the column to nullable
+        $pkName = $constraint->constraint_name;
+
+        // 2. Drop the primary key
+        DB::statement("ALTER TABLE {$table} DROP CONSTRAINT {$pkName}");
+
+        // 3. Make team_id nullable
         DB::statement("ALTER TABLE {$table} ALTER COLUMN {$teamFk} DROP NOT NULL");
 
-        // Recreate the primary key
-        DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$pkName} PRIMARY KEY ({$pkCols})");
+        // 4. Recreate primary key (known structure from Spatie migration)
+        $otherCols = match ($table) {
+            config('permission.table_names.model_has_permissions') => 'permission_id, model_id, model_type',
+            config('permission.table_names.model_has_roles') => 'role_id, model_id, model_type',
+            default => throw new \RuntimeException("Unknown permission table: {$table}"),
+        };
+
+        DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$pkName} PRIMARY KEY ({$teamFk}, {$otherCols})");
     }
 
     /**
