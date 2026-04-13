@@ -137,7 +137,7 @@
             {{-- Notes --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-['Oswald'] font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Additional Notes</h2>
-                <textarea wire:model="notes" rows="3" placeholder="Any special requests, dietary requirements, or notes for the organizer..."
+                <textarea id="registration-notes" wire:model="notes" rows="3" placeholder="Any special requests, dietary requirements, or notes for the organizer..."
                     class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-[#C12E26] focus:ring-[#C12E26] text-sm"></textarea>
                 @error('notes')
                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>

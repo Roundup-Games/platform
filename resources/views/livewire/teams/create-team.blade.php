@@ -19,30 +19,30 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name *</label>
-                    <input type="text" wire:model="name" placeholder="e.g. Roundup Ravens"
+                    <label for="team-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name *</label>
+                    <input type="text" id="team-name" wire:model="name" placeholder="e.g. Roundup Ravens"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <textarea wire:model="description" rows="3" placeholder="A short description of your team..."
+                    <label for="team-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea id="team-description" wire:model="description" rows="3" placeholder="A short description of your team..."
                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-                        <input type="text" wire:model="city" placeholder="e.g. Austin"
+                        <label for="team-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                        <input type="text" id="team-city" wire:model="city" placeholder="e.g. Austin"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('city') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
-                        <input type="text" wire:model="country" placeholder="e.g. USA" maxlength="3"
+                        <label for="team-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
+                        <input type="text" id="team-country" wire:model="country" placeholder="e.g. USA" maxlength="3"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('country') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -50,9 +50,9 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
+                        <label for="team-primary-color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
                         <div class="flex items-center gap-2">
-                            <input type="color" wire:model="primary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
+                            <input type="color" id="team-primary-color" wire:model="primary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
                             <input type="text" wire:model="primary_color" maxlength="7" placeholder="#C12E26"
                                    class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
@@ -60,9 +60,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Color</label>
+                        <label for="team-secondary-color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Color</label>
                         <div class="flex items-center gap-2">
-                            <input type="color" wire:model="secondary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
+                            <input type="color" id="team-secondary-color" wire:model="secondary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
                             <input type="text" wire:model="secondary_color" maxlength="7" placeholder="#FFFFFF"
                                    class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
@@ -70,8 +70,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Founded Year</label>
-                        <input type="text" wire:model="founded_year" maxlength="4" placeholder="e.g. 2024"
+                        <label for="team-founded-year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Founded Year</label>
+                        <input type="text" id="team-founded-year" wire:model="founded_year" maxlength="4" placeholder="e.g. 2024"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('founded_year') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>

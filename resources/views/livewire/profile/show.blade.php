@@ -92,23 +92,23 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                    <input type="text" wire:model="name"
+                    <label for="profile-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <input type="text" id="profile-name" wire:model="name"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                    <input type="email" wire:model="email"
+                    <label for="profile-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input type="email" id="profile-email" wire:model="email"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
-                        <select wire:model="gender"
+                        <label for="profile-gender" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
+                        <select id="profile-gender" wire:model="gender"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="">Select...</option>
                             <option value="male">Male</option>
@@ -120,8 +120,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
-                        <select wire:model="pronouns"
+                        <label for="profile-pronouns" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
+                        <select id="profile-pronouns" wire:model="pronouns"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="">Select...</option>
                             <option value="he/him">He/Him</option>
@@ -134,8 +134,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-                    <input type="tel" wire:model="phone" placeholder="+1 (555) 000-0000"
+                    <label for="profile-phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                    <input type="tel" id="profile-phone" wire:model="phone" placeholder="+1 (555) 000-0000"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                 </div>
 
@@ -232,22 +232,22 @@
             @if($showPasswordForm)
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
-                        <input type="password" wire:model="current_password"
+                        <label for="profile-current-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+                        <input type="password" id="profile-current-password" wire:model="current_password"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('current_password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
-                        <input type="password" wire:model="password"
+                        <label for="profile-new-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                        <input type="password" id="profile-new-password" wire:model="password"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
-                        <input type="password" wire:model="password_confirmation"
+                        <label for="profile-confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                        <input type="password" id="profile-confirm-password" wire:model="password_confirmation"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     </div>
 
@@ -278,7 +278,7 @@
                 @csrf
                 @method('DELETE')
                 <div class="flex items-center gap-3">
-                    <input type="password" name="password" placeholder="Confirm password"
+                    <input type="password" name="password" placeholder="Confirm password" aria-label="Confirm password for account deletion" aria-label="Confirm password for account deletion"
                            class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm max-w-xs" />
                     <x-danger-button>
                         Delete Account

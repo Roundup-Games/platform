@@ -19,15 +19,15 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session Name *</label>
-                    <input type="text" wire:model="name" placeholder="e.g. Dungeon Crawl Night"
+                    <label for="game-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session Name *</label>
+                    <input type="text" id="game-name" wire:model="name" placeholder="e.g. Dungeon Crawl Night"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game System</label>
-                    <select wire:model="game_system_id"
+                    <label for="game-system" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game System</label>
+                    <select id="game-system" wire:model="game_system_id"
                             class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                         <option value="">— Select a game system —</option>
                         @foreach($gameSystems as $system)
@@ -38,30 +38,30 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time *</label>
-                    <input type="datetime-local" wire:model="date_time"
+                    <label for="game-date-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time *</label>
+                    <input type="datetime-local" id="game-date-time" wire:model="date_time"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('date_time') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <textarea wire:model="description" rows="3" placeholder="Describe the session..."
+                    <label for="game-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea id="game-description" wire:model="description" rows="3" placeholder="Describe the session..."
                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration (hours)</label>
-                        <input type="number" wire:model="expected_duration" step="0.5" min="0.5" max="24" placeholder="e.g. 3"
+                        <label for="game-duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration (hours)</label>
+                        <input type="number" id="game-duration" wire:model="expected_duration" step="0.5" min="0.5" max="24" placeholder="e.g. 3"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('expected_duration') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price ($)</label>
-                        <input type="number" wire:model="price" step="0.01" min="0" placeholder="0.00"
+                        <label for="game-price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price ($)</label>
+                        <input type="number" id="game-price" wire:model="price" step="0.01" min="0" placeholder="0.00"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -69,15 +69,15 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
-                        <input type="text" wire:model="language" placeholder="en"
+                        <label for="game-language" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
+                        <input type="text" id="game-language" wire:model="language" placeholder="en"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('language') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
-                        <select wire:model="visibility"
+                        <label for="game-visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
+                        <select id="game-visibility" wire:model="visibility"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="public">Public — anyone can find and join</option>
                             <option value="protected">Protected — only with link</option>
@@ -95,8 +95,8 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Type</label>
-                    <select wire:model="location_type"
+                    <label for="game-location-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Type</label>
+                    <select id="game-location-type" wire:model="location_type"
                             class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                         <option value="online">Online (Virtual Tabletop)</option>
                         <option value="offline">In-Person</option>
@@ -105,8 +105,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Details</label>
-                    <input type="text" wire:model="location_details" placeholder="VTT link, address, or meeting details"
+                    <label for="game-location-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Details</label>
+                    <input type="text" id="game-location-details" wire:model="location_details" placeholder="VTT link, address, or meeting details"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('location_details') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>

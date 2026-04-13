@@ -51,29 +51,29 @@
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 font-['Montserrat']">Basic Information</h2>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Name *</label>
-                <input type="text" wire:model="name" placeholder="e.g. Summer Slam Tournament 2026"
+                <label for="event-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Name *</label>
+                <input type="text" id="event-name" wire:model="name" placeholder="e.g. Summer Slam Tournament 2026"
                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                 @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Short Description</label>
-                <input type="text" wire:model="short_description" maxlength="500" placeholder="One-liner for listings and cards..."
+                <label for="event-short-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Short Description</label>
+                <input type="text" id="event-short-description" wire:model="short_description" maxlength="500" placeholder="One-liner for listings and cards..."
                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                 @error('short_description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Description</label>
-                <textarea wire:model="description" rows="5" placeholder="Detailed event description, what participants can expect..."
+                <label for="event-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Description</label>
+                <textarea id="event-description" wire:model="description" rows="5" placeholder="Detailed event description, what participants can expect..."
                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                 @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type *</label>
-                <select wire:model="type" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                <label for="event-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type *</label>
+                <select id="event-type" wire:model="type" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                     <option value="tournament">Tournament</option>
                     <option value="league">League</option>
                     <option value="camp">Camp</option>
@@ -86,14 +86,14 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date *</label>
-                    <input type="date" wire:model="start_date"
+                    <label for="event-start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date *</label>
+                    <input type="date" id="event-start-date" wire:model="start_date"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('start_date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date *</label>
-                    <input type="date" wire:model="end_date"
+                    <label for="event-end-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date *</label>
+                    <input type="date" id="event-end-date" wire:model="end_date"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('end_date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -108,35 +108,35 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">All venue fields are optional — fill in what you know.</p>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue Name</label>
-                <input type="text" wire:model="venue_name" placeholder="e.g. Roundup Arena"
+                <label for="event-venue-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue Name</label>
+                <input type="text" id="event-venue-name" wire:model="venue_name" placeholder="e.g. Roundup Arena"
                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                 @error('venue_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-                <textarea wire:model="venue_address" rows="2" placeholder="Street address..."
+                <label for="event-address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                <textarea id="event-address" wire:model="venue_address" rows="2" placeholder="Street address..."
                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                 @error('venue_address') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-                    <input type="text" wire:model="city" placeholder="e.g. Austin"
+                    <label for="event-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                    <input type="text" id="event-city" wire:model="city" placeholder="e.g. Austin"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('city') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
-                    <input type="text" wire:model="country" maxlength="3" placeholder="e.g. USA"
+                    <label for="event-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
+                    <input type="text" id="event-country" wire:model="country" maxlength="3" placeholder="e.g. USA"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('country') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
-                    <input type="text" wire:model="postal_code" placeholder="e.g. 78701"
+                    <label for="event-postal-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
+                    <input type="text" id="event-postal-code" wire:model="postal_code" placeholder="e.g. 78701"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('postal_code') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -165,28 +165,28 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @if(in_array($registration_type, ['team', 'both']))
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Teams</label>
-                    <input type="number" wire:model="max_teams" min="1" placeholder="Unlimited"
+                    <label for="event-max-teams" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Teams</label>
+                    <input type="number" id="event-max-teams" wire:model="max_teams" min="1" placeholder="Unlimited"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('max_teams') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Players per Team</label>
-                    <input type="number" wire:model="min_players_per_team" min="1"
+                    <label for="event-min-players" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Players per Team</label>
+                    <input type="number" id="event-min-players" wire:model="min_players_per_team" min="1"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('min_players_per_team') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Players per Team</label>
-                    <input type="number" wire:model="max_players_per_team" min="1"
+                    <label for="event-max-players" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Players per Team</label>
+                    <input type="number" id="event-max-players" wire:model="max_players_per_team" min="1"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('max_players_per_team') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 @endif
                 @if(in_array($registration_type, ['individual', 'both']))
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Participants</label>
-                    <input type="number" wire:model="max_participants" min="1" placeholder="Unlimited"
+                    <label for="event-max-participants" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Participants</label>
+                    <input type="number" id="event-max-participants" wire:model="max_participants" min="1" placeholder="Unlimited"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('max_participants') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -197,29 +197,29 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @if(in_array($registration_type, ['team', 'both']))
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Registration Fee</label>
-                    <input type="number" wire:model="team_registration_fee" min="0" placeholder="0 (free)"
+                    <label for="event-team-fee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Registration Fee</label>
+                    <input type="number" id="event-team-fee" wire:model="team_registration_fee" min="0" placeholder="0 (free)"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('team_registration_fee') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 @endif
                 @if(in_array($registration_type, ['individual', 'both']))
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Individual Registration Fee</label>
-                    <input type="number" wire:model="individual_registration_fee" min="0" placeholder="0 (free)"
+                    <label for="event-individual-fee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Individual Registration Fee</label>
+                    <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0" placeholder="0 (free)"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('individual_registration_fee') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 @endif
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Discount</label>
-                    <input type="number" wire:model="early_bird_discount" min="0" placeholder="No discount"
+                    <label for="event-early-bird-discount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Discount</label>
+                    <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0" placeholder="No discount"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('early_bird_discount') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Deadline</label>
-                    <input type="datetime-local" wire:model="early_bird_deadline"
+                    <label for="event-early-bird-deadline" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Deadline</label>
+                    <input type="datetime-local" id="event-early-bird-deadline" wire:model="early_bird_deadline"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('early_bird_deadline') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -228,14 +228,14 @@
             <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 pt-2">Registration Window</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opens At</label>
-                    <input type="datetime-local" wire:model="registration_opens_at"
+                    <label for="event-reg-opens" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opens At</label>
+                    <input type="datetime-local" id="event-reg-opens" wire:model="registration_opens_at"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('registration_opens_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Closes At</label>
-                    <input type="datetime-local" wire:model="registration_closes_at"
+                    <label for="event-reg-closes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Closes At</label>
+                    <input type="datetime-local" id="event-reg-closes" wire:model="registration_closes_at"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('registration_closes_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -252,14 +252,14 @@
             {{-- Add Division Form --}}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Division Name *</label>
-                    <input type="text" wire:model="newDivisionName" placeholder="e.g. Open Division"
+                    <label for="event-division-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Division Name *</label>
+                    <input type="text" id="event-division-name" wire:model="newDivisionName" placeholder="e.g. Open Division"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('newDivisionName') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <input type="text" wire:model="newDivisionDescription" placeholder="e.g. For experienced players"
+                    <label for="event-division-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <input type="text" id="event-division-description" wire:model="newDivisionDescription" placeholder="e.g. For experienced players"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('newDivisionDescription') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -300,29 +300,29 @@
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 font-['Montserrat']">Rules & Settings</h2>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rules <span class="text-xs text-gray-400">(one per line)</span></label>
-                <textarea wire:model="rules" rows="5" placeholder="Enter each rule on a separate line..."
+                <label for="event-rules" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rules <span class="text-xs text-gray-400">(one per line)</span></label>
+                <textarea id="event-rules" wire:model="rules" rows="5" placeholder="Enter each rule on a separate line..."
                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                 @error('rules') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schedule <span class="text-xs text-gray-400">(one item per line)</span></label>
-                <textarea wire:model="schedule" rows="4" placeholder="Enter schedule items on separate lines..."
+                <label for="event-schedule" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schedule <span class="text-xs text-gray-400">(one item per line)</span></label>
+                <textarea id="event-schedule" wire:model="schedule" rows="4" placeholder="Enter schedule items on separate lines..."
                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                 @error('schedule') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email</label>
-                    <input type="email" wire:model="contact_email" placeholder="organizer@example.com"
+                    <label for="event-contact-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email</label>
+                    <input type="email" id="event-contact-email" wire:model="contact_email" placeholder="organizer@example.com"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('contact_email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
-                    <input type="text" wire:model="contact_phone" placeholder="+1 555 123 4567"
+                    <label for="event-contact-phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
+                    <input type="text" id="event-contact-phone" wire:model="contact_phone" placeholder="+1 555 123 4567"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('contact_phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -330,7 +330,7 @@
 
             <div class="flex items-center gap-6 pt-2">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" wire:model="is_public" class="rounded border-gray-300 text-[#C12E26] focus:ring-[#C12E26]" />
+                    <input type="checkbox" id="event-is-public" wire:model="is_public" class="rounded border-gray-300 text-[#C12E26] focus:ring-[#C12E26]" />
                     <span class="text-sm text-gray-700 dark:text-gray-300">Public Event</span>
                 </label>
             </div>

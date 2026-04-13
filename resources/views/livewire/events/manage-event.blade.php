@@ -107,27 +107,27 @@
             @if($activeTab === 'details')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Name *</label>
-                        <input type="text" wire:model="name"
+                        <label for="event-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Name *</label>
+                        <input type="text" id="event-name" wire:model="name"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Short Description</label>
-                        <input type="text" wire:model="short_description" maxlength="500"
+                        <label for="event-short-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Short Description</label>
+                        <input type="text" id="event-short-description" wire:model="short_description" maxlength="500"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('short_description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                        <textarea wire:model="description" rows="5"
+                        <label for="event-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <textarea id="event-description" wire:model="description" rows="5"
                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                         @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
-                            <select wire:model="type" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                            <label for="event-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
+                            <select id="event-type" wire:model="type" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                                 <option value="tournament">Tournament</option>
                                 <option value="league">League</option>
                                 <option value="camp">Camp</option>
@@ -138,8 +138,8 @@
                             @error('type') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-                            <select wire:model="status" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                            <label for="event-status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                            <select id="event-status" wire:model="status" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                                 <option value="draft">Draft</option>
                                 <option value="published">Published</option>
                                 <option value="registration_open">Registration Open</option>
@@ -153,14 +153,14 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date *</label>
-                            <input type="date" wire:model="start_date"
+                            <label for="event-start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date *</label>
+                            <input type="date" id="event-start-date" wire:model="start_date"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('start_date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date *</label>
-                            <input type="date" wire:model="end_date"
+                            <label for="event-end-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date *</label>
+                            <input type="date" id="event-end-date" wire:model="end_date"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('end_date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -172,33 +172,33 @@
             @if($activeTab === 'venue')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue Name</label>
-                        <input type="text" wire:model="venue_name"
+                        <label for="event-venue-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue Name</label>
+                        <input type="text" id="event-venue-name" wire:model="venue_name"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('venue_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-                        <textarea wire:model="venue_address" rows="2"
+                        <label for="event-address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                        <textarea id="event-address" wire:model="venue_address" rows="2"
                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                         @error('venue_address') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-                            <input type="text" wire:model="city"
+                            <label for="event-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                            <input type="text" id="event-city" wire:model="city"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('city') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
-                            <input type="text" wire:model="country" maxlength="3"
+                            <label for="event-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
+                            <input type="text" id="event-country" wire:model="country" maxlength="3"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('country') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
-                            <input type="text" wire:model="postal_code"
+                            <label for="event-postal-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
+                            <input type="text" id="event-postal-code" wire:model="postal_code"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('postal_code') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -223,26 +223,26 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         @if(in_array($registration_type, ['team', 'both']))
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Teams</label>
-                            <input type="number" wire:model="max_teams" min="1"
+                            <label for="event-max-teams" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Teams</label>
+                            <input type="number" id="event-max-teams" wire:model="max_teams" min="1"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('max_teams') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Players/Team</label>
-                            <input type="number" wire:model="min_players_per_team" min="1"
+                            <label for="event-min-players" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Players/Team</label>
+                            <input type="number" id="event-min-players" wire:model="min_players_per_team" min="1"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Players/Team</label>
-                            <input type="number" wire:model="max_players_per_team" min="1"
+                            <label for="event-max-players" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Players/Team</label>
+                            <input type="number" id="event-max-players" wire:model="max_players_per_team" min="1"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         @endif
                         @if(in_array($registration_type, ['individual', 'both']))
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Participants</label>
-                            <input type="number" wire:model="max_participants" min="1"
+                            <label for="event-max-participants" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Participants</label>
+                            <input type="number" id="event-max-participants" wire:model="max_participants" min="1"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('max_participants') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -252,39 +252,39 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         @if(in_array($registration_type, ['team', 'both']))
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Fee</label>
-                            <input type="number" wire:model="team_registration_fee" min="0"
+                            <label for="event-team-fee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Fee</label>
+                            <input type="number" id="event-team-fee" wire:model="team_registration_fee" min="0"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         @endif
                         @if(in_array($registration_type, ['individual', 'both']))
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Individual Fee</label>
-                            <input type="number" wire:model="individual_registration_fee" min="0"
+                            <label for="event-individual-fee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Individual Fee</label>
+                            <input type="number" id="event-individual-fee" wire:model="individual_registration_fee" min="0"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         @endif
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Discount</label>
-                            <input type="number" wire:model="early_bird_discount" min="0"
+                            <label for="event-early-bird-discount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Discount</label>
+                            <input type="number" id="event-early-bird-discount" wire:model="early_bird_discount" min="0"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Deadline</label>
-                            <input type="datetime-local" wire:model="early_bird_deadline"
+                            <label for="event-early-bird-deadline" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Early Bird Deadline</label>
+                            <input type="datetime-local" id="event-early-bird-deadline" wire:model="early_bird_deadline"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                     </div>
                     <h3 class="text-md font-medium text-gray-900 dark:text-gray-100 pt-2">Registration Window</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opens At</label>
-                            <input type="datetime-local" wire:model="registration_opens_at"
+                            <label for="event-reg-opens" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opens At</label>
+                            <input type="datetime-local" id="event-reg-opens" wire:model="registration_opens_at"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Closes At</label>
-                            <input type="datetime-local" wire:model="registration_closes_at"
+                            <label for="event-reg-closes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Closes At</label>
+                            <input type="datetime-local" id="event-reg-closes" wire:model="registration_closes_at"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('registration_closes_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -343,25 +343,25 @@
             @if($activeTab === 'rules')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rules <span class="text-xs text-gray-400">(one per line)</span></label>
-                        <textarea wire:model="rules" rows="5"
+                        <label for="event-rules" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rules <span class="text-xs text-gray-400">(one per line)</span></label>
+                        <textarea id="event-rules" wire:model="rules" rows="5"
                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schedule <span class="text-xs text-gray-400">(one item per line)</span></label>
-                        <textarea wire:model="schedule" rows="4"
+                        <label for="event-schedule" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schedule <span class="text-xs text-gray-400">(one item per line)</span></label>
+                        <textarea id="event-schedule" wire:model="schedule" rows="4"
                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email</label>
-                            <input type="email" wire:model="contact_email"
+                            <label for="event-contact-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email</label>
+                            <input type="email" id="event-contact-email" wire:model="contact_email"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                             @error('contact_email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
-                            <input type="text" wire:model="contact_phone"
+                            <label for="event-contact-phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Phone</label>
+                            <input type="text" id="event-contact-phone" wire:model="contact_phone"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         </div>
                     </div>

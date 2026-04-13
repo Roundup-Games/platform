@@ -19,15 +19,15 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Campaign Name *</label>
-                    <input type="text" wire:model="name" placeholder="e.g. Shadows of Waterdeep"
+                    <label for="campaign-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Campaign Name *</label>
+                    <input type="text" id="campaign-name" wire:model="name" placeholder="e.g. Shadows of Waterdeep"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game System</label>
-                    <select wire:model="game_system_id"
+                    <label for="campaign-system" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Game System</label>
+                    <select id="campaign-system" wire:model="game_system_id"
                             class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                         <option value="">— Select a game system —</option>
                         @foreach($gameSystems as $system)
@@ -38,8 +38,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                    <textarea wire:model="description" rows="4" placeholder="Describe the campaign setting, tone, and what to expect..."
+                    <label for="campaign-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea id="campaign-description" wire:model="description" rows="4" placeholder="Describe the campaign setting, tone, and what to expect..."
                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -53,8 +53,8 @@
             <div class="space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recurrence *</label>
-                        <select wire:model="recurrence"
+                        <label for="campaign-recurrence" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recurrence *</label>
+                        <select id="campaign-recurrence" wire:model="recurrence"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="weekly">Weekly</option>
                             <option value="bi-weekly">Every 2 weeks</option>
@@ -65,8 +65,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time of Day *</label>
-                        <input type="time" wire:model="time_of_day"
+                        <label for="campaign-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time of Day *</label>
+                        <input type="time" id="campaign-time" wire:model="time_of_day"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('time_of_day') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -74,15 +74,15 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session Duration (hours)</label>
-                        <input type="number" wire:model="session_duration" step="0.5" min="0.5" max="24" placeholder="e.g. 3"
+                        <label for="campaign-duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session Duration (hours)</label>
+                        <input type="number" id="campaign-duration" wire:model="session_duration" step="0.5" min="0.5" max="24" placeholder="e.g. 3"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('session_duration') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per Session ($)</label>
-                        <input type="number" wire:model="price_per_session" step="0.01" min="0" placeholder="0.00"
+                        <label for="campaign-price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per Session ($)</label>
+                        <input type="number" id="campaign-price" wire:model="price_per_session" step="0.01" min="0" placeholder="0.00"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                         @error('price_per_session') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -97,8 +97,8 @@
             <div class="space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Type</label>
-                        <select wire:model="location_type"
+                        <label for="campaign-location-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Type</label>
+                        <select id="campaign-location-type" wire:model="location_type"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="online">Online (Virtual Tabletop)</option>
                             <option value="offline">In-Person</option>
@@ -107,8 +107,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
-                        <select wire:model="visibility"
+                        <label for="campaign-visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
+                        <select id="campaign-visibility" wire:model="visibility"
                                 class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                             <option value="public">Public — anyone can find and join</option>
                             <option value="protected">Protected — only with link</option>
@@ -119,15 +119,15 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Details</label>
-                    <input type="text" wire:model="location_details" placeholder="VTT link, address, or meeting details"
+                    <label for="campaign-location-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Details</label>
+                    <input type="text" id="campaign-location-details" wire:model="location_details" placeholder="VTT link, address, or meeting details"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('location_details') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
-                    <input type="text" wire:model="language" placeholder="en"
+                    <label for="campaign-language" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
+                    <input type="text" id="campaign-language" wire:model="language" placeholder="en"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('language') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>

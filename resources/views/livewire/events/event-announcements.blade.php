@@ -57,15 +57,15 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
-                    <input type="text" wire:model="title" placeholder="Announcement title..."
+                    <label for="announcement-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+                    <input type="text" id="announcement-title" wire:model="title" placeholder="Announcement title..."
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content *</label>
-                    <textarea wire:model="content" rows="5" placeholder="Write your announcement..."
+                    <label for="announcement-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content *</label>
+                    <textarea id="announcement-content" wire:model="content" rows="5" placeholder="Write your announcement..."
                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
                     @error('content') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>

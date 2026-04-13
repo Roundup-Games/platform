@@ -8,10 +8,10 @@
                 <svg aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search events by name, city, or venue..."
+                <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="Search events by name, city, or venue..."
                        class="w-full pl-10 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
             </div>
-            <select wire:model.live="type"
+            <select wire:model.live="type" aria-label="Filter by event type"
                     class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                 <option value="">All Types</option>
                 <option value="tournament">Tournament</option>
@@ -21,7 +21,7 @@
                 <option value="social">Social</option>
                 <option value="other">Other</option>
             </select>
-            <select wire:model.live="status"
+            <select wire:model.live="status" aria-label="Filter by event status"
                     class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                 <option value="">All Statuses</option>
                 <option value="registration_open">Registration Open</option>
@@ -29,7 +29,7 @@
                 <option value="in_progress">In Progress</option>
                 <option value="published">Published</option>
             </select>
-            <select wire:model.live="date"
+            <select wire:model.live="date" aria-label="Filter by date"
                     class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                 <option value="">Any Date</option>
                 <option value="upcoming">Upcoming</option>

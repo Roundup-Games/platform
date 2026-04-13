@@ -34,12 +34,12 @@
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1">
-                    <input type="email" wire:model="inviteEmail" placeholder="player@example.com"
+                    <input type="email" aria-label="Invite email address" wire:model="inviteEmail" placeholder="player@example.com"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('inviteEmail') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <select wire:model="inviteRole"
+                    <select aria-label="Invite role" wire:model="inviteRole"
                             class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
                         <option value="player">Player</option>
                         <option value="substitute">Substitute</option>
