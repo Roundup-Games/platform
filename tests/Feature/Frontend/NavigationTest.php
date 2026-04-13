@@ -37,13 +37,14 @@ describe('Public Layout Mobile Nav', function () {
             ->assertSee(route('logout'));
     });
 
-    it('has hamburger and X icon SVGs for toggle', function () {
+    it('has hamburger and X icons for mobile toggle', function () {
         get(route('home'))
             ->assertOk()
-            // Hamburger icon
-            ->assertSee('M4 6h16M4 12h16M4 18h16')
-            // X icon
-            ->assertSee('M6 18L18 6M6 6l12 12');
+            // Material Symbols hamburger icon (menu)
+            ->assertSee('material-symbols-outlined')
+            ->assertSee('menu')
+            // Material Symbols close icon
+            ->assertSee('close');
     });
 });
 
