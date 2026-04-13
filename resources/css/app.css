@@ -4,38 +4,37 @@
 
 @layer base {
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Oswald', sans-serif;
-        text-transform: uppercase;
+        font-family: 'Noto Serif', serif;
     }
 
     body {
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
 
-    /* Brand focus ring override */
+    /* Focus ring override — warm amber to match primary */
     *:focus {
-        --tw-ring-color: #C12E26;
+        --tw-ring-color: #835500;
     }
 }
 
 @layer components {
-    /* Brand button base */
+    /* Primary button — warm gradient from primary to primary-container */
     .btn-brand {
-        @apply inline-flex items-center justify-center px-5 py-2.5 bg-brand border border-transparent rounded-lg font-heading font-semibold text-sm text-white uppercase tracking-wider hover:bg-brand-dark active:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+        @apply inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container border border-transparent rounded-xl font-heading font-semibold text-sm text-on-primary tracking-wide hover:brightness-110 active:brightness-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
     }
 
-    /* Brand outline button */
+    /* Secondary outline button */
     .btn-brand-outline {
-        @apply inline-flex items-center justify-center px-5 py-2.5 bg-white border-2 border-brand rounded-lg font-heading font-semibold text-sm text-brand uppercase tracking-wider hover:bg-brand hover:text-white focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+        @apply inline-flex items-center justify-center px-5 py-2.5 bg-surface-container-lowest border-2 border-outline rounded-xl font-heading font-semibold text-sm text-primary tracking-wide hover:bg-primary hover:text-on-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
     }
 
-    /* Brand input styling */
+    /* Input styling — warm surface with secondary focus ring */
     .input-brand {
-        @apply border-gray-300 focus:border-brand focus:ring-brand rounded-lg shadow-sm;
+        @apply bg-surface-container-high border-outline-variant focus:border-secondary focus:ring-secondary rounded-md shadow-sm;
     }
 
     /* Google OAuth button */
     .btn-google {
-        @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition ease-in-out duration-150;
+        @apply inline-flex items-center justify-center w-full px-4 py-2.5 bg-surface-container-lowest border-2 border-outline-variant rounded-xl text-sm font-semibold text-on-surface hover:bg-surface-container-low hover:border-outline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
     }
 }
