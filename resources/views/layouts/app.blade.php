@@ -7,6 +7,13 @@
 
         <title>{{ config('app.name', 'Roundup Games') }} — @yield('title', 'Dashboard')</title>
 
+        <!-- Dark mode: apply class before paint to prevent flash -->
+        <script>
+            if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
+
         <!-- Fonts: Oswald for headers, Montserrat for body -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=montserrat:400,500,600,700&family=oswald:500,600,700&display=swap" rel="stylesheet" />
@@ -14,7 +21,7 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased">
+    <body class="font-sans text-gray-900 dark:text-gray-100 antialiased">
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
             <!-- Mobile Header -->
             <div class="lg:hidden bg-brand dark:bg-brand-dark" x-data="{ open: false }">
@@ -80,7 +87,7 @@
                     <!-- User Section -->
                     <div class="border-t border-gray-200 dark:border-gray-700 p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center">
+                            <div class="w-9 h-9 rounded-full bg-brand/10 dark:bg-brand/20 flex items-center justify-center">
                                 <span class="text-brand font-heading font-bold text-sm uppercase">{{ strtoupper(Auth::user()->name[0] ?? 'U') }}</span>
                             </div>
                             <div class="flex-1 min-w-0">
@@ -88,16 +95,19 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ Auth::user()->email }}</p>
                             </div>
                         </div>
-                        <div class="mt-3 space-y-1">
-                            <x-responsive-nav-link :href="route('profile.show')">
-                                <span class="text-xs">{{ __('Settings') }}</span>
-                            </x-responsive-nav-link>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
-                                    <span class="text-xs">{{ __('Log Out') }}</span>
+                        <div class="mt-3 space-y-1 flex items-center justify-between">
+                            <div class="space-y-1">
+                                <x-responsive-nav-link :href="route('profile.show')">
+                                    <span class="text-xs">{{ __('Settings') }}</span>
                                 </x-responsive-nav-link>
-                            </form>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                        <span class="text-xs">{{ __('Log Out') }}</span>
+                                    </x-responsive-nav-link>
+                                </form>
+                            </div>
+                            <x-theme-toggle size="small" />
                         </div>
                     </div>
                 </aside>
@@ -105,18 +115,21 @@
                 <!-- Main Content -->
                 <div class="flex-1 flex flex-col min-w-0">
                     <!-- Top Bar (Desktop) -->
-                    <header class="hidden lg:flex h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 items-center px-6">
-                        @hasSection('title')
-                            <h1 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase">
-                                @yield('title')
-                            </h1>
-                        @elseif(isset($header))
-                            <h2 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase leading-tight">
-                                {{ $header }}
-                            </h2>
-                        @else
-                            <h1 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase">Dashboard</h1>
-                        @endif
+                    <header class="hidden lg:flex h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 items-center justify-between px-6">
+                        <div class="flex items-center">
+                            @hasSection('title')
+                                <h1 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase">
+                                    @yield('title')
+                                </h1>
+                            @elseif(isset($header))
+                                <h2 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase leading-tight">
+                                    {{ $header }}
+                                </h2>
+                            @else
+                                <h1 class="font-heading text-lg font-semibold text-gray-800 dark:text-gray-200 uppercase">Dashboard</h1>
+                            @endif
+                        </div>
+                        <x-theme-toggle size="small" />
                     </header>
 
                     <!-- Page Content -->
