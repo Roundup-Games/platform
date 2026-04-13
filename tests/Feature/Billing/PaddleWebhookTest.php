@@ -411,6 +411,107 @@ describe('Webhook — Error Handling', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// WEBHOOK SIGNATURE VERIFICATION
+// ═══════════════════════════════════════════════════════════
+
+function computePaddleSignature(string $payload, string $secret, ?int $timestamp = null): string
+{
+    $timestamp = $timestamp ?? time();
+    $hash = hash_hmac('sha256', "{$timestamp}:{$payload}", $secret);
+
+    return "ts={$timestamp};h1={$hash}";
+}
+
+/**
+ * Send a POST with a raw JSON body and Paddle-Signature header.
+ * Uses $this->call() so $request->getContent() returns the exact raw body
+ * the HMAC was computed over.
+ */
+function postSignedWebhook(string $uri, string $rawBody, string $signature): \Illuminate\Testing\TestResponse
+{
+    return test()->call('POST', $uri, [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_PADDLE_SIGNATURE' => $signature,
+    ], $rawBody);
+}
+
+describe('Webhook — Signature Verification', function () {
+    it('accepts webhook with valid signature when webhook_secret is configured', function () {
+        $secret = 'test_webhook_secret_abc123';
+        config(['cashier.webhook_secret' => $secret]);
+
+        $payload = json_encode([
+            'event_type' => 'subscription.canceled',
+            'data' => [
+                'id' => 'sub_sig_test',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+            ],
+        ]);
+
+        $signature = computePaddleSignature($payload, $secret);
+
+        postSignedWebhook('/paddle/webhook', $payload, $signature)->assertStatus(200);
+    });
+
+    it('rejects webhook with invalid signature when webhook_secret is configured', function () {
+        $secret = 'test_webhook_secret_abc123';
+        config(['cashier.webhook_secret' => $secret]);
+
+        $payload = json_encode([
+            'event_type' => 'subscription.canceled',
+            'data' => [
+                'id' => 'sub_bad_sig',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+            ],
+        ]);
+
+        // Compute signature with the WRONG secret
+        $signature = computePaddleSignature($payload, 'wrong_secret_value');
+
+        postSignedWebhook('/paddle/webhook', $payload, $signature)->assertStatus(403);
+    });
+
+    it('rejects webhook with expired timestamp in signature', function () {
+        $secret = 'test_webhook_secret_abc123';
+        config(['cashier.webhook_secret' => $secret]);
+
+        $payload = json_encode([
+            'event_type' => 'subscription.canceled',
+            'data' => [
+                'id' => 'sub_expired_ts',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+            ],
+        ]);
+
+        // Timestamp 60 seconds in the past — exceeds 5-second variance
+        $expiredTimestamp = time() - 60;
+        $signature = computePaddleSignature($payload, $secret, $expiredTimestamp);
+
+        postSignedWebhook('/paddle/webhook', $payload, $signature)->assertStatus(403);
+    });
+
+    it('accepts webhook without signature when webhook_secret is not configured', function () {
+        config(['cashier.webhook_secret' => null]);
+
+        post('/paddle/webhook', [
+            'event_type' => 'subscription.canceled',
+            'data' => [
+                'id' => 'sub_no_secret',
+                'status' => 'canceled',
+                'canceled_at' => now()->toIso8601String(),
+                'items' => [],
+            ],
+        ])->assertStatus(200);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // WEBHOOK — SUBSCRIPTION STATUS TRANSITIONS
 // ═══════════════════════════════════════════════════════════
 
