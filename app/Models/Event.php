@@ -18,6 +18,20 @@ class Event extends Model implements HasMedia
     protected $keyType = 'string';
     public $incrementing = false;
 
+    /**
+     * Valid status transitions for the event state machine.
+     * Each key maps to an array of statuses that may follow it.
+     */
+    public const VALID_TRANSITIONS = [
+        'draft' => ['published'],
+        'published' => ['registration_open', 'cancelled'],
+        'registration_open' => ['registration_closed', 'cancelled'],
+        'registration_closed' => ['in_progress', 'cancelled'],
+        'in_progress' => ['completed', 'cancelled'],
+        'completed' => [],
+        'cancelled' => ['draft'],
+    ];
+
     protected $fillable = [
         'name', 'slug', 'description', 'short_description', 'type', 'status',
         'venue_name', 'venue_address', 'city', 'country', 'postal_code',
@@ -140,6 +154,16 @@ class Event extends Model implements HasMedia
     public function scopeUpcoming($query)
     {
         return $query->where('start_date', '>=', now())->orderBy('start_date');
+    }
+
+    // ── State Machine ──────────────────────────────────
+
+    /**
+     * Check whether a transition from one status to another is valid.
+     */
+    public static function isValidStatusTransition(string $from, string $to): bool
+    {
+        return in_array($to, self::VALID_TRANSITIONS[$from] ?? [], true);
     }
 
     // ── Helpers ────────────────────────────────────────

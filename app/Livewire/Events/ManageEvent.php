@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -180,6 +181,20 @@ class ManageEvent extends Component
         $this->authorize('update', $this->event);
         $this->validate();
 
+        // Validate status transition if status changed
+        $oldStatus = $this->event->getOriginal('status');
+        if ($this->status !== $oldStatus && ! Event::isValidStatusTransition($oldStatus, $this->status)) {
+            Log::warning('Invalid event status transition attempted', [
+                'event_id' => $this->event->id,
+                'from' => $oldStatus,
+                'to' => $this->status,
+                'user_id' => Auth::id(),
+            ]);
+            throw ValidationException::withMessages([
+                'status' => "Cannot change event status from \"{$oldStatus}\" to \"{$this->status}\".",
+            ]);
+        }
+
         // Only global admins can change is_featured — non-admins keep the current value
         $isFeatured = $this->is_featured;
         if ($isFeatured !== (bool) $this->event->getOriginal('is_featured')) {
@@ -248,6 +263,19 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
+        $oldStatus = $this->event->getOriginal('status');
+        if (! Event::isValidStatusTransition($oldStatus, 'published')) {
+            Log::warning('Invalid event status transition attempted', [
+                'event_id' => $this->event->id,
+                'from' => $oldStatus,
+                'to' => 'published',
+                'user_id' => Auth::id(),
+            ]);
+            throw ValidationException::withMessages([
+                'status' => "Cannot publish event from status \"{$oldStatus}\".",
+            ]);
+        }
+
         $this->event->update(['status' => 'published']);
         $this->status = 'published';
 
@@ -262,6 +290,19 @@ class ManageEvent extends Component
     public function openRegistration(): void
     {
         $this->authorize('update', $this->event);
+
+        $oldStatus = $this->event->getOriginal('status');
+        if (! Event::isValidStatusTransition($oldStatus, 'registration_open')) {
+            Log::warning('Invalid event status transition attempted', [
+                'event_id' => $this->event->id,
+                'from' => $oldStatus,
+                'to' => 'registration_open',
+                'user_id' => Auth::id(),
+            ]);
+            throw ValidationException::withMessages([
+                'status' => "Cannot open registration from status \"{$oldStatus}\".",
+            ]);
+        }
 
         $this->event->update([
             'status' => 'registration_open',
@@ -282,6 +323,19 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
+        $oldStatus = $this->event->getOriginal('status');
+        if (! Event::isValidStatusTransition($oldStatus, 'registration_closed')) {
+            Log::warning('Invalid event status transition attempted', [
+                'event_id' => $this->event->id,
+                'from' => $oldStatus,
+                'to' => 'registration_closed',
+                'user_id' => Auth::id(),
+            ]);
+            throw ValidationException::withMessages([
+                'status' => "Cannot close registration from status \"{$oldStatus}\".",
+            ]);
+        }
+
         $this->event->update(['status' => 'registration_closed']);
         $this->status = 'registration_closed';
 
@@ -296,6 +350,19 @@ class ManageEvent extends Component
     public function cancelEvent(): void
     {
         $this->authorize('update', $this->event);
+
+        $oldStatus = $this->event->getOriginal('status');
+        if (! Event::isValidStatusTransition($oldStatus, 'cancelled')) {
+            Log::warning('Invalid event status transition attempted', [
+                'event_id' => $this->event->id,
+                'from' => $oldStatus,
+                'to' => 'cancelled',
+                'user_id' => Auth::id(),
+            ]);
+            throw ValidationException::withMessages([
+                'status' => "Cannot cancel event from status \"{$oldStatus}\".",
+            ]);
+        }
 
         $this->event->update(['status' => 'cancelled']);
         $this->status = 'cancelled';
