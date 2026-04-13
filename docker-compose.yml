@@ -10,7 +10,7 @@ services:
     volumes:
       - app_storage:/var/www/html/storage
     ports:
-      - "8199:80"
+      - "8199:8080"
     networks:
       - roundup
 
