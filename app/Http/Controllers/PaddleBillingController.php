@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
 use App\Models\MembershipType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,16 +47,42 @@ class PaddleBillingController extends Controller
     {
         $request->validate([
             'price_id' => 'required|string',
-            'event_id' => 'nullable|integer|exists:events,id',
+            'event_id' => 'required|string|exists:events,id',
         ]);
 
         $user = Auth::user();
         $priceId = $request->input('price_id');
+        $eventId = $request->input('event_id');
+
+        // Load the event and cross-check the price_id
+        $event = Event::findOrFail($eventId);
+        $expectedPriceId = $event->metadata['paddle_price_id'] ?? null;
+
+        if (! $expectedPriceId) {
+            Log::warning('Paddle one-time checkout rejected: event has no paddle_price_id configured', [
+                'user_id' => $user->id,
+                'event_id' => $eventId,
+                'provided_price_id' => $priceId,
+            ]);
+
+            return back()->with('error', 'This event does not have a payment configuration.');
+        }
+
+        if ($priceId !== $expectedPriceId) {
+            Log::warning('Paddle one-time checkout rejected: price_id mismatch', [
+                'user_id' => $user->id,
+                'event_id' => $eventId,
+                'provided_price_id' => $priceId,
+                'expected_price_id' => $expectedPriceId,
+            ]);
+
+            return back()->with('error', 'Invalid payment option selected.');
+        }
 
         Log::info('Paddle one-time checkout initiated', [
             'user_id' => $user->id,
             'paddle_price_id' => $priceId,
-            'event_id' => $request->input('event_id'),
+            'event_id' => $eventId,
         ]);
 
         $checkout = $user->pay($priceId)

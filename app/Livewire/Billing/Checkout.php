@@ -16,15 +16,15 @@ class Checkout extends Component
 
     public ?MembershipType $membershipType = null;
 
-    #[Validate('nullable|integer|exists:events,id')]
-    public ?int $eventId = null;
+    #[Validate('nullable|string|exists:events,id')]
+    public ?string $eventId = null;
 
     #[Validate('nullable|string')]
     public ?string $eventPriceId = null;
 
     public string $mode = 'subscription'; // subscription or one-time
 
-    public function mount(?int $planId = null, ?string $priceId = null, ?int $eventId = null): void
+    public function mount(?int $planId = null, ?string $priceId = null, ?string $eventId = null): void
     {
         if ($planId) {
             $this->membershipTypeId = $planId;
@@ -84,6 +84,47 @@ class Checkout extends Component
 
     private function initOneTimeCheckout($user): void
     {
+        // One-time payments must be tied to an event — reject if no eventId
+        if (! $this->eventId) {
+            Log::warning('Paddle one-time checkout rejected: no event_id provided', [
+                'user_id' => $user->id,
+                'provided_price_id' => $this->eventPriceId,
+            ]);
+
+            session()->flash('error', 'A valid event is required for payment.');
+
+            return;
+        }
+
+        // Load event and cross-check price_id
+        $event = \App\Models\Event::findOrFail($this->eventId);
+        $expectedPriceId = $event->metadata['paddle_price_id'] ?? null;
+
+        if (! $expectedPriceId) {
+            Log::warning('Paddle one-time checkout rejected: event has no paddle_price_id configured', [
+                'user_id' => $user->id,
+                'event_id' => $this->eventId,
+                'provided_price_id' => $this->eventPriceId,
+            ]);
+
+            session()->flash('error', 'This event does not have a payment configuration.');
+
+            return;
+        }
+
+        if ($this->eventPriceId !== $expectedPriceId) {
+            Log::warning('Paddle one-time checkout rejected: price_id mismatch', [
+                'user_id' => $user->id,
+                'event_id' => $this->eventId,
+                'provided_price_id' => $this->eventPriceId,
+                'expected_price_id' => $expectedPriceId,
+            ]);
+
+            session()->flash('error', 'Invalid payment option selected.');
+
+            return;
+        }
+
         Log::info('Paddle one-time checkout initiated', [
             'user_id' => $user->id,
             'paddle_price_id' => $this->eventPriceId,
