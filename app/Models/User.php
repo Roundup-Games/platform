@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ScopedRoleService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -181,11 +182,12 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     /**
      * Determine if the user can access the Filament admin panel.
      *
-     * All authenticated users can access the panel itself.
-     * Resource-level access is controlled by policies.
+     * Only global admin users (Platform Admin, Games Admin) may access the panel.
+     * Resource-level access is further controlled by policies.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return app(ScopedRoleService::class)->isGlobalAdmin($this)
+            || $this->hasRole('Platform Admin');
     }
 }

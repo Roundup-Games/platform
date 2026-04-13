@@ -40,12 +40,6 @@ test('guest is redirected from admin panel', function () {
     $response->assertRedirect();
 });
 
-test('authenticated user can access admin panel', function () {
-    $this->actingAs($this->regularUser);
-    $response = $this->get('/admin');
-    $response->assertSuccessful();
-});
-
 test('Platform Admin can access admin panel', function () {
     $this->actingAs($this->platformAdmin);
     $response = $this->get('/admin');
@@ -58,16 +52,40 @@ test('Games Admin can access admin panel', function () {
     $response->assertSuccessful();
 });
 
-test('Team Admin can access admin panel', function () {
-    $this->actingAs($this->teamAdmin);
+test('regular user cannot access admin panel', function () {
+    $this->actingAs($this->regularUser);
     $response = $this->get('/admin');
-    $response->assertSuccessful();
+    $response->assertForbidden();
 });
 
-test('Event Admin can access admin panel', function () {
+test('Team Admin cannot access admin panel', function () {
+    $this->actingAs($this->teamAdmin);
+    $response = $this->get('/admin');
+    $response->assertForbidden();
+});
+
+test('Event Admin cannot access admin panel', function () {
     $this->actingAs($this->eventAdmin);
     $response = $this->get('/admin');
-    $response->assertSuccessful();
+    $response->assertForbidden();
+});
+
+// ── canAccessPanel unit checks ───────────────────────
+
+test('admin can access filament panel via canAccessPanel', function () {
+    $panel = filament()->getPanel('admin');
+    expect($this->platformAdmin->canAccessPanel($panel))->toBeTrue();
+    expect($this->gamesAdmin->canAccessPanel($panel))->toBeTrue();
+});
+
+test('regular user cannot access filament panel via canAccessPanel', function () {
+    $panel = filament()->getPanel('admin');
+    expect($this->regularUser->canAccessPanel($panel))->toBeFalse();
+});
+
+test('team admin without global admin cannot access filament panel via canAccessPanel', function () {
+    $panel = filament()->getPanel('admin');
+    expect($this->teamAdmin->canAccessPanel($panel))->toBeFalse();
 });
 
 // ── Policy-based Resource Visibility ─────────────────
