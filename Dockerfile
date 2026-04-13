@@ -19,7 +19,7 @@ FROM serversideup/php:8.5-fpm-nginx AS app
 
 # Additional PHP extensions needed beyond the Laravel defaults
 USER root
-RUN install-php-extensions gd
+RUN install-php-extensions gd intl bcmath exif
 
 # Install postgresql client for DB creation at startup
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
