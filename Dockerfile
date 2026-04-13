@@ -25,20 +25,24 @@ RUN install-php-extensions gd
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# S6 init script — runs migrations, caches config on every start
-COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
-
 USER www-data
+
+# Copy composer files first for better layer caching
+COPY --chown=www-data:www-data composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
 # Copy application source
 COPY --chown=www-data:www-data . .
 COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/public/build
 
-# Install PHP dependencies (no dev)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
- && php artisan storage:link --force || true
-
-# Ensure writable dirs
-RUN mkdir -p storage/framework/{sessions,views,cache} \
+# Storage link and ensure writable dirs
+RUN php artisan storage:link --force 2>/dev/null; true \
+ && mkdir -p storage/framework/{sessions,views,cache} \
              storage/logs \
              bootstrap/cache
+
+# S6 init script — runs migrations, caches config on every start
+# Must come after source is copied so artisan is available at runtime
+USER root
+COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
+USER www-data
