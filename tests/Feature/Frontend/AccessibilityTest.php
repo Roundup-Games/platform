@@ -226,7 +226,7 @@ describe('Form Label Associations', function () {
         $expectedPairs = [
             'game-name', 'game-system', 'game-date-time', 'game-description',
             'game-duration', 'game-price', 'game-language', 'game-visibility',
-            'game-location-type', 'game-location-details',
+            'game-location-details',
         ];
 
         foreach ($expectedPairs as $id) {
@@ -241,7 +241,7 @@ describe('Form Label Associations', function () {
         $expectedPairs = [
             'campaign-name', 'campaign-system', 'campaign-description',
             'campaign-recurrence', 'campaign-time', 'campaign-duration',
-            'campaign-price', 'campaign-location-type', 'campaign-visibility',
+            'campaign-price', 'campaign-visibility',
             'campaign-location-details', 'campaign-language',
         ];
 

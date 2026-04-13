@@ -174,10 +174,10 @@ describe('Campaign Model', function () {
 
     it('casts location as array', function () {
         $campaign = campaignTestCreateCampaign([
-            'location' => ['type' => 'online', 'details' => 'Discord server'],
+            'location' => ['details' => 'Local game store'],
         ]);
 
-        expect($campaign->location)->toBe(['type' => 'online', 'details' => 'Discord server']);
+        expect($campaign->location)->toBe(['details' => 'Local game store']);
     });
 
     it('casts session_duration as float', function () {
@@ -295,8 +295,7 @@ describe('CreateCampaign Component', function () {
             ->set('session_duration', '4')
             ->set('price_per_session', '10.00')
             ->set('language', 'en')
-            ->set('location_type', 'online')
-            ->set('location_details', 'Roll20')
+            ->set('location_details', 'Local game store')
             ->set('visibility', 'public')
             ->call('save')
             ->assertRedirect();
@@ -419,12 +418,11 @@ describe('CreateCampaign Component', function () {
             ->set('name', 'Location Campaign')
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
-            ->set('location_type', 'physical')
             ->set('location_details', 'Local game store')
             ->call('save');
 
         $campaign = Campaign::where('name', 'Location Campaign')->first();
-        expect($campaign->location)->toBe(['type' => 'physical', 'details' => 'Local game store']);
+        expect($campaign->location)->toBe(['details' => 'Local game store']);
     });
 
     it('flashes success message', function () {

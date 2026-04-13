@@ -37,9 +37,6 @@ class CreateCampaign extends Component
     #[Validate('nullable|string|max:10')]
     public string $language = 'en';
 
-    #[Validate('nullable|string|max:255')]
-    public string $location_type = 'online';
-
     #[Validate('nullable|string|max:1000')]
     public string $location_details = '';
 
@@ -69,7 +66,6 @@ class CreateCampaign extends Component
             'price_per_session' => $validated['price_per_session'] ?: 0,
             'language' => $validated['language'],
             'location' => [
-                'type' => $validated['location_type'],
                 'details' => $validated['location_details'],
             ],
             'status' => 'active',

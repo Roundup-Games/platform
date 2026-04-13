@@ -239,7 +239,6 @@ describe('CreateGame', function () {
             ->set('expected_duration', '3')
             ->set('price', '5.00')
             ->set('visibility', 'public')
-            ->set('location_type', 'online')
             ->set('location_details', 'https://roll20.net/join/123')
             ->call('save')
             ->assertRedirect();
@@ -335,12 +334,11 @@ describe('CreateGame', function () {
             ->test(App\Livewire\Games\CreateGame::class)
             ->set('name', 'Located Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
-            ->set('location_type', 'online')
             ->set('location_details', 'https://example.com/vtt')
             ->call('save');
 
         $game = Game::where('name', 'Located Game')->first();
-        expect($game->location)->toBe(['type' => 'online', 'details' => 'https://example.com/vtt']);
+        expect($game->location)->toBe(['details' => 'https://example.com/vtt']);
     });
 });
 
@@ -456,7 +454,6 @@ describe('CreateCampaign', function () {
             ->set('session_duration', '3')
             ->set('price_per_session', '10.00')
             ->set('visibility', 'public')
-            ->set('location_type', 'online')
             ->set('location_details', 'https://roll20.net/join/456')
             ->call('save')
             ->assertRedirect();

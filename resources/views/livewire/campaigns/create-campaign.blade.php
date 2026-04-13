@@ -95,32 +95,20 @@
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 font-['Montserrat']">Location & Visibility</h2>
 
             <div class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="campaign-location-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Type</label>
-                        <select id="campaign-location-type" wire:model="location_type"
-                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
-                            <option value="online">Online (Virtual Tabletop)</option>
-                            <option value="offline">In-Person</option>
-                            <option value="hybrid">Hybrid</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="campaign-visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
-                        <select id="campaign-visibility" wire:model="visibility"
-                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
-                            <option value="public">Public — anyone can find and join</option>
-                            <option value="protected">Protected — only with link</option>
-                            <option value="private">Private — invite only</option>
-                        </select>
-                        @error('visibility') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
+                <div>
+                    <label for="campaign-visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visibility *</label>
+                    <select id="campaign-visibility" wire:model="visibility"
+                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                        <option value="public">Public — anyone can find and join</option>
+                        <option value="protected">Protected — only with link</option>
+                        <option value="private">Private — invite only</option>
+                    </select>
+                    @error('visibility') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label for="campaign-location-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Details</label>
-                    <input type="text" id="campaign-location-details" wire:model="location_details" placeholder="VTT link, address, or meeting details"
+                    <label for="campaign-location-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                    <input type="text" id="campaign-location-details" wire:model="location_details" placeholder="Venue name, address, or meeting details"
                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
                     @error('location_details') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>

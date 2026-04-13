@@ -169,10 +169,10 @@ describe('Game Model', function () {
 
     it('casts location as array', function () {
         $game = gameTestCreateGame([
-            'location' => ['type' => 'physical', 'details' => '123 Main St'],
+            'location' => ['details' => '123 Main St'],
         ]);
 
-        expect($game->location)->toBe(['type' => 'physical', 'details' => '123 Main St']);
+        expect($game->location)->toBe(['details' => '123 Main St']);
     });
 
     it('casts date_time as datetime', function () {
@@ -302,7 +302,6 @@ describe('CreateGame Component', function () {
             ->set('expected_duration', '4')
             ->set('price', '15.00')
             ->set('language', 'en')
-            ->set('location_type', 'physical')
             ->set('location_details', 'Game Store, 456 Oak Ave')
             ->set('visibility', 'protected')
             ->call('save')
@@ -425,13 +424,11 @@ describe('CreateGame Component', function () {
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Location Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('location_type', 'hybrid')
             ->set('location_details', 'Both online and at the store')
             ->call('save');
 
         $game = Game::where('name', 'Location Test')->first();
         expect($game->location)->toBe([
-            'type' => 'hybrid',
             'details' => 'Both online and at the store',
         ]);
     });
