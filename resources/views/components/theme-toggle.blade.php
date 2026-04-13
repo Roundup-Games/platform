@@ -17,7 +17,7 @@
     x-effect="document.documentElement.classList.toggle('dark', dark)"
     @click="dark = !dark"
     type="button"
-    class="rounded-xl {{ $buttonSize }} text-on-surface-variant hover:text-primary hover:bg-surface-container-high dark:hover:bg-[#2a2b24] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors duration-200"
+    class="rounded-xl {{ $buttonSize }} text-on-surface-variant hover:text-primary hover:bg-surface-container-high focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors duration-200"
     aria-label="Toggle dark mode"
     {{ $attributes }}
 >
