@@ -1,16 +1,18 @@
 <?php
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-// ── Public ─────────────────────────────────────────────
+// ── Public Pages ───────────────────────────────────────
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PageController::class, 'home'])->name('home');
+Route::get('/about', [PageController::class, 'about'])->name('about');
+Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+Route::post('/contact', [PageController::class, 'submitContact'])->name('contact.submit');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
 
