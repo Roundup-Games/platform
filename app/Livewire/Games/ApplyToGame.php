@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -61,47 +62,72 @@ class ApplyToGame extends Component
             return;
         }
 
-        // Double-check no existing participant record
-        if ($this->game->participants()->where('user_id', Auth::id())->exists()) {
-            $this->addError('message', 'You are already a participant or have a pending invite.');
-
-            return;
-        }
-
-        // Double-check no existing application
-        if ($this->game->applications()->where('user_id', Auth::id())->exists()) {
-            $this->addError('message', 'You have already applied to this game.');
-
-            return;
-        }
+        $gameId = $this->game->id;
+        $userId = Auth::id();
+        $message = $this->message;
 
         $this->validate();
 
-        // For public games, auto-approve; for protected games, require approval
-        $isPublic = $this->game->visibility === 'public';
+        try {
+            DB::transaction(function () use ($gameId, $userId, $message) {
+                // Pessimistic lock on existing participant/application rows for this game+user
+                GameParticipant::lockForUpdate()
+                    ->where('game_id', $gameId)
+                    ->where('user_id', $userId)
+                    ->exists();
 
-        // Create application record (always)
-        GameApplication::create([
-            'game_id' => $this->game->id,
-            'user_id' => Auth::id(),
-            'status' => $isPublic ? 'approved' : 'pending',
-            'message' => $this->message ?: null,
-        ]);
+                GameApplication::lockForUpdate()
+                    ->where('game_id', $gameId)
+                    ->where('user_id', $userId)
+                    ->exists();
 
-        // Create participant record
-        GameParticipant::create([
-            'game_id' => $this->game->id,
-            'user_id' => Auth::id(),
-            'role' => 'applicant',
-            'status' => $isPublic ? 'approved' : 'pending',
-        ]);
+                // Double-check no existing participant record
+                if (GameParticipant::where('game_id', $gameId)->where('user_id', $userId)->exists()) {
+                    throw new \RuntimeException('You are already a participant or have a pending invite.');
+                }
 
-        // For public games, immediately promote to player
-        if ($isPublic) {
-            $this->game->participants()
-                ->where('user_id', Auth::id())
-                ->update(['role' => 'player']);
+                // Double-check no existing application
+                if (GameApplication::where('game_id', $gameId)->where('user_id', $userId)->exists()) {
+                    throw new \RuntimeException('You have already applied to this game.');
+                }
+
+                // For public games, auto-approve; for protected games, require approval
+                $isPublic = Game::find($gameId)->visibility === 'public';
+
+                // Create application record (always)
+                GameApplication::create([
+                    'game_id' => $gameId,
+                    'user_id' => $userId,
+                    'status' => $isPublic ? 'approved' : 'pending',
+                    'message' => $message ?: null,
+                ]);
+
+                // Create participant record
+                GameParticipant::create([
+                    'game_id' => $gameId,
+                    'user_id' => $userId,
+                    'role' => $isPublic ? 'player' : 'applicant',
+                    'status' => $isPublic ? 'approved' : 'pending',
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Unique constraint violation — concurrent duplicate
+            Log::warning('Game application race caught by unique constraint', [
+                'game_id' => $gameId,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('info', 'You have already applied to this game.');
+            $this->redirect(route('games.detail', $this->game->id), navigate: true);
+
+            return;
+        } catch (\RuntimeException $e) {
+            $this->addError('message', $e->getMessage());
+
+            return;
         }
+
+        $isPublic = $this->game->visibility === 'public';
 
         Log::info('Game application submitted', [
             'game_id' => $this->game->id,

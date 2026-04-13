@@ -6,6 +6,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -66,58 +67,68 @@ class ManageRoster extends Component
             return;
         }
 
-        // Check for existing active membership
-        $existingActive = TeamMember::where('user_id', $targetUser->id)
-            ->where('status', 'active')
-            ->exists();
+        $teamId = $this->team->id;
+        $targetUserId = $targetUser->id;
+        $inviteRole = $this->inviteRole;
+        $invitedBy = Auth::id();
 
-        if ($existingActive) {
-            $this->addError('inviteEmail', 'This user already has an active team membership.');
+        try {
+            DB::transaction(function () use ($teamId, $targetUserId, $inviteRole, $invitedBy) {
+                // Pessimistic lock on the user's active team_members rows to serialize one-active checks
+                $activeLock = TeamMember::lockForUpdate()
+                    ->where('user_id', $targetUserId)
+                    ->where('status', 'active')
+                    ->exists();
+
+                if ($activeLock) {
+                    throw new \RuntimeException('This user already has an active team membership.');
+                }
+
+                // Check for existing pending invite to this team
+                $existingPending = TeamMember::where('team_id', $teamId)
+                    ->where('user_id', $targetUserId)
+                    ->where('status', 'pending')
+                    ->exists();
+
+                if ($existingPending) {
+                    throw new \RuntimeException('This user already has a pending invite to this team.');
+                }
+
+                // If they were previously removed/inactive, reactivate as pending
+                $existingMembership = TeamMember::where('team_id', $teamId)
+                    ->where('user_id', $targetUserId)
+                    ->first();
+
+                if ($existingMembership) {
+                    $existingMembership->update([
+                        'role' => $inviteRole,
+                        'status' => 'pending',
+                        'invited_by' => $invitedBy,
+                        'joined_at' => now(),
+                        'left_at' => null,
+                    ]);
+                } else {
+                    TeamMember::create([
+                        'team_id' => $teamId,
+                        'user_id' => $targetUserId,
+                        'role' => $inviteRole,
+                        'status' => 'pending',
+                        'invited_by' => $invitedBy,
+                        'joined_at' => now(),
+                    ]);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            $this->addError('inviteEmail', $e->getMessage());
 
             return;
-        }
-
-        // Check for existing pending invite to this team
-        $existingPending = TeamMember::where('team_id', $this->team->id)
-            ->where('user_id', $targetUser->id)
-            ->where('status', 'pending')
-            ->exists();
-
-        if ($existingPending) {
-            $this->addError('inviteEmail', 'This user already has a pending invite to this team.');
-
-            return;
-        }
-
-        // If they were previously removed/inactive, reactivate as pending
-        $existingMembership = TeamMember::where('team_id', $this->team->id)
-            ->where('user_id', $targetUser->id)
-            ->first();
-
-        if ($existingMembership) {
-            $existingMembership->update([
-                'role' => $this->inviteRole,
-                'status' => 'pending',
-                'invited_by' => Auth::id(),
-                'joined_at' => now(),
-                'left_at' => null,
-            ]);
-        } else {
-            TeamMember::create([
-                'team_id' => $this->team->id,
-                'user_id' => $targetUser->id,
-                'role' => $this->inviteRole,
-                'status' => 'pending',
-                'invited_by' => Auth::id(),
-                'joined_at' => now(),
-            ]);
         }
 
         Log::info('Team invite sent', [
-            'team_id' => $this->team->id,
-            'invited_user_id' => $targetUser->id,
-            'invited_by' => Auth::id(),
-            'role' => $this->inviteRole,
+            'team_id' => $teamId,
+            'invited_user_id' => $targetUserId,
+            'invited_by' => $invitedBy,
+            'role' => $inviteRole,
         ]);
 
         $this->reset('inviteEmail', 'inviteRole');

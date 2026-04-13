@@ -6,7 +6,9 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -139,14 +141,6 @@ class RegisterForEvent extends Component
             return;
         }
 
-        // Re-check capacity
-        if (! $this->event->hasCapacity()) {
-            session()->flash('error', 'This event is now full.');
-            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
-
-            return;
-        }
-
         if ($this->registrationMode === 'team') {
             $this->validateTeamRegistration($user);
         } else {
@@ -160,28 +154,19 @@ class RegisterForEvent extends Component
 
         $this->validate();
 
-        // Check for duplicate registration (user or team, scoped to this event)
-        $existing = EventRegistration::where('event_id', $this->event->id)
-            ->whereNotIn('status', ['cancelled'])
-            ->where(function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-                if ($this->registrationMode === 'team' && $this->selectedTeamId) {
-                    $q->orWhere('team_id', $this->selectedTeamId);
-                }
-            })
-            ->exists();
+        $eventId = $this->event->id;
+        $registrationMode = $this->registrationMode;
+        $selectedTeamId = $this->selectedTeamId;
+        $division = $this->division;
+        $notes = $this->notes;
+        $fee = $this->effectiveFee;
+        $isEarlyBird = $this->isEarlyBird;
+        $userId = $user->id;
 
-        if ($existing) {
-            session()->flash('error', 'You are already registered for this event.');
-            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
-
-            return;
-        }
-
-        // Build roster for team registration
+        // Build roster for team registration (outside transaction — read-only)
         $roster = null;
-        if ($this->registrationMode === 'team' && $this->selectedTeamId) {
-            $team = Team::with('activeMembers')->find($this->selectedTeamId);
+        if ($registrationMode === 'team' && $selectedTeamId) {
+            $team = Team::with('activeMembers')->find($selectedTeamId);
             $roster = $team->activeMembers->map(function ($member) {
                 return [
                     'user_id' => $member->user_id,
@@ -191,34 +176,74 @@ class RegisterForEvent extends Component
             })->toArray();
         }
 
-        $fee = $this->effectiveFee;
+        try {
+            $registration = DB::transaction(function () use ($eventId, $userId, $selectedTeamId, $registrationMode, $division, $notes, $fee, $roster) {
+                // Pessimistic lock on the event row to serialize capacity checks
+                $event = Event::lockForUpdate()->find($eventId);
 
-        $status = $fee > 0 ? 'pending' : 'confirmed';
-        $paymentStatus = $fee > 0 ? 'pending' : 'not_required';
+                if (! $event->hasCapacity()) {
+                    throw new \RuntimeException('This event is now full.');
+                }
 
-        $registration = EventRegistration::create([
-            'event_id' => $this->event->id,
-            'user_id' => $user->id,
-            'team_id' => $this->registrationMode === 'team' ? $this->selectedTeamId : null,
-            'registration_type' => $this->registrationMode,
-            'division' => $this->division ?: null,
-            'status' => $status,
-            'payment_status' => $paymentStatus,
-            'roster' => $roster,
-            'notes' => $this->notes ?: null,
-            'confirmed_at' => $fee === 0 ? now() : null,
-        ]);
+                // Check for duplicate registration (user or team, scoped to this event)
+                $existing = EventRegistration::where('event_id', $eventId)
+                    ->whereNotIn('status', ['cancelled'])
+                    ->where(function ($q) use ($userId, $registrationMode, $selectedTeamId) {
+                        $q->where('user_id', $userId);
+                        if ($registrationMode === 'team' && $selectedTeamId) {
+                            $q->orWhere('team_id', $selectedTeamId);
+                        }
+                    })
+                    ->exists();
+
+                if ($existing) {
+                    throw new \RuntimeException('You are already registered for this event.');
+                }
+
+                $status = $fee > 0 ? 'pending' : 'confirmed';
+                $paymentStatus = $fee > 0 ? 'pending' : 'not_required';
+
+                return EventRegistration::create([
+                    'event_id' => $eventId,
+                    'user_id' => $userId,
+                    'team_id' => $registrationMode === 'team' ? $selectedTeamId : null,
+                    'registration_type' => $registrationMode,
+                    'division' => $division ?: null,
+                    'status' => $status,
+                    'payment_status' => $paymentStatus,
+                    'roster' => $roster,
+                    'notes' => $notes ?: null,
+                    'confirmed_at' => $fee === 0 ? now() : null,
+                ]);
+            });
+        } catch (QueryException $e) {
+            // Unique constraint violation from a concurrent insert — treat as duplicate
+            Log::warning('Event registration race caught by unique constraint', [
+                'event_id' => $eventId,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'You are already registered for this event.');
+            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
+
+            return;
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
+
+            return;
+        }
 
         Log::info('Event registration created', [
             'registration_id' => $registration->id,
-            'event_id' => $this->event->id,
-            'user_id' => $user->id,
-            'type' => $this->registrationMode,
-            'team_id' => $this->selectedTeamId,
+            'event_id' => $eventId,
+            'user_id' => $userId,
+            'type' => $registrationMode,
+            'team_id' => $selectedTeamId,
             'fee' => $fee,
-            'status' => $status,
-            'payment_status' => $paymentStatus,
-            'early_bird' => $this->isEarlyBird,
+            'status' => $registration->status,
+            'payment_status' => $registration->payment_status,
+            'early_bird' => $isEarlyBird,
         ]);
 
         if ($fee > 0) {
