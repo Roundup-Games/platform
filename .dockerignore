@@ -8,9 +8,8 @@ vendor
 .env.production
 phpunit.xml
 tests
-docker-compose.yml
-Dockerfile
 *.md
 .editorconfig
 .phpunit.result.cache
 .php-cs-fixer.cache
+docker/entrypoint.sh

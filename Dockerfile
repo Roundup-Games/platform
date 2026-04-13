@@ -12,76 +12,33 @@ COPY resources/ resources/
 RUN npm run build
 
 # Stage 2: Production image
-FROM php:8.5-fpm-alpine AS app
+# serversideup/php:8.5-fpm-nginx — PHP-FPM + Nginx + S6 Overlay
+# Laravel extensions pre-installed, runs as www-data on port 80
+# https://github.com/serversideup/docker-php
+FROM serversideup/php:8.5-fpm-nginx AS app
 
-RUN apk add --no-cache \
-    nginx \
-    supervisor \
-    sqlite-libs \
-    libpq \
-    oniguruma \
-    libpng \
-    freetype \
-    libjpeg-turbo \
-    libzip \
-    linux-headers \
-    postgresql16-client \
- && apk add --no-cache --virtual .build-deps \
-    $PHPIZE_DEPS \
-    postgresql-dev \
-    sqlite-dev \
-    oniguruma-dev \
-    libpng-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
-    libzip-dev \
- && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install -j$(nproc) \
-    pdo_pgsql \
-    pdo_sqlite \
-    pdo_mysql \
-    mbstring \
-    gd \
-    zip \
-    opcache \
-    pcntl \
- && apk del .build-deps
+# Additional PHP extensions needed beyond the Laravel defaults
+USER root
+RUN install-php-extensions gd
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Install postgresql client for DB creation at startup
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
-# Nginx config
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
+# S6 init script — runs migrations, caches config on every start
+COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
 
-# Supervisor config
-COPY docker/supervisor/supervisord.conf /etc/supervisord.conf
-COPY docker/supervisor/laravel-worker.conf /etc/supervisor.d/laravel-worker.conf
+USER www-data
 
-# PHP config
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/app.ini
-COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
-
-WORKDIR /var/www/html
-
-# Copy app source
+# Copy application source
 COPY --chown=www-data:www-data . .
 COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/public/build
 
-# Install PHP dependencies (no dev for production)
+# Install PHP dependencies (no dev)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
  && php artisan storage:link --force || true
 
 # Ensure writable dirs
 RUN mkdir -p storage/framework/{sessions,views,cache} \
              storage/logs \
-             bootstrap/cache \
- && chown -R www-data:www-data storage bootstrap/cache
-
-# Entrypoint for first-run setup
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-EXPOSE 80
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+             bootstrap/cache
