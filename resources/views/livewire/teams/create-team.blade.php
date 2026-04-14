@@ -3,77 +3,75 @@
         {{-- Page Header --}}
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('teams.browse') }}" wire:navigate class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                    <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
+                <a href="{{ route('teams.browse') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-xl">arrow_back</span>
                 </a>
-                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">Create Team</h1>
+                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">Create Team</h1>
             </div>
-            <p class="ml-8 text-sm text-gray-500 dark:text-gray-400">Start a new team — you'll be the captain.</p>
+            <p class="ml-8 text-sm text-on-surface-variant">Start a new team — you'll be the captain.</p>
         </div>
 
         {{-- Form --}}
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 font-['Montserrat']">Team Information</h2>
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+            <h2 class="text-lg font-medium text-on-surface mb-4 font-heading tracking-tight">Team Information</h2>
 
             <div class="space-y-4">
                 <div>
-                    <label for="team-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name *</label>
+                    <label for="team-name" class="block text-sm font-medium text-on-surface mb-1">Team Name *</label>
                     <input type="text" id="team-name" wire:model="name" placeholder="e.g. Roundup Ravens"
-                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
-                    @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                           class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                    @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label for="team-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <label for="team-description" class="block text-sm font-medium text-on-surface mb-1">Description</label>
                     <textarea id="team-description" wire:model="description" rows="3" placeholder="A short description of your team..."
-                              class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]"></textarea>
-                    @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                              class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant"></textarea>
+                    @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="team-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                        <label for="team-city" class="block text-sm font-medium text-on-surface mb-1">City</label>
                         <input type="text" id="team-city" wire:model="city" placeholder="e.g. Austin"
-                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
-                        @error('city') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                        @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="team-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
+                        <label for="team-country" class="block text-sm font-medium text-on-surface mb-1">Country</label>
                         <input type="text" id="team-country" wire:model="country" placeholder="e.g. USA" maxlength="3"
-                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
-                        @error('country') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                        @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label for="team-primary-color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
+                        <label for="team-primary-color" class="block text-sm font-medium text-on-surface mb-1">Primary Color</label>
                         <div class="flex items-center gap-2">
                             <input type="color" id="team-primary-color" wire:model="primary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
-                            <input type="text" wire:model="primary_color" maxlength="7" placeholder="#C12E26"
-                                   class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
+                            <input type="text" wire:model="primary_color" maxlength="7" placeholder="#B8860B"
+                                   class="flex-1 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         </div>
-                        @error('primary_color') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        @error('primary_color') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="team-secondary-color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Color</label>
+                        <label for="team-secondary-color" class="block text-sm font-medium text-on-surface mb-1">Secondary Color</label>
                         <div class="flex items-center gap-2">
                             <input type="color" id="team-secondary-color" wire:model="secondary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
                             <input type="text" wire:model="secondary_color" maxlength="7" placeholder="#FFFFFF"
-                                   class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
+                                   class="flex-1 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         </div>
-                        @error('secondary_color') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        @error('secondary_color') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="team-founded-year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Founded Year</label>
+                        <label for="team-founded-year" class="block text-sm font-medium text-on-surface mb-1">Founded Year</label>
                         <input type="text" id="team-founded-year" wire:model="founded_year" maxlength="4" placeholder="e.g. 2024"
-                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
-                        @error('founded_year') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                        @error('founded_year') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
@@ -82,12 +80,12 @@
         {{-- Actions --}}
         <div class="flex items-center gap-4">
             <button wire:click="save" wire:loading.attr="disabled"
-                    class="px-6 py-2.5 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors text-sm font-medium">
+                    class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                 <span wire:loading.remove>Create Team</span>
                 <span wire:loading>Creating...</span>
             </button>
             <a href="{{ route('teams.browse') }}" wire:navigate
-               class="px-4 py-2.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-sm transition-colors">
+               class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                 Cancel
             </a>
         </div>
