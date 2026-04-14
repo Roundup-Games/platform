@@ -3,52 +3,50 @@
 
     <div class="py-4">
         <div class="max-w-7xl mx-auto">
-            <!-- Welcome Card -->
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-2xl border border-gray-100 dark:border-gray-700">
-                <div class="p-8">
-                    <h2 class="font-heading text-2xl font-bold text-gray-900 dark:text-gray-100 uppercase">
-                        Welcome back, {{ Auth::user()->name }}!
-                    </h2>
-                    <p class="mt-2 text-gray-600 dark:text-gray-400">
-                        You're logged in to Roundup Games. Start exploring games and connecting with the community.
-                    </p>
-                </div>
+            {{-- Welcome Card --}}
+            <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-8">
+                <h2 class="font-heading text-2xl font-bold text-on-surface tracking-tight">
+                    Welcome back, {{ Auth::user()->name }}!
+                </h2>
+                <p class="mt-2 text-on-surface-variant">
+                    You're logged in to Roundup Games. Start exploring games and connecting with the community.
+                </p>
             </div>
 
-            <!-- Quick Actions -->
+            {{-- Quick Actions --}}
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('profile.show') }}" wire:navigate class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brand dark:hover:border-brand transition-colors group">
+                <a href="{{ route('profile.show') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center">
-                            <svg aria-hidden="true" class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">person</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-gray-900 dark:text-gray-100 uppercase group-hover:text-brand transition-colors">My Profile</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">View and edit your profile</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">My Profile</h3>
+                            <p class="text-sm text-on-surface-variant">View and edit your profile</p>
                         </div>
                     </div>
                 </a>
 
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center">
-                            <svg aria-hidden="true" class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">sports_esports</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-gray-900 dark:text-gray-100 uppercase">Games</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Coming soon</p>
+                            <h3 class="font-heading font-semibold text-on-surface">Games</h3>
+                            <p class="text-sm text-on-surface-variant">Coming soon</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center">
-                            <svg aria-hidden="true" class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-gray-900 dark:text-gray-100 uppercase">Community</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Coming soon</p>
+                            <h3 class="font-heading font-semibold text-on-surface">Community</h3>
+                            <p class="text-sm text-on-surface-variant">Coming soon</p>
                         </div>
                     </div>
                 </div>

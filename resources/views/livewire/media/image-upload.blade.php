@@ -32,13 +32,13 @@
     {{-- Flash Message --}}
     @if($message)
         <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 4000)"
-             class="rounded-md @if($messageType === 'success') bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 @else bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 @endif p-3">
+             class="rounded-lg @if($messageType === 'success') bg-secondary-container text-on-secondary-container @else bg-error-container text-on-error-container @endif p-3">
             <p class="text-sm">{{ $message }}</p>
         </div>
     @endif
 
     {{-- Label --}}
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <label class="block text-sm font-medium text-on-surface">
         {{ $label }}
     </label>
 
@@ -47,13 +47,13 @@
         <div class="relative group">
             <img src="{{ $currentMedia->getUrl() }}"
                  alt="{{ $label }}"
-                 class="w-full max-w-xs rounded-lg object-cover border border-gray-200 dark:border-gray-600
+                 class="w-full max-w-xs rounded-lg object-cover border border-outline-variant/30
                         @if($collection === 'banner') aspect-[2/1] @else aspect-square max-w-32 @endif" />
 
             {{-- Overlay with remove button --}}
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                 <button wire:click="remove" wire:loading.attr="disabled"
-                        class="px-3 py-1.5 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors">
+                        class="px-3 py-1.5 bg-error text-on-error rounded-md text-sm font-medium hover:brightness-110 transition-colors">
                     Remove
                 </button>
             </div>
@@ -62,8 +62,8 @@
 
     {{-- Upload Area --}}
     <div class="relative"
-         x-bind:class="{ 'border-[#C12E26] bg-[#C12E26]/5 dark:bg-[#C12E26]/10': dragging,
-                         'border-gray-300 dark:border-gray-600 border-dashed': !dragging }"
+         x-bind:class="{ 'border-primary bg-primary/5 dark:bg-primary/10': dragging,
+                         'border-outline-variant border-dashed': !dragging }"
          class="border-2 rounded-lg p-6 text-center transition-colors">
 
         {{-- Hidden file input --}}
@@ -76,21 +76,18 @@
 
         <div x-show="!preview && !$wire.image" class="space-y-2">
             {{-- Drag & drop prompt --}}
-            <svg aria-hidden="true" class="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="material-symbols-outlined text-3xl text-on-surface-variant" aria-hidden="true">cloud_upload</span>
+            <p class="text-sm text-on-surface-variant">
                 Drag and drop or
                 <label for="image-upload-{{ $collection }}-{{ $model_id }}"
-                       class="text-brand-dark hover:text-brand cursor-pointer font-medium transition-colors">
+                       class="text-primary hover:text-primary-container cursor-pointer font-medium transition-colors">
                     browse
                 </label>
             </p>
             @if($dimensionHint)
-                <p class="text-xs text-gray-400 dark:text-gray-500">{{ $dimensionHint }}</p>
+                <p class="text-xs text-on-surface-variant/70">{{ $dimensionHint }}</p>
             @endif
-            <p class="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, GIF, or WebP. Max {{ number_format($maxSize / 1024, 0) }}MB.</p>
+            <p class="text-xs text-on-surface-variant/70">JPG, PNG, GIF, or WebP. Max {{ number_format($maxSize / 1024, 0) }}MB.</p>
         </div>
 
         {{-- Preview --}}
@@ -105,26 +102,26 @@
                     <img src="{{ $image->temporaryUrl() }}" alt="Preview"
                          class="mx-auto max-h-48 rounded-lg object-contain" />
                 @endif
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ $image->getFilename() }}</p>
+                <p class="text-xs text-on-surface-variant">{{ $image->getFilename() }}</p>
             @endif
         </div>
     </div>
 
     {{-- Validation Errors --}}
     @error('image')
-        <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+        <p class="text-sm text-error">{{ $message }}</p>
     @enderror
 
     {{-- Upload Button --}}
     @if($image)
         <div class="flex items-center gap-3">
             <button wire:click="upload" wire:loading.attr="disabled"
-                    class="px-4 py-2 bg-[#C12E26] text-white rounded-lg hover:bg-[#9A231F] transition-colors text-sm font-medium">
+                    class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                 <span wire:loading.remove>Upload {{ $label }}</span>
                 <span wire:loading>Uploading...</span>
             </button>
             <button wire:click="$set('image', null)"
-                    class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-sm transition-colors">
+                    class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                 Cancel
             </button>
         </div>
