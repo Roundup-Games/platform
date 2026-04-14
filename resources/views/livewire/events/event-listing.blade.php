@@ -5,14 +5,12 @@
         {{-- Search & Filters --}}
         <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
-                <svg aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
                 <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="Search events by name, city, or venue..."
-                       class="w-full pl-10 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]" />
+                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
             </div>
             <select wire:model.live="type" aria-label="Filter by event type"
-                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">All Types</option>
                 <option value="tournament">Tournament</option>
                 <option value="league">League</option>
@@ -22,7 +20,7 @@
                 <option value="other">Other</option>
             </select>
             <select wire:model.live="status" aria-label="Filter by event status"
-                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">All Statuses</option>
                 <option value="registration_open">Registration Open</option>
                 <option value="registration_closed">Registration Closed</option>
@@ -30,7 +28,7 @@
                 <option value="published">Published</option>
             </select>
             <select wire:model.live="date" aria-label="Filter by date"
-                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26]">
+                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">Any Date</option>
                 <option value="upcoming">Upcoming</option>
                 <option value="this_week">This Week</option>
@@ -42,28 +40,28 @@
         {{-- Active filters --}}
         @if($search || $type || $status || $date)
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Filters:</span>
+                <span class="text-sm text-on-surface-variant">Filters:</span>
                 @if($search)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
                     </span>
                 @endif
                 @if($type)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {{ ucfirst($type) }}
                     </span>
                 @endif
                 @if($status)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                         {{ str_replace('_', ' ', ucfirst($status)) }}
                     </span>
                 @endif
                 @if($date)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                         {{ str_replace('_', ' ', ucfirst($date)) }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-brand-dark hover:underline">Clear all</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">Clear all</button>
             </div>
         @endif
 
@@ -71,21 +69,21 @@
         @if($events->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($events as $event)
-                    <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700 overflow-hidden group">
+                    <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         {{-- Featured indicator --}}
                         @if($event->is_featured)
-                            <div class="h-1.5 bg-gradient-to-r from-[#C12E26] to-[#E8483F]"></div>
+                            <div class="h-1.5 bg-gradient-to-r from-primary to-primary-container"></div>
                         @else
-                            <div class="h-1.5 bg-gray-200 dark:bg-gray-700"></div>
+                            <div class="h-1.5 bg-outline-variant/30"></div>
                         @endif
 
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-2">
-                                <h3 class="font-heading font-semibold text-lg text-gray-900 dark:text-gray-100 uppercase tracking-wide group-hover:text-[#C12E26] transition-colors">
+                                <h3 class="font-heading font-semibold text-lg text-on-surface tracking-tight group-hover:text-primary transition-colors">
                                     {{ $event->name }}
                                 </h3>
                                 @if($event->is_featured)
-                                    <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#C12E26]/10 text-[#C12E26]">
+                                    <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                         ★ Featured
                                     </span>
                                 @endif
@@ -93,27 +91,27 @@
 
                             {{-- Type badge --}}
                             <div class="flex items-center gap-2 mb-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
                                     {{ ucfirst($event->type) }}
                                 </span>
                                 @if($event->status === 'registration_open')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                                         Registration Open
                                     </span>
                                 @elseif($event->status === 'in_progress')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                                         In Progress
                                     </span>
                                 @elseif($event->status === 'registration_closed')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
                                         Registration Closed
                                     </span>
                                 @endif
                             </div>
 
                             {{-- Date --}}
-                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <p class="text-sm text-on-surface-variant flex items-center gap-1">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">calendar_today</span>
                                 {{ $event->start_date->format('M j, Y') }}
                                 @if($event->end_date && $event->end_date->ne($event->start_date))
                                     – {{ $event->end_date->format('M j, Y') }}
@@ -122,20 +120,20 @@
 
                             {{-- Location --}}
                             @if($event->city || $event->venue_name)
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                    <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">location_on</span>
                                     {{ collect([$event->venue_name, $event->city])->filter()->join(' · ') }}
                                 </p>
                             @endif
 
                             {{-- Short description --}}
                             @if($event->short_description)
-                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{{ $event->short_description }}</p>
+                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $event->short_description }}</p>
                             @endif
 
                             {{-- Fee info --}}
                             @if($event->team_registration_fee > 0 || $event->individual_registration_fee > 0)
-                                <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                                <p class="mt-2 text-xs text-on-surface-variant/70">
                                     @if($event->individual_registration_fee > 0)
                                         From ${{ number_format($event->individual_registration_fee / 100, 2) }}/player
                                     @elseif($event->team_registration_fee > 0)
@@ -152,12 +150,10 @@
                 {{ $events->links() }}
             </div>
         @else
-            <div class="text-center py-16 bg-white dark:bg-gray-800 rounded-lg">
-                <svg aria-hidden="true" class="mx-auto w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No events found</h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
+                <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">event_busy</span>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">No events found</h3>
+                <p class="mt-1 text-sm text-on-surface-variant">
                     @if($search || $type || $status || $date)
                         Try adjusting your filters.
                     @else
