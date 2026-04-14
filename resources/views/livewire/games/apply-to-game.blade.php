@@ -1,49 +1,62 @@
-<div class="py-8">
-    <div class="max-w-4xl mx-auto space-y-6">
-        {{-- Back --}}
-        <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            Back to Game
-        </a>
-
-        {{-- Game Header --}}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-            <div class="h-3 bg-[#C12E26]"></div>
-            <div class="p-6">
-                <h1 class="text-2xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
-                    {{ $game->name }}
-                </h1>
-                @if($game->gameSystem)
-                    <p class="mt-1 text-sm text-brand-dark font-medium">{{ $game->gameSystem->name }}</p>
-                @endif
-            </div>
+<div>
+    {{-- Back link --}}
+    <div class="bg-surface-container-low border-b border-outline-variant">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
+            <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                Back to Game
+            </a>
         </div>
+    </div>
+
+    {{-- Game Header / Banner --}}
+    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $game->name }}</h1>
+            @if($game->gameSystem)
+                <p class="mt-2 text-sm text-on-primary/80">{{ $game->gameSystem->name }}</p>
+            @endif
+        </div>
+    </section>
+
+    {{-- Content --}}
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
         {{-- Flash Messages --}}
         @if(session()->has('info'))
-            <div class="rounded-md bg-blue-50 dark:bg-blue-900/20 p-4" role="status" aria-live="polite">
-                <p class="text-sm text-blue-700 dark:text-blue-400">{{ session('info') }}</p>
+            <div class="rounded-xl bg-primary/10 p-4 flex items-center gap-3" role="status" aria-live="polite">
+                <span class="material-symbols-outlined text-primary" aria-hidden="true">info</span>
+                <p class="text-sm text-on-surface">{{ session('info') }}</p>
             </div>
         @endif
 
         {{-- Already participant or applied --}}
         @if($isParticipant || $hasExistingApplication)
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 text-center">
-                <p class="text-gray-600 dark:text-gray-300">
+            <div class="bg-surface-container-low rounded-xl shadow-ambient p-6 text-center">
+                <span class="material-symbols-outlined text-4xl text-secondary mb-3" aria-hidden="true">check_circle</span>
+                <p class="text-on-surface">
                     @if($isParticipant)
                         You are already a participant of this game.
                     @else
                         You have already applied to this game.
                     @endif
                 </p>
-                <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center px-4 py-2 bg-[#C12E26] hover:bg-[#9A231F] text-white text-sm font-medium rounded-md transition-colors">
+                <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
                     View Game
                 </a>
             </div>
         @else
             {{-- Application Form --}}
-            <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">
+                        @if($game->visibility === 'public')
+                            login
+                        @else
+                            edit_note
+                        @endif
+                    </span>
                     @if($game->visibility === 'public')
                         Join Game
                     @else
@@ -52,31 +65,28 @@
                 </h2>
 
                 @if($game->visibility === 'protected')
-                    <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                    <p class="mb-4 text-sm text-on-surface-variant">
                         This is a protected game. Your application will be reviewed by the game owner before you can join.
                     </p>
                 @endif
 
                 <form wire:submit="submitApplication" class="space-y-4">
                     <div>
-                        <label for="message" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Message to the host <span class="text-gray-400">(optional)</span>
+                        <label for="message" class="block text-sm font-medium text-on-surface mb-1">
+                            Message to the host <span class="text-on-surface-variant">(optional)</span>
                         </label>
                         <textarea wire:model="message" id="message" rows="4"
                             placeholder="Tell the host why you'd like to join..."
-                            class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-[#C12E26] focus:ring-[#C12E26] text-sm"
+                            class="block w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-sm transition-colors"
                             data-testid="application-message"></textarea>
                         @error('message')
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            <p class="mt-1 text-sm text-error">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    @error('message')
-                        {{-- General errors shown above, specific errors shown here --}}
-                    @enderror
-
                     <button type="submit"
-                        class="inline-flex items-center px-6 py-2.5 bg-[#C12E26] hover:bg-[#9A231F] text-white text-sm font-medium rounded-md transition-colors">
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                         @if($game->visibility === 'public')
                             Join Game
                         @else

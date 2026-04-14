@@ -1,139 +1,154 @@
-<div class="py-8">
-    <div class="max-w-4xl mx-auto space-y-6">
-        {{-- Back --}}
-        <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            Back to Dashboard
-        </a>
+<div>
+    {{-- Back link --}}
+    <div class="bg-surface-container-low border-b border-outline-variant">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
+            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
 
-        {{-- Campaign Header --}}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-            <div class="h-3 bg-gradient-to-r from-[#C12E26] to-[#9A231F]"></div>
-
-            <div class="p-6">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <h1 class="text-3xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide">
-                            {{ $campaign->name }}
-                        </h1>
-                        @if($campaign->gameSystem)
-                            <p class="mt-1 text-sm text-brand-dark font-medium">{{ $campaign->gameSystem->name }}</p>
-                        @endif
-                    </div>
-
-                    @if($isOwner)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#C12E26]/10 text-[#C12E26]">
-                            Owner
-                        </span>
-                    @endif
-                </div>
-
-                @if($campaign->description)
-                    <p class="mt-4 text-gray-600 dark:text-gray-300">{{ $campaign->description }}</p>
+    {{-- Campaign Header / Banner --}}
+    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                @if($isOwner)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
+                        Owner
+                    </span>
                 @endif
+                @if($campaign->gameSystem)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/10 text-on-primary">
+                        {{ $campaign->gameSystem->name }}
+                    </span>
+                @endif
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {{ $campaign->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($campaign->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
+                    {{ ucfirst($campaign->visibility) }}
+                </span>
+            </div>
 
-                <div class="mt-4 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span class="flex items-center gap-1">
-                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                        {{ ucfirst($campaign->recurrence) }}
-                    </span>
-                    <span class="flex items-center gap-1">
-                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        {{ $campaign->time_of_day }}
-                        @if($campaign->session_duration)
-                            ({{ $campaign->session_duration }}h)
-                        @endif
-                    </span>
-                    @if($campaign->price_per_session > 0)
-                        <span>${{ number_format($campaign->price_per_session, 2) }}/session</span>
-                    @else
-                        <span class="text-green-600 dark:text-green-400">Free</span>
+            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $campaign->name }}</h1>
+
+            @if($campaign->description)
+                <p class="mt-3 text-lg text-on-primary/80 max-w-3xl">{{ $campaign->description }}</p>
+            @endif
+
+            {{-- Quick info row --}}
+            <div class="mt-6 flex flex-wrap gap-6 text-sm text-on-primary/80">
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">repeat</span>
+                    {{ ucfirst($campaign->recurrence) }}
+                </span>
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">schedule</span>
+                    {{ $campaign->time_of_day }}
+                    @if($campaign->session_duration)
+                        ({{ $campaign->session_duration }}h)
                     @endif
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                        {{ $campaign->visibility === 'public' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : ($campaign->visibility === 'protected' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400') }}">
-                        {{ ucfirst($campaign->visibility) }}
+                </span>
+                @if($campaign->price_per_session > 0)
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">payments</span>
+                        ${{ number_format($campaign->price_per_session, 2) }}/session
                     </span>
-                </div>
-
+                @else
+                    <span class="flex items-center gap-2 text-secondary">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
+                        Free
+                    </span>
+                @endif
                 @if($campaign->location && !empty($campaign->location['details']))
-                    <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                        <span class="flex items-center gap-1">
-                            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                            {{ $campaign->location['details'] }}
-                        </span>
-                    </div>
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
+                        {{ $campaign->location['details'] }}
+                    </span>
                 @endif
             </div>
         </div>
+    </section>
+
+    {{-- Content --}}
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
         {{-- Upcoming Sessions --}}
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Sessions</h2>
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl" aria-hidden="true">event_note</span>
+                Sessions
+            </h2>
 
             @if($campaign->sessions->count())
-                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                <div class="divide-y divide-outline-variant/30">
                     @foreach($campaign->sessions as $session)
                         <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                             <div>
-                                <a href="{{ route('games.detail', $session->id) }}" wire:navigate class="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-[#C12E26] transition-colors">
+                                <a href="{{ route('games.detail', $session->id) }}" wire:navigate class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                     {{ $session->name }}
                                 </a>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                <p class="text-xs text-on-surface-variant">
                                     {{ $session->date_time->format('M j, Y \a\t g:i A') }}
                                 </p>
                             </div>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                {{ $session->status === 'scheduled' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : ($session->status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400') }}">
+                                {{ $session->status === 'scheduled' ? 'bg-tertiary/10 text-tertiary' : ($session->status === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant') }}">
                                 {{ ucfirst($session->status) }}
                             </span>
                         </div>
-                    @endforeach
+                    @endforeach>
                 </div>
             @else
-                <p class="text-sm text-gray-500 dark:text-gray-400 italic py-4 text-center">No sessions scheduled yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">No sessions scheduled yet.</p>
             @endif
         </section>
 
         {{-- Participants --}}
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Participants</h2>
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
+                Participants
+            </h2>
 
             @if($campaign->participants->count())
-                <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                <div class="divide-y divide-outline-variant/30">
                     @foreach($campaign->participants as $participant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold uppercase
-                                {{ $participant->role === 'gm' ? 'bg-[#C12E26]/10 text-[#C12E26]' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
+                                {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                 {{ strtoupper($participant->user->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ $participant->user->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user->name }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {{ $participant->role === 'gm' ? 'bg-[#C12E26]/10 text-[#C12E26]' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
+                                {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                 {{ strtoupper($participant->role) }}
                             </span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                {{ $participant->status === 'confirmed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' }}">
+                                {{ $participant->status === 'confirmed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
                                 {{ ucfirst($participant->status) }}
                             </span>
                         </div>
-                    @endforeach
+                    @endforeach>
                 </div>
             @else
-                <p class="text-sm text-gray-500 dark:text-gray-400 italic py-4 text-center">No participants yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">No participants yet.</p>
             @endif
         </section>
 
         {{-- Campaign Owner Info --}}
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-xl font-heading font-bold uppercase text-gray-900 dark:text-gray-100 tracking-wide mb-4">Run by</h2>
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl" aria-hidden="true">person</span>
+                Run by
+            </h2>
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold uppercase bg-[#C12E26]/10 text-[#C12E26]">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
                     {{ strtoupper($campaign->owner->name[0] ?? '?') }}
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $campaign->owner->name }}</p>
+                    <p class="text-sm font-medium text-on-surface">{{ $campaign->owner->name }}</p>
                 </div>
             </div>
         </section>
