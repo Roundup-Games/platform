@@ -3,9 +3,10 @@
         {{-- Page Header --}}
         <div>
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">My Profile</h1>
-            <p class="mt-1 text-sm text-on-surface-variant">Manage your account information and preferences.</p>
+            <p class="mt-1 text-sm text-on-surface-variant">Manage your account information, preferences, and security.</p>
         </div>
 
+        {{-- Flash Messages --}}
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
                  class="rounded-lg bg-secondary-container p-4" role="status" aria-live="polite">
@@ -24,10 +25,9 @@
                 </p>
             </div>
         @endif
-
         @if(session('password_updated'))
             <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
-                 class="rounded-lg bg-secondary-container p-4">
+                 class="rounded-lg bg-secondary-container p-4" role="status" aria-live="polite">
                 <p class="text-sm text-on-secondary-container flex items-center gap-2">
                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
                     {{ session('password_updated') }}
@@ -90,14 +90,8 @@
         </section>
 
         {{-- Profile Information --}}
-        <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">Profile Information</h2>
-                <a href="{{ route('profile.edit-form') }}" wire:navigate
-                   class="text-sm text-on-surface-variant hover:text-primary transition-colors">
-                    Edit
-                </a>
-            </div>
+        <form wire:submit="saveProfile" class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 space-y-4">
+            <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">Personal Information</h2>
 
             <div class="space-y-4">
                 <div>
@@ -146,17 +140,54 @@
                     <label for="profile-phone" class="block text-sm font-medium text-on-surface mb-1">Phone</label>
                     <input type="tel" id="profile-phone" wire:model="phone" placeholder="+1 (555) 000-0000"
                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
-                </div>
-
-                <div class="pt-2">
-                    <button wire:click="saveProfile" wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                        <span wire:loading.remove>Save Changes</span>
-                        <span wire:loading>Saving...</span>
-                    </button>
+                    @error('phone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
             </div>
-        </section>
+
+            {{-- Game Preferences --}}
+            <div class="pt-4 border-t border-outline-variant/30">
+                <h3 class="text-base font-heading font-semibold tracking-tight text-on-surface mb-1">Game Preferences</h3>
+                <p class="text-sm text-on-surface-variant mb-4">Select the games you enjoy — we'll use this to recommend sessions and events.</p>
+
+                <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    @foreach($gameSystems as $gameSystem)
+                        <label class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors">
+                            <input type="checkbox"
+                                   value="{{ $gameSystem->id }}"
+                                   wire:model="favoriteGameSystemIds"
+                                   class="rounded border-outline text-primary focus:ring-primary/20" />
+                            <div>
+                                <span class="text-sm font-medium text-on-surface">{{ $gameSystem->name }}</span>
+                                @if($gameSystem->description)
+                                    <p class="text-xs text-on-surface-variant line-clamp-1">{{ Str::limit($gameSystem->description, 80) }}</p>
+                                @endif
+                            </div>
+                        </label>
+                    @endforeach
+
+                    @if($gameSystems->isEmpty())
+                        <p class="text-sm text-on-surface-variant italic py-4 text-center">
+                            No game systems available yet.
+                        </p>
+                    @endif
+                </div>
+
+                @error('favoriteGameSystemIds') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
+
+                <p class="mt-3 text-xs text-on-surface-variant">
+                    {{ count($this->favoriteGameSystemIds) }} selected
+                </p>
+            </div>
+
+            {{-- Save Button --}}
+            <div class="pt-2">
+                <button type="submit" wire:loading.attr="disabled"
+                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                    <span wire:loading.remove>Save Changes</span>
+                    <span wire:loading>Saving...</span>
+                </button>
+            </div>
+        </form>
 
         {{-- Linked Accounts --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
@@ -187,7 +218,7 @@
                                 <p class="text-xs text-on-surface-variant">Not connected</p>
                             </div>
                         </div>
-                        <a href="{{ route('oauth.redirect', 'google') }}" wire:navigate
+                        <a href="{{ route('oauth.redirect', 'google') }}"
                            class="inline-flex items-center px-3 py-1.5 border border-outline-variant rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
                             Connect
                         </a>
@@ -196,97 +227,118 @@
             </div>
         </section>
 
-        {{-- Game Preferences --}}
-        @if($gameSystemPreferences->isNotEmpty())
-            <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">Game Preferences</h2>
-                    <a href="{{ route('profile.edit-form') }}" wire:navigate
-                       class="text-sm text-on-surface-variant hover:text-primary transition-colors">
-                        Edit
-                    </a>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    @foreach($gameSystemPreferences as $system)
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            {{ $system->name }}
-                        </span>
-                    @endforeach
-                </div>
-            </section>
-        @endif
-
-        {{-- Password Change --}}
+        {{-- Password Section --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">Password</h2>
                 @if(!$showPasswordForm)
                     <button wire:click="$set('showPasswordForm', true)"
                             class="text-sm text-on-surface-variant hover:text-primary transition-colors">
-                        Change Password
+                        {{ $userHasPassword ? 'Change Password' : 'Set Password' }}
                     </button>
                 @endif
             </div>
 
             @if($showPasswordForm)
-                <div class="space-y-4">
-                    <div>
-                        <label for="profile-current-password" class="block text-sm font-medium text-on-surface mb-1">Current Password</label>
-                        <input type="password" id="profile-current-password" wire:model="current_password"
-                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
-                        @error('current_password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
+                <form wire:submit="changePassword" class="space-y-4">
+                    @if($userHasPassword)
+                        <div>
+                            <label for="profile-current-password" class="block text-sm font-medium text-on-surface mb-1">Current Password</label>
+                            <input type="password" id="profile-current-password" wire:model="current_password" autocomplete="current-password"
+                                   class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
+                            @error('current_password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
+                    @else
+                        <div class="rounded-lg bg-primary/5 border border-primary/20 p-3 mb-2">
+                            <p class="text-sm text-on-surface-variant flex items-start gap-2">
+                                <span class="material-symbols-outlined text-base text-primary mt-0.5" style="font-variation-settings: 'FILL' 1">info</span>
+                                Your account was created via {{ $linkedAccounts->count() > 0 ? $linkedAccounts->first()->provider : 'a third-party provider' }}. Set a password to enable email/password login.
+                            </p>
+                        </div>
+                    @endif
 
                     <div>
                         <label for="profile-new-password" class="block text-sm font-medium text-on-surface mb-1">New Password</label>
-                        <input type="password" id="profile-new-password" wire:model="password"
+                        <input type="password" id="profile-new-password" wire:model="password" autocomplete="new-password"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
                         @error('password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="profile-confirm-password" class="block text-sm font-medium text-on-surface mb-1">Confirm Password</label>
-                        <input type="password" id="profile-confirm-password" wire:model="password_confirmation"
+                        <input type="password" id="profile-confirm-password" wire:model="password_confirmation" autocomplete="new-password"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
                     </div>
 
                     <div class="flex items-center gap-3 pt-2">
-                        <button wire:click="changePassword" wire:loading.attr="disabled"
+                        <button type="submit" wire:loading.attr="disabled"
                                 class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                            <span wire:loading.remove>Update Password</span>
-                            <span wire:loading>Updating...</span>
+                            <span wire:loading.remove>{{ $userHasPassword ? 'Update Password' : 'Set Password' }}</span>
+                            <span wire:loading>{{ $userHasPassword ? 'Updating...' : 'Setting...' }}</span>
                         </button>
-                        <button wire:click="$set('showPasswordForm', false)"
+                        <button type="button" wire:click="$set('showPasswordForm', false)"
+                                class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            @else
+                @if($userHasPassword)
+                    <p class="text-sm text-on-surface-variant">Your password is set. Click "Change Password" above to update it.</p>
+                @else
+                    <p class="text-sm text-on-surface-variant flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base text-on-surface-variant">warning</span>
+                        No password set. You currently sign in via a linked provider.
+                    </p>
+                @endif
+            @endif
+        </section>
+
+        {{-- Danger Zone: Delete Account --}}
+        <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 border-l-4 border-error">
+            <h2 class="text-lg font-heading font-semibold text-error mb-2 tracking-tight">Delete Account</h2>
+            <p class="text-sm text-on-surface-variant mb-4">
+                Once you delete your account, all of your resources and data will be permanently deleted. This action cannot be undone.
+            </p>
+
+            @if(!$showDeleteForm)
+                <button wire:click="$set('showDeleteForm', true)"
+                        class="px-4 py-2 bg-error-container text-on-error-container rounded-lg text-sm font-medium hover:brightness-110 transition-all">
+                    Delete Account
+                </button>
+            @else
+                <div class="space-y-4 mt-4 pt-4 border-t border-error/20">
+                    @if($userHasPassword)
+                        <div>
+                            <label for="delete-password" class="block text-sm font-medium text-on-surface mb-1">Confirm Your Password</label>
+                            <input type="password" id="delete-password" wire:model="delete_password" autocomplete="current-password"
+                                   class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
+                            @error('delete_password') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
+                    @else
+                        <div>
+                            <label for="delete-confirm" class="block text-sm font-medium text-on-surface mb-1">
+                                Type <strong class="text-error">DELETE</strong> to confirm
+                            </label>
+                            <input type="text" id="delete-confirm" wire:model="delete_confirmation" autocomplete="off"
+                                   class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-error/30 focus:ring-1 focus:ring-error/30 text-on-surface" />
+                            @error('delete_confirmation') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    <div class="flex items-center gap-3">
+                        <button wire:click="deleteAccount" wire:loading.attr="disabled"
+                                class="px-4 py-2 bg-error-container text-on-error-container rounded-lg text-sm font-medium hover:brightness-110 transition-all">
+                            <span wire:loading.remove>Permanently Delete Account</span>
+                            <span wire:loading>Deleting...</span>
+                        </button>
+                        <button type="button" wire:click="$set('showDeleteForm', false)"
                                 class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
                             Cancel
                         </button>
                     </div>
                 </div>
-            @else
-                <p class="text-sm text-on-surface-variant">Your password is set. Click "Change Password" above to update it.</p>
             @endif
-        </section>
-
-        {{-- Danger Zone --}}
-        <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 border-l-4 border-error">
-            <h2 class="text-lg font-heading font-semibold text-error mb-2 tracking-tight">Delete Account</h2>
-            <p class="text-sm text-on-surface-variant mb-4">
-                Once you delete your account, all of your resources and data will be permanently deleted.
-            </p>
-            <form method="POST" action="{{ route('profile.destroy') }}">
-                @csrf
-                @method('DELETE')
-                <div class="flex items-center gap-3">
-                    <input type="password" name="password" placeholder="Confirm password" aria-label="Confirm password for account deletion"
-                           class="rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-error/30 focus:ring-1 focus:ring-error/30 text-sm max-w-xs text-on-surface placeholder:text-on-surface-variant" />
-                    <x-danger-button>
-                        Delete Account
-                    </x-danger-button>
-                </div>
-                @error('password', 'userDeletion')
-                    <p class="mt-2 text-sm text-error">{{ $message }}</p>
-                @enderror
-            </form>
         </section>
     </div>
 </div>

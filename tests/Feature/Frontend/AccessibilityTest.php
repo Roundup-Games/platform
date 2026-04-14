@@ -254,17 +254,6 @@ describe('Form Label Associations', function () {
         }
     });
 
-    it('profile edit template has proper label associations', function () {
-        $template = file_get_contents(resource_path('views/livewire/profile/edit.blade.php'));
-
-        $expectedPairs = ['profile-name', 'profile-email', 'profile-gender', 'profile-pronouns', 'profile-phone'];
-
-        foreach ($expectedPairs as $id) {
-            expect($template)->toContain('for="' . $id . '"');
-            expect($template)->toContain('id="' . $id . '"');
-        }
-    });
-
     it('profile show template has proper label associations', function () {
         $template = file_get_contents(resource_path('views/livewire/profile/show.blade.php'));
 

@@ -30,6 +30,7 @@ use Spatie\Permission\Traits\HasRoles;
     'privacy_settings',
     'profile_version',
     'profile_updated_at',
+    'password_set_at',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'privacy_settings' => 'array',
             'profile_version' => 'integer',
             'profile_updated_at' => 'datetime',
+            'password_set_at' => 'datetime',
             'trial_ends_at' => 'datetime',
         ];
     }
@@ -163,6 +165,15 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function hasActiveMembership(): bool
     {
         return $this->subscribed();
+    }
+
+    /**
+     * Determine if the user has intentionally set a password.
+     * OAuth-only users have password_set_at null (and possibly password null).
+     */
+    public function hasPasswordSet(): bool
+    {
+        return $this->password_set_at !== null && $this->password !== null;
     }
 
     public function isAdmin(): bool

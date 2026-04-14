@@ -465,19 +465,15 @@ it('accepts valid phone number on step 2', function () {
 
 // ── Middleware: additional allowed routes for incomplete users ──
 
-it('allows profile update route for incomplete user', function () {
+it('allows profile show route for incomplete user', function () {
     $user = User::factory()->create([
         'profile_complete' => false,
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->patch('/profile', [
-        'name' => $user->name,
-        'email' => $user->email,
-    ]);
+    $response = $this->actingAs($user)->get('/profile');
 
-    // Should not redirect to onboarding — middleware allows this route
-    $response->assertRedirect('/profile');
+    $response->assertOk();
 });
 
 it('allows logout route for incomplete user', function () {
@@ -490,17 +486,6 @@ it('allows logout route for incomplete user', function () {
 
     $this->assertGuest();
     $response->assertRedirect('/');
-});
-
-it('allows profile edit-form route for incomplete user', function () {
-    $user = User::factory()->create([
-        'profile_complete' => false,
-        'email_verified_at' => now(),
-    ]);
-
-    $response = $this->actingAs($user)->get('/profile/edit');
-
-    $response->assertOk();
 });
 
 // ── Observability: profile completion funnel ──────────

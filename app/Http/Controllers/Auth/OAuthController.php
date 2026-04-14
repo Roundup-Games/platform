@@ -115,11 +115,11 @@ class OAuthController
             return $this->redirectAfterLogin($user);
         }
 
-        // New user — register and link
+        // New user — register and link (no password — OAuth-only until they set one)
         $user = User::create([
             'name' => $socialiteUser->getName() ?? Str::before($socialiteUser->getEmail(), '@'),
             'email' => $socialiteUser->getEmail(),
-            'password' => Hash::make(Str::random(32)),
+            'password' => null,
             'email_verified_at' => now(),
             'avatar_url' => $socialiteUser->getAvatar(),
             'profile_complete' => false,

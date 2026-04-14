@@ -22,10 +22,7 @@ class EnsureProfileComplete
                 'onboarding.complete',
                 'logout',
                 'profile.show',
-                'profile.edit-form',
                 'profile.edit',
-                'profile.update',
-                'profile.destroy',
             ];
 
             if (! in_array($request->route()?->getName(), $allowedRoutes)) {

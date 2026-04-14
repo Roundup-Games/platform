@@ -42,4 +42,15 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user was created via OAuth (no password set).
+     */
+    public function oauthUser(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => null,
+            'password_set_at' => null,
+        ]);
+    }
 }
