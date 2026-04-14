@@ -29,6 +29,8 @@ USER www-data
 
 # Copy composer files first for better layer caching
 COPY --chown=www-data:www-data composer.json composer.lock ./
+# Create autoload.files entries before install — source isn't copied yet
+RUN mkdir -p app && touch app/helpers.php
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
 # Copy application source
