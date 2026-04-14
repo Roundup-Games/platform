@@ -35,6 +35,11 @@ class EventAnnouncements extends Component
     #[Validate('boolean')]
     public bool $is_published = false;
 
+    // ── Translation fields ────────────────────────────
+    public string $title_de = '';
+    public string $content_de = '';
+    public string $activeLocale = 'en';
+
     // ── Filters ───────────────────────────────────────
     public string $filterStatus = ''; // all, published, draft
 
@@ -91,6 +96,8 @@ class EventAnnouncements extends Component
         $this->editingId = $id;
         $this->title = $announcement->title;
         $this->content = $announcement->content;
+        $this->title_de = $announcement->getTranslation('de', 'title') ?? '';
+        $this->content_de = $announcement->getTranslation('de', 'content') ?? '';
         $this->is_pinned = $announcement->is_pinned;
         $this->is_published = $announcement->is_published;
         $this->showForm = true;
@@ -99,6 +106,7 @@ class EventAnnouncements extends Component
     public function save(): void
     {
         $this->validate();
+        $this->validateTranslationFields();
         $this->authorize('update', $this->event);
 
         if ($this->editingId) {
@@ -133,10 +141,17 @@ class EventAnnouncements extends Component
             ]);
         }
 
+        // Persist DE translations when event content_language includes German
+        $contentLanguage = $this->event->content_language ?? 'en';
+        if (in_array($contentLanguage, ['de', 'de+en'])) {
+            $announcement->setTranslation('de', 'title', $this->title_de);
+            $announcement->setTranslation('de', 'content', $this->content_de);
+        }
+
         $this->resetForm();
         unset($this->announcements, $this->counts);
 
-        session()->flash('success', $this->editingId ? 'Announcement updated.' : 'Announcement created.');
+        session()->flash('success', $this->editingId ? __('Announcement updated.') : __('Announcement created.'));
     }
 
     // ── Quick Actions ─────────────────────────────────
@@ -155,7 +170,7 @@ class EventAnnouncements extends Component
         ]);
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', 'Announcement published.');
+        session()->flash('success', __('Announcement published.'));
     }
 
     public function unpublishAnnouncement(string $id): void
@@ -172,7 +187,7 @@ class EventAnnouncements extends Component
         ]);
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', 'Announcement unpublished.');
+        session()->flash('success', __('Announcement unpublished.'));
     }
 
     public function togglePin(string $id): void
@@ -206,7 +221,7 @@ class EventAnnouncements extends Component
         $announcement->delete();
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', 'Announcement deleted.');
+        session()->flash('success', __('Announcement deleted.'));
     }
 
     // ── Filters ───────────────────────────────────────
@@ -230,8 +245,39 @@ class EventAnnouncements extends Component
         $this->editingId = null;
         $this->title = '';
         $this->content = '';
+        $this->title_de = '';
+        $this->content_de = '';
+        $this->activeLocale = 'en';
         $this->is_pinned = false;
         $this->is_published = false;
+    }
+
+    public function setLocaleTab(string $locale): void
+    {
+        $this->activeLocale = $locale;
+    }
+
+    /**
+     * Validate DE translation fields when event content_language includes German.
+     */
+    protected function validateTranslationFields(): void
+    {
+        $contentLanguage = $this->event->content_language ?? 'en';
+
+        if (! in_array($contentLanguage, ['de', 'de+en'])) {
+            return;
+        }
+
+        $this->validate(
+            [
+                'title_de' => 'required|string|max:255',
+                'content_de' => 'required|string',
+            ],
+            [
+                'title_de.required' => 'The German title is required because this event\'s content language includes German.',
+                'content_de.required' => 'The German content is required because this event\'s content language includes German.',
+            ]
+        );
     }
 
     private function findAnnouncement(string $id): EventAnnouncement

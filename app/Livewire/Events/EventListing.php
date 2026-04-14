@@ -73,7 +73,8 @@ class EventListing extends Component
 
             // Featured events first, then by start_date
             ->orderByDesc('is_featured')
-            ->orderBy('start_date');
+            ->orderBy('start_date')
+            ->with('translations');
 
         $events = $query->paginate(12);
 

@@ -76,7 +76,7 @@ class CreateGame extends Component
             'owner_id' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Game "' . $game->name . '" created successfully!');
+        session()->flash('success', __('Game ":name" created successfully!', ['name' => $game->name]));
 
         $this->redirect(route('games.detail', $game->id), navigate: true);
     }

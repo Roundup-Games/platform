@@ -1,46 +1,49 @@
+@php
+$locale = app()->getLocale();
+@endphp
 <div>
-    <x-hero title="Events" subtitle="Discover tournaments, leagues, camps, and more in your area." />
+    <x-hero title="Events" :subtitle="__('Discover tournaments, leagues, camps, and more in your area.')" />
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {{-- Search & Filters --}}
         <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
-                <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="Search events by name, city, or venue..."
+                <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search events by name, city, or venue...') }}"
                        class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
             </div>
             <select wire:model.live="type" aria-label="Filter by event type"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">All Types</option>
-                <option value="tournament">Tournament</option>
-                <option value="league">League</option>
-                <option value="camp">Camp</option>
-                <option value="clinic">Clinic</option>
-                <option value="social">Social</option>
-                <option value="other">Other</option>
+                <option value="">{{ __('All Types') }}</option>
+                <option value="tournament">{{ __('Tournament') }}</option>
+                <option value="league">{{ __('League') }}</option>
+                <option value="camp">{{ __('Camp') }}</option>
+                <option value="clinic">{{ __('Clinic') }}</option>
+                <option value="social">{{ __('Social') }}</option>
+                <option value="other">{{ __('Other') }}</option>
             </select>
             <select wire:model.live="status" aria-label="Filter by event status"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">All Statuses</option>
-                <option value="registration_open">Registration Open</option>
-                <option value="registration_closed">Registration Closed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="published">Published</option>
+                <option value="">{{ __('All Statuses') }}</option>
+                <option value="registration_open">{{ __('Registration Open') }}</option>
+                <option value="registration_closed">{{ __('Registration Closed') }}</option>
+                <option value="in_progress">{{ __('In Progress') }}</option>
+                <option value="published">{{ __('Published') }}</option>
             </select>
             <select wire:model.live="date" aria-label="Filter by date"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">Any Date</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="this_week">This Week</option>
-                <option value="this_month">This Month</option>
-                <option value="past">Past</option>
+                <option value="">{{ __('Any Date') }}</option>
+                <option value="upcoming">{{ __('Upcoming') }}</option>
+                <option value="this_week">{{ __('This Week') }}</option>
+                <option value="this_month">{{ __('This Month') }}</option>
+                <option value="past">{{ __('Past') }}</option>
             </select>
         </div>
 
         {{-- Active filters --}}
         @if($search || $type || $status || $date)
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-on-surface-variant">Filters:</span>
+                <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
@@ -48,20 +51,20 @@
                 @endif
                 @if($type)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {{ ucfirst($type) }}
+                        {{ __(ucfirst($type)) }}
                     </span>
                 @endif
                 @if($status)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                        {{ str_replace('_', ' ', ucfirst($status)) }}
+                        {{ __(ucfirst(str_replace('_', ' ', $status))) }}
                     </span>
                 @endif
                 @if($date)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                        {{ str_replace('_', ' ', ucfirst($date)) }}
+                        {{ __(ucfirst(str_replace('_', ' ', $date))) }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">Clear all</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('Clear all') }}</button>
             </div>
         @endif
 
@@ -80,11 +83,11 @@
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-2">
                                 <h3 class="font-heading font-semibold text-lg text-on-surface tracking-tight group-hover:text-primary transition-colors">
-                                    {{ $event->name }}
+                                    {{ $event->getTranslation($locale, 'name') ?? $event->name }}
                                 </h3>
                                 @if($event->is_featured)
                                     <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        ★ Featured
+                                        {{ __('★ Featured') }}
                                     </span>
                                 @endif
                             </div>
@@ -92,19 +95,19 @@
                             {{-- Type badge --}}
                             <div class="flex items-center gap-2 mb-3">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                                    {{ ucfirst($event->type) }}
+                                    {{ __(ucfirst($event->type)) }}
                                 </span>
                                 @if($event->status === 'registration_open')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                                        Registration Open
+                                        {{ __('Registration Open') }}
                                     </span>
                                 @elseif($event->status === 'in_progress')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                                        In Progress
+                                        {{ __('In Progress') }}
                                     </span>
                                 @elseif($event->status === 'registration_closed')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        Registration Closed
+                                        {{ __('Registration Closed') }}
                                     </span>
                                 @endif
                             </div>
@@ -112,9 +115,9 @@
                             {{-- Date --}}
                             <p class="text-sm text-on-surface-variant flex items-center gap-1">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">calendar_today</span>
-                                {{ $event->start_date->format('M j, Y') }}
+                                {{ format_date($event->start_date, 'date') }}
                                 @if($event->end_date && $event->end_date->ne($event->start_date))
-                                    – {{ $event->end_date->format('M j, Y') }}
+                                    – {{ format_date($event->end_date, 'date') }}
                                 @endif
                             </p>
 
@@ -127,17 +130,20 @@
                             @endif
 
                             {{-- Short description --}}
-                            @if($event->short_description)
-                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $event->short_description }}</p>
+                            @php
+                                $translatedShortDesc = $event->getTranslation($locale, 'short_description') ?? $event->short_description;
+                            @endphp
+                            @if($translatedShortDesc)
+                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $translatedShortDesc }}</p>
                             @endif
 
                             {{-- Fee info --}}
                             @if($event->team_registration_fee > 0 || $event->individual_registration_fee > 0)
                                 <p class="mt-2 text-xs text-on-surface-variant/70">
                                     @if($event->individual_registration_fee > 0)
-                                        From ${{ number_format($event->individual_registration_fee / 100, 2) }}/player
+                                        {{ __('From :amount/player', ['amount' => format_currency($event->individual_registration_fee)]) }}
                                     @elseif($event->team_registration_fee > 0)
-                                        ${{ number_format($event->team_registration_fee / 100, 2) }}/team
+                                        {{ __(':amount/team', ['amount' => format_currency($event->team_registration_fee)]) }}
                                     @endif
                                 </p>
                             @endif
@@ -152,12 +158,12 @@
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">event_busy</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">No events found</h3>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No events found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
                     @if($search || $type || $status || $date)
-                        Try adjusting your filters.
+                        {{ __('Try adjusting your filters.') }}
                     @else
-                        Check back soon for upcoming events!
+                        {{ __('Check back soon for upcoming events!') }}
                     @endif
                 </p>
             </div>

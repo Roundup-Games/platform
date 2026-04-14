@@ -160,13 +160,13 @@ describe('Flash Messages', function () {
 describe('Icon-only Buttons', function () {
     it('division remove buttons have aria-label', function () {
         $template = file_get_contents(resource_path('views/livewire/events/create-event.blade.php'));
-        expect($template)->toContain('aria-label="Remove division"');
+        expect($template)->toContain("aria-label=\"{{ __('Remove division') }}\"");
     });
 
     it('announcement buttons have aria-labels instead of emoji', function () {
         $template = file_get_contents(resource_path('views/livewire/events/event-announcements.blade.php'));
-        expect($template)->toContain('aria-label="Delete announcement"');
-        expect($template)->toContain('aria-label="Edit announcement"');
+        expect($template)->toContain("aria-label=\"{{ __('Delete announcement') }}\"");
+        expect($template)->toContain("aria-label=\"{{ __('Edit announcement') }}\"");
         // Should NOT contain emoji in buttons
         expect($template)->not->toContain('🗑️');
         expect($template)->not->toContain('✏️');

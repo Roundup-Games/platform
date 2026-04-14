@@ -17,7 +17,7 @@ it('redirects unprofiled user to onboarding from dashboard', function () {
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->get('/dashboard');
+    $response = $this->actingAs($user)->get(route('dashboard'));
 
     $response->assertRedirect(route('onboarding.index'));
 });
@@ -30,7 +30,7 @@ it('allows unprofiled user to access profile edit (needed for onboarding)', func
 
     // Profile routes are allowed through the middleware so users can
     // still update their profile even if not fully complete
-    $response = $this->actingAs($user)->get('/profile');
+    $response = $this->actingAs($user)->get(route('profile.show'));
 
     $response->assertOk();
 });
@@ -41,16 +41,16 @@ it('allows profiled user to access dashboard', function () {
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->get('/dashboard');
+    $response = $this->actingAs($user)->get(route('dashboard'));
 
     $response->assertOk();
 });
 
 it('does not redirect unauthenticated users', function () {
-    $response = $this->get('/dashboard');
+    $response = $this->get(route('dashboard'));
 
     // Should redirect to login, not onboarding
-    $response->assertRedirect('/login');
+    $response->assertRedirect(route('login'));
 });
 
 // ── Onboarding page access ────────────────────────────
@@ -60,7 +60,7 @@ it('allows unprofiled user to access onboarding page', function () {
         'profile_complete' => false,
     ]);
 
-    $response = $this->actingAs($user)->get('/onboarding');
+    $response = $this->actingAs($user)->get(route('onboarding.index'));
 
     $response->assertOk();
 });
@@ -70,7 +70,7 @@ it('redirects profiled user away from onboarding to dashboard', function () {
         'profile_complete' => true,
     ]);
 
-    $response = $this->actingAs($user)->get('/onboarding');
+    $response = $this->actingAs($user)->get(route('onboarding.index'));
 
     $response->assertRedirect(route('dashboard'));
 });
@@ -78,7 +78,7 @@ it('redirects profiled user away from onboarding to dashboard', function () {
 // ── Registration sets profile_complete=false ──────────
 
 it('sets profile_complete to false on email registration', function () {
-    $this->post('/register', [
+    $this->post(route('register'), [
         'name' => 'New User',
         'email' => 'new@example.com',
         'password' => 'password',
@@ -92,7 +92,7 @@ it('sets profile_complete to false on email registration', function () {
 });
 
 it('redirects to onboarding after registration', function () {
-    $response = $this->post('/register', [
+    $response = $this->post(route('register'), [
         'name' => 'New User',
         'email' => 'new@example.com',
         'password' => 'password',
@@ -168,7 +168,7 @@ it('allows profiled user to access profile edit without redirect', function () {
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->get('/profile');
+    $response = $this->actingAs($user)->get(route('profile.show'));
 
     $response->assertOk();
 });
@@ -471,7 +471,7 @@ it('allows profile show route for incomplete user', function () {
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->get('/profile');
+    $response = $this->actingAs($user)->get(route('profile.show'));
 
     $response->assertOk();
 });
@@ -482,10 +482,10 @@ it('allows logout route for incomplete user', function () {
         'email_verified_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->post('/logout');
+    $response = $this->actingAs($user)->post(route('logout'));
 
     $this->assertGuest();
-    $response->assertRedirect('/');
+    $response->assertRedirect(route('root'));
 });
 
 // ── Observability: profile completion funnel ──────────

@@ -1,8 +1,8 @@
 <x-guest-layout>
     <!-- Page Title -->
     <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl font-bold text-on-surface">Sign In</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">Welcome back to Roundup Games</p>
+        <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('Sign In') }}</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('Welcome back to Roundup Games') }}</p>
     </div>
 
     <!-- Session Status -->
@@ -12,7 +12,7 @@
     @if (\Illuminate\Support\Facades\Route::has('oauth.redirect'))
         <a href="{{ route('oauth.redirect', 'google') }}" wire:navigate class="btn-google mb-4">
             <span class="material-symbols-outlined w-5 h-5 mr-3 text-xl" aria-hidden="true">google</span>
-            Continue with Google
+            {{ __('Continue with Google') }}
         </a>
 
         <!-- Divider -->
@@ -21,7 +21,7 @@
                 <div class="w-full border-t border-outline-variant"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-                <span class="px-3 bg-surface-container-lowest text-on-surface-variant">or sign in with email</span>
+                <span class="px-3 bg-surface-container-lowest text-on-surface-variant">{{ __('or sign in with email') }}</span>
             </div>
         </div>
     @endif

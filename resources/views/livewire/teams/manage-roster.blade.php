@@ -6,9 +6,9 @@
                 <a href="{{ route('teams.detail', $team->slug) }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
-                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">Manage Roster</h1>
+                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('Manage Roster') }}</h1>
             </div>
-            <p class="ml-8 text-sm text-on-surface-variant">Manage members for <strong>{{ $team->name }}</strong></p>
+            <p class="ml-8 text-sm text-on-surface-variant">{!! __('Manage members for :name', ['name' => '<strong>' . e($team->name) . '</strong>']) !!}</p>
         </div>
 
         {{-- Flash Messages --}}
@@ -34,7 +34,7 @@
 
         {{-- Invite Member --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-            <h2 class="text-lg font-heading font-semibold text-on-surface tracking-tight mb-4">Invite Member</h2>
+            <h2 class="text-lg font-heading font-semibold text-on-surface tracking-tight mb-4">{{ __('Invite Member') }}</h2>
 
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1">
@@ -45,16 +45,16 @@
                 <div>
                     <select aria-label="Invite role" wire:model="inviteRole"
                             class="rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
-                        <option value="player">Player</option>
-                        <option value="substitute">Substitute</option>
-                        <option value="coach">Coach</option>
-                        <option value="captain">Captain</option>
+                        <option value="player">{{ __('Player') }}</option>
+                        <option value="substitute">{{ __('Substitute') }}</option>
+                        <option value="coach">{{ __('Coach') }}</option>
+                        <option value="captain">{{ __('Captain') }}</option>
                     </select>
                 </div>
                 <button wire:click="inviteMember" wire:loading.attr="disabled"
                         class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium whitespace-nowrap">
-                    <span wire:loading.remove>Send Invite</span>
-                    <span wire:loading>Sending...</span>
+                    <span wire:loading.remove>{{ __('Send Invite') }}</span>
+                    <span wire:loading>{{ __('Sending...') }}</span>
                 </button>
             </div>
         </section>
@@ -62,22 +62,22 @@
         {{-- Active Members --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <h2 class="text-lg font-heading font-semibold text-on-surface tracking-tight mb-4">
-                Active Members <span class="text-sm font-normal text-on-surface-variant">({{ $activeMembers->count() }})</span>
+                {{ __('Active Members') }} <span class="text-sm font-normal text-on-surface-variant">({{ $activeMembers->count() }})</span>
             </h2>
 
             @if($activeMembers->isEmpty())
-                <p class="text-on-surface-variant text-sm">No active members.</p>
+                <p class="text-on-surface-variant text-sm">{{ __('No active members.') }}</p>
             @else
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-outline-variant">
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Name</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Role</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Name') }}</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Roster') }}</th>
                                 <th class="text-left py-2 px-3 font-medium text-on-surface-variant">#</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Position</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Position', ['default' => 'Position']) }}</th>
                                 @if($isCaptain)
-                                    <th class="text-right py-2 px-3 font-medium text-on-surface-variant">Actions</th>
+                                    <th class="text-right py-2 px-3 font-medium text-on-surface-variant">{{ __('Actions') }}</th>
                                 @endif
                             </tr>
                         </thead>
@@ -87,7 +87,7 @@
                                     <td class="py-2 px-3 text-on-surface">
                                         {{ $member->user->name }}
                                         @if($member->user_id === auth()->id())
-                                            <span class="text-xs text-on-surface-variant">(you)</span>
+                                            <span class="text-xs text-on-surface-variant">{{ __('(you)') }}</span>
                                         @endif
                                     </td>
                                     <td class="py-2 px-3">
@@ -95,7 +95,7 @@
                                             <select wire:change="setRole({{ $member->id }}, $event.target.value)"
                                                     class="text-xs rounded bg-surface-container-high border border-transparent py-0.5 px-1 text-on-surface">
                                                 @foreach(['captain', 'coach', 'player', 'substitute'] as $r)
-                                                    <option value="{{ $r }}" {{ $member->role === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+                                                    <option value="{{ $r }}" {{ $member->role === $r ? 'selected' : '' }}>{{ __(ucfirst($r)) }}</option>
                                                 @endforeach
                                             </select>
                                         @else
@@ -104,7 +104,7 @@
                                                 {{ $member->role === 'coach' ? 'bg-primary-container text-on-primary-container' : '' }}
                                                 {{ $member->role === 'player' ? 'bg-secondary-container text-on-secondary-container' : '' }}
                                                 {{ $member->role === 'substitute' ? 'bg-surface-container-high text-on-surface-variant' : '' }}">
-                                                {{ ucfirst($member->role) }}
+                                                {{ __(ucfirst($member->role)) }}
                                             </span>
                                         @endif
                                     </td>
@@ -128,20 +128,20 @@
                                         <td class="py-2 px-3 text-right">
                                             @if($editingMemberId === $member->id)
                                                 <button wire:click="saveMemberDetails"
-                                                        class="text-xs px-2 py-1 bg-secondary-container text-on-secondary-container rounded hover:brightness-110 transition-all">Save</button>
+                                                        class="text-xs px-2 py-1 bg-secondary-container text-on-secondary-container rounded hover:brightness-110 transition-all">{{ __('Save Changes') }}</button>
                                                 <button wire:click="cancelEditing"
-                                                        class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">Cancel</button>
+                                                        class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">{{ __('Cancel') }}</button>
                                             @else
                                                 @if($member->user_id !== auth()->id())
                                                     <button wire:click="removeMember({{ $member->id }})"
-                                                            onclick="confirm('Remove this member?') || event.preventDefault()"
+                                                            onclick="confirm('{{ __("Remove this member?") }}') || event.preventDefault()"
                                                             class="text-xs px-2 py-1 text-error hover:brightness-110">
-                                                        Remove
+                                                        {{ __('Remove') }}
                                                     </button>
                                                 @endif
                                                 <button wire:click="startEditing({{ $member->id }})"
                                                         class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">
-                                                    Edit
+                                                    {{ __('Edit') }}
                                                 </button>
                                             @endif
                                         </td>
@@ -158,17 +158,17 @@
         @if($pendingInvites->isNotEmpty())
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <h2 class="text-lg font-heading font-semibold text-on-surface tracking-tight mb-4">
-                    Pending Invites <span class="text-sm font-normal text-on-surface-variant">({{ $pendingInvites->count() }})</span>
+                    {{ __('Pending Invites') }} <span class="text-sm font-normal text-on-surface-variant">({{ $pendingInvites->count() }})</span>
                 </h2>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-outline-variant">
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Name</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Email</th>
-                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">Role</th>
-                                <th class="text-right py-2 px-3 font-medium text-on-surface-variant">Actions</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Name') }}</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Email') }}</th>
+                                <th class="text-left py-2 px-3 font-medium text-on-surface-variant">{{ __('Roster') }}</th>
+                                <th class="text-right py-2 px-3 font-medium text-on-surface-variant">{{ __('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -176,11 +176,11 @@
                                 <tr class="border-b border-outline-variant/30">
                                     <td class="py-2 px-3 text-on-surface">{{ $invite->user->name }}</td>
                                     <td class="py-2 px-3 text-on-surface-variant">{{ $invite->user->email }}</td>
-                                    <td class="py-2 px-3 text-on-surface">{{ ucfirst($invite->role) }}</td>
+                                    <td class="py-2 px-3 text-on-surface">{{ __(ucfirst($invite->role)) }}</td>
                                     <td class="py-2 px-3 text-right">
                                         <button wire:click="cancelInvite({{ $invite->id }})"
                                                 class="text-xs px-2 py-1 text-error hover:brightness-110">
-                                            Cancel Invite
+                                            {{ __('Cancel Invite') }}
                                         </button>
                                     </td>
                                 </tr>
@@ -194,12 +194,12 @@
         {{-- Leave Team --}}
         @if($activeMembers->contains('user_id', auth()->id()))
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 border-l-4 border-tertiary">
-                <h2 class="text-lg font-heading font-semibold text-tertiary mb-1 tracking-tight">Leave Team</h2>
-                <p class="text-sm text-on-surface-variant mb-4">You will lose your roster spot. If you are the last captain, you must promote someone first.</p>
-                <button onclick="confirm('Are you sure you want to leave this team?') || event.preventDefault()"
+                <h2 class="text-lg font-heading font-semibold text-tertiary mb-1 tracking-tight">{{ __('Leave Team') }}</h2>
+                <p class="text-sm text-on-surface-variant mb-4">{{ __('You will lose your roster spot. If you are the last captain, you must promote someone first.') }}</p>
+                <button onclick="confirm('{{ __("Are you sure you want to leave this team?") }}') || event.preventDefault()"
                         wire:click="leaveTeam"
                         class="px-4 py-2 bg-tertiary text-on-tertiary rounded-lg hover:brightness-110 transition-all text-sm font-medium">
-                    Leave Team
+                    {{ __('Leave Team') }}
                 </button>
             </section>
         @endif

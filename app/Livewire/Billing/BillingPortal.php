@@ -29,7 +29,7 @@ class BillingPortal extends Component
         $subscription = $user->subscription();
 
         if (! $subscription || ! $subscription->active()) {
-            session()->flash('error', 'No active subscription to cancel.');
+            session()->flash('error', __('No active subscription to cancel.'));
 
             return;
         }
@@ -48,7 +48,7 @@ class BillingPortal extends Component
             'ends_at' => $subscription->ends_at?->toIso8601String(),
         ]);
 
-        session()->flash('success', 'Your subscription has been canceled. You will retain access until the end of your billing period.');
+        session()->flash('success', __('Your subscription has been canceled. You will retain access until the end of your billing period.'));
     }
 
     public function resumeSubscription(): void
@@ -57,7 +57,7 @@ class BillingPortal extends Component
         $subscription = $user->subscription();
 
         if (! $subscription || ! $subscription->onGracePeriod()) {
-            session()->flash('error', 'No subscription available to resume.');
+            session()->flash('error', __('No subscription available to resume.'));
 
             return;
         }
@@ -75,7 +75,7 @@ class BillingPortal extends Component
             'subscription_id' => $subscription->id,
         ]);
 
-        session()->flash('success', 'Your subscription has been resumed. Welcome back!');
+        session()->flash('success', __('Your subscription has been resumed. Welcome back!'));
     }
 
     public function render()

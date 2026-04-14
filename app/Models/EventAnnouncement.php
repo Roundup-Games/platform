@@ -4,11 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\HasTranslations;
 
 class EventAnnouncement extends Model
 {
     protected $keyType = 'string';
     public $incrementing = false;
+
+    use HasTranslations;
+
+    protected $translatable = ['title', 'content'];
 
     protected static function booted(): void
     {

@@ -80,7 +80,7 @@ class CreateCampaign extends Component
             'owner_id' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Campaign "' . $campaign->name . '" created successfully!');
+        session()->flash('success', __('Campaign ":name" created successfully!', ['name' => $campaign->name]));
 
         $this->redirect(route('campaigns.detail', $campaign->id), navigate: true);
     }

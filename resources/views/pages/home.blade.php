@@ -1,4 +1,6 @@
-<x-public-layout title="Home">
+<x-public-layout>
+@section('title', __('Home'))
+
     {{-- Hero Section — warm amber gradient with editorial typography --}}
     <section class="relative bg-gradient-to-br from-primary to-primary-container text-on-primary overflow-hidden">
         {{-- Decorative background shapes --}}
@@ -10,25 +12,25 @@
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-36">
             <div class="max-w-3xl">
                 <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                    Organize. Compete.<br>
-                    <span class="text-on-primary-fixed">Connect.</span>
+                    {{ __('Organize. Compete.') }}<br>
+                    <span class="text-on-primary-fixed">{{ __('Connect.') }}</span>
                 </h1>
                 <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-xl">
-                    Roundup Games brings communities together through competitive events. Find tournaments, join teams, and compete in your favorite games.
+                    {{ __('Roundup Games brings communities together through competitive events. Find tournaments, join teams, and compete in your favorite games.') }}
                 </p>
                 <div class="mt-8 flex flex-wrap gap-4">
                     <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">search</span>
-                        Browse Events
+                        {{ __('Browse Events') }}
                     </a>
                     @auth
                         <a href="{{ route('events.create') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
                             <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">add</span>
-                            Create Event
+                            {{ __('Create Event') }}
                         </a>
                     @else
                         <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                            Get Started
+                            {{ __('Get Started') }}
                         </a>
                     @endauth
                 </div>
@@ -42,19 +44,19 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
                 <div>
                     <div class="text-2xl sm:text-3xl font-heading font-bold text-inverse-primary">{{ $upcomingEvents->count() + $featuredEvents->count() }}</div>
-                    <div class="text-sm text-inverse-on-surface/70 mt-1">Active Events</div>
+                    <div class="text-sm text-inverse-on-surface/70 mt-1">{{ __('Active Events') }}</div>
                 </div>
                 <div>
                     <div class="text-2xl sm:text-3xl font-heading font-bold text-inverse-primary">{{ $featuredEvents->count() }}</div>
-                    <div class="text-sm text-inverse-on-surface/70 mt-1">Featured</div>
+                    <div class="text-sm text-inverse-on-surface/70 mt-1">{{ __('Featured') }}</div>
                 </div>
                 <div>
                     <div class="text-2xl sm:text-3xl font-heading font-bold text-inverse-primary">{{ $teamCount }}</div>
-                    <div class="text-sm text-inverse-on-surface/70 mt-1">Teams</div>
+                    <div class="text-sm text-inverse-on-surface/70 mt-1">{{ __('Teams') }}</div>
                 </div>
                 <div>
                     <div class="text-2xl sm:text-3xl font-heading font-bold text-inverse-primary">{{ $registrationCount }}</div>
-                    <div class="text-sm text-inverse-on-surface/70 mt-1">Registrations</div>
+                    <div class="text-sm text-inverse-on-surface/70 mt-1">{{ __('Registrations') }}</div>
                 </div>
             </div>
         </div>
@@ -66,10 +68,10 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="text-center mb-12">
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                    Featured Events
+                    {{ __('Featured Events') }}
                 </h2>
                 <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
-                    Don't miss out on these highlighted competitions happening soon.
+                    {{ __("Don't miss out on these highlighted competitions happening soon.") }}
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,14 +90,14 @@
             <div class="flex items-center justify-between mb-10">
                 <div>
                     <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                        Upcoming Events
+                        {{ __('Upcoming Events') }}
                     </h2>
                     <p class="mt-2 text-on-surface-variant">
-                        See what's coming up next.
+                        {{ __("See what's coming up next.") }}
                     </p>
                 </div>
                 <a href="{{ route('events.index') }}" wire:navigate class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary hover:text-on-primary transition-colors">
-                    View All Events
+                    {{ __('View All Events') }}
                 </a>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -107,7 +109,7 @@
             </div>
             <div class="mt-8 text-center sm:hidden">
                 <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary hover:text-on-primary transition-colors">
-                    View All Events
+                    {{ __('View All Events') }}
                 </a>
             </div>
         </div>
@@ -119,10 +121,10 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="text-center mb-12">
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                    Everything You Need
+                    {{ __('Everything You Need') }}
                 </h2>
                 <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
-                    From event discovery to registration to competition management.
+                    {{ __('From event discovery to registration to competition management.') }}
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -131,8 +133,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">search</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Find Events</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Browse upcoming tournaments, leagues, and competitions in your area. Filter by type, date, and location.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Find Events') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Browse upcoming tournaments, leagues, and competitions in your area. Filter by type, date, and location.') }}</p>
                 </div>
 
                 {{-- Feature: Easy Registration --}}
@@ -140,8 +142,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">check_circle</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Easy Registration</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Register as an individual or with your team. Early bird discounts, division selection, and instant confirmation.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Easy Registration') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Register as an individual or with your team. Early bird discounts, division selection, and instant confirmation.') }}</p>
                 </div>
 
                 {{-- Feature: Team Management --}}
@@ -149,8 +151,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">groups</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Team Management</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Create teams, invite members, manage rosters, and register for events together. Captain controls included.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Team Management') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Create teams, invite members, manage rosters, and register for events together. Captain controls included.') }}</p>
                 </div>
 
                 {{-- Feature: Organizer Tools --}}
@@ -158,8 +160,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">settings</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Organizer Tools</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Create and manage events with divisions, fees, registration windows, announcements, and participant tracking.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Organizer Tools') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Create and manage events with divisions, fees, registration windows, announcements, and participant tracking.') }}</p>
                 </div>
 
                 {{-- Feature: Secure Payments --}}
@@ -167,8 +169,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">account_balance_wallet</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Secure Payments</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Integrated payment processing with Paddle. Accept registration fees, manage refunds, and track payment status.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Secure Payments') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Integrated payment processing with Paddle. Accept registration fees, manage refunds, and track payment status.') }}</p>
                 </div>
 
                 {{-- Feature: Announcements --}}
@@ -176,8 +178,8 @@
                     <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">campaign</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">Stay Informed</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">Event announcements, schedule updates, and pinned notices keep participants in the loop before and during events.</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Stay Informed') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Event announcements, schedule updates, and pinned notices keep participants in the loop before and during events.') }}</p>
                 </div>
             </div>
         </div>
@@ -187,18 +189,18 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                Ready to Compete?
+                {{ __('Ready to Compete?') }}
             </h2>
             <p class="mt-4 text-lg text-on-surface-variant max-w-2xl mx-auto">
-                Join the Roundup Games community and start organizing or participating in events today.
+                {{ __('Join the Roundup Games community and start organizing or participating in events today.') }}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm">
-                    Browse Events
+                    {{ __('Browse Events') }}
                 </a>
                 @guest
                     <a href="{{ route('register') }}" wire:navigate class="inline-flex items-center px-6 py-3 border border-outline text-on-surface-variant rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm">
-                        Create Account
+                        {{ __('Create Account') }}
                     </a>
                 @endguest
             </div>

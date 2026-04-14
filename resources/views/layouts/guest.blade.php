@@ -31,7 +31,7 @@
             </div>
 
             {{-- Footer --}}
-            <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} Roundup Games. All rights reserved.</p>
+            <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} Roundup Games. {{ __('All rights reserved.') }}</p>
         </div>
     </body>
 </html>

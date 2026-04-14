@@ -10,7 +10,7 @@ test('profile page is displayed', function () {
 
     $response = $this
         ->actingAs($user)
-        ->get('/profile');
+        ->get(route('profile.show'));
 
     $response->assertOk();
 });
@@ -18,13 +18,13 @@ test('profile page is displayed', function () {
 // ── Auth gate tests ──────────────────────────────────
 
 test('profile page redirects unauthenticated users to login', function () {
-    $response = $this->get('/profile');
-    $response->assertRedirect('/login');
+    $response = $this->get(route('profile.show'));
+    $response->assertRedirect(route('login'));
 });
 
 test('profile edit page requires authentication', function () {
-    $response = $this->get('/profile/edit');
-    $response->assertRedirect('/login');
+    $response = $this->get(route('profile.edit'));
+    $response->assertRedirect(route('login'));
 });
 
 // ── Backward-compatible profile.edit route ───────────
@@ -37,7 +37,7 @@ test('profile.edit route still resolves to show page', function () {
 
     $response = $this
         ->actingAs($user)
-        ->get('/profile/view');
+        ->get(route('profile.edit'));
 
     $response->assertOk();
 });

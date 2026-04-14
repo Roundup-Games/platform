@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Traits\HasTranslations;
 
 class Team extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
+    use HasTranslations;
+
+    protected $translatable = ['description'];
 
     protected $fillable = [
         'name', 'slug', 'description', 'city', 'country', 'logo_url',

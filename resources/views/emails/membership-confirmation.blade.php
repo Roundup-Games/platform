@@ -1,30 +1,30 @@
 @component('mail::message')
-# Membership Confirmed! ✅
+# {{ __('Membership Confirmed!') }} ✅
 
-Hey {{ $user->name }},
+{{ __('Hey :name,', ['name' => $user->name]) }}
 
-Your **{{ $planName }}** membership is now active. Welcome aboard!
+{{ __('Your **:plan** membership is now active. Welcome aboard!', ['plan' => $planName]) }}
 
-## Membership Details
+## {{ __('Membership Details') }}
 
-- **Plan:** {{ $planName }}
+- **{{ __('Plan') }}:** {{ $planName }}
 @if($amount)
-- **Amount:** {{ $amount }}
+- **{{ __('Amount') }}:** {{ $amount }}
 @endif
 @if($nextBillingDate)
-- **Next billing date:** {{ $nextBillingDate }}
+- **{{ __('Next billing date') }}:** {{ $nextBillingDate }}
 @endif
 
-## What's Included
+## {{ __("What's Included") }}
 
-With your membership you get access to exclusive events, priority registration, and full platform features.
+{{ __('With your membership you get access to exclusive events, priority registration, and full platform features.') }}
 
-@component('mail::button', ['url' => config('app.url') . '/billing'])
-Manage Your Membership
+@component('mail::button', ['url' => config('app.url') . '/' . app()->getLocale() . '/billing'])
+{{ __('Manage Your Membership') }}
 @endcomponent
 
-If you have questions about your membership, just reply to this email.
+{{ __('If you have questions about your membership, just reply to this email.') }}
 
-Thanks for supporting Roundup Games! 🎲
+{{ __('Thanks for supporting Roundup Games!') }} 🎲
 Roundup Games
 @endcomponent

@@ -20,7 +20,7 @@ it('displays profile show page', function () {
     ]);
 
     $this->actingAs($user)
-        ->get('/profile')
+        ->get(route('profile.show'))
         ->assertOk()
         ->assertSee('My Profile');
 });

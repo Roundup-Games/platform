@@ -160,7 +160,7 @@ class Show extends Component
         ]);
 
         $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
-        session()->flash('password_updated', 'Password updated successfully.');
+        session()->flash('password_updated', __('Password updated successfully.'));
     }
 
     public function removeAvatar(): void
@@ -189,7 +189,7 @@ class Show extends Component
             $this->validate([
                 'delete_confirmation' => ['required', 'string', 'in:DELETE'],
             ], [
-                'delete_confirmation.in' => 'Please type DELETE to confirm account deletion.',
+                'delete_confirmation.in' => __('Please type DELETE to confirm account deletion.'),
             ]);
         }
 

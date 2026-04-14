@@ -61,7 +61,7 @@ class CreateTeam extends Component
             'created_by' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Team "' . $team->name . '" created successfully!');
+        session()->flash('success', __('Team ":name" created successfully!', ['name' => $team->name]));
 
         $this->redirect(route('teams.detail', $team->slug), navigate: true);
     }

@@ -14,6 +14,12 @@ class EventStatusTransitionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
+    }
+
     private function createOrganizer(): User
     {
         return User::factory()->create();
@@ -90,7 +96,7 @@ class EventStatusTransitionTest extends TestCase
         $organizer = $event->organizer;
 
         $response = $this->actingAs($organizer)
-            ->from("/events/manage/{$event->slug}")
+            ->from(route('events.manage', ['slug' => $event->slug]))
             ->patch("/livewire/update", [
                 // Simulate the save() flow — change status to draft
             ]);

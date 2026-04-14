@@ -6,9 +6,11 @@ use App\Filament\Resources\EventResource\Pages;
 use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
 use App\Models\Event;
+use App\Enums\ContentLanguage;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +18,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use BackedEnum;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -41,9 +45,7 @@ class EventResource extends Resource
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                TextInput::make('name')
-                                    ->required()
-                                    ->maxLength(255),
+                                static::translatableField('name', 'Name', fn () => TextInput::make('name')->required()->maxLength(255)),
                                 Select::make('organizer_id')
                                     ->label('Organizer')
                                     ->relationship('organizer', 'name')
@@ -70,13 +72,12 @@ class EventResource extends Resource
                                     ])
                                     ->default('draft')
                                     ->required(),
-                                Textarea::make('short_description')
-                                    ->maxLength(500)
-                                    ->columnSpanFull(),
-                                Textarea::make('description')
-                                    ->rows(4)
-                                    ->maxLength(10000)
-                                    ->columnSpanFull(),
+                                Select::make('content_language')
+                                    ->label('Content Language')
+                                    ->options(collect(ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
+                                    ->default('en'),
+                                static::translatableField('short_description', 'Short Description', fn () => Textarea::make('short_description')->maxLength(500)->columnSpanFull()),
+                                static::translatableField('description', 'Description', fn () => Textarea::make('description')->rows(4)->maxLength(10000)->columnSpanFull()),
                             ]),
                     ]),
 
@@ -93,6 +94,8 @@ class EventResource extends Resource
                                 DateTimePicker::make('registration_closes_at')
                                     ->label('Registration Closes'),
                             ]),
+                        static::translatableField('rules', 'Rules', fn () => Textarea::make('rules')->rows(3)->columnSpanFull()),
+                        static::translatableField('schedule', 'Schedule', fn () => Textarea::make('schedule')->rows(3)->columnSpanFull()),
                     ]),
 
                 Section::make('Venue')
@@ -250,5 +253,47 @@ class EventResource extends Resource
             'create' => Pages\CreateEvent::route('/create'),
             'edit' => Pages\EditEvent::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Get non-primary locales for translation tabs (excludes 'en' which is the entity's own fields).
+     *
+     * @return string[]
+     */
+    public static function getTranslationLocales(): array
+    {
+        return array_values(array_filter(
+            config('app.available_locales', ['en']),
+            fn (string $locale) => $locale !== 'en',
+        ));
+    }
+
+    /**
+     * Build a Tabs component for a translatable field.
+     *
+     * The EN tab contains the actual model field. Each additional locale gets a virtual
+     * suffixed field (e.g. name_de) that is persisted via save hooks on the Edit/Create pages.
+     *
+     * @param  callable(): \Filament\Forms\Components\Field  $enFieldBuilder
+     */
+    public static function translatableField(string $field, string $label, callable $enFieldBuilder): Tabs
+    {
+        $tabs = [
+            Tab::make('English')
+                ->schema([$enFieldBuilder()]),
+        ];
+
+        foreach (static::getTranslationLocales() as $locale) {
+            $localeLabel = $locale === 'de' ? 'German' : ucfirst($locale);
+            $tabs[] = Tab::make($localeLabel)
+                ->schema([
+                    TextInput::make("{$field}_{$locale}")
+                        ->label("{$label} ({$localeLabel})")
+                        ->maxLength(65535),
+                ]);
+        }
+
+        return Tabs::make("{$field}_translations")
+            ->tabs($tabs);
     }
 }

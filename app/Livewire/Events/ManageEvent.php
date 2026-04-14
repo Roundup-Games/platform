@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\ContentLanguage;
 use App\Models\Event;
 use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,15 @@ class ManageEvent extends Component
 
     // ── Tab tracking ──────────────────────────────────
     public string $activeTab = 'details';
+
+    // ── Translation fields ────────────────────────────
+    public string $content_language = 'en';
+    public string $activeLocale = 'en';
+    public string $name_de = '';
+    public string $short_description_de = '';
+    public string $description_de = '';
+    public string $rules_de = '';
+    public string $schedule_de = '';
 
     // ── Basic Info ────────────────────────────────────
     public string $name = '';
@@ -66,7 +76,7 @@ class ManageEvent extends Component
 
     public function rules(): array
     {
-        return [
+        $baseRules = [
             'name' => 'required|string|max:255',
             'short_description' => 'nullable|string|max:500',
             'description' => 'nullable|string',
@@ -94,6 +104,43 @@ class ManageEvent extends Component
             'contact_phone' => 'nullable|string|max:30',
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
+            'content_language' => 'required|in:' . implode(',', ContentLanguage::values()),
+        ];
+
+        return array_merge($baseRules, $this->validatedTranslationRules());
+    }
+
+    /**
+     * Return translation validation rules based on content_language.
+     */
+    protected function validatedTranslationRules(): array
+    {
+        if (! in_array($this->content_language, ['de', 'de+en'])) {
+            return [];
+        }
+
+        return [
+            'name_de' => 'required|string|max:255',
+            'short_description_de' => 'nullable|string|max:500',
+            'description_de' => 'nullable|string',
+            'rules_de' => 'nullable|string',
+            'schedule_de' => 'nullable|string',
+        ];
+    }
+
+    /**
+     * Custom validation messages for DE translation fields.
+     */
+    public function translationMessages(): array
+    {
+        if (! in_array($this->content_language, ['de', 'de+en'])) {
+            return [];
+        }
+
+        return [
+            'name_de.required' => 'The German name is required because this event\'s content language includes German.',
+            'name_de.max' => 'The German name must not exceed 255 characters.',
+            'short_description_de.max' => 'The German short description must not exceed 500 characters.',
         ];
     }
 
@@ -138,6 +185,18 @@ class ManageEvent extends Component
         $this->contact_phone = $e->contact_phone ?? '';
         $this->is_public = $e->is_public;
         $this->is_featured = $e->is_featured;
+
+        // Load translation fields
+        $this->content_language = $e->content_language ?? 'en';
+        $this->name_de = $e->getTranslation('de', 'name') ?? '';
+        $deShortDesc = $e->getTranslation('de', 'short_description');
+        $this->short_description_de = $deShortDesc ?? '';
+        $deDesc = $e->getTranslation('de', 'description');
+        $this->description_de = $deDesc ?? '';
+        $deRules = $e->getTranslation('de', 'rules');
+        $this->rules_de = is_array($deRules) ? implode("\n", $deRules) : ($deRules ?? '');
+        $deSchedule = $e->getTranslation('de', 'schedule');
+        $this->schedule_de = is_array($deSchedule) ? implode("\n", $deSchedule) : ($deSchedule ?? '');
     }
 
     // ── Tab Navigation ────────────────────────────────
@@ -145,6 +204,11 @@ class ManageEvent extends Component
     public function setActiveTab(string $tab): void
     {
         $this->activeTab = $tab;
+    }
+
+    public function setLocaleTab(string $locale): void
+    {
+        $this->activeLocale = $locale;
     }
 
     // ── Division Management ───────────────────────────
@@ -179,7 +243,7 @@ class ManageEvent extends Component
     public function save(): void
     {
         $this->authorize('update', $this->event);
-        $this->validate();
+        $this->validate($this->rules(), $this->translationMessages());
 
         // Validate status transition if status changed
         $oldStatus = $this->event->getOriginal('status');
@@ -191,7 +255,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => "Cannot change event status from \"{$oldStatus}\" to \"{$this->status}\".",
+                'status' => __('Cannot change event status from ":from" to ":to".', ['from' => $oldStatus, 'to' => $this->status]),
             ]);
         }
 
@@ -220,6 +284,7 @@ class ManageEvent extends Component
             'description' => $this->description ?: null,
             'type' => $this->type,
             'status' => $this->status,
+            'content_language' => $this->content_language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'venue_name' => $this->venue_name ?: null,
@@ -247,6 +312,20 @@ class ManageEvent extends Component
             'is_featured' => $isFeatured,
         ], fn ($value) => $value !== null));
 
+        // Persist German translations if content_language includes DE
+        if (in_array($this->content_language, ['de', 'de+en'])) {
+            foreach (['name', 'short_description', 'description', 'rules', 'schedule'] as $field) {
+                $deProperty = $field . '_de';
+                $deValue = $this->$deProperty;
+                if ($deValue !== '' && $deValue !== null) {
+                    if (in_array($field, ['rules', 'schedule'])) {
+                        $deValue = array_filter(array_map('trim', explode("\n", $deValue)));
+                    }
+                    $this->event->setTranslation('de', $field, $deValue);
+                }
+            }
+        }
+
         Log::info('Event updated', [
             'event_id' => $this->event->id,
             'event_slug' => $this->event->slug,
@@ -272,7 +351,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => "Cannot publish event from status \"{$oldStatus}\".",
+                'status' => __('Cannot publish event from status ":from".', ['from' => $oldStatus]),
             ]);
         }
 
@@ -284,7 +363,7 @@ class ManageEvent extends Component
             'published_by' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Event published.');
+        session()->flash('success', __('Event published.'));
     }
 
     public function openRegistration(): void
@@ -300,7 +379,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => "Cannot open registration from status \"{$oldStatus}\".",
+                'status' => __('Cannot open registration from status ":from".', ['from' => $oldStatus]),
             ]);
         }
 
@@ -316,7 +395,7 @@ class ManageEvent extends Component
             'opened_by' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Registration opened.');
+        session()->flash('success', __('Registration opened.'));
     }
 
     public function closeRegistration(): void
@@ -332,7 +411,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => "Cannot close registration from status \"{$oldStatus}\".",
+                'status' => __('Cannot close registration from status ":from".', ['from' => $oldStatus]),
             ]);
         }
 
@@ -344,7 +423,7 @@ class ManageEvent extends Component
             'closed_by' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Registration closed.');
+        session()->flash('success', __('Registration closed.'));
     }
 
     public function cancelEvent(): void
@@ -360,7 +439,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => "Cannot cancel event from status \"{$oldStatus}\".",
+                'status' => __('Cannot cancel event from status ":from".', ['from' => $oldStatus]),
             ]);
         }
 
@@ -372,7 +451,7 @@ class ManageEvent extends Component
             'cancelled_by' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Event cancelled.');
+        session()->flash('success', __('Event cancelled.'));
     }
 
     public function render()

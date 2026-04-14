@@ -39,7 +39,7 @@ class RegisterForEvent extends Component
         $this->event = Event::where('slug', $slug)->firstOrFail();
 
         if (! $this->event->isRegistrationOpen()) {
-            session()->flash('error', 'Registration is not currently open for this event.');
+            session()->flash('error', __('Registration is not currently open for this event.'));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
             return;
@@ -135,7 +135,7 @@ class RegisterForEvent extends Component
         // Re-validate registration window (may have closed since page load)
         $this->event->refresh();
         if (! $this->event->isRegistrationOpen()) {
-            session()->flash('error', 'Registration has closed.');
+            session()->flash('error', __('Registration has closed.'));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
             return;
@@ -182,7 +182,7 @@ class RegisterForEvent extends Component
                 $event = Event::lockForUpdate()->find($eventId);
 
                 if (! $event->hasCapacity()) {
-                    throw new \RuntimeException('This event is now full.');
+                    throw new \RuntimeException(__('This event is now full.'));
                 }
 
                 // Check for duplicate registration (user or team, scoped to this event)
@@ -197,7 +197,7 @@ class RegisterForEvent extends Component
                     ->exists();
 
                 if ($existing) {
-                    throw new \RuntimeException('You are already registered for this event.');
+                    throw new \RuntimeException(__('You are already registered for this event.'));
                 }
 
                 $status = $fee > 0 ? 'pending' : 'confirmed';
@@ -223,12 +223,11 @@ class RegisterForEvent extends Component
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
-            session()->flash('error', 'You are already registered for this event.');
-            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
+            session()->flash('error', __('You are already registered for this event.'));            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
             return;
         } catch (\RuntimeException $e) {
-            session()->flash('error', $e->getMessage());
+            session()->flash('error', __($e->getMessage()));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
             return;
@@ -250,7 +249,7 @@ class RegisterForEvent extends Component
             // Redirect to Paddle checkout for payment
             $this->initPaymentCheckout($registration, $fee);
         } else {
-            session()->flash('success', 'You have been registered successfully!');
+            session()->flash('success', __('You have been registered successfully!'));
             $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
         }
     }
@@ -258,23 +257,23 @@ class RegisterForEvent extends Component
     private function validateTeamRegistration($user): void
     {
         if (! in_array($this->event->registration_type, ['team', 'both'])) {
-            $this->addError('registrationMode', 'This event does not support team registration.');
+            $this->addError('registrationMode', __('This event does not support team registration.'));
         }
 
         if (! $this->selectedTeamId) {
-            $this->addError('selectedTeamId', 'Please select a team.');
+            $this->addError('selectedTeamId', __('Please select a team.'));
         }
 
         $team = Team::find($this->selectedTeamId);
         if ($team && ! $team->isCaptain($user)) {
-            $this->addError('selectedTeamId', 'Only the team captain can register a team.');
+            $this->addError('selectedTeamId', __('Only the team captain can register a team.'));
         }
     }
 
     private function validateIndividualRegistration($user): void
     {
         if (! in_array($this->event->registration_type, ['individual', 'both'])) {
-            $this->addError('registrationMode', 'This event does not support individual registration.');
+            $this->addError('registrationMode', __('This event does not support individual registration.'));
         }
     }
 
@@ -321,7 +320,7 @@ class RegisterForEvent extends Component
             'fee' => $fee,
         ]);
 
-        session()->flash('success', 'Registration submitted! Payment instructions will follow.');
+        session()->flash('success', __('Registration submitted! Payment instructions will follow.'));
         $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
     }
 

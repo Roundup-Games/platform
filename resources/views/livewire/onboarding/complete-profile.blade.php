@@ -2,7 +2,7 @@
     <!-- Progress indicator -->
     <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
-            @foreach(['Identity', 'Contact', 'Preferences'] as $i => $label)
+            @foreach([__('Identity'), __('Contact'), __('Preferences')] as $i => $label)
                 <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
                         {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest dark:bg-[#3a3b34] text-on-surface-variant') }}">
@@ -27,41 +27,41 @@
         <!-- Step 1: Identity -->
         @if($step === 1)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                Tell us about yourself
+                {{ __('Tell us about yourself') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                This helps us personalize your experience.
+                {{ __('This helps us personalize your experience.') }}
             </p>
 
             <div class="space-y-4">
                 <div>
                     <label for="gender" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                        Gender <span class="text-error">*</span>
+                        {{ __('Gender') }} <span class="text-error">*</span>
                     </label>
                     <select id="gender" wire:model="gender"
                             class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
-                        <option value="">Select...</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="non-binary">Non-binary</option>
-                        <option value="prefer-not-to-say">Prefer not to say</option>
-                        <option value="other">Other</option>
+                        <option value="">{{ __('Select...') }}</option>
+                        <option value="male">{{ __('Male') }}</option>
+                        <option value="female">{{ __('Female') }}</option>
+                        <option value="non-binary">{{ __('Non-binary') }}</option>
+                        <option value="prefer-not-to-say">{{ __('Prefer not to say') }}</option>
+                        <option value="other">{{ __('Other') }}</option>
                     </select>
                     @error('gender') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label for="pronouns" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                        Pronouns <span class="text-error">*</span>
+                        {{ __('Pronouns') }} <span class="text-error">*</span>
                     </label>
                     <select id="pronouns" wire:model="pronouns"
                             class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
-                        <option value="">Select...</option>
-                        <option value="he/him">He/Him</option>
-                        <option value="she/her">She/Her</option>
-                        <option value="they/them">They/Them</option>
-                        <option value="prefer-not-to-say">Prefer not to say</option>
-                        <option value="other">Other</option>
+                        <option value="">{{ __('Select...') }}</option>
+                        <option value="he/him">{{ __('He/Him') }}</option>
+                        <option value="she/her">{{ __('She/Her') }}</option>
+                        <option value="they/them">{{ __('They/Them') }}</option>
+                        <option value="prefer-not-to-say">{{ __('Prefer not to say') }}</option>
+                        <option value="other">{{ __('Other') }}</option>
                     </select>
                     @error('pronouns') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
@@ -71,15 +71,15 @@
         <!-- Step 2: Contact -->
         @if($step === 2)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                Contact information
+                {{ __('Contact information') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                Optional — useful for game night coordination.
+                {{ __('Optional — useful for game night coordination.') }}
             </p>
 
             <div>
                 <label for="phone" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                    Phone number <span class="text-on-surface-variant">(optional)</span>
+                    {{ __('Phone number') }} <span class="text-on-surface-variant">{{ __('(optional)') }}</span>
                 </label>
                 <input type="tel" id="phone" wire:model="phone" placeholder="+1 (555) 000-0000"
                        class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
@@ -90,10 +90,10 @@
         <!-- Step 3: Game Preferences -->
         @if($step === 3)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                Game preferences
+                {{ __('Game preferences') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                Select the games you enjoy — we'll use this to recommend sessions and events.
+                {{ __("Select the games you enjoy — we'll use this to recommend sessions and events.") }}
             </p>
 
             <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -114,13 +114,13 @@
 
                 @if($gameSystems->isEmpty())
                     <p class="text-sm text-on-surface-variant italic py-4 text-center">
-                        No game systems available yet — you can add preferences later from your profile.
+                        {{ __('No game systems available yet — you can add preferences later from your profile.') }}
                     </p>
                 @endif
             </div>
 
             <p class="mt-4 text-xs text-on-surface-variant">
-                {{ count($this->favoriteGameSystemIds) }} selected
+                {{ __(':count selected', ['count' => count($this->favoriteGameSystemIds)]) }}
             </p>
         @endif
 
@@ -130,7 +130,7 @@
                 <button wire:click="previousStep"
                         class="inline-flex items-center text-sm text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-base mr-1">arrow_back</span>
-                    Back
+                    {{ __('Back') }}
                 </button>
             @else
                 <span></span>
@@ -139,14 +139,14 @@
             @if($step < 3)
                 <button wire:click="nextStep"
                         class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                    Continue
+                    {{ __('Continue') }}
                 </button>
             @else
                 <div class="flex items-center gap-3">
                     <button wire:click="complete" wire:loading.attr="disabled"
                             class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                        <span wire:loading.remove>Complete Profile</span>
-                        <span wire:loading>Saving...</span>
+                        <span wire:loading.remove>{{ __('Complete Profile') }}</span>
+                        <span wire:loading>{{ __('Saving...') }}</span>
                     </button>
                 </div>
             @endif

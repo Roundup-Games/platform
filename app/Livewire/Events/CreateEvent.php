@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\ContentLanguage;
 use App\Models\Event;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,15 @@ class CreateEvent extends Component
     public string $type = 'tournament';
     public string $start_date = '';
     public string $end_date = '';
+
+    // ── Translation fields ────────────────────────────
+    public string $content_language = 'en';
+    public string $activeLocale = 'en';
+    public string $name_de = '';
+    public string $short_description_de = '';
+    public string $description_de = '';
+    public string $rules_de = '';
+    public string $schedule_de = '';
 
     public string $venue_name = '';
     public string $venue_address = '';
@@ -104,6 +114,11 @@ class CreateEvent extends Component
         $this->divisions = array_values($this->divisions);
     }
 
+    public function setLocaleTab(string $locale): void
+    {
+        $this->activeLocale = $locale;
+    }
+
     public function create(): void
     {
         $this->validateStep($this->step);
@@ -118,6 +133,7 @@ class CreateEvent extends Component
             'description' => $this->description ?: null,
             'type' => $this->type,
             'status' => 'draft',
+            'content_language' => $this->content_language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'venue_name' => $this->venue_name ?: null,
@@ -145,6 +161,20 @@ class CreateEvent extends Component
             'is_public' => $this->is_public,
         ], fn ($value) => $value !== null));
 
+        // Persist German translations if content_language includes DE
+        if (in_array($this->content_language, ['de', 'de+en'])) {
+            foreach (['name', 'short_description', 'description', 'rules', 'schedule'] as $field) {
+                $deProperty = $field . '_de';
+                $deValue = $this->$deProperty;
+                if ($deValue !== '' && $deValue !== null) {
+                    if (in_array($field, ['rules', 'schedule'])) {
+                        $deValue = array_filter(array_map('trim', explode("\n", $deValue)));
+                    }
+                    $event->setTranslation('de', $field, $deValue);
+                }
+            }
+        }
+
         Log::info('Event created', [
             'event_id' => $event->id,
             'event_slug' => $event->slug,
@@ -153,7 +183,7 @@ class CreateEvent extends Component
             'organizer_id' => Auth::id(),
         ]);
 
-        session()->flash('success', 'Event "' . $event->name . '" created successfully!');
+        session()->flash('success', __('Event ":name" created successfully!', ['name' => $event->name]));
         $this->redirect(route('events.manage', ['slug' => $event->slug]), navigate: true);
     }
 
@@ -167,6 +197,7 @@ class CreateEvent extends Component
                 'type' => 'required|in:tournament,league,camp,clinic,social,other',
                 'start_date' => 'required|date|after:today',
                 'end_date' => 'required|date|after_or_equal:start_date',
+                'content_language' => 'required|in:' . implode(',', ContentLanguage::values()),
             ],
             2 => [
                 'venue_name' => 'nullable|string|max:255',
@@ -189,19 +220,45 @@ class CreateEvent extends Component
                 'registration_closes_at' => 'nullable|date|after:registration_opens_at',
             ],
             4 => null,
-            5 => [
+            5 => collect([
                 'rules' => 'nullable|string',
                 'schedule' => 'nullable|string',
                 'contact_email' => 'nullable|email',
                 'contact_phone' => 'nullable|string|max:30',
                 'is_public' => 'boolean',
-            ],
+            ])->when(
+                in_array($this->content_language, ['de', 'de+en']),
+                fn ($r) => $r->merge([
+                    'name_de' => 'required|string|max:255',
+                    'short_description_de' => 'nullable|string|max:500',
+                    'description_de' => 'nullable|string',
+                    'rules_de' => 'nullable|string',
+                    'schedule_de' => 'nullable|string',
+                ])
+            )->all(),
+
             default => null,
         };
 
         if ($rules !== null) {
-            $this->validate($rules);
+            $this->validate($rules, $this->translationMessages());
         }
+    }
+
+    /**
+     * Custom validation messages for DE translation fields.
+     */
+    private function translationMessages(): array
+    {
+        if (! in_array($this->content_language, ['de', 'de+en'])) {
+            return [];
+        }
+
+        return [
+            'name_de.required' => 'The German name is required because this event\'s content language includes German.',
+            'name_de.max' => 'The German name must not exceed 255 characters.',
+            'short_description_de.max' => 'The German short description must not exceed 500 characters.',
+        ];
     }
 
     public function render()

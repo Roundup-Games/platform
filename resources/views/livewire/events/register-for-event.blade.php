@@ -4,7 +4,7 @@
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                Back to {{ $event->name }}
+                {{ __('Back to :event', ['event' => $event->name]) }}
             </a>
         </div>
     </div>
@@ -12,7 +12,7 @@
     {{-- Header --}}
     <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-            <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">Register for Event</h1>
+            <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('Register for Event') }}</h1>
             <p class="mt-2 text-on-primary/80">{{ $event->name }}</p>
         </div>
     </section>
@@ -30,7 +30,7 @@
             {{-- Registration Mode --}}
             @if($event->registration_type === 'both')
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">Registration Type</h2>
+                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('Registration Type') }}</h2>
                     <div class="grid grid-cols-2 gap-4">
                         <button type="button"
                             wire:click="$set('registrationMode', 'individual')"
@@ -40,7 +40,7 @@
                                     : 'border-outline-variant hover:border-outline'
                             }}">
                             <span class="material-symbols-outlined text-2xl mb-2 {{ $registrationMode === 'individual' ? 'text-primary' : 'text-on-surface-variant' }}" aria-hidden="true">person</span>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-primary' : 'text-on-surface-variant' }}">Individual</span>
+                            <span class="block text-sm font-medium {{ $registrationMode === 'individual' ? 'text-primary' : 'text-on-surface-variant' }}">{{ __('Individual') }}</span>
                         </button>
                         <button type="button"
                             wire:click="$set('registrationMode', 'team')"
@@ -50,7 +50,7 @@
                                     : 'border-outline-variant hover:border-outline'
                             }}">
                             <span class="material-symbols-outlined text-2xl mb-2 {{ $registrationMode === 'team' ? 'text-primary' : 'text-on-surface-variant' }}" aria-hidden="true">groups</span>
-                            <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-primary' : 'text-on-surface-variant' }}">Team</span>
+                            <span class="block text-sm font-medium {{ $registrationMode === 'team' ? 'text-primary' : 'text-on-surface-variant' }}">{{ __('Team') }}</span>
                         </button>
                     </div>
                     @error('registrationMode')
@@ -62,12 +62,12 @@
             {{-- Team Selection (team mode only) --}}
             @if($registrationMode === 'team')
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">Select Team</h2>
+                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('Select Team') }}</h2>
 
                     @if($this->userTeams->isEmpty())
                         <div class="text-center py-6">
-                            <p class="text-on-surface-variant text-sm">You are not a member of any teams.</p>
-                            <a href="{{ route('teams.create') }}" wire:navigate class="mt-3 inline-block text-sm text-primary hover:underline">Create a Team</a>
+                            <p class="text-on-surface-variant text-sm">{{ __('You are not a member of any teams.') }}</p>
+                            <a href="{{ route('teams.create') }}" wire:navigate class="mt-3 inline-block text-sm text-primary hover:underline">{{ __('Create a Team') }}</a>
                         </div>
                     @else
                         <div class="space-y-2">
@@ -81,7 +81,7 @@
                                         @endif
                                     </div>
                                     @if(!$team->isCaptain(auth()->user()))
-                                        <span class="ml-auto text-xs text-tertiary bg-tertiary/10 px-2 py-0.5 rounded">Non-captain</span>
+                                        <span class="ml-auto text-xs text-tertiary bg-tertiary/10 px-2 py-0.5 rounded">{{ __('Non-captain') }}</span>
                                     @endif
                                 </label>
                             @endforeach
@@ -93,18 +93,18 @@
                         {{-- Roster preview --}}
                         @if($this->selectedTeam)
                             <div class="mt-4 pt-4 border-t border-outline-variant">
-                                <h3 class="text-sm font-medium text-on-surface mb-2">Team Roster ({{ $this->selectedTeam->activeMembers->count() }} members)</h3>
+                                <h3 class="text-sm font-medium text-on-surface mb-2">{{ __('Team Roster (:count members)', ['count' => $this->selectedTeam->activeMembers->count()]) }}</h3>
                                 <div class="max-h-48 overflow-y-auto space-y-1">
                                     @foreach($this->selectedTeam->activeMembers as $member)
                                         <div class="flex items-center justify-between py-1 text-sm">
-                                            <span class="text-on-surface-variant">{{ $member->user?->name ?? 'Unknown' }}</span>
+                                            <span class="text-on-surface-variant">{{ $member->user?->name ?? __('Unknown') }}</span>
                                             <span class="text-xs text-on-surface-variant/60 uppercase">{{ $member->role }}</span>
                                         </div>
                                     @endforeach
                                 </div>
                                 @if($event->min_players_per_team || $event->max_players_per_team)
                                     <p class="mt-2 text-xs text-on-surface-variant">
-                                        Team size: {{ $event->min_players_per_team ?? 0 }}–{{ $event->max_players_per_team ?? '∞' }} players
+                                        {{ __('Team size: :min–:max players', ['min' => $event->min_players_per_team ?? 0, 'max' => $event->max_players_per_team ?? '∞']) }}
                                     </p>
                                 @endif
                             </div>
@@ -116,7 +116,7 @@
             {{-- Division (if applicable) --}}
             @if($event->divisions && count($event->divisions) > 0)
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">Division</h2>
+                    <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('Division') }}</h2>
                     <div class="space-y-2">
                         @foreach($event->divisions as $div)
                             @php $divName = is_array($div) ? ($div['name'] ?? '') : $div @endphp
@@ -136,8 +136,8 @@
 
             {{-- Notes --}}
             <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">Additional Notes</h2>
-                <textarea id="registration-notes" wire:model="notes" rows="3" placeholder="Any special requests, dietary requirements, or notes for the organizer..."
+                <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('Additional Notes') }}</h2>
+                <textarea id="registration-notes" wire:model="notes" rows="3" placeholder="{{ __('Any special requests, dietary requirements, or notes for the organizer...') }}"
                     class="w-full bg-surface-container-high border border-transparent rounded-lg text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 text-sm"></textarea>
                 @error('notes')
                     <p class="mt-1 text-sm text-error">{{ $message }}</p>
@@ -146,35 +146,35 @@
 
             {{-- Fee Summary --}}
             <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">Fee Summary</h2>
+                <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('Fee Summary') }}</h2>
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-on-surface-variant">
-                            {{ ucfirst($registrationMode) }} Registration
+                            {{ __(ucfirst($registrationMode)) . ' ' . __('Registration') }}
                         </span>
                         <span class="text-on-surface">
                             @php
                                 $baseFee = $registrationMode === 'team' ? ($event->team_registration_fee ?? 0) : ($event->individual_registration_fee ?? 0);
                             @endphp
-                            {{ $baseFee > 0 ? '$' . number_format($baseFee / 100, 2) : 'Free' }}
+                            {{ $baseFee > 0 ? format_currency($baseFee) : __('Free') }}
                         </span>
                     </div>
                     @if($this->isEarlyBird && $event->early_bird_discount > 0)
                         <div class="flex justify-between text-secondary">
-                            <span>Early Bird Discount</span>
-                            <span>-${{ number_format($event->early_bird_discount / 100, 2) }}</span>
+                            <span>{{ __('Early Bird Discount') }}</span>
+                            <span>-{{ format_currency($event->early_bird_discount) }}</span>
                         </div>
                     @endif
                     <div class="flex justify-between pt-2 border-t border-outline-variant font-medium">
-                        <span class="text-on-surface">Total</span>
+                        <span class="text-on-surface">{{ __('Total') }}</span>
                         <span class="text-on-surface {{ $this->effectiveFee === 0 ? 'text-secondary' : '' }}">
-                            {{ $this->effectiveFee > 0 ? '$' . number_format($this->effectiveFee / 100, 2) : 'Free' }}
+                            {{ $this->effectiveFee > 0 ? format_currency($this->effectiveFee) : __('Free') }}
                         </span>
                     </div>
                 </div>
                 @if($this->isEarlyBird)
                     <p class="mt-3 text-xs text-secondary">
-                        🏷️ Early bird pricing ends {{ $event->early_bird_deadline->format('M j, Y \a\t g:i A') }}
+                        {{ __('Early bird pricing ends :date', ['date' => format_date($event->early_bird_deadline, 'datetime')]) }}
                     </p>
                 @endif
             </div>
@@ -182,11 +182,11 @@
             {{-- Submit --}}
             <div class="flex items-center justify-between">
                 <a href="{{ route('events.detail', ['slug' => $event->slug]) }}" wire:navigate class="text-sm text-on-surface-variant hover:text-on-surface">
-                    Cancel
+                    {{ __('Cancel') }}
                 </a>
                 <button type="submit"
                     class="px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                    {{ $this->effectiveFee > 0 ? 'Proceed to Payment' : 'Complete Registration' }}
+                    {{ $this->effectiveFee > 0 ? __('Proceed to Payment') : __('Complete Registration') }}
                 </button>
             </div>
         </form>

@@ -4,7 +4,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                Back to Dashboard
+                {{ __('Back to Dashboard') }}
             </a>
         </div>
     </div>
@@ -15,7 +15,7 @@
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                        Owner
+                        {{ __('Owner') }}
                     </span>
                 @endif
                 @if($campaign->gameSystem)
@@ -25,7 +25,7 @@
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                     {{ $campaign->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($campaign->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ ucfirst($campaign->visibility) }}
+                    {{ __(ucfirst($campaign->visibility)) }}
                 </span>
             </div>
 
@@ -39,7 +39,7 @@
             <div class="mt-6 flex flex-wrap gap-6 text-sm text-on-primary/80">
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">repeat</span>
-                    {{ ucfirst($campaign->recurrence) }}
+                    {{ __(ucfirst($campaign->recurrence)) }}
                 </span>
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">schedule</span>
@@ -51,12 +51,12 @@
                 @if($campaign->price_per_session > 0)
                     <span class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">payments</span>
-                        ${{ number_format($campaign->price_per_session, 2) }}/session
+                        {{ format_currency($campaign->price_per_session, false) }}/{{ __('session') }}
                     </span>
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        Free
+                        {{ __('Free') }}
                     </span>
                 @endif
                 @if($campaign->location && !empty($campaign->location['details']))
@@ -76,7 +76,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">event_note</span>
-                Sessions
+                {{ __('Sessions') }}
             </h2>
 
             @if($campaign->sessions->count())
@@ -88,18 +88,18 @@
                                     {{ $session->name }}
                                 </a>
                                 <p class="text-xs text-on-surface-variant">
-                                    {{ $session->date_time->format('M j, Y \a\t g:i A') }}
+                                    {{ format_date($session->date_time, 'datetime') }}
                                 </p>
                             </div>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                 {{ $session->status === 'scheduled' ? 'bg-tertiary/10 text-tertiary' : ($session->status === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant') }}">
-                                {{ ucfirst($session->status) }}
+                                {{ __(ucfirst($session->status)) }}
                             </span>
                         </div>
-                    @endforeach>
+                    @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">No sessions scheduled yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No sessions scheduled yet.') }}</p>
             @endif
         </section>
 
@@ -107,7 +107,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                Participants
+                {{ __('Participants') }}
             </h2>
 
             @if($campaign->participants->count())
@@ -127,13 +127,13 @@
                             </span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->status === 'confirmed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                {{ ucfirst($participant->status) }}
+                                {{ __(ucfirst($participant->status)) }}
                             </span>
                         </div>
                     @endforeach>
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">No participants yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No participants yet.') }}</p>
             @endif
         </section>
 
@@ -141,7 +141,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person</span>
-                Run by
+                {{ __('Run by') }}
             </h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">

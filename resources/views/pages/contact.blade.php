@@ -1,12 +1,14 @@
-<x-public-layout title="Contact">
-    <x-hero title="Contact Us" subtitle="Have a question, suggestion, or just want to say hi? We'd love to hear from you." />
+<x-public-layout>
+@section('title', __('Contact'))
+
+    <x-hero :title="__('Contact Us')" :subtitle="__('Have a question, suggestion, or just want to say hi? We\'d love to hear from you.')" />
 
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 {{-- Contact Form --}}
                 <div>
-                    <h2 class="text-2xl font-heading font-bold tracking-tight text-on-surface mb-6">Send Us a Message</h2>
+                    <h2 class="text-2xl font-heading font-bold tracking-tight text-on-surface mb-6">{{ __('Send Us a Message') }}</h2>
 
                     @if(session('success'))
                         <div class="mb-6 p-4 bg-secondary-container border border-secondary/20 rounded-lg" role="status" aria-live="polite">
@@ -22,7 +24,7 @@
 
                         {{-- Name --}}
                         <div>
-                            <label for="name" class="block text-sm font-medium text-on-surface-variant mb-1">Name <span class="text-error">*</span></label>
+                            <label for="name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('Name') }} <span class="text-error">*</span></label>
                             <input type="text" name="name" id="name" value="{{ old('name') }}"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required />
@@ -33,7 +35,7 @@
 
                         {{-- Email --}}
                         <div>
-                            <label for="email" class="block text-sm font-medium text-on-surface-variant mb-1">Email <span class="text-error">*</span></label>
+                            <label for="email" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('Email') }} <span class="text-error">*</span></label>
                             <input type="email" name="email" id="email" value="{{ old('email') }}"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required />
@@ -44,7 +46,7 @@
 
                         {{-- Subject --}}
                         <div>
-                            <label for="subject" class="block text-sm font-medium text-on-surface-variant mb-1">Subject</label>
+                            <label for="subject" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('Subject') }}</label>
                             <input type="text" name="subject" id="subject" value="{{ old('subject') }}"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                             @error('subject')
@@ -54,7 +56,7 @@
 
                         {{-- Message --}}
                         <div>
-                            <label for="message" class="block text-sm font-medium text-on-surface-variant mb-1">Message <span class="text-error">*</span></label>
+                            <label for="message" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('Message') }} <span class="text-error">*</span></label>
                             <textarea name="message" id="message" rows="6"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required>{{ old('message') }}</textarea>
@@ -66,14 +68,14 @@
                         <button type="submit"
                             class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm">
                             <span class="material-symbols-outlined mr-2 text-base" aria-hidden="true">mail</span>
-                            Send Message
+                            {{ __('Send Message') }}
                         </button>
                     </form>
                 </div>
 
                 {{-- Contact Info --}}
                 <div>
-                    <h2 class="text-2xl font-heading font-bold tracking-tight text-on-surface mb-6">Other Ways to Reach Us</h2>
+                    <h2 class="text-2xl font-heading font-bold tracking-tight text-on-surface mb-6">{{ __('Other Ways to Reach Us') }}</h2>
 
                     <div class="space-y-6">
                         <div class="flex items-start gap-4">
@@ -81,8 +83,8 @@
                                 <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">mail</span>
                             </div>
                             <div>
-                                <h3 class="font-medium text-on-surface">Email</h3>
-                                <p class="mt-1 text-sm text-on-surface-variant">For general inquiries and support.</p>
+                                <h3 class="font-medium text-on-surface">{{ __('Email') }}</h3>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('For general inquiries and support.') }}</p>
                             </div>
                         </div>
 
@@ -91,8 +93,8 @@
                                 <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">schedule</span>
                             </div>
                             <div>
-                                <h3 class="font-medium text-on-surface">Response Time</h3>
-                                <p class="mt-1 text-sm text-on-surface-variant">We typically respond within 24–48 hours during business days.</p>
+                                <h3 class="font-medium text-on-surface">{{ __('Response Time') }}</h3>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('We typically respond within 24–48 hours during business days.') }}</p>
                             </div>
                         </div>
 
@@ -101,10 +103,10 @@
                                 <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">groups</span>
                             </div>
                             <div>
-                                <h3 class="font-medium text-on-surface">Community</h3>
-                                <p class="mt-1 text-sm text-on-surface-variant">Join events, connect with other players, and be part of the community.</p>
+                                <h3 class="font-medium text-on-surface">{{ __('Community') }}</h3>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('Join events, connect with other players, and be part of the community.') }}</p>
                                 <a href="{{ route('events.index') }}" wire:navigate class="mt-2 inline-flex items-center text-sm font-medium text-primary hover:underline">
-                                    Browse Events →
+                                    {{ __('Browse Events →') }}
                                 </a>
                             </div>
                         </div>
@@ -112,19 +114,19 @@
 
                     {{-- FAQ Quick Section --}}
                     <div class="mt-10 pt-10 border-t border-outline-variant">
-                        <h3 class="font-heading font-semibold text-on-surface text-lg mb-4">Frequently Asked</h3>
+                        <h3 class="font-heading font-semibold text-on-surface text-lg mb-4">{{ __('Frequently Asked') }}</h3>
                         <div class="space-y-4">
                             <div>
-                                <h4 class="text-sm font-medium text-on-surface">How do I create an event?</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">Sign up for a free account, then click "Create Event" from your dashboard or the events page.</p>
+                                <h4 class="text-sm font-medium text-on-surface">{{ __('How do I create an event?') }}</h4>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('Sign up for a free account, then click "Create Event" from your dashboard or the events page.') }}</p>
                             </div>
                             <div>
-                                <h4 class="text-sm font-medium text-on-surface">Is it free to use?</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">Creating events and registering for free events is completely free. Paid events may have registration fees set by organizers.</p>
+                                <h4 class="text-sm font-medium text-on-surface">{{ __('Is it free to use?') }}</h4>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('Creating events and registering for free events is completely free. Paid events may have registration fees set by organizers.') }}</p>
                             </div>
                             <div>
-                                <h4 class="text-sm font-medium text-on-surface">Can I register a team?</h4>
-                                <p class="mt-1 text-sm text-on-surface-variant">Yes! Many events support team registration. Create a team, invite your members, and register together.</p>
+                                <h4 class="text-sm font-medium text-on-surface">{{ __('Can I register a team?') }}</h4>
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('Yes! Many events support team registration. Create a team, invite your members, and register together.') }}</p>
                             </div>
                         </div>
                     </div>

@@ -22,13 +22,13 @@ class MembershipPage extends Component
         $plan = MembershipType::active()->findOrFail($planId);
 
         if (! $plan->paddle_price_id) {
-            session()->flash('error', 'This plan is not available for purchase yet.');
+            session()->flash('error', __('This plan is not available for purchase yet.'));
 
             return;
         }
 
         if ($user->subscribed()) {
-            session()->flash('error', 'You already have an active subscription. Visit the billing portal to manage it.');
+            session()->flash('error', __('You already have an active subscription. Visit the billing portal to manage it.'));
 
             return;
         }

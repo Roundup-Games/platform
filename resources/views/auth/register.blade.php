@@ -2,14 +2,14 @@
     <!-- Page Title -->
     <div class="mb-6 text-center">
         <h1 class="font-heading text-2xl font-bold text-on-surface">Create Account</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">Join Roundup Games today</p>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('Join Roundup Games today') }}</p>
     </div>
 
     <!-- Google OAuth -->
     @if (\Illuminate\Support\Facades\Route::has('oauth.redirect'))
         <a href="{{ route('oauth.redirect', 'google') }}" wire:navigate class="btn-google mb-4">
             <span class="material-symbols-outlined w-5 h-5 mr-3 text-xl" aria-hidden="true">google</span>
-            Sign up with Google
+            {{ __('Sign up with Google') }}
         </a>
 
         <!-- Divider -->
@@ -18,7 +18,7 @@
                 <div class="w-full border-t border-outline-variant"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-                <span class="px-3 bg-surface-container-lowest text-on-surface-variant">or sign up with email</span>
+                <span class="px-3 bg-surface-container-lowest text-on-surface-variant">{{ __('or sign up with email') }}</span>
             </div>
         </div>
     @endif
@@ -65,3 +65,5 @@
         </div>
     </form>
 </x-guest-layout>
+est-layout>
+est-layout>

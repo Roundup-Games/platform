@@ -1,8 +1,8 @@
 <x-guest-layout>
     <!-- Page Title -->
     <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl font-bold text-on-surface">Verify Email</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">Check your inbox for a verification link</p>
+        <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('Verify Email') }}</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('Check your inbox for a verification link') }}</p>
     </div>
 
     <div class="mb-4 text-sm text-on-surface-variant">

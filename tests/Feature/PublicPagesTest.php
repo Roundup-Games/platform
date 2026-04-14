@@ -368,7 +368,7 @@ describe('EventCardComponent', function () {
 
         get(route('home'))
             ->assertOk()
-            ->assertSee('$2500');
+            ->assertSee('$25.00');
     });
 
     it('links to event detail page', function () {

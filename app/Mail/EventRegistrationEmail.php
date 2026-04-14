@@ -21,7 +21,7 @@ class EventRegistrationEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Event Registration Confirmed — ' . $this->registration->event->name,
+            subject: __('Event Registration Confirmed — :name', ['name' => $this->registration->event->name]),
         );
     }
 

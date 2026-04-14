@@ -119,7 +119,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', 'Registration approved.');
+        session()->flash('success', __('Registration approved.'));
     }
 
     public function reject(string $registrationId): void
@@ -141,7 +141,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', 'Registration rejected.');
+        session()->flash('success', __('Registration rejected.'));
     }
 
     public function confirmPayment(string $registrationId): void
@@ -164,7 +164,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts, $this->paymentCounts);
-        session()->flash('success', 'Payment confirmed.');
+        session()->flash('success', __('Payment confirmed.'));
     }
 
     public function markRefunded(string $registrationId): void
@@ -185,7 +185,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->paymentCounts);
-        session()->flash('success', 'Payment marked as refunded.');
+        session()->flash('success', __('Payment marked as refunded.'));
     }
 
     public function cancelRegistration(string $registrationId): void
@@ -206,7 +206,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', 'Registration cancelled.');
+        session()->flash('success', __('Registration cancelled.'));
     }
 
     public function saveInternalNotes(string $registrationId): void
@@ -219,7 +219,7 @@ class ManageRegistrations extends Component
         $this->editingRegistrationId = null;
         $this->internalNotes = '';
 
-        session()->flash('success', 'Notes saved.');
+        session()->flash('success', __('Notes saved.'));
     }
 
     public function editInternalNotes(string $registrationId): void

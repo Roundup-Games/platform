@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Traits\HasTranslations;
 
 class Event extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
+    use HasTranslations;
+
+    protected $translatable = ['name', 'description', 'short_description', 'rules', 'schedule'];
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -33,7 +37,7 @@ class Event extends Model implements HasMedia
     ];
 
     protected $fillable = [
-        'name', 'slug', 'description', 'short_description', 'type', 'status',
+        'name', 'slug', 'description', 'short_description', 'type', 'status', 'content_language',
         'venue_name', 'venue_address', 'city', 'country', 'postal_code',
         'start_date', 'end_date', 'registration_opens_at', 'registration_closes_at',
         'registration_type', 'max_teams', 'max_participants',

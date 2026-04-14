@@ -8,7 +8,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ $getBackRoute() }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                Back to {{ $getEntityName() }}
+                {{ __('Back to :entity', ['entity' => $getEntityName()]) }}
             </a>
         </div>
     </div>
@@ -18,7 +18,7 @@
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-2xl" aria-hidden="true">group_manage</span>
-                Manage Participants
+                {{ __('Manage Participants') }}
             </h1>
             <p class="mt-1 text-sm text-on-surface-variant">{{ $entity->name }}</p>
         </div>
@@ -43,7 +43,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span>
-                Invite Player
+                {{ __('Invite Player') }}
             </h2>
 
             <form wire:submit="inviteParticipant" class="flex gap-3">
@@ -58,7 +58,7 @@
                 <button type="submit"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                    Send Invite
+                    {{ __('Send Invite') }}
                 </button>
             </form>
         </section>
@@ -67,7 +67,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                Participants <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
+                {{ __('Participants') }} <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
             </h2>
 
             @if($approvedParticipants->count())
@@ -87,17 +87,17 @@
                             </span>
                             @if($participant->role !== 'owner')
                                 <button wire:click="removeParticipant('{{ $participant->id }}')"
-                                    wire:confirm="Are you sure you want to remove this participant?"
+                                    wire:confirm="{{ __('Are you sure you want to remove this participant?') }}"
                                     class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
-                                    Remove
+                                    {{ __('Remove') }}
                                 </button>
                             @endif
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">No approved participants yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No approved participants yet.') }}</p>
             @endif
         </section>
 
@@ -106,7 +106,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">inbox</span>
-                    Pending Applications <span class="text-tertiary font-normal text-base">({{ $pendingApplicants->count() }})</span>
+                    {{ __('Pending Applications') }} <span class="text-tertiary font-normal text-base">({{ $pendingApplicants->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -128,16 +128,16 @@
                                 <button wire:click="approveApplication('{{ $applicant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                                    Approve
+                                    {{ __('Approve') }}
                                 </button>
                                 <button wire:click="rejectApplication('{{ $applicant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-                                    Reject
+                                    {{ __('Reject') }}
                                 </button>
                             </div>
                         </div>
-                    @endforeach
+                    @endforeach>
                 </div>
             </section>
         @endif
@@ -147,7 +147,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">mail</span>
-                    Pending Invites <span class="text-on-surface-variant font-normal text-base">({{ $pendingInvites->count() }})</span>
+                    {{ __('Pending Invites') }} <span class="text-on-surface-variant font-normal text-base">({{ $pendingInvites->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -161,13 +161,13 @@
                                 <p class="text-xs text-on-surface-variant">{{ $invite->user->email }}</p>
                             </div>
                             <button wire:click="cancelInvite('{{ $invite->id }}')"
-                                wire:confirm="Cancel this invite?"
+                                wire:confirm="{{ __('Cancel this invite?') }}"
                                 class="text-sm text-on-surface-variant hover:text-error transition-colors inline-flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
-                                Cancel
+                                {{ __('Cancel') }}
                             </button>
                         </div>
-                    @endforeach
+                    @endforeach>
                 </div>
             </section>
         @endif

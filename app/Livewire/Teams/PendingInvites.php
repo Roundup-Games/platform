@@ -22,7 +22,7 @@ class PendingInvites extends Component
             ->exists();
 
         if ($existingActive) {
-            session()->flash('error', 'You already have an active team membership. Leave your current team first.');
+            session()->flash('error', __('You already have an active team membership. Leave your current team first.'));
 
             return;
         }
@@ -38,7 +38,7 @@ class PendingInvites extends Component
             'member_id' => $member->id,
         ]);
 
-        session()->flash('success', 'Welcome to the team!');
+        session()->flash('success', __('Welcome to the team!'));
     }
 
     public function declineInvite(int $memberId): void
@@ -56,7 +56,7 @@ class PendingInvites extends Component
             'member_id' => $member->id,
         ]);
 
-        session()->flash('success', 'Invite declined.');
+        session()->flash('success', __('Invite declined.'));
     }
 
     private function findPendingInvite(int $memberId): TeamMember

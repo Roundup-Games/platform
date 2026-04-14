@@ -4,7 +4,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                Back to Dashboard
+                {{ __('Back to Dashboard') }}
             </a>
         </div>
     </div>
@@ -15,7 +15,7 @@
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                        Owner
+                        {{ __('Owner') }}
                     </span>
                 @endif
                 @if($game->gameSystem)
@@ -25,7 +25,7 @@
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                     {{ $game->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ ucfirst($game->visibility) }}
+                    {{ __(ucfirst($game->visibility)) }}
                 </span>
             </div>
 
@@ -39,7 +39,7 @@
             <div class="mt-6 flex flex-wrap gap-6 text-sm text-on-primary/80">
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">calendar_today</span>
-                    {{ $game->date_time->format('M j, Y \a\t g:i A') }}
+                    {{ format_date($game->date_time, 'datetime') }}
                 </span>
                 @if($game->expected_duration)
                     <span class="flex items-center gap-2">
@@ -50,12 +50,12 @@
                 @if($game->price > 0)
                     <span class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">payments</span>
-                        ${{ number_format($game->price, 2) }}
+                        {{ format_currency($game->price, false) }}
                     </span>
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        Free
+                        {{ __('Free') }}
                     </span>
                 @endif
                 @if($game->location && !empty($game->location['details']))
@@ -75,7 +75,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                Participants
+                {{ __('Participants') }}
             </h2>
 
             @if($game->participants->count())
@@ -95,13 +95,13 @@
                             </span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->status === 'confirmed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                {{ ucfirst($participant->status) }}
+                                {{ __(ucfirst($participant->status)) }}
                             </span>
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">No participants yet.</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No participants yet.') }}</p>
             @endif
         </section>
 
@@ -110,7 +110,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">inbox</span>
-                    Applications
+                    {{ __('Applications') }}
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -127,7 +127,7 @@
                             </div>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                 {{ $application->status === 'pending' ? 'bg-tertiary/10 text-tertiary' : ($application->status === 'accepted' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                                {{ ucfirst($application->status) }}
+                                {{ __(ucfirst($application->status)) }}
                             </span>
                         </div>
                     @endforeach
@@ -139,7 +139,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person</span>
-                Hosted by
+                {{ __('Hosted by') }}
             </h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">

@@ -86,6 +86,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Available Locales
+    |--------------------------------------------------------------------------
+    |
+    | The list of locales the application supports. The SetLocale middleware
+    | validates the URL {locale} segment against this array. When adding a
+    | new language, register it here and create the corresponding lang/
+    | directory with translation files.
+    |
+    */
+
+    'available_locales' => ['en', 'de'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |
