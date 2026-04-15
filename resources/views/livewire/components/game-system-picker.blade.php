@@ -1,35 +1,46 @@
 @props(['fieldId' => 'game-system', 'label' => __('Game System'), 'error' => ''])
 
-<div
-    x-data="{
-        activeIndex: -1,
-        resultsList: null,
+@once
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('gameSystemPicker', () => ({
+            activeIndex: -1,
+            resultsList: null,
 
-        navigateResults(direction) {
-            if (!this.resultsList) return;
-            const items = this.resultsList.querySelectorAll('[role=\"option\"]');
-            const count = items.length;
-            if (count === 0) return;
+            init() {
+                this.resultsList = this.$refs.resultsList;
+            },
 
-            this.activeIndex = this.activeIndex + direction;
-            if (this.activeIndex < 0) this.activeIndex = count - 1;
-            if (this.activeIndex >= count) this.activeIndex = 0;
+            navigateResults(direction) {
+                if (!this.resultsList) return;
+                const items = this.resultsList.querySelectorAll('[role="option"]');
+                const count = items.length;
+                if (count === 0) return;
 
-            items[this.activeIndex]?.scrollIntoView({ block: 'nearest' });
-        },
+                this.activeIndex = this.activeIndex + direction;
+                if (this.activeIndex < 0) this.activeIndex = count - 1;
+                if (this.activeIndex >= count) this.activeIndex = 0;
 
-        selectActiveResult() {
-            if (this.activeIndex >= 0) {
-                const items = this.resultsList?.querySelectorAll('[role=\"option\"]');
-                if (items?.[this.activeIndex]) {
-                    items[this.activeIndex].click();
+                items[this.activeIndex]?.scrollIntoView({ block: 'nearest' });
+            },
+
+            selectActiveResult() {
+                if (this.activeIndex >= 0) {
+                    const items = this.resultsList?.querySelectorAll('[role="option"]');
+                    if (items?.[this.activeIndex]) {
+                        items[this.activeIndex].click();
+                    }
                 }
             }
-        }
-    }"
+        }));
+    });
+</script>
+@endonce
+
+<div
+    x-data="gameSystemPicker"
     @click.away="$wire.closeDropdown()"
     @keydown.escape.window="$wire.closeDropdown()"
-    x-init="resultsList = $refs.resultsList"
     class="relative"
 >
     <label for="{{ $fieldId }}-search" class="block text-sm font-medium text-on-surface mb-1">
