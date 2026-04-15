@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: app
     container_name: roundup-games
     restart: unless-stopped
     env_file:
@@ -13,6 +14,22 @@ services:
       - "8199:8080"
     networks:
       - roundup
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    container_name: roundup-games-worker
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks:
+      - roundup
+    depends_on:
+      - app
 
 volumes:
   app_storage:

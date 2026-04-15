@@ -48,3 +48,23 @@ RUN php artisan storage:link --force 2>/dev/null; true \
 USER root
 COPY --chmod=755 docker/s6/99-laravel-init /etc/cont-init.d/99-laravel-init
 USER www-data
+
+# Stage 3: Worker image — queue worker + scheduler (no nginx/fpm)
+# Reuses the app stage but replaces S6 services
+FROM app AS worker
+
+USER root
+
+# Remove nginx and php-fpm from the user bundle
+RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/nginx \
+   && rm /etc/s6-overlay/s6-rc.d/user/contents.d/php-fpm
+
+# Add queue and scheduler S6 service definitions
+COPY --chmod=755 docker/s6-worker/queue/ /etc/s6-overlay/s6-rc.d/queue/
+COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
+
+# Register queue and scheduler in the user bundle
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/queue \
+   && touch /etc/s6-overlay/s6-rc.d/user/contents.d/scheduler
+
+USER www-data

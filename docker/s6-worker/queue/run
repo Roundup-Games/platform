@@ -1,0 +1,12 @@
+#!/command/with-contenv bash
+# S6 long-run service for Laravel queue worker
+# S6 supervises this — auto-restarts on exit (after max-time/max-jobs)
+
+cd /var/www/html
+
+exec php artisan queue:work \
+    --queue=default \
+    --sleep=3 \
+    --tries=3 \
+    --max-time=3600 \
+    --max-jobs=1000

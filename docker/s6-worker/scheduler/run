@@ -1,0 +1,7 @@
+#!/command/with-contenv bash
+# S6 long-run service for Laravel scheduler
+# Runs schedule:work daemon — checks for due jobs every minute
+
+cd /var/www/html
+
+exec php artisan schedule:work
