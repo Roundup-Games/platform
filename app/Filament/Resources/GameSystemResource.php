@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\GameSystemResource\Pages;
 use App\Models\GameSystem;
 use BackedEnum;
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
