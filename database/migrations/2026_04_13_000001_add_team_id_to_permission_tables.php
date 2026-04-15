@@ -1,51 +1,54 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Makes team_id nullable on model_has_roles and model_has_permissions.
      *
-     * Makes team_id nullable on model_has_roles and model_has_permissions
-     * to support global role assignments (team_id = null) alongside scoped roles.
+     * Spatie's base migration creates team_id as NOT NULL (part of PK) when
+     * teams => true. Global roles (Platform Admin, Games Admin) need team_id = null.
      *
-     * The base Spatie migration creates these as NOT NULL when teams => true,
-     * but we need nullable to store global roles (Platform Admin, Games Admin)
-     * that apply across all team contexts.
-     *
-     * PostgreSQL won't allow ALTER COLUMN on a primary key column, so we must
-     * drop the PK first, alter the column, then recreate it.
+     * PostgreSQL primary keys cannot contain nullable columns, so we must:
+     * 1. Drop the existing PK
+     * 2. ALTER COLUMN to drop NOT NULL
+     * 3. Recreate PK without team_id
      */
     public function up(): void
     {
-        $tableNames = config('permission.table_names');
-        $columnNames = config('permission.column_names');
-        $teamFk = $columnNames['team_foreign_key'];
-        $driver = DB::getDriverName();
-
-        if ($driver === 'pgsql') {
-            $this->makeNullablePgsql($tableNames['model_has_permissions'], $teamFk);
-            $this->makeNullablePgsql($tableNames['model_has_roles'], $teamFk);
-        } else {
-            // SQLite/MySQL: doctrine/dbal handles this directly
-            Schema::table($tableNames['model_has_roles'], function (Blueprint $t) use ($teamFk) {
-                $t->unsignedBigInteger($teamFk)->nullable()->change();
+        if (DB::getDriverName() !== 'pgsql') {
+            Schema::table('model_has_roles', function ($t) {
+                $t->unsignedBigInteger('team_id')->nullable()->change();
+            });
+            Schema::table('model_has_permissions', function ($t) {
+                $t->unsignedBigInteger('team_id')->nullable()->change();
             });
 
-            Schema::table($tableNames['model_has_permissions'], function (Blueprint $t) use ($teamFk) {
-                $t->unsignedBigInteger($teamFk)->nullable()->change();
-            });
+            return;
         }
+
+        $this->fixTable('model_has_roles', 'role_id');
+        $this->fixTable('model_has_permissions', 'permission_id');
     }
 
-    private function makeNullablePgsql(string $table, string $teamFk): void
+    private function fixTable(string $table, string $entityFkCol): void
     {
-        // 1. Find the actual PK constraint name (PostgreSQL may auto-generate or use Spatie's custom name)
-        $constraint = DB::selectOne("
+        // Check current state — idempotent
+        $col = DB::selectOne("
+            SELECT is_nullable
+            FROM information_schema.columns
+            WHERE table_name = ? AND column_name = 'team_id' AND table_schema = 'public'
+        ", [$table]);
+
+        if ($col && $col->is_nullable === 'YES') {
+            return;
+        }
+
+        // Find and drop existing PK
+        $pk = DB::selectOne("
             SELECT tc.constraint_name
             FROM information_schema.table_constraints tc
             WHERE tc.table_name = ?
@@ -53,33 +56,22 @@ return new class extends Migration
               AND tc.table_schema = 'public'
         ", [$table]);
 
-        if (! $constraint) {
-            return; // No PK to worry about
+        if ($pk) {
+            DB::statement("ALTER TABLE {$table} DROP CONSTRAINT {$pk->constraint_name}");
         }
 
-        $pkName = $constraint->constraint_name;
+        // Make team_id nullable
+        DB::statement("ALTER TABLE {$table} ALTER COLUMN team_id DROP NOT NULL");
 
-        // 2. Drop the primary key
-        DB::statement("ALTER TABLE {$table} DROP CONSTRAINT {$pkName}");
-
-        // 3. Make team_id nullable
-        DB::statement("ALTER TABLE {$table} ALTER COLUMN {$teamFk} DROP NOT NULL");
-
-        // 4. Recreate primary key (known structure from Spatie migration)
-        $otherCols = match ($table) {
-            config('permission.table_names.model_has_permissions') => 'permission_id, model_id, model_type',
-            config('permission.table_names.model_has_roles') => 'role_id, model_id, model_type',
-            default => throw new \RuntimeException("Unknown permission table: {$table}"),
-        };
-
-        DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$pkName} PRIMARY KEY ({$teamFk}, {$otherCols})");
+        // Recreate PK without team_id
+        DB::statement(
+            "ALTER TABLE {$table} ADD CONSTRAINT {$table}_pkey PRIMARY KEY ({$entityFkCol}, model_id, model_type)"
+        );
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Cannot easily revert nullable change without data loss risk
+        // Intentionally left empty — reverting nullable on PK columns
+        // is destructive and could cause data loss.
     }
 };

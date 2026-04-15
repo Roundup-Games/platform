@@ -31,6 +31,8 @@ use Spatie\Permission\Traits\HasRoles;
     'profile_version',
     'profile_updated_at',
     'password_set_at',
+    'is_disabled',
+    'disabled_at',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -52,6 +54,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'profile_updated_at' => 'datetime',
             'password_set_at' => 'datetime',
             'trial_ends_at' => 'datetime',
+            'is_disabled' => 'boolean',
+            'disabled_at' => 'datetime',
         ];
     }
 
@@ -179,6 +183,11 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function isAdmin(): bool
     {
         return $this->hasRole('Platform Admin') || $this->hasRole('Games Admin');
+    }
+
+    public function isDisabled(): bool
+    {
+        return (bool) $this->is_disabled;
     }
 
     public function isTeamCaptain(Team $team): bool

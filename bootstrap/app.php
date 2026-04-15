@@ -15,8 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        $middleware->append(\App\Http\Middleware\EnsureUserNotDisabled::class);
+
         $middleware->alias([
             'profile.complete' => \App\Http\Middleware\EnsureProfileComplete::class,
+            'not.disabled' => \App\Http\Middleware\EnsureUserNotDisabled::class,
             'set.locale' => SetLocale::class,
         ]);
 
