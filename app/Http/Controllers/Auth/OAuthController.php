@@ -14,12 +14,24 @@ use Laravel\Socialite\Facades\Socialite;
 class OAuthController
 {
     /**
+     * Build a locale-prefixed URL for redirects outside the locale route group.
+     * OAuth routes run outside the {locale} prefix, so route() helpers
+     * cannot resolve locale-dependent routes.
+     */
+    private function localeUrl(string $path): string
+    {
+        $locale = session('locale', config('app.fallback_locale'));
+
+        return '/' . $locale . '/' . ltrim($path, '/');
+    }
+
+    /**
      * Redirect the user to the OAuth provider's authentication page.
      */
     public function redirect(Request $request, string $provider)
     {
         if (! in_array($provider, ['google'])) {
-            return redirect()->route('login')->withErrors(['oauth' => 'Unsupported login provider.']);
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
         // If the user is already logged in, they're linking an account
@@ -36,7 +48,7 @@ class OAuthController
     public function callback(Request $request, string $provider)
     {
         if (! in_array($provider, ['google'])) {
-            return redirect()->route('login')->withErrors(['oauth' => 'Unsupported login provider.']);
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unsupported login provider.']);
         }
 
         try {
@@ -48,7 +60,7 @@ class OAuthController
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->route('login')->withErrors(['oauth' => 'Unable to authenticate with ' . ucfirst($provider) . '. Please try again.']);
+            return redirect($this->localeUrl('login'))->withErrors(['oauth' => 'Unable to authenticate with ' . ucfirst($provider) . '. Please try again.']);
         }
 
         $providerUserId = $socialiteUser->getId();
@@ -156,13 +168,13 @@ class OAuthController
                 'provider_user_id' => $providerUserId,
             ]);
 
-            return redirect()->route('profile.edit')
+            return redirect($this->localeUrl('profile/view'))
                 ->withErrors(['oauth' => 'This ' . ucfirst($provider) . ' account is already linked to another user.']);
         }
 
         // Already linked to this user
         if ($linkedAccount) {
-            return redirect()->route('profile.edit')
+            return redirect($this->localeUrl('profile/view'))
                 ->with('status', ucfirst($provider) . ' account is already linked.');
         }
 
@@ -189,7 +201,7 @@ class OAuthController
                     'provider_user_id' => $providerUserId,
                 ]);
 
-                return redirect()->route('profile.edit')
+                return redirect($this->localeUrl('profile/view'))
                     ->withErrors(['oauth' => 'This ' . ucfirst($provider) . ' account is already linked.']);
             }
 
@@ -202,7 +214,7 @@ class OAuthController
             'provider_user_id' => $providerUserId,
         ]);
 
-        return redirect()->route('profile.edit')
+        return redirect($this->localeUrl('profile/view'))
             ->with('status', ucfirst($provider) . ' account linked successfully.');
     }
 
@@ -230,10 +242,12 @@ class OAuthController
      */
     private function redirectAfterLogin(User $user): \Illuminate\Http\RedirectResponse
     {
+        $locale = session('locale', config('app.fallback_locale'));
+
         if (! $user->profile_complete) {
-            return redirect()->route('onboarding.index');
+            return redirect()->to('/' . $locale . '/onboarding');
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended('/' . $locale . '/dashboard');
     }
 }
