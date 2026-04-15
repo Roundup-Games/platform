@@ -177,6 +177,11 @@ class GameSystemPicker extends Component
         return $baseItem->merge($expansions);
     }
 
+    public function setOpen(): void
+    {
+        $this->isOpen = true;
+    }
+
     public function updatedSearch(): void
     {
         $this->isOpen = true;

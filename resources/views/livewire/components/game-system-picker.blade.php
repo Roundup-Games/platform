@@ -1,44 +1,7 @@
 @props(['fieldId' => 'game-system', 'label' => __('Game System'), 'error' => ''])
 
-@once
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('gameSystemPicker', () => ({
-            activeIndex: -1,
-            resultsList: null,
-
-            init() {
-                this.resultsList = this.$refs.resultsList;
-            },
-
-            navigateResults(direction) {
-                if (!this.resultsList) return;
-                const items = this.resultsList.querySelectorAll('[role="option"]');
-                const count = items.length;
-                if (count === 0) return;
-
-                this.activeIndex = this.activeIndex + direction;
-                if (this.activeIndex < 0) this.activeIndex = count - 1;
-                if (this.activeIndex >= count) this.activeIndex = 0;
-
-                items[this.activeIndex]?.scrollIntoView({ block: 'nearest' });
-            },
-
-            selectActiveResult() {
-                if (this.activeIndex >= 0) {
-                    const items = this.resultsList?.querySelectorAll('[role="option"]');
-                    if (items?.[this.activeIndex]) {
-                        items[this.activeIndex].click();
-                    }
-                }
-            }
-        }));
-    });
-</script>
-@endonce
-
 <div
-    x-data="gameSystemPicker"
+    x-data="{ activeIndex: -1 }"
     @click.away="$wire.closeDropdown()"
     @keydown.escape.window="$wire.closeDropdown()"
     class="relative"
@@ -57,12 +20,9 @@
             placeholder="{{ __('Search game systems...') }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
-            @focus="$wire.isOpen = true"
-            @keydown.arrow-down.prevent="navigateResults(1)"
-            @keydown.arrow-up.prevent="navigateResults(-1)"
-            @keydown.enter.prevent="selectActiveResult()"
+            wire:focus="setOpen"
             aria-haspopup="listbox"
-            :aria-expanded="$wire.isOpen"
+            wire:aria-expanded="isOpen"
             aria-autocomplete="list"
             role="combobox"
         />
@@ -117,7 +77,6 @@
         @php($results = $this->searchResults)
 
         <div
-            x-ref="resultsList"
             class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
             role="listbox"
             aria-label="{{ __('Game systems') }}"
@@ -177,7 +136,6 @@
 
         @if($favorites->isNotEmpty())
             <div
-                x-ref="resultsList"
                 class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
                 role="listbox"
                 aria-label="{{ __('Your favorite game systems') }}"
