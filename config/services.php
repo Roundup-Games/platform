@@ -41,4 +41,10 @@ return [
         ],
     ],
 
+    'bgg' => [
+        'base_url' => env('BGG_API_BASE_URL', 'https://boardgamegeek.com/xmlapi2'),
+        'token' => env('BGG_API_TOKEN'),
+        'rate_limit_seconds' => env('BGG_RATE_LIMIT_SECONDS', 2),
+    ],
+
 ];
