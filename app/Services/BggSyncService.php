@@ -133,10 +133,16 @@ class BggSyncService
      */
     private function upsertGameSystem(array $data): GameSystem
     {
+        // Generate a slug that won't collide with existing entries.
+        // BGG has different entries with identical names (e.g., multiple
+        // "Italy (fan expansion for Ticket to Ride)" with different bgg_ids).
+        $slug = $this->resolveSlug($data['name'], $data['bgg_id']);
+
         $gameSystem = GameSystem::updateOrCreate(
             ['bgg_id' => $data['bgg_id']],
             [
                 'name' => $data['name'],
+                'slug' => $slug,
                 'description' => $data['description'],
                 'bgg_type' => $data['bgg_type'],
                 'year_released' => $data['year_released'],
@@ -181,6 +187,28 @@ class BggSyncService
         }
 
         return $gameSystem;
+    }
+
+    /**
+     * Resolve a unique slug for the game system.
+     *
+     * BGG has duplicate names across different bgg_ids (e.g., multiple
+     * "Italy (fan expansion for Ticket to Ride)" entries). If the base
+     * slug is already taken by a different bgg_id, append the bgg_id.
+     */
+    private function resolveSlug(string $name, int $bggId): string
+    {
+        $baseSlug = \Illuminate\Support\Str::slug($name);
+
+        $existing = GameSystem::where('slug', $baseSlug)->first();
+
+        // No conflict, or already ours from a previous sync
+        if (! $existing || $existing->bgg_id === $bggId) {
+            return $baseSlug;
+        }
+
+        // Collision — append bgg_id to disambiguate
+        return $baseSlug . '-' . $bggId;
     }
 
     /**
