@@ -333,7 +333,7 @@ describe('CreateGame Component', function () {
         ]);
 
         $game = Game::where('name', 'Quick Game')->first();
-        expect($game->expected_duration)->toBe(3.0) // default
+        expect($game->expected_duration)->toBe(2.0) // default
             ->and($game->price)->toBe(0.0); // default
     });
 
@@ -1086,6 +1086,382 @@ describe('Game Full Lifecycle', function () {
             'user_id' => $user->id,
             'role' => 'player',
             'status' => 'approved',
+        ]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GAME SESSION CREATION — NEW FIELDS
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Language Selection', function () {
+    it('defaults language to en', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->assertSet('language', 'en');
+    });
+
+    it('stores language from ContentLanguage enum', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'German Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('language', 'de')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'German Game',
+            'language' => 'de',
+        ]);
+    });
+
+    it('accepts de+en bilingual language', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Bilingual Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('language', 'de+en')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Bilingual Game',
+            'language' => 'de+en',
+        ]);
+    });
+
+    it('rejects invalid language', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Test')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('language', 'fr')
+            ->call('save')
+            ->assertHasErrors(['language']);
+    });
+});
+
+describe('CreateGame — Duration', function () {
+    it('defaults to 2 hours when empty', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'No Duration')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'No Duration',
+            'expected_duration' => 2,
+        ]);
+    });
+
+    it('rounds duration to nearest 0.5 on update', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('expected_duration', '2.3')
+            ->assertSet('expected_duration', '2.5');
+    });
+
+    it('rounds 1.7 to 1.5', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('expected_duration', '1.7')
+            ->assertSet('expected_duration', '1.5');
+    });
+
+    it('rounds 2.8 to 3', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('expected_duration', '2.8')
+            ->assertSet('expected_duration', '3');
+    });
+
+    it('clamps duration below 0.5 to 0.5', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('expected_duration', '0.2')
+            ->assertSet('expected_duration', '0.5');
+    });
+
+    it('auto-fills from game system average_play_time', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['average_play_time' => 120]); // 2 hours
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Auto Duration')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('game_system_id', $system->id)
+            ->assertSet('expected_duration', '2')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Auto Duration',
+            'expected_duration' => 2,
+        ]);
+    });
+
+    it('auto-fills 90 min play time as 1.5 hours', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['average_play_time' => 90]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('expected_duration', '1.5');
+    });
+
+    it('does not override manually set duration', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['average_play_time' => 120]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('expected_duration', '4')
+            ->set('game_system_id', $system->id)
+            ->assertSet('expected_duration', '4'); // stays 4, not overridden
+    });
+});
+
+describe('CreateGame — Player Counts', function () {
+    it('stores min and max players', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Player Count Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('min_players', 3)
+            ->set('max_players', 6)
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Player Count Game',
+            'min_players' => 3,
+            'max_players' => 6,
+        ]);
+    });
+
+    it('allows nullable player counts', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'No Limits Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->call('save');
+
+        $game = Game::where('name', 'No Limits Game')->first();
+        expect($game->min_players)->toBeNull()
+            ->and($game->max_players)->toBeNull();
+    });
+
+    it('rejects min_players exceeding max_players', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Bad Range')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('min_players', 5)
+            ->set('max_players', 3)
+            ->call('save')
+            ->assertHasErrors(['min_players']);
+    });
+
+    it('auto-fills from game system player counts', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create([
+            'min_players' => 2,
+            'max_players' => 5,
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('min_players', 2)
+            ->assertSet('max_players', 5);
+    });
+
+    it('does not override manually set player counts', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create([
+            'min_players' => 2,
+            'max_players' => 5,
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('min_players', 4)
+            ->set('game_system_id', $system->id)
+            ->assertSet('min_players', 4); // stays 4
+    });
+
+    it('validates min_players is at least 1', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Test')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('min_players', 0)
+            ->call('save')
+            ->assertHasErrors(['min_players']);
+    });
+});
+
+describe('CreateGame — Experience Level', function () {
+    it('stores experience level', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Pro Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('experience_level', 'advanced')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Pro Game',
+            'experience_level' => 'advanced',
+        ]);
+    });
+
+    it('rejects invalid experience level', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Test')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('experience_level', 'god-tier')
+            ->call('save')
+            ->assertHasErrors(['experience_level']);
+    });
+});
+
+describe('CreateGame — Complexity', function () {
+    it('stores complexity as decimal', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Complex Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('complexity', '3.5')
+            ->call('save');
+
+        $game = Game::where('name', 'Complex Game')->first();
+        expect((float) $game->complexity)->toBe(3.5);
+    });
+
+    it('auto-fills from BGG weight', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 3.75]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('complexity', '3.75');
+    });
+
+    it('rejects complexity above 5', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Test')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('complexity', '6')
+            ->call('save')
+            ->assertHasErrors(['complexity']);
+    });
+});
+
+describe('CreateGame — Vibe Flags', function () {
+    it('stores selected vibe flags', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Vibey Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('vibe_flags', ['atmospheric', 'roleplay-heavy', 'horror'])
+            ->call('save');
+
+        $game = Game::where('name', 'Vibey Game')->first();
+        expect($game->vibe_flags)->toBe(['atmospheric', 'roleplay-heavy', 'horror']);
+    });
+
+    it('stores null when no flags selected', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Plain Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->call('save');
+
+        $game = Game::where('name', 'Plain Game')->first();
+        expect($game->vibe_flags)->toBeNull();
+    });
+
+    it('rejects invalid vibe flag', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Test')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('vibe_flags', ['not-a-real-flag'])
+            ->call('save')
+            ->assertHasErrors(['vibe_flags.0']);
+    });
+});
+
+describe('CreateGame — Full Auto-fill from Game System', function () {
+    it('auto-fills duration, players, and complexity in one go', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create([
+            'average_play_time' => 180,
+            'min_players' => 3,
+            'max_players' => 6,
+            'bgg_average_weight' => 2.5,
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Full Auto Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('game_system_id', $system->id)
+            ->assertSet('expected_duration', '3')
+            ->assertSet('min_players', 3)
+            ->assertSet('max_players', 6)
+            ->assertSet('complexity', '2.5')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Full Auto Game',
+            'expected_duration' => 3,
+            'min_players' => 3,
+            'max_players' => 6,
         ]);
     });
 });

@@ -34,6 +34,11 @@ class GameFactory extends Factory
             ],
             'status' => 'scheduled',
             'visibility' => 'public',
+            'min_players' => fake()->numberBetween(2, 4),
+            'max_players' => fake()->numberBetween(4, 8),
+            'experience_level' => null,
+            'complexity' => null,
+            'vibe_flags' => null,
         ];
     }
 }

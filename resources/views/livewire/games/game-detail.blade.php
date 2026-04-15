@@ -65,6 +65,32 @@
                     </span>
                 @endif
             </div>
+
+            {{-- Language + Player count badges --}}
+            <div class="mt-4 flex flex-wrap gap-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-on-primary/15 text-on-primary">
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true">translate</span>
+                    {{ App\Enums\ContentLanguage::from($game->language)->label() }}
+                </span>
+                @if($game->min_players || $game->max_players)
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-on-primary/15 text-on-primary">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">groups</span>
+                        @if($game->min_players && $game->max_players)
+                            {{ $game->min_players }}–{{ $game->max_players }} {{ __('players') }}
+                        @elseif($game->min_players)
+                            {{ __('Min :count players', ['count' => $game->min_players]) }}
+                        @else
+                            {{ __('Up to :count players', ['count' => $game->max_players]) }}
+                        @endif
+                    </span>
+                @endif
+                @if($game->experience_level)
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-on-primary/15 text-on-primary">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">school</span>
+                        {{ App\Enums\ExperienceLevel::from($game->experience_level)->label() }}
+                    </span>
+                @endif
+            </div>
         </div>
     </section>
 
@@ -104,6 +130,46 @@
                 <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No participants yet.') }}</p>
             @endif
         </section>
+
+        {{-- Discovery Meta --}}
+        @if($game->complexity || ($game->vibe_flags && count($game->vibe_flags)))
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">info</span>
+                    {{ __('Session Info') }}
+                </h2>
+
+                @if($game->complexity)
+                    <div class="mb-4">
+                        <p class="text-sm font-medium text-on-surface mb-1">{{ __('Complexity') }}</p>
+                        <div class="flex items-center gap-1">
+                            @for($i = 1; $i <= 5; $i++)
+                                <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
+                                    {{ $i <= round($game->complexity) ? 'star' : 'star_border' }}
+                                </span>
+                            @endfor
+                            <span class="ml-2 text-sm text-on-surface-variant">{{ number_format($game->complexity, 1) }}/5</span>
+                        </div>
+                    </div>
+                @endif
+
+                @if($game->vibe_flags && count($game->vibe_flags))
+                    <div>
+                        <p class="text-sm font-medium text-on-surface mb-2">{{ __('Vibes') }}</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($game->vibe_flags as $flag)
+                                @php($flagEnum = App\Enums\VibeFlag::tryFrom($flag))
+                                @if($flagEnum)
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                        {{ $flagEnum->label() }}
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </section>
+        @endif
 
         {{-- Applications (visible to owner) --}}
         @if($isOwner && $game->applications->count())

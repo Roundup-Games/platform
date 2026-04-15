@@ -18,6 +18,7 @@ class Game extends Model
         'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
         'description', 'expected_duration', 'price', 'language', 'location',
         'status', 'minimum_requirements', 'visibility', 'safety_rules',
+        'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
     ];
 
     protected function casts(): array
@@ -29,6 +30,10 @@ class Game extends Model
             'location' => 'array',
             'minimum_requirements' => 'array',
             'safety_rules' => 'array',
+            'min_players' => 'integer',
+            'max_players' => 'integer',
+            'complexity' => 'decimal:2',
+            'vibe_flags' => 'array',
         ];
     }
 
