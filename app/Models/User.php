@@ -33,6 +33,7 @@ use Spatie\Permission\Traits\HasRoles;
     'password_set_at',
     'is_disabled',
     'disabled_at',
+    'can_create_public_entries',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -56,6 +57,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'trial_ends_at' => 'datetime',
             'is_disabled' => 'boolean',
             'disabled_at' => 'datetime',
+            'can_create_public_entries' => 'boolean',
         ];
     }
 

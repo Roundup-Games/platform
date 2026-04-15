@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -32,7 +33,7 @@ class CreateGame extends Component
 
     public string $location_details = '';
 
-    public string $visibility = 'public';
+    public string $visibility = 'private';
 
     public array $minimum_requirements = [];
 
@@ -73,10 +74,29 @@ class CreateGame extends Component
     }
 
     /**
-     * When the user picks a game system, auto-fill duration, player counts,
-     * complexity, and experience level from the game system data.
+     * Listen for game system picker value changes.
+     * The GameSystemPicker dispatches 'value-updated' when a system is selected.
+     */
+    #[On('value-updated')]
+    public function onGameSystemPicked($value): void
+    {
+        $id = is_numeric($value) ? (int) $value : null;
+        $this->game_system_id = $id;
+        $this->autofillFromGameSystem($id);
+    }
+
+    /**
+     * Also handle direct property sets (e.g. from tests or programmatic updates).
      */
     public function updatedGameSystemId(?int $id): void
+    {
+        $this->autofillFromGameSystem($id);
+    }
+
+    /**
+     * Auto-fill session metadata from the selected game system.
+     */
+    protected function autofillFromGameSystem(?int $id): void
     {
         if ($id === null) {
             return;
@@ -106,6 +126,18 @@ class CreateGame extends Component
         if ($system->bgg_average_weight && $this->complexity === null) {
             $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
         }
+
+        // Experience level hint from complexity weight
+        if ($this->experience_level === null && $system->bgg_average_weight) {
+            $weight = (float) $system->bgg_average_weight;
+            if ($weight <= 2.0) {
+                $this->experience_level = 'beginner';
+            } elseif ($weight <= 3.5) {
+                $this->experience_level = 'intermediate';
+            } else {
+                $this->experience_level = 'advanced';
+            }
+        }
     }
 
     /**
@@ -123,9 +155,6 @@ class CreateGame extends Component
         $this->expected_duration = (string) max($rounded, 0.5);
     }
 
-    /**
-     * Validate min_players <= max_players.
-     */
     public function updatedMinPlayers(): void
     {
         $this->validatePlayerCounts();
@@ -175,9 +204,26 @@ class CreateGame extends Component
         return VibeFlag::grouped();
     }
 
+    /**
+     * Whether the current user can create public entries.
+     */
+    #[Computed]
+    public function canCreatePublic(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can_create_public_entries;
+    }
+
     public function save(): void
     {
         $this->authorize('create', Game::class);
+
+        // Gate public visibility
+        if ($this->visibility === 'public' && ! $this->canCreatePublic) {
+            $this->visibility = 'private';
+        }
+
         $validated = $this->validate();
 
         // Cross-field validation after individual field validation

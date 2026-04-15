@@ -71,6 +71,13 @@ class UserResource extends Resource
                             ]),
                     ]),
 
+                Section::make('Permissions')
+                    ->schema([
+                        Toggle::make('can_create_public_entries')
+                            ->label('Can create public entries')
+                            ->helperText('Allow this user to create public game sessions and campaigns visible to everyone. Without this, entries default to private.'),
+                    ]),
+
                 Section::make('Roles')
                     ->schema([
                         Select::make('roles')
@@ -100,6 +107,11 @@ class UserResource extends Resource
                 IconColumn::make('profile_complete')
                     ->label('Profile')
                     ->boolean(),
+                IconColumn::make('can_create_public_entries')
+                    ->label('Public entries')
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge()

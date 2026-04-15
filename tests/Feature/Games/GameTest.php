@@ -28,10 +28,10 @@ function gameTestCreateGameWithOwner(array $gameAttrs = []): array
     return ['owner' => $owner, 'game' => $game];
 }
 
-function gameTestCreateUserWithPermission(string $permission = 'create game'): User
+function gameTestCreateUserWithPermission(string $permission = 'create game', bool $canCreatePublic = false): User
 {
     seedPermissions();
-    $user = User::factory()->create(['profile_complete' => true]);
+    $user = User::factory()->create(['profile_complete' => true, 'can_create_public_entries' => $canCreatePublic]);
     setPermissionsTeamId(1);
     $user->givePermissionTo($permission);
     $user->unsetRelations();
@@ -1463,5 +1463,126 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
             'min_players' => 3,
             'max_players' => 6,
         ]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// VISIBILITY GATING — can_create_public_entries
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Visibility Gating', function () {
+    it('defaults visibility to private', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->assertSet('visibility', 'private');
+    });
+
+    it('allows public visibility when user has can_create_public_entries', function () {
+        $user = gameTestCreateUserWithPermission(canCreatePublic: true);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Public Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('visibility', 'public')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Public Game',
+            'visibility' => 'public',
+        ]);
+    });
+
+    it('demotes public to private when user lacks can_create_public_entries', function () {
+        $user = gameTestCreateUserWithPermission(canCreatePublic: false);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Attempted Public')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('visibility', 'public')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Attempted Public',
+            'visibility' => 'private',
+        ]);
+    });
+
+    it('allows protected visibility regardless of flag', function () {
+        $user = gameTestCreateUserWithPermission(canCreatePublic: false);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Protected Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('visibility', 'protected')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Protected Game',
+            'visibility' => 'protected',
+        ]);
+    });
+
+    it('exposes canCreatePublic computed property', function () {
+        $userWith = gameTestCreateUserWithPermission(canCreatePublic: true);
+        $userWithout = gameTestCreateUserWithPermission(canCreatePublic: false);
+
+        Livewire\Livewire::actingAs($userWith)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->assertSet('canCreatePublic', true);
+
+        Livewire\Livewire::actingAs($userWithout)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->assertSet('canCreatePublic', false);
+    });
+});
+
+describe('CreateGame — Autofill Experience Level from BGG Weight', function () {
+    it('sets beginner for weight <= 2.0', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 1.5]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'beginner');
+    });
+
+    it('sets intermediate for weight between 2.0 and 3.5', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 2.8]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'intermediate');
+    });
+
+    it('sets advanced for weight > 3.5', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 4.2]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'advanced');
+    });
+
+    it('does not override manually set experience level', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 4.0]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('experience_level', 'beginner')
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'beginner');
     });
 });

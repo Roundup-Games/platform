@@ -34,10 +34,10 @@ function campaignCrudCreateCampaignWithOwner(array $campaignAttrs = []): array
     return ['owner' => $owner, 'campaign' => $campaign];
 }
 
-function gameCrudCreateUserWithPermission(string $permission = 'create game'): User
+function gameCrudCreateUserWithPermission(string $permission = 'create game', bool $canCreatePublic = false): User
 {
     seedPermissions();
-    $user = User::factory()->create(['profile_complete' => true]);
+    $user = User::factory()->create(['profile_complete' => true, 'can_create_public_entries' => $canCreatePublic]);
     setPermissionsTeamId(1);
     $user->givePermissionTo($permission);
     $user->unsetRelations();
@@ -227,7 +227,7 @@ describe('CreateGame', function () {
     });
 
     it('creates a game with valid data', function () {
-        $user = gameCrudCreateUserWithPermission();
+        $user = gameCrudCreateUserWithPermission('create game', canCreatePublic: true);
         $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)

@@ -717,5 +717,6 @@
     "players": "players",
     "Session Info": "Session Info",
     "Vibes": "Vibes",
-    "Complexity": "Complexity"
+    "Complexity": "Complexity",
+    "Public visibility requires admin approval.": "Public visibility requires admin approval."
 }

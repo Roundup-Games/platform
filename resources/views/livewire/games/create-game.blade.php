@@ -28,7 +28,7 @@
                         :fieldId="'game-system'"
                         :label="__('Game System')"
                         :error="$errors->first('game_system_id')"
-                        wire:model="game_system_id"
+                        wire:model.live="game_system_id"
                     />
                 </div>
 
@@ -80,10 +80,15 @@
                         <label for="game-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('Visibility *') }}</label>
                         <select id="game-visibility" wire:model="visibility"
                                 class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                            <option value="public">{{ __('Public — anyone can find and join') }}</option>
+                            @if($this->canCreatePublic)
+                                <option value="public">{{ __('Public — anyone can find and join') }}</option>
+                            @endif
                             <option value="protected">{{ __('Protected — only with link') }}</option>
                             <option value="private">{{ __('Private — invite only') }}</option>
                         </select>
+                        @if(!$this->canCreatePublic)
+                            <p class="mt-1 text-xs text-on-surface-variant">{{ __('Public visibility requires admin approval.') }}</p>
+                        @endif
                         @error('visibility') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
