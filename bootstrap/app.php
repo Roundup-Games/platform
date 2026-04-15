@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->append(\App\Http\Middleware\EnsureUserNotDisabled::class);
+        $middleware->append(\App\Http\Middleware\EnsureLocaleDefaults::class);
 
         $middleware->alias([
             'profile.complete' => \App\Http\Middleware\EnsureProfileComplete::class,
