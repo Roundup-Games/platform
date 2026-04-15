@@ -156,10 +156,11 @@
                             <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-1.5">{{ $group['label'] }}</p>
                             <div class="flex flex-wrap gap-2">
                                 @foreach($group['options'] as $flagValue => $flagLabel)
-                                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer transition-colors text-sm
-                                        {{ in_array($flagValue, $vibe_flags) ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-surface-container-high border-outline/20 text-on-surface-variant hover:border-outline/40' }}">
-                                        <input type="checkbox" value="{{ $flagValue }}" wire:model="vibe_flags"
+                                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer transition-all text-sm
+                                        {{ in_array($flagValue, $vibe_flags) ? 'bg-primary border-primary text-on-primary font-medium shadow-sm' : 'bg-surface-container-high border-outline/20 text-on-surface-variant hover:border-outline/40' }}">
+                                        <input type="checkbox" value="{{ $flagValue }}" wire:model.live="vibe_flags"
                                                class="sr-only" />
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ in_array($flagValue, $vibe_flags) ? 'check' : '' }}</span>
                                         {{ $flagLabel }}
                                     </label>
                                 @endforeach

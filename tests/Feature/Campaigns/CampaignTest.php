@@ -45,6 +45,16 @@ function campaignTestCreateUserWithPermission(string $permission = 'create campa
     return $user;
 }
 
+function campaignTestCreateOwnerWithGamePermission(array $overrides = []): User
+{
+    seedPermissions();
+    $user = User::factory()->create(['profile_complete' => true, ...$overrides]);
+    setPermissionsTeamId(1);
+    $user->givePermissionTo(['create campaign', 'create game']);
+    $user->unsetRelations();
+    return $user;
+}
+
 // ═══════════════════════════════════════════════════════════
 // CAMPAIGN POLICY — VISIBILITY & OWNERSHIP
 // ═══════════════════════════════════════════════════════════
@@ -172,14 +182,6 @@ describe('Campaign Model', function () {
             ->and(strlen($campaign->id))->toBe(36);
     });
 
-    it('casts location as array', function () {
-        $campaign = campaignTestCreateCampaign([
-            'location' => ['details' => 'Local game store'],
-        ]);
-
-        expect($campaign->location)->toBe(['details' => 'Local game store']);
-    });
-
     it('casts session_duration as float', function () {
         $campaign = campaignTestCreateCampaign(['session_duration' => '2.5']);
 
@@ -249,6 +251,85 @@ describe('Campaign Model', function () {
         expect($campaign->game_system_id)->toBeNull()
             ->and($campaign->gameSystem)->toBeNull();
     });
+
+    // ── Discovery metadata fields ────────────────────
+
+    it('casts min_players as integer', function () {
+        $campaign = campaignTestCreateCampaign(['min_players' => '3']);
+
+        expect($campaign->min_players)->toBeInt()
+            ->and($campaign->min_players)->toBe(3);
+    });
+
+    it('casts max_players as integer', function () {
+        $campaign = campaignTestCreateCampaign(['max_players' => '6']);
+
+        expect($campaign->max_players)->toBeInt()
+            ->and($campaign->max_players)->toBe(6);
+    });
+
+    it('casts complexity as decimal:2', function () {
+        $campaign = campaignTestCreateCampaign(['complexity' => '3.50']);
+
+        expect($campaign->complexity)->toBe('3.50');
+    });
+
+    it('casts vibe_flags as array', function () {
+        $campaign = campaignTestCreateCampaign([
+            'vibe_flags' => ['casual', 'beginner-friendly'],
+        ]);
+
+        expect($campaign->vibe_flags)->toBe(['casual', 'beginner-friendly']);
+    });
+
+    it('allows nullable min_players', function () {
+        $campaign = campaignTestCreateCampaign(['min_players' => null]);
+
+        expect($campaign->min_players)->toBeNull();
+    });
+
+    it('allows nullable max_players', function () {
+        $campaign = campaignTestCreateCampaign(['max_players' => null]);
+
+        expect($campaign->max_players)->toBeNull();
+    });
+
+    it('allows nullable experience_level', function () {
+        $campaign = campaignTestCreateCampaign(['experience_level' => null]);
+
+        expect($campaign->experience_level)->toBeNull();
+    });
+
+    it('allows nullable complexity', function () {
+        $campaign = campaignTestCreateCampaign(['complexity' => null]);
+
+        expect($campaign->complexity)->toBeNull();
+    });
+
+    it('allows nullable vibe_flags', function () {
+        $campaign = campaignTestCreateCampaign(['vibe_flags' => null]);
+
+        expect($campaign->vibe_flags)->toBeNull();
+    });
+
+    it('mass-assigns all discovery metadata fields', function () {
+        $campaign = campaignTestCreateCampaign([
+            'min_players' => 2,
+            'max_players' => 5,
+            'experience_level' => 'intermediate',
+            'complexity' => 3.50,
+            'vibe_flags' => ['story-driven', 'roleplay-heavy'],
+        ]);
+
+        assertDatabaseHas('campaigns', [
+            'id' => $campaign->id,
+            'min_players' => 2,
+            'max_players' => 5,
+            'experience_level' => 'intermediate',
+        ]);
+        expect($campaign->complexity)->toBe('3.50')
+            ->and($campaign->vibe_flags)->toBe(['story-driven', 'roleplay-heavy']);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -295,8 +376,7 @@ describe('CreateCampaign Component', function () {
             ->set('session_duration', '4')
             ->set('price_per_session', '10.00')
             ->set('language', 'en')
-            ->set('location_details', 'Local game store')
-            ->set('visibility', 'public')
+            ->set('visibility', 'protected')
             ->call('save')
             ->assertRedirect();
 
@@ -306,7 +386,7 @@ describe('CreateCampaign Component', function () {
             'game_system_id' => $system->id,
             'recurrence' => 'weekly',
             'time_of_day' => '20:00',
-            'visibility' => 'public',
+            'visibility' => 'protected',
             'status' => 'active',
         ]);
     });
@@ -410,19 +490,20 @@ describe('CreateCampaign Component', function () {
             ->assertHasErrors(['game_system_id' => 'exists']);
     });
 
-    it('stores location as JSON', function () {
+    it('gates public visibility for non-approved users', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Campaigns\CreateCampaign::class)
-            ->set('name', 'Location Campaign')
+            ->set('name', 'Gated Campaign')
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
-            ->set('location_details', 'Local game store')
+            ->set('visibility', 'public')
             ->call('save');
 
-        $campaign = Campaign::where('name', 'Location Campaign')->first();
-        expect($campaign->location)->toBe(['details' => 'Local game store']);
+        // Should be downgraded to protected since user lacks can_create_public_entries
+        $campaign = Campaign::where('name', 'Gated Campaign')->first();
+        expect($campaign->visibility)->toBe('protected');
     });
 
     it('flashes success message', function () {
@@ -991,5 +1072,187 @@ describe('Campaign Full Lifecycle', function () {
         Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee('Episode 1: The Beginning')
             ->assertSee('Episode 2: The Journey');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// ADD SESSION TO CAMPAIGN — ROUTE & COMPONENT
+// ═══════════════════════════════════════════════════════════
+
+describe('AddSessionToCampaign — Authorization', function () {
+    it('requires authentication', function () {
+        $campaign = campaignTestCreateCampaign();
+
+        get(route('campaigns.add-session', $campaign->id))
+            ->assertRedirect(route('login'));
+    });
+
+    it('requires owner access — non-owner is forbidden', function () {
+        ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
+        $stranger = campaignTestCreateOwner();
+
+        Livewire\Livewire::actingAs($stranger)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->assertForbidden();
+    });
+
+    it('requires create game permission on save', function () {
+        // Create an owner who has 'create campaign' but NOT 'create game'
+        seedPermissions();
+        $owner = User::factory()->create(['profile_complete' => true]);
+        setPermissionsTeamId(1);
+        $owner->givePermissionTo('create campaign');
+        $owner->unsetRelations();
+
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Test Session')
+            ->set('date_time', '2026-05-01 19:00')
+            ->call('save')
+            ->assertForbidden();
+    });
+});
+
+describe('AddSessionToCampaign — Rendering', function () {
+    it('renders add session form for campaign owner', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'name' => 'Curse of Strahd',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->assertOk()
+            ->assertSee('Add Session')
+            ->assertSee('Curse of Strahd');
+    });
+
+    it('displays campaign metadata as read-only', function () {
+        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $system->id,
+            'visibility' => 'public',
+            'language' => 'en',
+            'min_players' => 3,
+            'max_players' => 6,
+            'experience_level' => 'intermediate',
+            'complexity' => 3.50,
+            'vibe_flags' => ['serious', 'rules_heavy'],
+            'session_duration' => 3,
+            'price_per_session' => 10,
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->assertSee('D&D 5e')
+            ->assertSee('Public')
+            ->assertSee('EN')
+            ->assertSee('3–6')
+            ->assertSee('Intermediate')
+            ->assertSee('3.50 / 5')
+            ->assertSee('Serious')
+            ->assertSee('Rules heavy')
+            ->assertSee('3 hours')
+            ->assertSee('10');
+    });
+});
+
+describe('AddSessionToCampaign — Creation', function () {
+    it('creates a game linked to the campaign', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Session 3 — The Lost Temple')
+            ->set('date_time', '2026-05-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Session 3 — The Lost Temple',
+            'campaign_id' => $campaign->id,
+            'owner_id' => $owner->id,
+            'status' => 'scheduled',
+        ]);
+    });
+
+    it('inherits campaign metadata on created game', function () {
+        $system = GameSystem::factory()->create();
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $system->id,
+            'visibility' => 'public',
+            'language' => 'de',
+            'min_players' => 3,
+            'max_players' => 6,
+            'experience_level' => 'intermediate',
+            'complexity' => 3.50,
+            'vibe_flags' => ['serious', 'rules_heavy'],
+            'session_duration' => 4,
+            'price_per_session' => 15,
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Inherited Session')
+            ->set('date_time', '2026-06-15 18:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+        expect($game)->not->toBeNull()
+            ->and($game->game_system_id)->toBe($system->id)
+            ->and($game->visibility)->toBe('public')
+            ->and($game->language)->toBe('de')
+            ->and($game->min_players)->toBe(3)
+            ->and($game->max_players)->toBe(6)
+            ->and($game->experience_level)->toBe('intermediate')
+            ->and($game->expected_duration)->toBe(4.0)
+            ->and($game->price)->toBe(15.0);
+
+        // Check JSON-cast fields separately
+        assertDatabaseHas('games', [
+            'id' => $game->id,
+            'complexity' => '3.50',
+        ]);
+    });
+
+    it('validates required fields', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', '')
+            ->set('date_time', '')
+            ->call('save')
+            ->assertHasErrors(['name', 'date_time']);
+    });
+});
+
+describe('AddSessionToCampaign — Integration', function () {
+    it('created session appears on campaign detail page', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'public',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Session 42 — Grand Finale')
+            ->set('date_time', '2026-07-20 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->assertSee('Session 42 — Grand Finale');
     });
 });

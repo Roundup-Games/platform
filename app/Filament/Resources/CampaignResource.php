@@ -76,6 +76,31 @@ class CampaignResource extends Resource
                             ->maxLength(5000),
                     ]),
 
+                Section::make('Discovery & Metadata')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('min_players')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(99),
+                                TextInput::make('max_players')
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(99),
+                                Select::make('experience_level')
+                                    ->options(collect(\App\Enums\ExperienceLevel::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                                TextInput::make('complexity')
+                                    ->numeric()
+                                    ->step(0.25)
+                                    ->minValue(1)
+                                    ->maxValue(5),
+                            ]),
+                        Select::make('vibe_flags')
+                            ->multiple()
+                            ->options(collect(\App\Enums\VibeFlag::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                    ]),
+
                 Section::make('Visibility & Status')
                     ->schema([
                         Grid::make(2)
@@ -86,7 +111,7 @@ class CampaignResource extends Resource
                                         'protected' => 'Protected',
                                         'private' => 'Private',
                                     ])
-                                    ->default('public')
+                                    ->default('protected')
                                     ->required(),
                                 Select::make('status')
                                     ->options([
@@ -100,13 +125,7 @@ class CampaignResource extends Resource
                                     ->default('draft')
                                     ->required(),
                                 Select::make('language')
-                                    ->options([
-                                        'en' => 'English',
-                                        'sv' => 'Swedish',
-                                        'no' => 'Norwegian',
-                                        'da' => 'Danish',
-                                        'fi' => 'Finnish',
-                                    ])
+                                    ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),
                             ]),
                     ]),

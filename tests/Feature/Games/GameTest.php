@@ -1586,3 +1586,28 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
             ->assertSet('experience_level', 'beginner');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// GAME DETAIL — CAMPAIGN CONTEXT
+// ═══════════════════════════════════════════════════════════
+
+describe('GameDetail Component — Campaign Context', function () {
+    it('shows campaign link when game belongs to campaign', function () {
+        $campaign = \App\Models\Campaign::factory()->create(['name' => 'The Grand Adventure']);
+        $game = gameTestCreateGame([
+            'campaign_id' => $campaign->id,
+            'visibility' => 'public',
+        ]);
+
+        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->assertSee('Part of Campaign: The Grand Adventure')
+            ->assertSee(route('campaigns.detail', $campaign->id));
+    });
+
+    it('hides campaign link when game has no campaign', function () {
+        $game = gameTestCreateGame(['visibility' => 'public']);
+
+        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->assertDontSee('Part of Campaign');
+    });
+});

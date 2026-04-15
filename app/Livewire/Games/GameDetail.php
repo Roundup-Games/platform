@@ -23,6 +23,7 @@ class GameDetail extends Component
     {
         $this->game->load([
             'owner',
+            'campaign',
             'gameSystem',
             'participants.user',
             'applications.user',

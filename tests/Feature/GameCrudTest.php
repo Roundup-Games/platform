@@ -453,8 +453,7 @@ describe('CreateCampaign', function () {
             ->set('time_of_day', '19:00')
             ->set('session_duration', '3')
             ->set('price_per_session', '10.00')
-            ->set('visibility', 'public')
-            ->set('location_details', 'https://roll20.net/join/456')
+            ->set('visibility', 'protected')
             ->call('save')
             ->assertRedirect();
 
@@ -463,7 +462,7 @@ describe('CreateCampaign', function () {
             'owner_id' => $user->id,
             'game_system_id' => $system->id,
             'recurrence' => 'weekly',
-            'visibility' => 'public',
+            'visibility' => 'protected',
             'status' => 'active',
         ]);
     });
@@ -542,6 +541,85 @@ describe('CreateCampaign', function () {
             'name' => 'Active Campaign',
             'status' => 'active',
         ]);
+    });
+
+    it('creates a campaign with metadata fields', function () {
+        $user = campaignCrudCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Meta Campaign')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('min_players', 2)
+            ->set('max_players', 6)
+            ->set('experience_level', 'intermediate')
+            ->set('complexity', '3.5')
+            ->set('vibe_flags', ['atmospheric', 'cooperative'])
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('campaigns', [
+            'name' => 'Meta Campaign',
+            'owner_id' => $user->id,
+            'min_players' => 2,
+            'max_players' => 6,
+            'experience_level' => 'intermediate',
+        ]);
+    });
+
+    it('validates min_players cannot exceed max_players', function () {
+        $user = campaignCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Test')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('min_players', 10)
+            ->set('max_players', 2)
+            ->call('save')
+            ->assertHasErrors(['min_players']);
+    });
+
+    it('validates experience_level must be valid option', function () {
+        $user = campaignCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Test')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('experience_level', 'invalid_level')
+            ->call('save')
+            ->assertHasErrors(['experience_level']);
+    });
+
+    it('validates complexity range', function () {
+        $user = campaignCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Test')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('complexity', '6')
+            ->call('save')
+            ->assertHasErrors(['complexity']);
+    });
+
+    it('validates vibe_flags must be valid options', function () {
+        $user = campaignCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Test')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('vibe_flags', ['not_a_real_flag'])
+            ->call('save')
+            ->assertHasErrors(['vibe_flags.0']);
     });
 });
 

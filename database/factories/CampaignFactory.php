@@ -30,11 +30,12 @@ class CampaignFactory extends Factory
             'session_duration' => fake()->randomFloat(1, 2, 5),
             'price_per_session' => fake()->randomFloat(2, 0, 20),
             'language' => 'en',
-            'location' => [
-                'type' => 'online',
-                'details' => fake()->url(),
-            ],
             'status' => 'active',
+            'min_players' => fake()->numberBetween(2, 4),
+            'max_players' => fake()->numberBetween(4, 8),
+            'experience_level' => null,
+            'complexity' => null,
+            'vibe_flags' => null,
         ];
     }
 }

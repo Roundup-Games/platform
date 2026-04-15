@@ -74,10 +74,19 @@
 
         {{-- Upcoming Sessions --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-xl" aria-hidden="true">event_note</span>
-                {{ __('Sessions') }}
-            </h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">event_note</span>
+                    {{ __('Sessions') }}
+                </h2>
+                @if($isOwner)
+                    <a href="{{ route('campaigns.add-session', $campaign->id) }}" wire:navigate
+                       class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                        {{ __('Add Session') }}
+                    </a>
+                @endif
+            </div>
 
             @if($campaign->sessions->count())
                 <div class="divide-y divide-outline-variant/30">

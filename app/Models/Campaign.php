@@ -17,7 +17,8 @@ class Campaign extends Model
     protected $fillable = [
         'owner_id', 'game_system_id', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
-        'language', 'location', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
+        'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
+        'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
     ];
 
     protected function casts(): array
@@ -26,9 +27,12 @@ class Campaign extends Model
             'images' => 'array',
             'session_duration' => 'float',
             'price_per_session' => 'float',
-            'location' => 'array',
             'minimum_requirements' => 'array',
             'safety_rules' => 'array',
+            'min_players' => 'integer',
+            'max_players' => 'integer',
+            'complexity' => 'decimal:2',
+            'vibe_flags' => 'array',
         ];
     }
 

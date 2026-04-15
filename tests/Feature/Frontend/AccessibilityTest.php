@@ -252,7 +252,7 @@ describe('Form Label Associations', function () {
             'campaign-name', 'campaign-description',
             'campaign-recurrence', 'campaign-time', 'campaign-duration',
             'campaign-price', 'campaign-visibility',
-            'campaign-location-details', 'campaign-language',
+            'campaign-language',
         ];
 
         foreach ($expectedPairs as $id) {
