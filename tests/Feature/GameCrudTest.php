@@ -292,7 +292,7 @@ describe('CreateGame', function () {
             ->test(App\Livewire\Games\CreateGame::class)
             ->set('name', 'Test Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
-            ->set('game_system_id', 'nonexistent-id')
+            ->set('game_system_id', 999999)
             ->call('save')
             ->assertHasErrors(['game_system_id']);
     });

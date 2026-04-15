@@ -24,15 +24,12 @@
                 </div>
 
                 <div>
-                    <label for="campaign-system" class="block text-sm font-medium text-on-surface mb-1">{{ __('Game System') }}</label>
-                    <select id="campaign-system" wire:model="game_system_id"
-                            class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                        <option value="">{{ __('— Select a game system —') }}</option>
-                        @foreach($gameSystems as $system)
-                            <option value="{{ $system->id }}">{{ $system->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('game_system_id') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    <livewire:components.game-system-picker
+                        :fieldId="'campaign-system'"
+                        :label="__('Game System')"
+                        :error="$errors->first('game_system_id')"
+                        wire:model="game_system_id"
+                    />
                 </div>
 
                 <div>

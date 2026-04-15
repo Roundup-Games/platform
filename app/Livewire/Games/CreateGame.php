@@ -3,7 +3,6 @@
 namespace App\Livewire\Games;
 
 use App\Models\Game;
-use App\Models\GameSystem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -17,7 +16,7 @@ class CreateGame extends Component
     public string $name = '';
 
     #[Validate('nullable|exists:game_systems,id')]
-    public ?string $game_system_id = null;
+    public ?int $game_system_id = null;
 
     #[Validate('required|date')]
     public string $date_time = '';
@@ -83,8 +82,6 @@ class CreateGame extends Component
 
     public function render()
     {
-        return view('livewire.games.create-game', [
-            'gameSystems' => GameSystem::orderBy('name')->get(),
-        ]);
+        return view('livewire.games.create-game');
     }
 }

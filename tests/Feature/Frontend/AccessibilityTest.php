@@ -225,9 +225,10 @@ describe('Form Label Associations', function () {
 
     it('create-game template has proper label associations', function () {
         $template = file_get_contents(resource_path('views/livewire/games/create-game.blade.php'));
+        $pickerTemplate = file_get_contents(resource_path('views/livewire/components/game-system-picker.blade.php'));
 
         $expectedPairs = [
-            'game-name', 'game-system', 'game-date-time', 'game-description',
+            'game-name', 'game-date-time', 'game-description',
             'game-duration', 'game-price', 'game-language', 'game-visibility',
             'game-location-details',
         ];
@@ -236,13 +237,19 @@ describe('Form Label Associations', function () {
             expect($template)->toContain('for="' . $id . '"');
             expect($template)->toContain('id="' . $id . '"');
         }
+
+        // Game system picker renders its own label/input with fieldId suffix
+        expect($pickerTemplate)->toContain('for="{{ $fieldId }}-search"');
+        expect($pickerTemplate)->toContain('id="{{ $fieldId }}-search"');
+        expect($template)->toContain(":fieldId=\"'game-system'\"");
     });
 
     it('create-campaign template has proper label associations', function () {
         $template = file_get_contents(resource_path('views/livewire/campaigns/create-campaign.blade.php'));
+        $pickerTemplate = file_get_contents(resource_path('views/livewire/components/game-system-picker.blade.php'));
 
         $expectedPairs = [
-            'campaign-name', 'campaign-system', 'campaign-description',
+            'campaign-name', 'campaign-description',
             'campaign-recurrence', 'campaign-time', 'campaign-duration',
             'campaign-price', 'campaign-visibility',
             'campaign-location-details', 'campaign-language',
@@ -252,6 +259,11 @@ describe('Form Label Associations', function () {
             expect($template)->toContain('for="' . $id . '"');
             expect($template)->toContain('id="' . $id . '"');
         }
+
+        // Game system picker renders its own label/input with fieldId suffix
+        expect($pickerTemplate)->toContain('for="{{ $fieldId }}-search"');
+        expect($pickerTemplate)->toContain('id="{{ $fieldId }}-search"');
+        expect($template)->toContain(":fieldId=\"'campaign-system'\"");
     });
 
     it('profile show template has proper label associations', function () {

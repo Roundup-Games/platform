@@ -685,5 +685,14 @@
     "★ Featured": "★ Empfohlen",
     "⚠️ Nearly full!": "⚠️ Fast ausgebucht!",
     "✓ Paid": "✓ Bezahlt",
-    "📌 Pinned": "📌 Angeheftet"
+    "📌 Pinned": "📌 Angeheftet",
+    "Search game systems...": "Spielesysteme suchen...",
+    "No game systems found.": "Keine Spielesysteme gefunden.",
+    "Your Favorites": "Deine Favoriten",
+    "Base Game": "Basispiel",
+    "expansion": "Erweiterung",
+    "expansions": "Erweiterungen",
+    "Choose specific game or expansion": "Spiel oder Erweiterung auswählen",
+    "Clear selection": "Auswahl löschen",
+    "Clear search": "Suche löschen"
 }
