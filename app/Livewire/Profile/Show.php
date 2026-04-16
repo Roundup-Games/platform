@@ -4,6 +4,8 @@ namespace App\Livewire\Profile;
 
 use App\Enums\ContentLanguage;
 use App\Enums\VibeFlag;
+use App\Models\Location;
+use App\Services\GeocodingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +29,13 @@ class Show extends Component
     public string $phone = '';
 
     public string $preferredLanguage = '';
-    public string $locationAddress = '';
+
+    public ?int $locationId = null;
+
+    // Location search/edit state
+    public string $locationSearch = '';
+    public bool $locationEditing = false;
+    public ?string $locationPreview = null;
 
     #[Locked]
     public bool $userHasPassword;
@@ -67,7 +75,7 @@ class Show extends Component
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language?->value ?? '';
-        $this->locationAddress = $user->location['address'] ?? '';
+        $this->locationId = $user->location_id;
         $this->userHasPassword = $user->hasPasswordSet();
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
             ->wherePivot('preference_type', 'favorite')
@@ -106,6 +114,98 @@ class Show extends Component
         $this->vibePreferences = $preferences;
     }
 
+    /**
+     * Search for a location by city/address string, geocode it, and set the location_id.
+     */
+    public function searchLocation(): void
+    {
+        $this->validate([
+            'locationSearch' => ['required', 'string', 'max:255'],
+        ]);
+
+        $searchQuery = $this->locationSearch;
+
+        $geocodingService = app(GeocodingService::class);
+        $result = $geocodingService->geocode($searchQuery);
+
+        if (! $result) {
+            $this->addError('locationSearch', __('Could not find that location. Please try a different search.'));
+
+            return;
+        }
+
+        $placeId = $result['place_id'] ?? null;
+        $raw = $result['raw'] ?? [];
+        $address = $raw['address'] ?? [];
+        $city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? $this->locationSearch;
+
+        // Check for existing location by place_id
+        if ($placeId) {
+            $existing = Location::where('place_id', $placeId)->first();
+            if ($existing) {
+                $this->locationId = $existing->id;
+                $this->locationPreview = $existing->fullAddress();
+                $this->locationSearch = '';
+                $this->locationEditing = false;
+
+                return;
+            }
+        }
+
+        // Create new location record
+        $location = Location::create([
+            'name' => $city,
+            'address' => $address['road'] ?? null,
+            'city' => $city,
+            'country' => $address['country'] ?? null,
+            'postal_code' => $address['postcode'] ?? null,
+            'latitude' => $result['lat'],
+            'longitude' => $result['lng'],
+            'place_id' => $placeId,
+            'source' => 'profile',
+        ]);
+
+        $this->locationId = $location->id;
+        $this->locationPreview = $location->fullAddress();
+        $this->locationSearch = '';
+        $this->locationEditing = false;
+
+        Log::info('Profile location updated via search', [
+            'user_id' => Auth::id(),
+            'location_id' => $location->id,
+            'search_query' => $searchQuery,
+        ]);
+    }
+
+    /**
+     * Clear the current location and show the search input.
+     */
+    public function editLocation(): void
+    {
+        $this->locationEditing = true;
+        $this->locationSearch = '';
+    }
+
+    /**
+     * Cancel editing and restore previous state.
+     */
+    public function cancelEditLocation(): void
+    {
+        $this->locationEditing = false;
+        $this->locationSearch = '';
+    }
+
+    /**
+     * Remove the user's location entirely.
+     */
+    public function removeLocation(): void
+    {
+        $this->locationId = null;
+        $this->locationPreview = null;
+        $this->locationEditing = false;
+        $this->locationSearch = '';
+    }
+
     public function saveProfile(): void
     {
         $user = Auth::user();
@@ -123,7 +223,6 @@ class Show extends Component
             'vibePreferences' => ['array'],
             'vibePreferences.*' => ['nullable', 'in:favorite,avoid'],
             'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
-            'locationAddress' => ['nullable', 'string', 'max:255'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -135,7 +234,7 @@ class Show extends Component
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] ?: null,
-            'location' => $validated['locationAddress'] ? ['address' => $validated['locationAddress']] : null,
+            'location_id' => $this->locationId,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),
         ]);
@@ -287,9 +386,11 @@ class Show extends Component
     public function render()
     {
         $user = Auth::user();
+        $locationRecord = $this->locationId ? Location::find($this->locationId) : null;
 
         return view('livewire.profile.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
+            'currentLocation' => $locationRecord,
         ]);
     }
 }

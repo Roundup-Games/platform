@@ -38,7 +38,7 @@ class Event extends Model implements HasMedia
 
     protected $fillable = [
         'name', 'slug', 'description', 'short_description', 'type', 'status', 'content_language',
-        'venue_name', 'venue_address', 'city', 'country', 'postal_code',
+        'venue_name', 'venue_address', 'city', 'country', 'postal_code', 'location_id',
         'start_date', 'end_date', 'registration_opens_at', 'registration_closes_at',
         'registration_type', 'max_teams', 'max_participants',
         'min_players_per_team', 'max_players_per_team',
@@ -136,6 +136,11 @@ class Event extends Model implements HasMedia
     public function announcements(): HasMany
     {
         return $this->hasMany(EventAnnouncement::class);
+    }
+
+    public function linkedLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     // ── Scopes ─────────────────────────────────────────

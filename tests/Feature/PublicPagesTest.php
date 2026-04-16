@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\ContactMessage;
-use App\Models\Event;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormSubmitted;
 use function Pest\Laravel\{get, post, actingAs};
@@ -9,143 +8,96 @@ use function Pest\Laravel\{get, post, actingAs};
 // ── Home Page ──────────────────────────────────────────
 
 describe('HomePage', function () {
-    it('renders the landing page', function () {
+    it('renders the landing page with community identity', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Organize. Compete.')
-            ->assertSee('Roundup')
-            ->assertSee('Browse Events');
+            ->assertSee("There's a seat waiting for you.")
+            ->assertSee('Find sessions near me')
+            ->assertSee('Explore games');
     });
 
-    it('shows upcoming events', function () {
-        $event = Event::factory()->create([
-            'name' => 'Spring Championship',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'start_date' => now()->addDays(10),
-        ]);
-
+    it('shows the nearby sessions section with location gate', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Spring Championship');
+            ->assertSee("What's happening near you?")
+            ->assertSee('Show me sessions near me');
     });
 
-    it('shows featured events', function () {
-        Event::factory()->create([
-            'name' => 'Featured Tournament',
-            'is_public' => true,
-            'is_featured' => true,
-            'status' => 'registration_open',
-            'start_date' => now()->addDays(10),
-        ]);
-
+    it('shows living stats section', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Featured Tournament')
-            ->assertSee('Featured Events');
+            ->assertSee('Sessions this week')
+            ->assertSee('People joined sessions this week')
+            ->assertSee('Active campaigns');
     });
 
-    it('hides non-public events from listing', function () {
-        Event::factory()->create([
-            'name' => 'Private Event',
-            'is_public' => false,
-            'status' => 'registration_open',
-        ]);
+    it('passes weekly stats to the view', function () {
+        $response = get(route('home'));
+        $response->assertOk();
 
-        get(route('home'))
-            ->assertOk()
-            ->assertDontSee('Private Event');
+        $sessionsThisWeek = $response->viewData('sessionsThisWeek');
+        $activeCampaigns = $response->viewData('activeCampaigns');
+        $peopleThisWeek = $response->viewData('peopleThisWeek');
+
+        expect($sessionsThisWeek)->toBeInt();
+        expect($activeCampaigns)->toBeInt();
+        expect($peopleThisWeek)->toBeInt();
     });
 
-    it('hides past events from listing', function () {
-        Event::factory()->create([
-            'name' => 'Past Event',
-            'is_public' => true,
-            'status' => 'completed',
-            'start_date' => now()->subDays(10),
-            'end_date' => now()->subDays(5),
-        ]);
-
+    it('shows values strip', function () {
         get(route('home'))
             ->assertOk()
-            ->assertDontSee('Past Event');
+            ->assertSee('Built for real connection')
+            ->assertSee('Welcoming Community')
+            ->assertSee('Imaginative Play')
+            ->assertSee('Safe Spaces')
+            ->assertSee('Discovery');
     });
 
-    it('shows features section', function () {
+    it('shows community CTA section', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Everything You Need')
-            ->assertSee('Find Events')
-            ->assertSee('Easy Registration')
-            ->assertSee('Team Management');
-    });
-
-    it('shows CTA section', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Ready to Compete?');
+            ->assertSee('Your next adventure starts here');
     });
 
     it('shows sign up link for guests', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Get Started');
+            ->assertSee('Create Free Account');
     });
 
-    it('shows create event link for authenticated users', function () {
+    it('shows browse sessions link for authenticated users', function () {
         $user = \App\Models\User::factory()->create();
 
         actingAs($user)
             ->get(route('home'))
             ->assertOk()
-            ->assertSee('Create Event');
+            ->assertSee('Browse Sessions');
     });
 
-    it('limits upcoming events to 6', function () {
-        Event::factory()->count(8)->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-            'start_date' => now()->addDays(10),
-        ]);
-
-        $response = get(route('home'));
-        $response->assertOk();
-
-        // The view receives 'upcomingEvents' limited to 6
-        $upcomingEvents = $response->viewData('upcomingEvents');
-        expect($upcomingEvents)->toHaveCount(6);
+    it('does not show competition or tournament language', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertDontSee('Organize. Compete.')
+            ->assertDontSee('Ready to Compete?')
+            ->assertDontSee('Browse Events')
+            ->assertDontSee('Featured Events')
+            ->assertDontSee('Everything You Need');
     });
 });
 
 // ── About Page ─────────────────────────────────────────
 
 describe('AboutPage', function () {
-    it('renders the about page', function () {
+    it('redirects /about to /how-it-works permanently', function () {
         get(route('about'))
-            ->assertOk()
-            ->assertSee('About Roundup Games')
-            ->assertSee('Our Mission');
+            ->assertRedirect(route('how-it-works'));
     });
 
-    it('shows values section', function () {
-        get(route('about'))
+    it('renders how-it-works page with mission content', function () {
+        get(route('how-it-works'))
             ->assertOk()
-            ->assertSee('What We Stand For')
-            ->assertSee('Community First')
-            ->assertSee('Fair Play')
-            ->assertSee('Simple & Fast', escape: false);
-    });
-
-    it('shows team section', function () {
-        get(route('about'))
-            ->assertOk()
-            ->assertSee('Our Team');
-    });
-
-    it('shows community CTA', function () {
-        get(route('about'))
-            ->assertOk()
-            ->assertSee('Join Our Community');
+            ->assertSee('How Roundup Works');
     });
 });
 
@@ -269,15 +221,17 @@ describe('PublicNavigation', function () {
     it('includes navigation links in header', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Events')
-            ->assertSee('Teams');
+            ->assertSee('Discover')
+            ->assertSee('Games')
+            ->assertSee('Campaigns')
+            ->assertSee('Near Me');
     });
 
     it('includes footer links', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('About')
-            ->assertSee('Contact Us');
+            ->assertSee('How It Works')
+            ->assertSee('Contact');
     });
 
     it('navigates from home to events', function () {
@@ -292,94 +246,13 @@ describe('PublicNavigation', function () {
             ->assertSee(route('about'));
     });
 
-    it('navigates from about to contact', function () {
-        get(route('about'))
+    it('navigates from about (redirect) to contact', function () {
+        $response = get(route('about'));
+        // /about now redirects to /how-it-works, follow the redirect
+        get(route('how-it-works'))
             ->assertOk()
             ->assertSee(route('contact'));
     });
 });
 
-// ── Event Card Component ───────────────────────────────
 
-describe('EventCardComponent', function () {
-    it('renders event name and details', function () {
-        $event = Event::factory()->create([
-            'name' => 'Test Tournament',
-            'city' => 'Denver',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Test Tournament')
-            ->assertSee('Denver');
-    });
-
-    it('shows registration open badge', function () {
-        Event::factory()->create([
-            'name' => 'Open Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Registration Open');
-    });
-
-    it('shows featured badge for featured events', function () {
-        Event::factory()->create([
-            'name' => 'Star Event',
-            'is_public' => true,
-            'is_featured' => true,
-            'status' => 'registration_open',
-            'start_date' => now()->addDays(10),
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Featured');
-    });
-
-    it('shows free entry for free events', function () {
-        Event::factory()->create([
-            'name' => 'Free Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'individual_registration_fee' => 0,
-            'team_registration_fee' => 0,
-            'start_date' => now()->addDays(10),
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Free Entry');
-    });
-
-    it('shows fee for paid events', function () {
-        Event::factory()->create([
-            'name' => 'Paid Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'individual_registration_fee' => 2500,
-            'start_date' => now()->addDays(10),
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('$25.00');
-    });
-
-    it('links to event detail page', function () {
-        $event = Event::factory()->create([
-            'name' => 'Linkable Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('home'))
-            ->assertOk()
-            ->assertSee(route('events.detail', $event->slug));
-    });
-});

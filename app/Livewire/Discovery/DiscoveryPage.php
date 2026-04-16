@@ -9,6 +9,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,7 @@ use Livewire\WithPagination;
 class DiscoveryPage extends Component
 {
     use EscapesLikeWildcards;
+    use HasGuestLocation;
     use WithPagination;
 
     // ── Tab / mode filter ──────────────────────────────

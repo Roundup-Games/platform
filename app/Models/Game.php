@@ -16,7 +16,7 @@ class Game extends Model
 
     protected $fillable = [
         'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
-        'description', 'expected_duration', 'price', 'language', 'location',
+        'description', 'expected_duration', 'price', 'language', 'location', 'location_id',
         'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
     ];
@@ -61,6 +61,11 @@ class Game extends Model
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);
+    }
+
+    public function linkedLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function participants(): HasMany

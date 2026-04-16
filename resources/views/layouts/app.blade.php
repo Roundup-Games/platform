@@ -65,17 +65,25 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
                             {{ __('Discover') }}
                         </a>
-                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('Events') }}
-                        </a>
-                        <a href="{{ route('games.create') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('games.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
+                        <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('games.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
                             {{ __('Games') }}
                         </a>
-                        <a href="{{ route('campaigns.create') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('campaigns.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
+                        <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('campaigns.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
                             {{ __('Campaigns') }}
+                        </a>
+                        <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('near') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
+                            {{ __('Near Me') }}
+                        </a>
+
+                        {{-- Secondary section --}}
+                        <div class="border-t border-outline-variant/15 my-2"></div>
+
+                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
+                            {{ __('Events') }}
                         </a>
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('teams.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
@@ -138,6 +146,7 @@
 
                     {{-- Navigation --}}
                     <nav class="flex-1 px-3 py-6 space-y-1" aria-label="Main navigation">
+                        {{-- Primary navigation items --}}
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('Dashboard') }}
@@ -148,19 +157,29 @@
                             {{ __('Discover') }}
                         </a>
 
-                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('Events') }}
-                        </a>
-
-                        <a href="{{ route('games.create') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
+                        <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
                             {{ __('Games') }}
                         </a>
 
-                        <a href="{{ route('campaigns.create') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('campaigns.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
+                        <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('campaigns.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
                             {{ __('Campaigns') }}
+                        </a>
+
+                        <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('near') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
+                            {{ __('Near Me') }}
+                        </a>
+
+                        {{-- Secondary items --}}
+                        <div class="pt-4 mt-4 border-t border-outline-variant/15">
+                            <span class="px-4 text-xs font-bold text-on-surface-variant/60 uppercase tracking-wide">{{ __('Manage') }}</span>
+                        </div>
+
+                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
+                            {{ __('Events') }}
                         </a>
 
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('teams.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">

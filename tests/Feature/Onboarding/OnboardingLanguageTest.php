@@ -15,6 +15,11 @@ it('sets preferred_language to En when onboarding with en locale', function () {
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep')
         ->set('gender', 'male')
         ->set('pronouns', 'he/him')
         ->call('nextStep')
@@ -32,6 +37,11 @@ it('sets preferred_language to De when onboarding with de locale', function () {
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep')
         ->set('gender', 'female')
         ->set('pronouns', 'she/her')
         ->call('nextStep')

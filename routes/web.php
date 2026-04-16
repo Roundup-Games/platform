@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\GeocodeController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PageController;
@@ -7,6 +8,11 @@ use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
+
+// ── API Endpoints (no locale prefix) ──────────────────
+
+Route::post('api/geocode', [GeocodeController::class, 'geocode'])
+    ->name('api.geocode');
 
 // ── Root Redirect ──────────────────────────────────────
 // Bare "/" detects preferred locale and redirects.
@@ -57,7 +63,10 @@ Route::prefix('{locale}')
 
         Route::get('/', [PageController::class, 'home'])->name('home');
         Route::get('/about', [PageController::class, 'about'])->name('about');
+        Route::get('/how-it-works', [PageController::class, 'howItWorks'])->name('how-it-works');
+        Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+        Route::get('/game-systems', App\Livewire\GameSystems\GameSystemsPage::class)->name('game-systems');
         Route::post('/contact', [PageController::class, 'submitContact'])
             ->middleware('throttle:5,1')
             ->name('contact.submit');
@@ -117,6 +126,7 @@ Route::prefix('{locale}')
         });
 
         Route::get('/discover', App\Livewire\Discovery\DiscoveryPage::class)->name('discover');
+        Route::get('/near', App\Livewire\Nearby\NearbyPage::class)->name('near');
 
         Route::get('/games', App\Livewire\Games\GameListing::class)->name('games.index');
         Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');

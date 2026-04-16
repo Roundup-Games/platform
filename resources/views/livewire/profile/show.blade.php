@@ -226,11 +226,54 @@
                         @error('preferredLanguage') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- Location Section --}}
                     <div>
-                        <label for="profile-location" class="block text-sm font-medium text-on-surface mb-1">{{ __('Location') }}</label>
-                        <input type="text" id="profile-location" wire:model="locationAddress" placeholder="{{ __('City, Country') }}"
-                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
-                        @error('locationAddress') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        <label class="block text-sm font-medium text-on-surface mb-1">{{ __('Location') }}</label>
+
+                        @if($locationEditing)
+                            <div class="space-y-3">
+                                <div class="flex gap-2">
+                                    <input type="text" wire:model="locationSearch" placeholder="{{ __('Search for a city or address...') }}"
+                                           wire:keydown.enter="searchLocation"
+                                           class="flex-1 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                                    <button type="button" wire:click="searchLocation"
+                                            class="px-3 py-2 bg-surface-container-high text-on-surface-variant rounded-md text-sm font-medium hover:bg-surface-container transition-colors">
+                                        {{ __('Search') }}
+                                    </button>
+                                </div>
+                                @error('locationSearch') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                                <button type="button" wire:click="cancelEditLocation"
+                                        class="text-sm text-on-surface-variant hover:text-primary transition-colors">
+                                    {{ __('Cancel') }}
+                                </button>
+                            </div>
+                        @elseif($locationPreview || $currentLocation)
+                            <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-lg text-on-surface-variant" style="font-variation-settings: 'FILL' 1">location_on</span>
+                                    <span class="text-sm text-on-surface">{{ $locationPreview ?? $currentLocation?->fullAddress() }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" wire:click="editLocation"
+                                            class="text-xs text-on-surface-variant hover:text-primary transition-colors">
+                                        {{ __('Edit') }}
+                                    </button>
+                                    <button type="button" wire:click="removeLocation"
+                                            class="text-xs text-error hover:brightness-110 transition-colors">
+                                        {{ __('Remove') }}
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-3">
+                                <button type="button" wire:click="editLocation"
+                                        class="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-md text-sm font-medium hover:bg-surface-container transition-colors">
+                                    <span class="material-symbols-outlined text-base">add_location</span>
+                                    {{ __('Add Location') }}
+                                </button>
+                                <span class="text-xs text-on-surface-variant">{{ __('Help us find games and events near you') }}</span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

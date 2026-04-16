@@ -2,7 +2,7 @@
     <!-- Progress indicator -->
     <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
-            @foreach([__('Identity'), __('Contact'), __('Preferences')] as $i => $label)
+            @foreach([__('Location'), __('Identity'), __('Contact'), __('Preferences')] as $i => $label)
                 <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
                         {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest dark:bg-[#3a3b34] text-on-surface-variant') }}">
@@ -24,8 +24,91 @@
     </div>
 
     <div class="bg-surface-container-lowest dark:bg-[#2a2b24] rounded-2xl shadow-ambient p-6 sm:p-8 border border-outline-variant/10">
-        <!-- Step 1: Identity -->
+        <!-- Step 1: Location -->
         @if($step === 1)
+            <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
+                {{ __('Where are you based?') }}
+            </h2>
+            <p class="text-sm text-on-surface-variant mb-6">
+                {{ __("This helps us find games and events near you.") }}
+            </p>
+
+            {{-- If location was detected from localStorage and not yet confirmed --}}
+            @if($locationSource === 'localStorage' && $city && !$locationConfirmed)
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3 p-4 rounded-xl bg-primary-container/20 border border-primary/20">
+                        <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">location_on</span>
+                        <div>
+                            <p class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">
+                                {{ __('We think you\'re in :city — is that right?', ['city' => $city]) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button wire:click="confirmLocation"
+                                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                            {{ __('Yes, that\'s right') }}
+                        </button>
+                        <button wire:click="editLocation"
+                                class="px-4 py-2.5 border border-outline-variant/30 text-on-surface-variant rounded-xl hover:bg-surface-container-low dark:hover:bg-[#3a3b34] transition-colors text-sm font-medium">
+                            {{ __('No, let me search') }}
+                        </button>
+                    </div>
+                </div>
+
+            {{-- Location confirmed --}}
+            @elseif($locationConfirmed && $city)
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3 p-4 rounded-xl bg-primary-container/20 border border-primary/20">
+                        <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                        <div>
+                            <p class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">
+                                {{ $city }}
+                            </p>
+                            @if($address)
+                                <p class="text-xs text-on-surface-variant">{{ $address }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    <button wire:click="editLocation"
+                            class="text-sm text-primary hover:underline">
+                        {{ __('Change location') }}
+                    </button>
+                </div>
+
+            {{-- Manual entry --}}
+            @else
+                <div class="space-y-4">
+                    <div>
+                        <label for="city" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                            {{ __('City') }} <span class="text-error">*</span>
+                        </label>
+                        <input type="text" id="city" wire:model="city" placeholder="{{ __('Enter your city') }}"
+                               class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
+                        @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                            {{ __('Address') }} <span class="text-on-surface-variant">{{ __('(optional)') }}</span>
+                        </label>
+                        <input type="text" id="address" wire:model="address" placeholder="{{ __('Street address, neighborhood') }}"
+                               class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
+                        @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <button wire:click="geocodeCity"
+                            class="w-full px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                        <span wire:loading.remove wire:target="geocodeCity">{{ __('Find my location') }}</span>
+                        <span wire:loading wire:target="geocodeCity">{{ __('Searching...') }}</span>
+                    </button>
+                </div>
+            @endif
+        @endif
+
+        <!-- Step 2: Identity -->
+        @if($step === 2)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
                 {{ __('Tell us about yourself') }}
             </h2>
@@ -68,8 +151,8 @@
             </div>
         @endif
 
-        <!-- Step 2: Contact -->
-        @if($step === 2)
+        <!-- Step 3: Contact -->
+        @if($step === 3)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
                 {{ __('Contact information') }}
             </h2>
@@ -87,8 +170,8 @@
             </div>
         @endif
 
-        <!-- Step 3: Game Preferences -->
-        @if($step === 3)
+        <!-- Step 4: Game Preferences -->
+        @if($step === 4)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
                 {{ __('Game preferences') }}
             </h2>
@@ -136,7 +219,7 @@
                 <span></span>
             @endif
 
-            @if($step < 3)
+            @if($step < 4)
                 <button wire:click="nextStep"
                         class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
                     {{ __('Continue') }}

@@ -24,8 +24,8 @@ test('home page renders English strings by default', function () {
     $response = $this->get('/en/');
 
     $response->assertStatus(200);
-    $response->assertSee('Organize. Compete.');
-    $response->assertSee('Get Started');
+    $response->assertSee('There\'s a seat waiting for you.');
+    $response->assertSee('Sign Up');
 });
 
 test('login page renders English strings', function () {
@@ -51,12 +51,14 @@ test('forgot password page renders English strings', function () {
     $response->assertSee('Email Password Reset Link');
 });
 
-test('about page renders English strings', function () {
+test('about page redirects to how-it-works with English strings', function () {
     $response = $this->get('/en/about');
 
-    $response->assertStatus(200);
-    $response->assertSee('About Roundup Games');
-    $response->assertSee('Our Mission');
+    $response->assertRedirect('/en/how-it-works');
+
+    $followUp = $this->get('/en/how-it-works');
+    $followUp->assertStatus(200);
+    $followUp->assertSee('How Roundup Works');
 });
 
 test('contact page renders English strings', function () {
@@ -73,8 +75,8 @@ test('home page renders German strings when locale is de', function () {
     $response = $this->get('/de/');
 
     $response->assertStatus(200);
-    $response->assertSee('Organisieren. Antreten.');
-    $response->assertSee('Loslegen');
+    $response->assertSee('Es wartet ein Platz auf dich.');
+    $response->assertSee('Registrieren');
 });
 
 test('login page renders German strings when locale is de', function () {
@@ -100,12 +102,14 @@ test('forgot password page renders German strings when locale is de', function (
     $response->assertSee('Link zum Zurücksetzen senden');
 });
 
-test('about page renders German strings when locale is de', function () {
+test('about page redirects to how-it-works with German strings', function () {
     $response = $this->get('/de/about');
 
-    $response->assertStatus(200);
-    $response->assertSee('Über Roundup Games');
-    $response->assertSee('Unsere Mission');
+    $response->assertRedirect('/de/how-it-works');
+
+    $followUp = $this->get('/de/how-it-works');
+    $followUp->assertStatus(200);
+    $followUp->assertSee(__('How Roundup Works'));
 });
 
 test('contact page renders German strings when locale is de', function () {

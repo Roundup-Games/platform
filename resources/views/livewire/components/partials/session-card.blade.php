@@ -1,0 +1,140 @@
+@props([
+    'entity',
+    'gameSystem' => null,
+    'distanceKm' => 0,
+    'participantCount' => 0,
+    'type' => 'session',
+])
+
+@php
+    $isCampaign = $type === 'campaign';
+    $maxPlayers = $entity->max_players ?? 0;
+    $minPlayers = $entity->min_players ?? 0;
+    $experienceLevel = $entity->experience_level;
+    $vibeFlags = $entity->vibe_flags ?? [];
+    $bggRank = $gameSystem?->bgg_rank;
+    $isTopHundred = $bggRank !== null && $bggRank <= 100;
+    $systemName = $gameSystem?->name ?? $entity->name;
+
+    // Date/time display
+    $dateTime = $isCampaign ? null : $entity->date_time;
+    $formattedDate = $dateTime?->isToday()
+        ? __('Today') . ', ' . $dateTime->format('H:i')
+        : $dateTime?->format('D, M j, H:i');
+
+    // Distance badge
+    $distanceBadge = $distanceKm < 1
+        ? round($distanceKm * 1000) . ' m'
+        : number_format($distanceKm, 1) . ' km';
+
+    // Join URL
+    $joinRoute = $isCampaign
+        ? route('campaigns.detail', $entity)
+        : route('games.detail', $entity);
+@endphp
+
+<article class="relative bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden hover:shadow-md transition-shadow"
+         aria-label="{{ $entity->name }}">
+
+    {{-- Distance badge --}}
+    <div class="absolute top-3 right-3 z-10">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium"
+              aria-label="{{ __(':distance away', ['distance' => $distanceBadge]) }}">
+            <span class="material-symbols-outlined text-xs mr-1" aria-hidden="true">straighten</span>
+            {{ $distanceBadge }}
+        </span>
+    </div>
+
+    {{-- Card body --}}
+    <div class="p-4 sm:p-5">
+        {{-- Game system with BGG rank --}}
+        <div class="flex items-start gap-2 mb-2 pr-16">
+            <h4 class="text-base font-heading font-semibold text-on-surface leading-snug">
+                {{ $entity->name }}
+            </h4>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+            {{-- Game system name --}}
+            @if($systemName)
+                <span class="inline-flex items-center text-sm text-on-surface-variant">
+                    {{ $systemName }}
+                </span>
+            @endif
+
+            {{-- BGG top-100 badge --}}
+            @if($isTopHundred)
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-bold"
+                      title="{{ __('BoardGameGeek Rank #:rank', ['rank' => $bggRank]) }}">
+                    <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">emoji_events</span>
+                    #{{ $bggRank }}
+                </span>
+            @endif
+        </div>
+
+        {{-- Date/time --}}
+        @if($formattedDate)
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
+                {{ $formattedDate }}
+            </div>
+        @elseif($isCampaign)
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">autorenew</span>
+                {{ __('Ongoing Campaign') }}
+            </div>
+        @endif
+
+        {{-- Player slots --}}
+        <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+            <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+            <span>{{ $participantCount }}/{{ $maxPlayers ?: '∞' }}</span>
+            @if($maxPlayers > 0 && $participantCount >= $maxPlayers)
+                <span class="text-xs text-error font-medium ml-1">{{ __('Full') }}</span>
+            @elseif($participantCount >= ($minPlayers ?: 1))
+                <span class="text-xs text-primary font-medium ml-1">{{ __('Ready to play') }}</span>
+            @endif
+        </div>
+
+        {{-- Experience level --}}
+        @if($experienceLevel && $experienceLevel !== 'all')
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">signal_cellular_alt</span>
+                {{ ucfirst($experienceLevel) }}
+            </div>
+        @endif
+
+        {{-- Vibe flags --}}
+        @if(!empty($vibeFlags))
+            <div class="flex flex-wrap gap-1.5 mb-3">
+                @foreach(array_slice($vibeFlags, 0, 3) as $flag)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-xs">
+                        {{ \Illuminate\Support\Str::title(str_replace('-', ' ', $flag)) }}
+                    </span>
+                @endforeach
+                @if(count($vibeFlags) > 3)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs">
+                        +{{ count($vibeFlags) - 3 }}
+                    </span>
+                @endif
+            </div>
+        @endif
+
+        {{-- CTA --}}
+        <div class="mt-auto pt-2">
+            @auth
+                <a href="{{ $joinRoute }}" wire:navigate
+                   class="inline-flex items-center px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center">
+                    <span class="material-symbols-outlined mr-1.5 text-lg" aria-hidden="true">login</span>
+                    {{ $isCampaign ? __('View Campaign') : __('Join this Session') }}
+                </a>
+            @else
+                <a href="{{ route('register') }}" wire:navigate
+                   class="inline-flex items-center px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center">
+                    <span class="material-symbols-outlined mr-1.5 text-lg" aria-hidden="true">person_add</span>
+                    {{ __('Join this Session') }}
+                </a>
+            @endauth
+        </div>
+    </div>
+</article>

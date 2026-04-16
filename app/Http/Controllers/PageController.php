@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ContactFormSubmitted;
+use App\Models\Campaign;
 use App\Models\ContactMessage;
-use App\Models\Event;
-use App\Models\EventRegistration;
-use App\Models\Team;
+use App\Models\Game;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -15,28 +15,47 @@ class PageController extends Controller
 {
     public function home()
     {
-        $upcomingEvents = Event::query()
+        // Weekly rolling activity: sessions happening this week
+        $sessionsThisWeek = Game::query()
             ->public()
-            ->upcoming()
-            ->take(6)
-            ->get();
+            ->where('date_time', '>=', now()->startOfWeek())
+            ->where('date_time', '<=', now()->endOfWeek())
+            ->count();
 
-        $featuredEvents = Event::query()
-            ->public()
-            ->featured()
-            ->upcoming()
-            ->take(3)
-            ->get();
+        // Active campaigns (non-completed, public)
+        $activeCampaigns = Campaign::query()
+            ->where('visibility', 'public')
+            ->where('status', '!=', 'completed')
+            ->count();
 
-        $teamCount = Team::count();
-        $registrationCount = EventRegistration::count();
+        // Total participants across this week's public scheduled sessions
+        $peopleThisWeek = Game::query()
+            ->where('games.visibility', 'public')
+            ->where('games.status', 'scheduled')
+            ->where('games.date_time', '>=', now()->startOfWeek())
+            ->where('games.date_time', '<=', now()->endOfWeek())
+            ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
+            ->count();
 
-        return view('pages.home', compact('upcomingEvents', 'featuredEvents', 'teamCount', 'registrationCount'));
+        return view('pages.home', compact('sessionsThisWeek', 'activeCampaigns', 'peopleThisWeek'));
     }
 
     public function about()
     {
-        return view('pages.about');
+        return redirect()->route('how-it-works', app()->getLocale(), 301);
+    }
+
+    public function howItWorks()
+    {
+        return view('pages.how-it-works');
+    }
+
+    public function forOrganizers()
+    {
+        $organizerCount = User::has('ownedGames')->count();
+        $displayCount = $organizerCount >= 10 ? $organizerCount : 50;
+
+        return view('pages.for-organizers', compact('displayCount'));
     }
 
     public function contact()

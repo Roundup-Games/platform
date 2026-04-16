@@ -38,6 +38,7 @@ use Spatie\Permission\Traits\HasRoles;
     'can_create_public_entries',
     'preferred_language',
     'location',
+    'location_id',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -72,6 +73,16 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function linkedAccounts()
     {
         return $this->hasMany(LinkedAccount::class);
+    }
+
+    public function linkedLocation()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function teams()
