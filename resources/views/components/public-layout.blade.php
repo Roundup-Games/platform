@@ -35,6 +35,7 @@
 
                 {{-- Desktop Nav Links --}}
                 <div class="hidden md:flex items-center gap-8">
+                    <a href="{{ route('discover') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Discover') }}</a>
                     <a href="{{ route('events.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Events') }}</a>
                     <a href="{{ route('teams.browse') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('teams.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Teams') }}</a>
                     <a href="{{ route('about') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('About') }}</a>
@@ -90,6 +91,7 @@
                          class="absolute left-0 right-0 bg-surface/95 backdrop-blur-md border-b border-outline-variant/15 z-50">
                         <div class="px-6 py-4 space-y-1 max-w-screen-2xl mx-auto">
                             <a href="{{ route('home') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('home') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Home') }}</a>
+                            <a href="{{ route('discover') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Discover') }}</a>
                             <a href="{{ route('events.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('events.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Events') }}</a>
                             <a href="{{ route('teams.browse') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('teams.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Teams') }}</a>
                             <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('About') }}</a>
@@ -143,6 +145,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-4">
                     <div class="flex flex-col gap-2">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('Platform') }}</span>
+                        <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Discover') }}</a>
                         <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Events') }}</a>
                         <a href="{{ route('teams.browse') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Teams') }}</a>
                         <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('About') }}</a>

@@ -61,6 +61,10 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('Dashboard') }}
                         </a>
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
+                            {{ __('Discover') }}
+                        </a>
                         <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
                             {{ __('Events') }}
@@ -137,6 +141,11 @@
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('Dashboard') }}
+                        </a>
+
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
+                            {{ __('Discover') }}
                         </a>
 
                         <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">

@@ -116,7 +116,9 @@ Route::prefix('{locale}')
             Route::get('/games/{id}/apply', App\Livewire\Games\ApplyToGame::class)->name('games.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         });
 
-        Route::get('/games', fn () => redirect()->route('dashboard'))->name('games.index');
+        Route::get('/discover', App\Livewire\Discovery\DiscoveryPage::class)->name('discover');
+
+        Route::get('/games', App\Livewire\Games\GameListing::class)->name('games.index');
         Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Campaigns ─────────────────────────────────
@@ -127,7 +129,7 @@ Route::prefix('{locale}')
             Route::get('/campaigns/{id}/add-session', App\Livewire\Campaigns\AddSessionToCampaign::class)->name('campaigns.add-session')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         });
 
-        Route::get('/campaigns', fn () => redirect()->route('dashboard'))->name('campaigns.index');
+        Route::get('/campaigns', App\Livewire\Campaigns\CampaignListing::class)->name('campaigns.index');
         Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Billing (authenticated) ───────────────────
