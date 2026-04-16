@@ -64,6 +64,16 @@ class DiscoveryPage extends Component
     #[Url]
     public string $recurrence = '';
 
+    // ── Lifecycle ──────────────────────────────────────
+
+    public function mount(): void
+    {
+        $user = Auth::user();
+        if ($user && $user->preferred_language && !$this->language) {
+            $this->language = $user->preferred_language->value;
+        }
+    }
+
     // ── Updating hooks ─────────────────────────────────
 
     public function updatingMode(): void
@@ -281,7 +291,15 @@ class DiscoveryPage extends Component
     }
 
     /**
-     * Get recommended items for logged-in users based on favorite game systems.
+     * Get recommended items for logged-in users using resolved preferences.
+     *
+     * Uses resolvedGameSystemPreferences() (favorites + implied_favorites, excluding avoided)
+     * and resolvedVibePreferences() (favorite vibe strings for boosting).
+     *
+     * Two-query approach:
+     *  1. Primary (boosted): items matching favorite systems AND favorite vibes.
+     *  2. Fallback: items matching favorite systems regardless of vibes.
+     *  Merged with boosted first, deduplicated.
      */
     protected function getRecommendations(): ?array
     {
@@ -290,58 +308,127 @@ class DiscoveryPage extends Component
             return null;
         }
 
-        $favoriteSystemIds = $user->favoriteGameSystems()->pluck('game_systems.id')->toArray();
+        $resolved = $user->resolvedGameSystemPreferences();
+        $resolvedVibes = $user->resolvedVibePreferences();
 
-        if (empty($favoriteSystemIds)) {
+        $favoriteIds = $resolved['favorites']->pluck('id')->toArray();
+        $impliedIds = $resolved['implied_favorites']->pluck('id')->toArray();
+        $avoidedIds = $resolved['avoided']->pluck('id')->toArray();
+        $favoriteVibes = $resolvedVibes['favorites'];
+
+        // All allowed system IDs: favorites + implied, minus avoided
+        $allowedSystemIds = array_values(array_diff(
+            array_merge($favoriteIds, $impliedIds),
+            $avoidedIds,
+        ));
+
+        if (empty($allowedSystemIds)) {
             return null;
         }
 
-        // Games matching favorite systems
-        $recommendedGames = Game::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+        $visibilityClause = function ($q) use ($user) {
+            $q->where('visibility', 'public');
+            if ($user) {
+                $q->orWhere('visibility', 'protected');
+            }
+        };
+
+        // Helper to tag items with discoverable_type
+        $tagItems = function ($items, string $type) {
+            $items->each(fn ($item) => $item->discoverable_type = $type);
+            return $items;
+        };
+
+        // Primary query: favorite systems AND favorite vibes (boosted)
+        $boostedIds = collect();
+        if (!empty($favoriteVibes)) {
+            $boostedGames = Game::query()
+                ->where($visibilityClause)
+                ->where('status', 'scheduled')
+                ->where('date_time', '>', now())
+                ->whereIn('game_system_id', $allowedSystemIds)
+                ->where(function ($q) use ($favoriteVibes) {
+                    foreach ($favoriteVibes as $vibe) {
+                        $q->orWhereJsonContains('vibe_flags', $vibe);
+                    }
+                })
+                ->with(['owner', 'gameSystem', 'campaign'])
+                ->withCount('participants')
+                ->orderBy('date_time')
+                ->limit(6)
+                ->get();
+            $tagItems($boostedGames, 'game');
+
+            $boostedCampaigns = Campaign::query()
+                ->where($visibilityClause)
+                ->where('status', 'active')
+                ->whereIn('game_system_id', $allowedSystemIds)
+                ->where(function ($q) use ($favoriteVibes) {
+                    foreach ($favoriteVibes as $vibe) {
+                        $q->orWhereJsonContains('vibe_flags', $vibe);
+                    }
+                })
+                ->with(['owner', 'gameSystem'])
+                ->withCount('sessions')
+                ->orderBy('created_at', 'desc')
+                ->limit(6)
+                ->get();
+            $tagItems($boostedCampaigns, 'campaign');
+
+            $boostedIds = $boostedGames->merge($boostedCampaigns)->pluck('id', 'discoverable_type');
+        }
+
+        // Fallback: favorite systems regardless of vibes
+        $fallbackGames = Game::query()
+            ->where($visibilityClause)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->whereIn('game_system_id', $favoriteSystemIds)
+            ->whereIn('game_system_id', $allowedSystemIds)
             ->with(['owner', 'gameSystem', 'campaign'])
             ->withCount('participants')
             ->orderBy('date_time')
             ->limit(6)
-            ->get()
-            ->each(fn ($item) => [
-                $item->discoverable_type = 'game',
-            ]);
+            ->get();
+        $tagItems($fallbackGames, 'game');
 
-        // Campaigns matching favorite systems
-        $recommendedCampaigns = Campaign::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+        $fallbackCampaigns = Campaign::query()
+            ->where($visibilityClause)
             ->where('status', 'active')
-            ->whereIn('game_system_id', $favoriteSystemIds)
+            ->whereIn('game_system_id', $allowedSystemIds)
             ->with(['owner', 'gameSystem'])
             ->withCount('sessions')
             ->orderBy('created_at', 'desc')
             ->limit(6)
-            ->get()
-            ->each(fn ($item) => [
-                $item->discoverable_type = 'campaign',
-            ]);
+            ->get();
+        $tagItems($fallbackCampaigns, 'campaign');
 
-        $all = $recommendedGames->merge($recommendedCampaigns);
+        // Merge: boosted first, then fallback (dedup by type+id)
+        $seen = collect();
+        $merged = collect();
 
-        if ($all->isEmpty()) {
+        // Add boosted items first
+        foreach (collect($boostedGames ?? [])->merge($boostedCampaigns ?? []) as $item) {
+            $key = $item->discoverable_type . ':' . $item->id;
+            if (!$seen->has($key)) {
+                $seen->put($key, true);
+                $merged->push($item);
+            }
+        }
+
+        // Add fallback items (not already present)
+        foreach ($fallbackGames->merge($fallbackCampaigns) as $item) {
+            $key = $item->discoverable_type . ':' . $item->id;
+            if (!$seen->has($key)) {
+                $seen->put($key, true);
+                $merged->push($item);
+            }
+        }
+
+        if ($merged->isEmpty()) {
             return null;
         }
 
-        return $all->all();
+        return $merged->take(12)->all();
     }
 
     // ── Render ─────────────────────────────────────────

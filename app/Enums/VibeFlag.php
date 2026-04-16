@@ -67,6 +67,24 @@ enum VibeFlag: string
     }
 
     /**
+     * Pairs of semantically opposed vibes. When one is favorited,
+     * the other is auto-avoided (but NOT vice versa).
+     *
+     * @return array<int, array{0: VibeFlag, 1: VibeFlag}>
+     */
+    public static function mutuallyExclusivePairs(): array
+    {
+        return [
+            [self::Lighthearted, self::Serious],
+            [self::Horror, self::FamilyFriendly],
+            [self::MatureThemes, self::FamilyFriendly],
+            [self::RulesLight, self::RulesHeavy],
+            [self::CombatFocused, self::RoleplayHeavy],
+            [self::Competitive, self::Cooperative],
+        ];
+    }
+
+    /**
      * Grouped options for UI display.
      *
      * @return array<string, array{label: string, options: array<string, string>}>

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ContentLanguage;
+use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -34,6 +36,8 @@ use Spatie\Permission\Traits\HasRoles;
     'is_disabled',
     'disabled_at',
     'can_create_public_entries',
+    'preferred_language',
+    'location',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -58,6 +62,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'is_disabled' => 'boolean',
             'disabled_at' => 'datetime',
             'can_create_public_entries' => 'boolean',
+            'preferred_language' => ContentLanguage::class,
+            'location' => 'array',
         ];
     }
 
@@ -147,6 +153,145 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     {
         return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
             ->wherePivot('preference_type', 'favorite');
+    }
+
+    public function avoidedGameSystems()
+    {
+        return $this->belongsToMany(GameSystem::class, 'user_game_system_preferences')
+            ->wherePivot('preference_type', 'avoid');
+    }
+
+    public function vibePreferences()
+    {
+        return $this->hasMany(UserVibePreference::class);
+    }
+
+    public function favoriteVibes()
+    {
+        return $this->hasMany(UserVibePreference::class)
+            ->where('preference_type', 'favorite');
+    }
+
+    public function avoidedVibes()
+    {
+        return $this->hasMany(UserVibePreference::class)
+            ->where('preference_type', 'avoid');
+    }
+
+    // ── Preference Resolution ─────────────────────────
+
+    /**
+     * Resolved game-system preferences including base/expansion implications.
+     *
+     * Rules:
+     *  - Favorited base games imply all their expansions as 'implied_favorites'.
+     *  - If a system is both favorited (or implied) AND explicitly avoided,
+     *    the explicit avoid wins.
+     *  - Handles circular safety: a system can be both a base (has expansions)
+     *    and an expansion (has base_game_id).
+     *
+     * @return array{favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, avoided: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, implied_favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>}
+     */
+    public function resolvedGameSystemPreferences(): array
+    {
+        $favorites = $this->favoriteGameSystems()->get();
+        $avoided = $this->avoidedGameSystems()->get();
+        $avoidedIds = $avoided->pluck('id')->flip();
+
+        // Collect implied favorites from expansions of favorited base games
+        // Only include expansions that are NOT explicitly avoided (avoid wins)
+        $impliedIds = collect();
+        foreach ($favorites as $system) {
+            foreach ($system->expansions as $expansion) {
+                if (! $avoidedIds->has($expansion->id)) {
+                    $impliedIds->put($expansion->id, $expansion);
+                }
+            }
+        }
+
+        $impliedFavorites = $impliedIds;
+
+        // Remove any favorites that are explicitly avoided
+        $resolvedFavorites = $favorites->reject(
+            fn (GameSystem $sys) => $avoidedIds->has($sys->id),
+        );
+
+        // Collect implied avoids from expansions of avoided base games
+        $impliedAvoidIds = collect();
+        foreach ($avoided as $system) {
+            foreach ($system->expansions as $expansion) {
+                $impliedAvoidIds->put($expansion->id, $expansion);
+            }
+        }
+
+        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited)
+        $allAvoided = $avoided->keyBy('id');
+        foreach ($impliedAvoidIds as $id => $expansion) {
+            if (! $resolvedFavorites->keyBy('id')->has($id) && ! $impliedFavorites->has($id)) {
+                $allAvoided->put($id, $expansion);
+            }
+        }
+
+        return [
+            'favorites' => $resolvedFavorites,
+            'avoided' => $allAvoided->values(),
+            'implied_favorites' => $impliedFavorites,
+        ];
+    }
+
+    /**
+     * Resolved vibe preferences with mutual-exclusivity enforcement.
+     *
+     * Rules:
+     *  - For each favorite, its exclusive partner is auto-avoided.
+     *  - For each avoid, its exclusive partner is NOT auto-favorited.
+     *  - Deduplication: if a flag is both explicitly favorite and auto-avoided,
+     *    explicit favorite wins (the partner goes to avoided instead).
+     *
+     * @return array{favorites: string[], avoided: string[]}
+     */
+    public function resolvedVibePreferences(): array
+    {
+        $explicitFavorites = $this->favoriteVibes()
+            ->pluck('vibe_preference_value')
+            ->map(fn (VibeFlag $flag) => $flag->value)
+            ->unique()
+            ->values()
+            ->all();
+
+        $explicitAvoids = $this->avoidedVibes()
+            ->pluck('vibe_preference_value')
+            ->map(fn (VibeFlag $flag) => $flag->value)
+            ->unique()
+            ->values()
+            ->all();
+
+        $favoriteSet = array_flip($explicitFavorites);
+        $avoidSet = array_flip($explicitAvoids);
+
+        // Build a lookup: flag value => partner flag value
+        $partnerLookup = [];
+        foreach (VibeFlag::mutuallyExclusivePairs() as [$a, $b]) {
+            $partnerLookup[$a->value] = $b->value;
+            $partnerLookup[$b->value] = $a->value;
+        }
+
+        // Auto-avoid partners of favorites
+        foreach ($explicitFavorites as $fav) {
+            if (isset($partnerLookup[$fav]) && ! isset($favoriteSet[$partnerLookup[$fav]])) {
+                $avoidSet[$partnerLookup[$fav]] = true;
+            }
+        }
+
+        // Remove from avoid set anything that's explicitly favorited (favorite wins)
+        foreach ($explicitFavorites as $fav) {
+            unset($avoidSet[$fav]);
+        }
+
+        return [
+            'favorites' => array_values(array_keys($favoriteSet)),
+            'avoided' => array_values(array_keys($avoidSet)),
+        ];
     }
 
     // ── Spatie Media Library ──────────────────────────

@@ -68,12 +68,14 @@ it('loads linked accounts in render data', function () {
     expect($linkedAccounts->first()->provider)->toBe('google');
 });
 
-it('loads game systems list in render data', function () {
+it('loads favorite and avoided game system IDs on mount', function () {
     $user = User::factory()->create(['profile_complete' => true]);
 
     $component = Livewire::actingAs($user)->test(Show::class);
 
-    $component->assertViewHas('gameSystems');
+    $component
+        ->assertSet('favoriteGameSystemIds', [])
+        ->assertSet('avoidedGameSystemIds', []);
 });
 
 it('sets userHasPassword based on password_set_at', function () {
@@ -600,4 +602,110 @@ it('hasPasswordSet returns false when password_set_at is set but password is nul
     ]);
 
     expect($user->hasPasswordSet())->toBeFalse();
+});
+
+// ── Language & Location ───────────────────────────────
+
+it('loads preferred_language and location on mount', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'preferred_language' => \App\Enums\ContentLanguage::De,
+        'location' => ['address' => 'Berlin, Germany'],
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->assertSet('preferredLanguage', 'de')
+        ->assertSet('locationAddress', 'Berlin, Germany');
+});
+
+it('loads empty preferred_language and location when not set', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'preferred_language' => null,
+        'location' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->assertSet('preferredLanguage', '')
+        ->assertSet('locationAddress', '');
+});
+
+it('persists preferred_language on save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'preferred_language' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('preferredLanguage', 'de')
+        ->call('saveProfile')
+        ->assertSet('saved', true);
+
+    expect($user->fresh()->preferred_language)->toBe(\App\Enums\ContentLanguage::De);
+});
+
+it('persists location as JSON array with address key on save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'location' => null,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('locationAddress', 'Munich, Germany')
+        ->call('saveProfile')
+        ->assertSet('saved', true);
+
+    expect($user->fresh()->location)->toBe(['address' => 'Munich, Germany']);
+});
+
+it('sets preferred_language to null when empty string saved', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'preferred_language' => \App\Enums\ContentLanguage::En,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('preferredLanguage', '')
+        ->call('saveProfile');
+
+    expect($user->fresh()->preferred_language)->toBeNull();
+});
+
+it('sets location to null when empty string saved', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'location' => ['address' => 'Old Address'],
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('locationAddress', '')
+        ->call('saveProfile');
+
+    expect($user->fresh()->location)->toBeNull();
+});
+
+it('validates preferred_language must be a valid ContentLanguage value', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('preferredLanguage', 'invalid-lang')
+        ->call('saveProfile')
+        ->assertHasErrors(['preferredLanguage']);
+});
+
+it('validates locationAddress max length', function () {
+    $user = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('locationAddress', str_repeat('a', 256))
+        ->call('saveProfile')
+        ->assertHasErrors(['locationAddress']);
 });

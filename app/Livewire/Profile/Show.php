@@ -2,13 +2,15 @@
 
 namespace App\Livewire\Profile;
 
-use App\Models\GameSystem;
+use App\Enums\ContentLanguage;
+use App\Enums\VibeFlag;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -24,11 +26,20 @@ class Show extends Component
     public string $pronouns = '';
     public string $phone = '';
 
+    public string $preferredLanguage = '';
+    public string $locationAddress = '';
+
     #[Locked]
     public bool $userHasPassword;
 
     /** @var array<int> */
     public array $favoriteGameSystemIds = [];
+
+    /** @var array<int> */
+    public array $avoidedGameSystemIds = [];
+
+    /** @var array<string, string|null> Map of VibeFlag value → null|'favorite'|'avoid' */
+    public array $vibePreferences = [];
 
     #[Validate(['nullable', 'image', 'max:1024'])]
     public $avatar;
@@ -55,11 +66,44 @@ class Show extends Component
         $this->gender = $user->gender ?? '';
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
+        $this->preferredLanguage = $user->preferred_language?->value ?? '';
+        $this->locationAddress = $user->location['address'] ?? '';
         $this->userHasPassword = $user->hasPasswordSet();
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
             ->wherePivot('preference_type', 'favorite')
             ->pluck('game_systems.id')
             ->toArray();
+        $this->avoidedGameSystemIds = $user->gameSystemPreferences()
+            ->wherePivot('preference_type', 'avoid')
+            ->pluck('game_systems.id')
+            ->toArray();
+
+        // Load existing vibe preferences
+        $this->vibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
+            return [$pref->vibe_preference_value->value => $pref->preference_type];
+        })->toArray();
+    }
+
+    public function selectionChanged(string $preferenceType, array $selectedIds): void
+    {
+        if ($preferenceType === 'favorite') {
+            $this->favoriteGameSystemIds = array_map('intval', $selectedIds);
+        } elseif ($preferenceType === 'avoid') {
+            $this->avoidedGameSystemIds = array_map('intval', $selectedIds);
+        }
+    }
+
+    protected function getListeners(): array
+    {
+        return [
+            'selection-changed' => 'selectionChanged',
+            'vibe-preferences-changed' => 'vibePreferencesChanged',
+        ];
+    }
+
+    public function vibePreferencesChanged(array $preferences): void
+    {
+        $this->vibePreferences = $preferences;
     }
 
     public function saveProfile(): void
@@ -74,6 +118,12 @@ class Show extends Component
             'phone' => ['nullable', 'string', 'max:30'],
             'favoriteGameSystemIds' => ['array'],
             'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+            'avoidedGameSystemIds' => ['array'],
+            'avoidedGameSystemIds.*' => ['exists:game_systems,id'],
+            'vibePreferences' => ['array'],
+            'vibePreferences.*' => ['nullable', 'in:favorite,avoid'],
+            'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
+            'locationAddress' => ['nullable', 'string', 'max:255'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -84,6 +134,8 @@ class Show extends Component
             'gender' => $validated['gender'],
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
+            'preferred_language' => $validated['preferredLanguage'] ?: null,
+            'location' => $validated['locationAddress'] ? ['address' => $validated['locationAddress']] : null,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),
         ]);
@@ -96,11 +148,31 @@ class Show extends Component
             ]);
         }
 
-        // Sync game system preferences
-        $syncData = collect($validated['favoriteGameSystemIds'])->mapWithKeys(fn ($id) => [
+        // Sync game system preferences (favorites AND avoids)
+        $favoriteSync = collect($validated['favoriteGameSystemIds'])->mapWithKeys(fn ($id) => [
             $id => ['preference_type' => 'favorite'],
-        ])->toArray();
-        $user->gameSystemPreferences()->sync($syncData);
+        ]);
+        $avoidSync = collect($validated['avoidedGameSystemIds'])->mapWithKeys(fn ($id) => [
+            $id => ['preference_type' => 'avoid'],
+        ]);
+        $user->gameSystemPreferences()->sync(array_replace($favoriteSync->toArray(), $avoidSync->toArray()));
+
+        // Save vibe preferences (delete-and-insert)
+        $validVibeValues = VibeFlag::values();
+        $user->vibePreferences()->delete();
+        $inserts = [];
+        foreach ($this->vibePreferences as $flagValue => $type) {
+            if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
+                $inserts[] = [
+                    'user_id' => $user->id,
+                    'vibe_preference_value' => $flagValue,
+                    'preference_type' => $type,
+                ];
+            }
+        }
+        if (!empty($inserts)) {
+            $user->vibePreferences()->createMany($inserts);
+        }
 
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
@@ -113,7 +185,10 @@ class Show extends Component
         Log::info('Profile updated', [
             'user_id' => $user->id,
             'fields_updated' => array_keys($validated),
-            'game_systems_count' => count($validated['favoriteGameSystemIds']),
+            'favorite_game_systems_count' => count($validated['favoriteGameSystemIds']),
+            'avoided_game_systems_count' => count($validated['avoidedGameSystemIds']),
+            'vibe_favorites_count' => count(array_filter($this->vibePreferences, fn ($v) => $v === 'favorite')),
+            'vibe_avoids_count' => count(array_filter($this->vibePreferences, fn ($v) => $v === 'avoid')),
             'profile_version' => $user->profile_version,
         ]);
 
@@ -215,7 +290,6 @@ class Show extends Component
 
         return view('livewire.profile.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
-            'gameSystems' => GameSystem::orderBy('name')->get(),
         ]);
     }
 }

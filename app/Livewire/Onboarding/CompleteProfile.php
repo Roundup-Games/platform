@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Onboarding;
 
+use App\Enums\ContentLanguage;
 use App\Models\GameSystem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -75,10 +76,17 @@ class CompleteProfile extends Component
 
         $user = Auth::user();
 
+        $locale = app()->getLocale();
+        $preferredLanguage = match ($locale) {
+            'de' => ContentLanguage::De,
+            default => ContentLanguage::En,
+        };
+
         $user->update([
             'gender' => $this->gender,
             'pronouns' => $this->pronouns,
             'phone' => $this->phone ?: null,
+            'preferred_language' => $preferredLanguage,
             'profile_complete' => true,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),

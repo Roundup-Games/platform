@@ -147,36 +147,92 @@
             {{-- Game Preferences --}}
             <div class="pt-4 border-t border-outline-variant/30">
                 <h3 class="text-base font-heading font-semibold tracking-tight text-on-surface mb-1">{{ __('Game Preferences') }}</h3>
-                <p class="text-sm text-on-surface-variant mb-4">{{ __("Select the games you enjoy — we'll use this to recommend sessions and events.") }}</p>
+                <p class="text-sm text-on-surface-variant mb-6">{{ __("Select the games you enjoy and those you'd prefer to avoid — we'll use this to recommend sessions and events.") }}</p>
 
-                <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    @foreach($gameSystems as $gameSystem)
-                        <label class="flex items-center space-x-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors">
-                            <input type="checkbox"
-                                   value="{{ $gameSystem->id }}"
-                                   wire:model="favoriteGameSystemIds"
-                                   class="rounded border-outline text-primary focus:ring-primary/20" />
-                            <div>
-                                <span class="text-sm font-medium text-on-surface">{{ $gameSystem->name }}</span>
-                                @if($gameSystem->description)
-                                    <p class="text-xs text-on-surface-variant line-clamp-1">{{ Str::limit($gameSystem->description, 80) }}</p>
-                                @endif
-                            </div>
-                        </label>
-                    @endforeach
+                {{-- Favorite Games --}}
+                <div class="mb-6">
+                    <h4 class="text-sm font-heading font-semibold tracking-tight text-on-surface mb-1">{{ __('Favorite Games') }}</h4>
+                    <p class="text-xs text-on-surface-variant mb-3">{{ __("Selecting a base game as a favorite implies you also enjoy its expansions.") }}</p>
 
-                    @if($gameSystems->isEmpty())
-                        <p class="text-sm text-on-surface-variant italic py-4 text-center">
-                            {{ __('No game systems available yet.') }}
-                        </p>
-                    @endif
+                    <livewire:components.game-system-preference-picker
+                        :wire:key="'picker-favorite'"
+                        preferenceType="favorite"
+                        :selectedIds="$favoriteGameSystemIds"
+                        :conflictIds="$avoidedGameSystemIds"
+                    />
+                </div>
+
+                {{-- Games to Avoid --}}
+                <div class="mb-2">
+                    <h4 class="text-sm font-heading font-semibold tracking-tight text-on-surface mb-1">{{ __('Games to Avoid') }}</h4>
+                    <p class="text-xs text-on-surface-variant mb-3">{{ __("Avoid preferences take priority over favorites when there's a conflict.") }}</p>
+
+                    <livewire:components.game-system-preference-picker
+                        :wire:key="'picker-avoid'"
+                        preferenceType="avoid"
+                        :selectedIds="$avoidedGameSystemIds"
+                        :conflictIds="$favoriteGameSystemIds"
+                    />
                 </div>
 
                 @error('favoriteGameSystemIds') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
+                @error('avoidedGameSystemIds') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
 
                 <p class="mt-3 text-xs text-on-surface-variant">
-                    {{ __(':count selected', ['count' => count($this->favoriteGameSystemIds)]) }}
+                    {{ __(':favorites favorite, :avoids avoided', [
+                        'favorites' => count($favoriteGameSystemIds),
+                        'avoids' => count($avoidedGameSystemIds),
+                    ]) }}
                 </p>
+            </div>
+
+            {{-- Vibe Preferences --}}
+            <div class="pt-4 border-t border-outline-variant/30">
+                <h3 class="text-base font-heading font-semibold tracking-tight text-on-surface mb-1">{{ __('Vibe Preferences') }}</h3>
+                <p class="text-sm text-on-surface-variant mb-6">{{ __("Tell us which play styles you enjoy and which you'd rather avoid.") }}</p>
+
+                <livewire:components.vibe-preference-picker
+                    :wire:key="'vibe-prefs'"
+                    :preferences="$vibePreferences"
+                />
+
+                @php
+                    $vibeFavorites = count(array_filter($vibePreferences, fn ($v) => $v === 'favorite'));
+                    $vibeAvoids = count(array_filter($vibePreferences, fn ($v) => $v === 'avoid'));
+                @endphp
+                <p class="mt-3 text-xs text-on-surface-variant">
+                    {{ __(':favorites favorite, :avoids avoided', [
+                        'favorites' => $vibeFavorites,
+                        'avoids' => $vibeAvoids,
+                    ]) }}
+                </p>
+            </div>
+
+            {{-- Language & Location --}}
+            <div class="pt-4 border-t border-outline-variant/30">
+                <h3 class="text-base font-heading font-semibold tracking-tight text-on-surface mb-1">{{ __('Language & Location') }}</h3>
+                <p class="text-sm text-on-surface-variant mb-6">{{ __("Set your preferred language and location to help us find sessions near you.") }}</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="profile-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('Preferred Language') }}</label>
+                        <select id="profile-language" wire:model="preferredLanguage"
+                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
+                            <option value="">{{ __('Select...') }}</option>
+                            @foreach(\App\Enums\ContentLanguage::cases() as $lang)
+                                <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
+                            @endforeach
+                        </select>
+                        @error('preferredLanguage') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="profile-location" class="block text-sm font-medium text-on-surface mb-1">{{ __('Location') }}</label>
+                        <input type="text" id="profile-location" wire:model="locationAddress" placeholder="{{ __('City, Country') }}"
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                        @error('locationAddress') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
             </div>
 
             {{-- Save Button --}}
