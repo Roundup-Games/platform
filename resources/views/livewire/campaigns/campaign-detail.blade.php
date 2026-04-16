@@ -125,10 +125,10 @@
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                                 {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                {{ strtoupper($participant->user->name[0] ?? '?') }}
+                                {{ strtoupper($participant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('Unknown') }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
@@ -154,10 +154,10 @@
             </h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
-                    {{ strtoupper($campaign->owner->name[0] ?? '?') }}
+                    {{ strtoupper($campaign->owner?->name[0] ?? '?') }}
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-on-surface">{{ $campaign->owner->name }}</p>
+                    <p class="text-sm font-medium text-on-surface">{{ $campaign->owner?->name ?? __('Unknown') }}</p>
                 </div>
             </div>
         </section>

@@ -68,7 +68,7 @@
                             </div>
 
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $member->user->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $member->user?->name ?? __('Unknown') }}</p>
                                 @if($member->position)
                                     <p class="text-xs text-on-surface-variant">{{ $member->position }}</p>
                                 @endif

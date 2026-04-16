@@ -85,7 +85,7 @@
                             @foreach($activeMembers as $member)
                                 <tr class="border-b border-outline-variant/30 hover:bg-surface-container-low transition-colors">
                                     <td class="py-2 px-3 text-on-surface">
-                                        {{ $member->user->name }}
+                                        {{ $member->user?->name ?? __('Unknown') }}
                                         @if($member->user_id === auth()->id())
                                             <span class="text-xs text-on-surface-variant">{{ __('(you)') }}</span>
                                         @endif
@@ -174,8 +174,8 @@
                         <tbody>
                             @foreach($pendingInvites as $invite)
                                 <tr class="border-b border-outline-variant/30">
-                                    <td class="py-2 px-3 text-on-surface">{{ $invite->user->name }}</td>
-                                    <td class="py-2 px-3 text-on-surface-variant">{{ $invite->user->email }}</td>
+                                    <td class="py-2 px-3 text-on-surface">{{ $invite->user?->name ?? __('Unknown') }}</td>
+                                    <td class="py-2 px-3 text-on-surface-variant">{{ $invite->user?->email ?? '' }}</td>
                                     <td class="py-2 px-3 text-on-surface">{{ __(ucfirst($invite->role)) }}</td>
                                     <td class="py-2 px-3 text-right">
                                         <button wire:click="cancelInvite({{ $invite->id }})"

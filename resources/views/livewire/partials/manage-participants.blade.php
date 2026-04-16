@@ -76,10 +76,10 @@
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                                 {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                {{ strtoupper($participant->user->name[0] ?? '?') }}
+                                {{ strtoupper($participant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('Unknown') }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
@@ -113,10 +113,10 @@
                     @foreach($pendingApplicants as $applicant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-tertiary/10 text-tertiary">
-                                {{ strtoupper($applicant->user->name[0] ?? '?') }}
+                                {{ strtoupper($applicant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $applicant->user->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $applicant->user?->name ?? __('Unknown') }}</p>
                                 @php
                                     $app = $entity->applications->firstWhere('user_id', $applicant->user_id)
                                 @endphp
@@ -154,11 +154,11 @@
                     @foreach($pendingInvites as $invite)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-primary/10 text-primary">
-                                {{ strtoupper($invite->user->name[0] ?? '?') }}
+                                {{ strtoupper($invite->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $invite->user->name }}</p>
-                                <p class="text-xs text-on-surface-variant">{{ $invite->user->email }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $invite->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-xs text-on-surface-variant">{{ $invite->user?->email ?? '' }}</p>
                             </div>
                             <button wire:click="cancelInvite('{{ $invite->id }}')"
                                 wire:confirm="{{ __('Cancel this invite?') }}"
