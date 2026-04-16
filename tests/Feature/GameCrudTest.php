@@ -556,7 +556,11 @@ describe('CreateCampaign', function () {
             ->set('max_players', 6)
             ->set('experience_level', 'intermediate')
             ->set('complexity', '3.5')
-            ->set('vibe_flags', ['atmospheric', 'cooperative'])
+            ->call('onVibePreferencesChanged', [
+                'atmospheric' => 'favorite',
+                'cooperative' => 'favorite',
+                'horror' => 'avoid',
+            ])
             ->call('save')
             ->assertRedirect();
 
@@ -567,6 +571,11 @@ describe('CreateCampaign', function () {
             'max_players' => 6,
             'experience_level' => 'intermediate',
         ]);
+
+        // Verify vibe flags: favorites stored, avoids and neutrals excluded
+        $campaign = Campaign::where('name', 'Meta Campaign')->first();
+        expect($campaign->vibe_flags)->toContain('atmospheric', 'cooperative')
+            ->and($campaign->vibe_flags)->not->toContain('horror');
     });
 
     it('validates min_players cannot exceed max_players', function () {
@@ -609,7 +618,7 @@ describe('CreateCampaign', function () {
             ->assertHasErrors(['complexity']);
     });
 
-    it('validates vibe_flags must be valid options', function () {
+    it('filters invalid vibe flag values from preferences', function () {
         $user = campaignCrudCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
@@ -617,9 +626,17 @@ describe('CreateCampaign', function () {
             ->set('name', 'Test')
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
-            ->set('vibe_flags', ['not_a_real_flag'])
+            ->call('onVibePreferencesChanged', [
+                'atmospheric' => 'favorite',
+                'tampered_value' => 'favorite',
+            ])
             ->call('save')
-            ->assertHasErrors(['vibe_flags.0']);
+            ->assertRedirect();
+
+        // Only valid favorite flags are stored
+        $campaign = Campaign::where('name', 'Test')->first();
+        expect($campaign->vibe_flags)->toContain('atmospheric')
+            ->and($campaign->vibe_flags)->not->toContain('tampered_value');
     });
 });
 

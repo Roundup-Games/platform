@@ -169,25 +169,12 @@
                 {{-- Vibe Flags --}}
                 <div>
                     <label class="block text-sm font-medium text-on-surface mb-2">{{ __('Vibe Flags') }}</label>
-                    <p class="text-xs text-on-surface-variant mb-3">{{ __('Select all that apply. These help players find the right session.') }}</p>
+                    <p class="text-xs text-on-surface-variant mb-3">{{ __('Describe the campaign vibe. Favorite what fits, avoid what doesn\'t.') }}</p>
 
-                    @foreach($this->vibeFlagGroups as $groupKey => $group)
-                        <div class="mb-3">
-                            <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wider mb-1.5">{{ $group['label'] }}</p>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach($group['options'] as $flagValue => $flagLabel)
-                                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer transition-all text-sm
-                                        {{ in_array($flagValue, $vibe_flags) ? 'bg-primary border-primary text-on-primary font-medium shadow-sm' : 'bg-surface-container-high border-outline/20 text-on-surface-variant hover:border-outline/40' }}">
-                                        <input type="checkbox" value="{{ $flagValue }}" wire:model.live="vibe_flags"
-                                               class="sr-only" />
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ in_array($flagValue, $vibe_flags) ? 'check' : '' }}</span>
-                                        {{ $flagLabel }}
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-                    @error('vibe_flags') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    <livewire:components.vibe-preference-picker
+                        :mode="'selection'"
+                        wire:key="campaign-vibe-picker"
+                    />
                 </div>
             </div>
         </section>

@@ -1396,21 +1396,27 @@ describe('CreateGame — Complexity', function () {
 });
 
 describe('CreateGame — Vibe Flags', function () {
-    it('stores selected vibe flags', function () {
+    it('stores favorite vibe flags from picker preferences', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Vibey Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('vibe_flags', ['atmospheric', 'roleplay-heavy', 'horror'])
+            ->call('onVibePreferencesChanged', [
+                'atmospheric' => 'favorite',
+                'roleplay-heavy' => 'favorite',
+                'horror' => 'favorite',
+                'cooperative' => 'avoid',
+            ])
             ->call('save');
 
         $game = Game::where('name', 'Vibey Game')->first();
-        expect($game->vibe_flags)->toBe(['atmospheric', 'roleplay-heavy', 'horror']);
+        expect($game->vibe_flags)->toContain('atmospheric', 'roleplay-heavy', 'horror')
+            ->and($game->vibe_flags)->not->toContain('cooperative');
     });
 
-    it('stores null when no flags selected', function () {
+    it('stores null when no flags favorited', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
@@ -1423,16 +1429,23 @@ describe('CreateGame — Vibe Flags', function () {
         expect($game->vibe_flags)->toBeNull();
     });
 
-    it('rejects invalid vibe flag', function () {
+    it('filters invalid vibe flag values from preferences', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('vibe_flags', ['not-a-real-flag'])
-            ->call('save')
-            ->assertHasErrors(['vibe_flags.0']);
+            ->call('onVibePreferencesChanged', [
+                'atmospheric' => 'favorite',
+                'not-a-real-flag' => 'favorite',
+            ])
+            ->call('save');
+
+        // Invalid flag silently filtered; valid one stored
+        $game = Game::where('name', 'Test')->first();
+        expect($game->vibe_flags)->toContain('atmospheric')
+            ->and($game->vibe_flags)->not->toContain('not-a-real-flag');
     });
 });
 

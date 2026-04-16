@@ -13,13 +13,17 @@ use Livewire\Component;
  * Renders 6 paired vibe flags as segmented controls (favorite-A / neutral / favorite-B)
  * and 8 standalone flags as tri-state chips (neutral → favorite → avoid).
  *
+ * Modes:
+ *   'preference' — Full tri-state for user profiles (favorite/avoid/neutral).
+ *   'selection'  — Same UX for game/campaign creation. Favorites stored as selected
+ *                  flags; the parent receives the full preferences map via event and
+ *                  can extract favorites as a flat array for DB storage.
+ *
  * Usage in parent Blade:
  *   <livewire:components.vibe-preference-picker
  *       :preferences="$existingPreferences"
+ *       mode="selection"
  *   />
- *
- * Listens for:
- *   (none)
  *
  * Dispatches:
  *   vibe-preferences-changed — { preferences: array<string, string|null> }
@@ -32,8 +36,10 @@ class VibePreferencePicker extends Component
     #[Locked]
     public string $mode = 'preference';
 
-    public function mount(array $preferences = []): void
+    public function mount(array $preferences = [], string $mode = 'preference'): void
     {
+        $this->mode = $mode;
+
         // Initialize all flags to neutral (null)
         foreach (VibeFlag::cases() as $flag) {
             $this->preferences[$flag->value] = $preferences[$flag->value] ?? null;
@@ -135,6 +141,20 @@ class VibePreferencePicker extends Component
         }
 
         return $standalone;
+    }
+
+    /**
+     * Extract favorite flag values as a flat array (for DB storage).
+     *
+     * @return string[]
+     */
+    public function getSelectedFlags(): array
+    {
+        return collect($this->preferences)
+            ->filter(fn ($value) => $value === 'favorite')
+            ->keys()
+            ->values()
+            ->all();
     }
 
     public function render()

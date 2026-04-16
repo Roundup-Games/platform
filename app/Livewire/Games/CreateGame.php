@@ -47,8 +47,8 @@ class CreateGame extends Component
 
     public ?string $complexity = null;
 
-    /** @var string[] */
-    public array $vibe_flags = [];
+    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
+    public array $vibePreferences = [];
 
     public function rules(): array
     {
@@ -68,15 +68,17 @@ class CreateGame extends Component
             'max_players' => 'nullable|integer|min:1|max:99',
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
-            'vibe_flags' => 'nullable|array',
-            'vibe_flags.*' => 'string|in:' . implode(',', VibeFlag::values()),
         ];
     }
 
-    /**
-     * Listen for game system picker value changes.
-     * The GameSystemPicker dispatches 'value-updated' when a system is selected.
-     */
+    // ── Event Listeners ──────────────────────────────────
+
+    #[On('vibe-preferences-changed')]
+    public function onVibePreferencesChanged(array $preferences): void
+    {
+        $this->vibePreferences = $preferences;
+    }
+
     #[On('value-updated')]
     public function onGameSystemPicked($value): void
     {
@@ -85,64 +87,13 @@ class CreateGame extends Component
         $this->autofillFromGameSystem($id);
     }
 
-    /**
-     * Also handle direct property sets (e.g. from tests or programmatic updates).
-     */
+    // ── Lifecycle Hooks ──────────────────────────────────
+
     public function updatedGameSystemId(?int $id): void
     {
         $this->autofillFromGameSystem($id);
     }
 
-    /**
-     * Auto-fill session metadata from the selected game system.
-     */
-    protected function autofillFromGameSystem(?int $id): void
-    {
-        if ($id === null) {
-            return;
-        }
-
-        $system = GameSystem::find($id);
-        if ($system === null) {
-            return;
-        }
-
-        // Duration: convert average_play_time (minutes) to hours, round to nearest 0.5
-        if ($system->average_play_time && $this->expected_duration === '') {
-            $hours = $system->average_play_time / 60;
-            $rounded = round($hours * 2) / 2;
-            $this->expected_duration = (string) max($rounded, 0.5);
-        }
-
-        // Player counts from game system
-        if ($system->min_players && $this->min_players === null) {
-            $this->min_players = $system->min_players;
-        }
-        if ($system->max_players && $this->max_players === null) {
-            $this->max_players = $system->max_players;
-        }
-
-        // Complexity from BGG weight (1-5 scale)
-        if ($system->bgg_average_weight && $this->complexity === null) {
-            $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
-        }
-
-        // Experience level hint from complexity weight
-        if ($this->experience_level === null && $system->bgg_average_weight) {
-            $weight = (float) $system->bgg_average_weight;
-            if ($weight <= 2.0) {
-                $this->experience_level = 'beginner';
-            } elseif ($weight <= 3.5) {
-                $this->experience_level = 'intermediate';
-            } else {
-                $this->experience_level = 'advanced';
-            }
-        }
-    }
-
-    /**
-     * Round duration to nearest 0.5 when the user leaves the field.
-     */
     public function updatedExpectedDuration(): void
     {
         if ($this->expected_duration === '' || $this->expected_duration === null) {
@@ -151,7 +102,6 @@ class CreateGame extends Component
 
         $value = (float) $this->expected_duration;
         $rounded = round($value * 2) / 2;
-
         $this->expected_duration = (string) max($rounded, 0.5);
     }
 
@@ -165,16 +115,7 @@ class CreateGame extends Component
         $this->validatePlayerCounts();
     }
 
-    protected function validatePlayerCounts(): void
-    {
-        if (
-            $this->min_players !== null
-            && $this->max_players !== null
-            && $this->min_players > $this->max_players
-        ) {
-            $this->addError('min_players', __('Min players cannot exceed max players.'));
-        }
-    }
+    // ── Computed ─────────────────────────────────────────
 
     #[Computed]
     public function languageOptions(): array
@@ -199,21 +140,14 @@ class CreateGame extends Component
     }
 
     #[Computed]
-    public function vibeFlagGroups(): array
-    {
-        return VibeFlag::grouped();
-    }
-
-    /**
-     * Whether the current user can create public entries.
-     */
-    #[Computed]
     public function canCreatePublic(): bool
     {
         $user = Auth::user();
 
         return $user && $user->can_create_public_entries;
     }
+
+    // ── Actions ──────────────────────────────────────────
 
     public function save(): void
     {
@@ -236,6 +170,9 @@ class CreateGame extends Component
             return;
         }
 
+        // Extract favorite vibe flags for storage
+        $vibeFlags = $this->selectedVibeFlags();
+
         $game = Game::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
@@ -256,7 +193,7 @@ class CreateGame extends Component
             'max_players' => $validated['max_players'],
             'experience_level' => $validated['experience_level'],
             'complexity' => $validated['complexity'] ?: null,
-            'vibe_flags' => ! empty($validated['vibe_flags']) ? $validated['vibe_flags'] : null,
+            'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
         ]);
 
         Log::info('Game created', [
@@ -273,5 +210,76 @@ class CreateGame extends Component
     public function render()
     {
         return view('livewire.games.create-game');
+    }
+
+    // ── Private Helpers ──────────────────────────────────
+
+    protected function autofillFromGameSystem(?int $id): void
+    {
+        if ($id === null) {
+            return;
+        }
+
+        $system = GameSystem::find($id);
+        if ($system === null) {
+            return;
+        }
+
+        if ($system->average_play_time && $this->expected_duration === '') {
+            $hours = $system->average_play_time / 60;
+            $rounded = round($hours * 2) / 2;
+            $this->expected_duration = (string) max($rounded, 0.5);
+        }
+
+        if ($system->min_players && $this->min_players === null) {
+            $this->min_players = $system->min_players;
+        }
+        if ($system->max_players && $this->max_players === null) {
+            $this->max_players = $system->max_players;
+        }
+
+        if ($system->bgg_average_weight && $this->complexity === null) {
+            $this->complexity = (string) round((float) $system->bgg_average_weight, 2);
+        }
+
+        if ($this->experience_level === null && $system->bgg_average_weight) {
+            $weight = (float) $system->bgg_average_weight;
+            if ($weight <= 2.0) {
+                $this->experience_level = 'beginner';
+            } elseif ($weight <= 3.5) {
+                $this->experience_level = 'intermediate';
+            } else {
+                $this->experience_level = 'advanced';
+            }
+        }
+    }
+
+    protected function validatePlayerCounts(): void
+    {
+        if (
+            $this->min_players !== null
+            && $this->max_players !== null
+            && $this->min_players > $this->max_players
+        ) {
+            $this->addError('min_players', __('Min players cannot exceed max players.'));
+        }
+    }
+
+    /**
+     * Extract favorite flags from the picker as a flat array for DB storage.
+     * Validates against the VibeFlag enum to prevent tampering.
+     *
+     * @return string[]
+     */
+    protected function selectedVibeFlags(): array
+    {
+        $validValues = VibeFlag::values();
+
+        return collect($this->vibePreferences)
+            ->filter(fn ($value) => $value === 'favorite')
+            ->keys()
+            ->filter(fn ($key) => in_array($key, $validValues))
+            ->values()
+            ->all();
     }
 }
