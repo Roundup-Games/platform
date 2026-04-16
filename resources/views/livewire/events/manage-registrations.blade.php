@@ -112,7 +112,7 @@
                                         <p class="font-medium text-on-surface">{{ $registration->user?->name ?? __('Unknown') }}</p>
                                         <p class="text-xs text-on-surface-variant">{{ $registration->user?->email }}</p>
                                         @if($registration->team)
-                                            <p class="text-xs text-primary">{{ __('Team: :name', ['name' => $registration->team->name]) }}</p>
+                                            <p class="text-xs text-primary">{{ __('Team: :name', ['name' => $registration->team?->name]) }}</p>
                                         @endif
                                     </div>
                                 </td>

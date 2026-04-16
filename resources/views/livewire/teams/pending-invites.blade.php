@@ -41,14 +41,14 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-lg font-medium text-on-surface">
-                                    <a href="{{ route('teams.detail', $invite->team->slug) }}" wire:navigate class="hover:text-primary transition-colors">
-                                        {{ $invite->team->name }}
+                                    <a href="{{ route('teams.detail', $invite->team?->slug) }}" wire:navigate class="hover:text-primary transition-colors">
+                                        {{ $invite->team?->name }}
                                     </a>
                                 </h3>
                                 <p class="text-sm text-on-surface-variant mt-1">
                                     {!! __('Invited as') !!} <strong>{{ __(ucfirst($invite->role)) }}</strong>
                                     @if($invite->invitedBy)
-                                        {!! __('by :name', ['name' => e($invite->invitedBy->name)]) !!}
+                                        {!! __('by :name', ['name' => e($invite->invitedBy?->name)]) !!}
                                     @endif
                                 </p>
                                 @if($invite->team->city)

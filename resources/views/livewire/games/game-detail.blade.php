@@ -20,7 +20,7 @@
                 @endif
                 @if($game->gameSystem)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/10 text-on-primary">
-                        {{ $game->gameSystem->name }}
+                        {{ $game->gameSystem?->name }}
                     </span>
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
@@ -32,7 +32,7 @@
             @if($game->campaign)
                 <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary hover:bg-on-primary/30 transition-colors mb-2">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">campaign</span>
-                    {{ __('Part of Campaign: :name', ['name' => $game->campaign->name]) }}
+                    {{ __('Part of Campaign: :name', ['name' => $game->campaign?->name]) }}
                 </a>
             @endif
 

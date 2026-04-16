@@ -60,7 +60,7 @@
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
                         <span class="text-sm text-on-surface-variant">{{ __('Game System') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->gameSystem ? $campaign->gameSystem->name : __('Not set') }}
+                            {{ $campaign->gameSystem ? $campaign->gameSystem?->name : __('Not set') }}
                         </span>
                     </div>
 

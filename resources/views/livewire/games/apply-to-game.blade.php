@@ -14,7 +14,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
             <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $game->name }}</h1>
             @if($game->gameSystem)
-                <p class="mt-2 text-sm text-on-primary/80">{{ $game->gameSystem->name }}</p>
+                <p class="mt-2 text-sm text-on-primary/80">{{ $game->gameSystem?->name }}</p>
             @endif
         </div>
     </section>

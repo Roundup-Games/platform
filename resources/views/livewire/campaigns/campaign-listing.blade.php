@@ -160,7 +160,7 @@
                             <div class="flex items-center gap-2 mb-3 flex-wrap">
                                 @if($campaign->gameSystem)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                                        {{ $campaign->gameSystem->name }}
+                                        {{ $campaign->gameSystem?->name }}
                                     </span>
                                 @endif
                                 @if($campaign->visibility === 'protected')

@@ -160,7 +160,7 @@
                             <div class="flex items-center gap-2 mb-3 flex-wrap">
                                 @if($game->gameSystem)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                                        {{ $game->gameSystem->name }}
+                                        {{ $game->gameSystem?->name }}
                                     </span>
                                 @endif
                                 @if($game->visibility === 'protected')
@@ -183,7 +183,7 @@
                                    onclick="event.stopPropagation()"
                                    class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
-                                    {{ $game->campaign->name }}
+                                    {{ $game->campaign?->name }}
                                 </a>
                             @endif
 

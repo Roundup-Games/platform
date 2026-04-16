@@ -20,7 +20,7 @@
                 @endif
                 @if($campaign->gameSystem)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/10 text-on-primary">
-                        {{ $campaign->gameSystem->name }}
+                        {{ $campaign->gameSystem?->name }}
                     </span>
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium

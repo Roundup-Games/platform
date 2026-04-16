@@ -64,7 +64,7 @@
                             {{-- Avatar --}}
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                                 {{ $member->role === 'captain' ? 'bg-primary/10 text-primary' : ($member->role === 'coach' ? 'bg-tertiary/10 text-tertiary' : 'bg-surface-container-high text-on-surface-variant') }}">
-                                {{ strtoupper($member->user->name[0] ?? '?') }}
+                                {{ strtoupper($member->user?->name[0] ?? '?') }}
                             </div>
 
                             <div class="flex-1 min-w-0">

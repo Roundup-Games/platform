@@ -27,7 +27,7 @@
             </span>
             @if($game->gameSystem)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                    {{ $game->gameSystem->name }}
+                    {{ $game->gameSystem?->name }}
                 </span>
             @endif
             @if($game->visibility === 'protected')

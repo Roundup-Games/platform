@@ -217,7 +217,7 @@
                         {{-- Expansion chip: show which base it belongs to --}}
                         @if($system->baseGame)
                             <span class="text-xs text-on-surface-variant">
-                                ({{ $system->baseGame->name }})
+                                ({{ $system->baseGame?->name }})
                             </span>
                         @endif
                         <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
