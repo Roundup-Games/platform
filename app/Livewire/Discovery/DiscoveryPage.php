@@ -4,10 +4,13 @@ namespace App\Livewire\Discovery;
 
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\GameSystemCategory;
+use App\Models\GameSystemMechanic;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\HasGuestLocation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -45,6 +48,9 @@ class DiscoveryPage extends Component
     public array $vibe_flags = [];
 
     #[Url]
+    public array $safety_tools = [];
+
+    #[Url]
     public string $language = '';
 
     #[Url]
@@ -55,6 +61,12 @@ class DiscoveryPage extends Component
 
     #[Url]
     public string $price = '';
+
+    #[Url]
+    public array $category_ids = [];
+
+    #[Url]
+    public array $mechanic_ids = [];
 
     // ── Games-specific filters ─────────────────────────
 
@@ -73,6 +85,14 @@ class DiscoveryPage extends Component
         $user = Auth::user();
         if ($user && $user->preferred_language && !$this->language) {
             $this->language = $user->preferred_language->value;
+        }
+
+        // Pre-select vibe flags from user preferences (only if no URL values already set)
+        if ($user && empty($this->vibe_flags)) {
+            $resolvedVibes = $user->resolvedVibePreferences();
+            if (!empty($resolvedVibes['favorites'])) {
+                $this->vibe_flags = $resolvedVibes['favorites'];
+            }
         }
     }
 
@@ -99,6 +119,11 @@ class DiscoveryPage extends Component
     }
 
     public function updatingVibeFlags(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSafetyTools(): void
     {
         $this->resetPage();
     }
@@ -133,11 +158,33 @@ class DiscoveryPage extends Component
         $this->resetPage();
     }
 
+    public function updatingCategoryIds(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMechanicIds(): void
+    {
+        $this->resetPage();
+    }
+
     // ── Actions ────────────────────────────────────────
 
     public function setMode(string $mode): void
     {
         $this->mode = $mode;
+        $this->resetPage();
+    }
+
+    public function setDate(string $date): void
+    {
+        $this->date = $date;
+        $this->resetPage();
+    }
+
+    public function setRecurrence(string $recurrence): void
+    {
+        $this->recurrence = $recurrence;
         $this->resetPage();
     }
 
@@ -153,12 +200,48 @@ class DiscoveryPage extends Component
         $this->resetPage();
     }
 
+    public function toggleSafetyTool(string $tool): void
+    {
+        $index = array_search($tool, $this->safety_tools, true);
+        if ($index !== false) {
+            unset($this->safety_tools[$index]);
+            $this->safety_tools = array_values($this->safety_tools);
+        } else {
+            $this->safety_tools[] = $tool;
+        }
+        $this->resetPage();
+    }
+
+    public function toggleCategory(int $categoryId): void
+    {
+        $index = array_search($categoryId, $this->category_ids, true);
+        if ($index !== false) {
+            unset($this->category_ids[$index]);
+            $this->category_ids = array_values($this->category_ids);
+        } else {
+            $this->category_ids[] = $categoryId;
+        }
+        $this->resetPage();
+    }
+
+    public function toggleMechanic(int $mechanicId): void
+    {
+        $index = array_search($mechanicId, $this->mechanic_ids, true);
+        if ($index !== false) {
+            unset($this->mechanic_ids[$index]);
+            $this->mechanic_ids = array_values($this->mechanic_ids);
+        } else {
+            $this->mechanic_ids[] = $mechanicId;
+        }
+        $this->resetPage();
+    }
+
     public function clearFilters(): void
     {
         $this->reset([
             'search', 'game_system_id', 'experience_level', 'vibe_flags',
-            'language', 'price', 'complexity_min', 'complexity_max',
-            'date', 'recurrence',
+            'safety_tools', 'language', 'price', 'complexity_min', 'complexity_max',
+            'date', 'recurrence', 'category_ids', 'mechanic_ids',
         ]);
         $this->resetPage();
     }
@@ -169,12 +252,15 @@ class DiscoveryPage extends Component
             || $this->game_system_id
             || $this->experience_level
             || !empty($this->vibe_flags)
+            || !empty($this->safety_tools)
             || $this->language
             || $this->price
             || $this->complexity_min
             || $this->complexity_max
             || $this->date
-            || $this->recurrence;
+            || $this->recurrence
+            || !empty($this->category_ids)
+            || !empty($this->mechanic_ids);
     }
 
     // ── Query builders ─────────────────────────────────
@@ -196,6 +282,12 @@ class DiscoveryPage extends Component
             }
         });
 
+        $query->when(!empty($this->safety_tools), function ($q) {
+            foreach ($this->safety_tools as $tool) {
+                $q->whereJsonContains('safety_rules->tools', $tool);
+            }
+        });
+
         $query->when($this->language, fn ($q) => $q->where('language', $this->language));
 
         $query->when($this->price === 'free', fn ($q) => $q->where(fn ($q) => $q->where($priceColumn, 0)->orWhereNull($priceColumn)));
@@ -203,6 +295,14 @@ class DiscoveryPage extends Component
 
         $query->when($this->complexity_min, fn ($q) => $q->where('complexity', '>=', (float) $this->complexity_min));
         $query->when($this->complexity_max, fn ($q) => $q->where('complexity', '<=', (float) $this->complexity_max));
+
+        $query->when(!empty($this->category_ids), function ($q) {
+            $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $this->category_ids));
+        });
+
+        $query->when(!empty($this->mechanic_ids), function ($q) {
+            $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $this->mechanic_ids));
+        });
     }
 
     protected function buildGamesQuery()
@@ -433,6 +533,42 @@ class DiscoveryPage extends Component
         return $merged->take(12)->all();
     }
 
+    // ── Curated filter lists ───────────────────────────
+
+    /**
+     * Top 15 categories by base-game system count, excluding expansion-related noise.
+     * Excludes: 'Expansion for Base-game', 'Fan Expansion', 'Print & Play'.
+     */
+    protected function getCuratedCategories()
+    {
+        $excludedSlugs = [
+            'expansion-for-base-game',
+            'fan-expansion',
+            'print-play',
+        ];
+
+        return GameSystemCategory::query()
+            ->whereNotIn('slug', $excludedSlugs)
+            ->whereHas('gameSystems', fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame')))
+            ->withCount(['gameSystems' => fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame'))])
+            ->orderByDesc('game_systems_count')
+            ->limit(15)
+            ->get(['id', 'name', 'slug']);
+    }
+
+    /**
+     * Top 15 mechanics by base-game system count.
+     */
+    protected function getCuratedMechanics()
+    {
+        return GameSystemMechanic::query()
+            ->whereHas('gameSystems', fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame')))
+            ->withCount(['gameSystems' => fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame'))])
+            ->orderByDesc('game_systems_count')
+            ->limit(15)
+            ->get(['id', 'name', 'slug']);
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render()
@@ -449,8 +585,11 @@ class DiscoveryPage extends Component
             'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
             'experienceLevels' => ExperienceLevel::cases(),
             'vibeFlagGroups' => VibeFlag::grouped(),
+            'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
             'recurrenceOptions' => ['weekly', 'bi-weekly', 'monthly'],
+            'curatedCategories' => $this->getCuratedCategories(),
+            'curatedMechanics' => $this->getCuratedMechanics(),
         ]);
     }
 }

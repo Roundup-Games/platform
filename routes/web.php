@@ -66,6 +66,7 @@ Route::prefix('{locale}')
         Route::get('/how-it-works', [PageController::class, 'howItWorks'])->name('how-it-works');
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+        Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
         Route::get('/game-systems', App\Livewire\GameSystems\GameSystemsPage::class)->name('game-systems');
         Route::post('/contact', [PageController::class, 'submitContact'])
             ->middleware('throttle:5,1')

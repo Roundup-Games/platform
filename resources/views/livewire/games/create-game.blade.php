@@ -156,6 +156,17 @@
                         wire:key="game-vibe-picker"
                     />
                 </div>
+
+                {{-- Safety Tools --}}
+                <div>
+                    <label class="block text-sm font-medium text-on-surface mb-2">{{ __('Safety Tools') }}</label>
+                    <p class="text-xs text-on-surface-variant mb-3">{{ __('Select the safety tools you plan to use for this session.') }}</p>
+
+                    <livewire:components.safety-tool-picker
+                        mode="selection"
+                        wire:key="game-safety-picker"
+                    />
+                </div>
             </div>
         </section>
 

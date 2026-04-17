@@ -5,6 +5,8 @@ use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\GameSystemCategory;
+use App\Models\GameSystemMechanic;
 use App\Models\User;
 use function Pest\Laravel\{actingAs, get};
 
@@ -1135,5 +1137,458 @@ describe('DiscoveryPage', function () {
         $boostedIndex = array_search('Boosted Vibe Game', $names);
         $noVibeIndex = array_search('No Vibe Game', $names);
         expect($boostedIndex)->toBeLessThan($noVibeIndex);
+    });
+
+    // ── Category & Mechanic Filtering ──────────────────
+
+    it('filters games by category_ids through gameSystem relationship', function () {
+        $category = GameSystemCategory::create(['name' => 'Strategy']);
+        $otherCategory = GameSystemCategory::create(['name' => 'Party']);
+
+        $strategySystem = GameSystem::factory()->create(['name' => 'Strategy Game']);
+        $partySystem = GameSystem::factory()->create(['name' => 'Party Game']);
+
+        $strategySystem->categories()->attach($category->id);
+        $partySystem->categories()->attach($otherCategory->id);
+
+        Game::factory()->create([
+            'name' => 'Strategy Session',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $strategySystem->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Party Session',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $partySystem->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [$category->id])
+            ->assertSee('Strategy Session')
+            ->assertDontSee('Party Session');
+    });
+
+    it('filters campaigns by category_ids through gameSystem relationship', function () {
+        $category = GameSystemCategory::create(['name' => 'Adventure']);
+        $otherCategory = GameSystemCategory::create(['name' => 'Abstract']);
+
+        $advSystem = GameSystem::factory()->create(['name' => 'Adventure System']);
+        $absSystem = GameSystem::factory()->create(['name' => 'Abstract System']);
+
+        $advSystem->categories()->attach($category->id);
+        $absSystem->categories()->attach($otherCategory->id);
+
+        Campaign::factory()->create([
+            'name' => 'Adventure Campaign',
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $advSystem->id,
+        ]);
+
+        Campaign::factory()->create([
+            'name' => 'Abstract Campaign',
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $absSystem->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [$category->id])
+            ->assertSee('Adventure Campaign')
+            ->assertDontSee('Abstract Campaign');
+    });
+
+    it('filters games by mechanic_ids through gameSystem relationship', function () {
+        $mechanic = GameSystemMechanic::create(['name' => 'Dice Rolling']);
+        $otherMechanic = GameSystemMechanic::create(['name' => 'Deck Building']);
+
+        $diceSystem = GameSystem::factory()->create(['name' => 'Dice System']);
+        $deckSystem = GameSystem::factory()->create(['name' => 'Deck System']);
+
+        $diceSystem->mechanics()->attach($mechanic->id);
+        $deckSystem->mechanics()->attach($otherMechanic->id);
+
+        Game::factory()->create([
+            'name' => 'Dice Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $diceSystem->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Deck Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $deckSystem->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('mechanic_ids', [$mechanic->id])
+            ->assertSee('Dice Game')
+            ->assertDontSee('Deck Game');
+    });
+
+    it('filters campaigns by mechanic_ids through gameSystem relationship', function () {
+        $mechanic = GameSystemMechanic::create(['name' => 'Worker Placement']);
+        $otherMechanic = GameSystemMechanic::create(['name' => 'Area Control']);
+
+        $wpSystem = GameSystem::factory()->create(['name' => 'WP System']);
+        $acSystem = GameSystem::factory()->create(['name' => 'AC System']);
+
+        $wpSystem->mechanics()->attach($mechanic->id);
+        $acSystem->mechanics()->attach($otherMechanic->id);
+
+        Campaign::factory()->create([
+            'name' => 'Worker Placement Campaign',
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $wpSystem->id,
+        ]);
+
+        Campaign::factory()->create([
+            'name' => 'Area Control Campaign',
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $acSystem->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('mechanic_ids', [$mechanic->id])
+            ->assertSee('Worker Placement Campaign')
+            ->assertDontSee('Area Control Campaign');
+    });
+
+    it('filters by combined category_ids and mechanic_ids', function () {
+        $category = GameSystemCategory::create(['name' => 'Thematic']);
+        $mechanic = GameSystemMechanic::create(['name' => 'Cooperative Play']);
+
+        // System matching BOTH category AND mechanic
+        $matchSystem = GameSystem::factory()->create(['name' => 'Match System']);
+        $matchSystem->categories()->attach($category->id);
+        $matchSystem->mechanics()->attach($mechanic->id);
+
+        // System matching only category, not mechanic
+        $catOnlySystem = GameSystem::factory()->create(['name' => 'Cat Only System']);
+        $catOnlySystem->categories()->attach($category->id);
+
+        // System matching only mechanic, not category
+        $mechOnlySystem = GameSystem::factory()->create(['name' => 'Mech Only System']);
+        $mechOnlySystem->mechanics()->attach($mechanic->id);
+
+        Game::factory()->create([
+            'name' => 'Both Match Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $matchSystem->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Category Only Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $catOnlySystem->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Mechanic Only Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $mechOnlySystem->id,
+        ]);
+
+        // Both filters active: only the system matching BOTH should appear
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [$category->id])
+            ->set('mechanic_ids', [$mechanic->id])
+            ->assertSee('Both Match Game')
+            ->assertDontSee('Category Only Game')
+            ->assertDontSee('Mechanic Only Game');
+    });
+
+    it('filters by multiple category_ids with OR logic', function () {
+        $catA = GameSystemCategory::create(['name' => 'Wargame']);
+        $catB = GameSystemCategory::create(['name' => 'Negotiation']);
+
+        $systemA = GameSystem::factory()->create(['name' => 'War System']);
+        $systemB = GameSystem::factory()->create(['name' => 'Diplomacy System']);
+        $systemC = GameSystem::factory()->create(['name' => 'Unrelated System']);
+
+        $systemA->categories()->attach($catA->id);
+        $systemB->categories()->attach($catB->id);
+
+        Game::factory()->create([
+            'name' => 'War Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $systemA->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Diplomacy Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $systemB->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Unrelated Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $systemC->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [$catA->id, $catB->id])
+            ->assertSee('War Game')
+            ->assertSee('Diplomacy Game')
+            ->assertDontSee('Unrelated Game');
+    });
+
+    it('clearFilters resets category_ids and mechanic_ids', function () {
+        Game::factory()->create([
+            'name' => 'Reset Test Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [1, 2])
+            ->set('mechanic_ids', [3, 4])
+            ->set('search', 'test')
+            ->call('clearFilters')
+            ->assertSet('category_ids', [])
+            ->assertSet('mechanic_ids', [])
+            ->assertSet('search', '');
+    });
+
+    it('hasActiveFilters detects category_ids and mechanic_ids', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+
+        $component->set('category_ids', [1]);
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+
+        $component->set('category_ids', []);
+        $component->set('mechanic_ids', [2]);
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+
+        $component->call('clearFilters');
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+    });
+
+    it('toggleCategory adds and removes category ids', function () {
+        Game::factory()->create([
+            'name' => 'Toggle Cat Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        // Add
+        $component->call('toggleCategory', 5)
+            ->assertSet('category_ids', [5]);
+
+        // Add another
+        $component->call('toggleCategory', 10)
+            ->assertSet('category_ids', [5, 10]);
+
+        // Remove first
+        $component->call('toggleCategory', 5)
+            ->assertSet('category_ids', [10]);
+    });
+
+    it('toggleMechanic adds and removes mechanic ids', function () {
+        Game::factory()->create([
+            'name' => 'Toggle Mech Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        // Add
+        $component->call('toggleMechanic', 7)
+            ->assertSet('mechanic_ids', [7]);
+
+        // Add another
+        $component->call('toggleMechanic', 12)
+            ->assertSet('mechanic_ids', [7, 12]);
+
+        // Remove first
+        $component->call('toggleMechanic', 7)
+            ->assertSet('mechanic_ids', [12]);
+    });
+
+    // ── Vibe Preference Pre-Selection ──────────────────
+
+    it('pre-selects vibe flags from user preferences on mount', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+
+        // Create favorite vibe preferences
+        $user->vibePreferences()->createMany([
+            ['vibe_preference_value' => 'lighthearted', 'preference_type' => 'favorite'],
+            ['vibe_preference_value' => 'cooperative', 'preference_type' => 'favorite'],
+        ]);
+
+        actingAs($user);
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        $vibes = $component->get('vibe_flags');
+        expect($vibes)->toContain('lighthearted');
+        expect($vibes)->toContain('cooperative');
+    });
+
+    it('does not override vibe flags when URL already has values', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+
+        $user->vibePreferences()->create([
+            'vibe_preference_value' => 'lighthearted',
+            'preference_type' => 'favorite',
+        ]);
+
+        actingAs($user);
+        $component = Livewire\Livewire::withQueryParams(['vibe_flags' => ['horror']])
+            ->test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        // URL value should not be overridden by mount() pre-selection
+        $vibes = $component->get('vibe_flags');
+        expect($vibes)->toContain('horror');
+        expect($vibes)->not->toContain('lighthearted');
+    });
+
+    it('does not pre-select vibe flags for guest users', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->get('vibe_flags'))->toBe([]);
+    });
+
+    it('does not pre-select vibe flags when user has no vibe preferences', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+
+        actingAs($user);
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->get('vibe_flags'))->toBe([]);
+    });
+
+    // ── Progressive Disclosure & Layout ────────────────
+
+    it('renders the expandable narrow-it-down toggle', function () {
+        Game::factory()->create([
+            'name' => 'Layout Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Narrow it down');
+    });
+
+    it('renders session type pills (Either, One-shot, Campaign)', function () {
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Either')
+            ->assertSee('One-shot')
+            ->assertSee('Campaign');
+    });
+
+    it('renders curated categories in view data', function () {
+        Game::factory()->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $categories = $component->viewData('curatedCategories');
+
+        expect($categories)->not->toBeNull();
+    });
+
+    it('renders curated mechanics in view data', function () {
+        Game::factory()->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $mechanics = $component->viewData('curatedMechanics');
+
+        expect($mechanics)->not->toBeNull();
+    });
+
+    it('renders category pills in expandable section when categories exist', function () {
+        $category = GameSystemCategory::create(['name' => 'Card Game']);
+        $system = GameSystem::factory()->create(['name' => 'Card System']);
+        $system->categories()->attach($category->id);
+
+        Game::factory()->create([
+            'name' => 'Card Game Session',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Categories')
+            ->assertSee('Card Game');
+    });
+
+    it('renders mechanic pills in expandable section when mechanics exist', function () {
+        $mechanic = GameSystemMechanic::create(['name' => 'Set Collection']);
+        $system = GameSystem::factory()->create(['name' => 'Collection System']);
+        $system->mechanics()->attach($mechanic->id);
+
+        Game::factory()->create([
+            'name' => 'Collection Session',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Mechanics')
+            ->assertSee('Set Collection');
+    });
+
+    it('shows active filter chips for selected categories and mechanics', function () {
+        $category = GameSystemCategory::create(['name' => 'Economic']);
+        $mechanic = GameSystemMechanic::create(['name' => 'Auction']);
+        $system = GameSystem::factory()->create(['name' => 'Econ System']);
+        $system->categories()->attach($category->id);
+        $system->mechanics()->attach($mechanic->id);
+
+        Game::factory()->create([
+            'name' => 'Econ Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('category_ids', [$category->id])
+            ->set('mechanic_ids', [$mechanic->id])
+            ->assertSee('Economic')
+            ->assertSee('Auction')
+            ->assertSee('Clear all');
     });
 });

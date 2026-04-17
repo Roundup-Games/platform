@@ -168,6 +168,7 @@
                     <div class="flex flex-col gap-2">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('Support') }}</span>
                         <a href="{{ $footerHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('How It Works') }}</a>
+                        <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Safety Tools') }}</a>
                         <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('For Organizers') }}</a>
                         <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Contact') }}</a>
                     </div>

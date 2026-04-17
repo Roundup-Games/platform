@@ -178,6 +178,11 @@
             </section>
         @endif
 
+        {{-- Safety Tools --}}
+        @if($game->safety_rules)
+            @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $game->safety_rules])
+        @endif
+
         {{-- Applications (visible to owner) --}}
         @if($isOwner && $game->applications->count())
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">

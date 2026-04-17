@@ -146,6 +146,11 @@
             @endif
         </section>
 
+        {{-- Safety Tools --}}
+        @if($campaign->safety_rules)
+            @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $campaign->safety_rules])
+        @endif
+
         {{-- Campaign Owner Info --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">

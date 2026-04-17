@@ -63,6 +63,14 @@ class PageController extends Controller
         return view('pages.contact');
     }
 
+    public function safetyTools()
+    {
+        $tools = \App\Enums\SafetyTool::cases();
+        $categories = \App\Enums\SafetyToolCategory::cases();
+
+        return view('pages.safety-tools', compact('tools', 'categories'));
+    }
+
     public function submitContact(Request $request)
     {
         $validated = $request->validate([

@@ -79,6 +79,12 @@ class CreateGame extends Component
         $this->vibePreferences = $preferences;
     }
 
+    #[On('safety-tools-changed')]
+    public function onSafetyToolsChanged(array $safetyRules): void
+    {
+        $this->safety_rules = $safetyRules;
+    }
+
     #[On('value-updated')]
     public function onGameSystemPicked($value): void
     {

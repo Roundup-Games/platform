@@ -1,7 +1,20 @@
 <div>
-    <x-hero title="{{ __('Discover Games & Campaigns') }}" :subtitle="__('Find games and campaigns that match your vibe.')" />
+    {{-- ── Compact Header ────────────────────────────────────────── --}}
+    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('Discover Games & Campaigns') }}</h1>
+            <p class="mt-1 text-sm text-on-primary/80">{{ __('Find games and campaigns that match your vibe.') }}</p>
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+            {{-- ── Search ─────────────────────────────────────── --}}
+            <div class="mt-4 relative max-w-xl">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-primary/60 text-lg" aria-hidden="true">search</span>
+                <input type="text" aria-label="{{ __('Search') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search games and campaigns...') }}"
+                       class="w-full pl-10 pr-4 py-2.5 bg-on-primary/10 border border-on-primary/20 rounded-full text-on-primary placeholder:text-on-primary/50 focus:bg-on-primary/20 focus:border-on-primary/40 focus:ring-2 focus:ring-on-primary/20" />
+            </div>
+        </div>
+    </section>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
         {{-- ── Recommended for You (logged-in users only) ────────── --}}
         @auth
@@ -25,122 +38,249 @@
             @endif
         @endauth
 
-        {{-- ── Mode Tabs ─────────────────────────────────────────── --}}
-        <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 w-fit">
-            <button wire:click="setMode('all')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                {{ __('All') }}
-            </button>
-            <button wire:click="setMode('games')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'games' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                {{ __('Games') }}
-            </button>
-            <button wire:click="setMode('campaigns')"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'campaigns' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                {{ __('Campaigns') }}
-            </button>
-        </div>
+        {{-- ── Top Band: Type + Time + Location ──────────────────── --}}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
 
-        {{-- ── Search & Primary Filters ──────────────────────────── --}}
-        <div class="flex flex-col sm:flex-row gap-3">
-            <div class="flex-1 relative">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
-                <input type="text" aria-label="{{ __('Search') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search games and campaigns...') }}"
-                       class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
+            {{-- Type pills (replaces mode tabs) --}}
+            <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1" role="radiogroup" aria-label="{{ __('Session type') }}">
+                <button wire:click="setMode('all')"
+                        role="radio" aria-checked="{{ $mode === 'all' ? 'true' : 'false' }}"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                    {{ __('Either') }}
+                </button>
+                <button wire:click="setMode('games')"
+                        role="radio" aria-checked="{{ $mode === 'games' ? 'true' : 'false' }}"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'games' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                    {{ __('One-shot') }}
+                </button>
+                <button wire:click="setMode('campaigns')"
+                        role="radio" aria-checked="{{ $mode === 'campaigns' ? 'true' : 'false' }}"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'campaigns' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                    {{ __('Campaign') }}
+                </button>
             </div>
-            <select wire:model.live="game_system_id" aria-label="{{ __('Filter by game system') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Systems') }}</option>
-                @foreach($gameSystems as $system)
-                    <option value="{{ $system->id }}">{{ $system->name }}</option>
-                @endforeach
-            </select>
-            <select wire:model.live="price" aria-label="{{ __('Filter by price') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('Any Price') }}</option>
-                <option value="free">{{ __('Free') }}</option>
-                <option value="paid">{{ __('Paid') }}</option>
-            </select>
-        </div>
 
-        {{-- ── Type-Specific Filter Row ───────────────────────────── --}}
-        <div class="flex flex-wrap gap-3">
+            {{-- Time pills (contextual to type) --}}
             @if($mode === 'all' || $mode === 'games')
-                <select wire:model.live="date" aria-label="{{ __('Filter by date') }}"
-                        class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                    <option value="">{{ __('Any Date') }}</option>
-                    <option value="upcoming">{{ __('Upcoming') }}</option>
-                    <option value="this_week">{{ __('This Week') }}</option>
-                    <option value="this_month">{{ __('This Month') }}</option>
-                </select>
+                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('Time frame') }}">
+                    <button wire:click="setDate('')"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        {{ __('Any Date') }}
+                    </button>
+                    <button wire:click="setDate('upcoming')"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        {{ __('Upcoming') }}
+                    </button>
+                    <button wire:click="setDate('this_week')"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        {{ __('This Week') }}
+                    </button>
+                    <button wire:click="setDate('this_month')"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        {{ __('This Month') }}
+                    </button>
+                </div>
             @endif
 
-            @if($mode === 'all' || $mode === 'campaigns')
-                <select wire:model.live="recurrence" aria-label="{{ __('Filter by recurrence') }}"
-                        class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                    <option value="">{{ __('Any Recurrence') }}</option>
+            @if($mode === 'campaigns')
+                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('Schedule') }}">
+                    <button wire:click="setRecurrence('')"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$recurrence ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                        {{ __('Any Schedule') }}
+                    </button>
                     @foreach($recurrenceOptions as $option)
-                        <option value="{{ $option }}">{{ __(ucfirst(str_replace('-', ' ', $option))) }}</option>
+                        <button wire:click="setRecurrence('{{ $option }}')"
+                                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $recurrence === $option ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
+                            {{ __(ucfirst(str_replace('-', ' ', $option))) }}
+                        </button>
                     @endforeach
-                </select>
+                </div>
             @endif
 
-            <select wire:model.live="experience_level" aria-label="{{ __('Filter by experience level') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Levels') }}</option>
-                @foreach($experienceLevels as $level)
-                    <option value="{{ $level->value }}">{{ $level->label() }}</option>
-                @endforeach
-            </select>
-
-            <select wire:model.live="language" aria-label="{{ __('Filter by language') }}"
-                    class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Languages') }}</option>
-                @foreach($languages as $lang)
-                    <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
-                @endforeach
-            </select>
+            {{-- Location line --}}
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant sm:ml-auto">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">location_on</span>
+                @if($guestLat && $guestLng)
+                    <span>{{ round($guestLat, 1) }}°, {{ round($guestLng, 1) }}°</span>
+                @else
+                    <span>{{ __('Set your location') }}</span>
+                @endif
+                <button wire:click="requestGuestLocation" class="text-primary hover:underline text-xs">{{ __('Change') }}</button>
+            </div>
         </div>
 
-        {{-- ── Vibe Flag Filters (grouped) ────────────────────────── --}}
-        @if($vibeFlagGroups)
-            <div class="space-y-3">
-                @foreach($vibeFlagGroups as $groupKey => $group)
+        {{-- ── Expandable "Narrow it down" Section ───────────────── --}}
+        <div x-data="{ expanded: false }">
+            <button @click="expanded = !expanded"
+                    class="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                    :aria-expanded="expanded">
+                <span class="material-symbols-outlined text-base transition-transform" :class="{ 'rotate-180': expanded }" aria-hidden="true">expand_more</span>
+                {{ __('Narrow it down') }}
+            </button>
+
+            <div x-show="expanded"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 -translate-y-2"
+                 class="mt-4 space-y-5"
+                 x-cloak>
+
+                {{-- Game System select --}}
+                <div>
+                    <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Game System') }}</p>
+                    <select wire:model.live="game_system_id" aria-label="{{ __('Filter by game system') }}"
+                            class="w-full sm:w-auto min-w-[200px] bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                        <option value="">{{ __('All Systems') }}</option>
+                        @foreach($gameSystems as $system)
+                            <option value="{{ $system->id }}">{{ $system->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Category pills (from curated list) --}}
+                @if($curatedCategories->isNotEmpty())
                     <div>
-                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ $group['label'] }}</p>
+                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Categories') }}</p>
                         <div class="flex flex-wrap gap-1.5">
-                            @foreach($group['options'] as $flagValue => $flagLabel)
+                            @foreach($curatedCategories as $category)
                                 <button
-                                    wire:click="toggleVibeFlag('{{ $flagValue }}')"
+                                    wire:click="toggleCategory({{ $category->id }})"
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
-                                        {{ in_array($flagValue, $vibe_flags) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
+                                        {{ in_array($category->id, $category_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                                 >
-                                    {{ $flagLabel }}
+                                    {{ $category->name }}
                                 </button>
                             @endforeach
                         </div>
                     </div>
-                @endforeach
-            </div>
-        @endif
+                @endif
 
-        {{-- ── Complexity Range ────────────────────────────────────── --}}
-        <div class="flex items-center gap-3">
-            <span class="text-sm text-on-surface-variant">{{ __('Complexity:') }}</span>
-            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('Min') }}" aria-label="{{ __('Minimum complexity') }}"
-                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
-            <span class="text-on-surface-variant">–</span>
-            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('Max') }}" aria-label="{{ __('Maximum complexity') }}"
-                   class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                {{-- Mechanic pills (from curated list) --}}
+                @if($curatedMechanics->isNotEmpty())
+                    <div>
+                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Mechanics') }}</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($curatedMechanics as $mechanic)
+                                <button
+                                    wire:click="toggleMechanic({{ $mechanic->id }})"
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                        {{ in_array($mechanic->id, $mechanic_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
+                                >
+                                    {{ $mechanic->name }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Vibe flag groups --}}
+                @if($vibeFlagGroups)
+                    <div class="space-y-3">
+                        @foreach($vibeFlagGroups as $groupKey => $group)
+                            <div>
+                                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ $group['label'] }}</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($group['options'] as $flagValue => $flagLabel)
+                                        <button
+                                            wire:click="toggleVibeFlag('{{ $flagValue }}')"
+                                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                                {{ in_array($flagValue, $vibe_flags) ? 'bg-tertiary/15 text-on-tertiary-container ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
+                                        >
+                                            {{ $flagLabel }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Safety tool groups --}}
+                @if($safetyToolGroups)
+                    <div class="space-y-3">
+                        @foreach($safetyToolGroups as $groupKey => $group)
+                            <div>
+                                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ $group['label'] }}</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($group['options'] as $toolValue => $toolLabel)
+                                        <button
+                                            wire:click="toggleSafetyTool('{{ $toolValue }}')"
+                                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                                {{ in_array($toolValue, $safety_tools) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
+                                        >
+                                            {{ $toolLabel }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach>
+                    </div>
+                @endif
+
+                {{-- Selects row: Experience Level / Language / Price / Complexity --}}
+                <div class="flex flex-wrap gap-3">
+                    <select wire:model.live="experience_level" aria-label="{{ __('Filter by experience level') }}"
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                        <option value="">{{ __('All Levels') }}</option>
+                        @foreach($experienceLevels as $level)
+                            <option value="{{ $level->value }}">{{ $level->label() }}</option>
+                        @endforeach
+                    </select>
+
+                    <select wire:model.live="language" aria-label="{{ __('Filter by language') }}"
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                        <option value="">{{ __('All Languages') }}</option>
+                        @foreach($languages as $lang)
+                            <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
+                        @endforeach
+                    </select>
+
+                    <select wire:model.live="price" aria-label="{{ __('Filter by price') }}"
+                            class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
+                        <option value="">{{ __('Any Price') }}</option>
+                        <option value="free">{{ __('Free') }}</option>
+                        <option value="paid">{{ __('Paid') }}</option>
+                    </select>
+                </div>
+
+                {{-- Complexity Range --}}
+                <div class="flex items-center gap-3">
+                    <span class="text-sm text-on-surface-variant">{{ __('Complexity') }}</span>
+                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('Min') }}" aria-label="{{ __('Minimum complexity') }}"
+                           class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                    <span class="text-on-surface-variant">–</span>
+                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('Max') }}" aria-label="{{ __('Maximum complexity') }}"
+                           class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                </div>
+            </div>
         </div>
 
-        {{-- ── Active Filters ──────────────────────────────────────── --}}
-        @if($search || $game_system_id || $experience_level || !empty($vibe_flags) || $language || $date || $recurrence || $price || $complexity_min || $complexity_max)
+        {{-- ── Active Filter Chips ──────────────────────────────────── --}}
+        @php($activeFilters = $this->hasActiveFilters())
+        @if($activeFilters)
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
+                    </span>
+                @endif
+                @if($mode !== 'all')
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {{ $mode === 'games' ? __('One-shot') : __('Campaign') }}
+                    </span>
+                @endif
+                @if($date)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
+                        {{ __(ucfirst(str_replace('_', ' ', $date))) }}
+                    </span>
+                @endif
+                @if($recurrence)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
+                        {{ __(ucfirst(str_replace('-', ' ', $recurrence))) }}
                     </span>
                 @endif
                 @if($game_system_id)
@@ -149,6 +289,22 @@
                         {{ $systemName }}
                     </span>
                 @endif
+                @foreach($category_ids as $catId)
+                    @php($cat = $curatedCategories->firstWhere('id', $catId))
+                    @if($cat)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {{ $cat->name }}
+                        </span>
+                    @endif
+                @endforeach
+                @foreach($mechanic_ids as $mechId)
+                    @php($mech = $curatedMechanics->firstWhere('id', $mechId))
+                    @if($mech)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {{ $mech->name }}
+                        </span>
+                    @endif
+                @endforeach
                 @if($experience_level)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                         {{ App\Enums\ExperienceLevel::tryFrom($experience_level)?->label() ?? $experience_level }}
@@ -162,19 +318,17 @@
                         </span>
                     @endif
                 @endforeach
+                @foreach($safety_tools as $tool)
+                    @php($toolEnum = App\Enums\SafetyTool::tryFrom($tool))
+                    @if($toolEnum)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {{ $toolEnum->label() }}
+                        </span>
+                    @endif
+                @endforeach
                 @if($language)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {{ App\Enums\ContentLanguage::tryFrom($language)?->label() ?? $language }}
-                    </span>
-                @endif
-                @if($date)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                        {{ __(ucfirst(str_replace('_', ' ', $date))) }}
-                    </span>
-                @endif
-                @if($recurrence)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                        {{ __(ucfirst(str_replace('-', ' ', $recurrence))) }}
                     </span>
                 @endif
                 @if($price)
@@ -211,7 +365,7 @@
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">explore</span>
                 <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No results found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
-                    @if($search || $game_system_id || $experience_level || !empty($vibe_flags) || $language || $date || $recurrence || $price || $complexity_min || $complexity_max)
+                    @if($activeFilters)
                         {{ __('Try adjusting your filters.') }}
                     @else
                         {{ __('Check back soon for new games and campaigns!') }}
