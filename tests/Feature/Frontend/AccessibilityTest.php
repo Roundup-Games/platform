@@ -176,7 +176,7 @@ describe('Icon-only Buttons', function () {
 describe('Theme Toggle', function () {
     it('has aria-label for accessibility', function () {
         $template = file_get_contents(resource_path('views/components/theme-toggle.blade.php'));
-        expect($template)->toContain('aria-label="Toggle dark mode"');
+        expect($template)->toContain('aria-label="Toggle theme"');
     });
 
     it('icons have aria-hidden', function () {

@@ -7,6 +7,15 @@
 
     <title>@yield('title', __('events.content_events')) — {{ config('app.name', 'Roundup Games') }}</title>
 
+    {{-- Dark mode: apply class before paint to prevent flash --}}
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            var dark = t === 'dark' || ((t === 'system' || t === null) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (dark) document.documentElement.classList.add('dark');
+        })();
+    </script>
+
     <!-- Fonts: Noto Serif for headings, Inter for body -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,10 +151,12 @@
                     <p class="text-sm text-on-surface-variant max-w-xs">
                         &copy; {{ date('Y') }} Roundup Games. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
                     </p>
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 items-center">
                         <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">public</span>
                         <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">forum</span>
                         <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">contact_support</span>
+                        <span class="border-l border-outline-variant/30 h-5"></span>
+                        <x-theme-toggle size="small" />
                     </div>
                 </div>
 

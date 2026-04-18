@@ -292,4 +292,9 @@ return [
     'action_remove_name' => 'Remove :name',
     'content_searching' => 'Searching...',
     'content_yes_that_s_right' => 'Yes, that\'s right',
+
+    // Theme toggle
+    'content_light' => 'Hell',
+    'content_dark' => 'Dunkel',
+    'content_system' => 'System',
 ];

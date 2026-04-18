@@ -62,7 +62,7 @@
 
     {{-- Upload Area --}}
     <div class="relative"
-         x-bind:class="{ 'border-primary bg-primary/5 dark:bg-primary/10': dragging,
+         x-bind:class="{ 'border-primary bg-primary/5': dragging,
                          'border-outline-variant border-dashed': !dragging }"
          class="border-2 rounded-lg p-6 text-center transition-colors">
 

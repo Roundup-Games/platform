@@ -30,106 +30,92 @@ export default {
                 full: '9999px',
             },
 
+            // Color tokens using RGB CSS variables.
+            // This enables Tailwind's opacity modifier syntax: bg-primary/10, text-on-surface/50, etc.
+            // Pattern: `rgb(var(--rgb-xxx) / <alpha-value>)` where <alpha-value> defaults to 1.
             colors: {
-                // Primary — Amber/Gold family
                 primary: {
-                    DEFAULT: '#835500',
-                    container: '#f5a623',
-                    fixed: '#ffddb4',
-                    'fixed-dim': '#ffb955',
+                    DEFAULT: 'rgb(var(--rgb-primary) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-primary-container) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-primary-fixed) / <alpha-value>)',
+                    'fixed-dim': 'rgb(var(--rgb-primary-fixed-dim) / <alpha-value>)',
                 },
                 'on-primary': {
-                    DEFAULT: '#ffffff',
-                    'fixed-variant': '#633f00',
-                    fixed: '#291800',
-                    container: '#644000',
+                    DEFAULT: 'rgb(var(--rgb-on-primary) / <alpha-value>)',
+                    'fixed-variant': 'rgb(var(--rgb-on-primary-fixed-variant) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-on-primary-fixed) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-on-primary-container) / <alpha-value>)',
                 },
 
-                // Secondary — Trustworthy Blue family
                 secondary: {
-                    DEFAULT: '#0060ac',
-                    container: '#68abff',
-                    fixed: '#d4e3ff',
-                    'fixed-dim': '#a4c9ff',
+                    DEFAULT: 'rgb(var(--rgb-secondary) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-secondary-container) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-secondary-fixed) / <alpha-value>)',
+                    'fixed-dim': 'rgb(var(--rgb-secondary-fixed-dim) / <alpha-value>)',
                 },
                 'on-secondary': {
-                    DEFAULT: '#ffffff',
-                    'fixed-variant': '#004883',
-                    fixed: '#001c39',
-                    container: '#003e73',
+                    DEFAULT: 'rgb(var(--rgb-on-secondary) / <alpha-value>)',
+                    'fixed-variant': 'rgb(var(--rgb-on-secondary-fixed-variant) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-on-secondary-fixed) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-on-secondary-container) / <alpha-value>)',
                 },
 
-                // Tertiary — Warm terracotta family
                 tertiary: {
-                    DEFAULT: '#944925',
-                    container: '#ff9e73',
-                    fixed: '#ffdbcd',
-                    'fixed-dim': '#ffb596',
+                    DEFAULT: 'rgb(var(--rgb-tertiary) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-tertiary-container) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-tertiary-fixed) / <alpha-value>)',
+                    'fixed-dim': 'rgb(var(--rgb-tertiary-fixed-dim) / <alpha-value>)',
                 },
                 'on-tertiary': {
-                    DEFAULT: '#ffffff',
-                    'fixed-variant': '#76320f',
-                    fixed: '#360f00',
-                    container: '#773310',
+                    DEFAULT: 'rgb(var(--rgb-on-tertiary) / <alpha-value>)',
+                    'fixed-variant': 'rgb(var(--rgb-on-tertiary-fixed-variant) / <alpha-value>)',
+                    fixed: 'rgb(var(--rgb-on-tertiary-fixed) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-on-tertiary-container) / <alpha-value>)',
                 },
 
-                // Surface hierarchy — Tonal layering
                 surface: {
-                    DEFAULT: '#fbf9f1',
-                    dim: '#dcdad2',
-                    bright: '#fbf9f1',
-                    tint: '#835500',
-                    variant: '#e4e3db',
+                    DEFAULT: 'rgb(var(--rgb-surface) / <alpha-value>)',
+                    dim: 'rgb(var(--rgb-surface-dim) / <alpha-value>)',
+                    bright: 'rgb(var(--rgb-surface-bright) / <alpha-value>)',
+                    tint: 'rgb(var(--rgb-surface-tint) / <alpha-value>)',
+                    variant: 'rgb(var(--rgb-surface-variant) / <alpha-value>)',
                     container: {
-                        DEFAULT: '#f0eee6',
-                        lowest: '#ffffff',
-                        low: '#f5f4ec',
-                        high: '#eae8e0',
-                        highest: '#e4e3db',
+                        DEFAULT: 'rgb(var(--rgb-surface-container) / <alpha-value>)',
+                        lowest: 'rgb(var(--rgb-surface-container-lowest) / <alpha-value>)',
+                        low: 'rgb(var(--rgb-surface-container-low) / <alpha-value>)',
+                        high: 'rgb(var(--rgb-surface-container-high) / <alpha-value>)',
+                        highest: 'rgb(var(--rgb-surface-container-highest) / <alpha-value>)',
                     },
                 },
                 'on-surface': {
-                    DEFAULT: '#1b1c17',
-                    variant: '#524534',
+                    DEFAULT: 'rgb(var(--rgb-on-surface) / <alpha-value>)',
+                    variant: 'rgb(var(--rgb-on-surface-variant) / <alpha-value>)',
                 },
 
-                // Outlines & borders
                 outline: {
-                    DEFAULT: '#857462',
-                    variant: '#d7c3ae',
+                    DEFAULT: 'rgb(var(--rgb-outline) / <alpha-value>)',
+                    variant: 'rgb(var(--rgb-outline-variant) / <alpha-value>)',
                 },
 
-                // Error
                 error: {
-                    DEFAULT: '#ba1a1a',
-                    container: '#ffdad6',
+                    DEFAULT: 'rgb(var(--rgb-error) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-error-container) / <alpha-value>)',
                 },
                 'on-error': {
-                    DEFAULT: '#ffffff',
-                    container: '#93000a',
+                    DEFAULT: 'rgb(var(--rgb-on-error) / <alpha-value>)',
+                    container: 'rgb(var(--rgb-on-error-container) / <alpha-value>)',
                 },
 
-                // Inverse surfaces
-                'inverse-surface': '#30312c',
-                'inverse-on-surface': '#f3f1e9',
-                'inverse-primary': '#ffb955',
+                'inverse-surface': 'rgb(var(--rgb-inverse-surface) / <alpha-value>)',
+                'inverse-on-surface': 'rgb(var(--rgb-inverse-on-surface) / <alpha-value>)',
+                'inverse-primary': 'rgb(var(--rgb-inverse-primary) / <alpha-value>)',
 
-                // Background (alias for surface base)
-                background: '#fbf9f1',
-                'on-background': '#1b1c17',
-
-                // Backward-compat alias — maps old `brand` to primary.
-                // Remove after all Blade templates are migrated to `primary` tokens.
-                brand: {
-                    DEFAULT: '#835500',
-                    dark: '#633f00',
-                    light: '#f5a623',
-                },
+                background: 'rgb(var(--rgb-background) / <alpha-value>)',
+                'on-background': 'rgb(var(--rgb-on-background) / <alpha-value>)',
             },
 
             boxShadow: {
-                // Warm ambient shadows — never pure black
-                'ambient': '0 12px 40px rgba(82, 69, 52, 0.06)',
+                ambient: 'var(--shadow-ambient)',
                 'ambient-md': '0 4px 16px rgba(82, 69, 52, 0.08)',
                 'ambient-lg': '0 20px 60px rgba(82, 69, 52, 0.10)',
             },

@@ -7,6 +7,15 @@
 
         <title>{{ config('app.name', 'Roundup Games') }}</title>
 
+        {{-- Dark mode: apply class before paint to prevent flash --}}
+        <script>
+            (function() {
+                var t = localStorage.getItem('theme');
+                var dark = t === 'dark' || ((t === 'system' || t === null) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (dark) document.documentElement.classList.add('dark');
+            })();
+        </script>
+
         {{-- Fonts: Noto Serif for headings, Inter for body, Material Symbols for icons --}}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

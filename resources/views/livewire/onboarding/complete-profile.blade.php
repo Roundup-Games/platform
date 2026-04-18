@@ -5,14 +5,14 @@
             @foreach([__('location.content_location'), __('common.content_identity'), __('pages.content_contact'), __('profile.content_preferences')] as $i => $label)
                 <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
-                        {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest dark:bg-[#3a3b34] text-on-surface-variant') }}">
+                        {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest text-on-surface-variant') }}">
                         @if($step > $i + 1)
                             <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check</span>
                         @else
                             {{ $i + 1 }}
                         @endif
                     </div>
-                    <span class="ml-2 text-xs font-medium {{ $step === $i + 1 ? 'text-on-surface dark:text-[#eae8e0] font-semibold' : 'text-on-surface-variant' }} hidden sm:inline">
+                    <span class="ml-2 text-xs font-medium {{ $step === $i + 1 ? 'text-on-surface font-semibold' : 'text-on-surface-variant' }} hidden sm:inline">
                         {{ $label }}
                     </span>
                     @if(!$loop->last)
@@ -23,10 +23,10 @@
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest dark:bg-[#2a2b24] rounded-2xl shadow-ambient p-6 sm:p-8 border border-outline-variant/10">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-ambient p-6 sm:p-8 border border-outline-variant/10">
         <!-- Step 1: Location -->
         @if($step === 1)
-            <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
+            <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
                 {{ __('location.content_where_are_you_based') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
@@ -39,7 +39,7 @@
                     <div class="flex items-center gap-3 p-4 rounded-xl bg-primary-container/20 border border-primary/20">
                         <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">location_on</span>
                         <div>
-                            <p class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">
+                            <p class="text-sm font-medium text-on-surface">
                                 {{ __('location.content_we_think_you_re_in_city_is_that_right', ['city' => $city]) }}
                             </p>
                         </div>
@@ -51,7 +51,7 @@
                             {{ __('common.content_yes_that_s_right') }}
                         </button>
                         <button wire:click="editLocation"
-                                class="px-4 py-2.5 border border-outline-variant/30 text-on-surface-variant rounded-xl hover:bg-surface-container-low dark:hover:bg-[#3a3b34] transition-colors text-sm font-medium">
+                                class="px-4 py-2.5 border border-outline-variant/30 text-on-surface-variant rounded-xl hover:bg-surface-container-low transition-colors text-sm font-medium">
                             {{ __('common.action_no_let_me_search') }}
                         </button>
                     </div>
@@ -63,7 +63,7 @@
                     <div class="flex items-center gap-3 p-4 rounded-xl bg-primary-container/20 border border-primary/20">
                         <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">check_circle</span>
                         <div>
-                            <p class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">
+                            <p class="text-sm font-medium text-on-surface">
                                 {{ $city }}
                             </p>
                             @if($address)
@@ -81,20 +81,20 @@
             @else
                 <div class="space-y-4">
                     <div>
-                        <label for="city" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                        <label for="city" class="block text-sm font-medium text-on-surface mb-1">
                             {{ __('location.field_city') }} <span class="text-error">*</span>
                         </label>
                         <input type="text" id="city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
-                               class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
+                               class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="address" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                        <label for="address" class="block text-sm font-medium text-on-surface mb-1">
                             {{ __('location.field_address') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                         </label>
                         <input type="text" id="address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
-                               class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
+                               class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
                         @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -109,7 +109,7 @@
 
         <!-- Step 2: Identity -->
         @if($step === 2)
-            <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
+            <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
                 {{ __('common.content_tell_us_about_yourself') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
@@ -118,11 +118,11 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="gender" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                    <label for="gender" class="block text-sm font-medium text-on-surface mb-1">
                         {{ __('common.field_gender') }} <span class="text-error">*</span>
                     </label>
                     <select id="gender" wire:model="gender"
-                            class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
+                            class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="male">{{ __('common.content_male') }}</option>
                         <option value="female">{{ __('common.content_female') }}</option>
@@ -134,11 +134,11 @@
                 </div>
 
                 <div>
-                    <label for="pronouns" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                    <label for="pronouns" class="block text-sm font-medium text-on-surface mb-1">
                         {{ __('profile.content_pronouns') }} <span class="text-error">*</span>
                     </label>
                     <select id="pronouns" wire:model="pronouns"
-                            class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
+                            class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="he/him">{{ __('common.content_he_him') }}</option>
                         <option value="she/her">{{ __('common.content_she_her') }}</option>
@@ -153,7 +153,7 @@
 
         <!-- Step 3: Contact -->
         @if($step === 3)
-            <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
+            <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
                 {{ __('common.content_contact_information') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
@@ -161,18 +161,18 @@
             </p>
 
             <div>
-                <label for="phone" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
+                <label for="phone" class="block text-sm font-medium text-on-surface mb-1">
                     {{ __('common.field_phone_number') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                 </label>
                 <input type="tel" id="phone" wire:model="phone" placeholder="+1 (555) 000-0000"
-                       class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
+                       class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
                 @error('phone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
         @endif
 
         <!-- Step 4: Game Preferences -->
         @if($step === 4)
-            <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
+            <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
                 {{ __('games.content_game_preferences_2') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
@@ -181,13 +181,13 @@
 
             <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                 @foreach($gameSystems as $gameSystem)
-                    <label class="flex items-center space-x-3 p-3 rounded-xl hover:bg-surface-container-low dark:hover:bg-[#3a3b34] cursor-pointer transition-colors">
+                    <label class="flex items-center space-x-3 p-3 rounded-xl hover:bg-surface-container-low cursor-pointer transition-colors">
                         <input type="checkbox"
                                value="{{ $gameSystem->id }}"
                                wire:model="favoriteGameSystemIds"
-                               class="rounded border-outline-variant text-primary focus:ring-primary dark:bg-[#1b1c17] dark:border-outline-variant" />
+                               class="rounded border-outline-variant text-primary focus:ring-primary" />
                         <div>
-                            <span class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">{{ $gameSystem->name }}</span>
+                            <span class="text-sm font-medium text-on-surface">{{ $gameSystem->name }}</span>
                             @if($gameSystem->description)
                                 <p class="text-xs text-on-surface-variant line-clamp-1">{{ Str::limit($gameSystem->description, 80) }}</p>
                             @endif
@@ -211,7 +211,7 @@
         <div class="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/15">
             @if($step > 1)
                 <button wire:click="previousStep"
-                        class="inline-flex items-center text-sm text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors">
+                        class="inline-flex items-center text-sm text-on-surface-variant hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-base mr-1">arrow_back</span>
                     {{ __('common.action_back') }}
                 </button>
