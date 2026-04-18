@@ -1,5 +1,5 @@
 <x-public-layout>
-@section('title', __('Safety Tools'))
+@section('title', __('safety.content_safety_tools'))
 
     {{-- Hero --}}
     <section class="relative bg-gradient-to-br from-primary to-primary-container text-on-primary overflow-hidden">
@@ -9,10 +9,10 @@
         </div>
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center">
             <h1 class="text-4xl sm:text-5xl font-heading font-bold tracking-tight leading-tight">
-                {{ __('Safety Tools for Tabletop Gaming') }}
+                {{ __('safety.field_safety_tools_for_tabletop_gaming') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto">
-                {{ __('Everyone deserves to feel safe and comfortable at the table. Safety tools are simple practices that help groups communicate boundaries and keep the focus on fun.') }}
+                {{ __('safety.content_everyone_deserves_to_feel_safe') }}
             </p>
         </div>
     </section>
@@ -21,13 +21,13 @@
     <section class="py-16 bg-surface">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
             <p class="text-lg text-on-surface-variant leading-relaxed max-w-3xl mx-auto">
-                {{ __('Whether you\'re a seasoned game master or joining your first session, safety tools create a shared language for boundaries. They\'re not about limiting creativity — they\'re about building trust so everyone can fully engage with the story.') }}
+                {{ __('safety.content_whether_you_re_a_seasoned') }}
             </p>
             <div class="mt-8 flex items-center justify-center gap-4">
                 <a href="{{ route('discover') }}" wire:navigate
                    class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">explore</span>
-                    {{ __('Find Games') }}
+                    {{ __('games.action_find_games') }}
                 </a>
             </div>
         </div>
@@ -54,11 +54,11 @@
                             {{ $category->label() }}
                         </h2>
                         @if($category->value === 'before')
-                            <p class="text-sm text-on-surface-variant">{{ __('Set expectations before the dice start rolling.') }}</p>
+                            <p class="text-sm text-on-surface-variant">{{ __('common.action_set_expectations_before_the_dice_start_rolling') }}</p>
                         @elseif($category->value === 'during')
-                            <p class="text-sm text-on-surface-variant">{{ __('Tools you can use right at the table.') }}</p>
+                            <p class="text-sm text-on-surface-variant">{{ __('common.content_tools_you_can_use_right_at_the_table') }}</p>
                         @else
-                            <p class="text-sm text-on-surface-variant">{{ __('Reflect and improve after each session.') }}</p>
+                            <p class="text-sm text-on-surface-variant">{{ __('campaigns.content_reflect_and_improve_after_each_session') }}</p>
                         @endif
                     </div>
                 </div>
@@ -77,13 +77,13 @@
                             <p class="text-sm text-on-surface-variant leading-relaxed">{{ $tool->fullDescription() }}</p>
                             @if($tool === \App\Enums\SafetyTool::XCard)
                                 <p class="mt-3 text-xs text-on-surface-variant">
-                                    {{ __('Created by John Stavropoulos. Learn more at') }}
+                                    {{ __('common.content_created_by_john_stavropoulos_learn_more_at') }}
                                     <a href="https://tinyurl.com/x-card-rpg" target="_blank" rel="noopener" class="text-primary hover:underline">tinyurl.com/x-card-rpg</a>
                                 </p>
                             @endif
                             @if($tool === \App\Enums\SafetyTool::ScriptChange)
                                 <p class="mt-3 text-xs text-on-surface-variant">
-                                    {{ __('Created by Beau Jágr Sheldon.') }}
+                                    {{ __('common.content_created_by_beau_j_gr_sheldon') }}
                                 </p>
                             @endif
                         </div>
@@ -97,7 +97,7 @@
     <section class="py-16 bg-surface">
         <div class="max-w-4xl mx-auto px-4 sm:px-6">
             <h2 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-on-surface text-center mb-10">
-                {{ __('Getting Started') }}
+                {{ __('common.field_getting_started') }}
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -105,22 +105,22 @@
                     <div class="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-secondary-container text-2xl" aria-hidden="true">checklist</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('Start with Session Zero') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('The single most impactful thing you can do. Set aside time before your first game to discuss expectations, themes, and boundaries as a group.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('safety.field_start_with_session_zero') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('safety.content_the_single_most_impactful_thing') }}</p>
                 </div>
                 <div class="text-center">
                     <div class="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-secondary-container text-2xl" aria-hidden="true">pan_tool</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('Have an X-Card on the Table') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('Even if you never use it, knowing it\'s there gives everyone permission to speak up. Place a card with an "X" on the table and explain how it works.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('safety.content_have_an_x_card_on_the_table') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_even_if_you_never_use') }}</p>
                 </div>
                 <div class="text-center">
                     <div class="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-secondary-container text-2xl" aria-hidden="true">chat</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('Check In Regularly') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('common.content_check_in_regularly') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('games.content_use_stars_wishes_or_a') }}</p>
                 </div>
             </div>
         </div>
@@ -131,21 +131,21 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
             <div class="bg-surface-container-high rounded-xl shadow-ambient p-8">
                 <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">info</span>
-                <h2 class="text-xl font-heading font-bold text-on-surface mt-3 mb-3">{{ __('Using Safety Tools on Roundup') }}</h2>
+                <h2 class="text-xl font-heading font-bold text-on-surface mt-3 mb-3">{{ __('safety.content_using_safety_tools_on_roundup') }}</h2>
                 <p class="text-on-surface-variant max-w-2xl mx-auto">
-                    {{ __('When you create a game or campaign, you can select the safety tools you plan to use. These are displayed on your game\'s detail page so players know what to expect before joining. You can also add custom notes about your safety approach.') }}
+                    {{ __('safety.content_when_you_create_a_game') }}
                 </p>
                 @auth
                     <a href="{{ route('games.create') }}" wire:navigate
                        class="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">add</span>
-                        {{ __('Create a Game') }}
+                        {{ __('games.action_create_a_game') }}
                     </a>
                 @else
                     <a href="{{ route('register') }}" wire:navigate
                        class="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
-                        {{ __('Sign Up to Get Started') }}
+                        {{ __('auth.action_sign_up_to_get_started') }}
                     </a>
                 @endauth
             </div>

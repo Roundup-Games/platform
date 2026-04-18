@@ -19,7 +19,7 @@
     // Date/time display
     $dateTime = $isCampaign ? null : $entity->date_time;
     $formattedDate = $dateTime?->isToday()
-        ? __('Today') . ', ' . $dateTime->format('H:i')
+        ? __('common.content_today') . ', ' . $dateTime->format('H:i')
         : $dateTime?->format('D, M j, H:i');
 
     // Distance badge
@@ -39,7 +39,7 @@
     {{-- Distance badge --}}
     <div class="absolute top-3 right-3 z-10">
         <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium"
-              aria-label="{{ __(':distance away', ['distance' => $distanceBadge]) }}">
+              aria-label="{{ __('discovery.content_distance_away', ['distance' => $distanceBadge]) }}">
             <span class="material-symbols-outlined text-xs mr-1" aria-hidden="true">straighten</span>
             {{ $distanceBadge }}
         </span>
@@ -65,7 +65,7 @@
             {{-- BGG top-100 badge --}}
             @if($isTopHundred)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container text-xs font-bold"
-                      title="{{ __('BoardGameGeek Rank #:rank', ['rank' => $bggRank]) }}">
+                      title="{{ __('games.content_boardgamegeek_rank_rank', ['rank' => $bggRank]) }}">
                     <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">emoji_events</span>
                     #{{ $bggRank }}
                 </span>
@@ -81,7 +81,7 @@
         @elseif($isCampaign)
             <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">autorenew</span>
-                {{ __('Ongoing Campaign') }}
+                {{ __('campaigns.content_ongoing_campaign') }}
             </div>
         @endif
 
@@ -90,9 +90,9 @@
             <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
             <span>{{ $participantCount }}/{{ $maxPlayers ?: '∞' }}</span>
             @if($maxPlayers > 0 && $participantCount >= $maxPlayers)
-                <span class="text-xs text-error font-medium ml-1">{{ __('Full') }}</span>
+                <span class="text-xs text-error font-medium ml-1">{{ __('common.content_full') }}</span>
             @elseif($participantCount >= ($minPlayers ?: 1))
-                <span class="text-xs text-primary font-medium ml-1">{{ __('Ready to play') }}</span>
+                <span class="text-xs text-primary font-medium ml-1">{{ __('common.content_ready_to_play') }}</span>
             @endif
         </div>
 
@@ -126,13 +126,13 @@
                 <a href="{{ $joinRoute }}" wire:navigate
                    class="inline-flex items-center px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center">
                     <span class="material-symbols-outlined mr-1.5 text-lg" aria-hidden="true">login</span>
-                    {{ $isCampaign ? __('View Campaign') : __('Join this Session') }}
+                    {{ $isCampaign ? __('campaigns.action_view_campaign') : __('campaigns.action_join_this_session') }}
                 </a>
             @else
                 <a href="{{ route('register') }}" wire:navigate
                    class="inline-flex items-center px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary-container hover:text-on-primary-container transition-colors w-full justify-center">
                     <span class="material-symbols-outlined mr-1.5 text-lg" aria-hidden="true">person_add</span>
-                    {{ __('Join this Session') }}
+                    {{ __('campaigns.action_join_this_session') }}
                 </a>
             @endauth
         </div>

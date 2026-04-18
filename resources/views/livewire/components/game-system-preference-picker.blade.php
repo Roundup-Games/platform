@@ -15,7 +15,7 @@
             type="text"
             id="preference-picker-{{ $preferenceType }}"
             class="w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-            placeholder="{{ $preferenceType === 'favorite' ? __('Search game systems to add as favorites...') : __('Search game systems to avoid...') }}"
+            placeholder="{{ $preferenceType === 'favorite' ? __('games.placeholder_search_game_systems_to_add_as_favorites') : __('games.placeholder_search_game_systems_to_avoid') }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
             wire:focus="setOpen"
@@ -30,7 +30,7 @@
                 type="button"
                 wire:click="$set('search', '')"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                aria-label="{{ __('Clear search') }}"
+                aria-label="{{ __('discovery.action_clear_search') }}"
             >
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
@@ -52,11 +52,11 @@
         <div
             class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
             role="listbox"
-            aria-label="{{ __('Game systems') }}"
+            aria-label="{{ __('games.content_game_systems_2') }}"
         >
             @if($results->isEmpty())
                 <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
-                    {{ __('No game systems found.') }}
+                    {{ __('games.content_no_game_systems_found_2') }}
                 </div>
             @else
                 @foreach($results as $index => $system)
@@ -83,16 +83,16 @@
                             <div class="text-sm font-medium text-on-surface truncate">
                                 {{ $system->name }}
                                 @if($alreadySelected)
-                                    <span class="text-xs text-on-surface-variant ml-1">({{ __('already selected') }})</span>
+                                    <span class="text-xs text-on-surface-variant ml-1">({{ __('games.content_already_selected') }})</span>
                                 @endif
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                    {{ __('Base Game') }}
+                                    {{ __('games.content_base_game') }}
                                 </span>
                                 @if($system->expansions_count > 0)
                                     <span class="text-xs text-on-surface-variant">
-                                        {{ $system->expansions_count }} {{ __('expansions') }}
+                                        {{ $system->expansions_count }} {{ __('games.content_expansions') }}
                                     </span>
                                 @endif
                                 @if($system->bgg_rank)
@@ -122,14 +122,14 @@
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-secondary text-lg" aria-hidden="true">extension</span>
                     <span class="text-sm font-medium text-on-surface">
-                        {{ __('Choose base game or expansion') }}
+                        {{ __('games.action_choose_base_game_or_expansion') }}
                     </span>
                 </div>
                 <button
                     type="button"
                     wire:click="cancelExpansionPicker"
                     class="text-on-surface-variant hover:text-on-surface transition-colors"
-                    aria-label="{{ __('Cancel') }}"
+                    aria-label="{{ __('common.action_cancel') }}"
                 >
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
                 </button>
@@ -162,20 +162,20 @@
                             <div class="text-sm text-on-surface truncate {{ $option->is_base ? 'font-medium' : '' }}">
                                 {{ $option->name }}
                                 @if($alreadySelected)
-                                    <span class="text-xs text-on-surface-variant ml-1">({{ __('already selected') }})</span>
+                                    <span class="text-xs text-on-surface-variant ml-1">({{ __('games.content_already_selected') }})</span>
                                 @endif
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 @if($option->is_base)
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                        {{ __('Base Game') }}
+                                        {{ __('games.content_base_game') }}
                                     </span>
                                     <span class="text-xs text-on-surface-variant">
-                                        {{ $preferenceType === 'favorite' ? __('implies all expansions') : __('blocks all expansions') }}
+                                        {{ $preferenceType === 'favorite' ? __('games.content_implies_all_expansions') : __('games.content_blocks_all_expansions') }}
                                     </span>
                                 @else
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
-                                        {{ __('Expansion') }}
+                                        {{ __('games.content_expansion') }}
                                     </span>
                                 @endif
                                 @if($option->bgg_average_rating > 0)
@@ -221,18 +221,18 @@
                             </span>
                         @endif
                         <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
-                            {{ __('Expansion') }}
+                            {{ __('games.content_expansion') }}
                         </span>
                     @else
                         {{-- Base game chip --}}
                         @if($preferenceType === 'favorite' && $system->expansions_count > 0)
                             <span class="text-xs text-on-surface-variant">
-                                +{{ $system->expansions_count }} {{ __('implied') }}
+                                +{{ $system->expansions_count }} {{ __('games.content_implied') }}
                             </span>
                         @endif
                         @if($preferenceType === 'avoid' && $system->expansions_count > 0)
                             <span class="text-xs text-on-surface-variant">
-                                +{{ $system->expansions_count }} {{ __('blocked') }}
+                                +{{ $system->expansions_count }} {{ __('games.content_blocked') }}
                             </span>
                         @endif
                     @endif
@@ -241,7 +241,7 @@
                         type="button"
                         wire:click="remove({{ $system->id }})"
                         class="text-on-surface-variant hover:text-error transition-colors ml-0.5"
-                        aria-label="{{ __('Remove :name', ['name' => $system->name]) }}"
+                        aria-label="{{ __('common.action_remove_name', ['name' => $system->name]) }}"
                     >
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
                     </button>
@@ -251,9 +251,9 @@
     @else
         <p class="mt-2 text-sm text-on-surface-variant italic">
             @if($preferenceType === 'favorite')
-                {{ __('No favorite game systems selected yet.') }}
+                {{ __('games.error_no_favorite_game_systems_selected_yet') }}
             @else
-                {{ __('No avoided game systems selected yet.') }}
+                {{ __('games.error_no_avoided_game_systems_selected_yet') }}
             @endif
         </p>
     @endif

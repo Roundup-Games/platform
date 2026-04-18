@@ -160,13 +160,13 @@ describe('Flash Messages', function () {
 describe('Icon-only Buttons', function () {
     it('division remove buttons have aria-label', function () {
         $template = file_get_contents(resource_path('views/livewire/events/create-event.blade.php'));
-        expect($template)->toContain("aria-label=\"{{ __('Remove division') }}\"");
+        expect($template)->toContain("aria-label=\"{{ __('events.aria_remove_division') }}\"");
     });
 
     it('announcement buttons have aria-labels instead of emoji', function () {
         $template = file_get_contents(resource_path('views/livewire/events/event-announcements.blade.php'));
-        expect($template)->toContain("aria-label=\"{{ __('Delete announcement') }}\"");
-        expect($template)->toContain("aria-label=\"{{ __('Edit announcement') }}\"");
+        expect($template)->toContain("aria-label=\"{{ __('events.action_delete_announcement') }}\"");
+        expect($template)->toContain("aria-label=\"{{ __('events.action_edit_announcement_2') }}\"");
         // Should NOT contain emoji in buttons
         expect($template)->not->toContain('🗑️');
         expect($template)->not->toContain('✏️');
@@ -202,7 +202,7 @@ describe('Form Label Associations', function () {
         preg_match_all('/<label\s+class="block text-sm[^"]*mb-1"[^>]*>([^<]+)/s', $template, $matches);
 
         foreach ($matches[0] as $labelTag) {
-            if (str_contains($labelTag, 'Registration Type')) {
+            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'content_registration_type')) {
                 continue; // Toggle button group, no form control to associate with
             }
             expect($labelTag)->toContain('for=');
@@ -216,7 +216,7 @@ describe('Form Label Associations', function () {
         preg_match_all('/<label\s+class="block text-sm[^"]*mb-1"[^>]*>([^<]+)/s', $template, $matches);
 
         foreach ($matches[0] as $labelTag) {
-            if (str_contains($labelTag, 'Registration Type')) {
+            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'content_registration_type')) {
                 continue;
             }
             expect($labelTag)->toContain('for=');

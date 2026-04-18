@@ -17,13 +17,13 @@ $hasFallback = !$hasTranslationRow && $event->name !== null;
                 @if($event->is_featured)
                     <span class="inline-flex items-center gap-1 text-xs font-medium text-primary-fixed">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">star</span>
-                        {{ __('Featured') }}
+                        {{ __('discovery.content_featured') }}
                     </span>
                 @else
                     <span>&nbsp;</span>
                 @endif
                 @if($event->status === 'registration_open')
-                    <span class="text-xs font-medium text-on-primary/80 bg-on-primary/20 backdrop-blur-sm px-2 py-0.5 rounded-full">{{ __('Registration Open') }}</span>
+                    <span class="text-xs font-medium text-on-primary/80 bg-on-primary/20 backdrop-blur-sm px-2 py-0.5 rounded-full">{{ __('events.content_registration_open') }}</span>
                 @endif
             </div>
         </div>
@@ -35,7 +35,7 @@ $hasFallback = !$hasTranslationRow && $event->name !== null;
             @if($hasFallback)
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container mt-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">translate</span>
-                    {{ __('Available in: :locale', ['locale' => $locale === 'de' ? 'English' : 'Deutsch']) }}
+                    {{ __('events.content_available_in_locale', ['locale' => $locale === 'de' ? 'English' : 'Deutsch']) }}
                 </span>
             @endif
 
@@ -75,12 +75,12 @@ $hasFallback = !$hasTranslationRow && $event->name !== null;
             <div class="mt-4 pt-3 bg-surface-container-low bg-clip-padding flex items-center justify-between">
                 <span class="text-sm font-medium {{ ($event->individual_registration_fee || $event->team_registration_fee) ? 'text-primary' : 'text-secondary' }}">
                     @if($event->individual_registration_fee || $event->team_registration_fee)
-                        {{ __(':amount+ to register', ['amount' => format_currency($event->individual_registration_fee ?: $event->team_registration_fee)]) }}
+                        {{ __('auth.field_amount_to_register', ['amount' => format_currency($event->individual_registration_fee ?: $event->team_registration_fee)]) }}
                     @else
-                        {{ __('Free Entry') }}
+                        {{ __('billing.content_free_entry') }}
                     @endif
                 </span>
-                <span class="text-xs text-primary font-medium hover:underline">{{ __('View Details →') }}</span>
+                <span class="text-xs text-primary font-medium hover:underline">{{ __('common.action_view_details') }}</span>
             </div>
         </div>
     </a>

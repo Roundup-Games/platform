@@ -254,9 +254,9 @@ class NearbySessions extends Component
     public function formatDistance(float $km): string
     {
         if ($km < 1) {
-            return __(':meters m away', ['meters' => round($km * 1000)]);
+            return __('discovery.content_meters_m_away', ['meters' => round($km * 1000)]);
         }
-        return __(':km km away', ['km' => number_format($km, 1)]);
+        return __('discovery.content_km_km_away', ['km' => number_format($km, 1)]);
     }
 
     /**

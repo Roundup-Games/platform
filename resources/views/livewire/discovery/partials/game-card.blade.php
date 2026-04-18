@@ -14,7 +14,7 @@
                 </span>
             @else
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ __('Free') }}
+                    {{ __('billing.content_free') }}
                 </span>
             @endif
         </div>
@@ -23,7 +23,7 @@
         <div class="flex items-center gap-2 mb-3 flex-wrap">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                 <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">casino</span>
-                {{ __('Game') }}
+                {{ __('games.content_game') }}
             </span>
             @if($game->gameSystem)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
@@ -33,7 +33,7 @@
             @if($game->visibility === 'protected')
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                     <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                    {{ __('Members Only') }}
+                    {{ __('teams.content_members_only') }}
                 </span>
             @endif
             @if($game->experience_level)
@@ -106,7 +106,7 @@
             @if(isset($game->participants_count))
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                    {{ $game->participants_count }} {{ __('joined') }}
+                    {{ $game->participants_count }} {{ __('common.content_joined') }}
                 </span>
             @endif
         </div>

@@ -88,6 +88,6 @@ class PageController extends Controller
             Mail::to($adminEmail)->send(new ContactFormSubmitted($contactMessage));
         }
 
-        return redirect()->route('contact')->with('success', __('Thank you for your message! We\'ll get back to you soon.'));
+        return redirect()->route('contact')->with('success', __('common.content_thank_you_for_your_message'));
     }
 }

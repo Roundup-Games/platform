@@ -29,7 +29,7 @@ class EnsureUserNotDisabled
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('root')->with('status', __('Your account has been disabled.'));
+            return redirect()->route('root')->with('status', __('auth.error_your_account_has_been_disabled'));
         }
 
         return $next($request);

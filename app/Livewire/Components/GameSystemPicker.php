@@ -16,7 +16,7 @@ use Livewire\Component;
  *   <livewire:components.game-system-picker
  *       wire:model="game_system_id"
  *       :fieldId="'game-system'"
- *       :label="__('Game System')"
+ *       :label="__('games.content_game_system')"
  *       :error="$errors->first('game_system_id')"
  *   />
  *
@@ -57,7 +57,7 @@ class GameSystemPicker extends Component
         string $error = '',
     ): void {
         $this->fieldId = $fieldId;
-        $this->label = $label ?: __('Game System');
+        $this->label = $label ?: __('games.content_game_system');
         $this->value = $value;
         $this->error = $error;
 

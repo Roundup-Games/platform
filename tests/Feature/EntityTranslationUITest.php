@@ -73,7 +73,7 @@ describe('EventDetail Translations', function () {
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertSee('English Only Event')
-            ->assertSee('Available in:');
+            ->assertSee('Verfügbar in:');
     });
 
     it('does not show fallback badge when translation exists', function () {
@@ -90,7 +90,7 @@ describe('EventDetail Translations', function () {
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Zweisprachiges Event')
-            ->assertDontSee('Available in:');
+            ->assertDontSee('Verfügbar in:');
     });
 
     it('translates announcement title and content', function () {
@@ -235,7 +235,7 @@ describe('EventCard Translations', function () {
         );
 
         $view->assertSee('English Only Event')
-            ->assertSee('Available in:');
+            ->assertSee('Verfügbar in:');
     });
 
     it('does not show fallback badge when translation exists', function () {
@@ -255,7 +255,7 @@ describe('EventCard Translations', function () {
         );
 
         $view->assertSee('Zweisprachiges Event')
-            ->assertDontSee('Available in:');
+            ->assertDontSee('Verfügbar in:');
     });
 });
 

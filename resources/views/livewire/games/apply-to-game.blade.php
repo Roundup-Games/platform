@@ -4,7 +4,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('Back to Game') }}
+                {{ __('games.action_back_to_game') }}
             </a>
         </div>
     </div>
@@ -36,14 +36,14 @@
                 <span class="material-symbols-outlined text-4xl text-secondary mb-3" aria-hidden="true">check_circle</span>
                 <p class="text-on-surface">
                     @if($isParticipant)
-                        {{ __('You are already a participant of this game.') }}
+                        {{ __('games.content_you_are_already_a_participant_of_this_game') }}
                     @else
-                        {{ __('You have already applied to this game.') }}
+                        {{ __('games.content_you_have_already_applied_to_this_game') }}
                     @endif
                 </p>
                 <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                    {{ __('View Game') }}
+                    {{ __('games.action_view_game') }}
                 </a>
             </div>
         @else
@@ -58,25 +58,25 @@
                         @endif
                     </span>
                     @if($game->visibility === 'public')
-                        {{ __('Join Game') }}
+                        {{ __('games.action_join_game') }}
                     @else
-                        {{ __('Apply to Join') }}
+                        {{ __('games.action_apply_to_join') }}
                     @endif
                 </h2>
 
                 @if($game->visibility === 'protected')
                     <p class="mb-4 text-sm text-on-surface-variant">
-                        {{ __('This is a protected game. Your application will be reviewed by the game owner before you can join.') }}
+                        {{ __('games.content_this_is_a_protected_game') }}
                     </p>
                 @endif
 
                 <form wire:submit="submitApplication" class="space-y-4">
                     <div>
                         <label for="message" class="block text-sm font-medium text-on-surface mb-1">
-                            {{ __('Message to the host') }} <span class="text-on-surface-variant">{{ __('(optional)') }}</span>
+                            {{ __('common.content_message_to_the_host') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                         </label>
                         <textarea wire:model="message" id="message" rows="4"
-                            placeholder="{{ __("Tell the host why you'd like to join...") }}"
+                            placeholder="{{ __('common.content_tell_the_host_why_you_d_like_to_join') }}"
                             class="block w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-sm transition-colors"
                             data-testid="application-message"></textarea>
                         @error('message')
@@ -88,9 +88,9 @@
                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                         @if($game->visibility === 'public')
-                            {{ __('Join Game') }}
+                            {{ __('games.action_join_game') }}
                         @else
-                            {{ __('Submit Application') }}
+                            {{ __('common.action_submit_application') }}
                         @endif
                     </button>
                 </form>

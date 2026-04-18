@@ -21,7 +21,7 @@
                 @if($usingFallbackRadius)
                     <p class="text-sm text-on-surface-variant mb-2">
                         <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">info</span>
-                        {{ __('No sessions found within :radius km. Showing results within :fallback km.', [
+                        {{ __('campaigns.content_no_sessions_found_within_radius', [
                             'radius' => (int) $radius,
                             'fallback' => (int) $fallbackRadius,
                         ]) }}
@@ -47,29 +47,29 @@
                     <span class="material-symbols-outlined text-on-primary-container text-3xl" aria-hidden="true">group_add</span>
                 </div>
                 <h3 class="text-lg font-heading font-semibold text-on-surface mb-2">
-                    {{ __('No sessions near you yet') }}
+                    {{ __('campaigns.content_no_sessions_near_you_yet') }}
                 </h3>
                 <p class="text-on-surface-variant max-w-md mx-auto mb-6">
-                    {{ __('Be the first to bring tabletop gaming to your area. Start a session and players will find you.') }}
+                    {{ __('campaigns.content_be_the_first_to_bring') }}
                 </p>
                 <div class="flex flex-wrap justify-center gap-3">
                     @auth
                         <a href="{{ route('games.create') }}" wire:navigate
                            class="inline-flex items-center px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-colors text-sm">
                             <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">add_circle</span>
-                            {{ __('Host a Session') }}
+                            {{ __('campaigns.content_host_a_session') }}
                         </a>
                     @else
                         <a href="{{ route('register') }}" wire:navigate
                            class="inline-flex items-center px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-colors text-sm">
                             <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                            {{ __('Sign Up to Host') }}
+                            {{ __('auth.content_sign_up_to_host') }}
                         </a>
                     @endauth
                     <button wire:click="clearGuestLocation"
                             class="inline-flex items-center px-5 py-2.5 bg-surface-container text-on-surface rounded-xl font-semibold hover:bg-surface-container-high transition-colors text-sm">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">edit_location</span>
-                        {{ __('Change Location') }}
+                        {{ __('location.action_change_location') }}
                     </button>
                 </div>
             </div>

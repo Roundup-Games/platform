@@ -12,7 +12,7 @@
 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-xl" aria-hidden="true">shield</span>
-        {{ __('Safety Tools') }}
+        {{ __('safety.content_safety_tools') }}
     </h2>
 
     @if(!empty($tools))
@@ -49,21 +49,21 @@
 
     @if($linesAndVeilsText)
         <div class="mt-4 pt-4 border-t border-outline-variant/20">
-            <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-2">{{ __('Lines & Veils Details') }}</p>
+            <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-2">{{ __('safety.content_lines_veils_details') }}</p>
             <p class="text-sm text-on-surface whitespace-pre-line">{{ $linesAndVeilsText }}</p>
         </div>
     @endif
 
     @if($customNote)
         <div class="mt-4 pt-4 border-t border-outline-variant/20">
-            <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-2">{{ __('Custom Safety Note') }}</p>
+            <p class="text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-2">{{ __('safety.content_custom_safety_note') }}</p>
             <p class="text-sm text-on-surface whitespace-pre-line">{{ $customNote }}</p>
         </div>
     @endif
 
     <div class="mt-4 pt-4 border-t border-outline-variant/20">
         <p class="text-xs text-on-surface-variant">
-            <a href="{{ route('safety-tools') }}" wire:navigate class="text-primary hover:underline">{{ __('Learn more about safety tools') }}</a>
+            <a href="{{ route('safety-tools') }}" wire:navigate class="text-primary hover:underline">{{ __('safety.content_learn_more_about_safety_tools') }}</a>
         </p>
     </div>
 </section>

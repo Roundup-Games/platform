@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', __('Events')) — {{ config('app.name', 'Roundup Games') }}</title>
+    <title>@yield('title', __('events.content_events')) — {{ config('app.name', 'Roundup Games') }}</title>
 
     <!-- Fonts: Noto Serif for headings, Inter for body -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('Skip to content') }}</a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('common.content_skip_to_content') }}</a>
 
     <div class="min-h-screen flex flex-col bg-surface">
 
@@ -35,14 +35,14 @@
 
                 {{-- Desktop Nav Links --}}
                 <div class="hidden md:flex items-center gap-8">
-                    <a href="{{ route('discover') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Discover') }}</a>
-                    <a href="{{ route('games.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('games.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Games') }}</a>
-                    <a href="{{ route('campaigns.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('Campaigns') }}</a>
+                    <a href="{{ route('discover') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('discovery.action_discover') }}</a>
+                    <a href="{{ route('games.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('games.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('games.content_games') }}</a>
+                    <a href="{{ route('campaigns.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('campaigns.content_campaigns') }}</a>
                     @php
                         $howItWorksRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                     @endphp
-                    <a href="{{ $howItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('How It Works') }}</a>
-                    <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-1 font-heading text-sm tracking-tight {{ request()->routeIs('near') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}"><span class="material-symbols-outlined text-base">location_on</span>{{ __('Near Me') }}</a>
+                    <a href="{{ $howItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_how_it_works') }}</a>
+                    <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-1 font-heading text-sm tracking-tight {{ request()->routeIs('near') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}"><span class="material-symbols-outlined text-base">location_on</span>{{ __('discovery.content_near_me') }}</a>
                     @php
                         $pubOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
                         $pubCurrentPath = '/' . request()->path();
@@ -54,23 +54,23 @@
                 <div class="hidden md:flex items-center gap-4">
                     @auth
                         <a href="{{ route('dashboard') }}" wire:navigate class="px-5 py-2 text-primary font-medium hover:text-primary transition-colors text-sm">
-                            {{ __('Dashboard') }}
+                            {{ __('profile.content_dashboard') }}
                         </a>
                     @else
                         <a href="{{ route('login') }}" wire:navigate class="px-5 py-2 text-primary font-medium hover:text-primary transition-colors text-sm">
-                            {{ __('Log in') }}
+                            {{ __('auth.content_log_in') }}
                         </a>
                     @endauth
                     @auth
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
                             <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
-                                {{ __('Log Out') }}
+                                {{ __('auth.content_log_out') }}
                             </button>
                         </form>
                     @else
                         <a href="{{ route('register') }}" wire:navigate class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
-                            {{ __('Sign Up') }}
+                            {{ __('auth.content_sign_up') }}
                         </a>
                     @endauth
                 </div>
@@ -93,17 +93,17 @@
                          @click.away="open = false"
                          class="absolute left-0 right-0 bg-surface/95 backdrop-blur-md border-b border-outline-variant/15 z-50">
                         <div class="px-6 py-4 space-y-1 max-w-screen-2xl mx-auto">
-                            <a href="{{ route('home') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('home') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Home') }}</a>
-                            <a href="{{ route('discover') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Discover') }}</a>
-                            <a href="{{ route('games.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('games.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Games') }}</a>
-                            <a href="{{ route('campaigns.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Campaigns') }}</a>
+                            <a href="{{ route('home') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('home') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.content_home') }}</a>
+                            <a href="{{ route('discover') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('discover') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('discovery.action_discover') }}</a>
+                            <a href="{{ route('games.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('games.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('games.content_games') }}</a>
+                            <a href="{{ route('campaigns.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('campaigns.content_campaigns') }}</a>
                             @php
                                 $mobHowItWorksRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                             @endphp
-                            <a href="{{ $mobHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('How It Works') }}</a>
-                            <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('near') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}"><span class="material-symbols-outlined text-base">location_on</span>{{ __('Near Me') }}</a>
-                            <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('About') }}</a>
-                            <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('Contact') }}</a>
+                            <a href="{{ $mobHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_how_it_works') }}</a>
+                            <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('near') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}"><span class="material-symbols-outlined text-base">location_on</span>{{ __('discovery.content_near_me') }}</a>
+                            <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_about') }}</a>
+                            <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_contact') }}</a>
                             @php
                                 $mobPubOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
                                 $mobPubCurrentPath = '/' . request()->path();
@@ -112,14 +112,14 @@
 
                             <div class="pt-3 mt-2 border-t border-outline-variant/15 space-y-1">
                                 @auth
-                                    <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('Dashboard') }}</a>
+                                    <a href="{{ route('dashboard') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('profile.content_dashboard') }}</a>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <button type="submit" class="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('Log Out') }}</button>
+                                        <button type="submit" class="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('auth.content_log_out') }}</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('login') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('Log in') }}</a>
-                                    <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight font-bold bg-gradient-to-r from-primary to-primary-container text-on-primary mt-2">{{ __('Sign Up') }}</a>
+                                    <a href="{{ route('login') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('auth.content_log_in') }}</a>
+                                    <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight font-bold bg-gradient-to-r from-primary to-primary-container text-on-primary mt-2">{{ __('auth.content_sign_up') }}</a>
                                 @endauth
                             </div>
                         </div>
@@ -140,7 +140,7 @@
                 <div class="space-y-4 mb-8 md:mb-0">
                     <div class="font-heading font-semibold text-primary text-xl tracking-tight">Roundup Games</div>
                     <p class="text-sm text-on-surface-variant max-w-xs">
-                        &copy; {{ date('Y') }} Roundup Games. {{ __('The Digital Parlor for Tabletop Enthusiasts.') }}
+                        &copy; {{ date('Y') }} Roundup Games. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
                     </p>
                     <div class="flex gap-4">
                         <span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">public</span>
@@ -157,32 +157,32 @@
                         $forOrganizersRouteExists = \Illuminate\Support\Facades\Route::has('for-organizers');
                     @endphp
                     <div class="flex flex-col gap-2">
-                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('Platform') }}</span>
-                        <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Discover') }}</a>
-                        <a href="{{ route('games.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Games') }}</a>
-                        <a href="{{ route('campaigns.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Campaigns') }}</a>
-                        <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Events') }}</a>
-                        <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Game Systems') }}</a>
-                        <a href="{{ route('near') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Near Me') }}</a>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_platform') }}</span>
+                        <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('discovery.action_discover') }}</a>
+                        <a href="{{ route('games.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_games') }}</a>
+                        <a href="{{ route('campaigns.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('campaigns.content_campaigns') }}</a>
+                        <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('events.content_events') }}</a>
+                        <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_game_systems') }}</a>
+                        <a href="{{ route('near') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('discovery.content_near_me') }}</a>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('Support') }}</span>
-                        <a href="{{ $footerHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('How It Works') }}</a>
-                        <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Safety Tools') }}</a>
-                        <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('For Organizers') }}</a>
-                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Contact') }}</a>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_support') }}</span>
+                        <a href="{{ $footerHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_how_it_works') }}</a>
+                        <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
+                        <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_for_organizers') }}</a>
+                        <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_contact') }}</a>
                     </div>
                     <div class="flex flex-col gap-2 col-span-2 md:col-span-1">
-                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('Account') }}</span>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('profile.content_account') }}</span>
                         @auth
-                            <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Dashboard') }}</a>
+                            <a href="{{ route('dashboard') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('profile.content_dashboard') }}</a>
                             <form method="POST" action="{{ route('logout') }}" class="inline">
                                 @csrf
-                                <button type="submit" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Log Out') }}</button>
+                                <button type="submit" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('auth.content_log_out') }}</button>
                             </form>
                         @else
-                            <a href="{{ route('login') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Log in') }}</a>
-                            <a href="{{ route('register') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('Sign Up') }}</a>
+                            <a href="{{ route('login') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('auth.content_log_in') }}</a>
+                            <a href="{{ route('register') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('auth.content_sign_up') }}</a>
                         @endauth
                     </div>
                 </div>

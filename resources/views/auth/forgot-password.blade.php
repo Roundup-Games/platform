@@ -1,8 +1,8 @@
 <x-guest-layout>
     <!-- Page Title -->
     <div class="mb-6 text-center">
-        <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('Reset Password') }}</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">{{ __('No problem. We\'ll send you a reset link.') }}</p>
+        <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('auth.field_reset_password') }}</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_no_problem_we_ll_send_you_a_reset_link') }}</p>
     </div>
 
     <!-- Session Status -->
@@ -13,14 +13,14 @@
 
         <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
+            <x-input-label for="email" :value="__('emails.field_email')" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
         <div class="flex items-center justify-end mt-6">
             <x-primary-button class="w-full justify-center">
-                {{ __('Email Password Reset Link') }}
+                {{ __('emails.field_email_password_reset_link') }}
             </x-primary-button>
         </div>
     </form>

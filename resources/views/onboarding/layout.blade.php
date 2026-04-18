@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Roundup Games') }} — {{ __('Complete Your Profile') }}</title>
+        <title>{{ config('app.name', 'Roundup Games') }} — {{ __('profile.content_complete_your_profile') }}</title>
 
         {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>
@@ -31,7 +31,7 @@
                     <a href="/" wire:navigate class="inline-flex items-center gap-2">
                         <span class="text-2xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface dark:text-[#eae8e0]">Games</span></span>
                     </a>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Complete your profile to get started') }}</p>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('profile.field_complete_your_profile_to_get_started') }}</p>
                 </div>
 
                 {{-- Content --}}

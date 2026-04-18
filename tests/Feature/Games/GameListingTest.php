@@ -207,7 +207,7 @@ describe('GameListing', function () {
     });
 
     it('filters by date this_week', function () {
-        Game::factory()->create(['name' => 'This Week Game', 'date_time' => now()->addDays(2), 'visibility' => 'public', 'status' => 'scheduled']);
+        Game::factory()->create(['name' => 'This Week Game', 'date_time' => now()->startOfWeek()->addDays(3), 'visibility' => 'public', 'status' => 'scheduled']);
         Game::factory()->create(['name' => 'Next Month Game', 'date_time' => now()->addMonths(2), 'visibility' => 'public', 'status' => 'scheduled']);
 
         Livewire\Livewire::test(App\Livewire\Games\GameListing::class)

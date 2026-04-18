@@ -1,20 +1,20 @@
 @component('mail::message')
-# {{ __("You're Invited to Join a Team!") }} 🎲
+# {{ __("teams.content_you_re_invited_to_join_a_team") }} 🎲
 
-{{ __('Hey there,') }}
+{{ __('common.content_hey_there') }}
 
-{{ __('**:inviter** has invited you to join the team **:team** on Roundup Games.', ['inviter' => $inviter->name, 'team' => $team->name]) }}
+{{ __('emails.content_inviter_has_invited_you_to', ['inviter' => $inviter->name, 'team' => $team->name]) }}
 
 @if($team->city || $team->country)
-**{{ __('Based in:') }}** {{ collect([$team->city, $team->country])->filter()->join(', ') }}
+**{{ __('common.content_based_in') }}** {{ collect([$team->city, $team->country])->filter()->join(', ') }}
 @endif
 
 @component('mail::button', ['url' => $acceptUrl])
-{{ __('Accept Invitation') }}
+{{ __('common.action_accept_invitation') }}
 @endcomponent
 
-{{ __('This invitation was sent to **:email**. If you weren\'t expecting this, you can safely ignore this email.', ['email' => $inviteeEmail]) }}
+{{ __('emails.content_this_invitation_was_sent_to', ['email' => $inviteeEmail]) }}
 
-{{ __('Happy gaming!') }} 🎯
+{{ __('common.content_happy_gaming') }} 🎯
 Roundup Games
 @endcomponent

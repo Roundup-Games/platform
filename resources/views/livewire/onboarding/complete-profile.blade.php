@@ -2,7 +2,7 @@
     <!-- Progress indicator -->
     <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
-            @foreach([__('Location'), __('Identity'), __('Contact'), __('Preferences')] as $i => $label)
+            @foreach([__('location.content_location'), __('common.content_identity'), __('pages.content_contact'), __('profile.content_preferences')] as $i => $label)
                 <div class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                     <div class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium
                         {{ $step > $i + 1 ? 'bg-primary text-on-primary' : ($step === $i + 1 ? 'bg-primary text-on-primary' : 'bg-surface-container-highest dark:bg-[#3a3b34] text-on-surface-variant') }}">
@@ -27,10 +27,10 @@
         <!-- Step 1: Location -->
         @if($step === 1)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                {{ __('Where are you based?') }}
+                {{ __('location.content_where_are_you_based') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                {{ __("This helps us find games and events near you.") }}
+                {{ __("profile.content_this_helps_us_find_games_and_events_near_you") }}
             </p>
 
             {{-- If location was detected from localStorage and not yet confirmed --}}
@@ -40,7 +40,7 @@
                         <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">location_on</span>
                         <div>
                             <p class="text-sm font-medium text-on-surface dark:text-[#eae8e0]">
-                                {{ __('We think you\'re in :city — is that right?', ['city' => $city]) }}
+                                {{ __('location.content_we_think_you_re_in_city_is_that_right', ['city' => $city]) }}
                             </p>
                         </div>
                     </div>
@@ -48,11 +48,11 @@
                     <div class="flex gap-3">
                         <button wire:click="confirmLocation"
                                 class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                            {{ __('Yes, that\'s right') }}
+                            {{ __('common.content_yes_that_s_right') }}
                         </button>
                         <button wire:click="editLocation"
                                 class="px-4 py-2.5 border border-outline-variant/30 text-on-surface-variant rounded-xl hover:bg-surface-container-low dark:hover:bg-[#3a3b34] transition-colors text-sm font-medium">
-                            {{ __('No, let me search') }}
+                            {{ __('common.action_no_let_me_search') }}
                         </button>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
                     </div>
                     <button wire:click="editLocation"
                             class="text-sm text-primary hover:underline">
-                        {{ __('Change location') }}
+                        {{ __('location.action_change_location') }}
                     </button>
                 </div>
 
@@ -82,26 +82,26 @@
                 <div class="space-y-4">
                     <div>
                         <label for="city" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                            {{ __('City') }} <span class="text-error">*</span>
+                            {{ __('location.field_city') }} <span class="text-error">*</span>
                         </label>
-                        <input type="text" id="city" wire:model="city" placeholder="{{ __('Enter your city') }}"
+                        <input type="text" id="city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
                                class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="address" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                            {{ __('Address') }} <span class="text-on-surface-variant">{{ __('(optional)') }}</span>
+                            {{ __('location.field_address') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                         </label>
-                        <input type="text" id="address" wire:model="address" placeholder="{{ __('Street address, neighborhood') }}"
+                        <input type="text" id="address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
                                class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
                         @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <button wire:click="geocodeCity"
                             class="w-full px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                        <span wire:loading.remove wire:target="geocodeCity">{{ __('Find my location') }}</span>
-                        <span wire:loading wire:target="geocodeCity">{{ __('Searching...') }}</span>
+                        <span wire:loading.remove wire:target="geocodeCity">{{ __('location.action_find_my_location') }}</span>
+                        <span wire:loading wire:target="geocodeCity">{{ __('common.content_searching') }}</span>
                     </button>
                 </div>
             @endif
@@ -110,41 +110,41 @@
         <!-- Step 2: Identity -->
         @if($step === 2)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                {{ __('Tell us about yourself') }}
+                {{ __('common.content_tell_us_about_yourself') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                {{ __('This helps us personalize your experience.') }}
+                {{ __('common.content_this_helps_us_personalize_your_experience') }}
             </p>
 
             <div class="space-y-4">
                 <div>
                     <label for="gender" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                        {{ __('Gender') }} <span class="text-error">*</span>
+                        {{ __('common.field_gender') }} <span class="text-error">*</span>
                     </label>
                     <select id="gender" wire:model="gender"
                             class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
-                        <option value="">{{ __('Select...') }}</option>
-                        <option value="male">{{ __('Male') }}</option>
-                        <option value="female">{{ __('Female') }}</option>
-                        <option value="non-binary">{{ __('Non-binary') }}</option>
-                        <option value="prefer-not-to-say">{{ __('Prefer not to say') }}</option>
-                        <option value="other">{{ __('Other') }}</option>
+                        <option value="">{{ __('common.content_select') }}</option>
+                        <option value="male">{{ __('common.content_male') }}</option>
+                        <option value="female">{{ __('common.content_female') }}</option>
+                        <option value="non-binary">{{ __('common.content_non_binary') }}</option>
+                        <option value="prefer-not-to-say">{{ __('common.content_prefer_not_to_say') }}</option>
+                        <option value="other">{{ __('common.content_other') }}</option>
                     </select>
                     @error('gender') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label for="pronouns" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                        {{ __('Pronouns') }} <span class="text-error">*</span>
+                        {{ __('profile.content_pronouns') }} <span class="text-error">*</span>
                     </label>
                     <select id="pronouns" wire:model="pronouns"
                             class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary">
-                        <option value="">{{ __('Select...') }}</option>
-                        <option value="he/him">{{ __('He/Him') }}</option>
-                        <option value="she/her">{{ __('She/Her') }}</option>
-                        <option value="they/them">{{ __('They/Them') }}</option>
-                        <option value="prefer-not-to-say">{{ __('Prefer not to say') }}</option>
-                        <option value="other">{{ __('Other') }}</option>
+                        <option value="">{{ __('common.content_select') }}</option>
+                        <option value="he/him">{{ __('common.content_he_him') }}</option>
+                        <option value="she/her">{{ __('common.content_she_her') }}</option>
+                        <option value="they/them">{{ __('common.content_they_them') }}</option>
+                        <option value="prefer-not-to-say">{{ __('common.content_prefer_not_to_say') }}</option>
+                        <option value="other">{{ __('common.content_other') }}</option>
                     </select>
                     @error('pronouns') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
@@ -154,15 +154,15 @@
         <!-- Step 3: Contact -->
         @if($step === 3)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                {{ __('Contact information') }}
+                {{ __('common.content_contact_information') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                {{ __('Optional — useful for game night coordination.') }}
+                {{ __('games.content_optional_useful_for_game_night_coordination') }}
             </p>
 
             <div>
                 <label for="phone" class="block text-sm font-medium text-on-surface dark:text-[#eae8e0] mb-1">
-                    {{ __('Phone number') }} <span class="text-on-surface-variant">{{ __('(optional)') }}</span>
+                    {{ __('common.field_phone_number') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                 </label>
                 <input type="tel" id="phone" wire:model="phone" placeholder="+1 (555) 000-0000"
                        class="w-full rounded-md border-outline-variant/30 dark:bg-[#1b1c17] dark:text-[#eae8e0] shadow-sm focus:border-primary focus:ring-primary" />
@@ -173,10 +173,10 @@
         <!-- Step 4: Game Preferences -->
         @if($step === 4)
             <h2 class="text-xl font-heading font-semibold text-on-surface dark:text-[#eae8e0] mb-1">
-                {{ __('Game preferences') }}
+                {{ __('games.content_game_preferences_2') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
-                {{ __("Select the games you enjoy — we'll use this to recommend sessions and events.") }}
+                {{ __("events.content_select_the_games_you_enjoy") }}
             </p>
 
             <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -197,13 +197,13 @@
 
                 @if($gameSystems->isEmpty())
                     <p class="text-sm text-on-surface-variant italic py-4 text-center">
-                        {{ __('No game systems available yet — you can add preferences later from your profile.') }}
+                        {{ __('games.content_no_game_systems_available_yet') }}
                     </p>
                 @endif
             </div>
 
             <p class="mt-4 text-xs text-on-surface-variant">
-                {{ __(':count selected', ['count' => count($this->favoriteGameSystemIds)]) }}
+                {{ __('common.content_count_selected', ['count' => count($this->favoriteGameSystemIds)]) }}
             </p>
         @endif
 
@@ -213,7 +213,7 @@
                 <button wire:click="previousStep"
                         class="inline-flex items-center text-sm text-on-surface-variant hover:text-primary dark:hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-base mr-1">arrow_back</span>
-                    {{ __('Back') }}
+                    {{ __('common.action_back') }}
                 </button>
             @else
                 <span></span>
@@ -222,14 +222,14 @@
             @if($step < 4)
                 <button wire:click="nextStep"
                         class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                    {{ __('Continue') }}
+                    {{ __('common.action_continue') }}
                 </button>
             @else
                 <div class="flex items-center gap-3">
                     <button wire:click="complete" wire:loading.attr="disabled"
                             class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                        <span wire:loading.remove>{{ __('Complete Profile') }}</span>
-                        <span wire:loading>{{ __('Saving...') }}</span>
+                        <span wire:loading.remove>{{ __('profile.content_complete_profile') }}</span>
+                        <span wire:loading>{{ __('common.content_saving') }}</span>
                     </button>
                 </div>
             @endif

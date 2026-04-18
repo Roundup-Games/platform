@@ -21,7 +21,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: __('Welcome to Roundup Games!'),
+            subject: __('events.content_welcome_to_roundup_games'),
         );
     }
 

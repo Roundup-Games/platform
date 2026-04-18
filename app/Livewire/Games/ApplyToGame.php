@@ -41,13 +41,13 @@ class ApplyToGame extends Component
 
         // Check if already a participant or has pending application
         if ($game->participants()->where('user_id', Auth::id())->exists()) {
-            session()->flash('info', __('You are already a participant or have a pending invite/application for this game.'));
+            session()->flash('info', __('events.content_you_are_already_a_participant_2'));
 
             return;
         }
 
         if ($game->applications()->where('user_id', Auth::id())->exists()) {
-            session()->flash('info', __('You have already applied to this game.'));
+            session()->flash('info', __('games.content_you_have_already_applied_to_this_game'));
 
             return;
         }
@@ -57,7 +57,7 @@ class ApplyToGame extends Component
     {
         // Owner cannot apply to their own game
         if ($this->game->owner_id === Auth::id()) {
-            $this->addError('message', __('You cannot apply to your own game.'));
+            $this->addError('message', __('games.error_you_cannot_apply_to_your_own_game'));
 
             return;
         }
@@ -83,12 +83,12 @@ class ApplyToGame extends Component
 
                 // Double-check no existing participant record
                 if (GameParticipant::where('game_id', $gameId)->where('user_id', $userId)->exists()) {
-                    throw new \RuntimeException(__('You are already a participant or have a pending invite.'));
+                    throw new \RuntimeException(__('events.content_you_are_already_a_participant'));
                 }
 
                 // Double-check no existing application
                 if (GameApplication::where('game_id', $gameId)->where('user_id', $userId)->exists()) {
-                    throw new \RuntimeException(__('You have already applied to this game.'));
+                    throw new \RuntimeException(__('games.content_you_have_already_applied_to_this_game'));
                 }
 
                 // For public games, auto-approve; for protected games, require approval
@@ -117,7 +117,7 @@ class ApplyToGame extends Component
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
-            session()->flash('info', __('You have already applied to this game.'));
+            session()->flash('info', __('games.content_you_have_already_applied_to_this_game'));
             $this->redirect(route('games.detail', $this->game->id), navigate: true);
 
             return;
@@ -136,9 +136,9 @@ class ApplyToGame extends Component
         ]);
 
         if ($isPublic) {
-            session()->flash('success', __('You have joined the game!'));
+            session()->flash('success', __('games.content_you_have_joined_the_game'));
         } else {
-            session()->flash('success', __('Application submitted! The game owner will review it.'));
+            session()->flash('success', __('games.content_application_submitted_the_game_owner'));
         }
 
         $this->redirect(route('games.detail', $this->game->id), navigate: true);

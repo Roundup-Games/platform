@@ -58,13 +58,13 @@ class Checkout extends Component
         $plan = $this->membershipType ?? MembershipType::active()->find($this->membershipTypeId);
 
         if (! $plan?->paddle_price_id) {
-            session()->flash('error', __('This membership plan is not available for purchase yet.'));
+            session()->flash('error', __('billing.error_this_membership_plan_is_not'));
 
             return;
         }
 
         if ($user->subscribed()) {
-            session()->flash('error', __('You already have an active subscription.'));
+            session()->flash('error', __('billing.error_you_already_have_an_active_subscription'));
 
             return;
         }
@@ -91,7 +91,7 @@ class Checkout extends Component
                 'provided_price_id' => $this->eventPriceId,
             ]);
 
-            session()->flash('error', __('A valid event is required for payment.'));
+            session()->flash('error', __('billing.error_a_valid_event_is_required_for_payment'));
 
             return;
         }
@@ -107,7 +107,7 @@ class Checkout extends Component
                 'provided_price_id' => $this->eventPriceId,
             ]);
 
-            session()->flash('error', __('This event does not have a payment configuration.'));
+            session()->flash('error', __('billing.error_this_event_does_not_have_a_payment_configuration'));
 
             return;
         }
@@ -120,7 +120,7 @@ class Checkout extends Component
                 'expected_price_id' => $expectedPriceId,
             ]);
 
-            session()->flash('error', __('Invalid payment option selected.'));
+            session()->flash('error', __('billing.error_invalid_payment_option_selected'));
 
             return;
         }

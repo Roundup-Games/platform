@@ -99,31 +99,37 @@ describe('HowItWorksPage - i18n', function () {
 
     it('has translation keys for all page copy', function () {
         $keys = [
-            'How It Works',
-            'How Roundup Works',
-            'Three steps to your next game night',
-            'Discover sessions near you',
-            'Find your kind of game',
-            'Show up and play',
-            'What we stand for',
-            'Inclusivity',
-            'Safety',
-            'Community',
-            'Curiosity',
-            'Your safety, built in',
-            'Transparent sessions',
-            'Organizer profiles',
-            'Protected sessions',
-            'Session zero support',
-            'Ready to find your table?',
-            'Sign Up Free',
-            'Browse Sessions',
+            'pages.content_how_it_works',
+            'events.content_how_roundup_works',
+            'games.content_three_steps_to_your_next_game_night',
+            'campaigns.action_discover_sessions_near_you',
+            'games.action_find_your_kind_of_game',
+            'common.content_show_up_and_play',
+            'pages.content_what_we_stand_for_2',
+            'common.content_inclusivity',
+            'safety.content_safety',
+            'pages.content_community',
+            'common.content_curiosity',
+            'safety.content_your_safety_built_in',
+            'campaigns.content_transparent_sessions',
+            'pages.content_organizer_profiles_are_public_you',
+            'campaigns.content_protected_sessions',
+            'safety.content_session_zero_support',
+            'common.content_ready_to_find_your_table',
+            'auth.content_sign_up_free',
+            'campaigns.action_browse_sessions',
         ];
-        $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        $de = json_decode(file_get_contents(base_path('lang/de.json')), true);
+
+        app()->setLocale('en');
         foreach ($keys as $key) {
-            expect(array_key_exists($key, $en))->toBeTrue("Missing en.json key: {$key}");
-            expect(array_key_exists($key, $de))->toBeTrue("Missing de.json key: {$key}");
+            $enValue = __($key);
+            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
+        }
+
+        app()->setLocale('de');
+        foreach ($keys as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
         }
     });
 });

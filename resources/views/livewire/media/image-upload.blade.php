@@ -54,7 +54,7 @@
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                 <button wire:click="remove" wire:loading.attr="disabled"
                         class="px-3 py-1.5 bg-error text-on-error rounded-md text-sm font-medium hover:brightness-110 transition-colors">
-                    {{ __('Remove') }}
+                    {{ __('common.action_remove') }}
                 </button>
             </div>
         </div>
@@ -78,28 +78,28 @@
             {{-- Drag & drop prompt --}}
             <span class="material-symbols-outlined text-3xl text-on-surface-variant" aria-hidden="true">cloud_upload</span>
             <p class="text-sm text-on-surface-variant">
-                {{ __('Drag and drop or') }}
+                {{ __('common.content_drag_and_drop_or') }}
                 <label for="image-upload-{{ $collection }}-{{ $model_id }}"
                        class="text-primary hover:text-primary-container cursor-pointer font-medium transition-colors">
-                    {{ __('browse') }}
+                    {{ __('discovery.action_browse') }}
                 </label>
             </p>
             @if($dimensionHint)
                 <p class="text-xs text-on-surface-variant/70">{{ $dimensionHint }}</p>
             @endif
-            <p class="text-xs text-on-surface-variant/70">{{ __('JPG, PNG, GIF, or WebP. Max :sizeMB.', ['size' => number_format($maxSize / 1024, 0)]) }}</p>
+            <p class="text-xs text-on-surface-variant/70">{{ __('common.content_jpg_png_gif_or_webp_max_sizemb', ['size' => number_format($maxSize / 1024, 0)]) }}</p>
         </div>
 
         {{-- Preview --}}
         <div x-show="preview || $wire.image" class="space-y-3">
             <template x-if="preview">
-                <img x-bind:src="preview" alt="{{ __('Preview') }}"
+                <img x-bind:src="preview" alt="{{ __('common.content_preview') }}"
                      class="mx-auto max-h-48 rounded-lg object-contain" />
             </template>
 
             @if($image)
                 @if($image->isPreviewable())
-                    <img src="{{ $image->temporaryUrl() }}" alt="{{ __('Preview') }}"
+                    <img src="{{ $image->temporaryUrl() }}" alt="{{ __('common.content_preview') }}"
                          class="mx-auto max-h-48 rounded-lg object-contain" />
                 @endif
                 <p class="text-xs text-on-surface-variant">{{ $image->getFilename() }}</p>
@@ -117,12 +117,12 @@
         <div class="flex items-center gap-3">
             <button wire:click="upload" wire:loading.attr="disabled"
                     class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                <span wire:loading.remove>{{ __('Upload :label', ['label' => $label]) }}</span>
-                <span wire:loading>{{ __('Uploading...') }}</span>
+                <span wire:loading.remove>{{ __('common.action_upload_label', ['label' => $label]) }}</span>
+                <span wire:loading>{{ __('common.content_uploading') }}</span>
             </button>
             <button wire:click="$set('image', null)"
                     class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
-                {{ __('Cancel') }}
+                {{ __('common.action_cancel') }}
             </button>
         </div>
     @endif

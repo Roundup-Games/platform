@@ -129,7 +129,7 @@ class Show extends Component
         $result = $geocodingService->geocode($searchQuery);
 
         if (! $result) {
-            $this->addError('locationSearch', __('Could not find that location. Please try a different search.'));
+            $this->addError('locationSearch', __('location.error_could_not_find_that_location'));
 
             return;
         }
@@ -334,7 +334,7 @@ class Show extends Component
         ]);
 
         $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
-        session()->flash('password_updated', __('Password updated successfully.'));
+        session()->flash('password_updated', __('auth.flash_password_updated_successfully'));
     }
 
     public function removeAvatar(): void
@@ -363,7 +363,7 @@ class Show extends Component
             $this->validate([
                 'delete_confirmation' => ['required', 'string', 'in:DELETE'],
             ], [
-                'delete_confirmation.in' => __('Please type DELETE to confirm account deletion.'),
+                'delete_confirmation.in' => __('profile.content_please_type_delete_to_confirm_account_deletion'),
             ]);
         }
 

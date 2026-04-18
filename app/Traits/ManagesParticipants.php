@@ -45,13 +45,13 @@ trait ManagesParticipants
         $targetUser = \App\Models\User::where('email', $this->inviteEmail)->first();
 
         if (! $targetUser) {
-            $this->addError('inviteEmail', __('No user found with that email address.'));
+            $this->addError('inviteEmail', __('emails.error_no_user_found_with_that_email_address'));
 
             return;
         }
 
         if ($targetUser->id === Auth::id()) {
-            $this->addError('inviteEmail', __('You cannot invite yourself.'));
+            $this->addError('inviteEmail', __('common.error_you_cannot_invite_yourself'));
 
             return;
         }
@@ -59,7 +59,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
 
         if ($entity->participants()->where('user_id', $targetUser->id)->exists()) {
-            $this->addError('inviteEmail', __('This user is already a participant or has a pending invite.'));
+            $this->addError('inviteEmail', __('common.error_this_user_is_already_a'));
 
             return;
         }
@@ -80,7 +80,7 @@ trait ManagesParticipants
         ]);
 
         $this->reset('inviteEmail');
-        session()->flash('success', __('Invite sent to :email.', ['email' => $targetUser->email]));
+        session()->flash('success', __('emails.content_invite_sent_to_email', ['email' => $targetUser->email]));
     }
 
     // ── Approve Application ────────────────────────────
@@ -109,7 +109,7 @@ trait ManagesParticipants
             'approved_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Application approved.'));
+        session()->flash('success', __('common.flash_application_approved'));
     }
 
     public function rejectApplication(string $participantId): void
@@ -133,7 +133,7 @@ trait ManagesParticipants
             'rejected_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Application rejected.'));
+        session()->flash('success', __('common.flash_application_rejected'));
     }
 
     // ── Remove Participant ─────────────────────────────
@@ -144,7 +144,7 @@ trait ManagesParticipants
         $entity = $this->getEntity();
 
         if ($participant->role === 'owner') {
-            session()->flash('error', __('Cannot remove the :entity owner.', ['entity' => strtolower($this->getEntityName())]));
+            session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => strtolower($this->getEntityName())]));
 
             return;
         }
@@ -157,7 +157,7 @@ trait ManagesParticipants
             'removed_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Participant removed.'));
+        session()->flash('success', __('common.flash_participant_removed'));
     }
 
     // ── Cancel Invite ──────────────────────────────────
@@ -181,7 +181,7 @@ trait ManagesParticipants
             'cancelled_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Invite cancelled.'));
+        session()->flash('success', __('common.flash_invite_cancelled'));
     }
 
     // ── Helpers ────────────────────────────────────────

@@ -1,4 +1,4 @@
-@props(['fieldId' => 'game-system', 'label' => __('Game System'), 'error' => ''])
+@props(['fieldId' => 'game-system', 'label' => __('games.content_game_system'), 'error' => ''])
 
 <div
     x-data="{ activeIndex: -1 }"
@@ -17,7 +17,7 @@
             type="text"
             id="{{ $fieldId }}-search"
             {{ $attributes->merge(['class' => 'w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors']) }}
-            placeholder="{{ __('Search game systems...') }}"
+            placeholder="{{ __('games.action_search_game_systems_2') }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
             wire:focus="setOpen"
@@ -33,7 +33,7 @@
                 type="button"
                 wire:click="clearSelection"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                aria-label="{{ __('Clear selection') }}"
+                aria-label="{{ __('common.action_clear_selection') }}"
             >
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
@@ -42,7 +42,7 @@
                 type="button"
                 wire:click="clearSelection"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                aria-label="{{ __('Clear search') }}"
+                aria-label="{{ __('discovery.action_clear_search') }}"
             >
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
@@ -66,7 +66,7 @@
                 @endif
                 <span class="text-sm text-on-surface flex-1">{{ $selectedSystem->name }}</span>
                 @if($selectedSystem->base_game_id)
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">{{ __('Expansion') }}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">{{ __('games.content_expansion') }}</span>
                 @endif
             </div>
         @endif
@@ -79,11 +79,11 @@
         <div
             class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
             role="listbox"
-            aria-label="{{ __('Game systems') }}"
+            aria-label="{{ __('games.content_game_systems_2') }}"
         >
             @if($results->isEmpty())
                 <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
-                    {{ __('No game systems found.') }}
+                    {{ __('games.content_no_game_systems_found_2') }}
                 </div>
             @else
                 @foreach($results as $index => $system)
@@ -110,11 +110,11 @@
                             </div>
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                    {{ __('Base Game') }}
+                                    {{ __('games.content_base_game') }}
                                 </span>
                                 @if($system->expansions_count > 0)
                                     <span class="text-xs text-on-surface-variant">
-                                        + {{ $system->expansions_count }} {{ __('expansions') }}
+                                        + {{ $system->expansions_count }} {{ __('games.content_expansions') }}
                                     </span>
                                 @endif
                                 @if($system->bgg_rank)
@@ -138,11 +138,11 @@
             <div
                 class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
                 role="listbox"
-                aria-label="{{ __('Your favorite game systems') }}"
+                aria-label="{{ __('games.content_your_favorite_game_systems') }}"
             >
                 <div class="px-4 py-2 text-xs font-medium text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
                     <span class="material-symbols-outlined text-xs" aria-hidden="true">favorite</span>
-                    {{ __('Your Favorites') }}
+                    {{ __('common.content_your_favorites') }}
                 </div>
                 @foreach($favorites as $system)
                     <button
@@ -166,7 +166,7 @@
                             @php($expCount = $system->expansions()->count())
                             @if($expCount > 0)
                                 <span class="text-xs text-on-surface-variant">
-                                    + {{ $expCount }} {{ __('expansions') }}
+                                    + {{ $expCount }} {{ __('games.content_expansions') }}
                                 </span>
                             @endif
                         </div>
@@ -184,7 +184,7 @@
             <div class="px-4 py-2.5 bg-surface-container-high border-b border-outline/10 flex items-center gap-2">
                 <span class="material-symbols-outlined text-secondary text-lg" aria-hidden="true">extension</span>
                 <span class="text-sm font-medium text-on-surface">
-                    {{ __('Choose specific game or expansion') }}
+                    {{ __('games.action_choose_specific_game_or_expansion') }}
                 </span>
             </div>
 
@@ -215,11 +215,11 @@
                             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 @if($option->is_base)
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                        {{ __('Base Game') }}
+                                        {{ __('games.content_base_game') }}
                                     </span>
                                 @else
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-secondary/10 text-secondary">
-                                        {{ __('Expansion') }}
+                                        {{ __('games.content_expansion') }}
                                     </span>
                                 @endif
                                 @if($option->bgg_average_rating > 0)
@@ -248,7 +248,7 @@
                     wire:click="showExpansionPicker = false"
                     class="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
                 >
-                    {{ __('Cancel') }}
+                    {{ __('common.action_cancel') }}
                 </button>
             </div>
         </div>

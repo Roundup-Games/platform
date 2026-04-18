@@ -119,7 +119,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', __('Registration approved.'));
+        session()->flash('success', __('events.flash_registration_approved'));
     }
 
     public function reject(string $registrationId): void
@@ -141,7 +141,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', __('Registration rejected.'));
+        session()->flash('success', __('events.flash_registration_rejected'));
     }
 
     public function confirmPayment(string $registrationId): void
@@ -164,7 +164,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts, $this->paymentCounts);
-        session()->flash('success', __('Payment confirmed.'));
+        session()->flash('success', __('billing.flash_payment_confirmed'));
     }
 
     public function markRefunded(string $registrationId): void
@@ -185,7 +185,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->paymentCounts);
-        session()->flash('success', __('Payment marked as refunded.'));
+        session()->flash('success', __('billing.content_payment_marked_as_refunded'));
     }
 
     public function cancelRegistration(string $registrationId): void
@@ -206,7 +206,7 @@ class ManageRegistrations extends Component
         ]);
 
         unset($this->registrations, $this->statusCounts);
-        session()->flash('success', __('Registration cancelled.'));
+        session()->flash('success', __('events.flash_registration_cancelled'));
     }
 
     public function saveInternalNotes(string $registrationId): void
@@ -219,7 +219,7 @@ class ManageRegistrations extends Component
         $this->editingRegistrationId = null;
         $this->internalNotes = '';
 
-        session()->flash('success', __('Notes saved.'));
+        session()->flash('success', __('common.flash_notes_saved'));
     }
 
     public function editInternalNotes(string $registrationId): void

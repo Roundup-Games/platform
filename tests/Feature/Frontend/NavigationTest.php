@@ -74,7 +74,7 @@ describe('Public Layout Mobile Nav', function () {
         $mobileSection = $mobileMatch[1] ?? $content;
 
         // Events link should not be in the mobile dropdown
-        $this->assertStringNotContainsString(__('Events'), $mobileSection);
+        $this->assertStringNotContainsString(__('events.content_events'), $mobileSection);
     });
 });
 

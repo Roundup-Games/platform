@@ -1,0 +1,38 @@
+<?php
+
+return [
+    'content_already_registered' => 'Already registered?',
+    'content_forgot_your_password' => 'Forgot your password?',
+    'content_log_in' => 'Log in',
+    'content_log_out' => 'Log Out',
+    'content_no_password_set_you_currently' => 'No password set. You currently sign in via a linked provider.',
+    'content_remember_me' => 'Remember me',
+    'content_sign_in' => 'Sign In',
+    'content_sign_in_to_register' => 'Sign in to Register',
+    'content_sign_up' => 'Sign Up',
+    'content_sign_up_for_a_session' => 'Sign up for a session, show up, and have a great time. That\'s it. No dues, no commitments, no pressure. Just roll the dice and see what happens.',
+    'content_sign_up_free' => 'Sign Up Free',
+    'content_sign_up_to_host' => 'Sign Up to Host',
+    'content_sign_up_with_google' => 'Sign up with Google',
+    'content_this_is_a_secure_area_please_confirm_your_password' => 'This is a secure area. Please confirm your password.',
+    'content_your_password_is_set_click' => 'Your password is set. Click "Change Password" above to update it.',
+    'field_amount_to_register' => ':amount+ to register',
+    'field_change_password' => 'Change Password',
+    'field_confirm_password' => 'Confirm Password',
+    'field_confirm_your_password' => 'Confirm Your Password',
+    'field_current_password' => 'Current Password',
+    'field_enter_your_new_password_below' => 'Enter your new password below',
+    'field_new_password' => 'New Password',
+    'field_password' => 'Password',
+    'field_reset_password' => 'Reset Password',
+    'field_set_password' => 'Set Password',
+    'field_update_password' => 'Update Password',
+    'flash_password_updated_successfully' => 'Password updated successfully.',
+    'action_sign_up_to_get_started' => 'Sign Up to Get Started',
+    'error_your_account_has_been_disabled' => 'Your account has been disabled.',
+
+    // Laravel/Breeze framework authentication messages
+    'failed' => 'These credentials do not match our records.',
+    'password' => 'The provided password is incorrect.',
+    'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+];

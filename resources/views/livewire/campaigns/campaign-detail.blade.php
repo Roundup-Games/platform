@@ -4,7 +4,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('Back to Dashboard') }}
+                {{ __('profile.action_back_to_dashboard') }}
             </a>
         </div>
     </div>
@@ -15,7 +15,7 @@
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                        {{ __('Owner') }}
+                        {{ __('common.content_owner') }}
                     </span>
                 @endif
                 @if($campaign->gameSystem)
@@ -51,12 +51,12 @@
                 @if($campaign->price_per_session > 0)
                     <span class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">payments</span>
-                        {{ format_currency($campaign->price_per_session, false) }}/{{ __('session') }}
+                        {{ format_currency($campaign->price_per_session, false) }}/{{ __('campaigns.content_session') }}
                     </span>
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        {{ __('Free') }}
+                        {{ __('billing.content_free') }}
                     </span>
                 @endif
                 @if($campaign->location && !empty($campaign->location['details']))
@@ -77,13 +77,13 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">event_note</span>
-                    {{ __('Sessions') }}
+                    {{ __('campaigns.content_sessions') }}
                 </h2>
                 @if($isOwner)
                     <a href="{{ route('campaigns.add-session', $campaign->id) }}" wire:navigate
                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                        {{ __('Add Session') }}
+                        {{ __('campaigns.action_add_session') }}
                     </a>
                 @endif
             </div>
@@ -108,7 +108,7 @@
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No sessions scheduled yet.') }}</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('campaigns.content_no_sessions_scheduled_yet') }}</p>
             @endif
         </section>
 
@@ -116,7 +116,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                {{ __('Participants') }}
+                {{ __('common.content_participants') }}
             </h2>
 
             @if($campaign->participants->count())
@@ -128,7 +128,7 @@
                                 {{ strtoupper($participant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('common.content_unknown') }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
@@ -142,7 +142,7 @@
                     @endforeach>
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No participants yet.') }}</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('common.content_no_participants_yet') }}</p>
             @endif
         </section>
 
@@ -155,14 +155,14 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person</span>
-                {{ __('Run by') }}
+                {{ __('common.content_run_by') }}
             </h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
                     {{ strtoupper($campaign->owner?->name[0] ?? '?') }}
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-on-surface">{{ $campaign->owner?->name ?? __('Unknown') }}</p>
+                    <p class="text-sm font-medium text-on-surface">{{ $campaign->owner?->name ?? __('common.content_unknown') }}</p>
                 </div>
             </div>
         </section>

@@ -84,27 +84,33 @@ describe('ForOrganizersPage - i18n', function () {
 
     it('has translation keys for all page copy', function () {
         $keys = [
-            'For Organizers',
-            'Bring your games to the table',
-            'Everything you need to run great sessions',
-            'One link for signups',
-            'Automatic player matching',
-            'Campaign management',
-            'Visibility controls',
-            'From idea to game night in three steps',
-            'Create a session',
-            'Set your preferences',
-            'Players find you',
-            'Start your first session — it\'s free',
-            'Sign Up Free',
-            'Create Your First Session',
-            'See How It Works',
+            'common.content_for_organizers',
+            'games.content_bring_your_games_to_the_table',
+            'campaigns.content_everything_you_need_to_run_great_sessions',
+            'common.field_one_link_for_signups',
+            'events.content_automatic_player_matching',
+            'campaigns.content_campaign_management',
+            'common.content_visibility_controls',
+            'games.content_from_idea_to_game_night_in_three_steps',
+            'campaigns.action_create_a_session',
+            'profile.action_set_your_preferences',
+            'common.content_players_find_you',
+            'campaigns.field_start_your_first_session_it_s_free',
+            'auth.content_sign_up_free',
+            'campaigns.action_create_your_first_session',
+            'pages.content_see_how_it_works',
         ];
-        $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        $de = json_decode(file_get_contents(base_path('lang/de.json')), true);
+
+        app()->setLocale('en');
         foreach ($keys as $key) {
-            expect(array_key_exists($key, $en))->toBeTrue("Missing en.json key: {$key}");
-            expect(array_key_exists($key, $de))->toBeTrue("Missing de.json key: {$key}");
+            $enValue = __($key);
+            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
+        }
+
+        app()->setLocale('de');
+        foreach ($keys as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
         }
     });
 });

@@ -109,7 +109,7 @@ test('about page redirects to how-it-works with German strings', function () {
 
     $followUp = $this->get('/de/how-it-works');
     $followUp->assertStatus(200);
-    $followUp->assertSee(__('How Roundup Works'));
+    $followUp->assertSee(__('events.content_how_roundup_works'));
 });
 
 test('contact page renders German strings when locale is de', function () {
@@ -125,18 +125,18 @@ test('contact page renders German strings when locale is de', function () {
 test('translation helper returns German when locale is de', function () {
     app()->setLocale('de');
 
-    expect(__('Sign In'))->toBe('Anmelden');
-    expect(__('Events'))->toBe('Veranstaltungen');
-    expect(__('Registration'))->toBe('Anmeldung');
-    expect(__('Log Out'))->toBe('Abmelden');
+    expect(__('auth.content_sign_in'))->toBe('Anmelden');
+    expect(__('events.content_events'))->toBe('Veranstaltungen');
+    expect(__('events.content_registration'))->toBe('Anmeldung');
+    expect(__('auth.content_log_out'))->toBe('Abmelden');
 });
 
 test('translation helper returns English when locale is en', function () {
     app()->setLocale('en');
 
-    expect(__('Sign In'))->toBe('Sign In');
-    expect(__('Events'))->toBe('Events');
-    expect(__('Registration'))->toBe('Registration');
+    expect(__('auth.content_sign_in'))->toBe('Sign In');
+    expect(__('events.content_events'))->toBe('Events');
+    expect(__('events.content_registration'))->toBe('Registration');
 });
 
 test('translation helper returns key for missing translation', function () {
@@ -150,24 +150,24 @@ test('translation helper returns key for missing translation', function () {
 test('flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Thank you for your message! We\'ll get back to you soon.'))->toBe('Vielen Dank für deine Nachricht! Wir melden uns in Kürze bei dir.');
-    expect(__('Registration is not currently open for this event.'))->toBe('Die Anmeldung für diese Veranstaltung ist derzeit nicht geöffnet.');
-    expect(__('Registration has closed.'))->toBe('Die Anmeldung ist geschlossen.');
-    expect(__('This event is now full.'))->toBe('Diese Veranstaltung ist ausgebucht.');
-    expect(__('You are already registered for this event.'))->toBe('Du bist bereits für diese Veranstaltung angemeldet.');
-    expect(__('You have been registered successfully!'))->toBe('Du wurdest erfolgreich angemeldet!');
-    expect(__('Registration submitted! Payment instructions will follow.'))->toBe('Anmeldung eingereicht! Zahlungsanweisungen folgen in Kürze.');
-    expect(__('This event does not support team registration.'))->toBe('Diese Veranstaltung unterstützt keine Team-Anmeldung.');
-    expect(__('Please select a team.'))->toBe('Bitte wähle ein Team aus.');
-    expect(__('Only the team captain can register a team.'))->toBe('Nur der Teamkapitän kann ein Team anmelden.');
-    expect(__('This event does not support individual registration.'))->toBe('Diese Veranstaltung unterstützt keine Einzelanmeldung.');
+    expect(__('common.content_thank_you_for_your_message'))->toBe('Vielen Dank für deine Nachricht! Wir melden uns in Kürze bei dir.');
+    expect(__('events.content_registration_is_not_currently_open_for_this_event'))->toBe('Die Anmeldung für diese Veranstaltung ist derzeit nicht geöffnet.');
+    expect(__('events.content_registration_has_closed'))->toBe('Die Anmeldung ist geschlossen.');
+    expect(__('events.content_this_event_is_now_full'))->toBe('Diese Veranstaltung ist ausgebucht.');
+    expect(__('events.content_you_are_already_registered_for_this_event'))->toBe('Du bist bereits für diese Veranstaltung angemeldet.');
+    expect(__('events.flash_you_have_been_registered_successfully'))->toBe('Du wurdest erfolgreich angemeldet!');
+    expect(__('billing.content_registration_submitted_payment_instructions_will'))->toBe('Anmeldung eingereicht! Zahlungsanweisungen folgen in Kürze.');
+    expect(__('events.error_this_event_does_not_support_team_registration'))->toBe('Diese Veranstaltung unterstützt keine Team-Anmeldung.');
+    expect(__('teams.content_please_select_a_team'))->toBe('Bitte wähle ein Team aus.');
+    expect(__('teams.content_only_the_team_captain_can_register_a_team'))->toBe('Nur der Teamkapitän kann ein Team anmelden.');
+    expect(__('events.error_this_event_does_not_support'))->toBe('Diese Veranstaltung unterstützt keine Einzelanmeldung.');
 });
 
 test('validation error keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('This event does not support team registration.'))->not->toBe('This event does not support team registration.');
-    expect(__('This event does not support individual registration.'))->not->toBe('This event does not support individual registration.');
+    expect(__('events.error_this_event_does_not_support_team_registration'))->not->toBe('This event does not support team registration.');
+    expect(__('events.error_this_event_does_not_support'))->not->toBe('This event does not support individual registration.');
 });
 
 // ── Authenticated page German rendering ──────────────────────────────
@@ -213,84 +213,84 @@ test('teams browsing renders German strings when locale is de', function () {
 test('team flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Team ":name" created successfully!', ['name' => 'Test']))->toBe('Team "Test" erfolgreich erstellt!');
-    expect(__('Team deleted successfully.'))->toBe('Team erfolgreich gelöscht.');
-    expect(__('Invite sent to :email.', ['email' => 'test@example.com']))->toBe('Einladung an test@example.com gesendet.');
-    expect(__('Welcome to the team!'))->toBe('Willkommen im Team!');
-    expect(__('Invite declined.'))->toBe('Einladung abgelehnt.');
-    expect(__('Member details updated.'))->toBe('Mitgliedsdetails aktualisiert.');
-    expect(__('Member removed from team.'))->toBe('Mitglied aus dem Team entfernt.');
-    expect(__('You have left the team.'))->toBe('Du hast das Team verlassen.');
-    expect(__('Cannot demote the last captain.'))->toBe('Der letzte Kapitän kann nicht degradiert werden.');
-    expect(__('Cannot remove the last captain role.'))->toBe('Die Kapitänsrolle des letzten Kapitäns kann nicht entfernt werden.');
+    expect(__('teams.flash_team_name_created_successfully', ['name' => 'Test']))->toBe('Team "Test" erfolgreich erstellt!');
+    expect(__('teams.flash_team_deleted_successfully'))->toBe('Team erfolgreich gelöscht.');
+    expect(__('emails.content_invite_sent_to_email', ['email' => 'test@example.com']))->toBe('Einladung an test@example.com gesendet.');
+    expect(__('teams.content_welcome_to_the_team'))->toBe('Willkommen im Team!');
+    expect(__('common.flash_invite_declined'))->toBe('Einladung abgelehnt.');
+    expect(__('teams.flash_member_details_updated'))->toBe('Mitgliedsdetails aktualisiert.');
+    expect(__('teams.content_member_removed_from_team'))->toBe('Mitglied aus dem Team entfernt.');
+    expect(__('teams.content_you_have_left_the_team'))->toBe('Du hast das Team verlassen.');
+    expect(__('teams.error_cannot_demote_the_last_captain'))->toBe('Der letzte Kapitän kann nicht degradiert werden.');
+    expect(__('teams.error_cannot_remove_the_last_captain_role'))->toBe('Die Kapitänsrolle des letzten Kapitäns kann nicht entfernt werden.');
 });
 
 test('event flash and validation message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Event ":name" created successfully!', ['name' => 'Test']))->toBe('Veranstaltung "Test" erfolgreich erstellt!');
-    expect(__('Event published.'))->toBe('Veranstaltung veröffentlicht.');
-    expect(__('Registration opened.'))->toBe('Anmeldung geöffnet.');
-    expect(__('Registration closed.'))->toBe('Anmeldung geschlossen.');
-    expect(__('Event cancelled.'))->toBe('Veranstaltung abgesagt.');
-    expect(__('Cannot change event status from ":from" to ":to".', ['from' => 'draft', 'to' => 'cancelled']))->toBe('Veranstaltungsstatus kann nicht von "draft" zu "cancelled" geändert werden.');
-    expect(__('Cannot publish event from status ":from".', ['from' => 'draft']))->toBe('Veranstaltung kann nicht aus dem Status "draft" veröffentlicht werden.');
+    expect(__('events.flash_event_name_created_successfully', ['name' => 'Test']))->toBe('Veranstaltung "Test" erfolgreich erstellt!');
+    expect(__('events.flash_event_published'))->toBe('Veranstaltung veröffentlicht.');
+    expect(__('events.content_registration_opened'))->toBe('Anmeldung geöffnet.');
+    expect(__('events.content_registration_closed_2'))->toBe('Anmeldung geschlossen.');
+    expect(__('events.flash_event_cancelled'))->toBe('Veranstaltung abgesagt.');
+    expect(__('events.error_cannot_change_event_status_from_from_to_to', ['from' => 'draft', 'to' => 'cancelled']))->toBe('Veranstaltungsstatus kann nicht von "draft" zu "cancelled" geändert werden.');
+    expect(__('events.error_cannot_publish_event_from_status_from', ['from' => 'draft']))->toBe('Veranstaltung kann nicht aus dem Status "draft" veröffentlicht werden.');
 });
 
 test('billing flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('No active subscription to cancel.'))->toBe('Kein aktives Abonnement zum Kündigen.');
-    expect(__('Your subscription has been canceled. You will retain access until the end of your billing period.'))->toBe('Dein Abonnement wurde gekündigt. Du behältst den Zugriff bis zum Ende deines Abrechnungszeitraums.');
-    expect(__('No subscription available to resume.'))->toBe('Kein Abonnement zum Fortsetzen verfügbar.');
-    expect(__('Your subscription has been resumed. Welcome back!'))->toBe('Dein Abonnement wurde fortgesetzt. Willkommen zurück!');
-    expect(__('This plan is not available for purchase yet.'))->toBe('Dieser Plan ist noch nicht zum Kauf verfügbar.');
-    expect(__('You already have an active subscription.'))->toBe('Du hast bereits ein aktives Abonnement.');
+    expect(__('billing.error_no_active_subscription_to_cancel'))->toBe('Kein aktives Abonnement zum Kündigen.');
+    expect(__('billing.content_your_subscription_has_been_canceled'))->toBe('Dein Abonnement wurde gekündigt. Du behältst den Zugriff bis zum Ende deines Abrechnungszeitraums.');
+    expect(__('billing.content_no_subscription_available_to_resume'))->toBe('Kein Abonnement zum Fortsetzen verfügbar.');
+    expect(__('billing.content_your_subscription_has_been_resumed_welcome_back'))->toBe('Dein Abonnement wurde fortgesetzt. Willkommen zurück!');
+    expect(__('billing.error_this_plan_is_not_available_for_purchase_yet'))->toBe('Dieser Plan ist noch nicht zum Kauf verfügbar.');
+    expect(__('billing.error_you_already_have_an_active_subscription'))->toBe('Du hast bereits ein aktives Abonnement.');
 });
 
 test('game and campaign flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Game ":name" created successfully!', ['name' => 'Test']))->toBe('Spiel "Test" erfolgreich erstellt!');
-    expect(__('Campaign ":name" created successfully!', ['name' => 'Test']))->toBe('Kampagne "Test" erfolgreich erstellt!');
-    expect(__('You have joined the game!'))->toBe('Du bist dem Spiel beigetreten!');
-    expect(__('Application submitted! The game owner will review it.'))->toBe('Bewerbung eingereicht! Der Spieleigentümer wird sie prüfen.');
+    expect(__('games.flash_game_name_created_successfully', ['name' => 'Test']))->toBe('Spiel "Test" erfolgreich erstellt!');
+    expect(__('campaigns.flash_campaign_name_created_successfully', ['name' => 'Test']))->toBe('Kampagne "Test" erfolgreich erstellt!');
+    expect(__('games.content_you_have_joined_the_game'))->toBe('Du bist dem Spiel beigetreten!');
+    expect(__('games.content_application_submitted_the_game_owner'))->toBe('Bewerbung eingereicht! Der Spieleigentümer wird sie prüfen.');
 });
 
 test('participant management flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Application approved.'))->toBe('Bewerbung genehmigt.');
-    expect(__('Application rejected.'))->toBe('Bewerbung abgelehnt.');
-    expect(__('Participant removed.'))->toBe('Teilnehmer entfernt.');
-    expect(__('Invite cancelled.'))->toBe('Einladung zurückgezogen.');
-    expect(__('Cannot remove the :entity owner.', ['entity' => 'game']))->toBe('Der game-Besitzer kann nicht entfernt werden.');
+    expect(__('common.flash_application_approved'))->toBe('Bewerbung genehmigt.');
+    expect(__('common.flash_application_rejected'))->toBe('Bewerbung abgelehnt.');
+    expect(__('events.flash_participant_removed'))->toBe('Teilnehmer entfernt.');
+    expect(__('common.flash_invite_cancelled'))->toBe('Einladung zurückgezogen.');
+    expect(__('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']))->toBe('Der game-Besitzer kann nicht entfernt werden.');
 });
 
 test('registration management flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Registration approved.'))->toBe('Anmeldung genehmigt.');
-    expect(__('Registration rejected.'))->toBe('Anmeldung abgelehnt.');
-    expect(__('Payment confirmed.'))->toBe('Zahlung bestätigt.');
-    expect(__('Payment marked as refunded.'))->toBe('Zahlung als erstattet markiert.');
-    expect(__('Registration cancelled.'))->toBe('Anmeldung storniert.');
-    expect(__('Notes saved.'))->toBe('Notizen gespeichert.');
+    expect(__('events.flash_registration_approved'))->toBe('Anmeldung genehmigt.');
+    expect(__('events.flash_registration_rejected'))->toBe('Anmeldung abgelehnt.');
+    expect(__('billing.flash_payment_confirmed'))->toBe('Zahlung bestätigt.');
+    expect(__('billing.content_payment_marked_as_refunded'))->toBe('Zahlung als erstattet markiert.');
+    expect(__('events.flash_registration_cancelled'))->toBe('Anmeldung storniert.');
+    expect(__('common.flash_notes_saved'))->toBe('Notizen gespeichert.');
 });
 
 test('announcement flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Announcement created.'))->toBe('Ankündigung erstellt.');
-    expect(__('Announcement updated.'))->toBe('Ankündigung aktualisiert.');
-    expect(__('Announcement published.'))->toBe('Ankündigung veröffentlicht.');
-    expect(__('Announcement unpublished.'))->toBe('Ankündigung unveröffentlicht.');
-    expect(__('Announcement deleted.'))->toBe('Ankündigung gelöscht.');
+    expect(__('events.flash_announcement_created'))->toBe('Ankündigung erstellt.');
+    expect(__('events.flash_announcement_updated'))->toBe('Ankündigung aktualisiert.');
+    expect(__('events.flash_announcement_published'))->toBe('Ankündigung veröffentlicht.');
+    expect(__('events.flash_announcement_unpublished'))->toBe('Ankündigung unveröffentlicht.');
+    expect(__('events.flash_announcement_deleted'))->toBe('Ankündigung gelöscht.');
 });
 
 test('password and profile flash message keys have German translations', function () {
     app()->setLocale('de');
 
-    expect(__('Password updated successfully.'))->toBe('Passwort erfolgreich aktualisiert.');
-    expect(__('Please type DELETE to confirm account deletion.'))->toBe('Bitte gib LÖSCHEN ein, um die Kontolöschung zu bestätigen.');
+    expect(__('auth.flash_password_updated_successfully'))->toBe('Passwort erfolgreich aktualisiert.');
+    expect(__('profile.content_please_type_delete_to_confirm_account_deletion'))->toBe('Bitte gib LÖSCHEN ein, um die Kontolöschung zu bestätigen.');
 });

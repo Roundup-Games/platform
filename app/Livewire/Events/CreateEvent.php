@@ -183,7 +183,7 @@ class CreateEvent extends Component
             'organizer_id' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Event ":name" created successfully!', ['name' => $event->name]));
+        session()->flash('success', __('events.flash_event_name_created_successfully', ['name' => $event->name]));
         $this->redirect(route('events.manage', ['slug' => $event->slug]), navigate: true);
     }
 

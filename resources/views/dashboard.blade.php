@@ -1,15 +1,15 @@
 <x-app-layout>
-    @section('title', __('Dashboard'))
+    @section('title', __('profile.content_dashboard'))
 
     <div class="py-4">
         <div class="max-w-7xl mx-auto">
             {{-- Welcome Card --}}
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-8">
                 <h2 class="font-heading text-2xl font-bold text-on-surface tracking-tight">
-                    {{ __('Welcome back, :name!', ['name' => Auth::user()->name]) }}
+                    {{ __('common.content_welcome_back_name', ['name' => Auth::user()->name]) }}
                 </h2>
                 <p class="mt-2 text-on-surface-variant">
-                    {{ __("You're logged in to Roundup Games. Start exploring games and connecting with the community.") }}
+                    {{ __("events.content_you_re_logged_in_to") }}
                 </p>
             </div>
 
@@ -21,8 +21,8 @@
                             <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">person</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('My Profile') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('View and edit your profile') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('profile.content_my_profile') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('profile.action_view_and_edit_your_profile') }}</p>
                         </div>
                     </div>
                 </a>
@@ -33,8 +33,8 @@
                             <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">sports_esports</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface">{{ __('Games') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('Coming soon') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface">{{ __('games.content_games') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('common.field_coming_soon_2') }}</p>
                         </div>
                     </div>
                 </div>
@@ -45,8 +45,8 @@
                             <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface">{{ __('Community') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('Coming soon') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface">{{ __('pages.content_community') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('common.field_coming_soon_2') }}</p>
                         </div>
                     </div>
                 </div>

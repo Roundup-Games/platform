@@ -55,7 +55,7 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 // ── Locale-prefixed routes ─────────────────────────────
 
 Route::prefix('{locale}')
-    ->where(['locale' => 'en|de'])
+    ->where(['locale' => implode('|', config('app.available_locales'))])
     ->middleware('set.locale')
     ->group(function () {
 

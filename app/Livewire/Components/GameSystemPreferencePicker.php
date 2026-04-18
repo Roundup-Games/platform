@@ -201,7 +201,7 @@ class GameSystemPreferencePicker extends Component
             $system = GameSystem::find($id);
             if ($system && $system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
                 $baseName = GameSystem::find($system->base_game_id)?->name ?? 'its base game';
-                $this->conflictMessage = __(":name's base game (:baseName) is in your avoid list. You cannot favorite an expansion of an avoided base game.", [
+                $this->conflictMessage = __("games.error_name_s_base_game_base_name_is_in_your_avoid_list", [
                     'name' => $system->name,
                     'baseName' => $baseName,
                 ]);
@@ -252,7 +252,7 @@ class GameSystemPreferencePicker extends Component
             // Adding to avoid: warn if the system (or its base) is in favorites (conflictIds)
             if (in_array($id, $this->conflictIds, true)) {
                 $name = $system?->name ?? 'This game';
-                $this->conflictMessage = __(":name is in your favorites. The avoid preference will take priority.", ['name' => $name]);
+                $this->conflictMessage = __("games.error_name_is_in_your_favorites_the_avoid_preference", ['name' => $name]);
 
                 return;
             }
@@ -260,7 +260,7 @@ class GameSystemPreferencePicker extends Component
             // Check if the system's base game is in conflictIds
             if ($system && $system->base_game_id && in_array($system->base_game_id, $this->conflictIds, true)) {
                 $baseName = GameSystem::find($system->base_game_id)?->name ?? 'its base game';
-                $this->conflictMessage = __(":name's base game (:baseName) is in your favorites. The avoid preference will take priority.", [
+                $this->conflictMessage = __("games.error_name_s_base_game_base_name_is_in_your_favorites", [
                     'name' => $system->name,
                     'baseName' => $baseName,
                 ]);
@@ -271,7 +271,7 @@ class GameSystemPreferencePicker extends Component
             // Adding to favorite: warn if the system is in avoid list (conflictIds)
             if (in_array($id, $this->conflictIds, true)) {
                 $name = $system?->name ?? 'This game';
-                $this->conflictMessage = __(":name is in your avoid list. The avoid preference will take priority over this favorite.", ['name' => $name]);
+                $this->conflictMessage = __("games.error_name_is_in_your_avoid_list_the_avoid_preference", ['name' => $name]);
 
                 return;
             }

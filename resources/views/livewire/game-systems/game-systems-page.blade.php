@@ -1,5 +1,5 @@
 <div>
-    <x-hero title="{{ __('Explore Games') }}" :subtitle="__('Discover new game systems, browse ratings, and find your next favorite game.')" />
+    <x-hero title="{{ __('games.action_explore_games') }}" :subtitle="__('games.content_discover_new_game_systems_browse')" />
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
@@ -8,25 +8,25 @@
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
                 <input type="text"
-                       aria-label="{{ __('Search game systems') }}"
+                       aria-label="{{ __('games.action_search_game_systems') }}"
                        wire:model.live.debounce.300ms="search"
-                       placeholder="{{ __('Search by name...') }}"
+                       placeholder="{{ __('discovery.action_search_by_name') }}"
                        class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
             </div>
 
             <select wire:model.live="category_id"
-                    aria-label="{{ __('Filter by category') }}"
+                    aria-label="{{ __('discovery.action_filter_by_category') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Categories') }}</option>
+                <option value="">{{ __('discovery.content_all_categories') }}</option>
                 @foreach($categories as $category)
                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                 @endforeach
             </select>
 
             <select wire:model.live="mechanic_id"
-                    aria-label="{{ __('Filter by mechanic') }}"
+                    aria-label="{{ __('games.action_filter_by_mechanic') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Mechanics') }}</option>
+                <option value="">{{ __('discovery.content_all_mechanics') }}</option>
                 @foreach($mechanics as $mechanic)
                     <option value="{{ $mechanic->id }}">{{ $mechanic->name }}</option>
                 @endforeach
@@ -35,37 +35,37 @@
 
         {{-- ── Player Count & Complexity Range ────────────────────── --}}
         <div class="flex flex-wrap items-center gap-3">
-            <span class="text-sm text-on-surface-variant">{{ __('Players:') }}</span>
+            <span class="text-sm text-on-surface-variant">{{ __('common.content_players') }}</span>
             <input type="number" min="1" max="20"
                    wire:model.live="min_players"
-                   placeholder="{{ __('Min') }}"
-                   aria-label="{{ __('Minimum players') }}"
+                   placeholder="{{ __('common.field_min') }}"
+                   aria-label="{{ __('common.field_minimum_players') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
             <span class="text-on-surface-variant">–</span>
             <input type="number" min="1" max="20"
                    wire:model.live="max_players"
-                   placeholder="{{ __('Max') }}"
-                   aria-label="{{ __('Maximum players') }}"
+                   placeholder="{{ __('common.field_max') }}"
+                   aria-label="{{ __('common.field_maximum_players') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
 
-            <span class="text-sm text-on-surface-variant ml-4">{{ __('Complexity:') }}</span>
+            <span class="text-sm text-on-surface-variant ml-4">{{ __('games.content_complexity_2') }}</span>
             <input type="number" min="1" max="5" step="0.5"
                    wire:model.live="complexity_min"
-                   placeholder="{{ __('Min') }}"
-                   aria-label="{{ __('Minimum complexity') }}"
+                   placeholder="{{ __('common.field_min') }}"
+                   aria-label="{{ __('games.field_minimum_complexity') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
             <span class="text-on-surface-variant">–</span>
             <input type="number" min="1" max="5" step="0.5"
                    wire:model.live="complexity_max"
-                   placeholder="{{ __('Max') }}"
-                   aria-label="{{ __('Maximum complexity') }}"
+                   placeholder="{{ __('common.field_max') }}"
+                   aria-label="{{ __('games.field_maximum_complexity') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
         </div>
 
         {{-- ── Active Filters ──────────────────────────────────────── --}}
         @if($this->hasActiveFilters())
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
+                <span class="text-sm text-on-surface-variant">{{ __('common.content_filters') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
@@ -73,12 +73,12 @@
                 @endif
                 @if($min_players || $max_players)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {{ $min_players ?? '1' }}–{{ $max_players ?? '20' }} {{ __('players') }}
+                        {{ $min_players ?? '1' }}–{{ $max_players ?? '20' }} {{ __('common.content_players_2') }}
                     </span>
                 @endif
                 @if($complexity_min || $complexity_max)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                        {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }} {{ __('weight') }}
+                        {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }} {{ __('common.content_weight') }}
                     </span>
                 @endif
                 @if($category_id)
@@ -93,7 +93,7 @@
                         {{ $mechName }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('Clear all') }}</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('common.action_clear_all') }}</button>
             </div>
         @endif
 
@@ -143,13 +143,13 @@
                             {{-- BGG Rating & Weight --}}
                             <div class="flex items-center gap-3 text-xs text-on-surface-variant">
                                 @if($system->bgg_average_rating)
-                                    <span class="flex items-center gap-0.5" title="{{ __('BGG Rating') }}">
+                                    <span class="flex items-center gap-0.5" title="{{ __('games.content_bgg_rating') }}">
                                         <span class="material-symbols-outlined text-sm text-amber-500" aria-hidden="true">star</span>
                                         {{ number_format($system->bgg_average_rating, 1) }}
                                     </span>
                                 @endif
                                 @if($system->bgg_average_weight)
-                                    <span class="flex items-center gap-0.5" title="{{ __('Complexity') }}">
+                                    <span class="flex items-center gap-0.5" title="{{ __('games.content_complexity') }}">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">fitness_center</span>
                                         {{ number_format($system->bgg_average_weight, 1) }}
                                     </span>
@@ -173,12 +173,12 @@
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">casino</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No game systems found') }}</h3>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('games.content_no_game_systems_found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
                     @if($this->hasActiveFilters())
-                        {{ __('Try adjusting your filters.') }}
+                        {{ __('common.action_try_adjusting_your_filters') }}
                     @else
-                        {{ __('Game systems will appear here once they are added.') }}
+                        {{ __('games.content_game_systems_will_appear_here_once_they_are_added') }}
                     @endif
                 </p>
             </div>

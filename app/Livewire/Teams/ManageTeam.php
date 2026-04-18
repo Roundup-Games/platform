@@ -81,7 +81,7 @@ class ManageTeam extends Component
 
         $this->team->delete();
 
-        session()->flash('success', __('Team deleted successfully.'));
+        session()->flash('success', __('teams.flash_team_deleted_successfully'));
 
         $this->redirect(route('teams.browse'), navigate: true);
     }

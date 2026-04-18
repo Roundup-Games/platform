@@ -2,8 +2,8 @@
     <div class="max-w-2xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div>
-            <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('Team Invites') }}</h1>
-            <p class="text-sm text-on-surface-variant mt-1">{{ __('Manage your pending team invitations.') }}</p>
+            <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('teams.content_team_invites') }}</h1>
+            <p class="text-sm text-on-surface-variant mt-1">{{ __('teams.action_manage_your_pending_team_invitations') }}</p>
         </div>
 
         {{-- Flash Messages --}}
@@ -31,8 +31,8 @@
         @if($pendingInvites->isEmpty())
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-8 text-center">
                 <span class="material-symbols-outlined text-4xl text-on-surface-variant/50" aria-hidden="true">mail</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No pending invites') }}</h3>
-                <p class="mt-1 text-sm text-on-surface-variant">{{ __("You don't have any team invitations right now.") }}</p>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('teams.error_no_pending_invites') }}</h3>
+                <p class="mt-1 text-sm text-on-surface-variant">{{ __('teams.error_you_don_t_have_any_team_invitations_right_now') }}</p>
             </div>
         @else
             <div class="space-y-4">
@@ -46,9 +46,9 @@
                                     </a>
                                 </h3>
                                 <p class="text-sm text-on-surface-variant mt-1">
-                                    {!! __('Invited as') !!} <strong>{{ __(ucfirst($invite->role)) }}</strong>
+                                    {!! __('common.content_invited_as') !!} <strong>{{ __(ucfirst($invite->role)) }}</strong>
                                     @if($invite->invitedBy)
-                                        {!! __('by :name', ['name' => e($invite->invitedBy?->name)]) !!}
+                                        {!! __('common.field_by_name', ['name' => e($invite->invitedBy?->name)]) !!}
                                     @endif
                                 </p>
                                 @if($invite->team->city)
@@ -61,11 +61,11 @@
                             <div class="flex items-center gap-2">
                                 <button wire:click="acceptInvite({{ $invite->id }})"
                                         class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                                    {{ __('Accept') }}
+                                    {{ __('common.action_accept') }}
                                 </button>
                                 <button wire:click="declineInvite({{ $invite->id }})"
                                         class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors border border-outline-variant rounded-lg">
-                                    {{ __('Decline') }}
+                                    {{ __('common.action_decline') }}
                                 </button>
                             </div>
                         </div>

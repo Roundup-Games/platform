@@ -72,7 +72,7 @@ class AddSessionToCampaign extends Component
             'owner_id' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Session ":name" added to campaign!', ['name' => $game->name]));
+        session()->flash('success', __('campaigns.flash_session_name_added_to_campaign', ['name' => $game->name]));
 
         $this->redirect(route('games.detail', $game->id), navigate: true);
     }

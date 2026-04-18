@@ -55,14 +55,14 @@ class ManageRoster extends Component
         $targetUser = User::where('email', $this->inviteEmail)->first();
 
         if (! $targetUser) {
-            $this->addError('inviteEmail', __('No user found with that email address.'));
+            $this->addError('inviteEmail', __('emails.error_no_user_found_with_that_email_address'));
 
             return;
         }
 
         // Cannot invite yourself
         if ($targetUser->id === Auth::id()) {
-            $this->addError('inviteEmail', __('You cannot invite yourself.'));
+            $this->addError('inviteEmail', __('common.error_you_cannot_invite_yourself'));
 
             return;
         }
@@ -81,7 +81,7 @@ class ManageRoster extends Component
                     ->exists();
 
                 if ($activeLock) {
-                    throw new \RuntimeException(__('This user already has an active team membership.'));
+                    throw new \RuntimeException(__('teams.error_this_user_already_has_an_active_team_membership'));
                 }
 
                 // Check for existing pending invite to this team
@@ -91,7 +91,7 @@ class ManageRoster extends Component
                     ->exists();
 
                 if ($existingPending) {
-                    throw new \RuntimeException(__('This user already has a pending invite to this team.'));
+                    throw new \RuntimeException(__('teams.error_this_user_already_has_a'));
                 }
 
                 // If they were previously removed/inactive, reactivate as pending
@@ -132,7 +132,7 @@ class ManageRoster extends Component
         ]);
 
         $this->reset('inviteEmail', 'inviteRole');
-        session()->flash('success', __('Invite sent to :email.', ['email' => $targetUser->email]));
+        session()->flash('success', __('emails.content_invite_sent_to_email', ['email' => $targetUser->email]));
     }
 
     // ── Role Management ────────────────────────────────
@@ -176,7 +176,7 @@ class ManageRoster extends Component
                 ->count();
 
             if ($captainCount <= 1) {
-                session()->flash('error', __('Cannot demote the last captain.'));
+                session()->flash('error', __('teams.error_cannot_demote_the_last_captain'));
 
                 return;
             }
@@ -220,7 +220,7 @@ class ManageRoster extends Component
                 ->count();
 
             if ($captainCount <= 1) {
-                session()->flash('error', __('Cannot remove the last captain role.'));
+                session()->flash('error', __('teams.error_cannot_remove_the_last_captain_role'));
 
                 return;
             }
@@ -276,7 +276,7 @@ class ManageRoster extends Component
         ]);
 
         $this->cancelEditing();
-        session()->flash('success', __('Member details updated.'));
+        session()->flash('success', __('teams.flash_member_details_updated'));
     }
 
     public function cancelEditing(): void
@@ -299,7 +299,7 @@ class ManageRoster extends Component
                 ->count();
 
             if ($captainCount <= 1) {
-                session()->flash('error', __('Cannot remove the last captain. Promote another member first.'));
+                session()->flash('error', __('teams.error_cannot_remove_the_last_captain'));
 
                 return;
             }
@@ -317,7 +317,7 @@ class ManageRoster extends Component
             'removed_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Member removed from team.'));
+        session()->flash('success', __('teams.content_member_removed_from_team'));
     }
 
     public function cancelInvite(int $memberId): void
@@ -341,7 +341,7 @@ class ManageRoster extends Component
             'cancelled_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Invite cancelled.'));
+        session()->flash('success', __('common.flash_invite_cancelled'));
     }
 
     public function leaveTeam(): void
@@ -358,7 +358,7 @@ class ManageRoster extends Component
                 ->count();
 
             if ($captainCount <= 1) {
-                session()->flash('error', __('You cannot leave the team as the last captain. Promote another member first.'));
+                session()->flash('error', __('teams.error_you_cannot_leave_the_team'));
 
                 return;
             }
@@ -374,7 +374,7 @@ class ManageRoster extends Component
             'user_id' => Auth::id(),
         ]);
 
-        session()->flash('success', __('You have left the team.'));
+        session()->flash('success', __('teams.content_you_have_left_the_team'));
 
         $this->redirect(route('teams.browse'), navigate: true);
     }

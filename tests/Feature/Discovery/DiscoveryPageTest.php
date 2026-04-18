@@ -330,7 +330,7 @@ describe('DiscoveryPage', function () {
             'name' => 'This Week Game',
             'visibility' => 'public',
             'status' => 'scheduled',
-            'date_time' => now()->addDays(2),
+            'date_time' => now()->startOfWeek()->addDays(3),
         ]);
 
         Game::factory()->create([

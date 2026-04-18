@@ -14,7 +14,7 @@
                 </span>
             @else
                 <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ __('Free') }}
+                    {{ __('billing.content_free') }}
                 </span>
             @endif
         </div>
@@ -23,7 +23,7 @@
         <div class="flex items-center gap-2 mb-3 flex-wrap">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
                 <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">campaign</span>
-                {{ __('Campaign') }}
+                {{ __('campaigns.content_campaign') }}
             </span>
             @if($campaign->gameSystem)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
@@ -33,7 +33,7 @@
             @if($campaign->visibility === 'protected')
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                     <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                    {{ __('Members Only') }}
+                    {{ __('teams.content_members_only') }}
                 </span>
             @endif
             @if($campaign->experience_level)
@@ -54,7 +54,7 @@
         @if($campaign->session_duration)
             <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
-                {{ $campaign->session_duration }}h {{ __('per session') }}
+                {{ $campaign->session_duration }}h {{ __('campaigns.content_per_session') }}
             </p>
         @endif
 
@@ -108,7 +108,7 @@
             @if(isset($campaign->sessions_count))
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">event_note</span>
-                    {{ $campaign->sessions_count }} {{ __('sessions') }}
+                    {{ $campaign->sessions_count }} {{ __('campaigns.content_sessions_2') }}
                 </span>
             @endif
         </div>

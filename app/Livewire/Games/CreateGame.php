@@ -137,7 +137,7 @@ class CreateGame extends Component
     #[Computed]
     public function experienceLevelOptions(): array
     {
-        $options = ['' => __('Any')];
+        $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
             $options[$case->value] = $case->label();
         }
@@ -171,7 +171,7 @@ class CreateGame extends Component
             isset($validated['min_players'], $validated['max_players'])
             && $validated['min_players'] > $validated['max_players']
         ) {
-            $this->addError('min_players', __('Min players cannot exceed max players.'));
+            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
 
             return;
         }
@@ -208,7 +208,7 @@ class CreateGame extends Component
             'owner_id' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Game ":name" created successfully!', ['name' => $game->name]));
+        session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
         $this->redirect(route('games.detail', $game->id), navigate: true);
     }
@@ -267,7 +267,7 @@ class CreateGame extends Component
             && $this->max_players !== null
             && $this->min_players > $this->max_players
         ) {
-            $this->addError('min_players', __('Min players cannot exceed max players.'));
+            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
         }
     }
 

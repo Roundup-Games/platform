@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Roundup Games') }} — @yield('title', __('Dashboard'))</title>
+        <title>{{ config('app.name', 'Roundup Games') }} — @yield('title', __('profile.content_dashboard'))</title>
 
         {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>
@@ -28,7 +28,7 @@
     </head>
     <body class="font-sans text-on-surface antialiased bg-surface dark:bg-[#1b1c17]">
         {{-- Skip to content link --}}
-        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('Skip to content') }}</a>
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-on-primary focus:rounded-lg focus:text-sm focus:font-semibold">{{ __('common.content_skip_to_content') }}</a>
 
         <div class="min-h-screen flex flex-col bg-surface dark:bg-[#1b1c17]">
 
@@ -59,23 +59,23 @@
                     <div class="px-4 pb-4 space-y-1">
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
-                            {{ __('Dashboard') }}
+                            {{ __('profile.content_dashboard') }}
                         </a>
                         <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('Discover') }}
+                            {{ __('discovery.action_discover') }}
                         </a>
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('games.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
-                            {{ __('Games') }}
+                            {{ __('games.content_games') }}
                         </a>
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('campaigns.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
-                            {{ __('Campaigns') }}
+                            {{ __('campaigns.content_campaigns') }}
                         </a>
                         <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('near') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
-                            {{ __('Near Me') }}
+                            {{ __('discovery.content_near_me') }}
                         </a>
 
                         {{-- Secondary section --}}
@@ -83,15 +83,15 @@
 
                         <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('Events') }}
+                            {{ __('events.content_events') }}
                         </a>
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('teams.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
-                            {{ __('Teams') }}
+                            {{ __('teams.content_teams') }}
                         </a>
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('billing.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
-                            {{ __('Billing') }}
+                            {{ __('billing.content_billing') }}
                         </a>
 
                         {{-- Separator --}}
@@ -99,13 +99,13 @@
 
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('profile.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
-                            {{ __('Profile') }}
+                            {{ __('profile.content_profile') }}
                         </a>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary transition-colors">
                                 <span class="material-symbols-outlined text-lg">logout</span>
-                                {{ __('Log Out') }}
+                                {{ __('auth.content_log_out') }}
                             </button>
                         </form>
 
@@ -149,52 +149,52 @@
                         {{-- Primary navigation items --}}
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
-                            {{ __('Dashboard') }}
+                            {{ __('profile.content_dashboard') }}
                         </a>
 
                         <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('Discover') }}
+                            {{ __('discovery.action_discover') }}
                         </a>
 
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
-                            {{ __('Games') }}
+                            {{ __('games.content_games') }}
                         </a>
 
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('campaigns.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
-                            {{ __('Campaigns') }}
+                            {{ __('campaigns.content_campaigns') }}
                         </a>
 
                         <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('near') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
-                            {{ __('Near Me') }}
+                            {{ __('discovery.content_near_me') }}
                         </a>
 
                         {{-- Secondary items --}}
                         <div class="pt-4 mt-4 border-t border-outline-variant/15">
-                            <span class="px-4 text-xs font-bold text-on-surface-variant/60 uppercase tracking-wide">{{ __('Manage') }}</span>
+                            <span class="px-4 text-xs font-bold text-on-surface-variant/60 uppercase tracking-wide">{{ __('common.action_manage') }}</span>
                         </div>
 
                         <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('Events') }}
+                            {{ __('events.content_events') }}
                         </a>
 
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('teams.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
-                            {{ __('Teams') }}
+                            {{ __('teams.content_teams') }}
                         </a>
 
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('billing.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
-                            {{ __('Billing') }}
+                            {{ __('billing.content_billing') }}
                         </a>
 
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('profile.*') ? 'bg-surface-container-lowest dark:bg-[#2a2b24] text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-[#2a2b24] hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
-                            {{ __('Profile') }}
+                            {{ __('profile.content_profile') }}
                         </a>
                     </nav>
 
@@ -213,13 +213,13 @@
                             <div class="flex items-center gap-3">
                                 <a href="{{ route('profile.show') }}" wire:navigate class="text-xs text-on-surface-variant hover:text-primary transition-colors">
                                     <span class="material-symbols-outlined text-sm align-middle">settings</span>
-                                    {{ __('Settings') }}
+                                    {{ __('profile.content_settings') }}
                                 </a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" onclick="event.preventDefault(); this.closest('form').submit();" class="text-xs text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-sm align-middle">logout</span>
-                                        {{ __('Log Out') }}
+                                        {{ __('auth.content_log_out') }}
                                     </button>
                                 </form>
                             </div>
@@ -245,7 +245,7 @@
                                     {{ $header }}
                                 </h2>
                             @else
-                                <h1 class="font-heading text-lg font-semibold text-on-surface dark:text-[#eae8e0] tracking-tight">{{ __('Dashboard') }}</h1>
+                                <h1 class="font-heading text-lg font-semibold text-on-surface dark:text-[#eae8e0] tracking-tight">{{ __('profile.content_dashboard') }}</h1>
                             @endif
                         </div>
                         <x-theme-toggle size="small" />

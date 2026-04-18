@@ -126,7 +126,7 @@ class CreateCampaign extends Component
     #[Computed]
     public function experienceLevelOptions(): array
     {
-        $options = ['' => __('Any')];
+        $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
             $options[$case->value] = $case->label();
         }
@@ -160,7 +160,7 @@ class CreateCampaign extends Component
             isset($validated['min_players'], $validated['max_players'])
             && $validated['min_players'] > $validated['max_players']
         ) {
-            $this->addError('min_players', __('Min players cannot exceed max players.'));
+            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
 
             return;
         }
@@ -195,7 +195,7 @@ class CreateCampaign extends Component
             'owner_id' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Campaign ":name" created successfully!', ['name' => $campaign->name]));
+        session()->flash('success', __('campaigns.flash_campaign_name_created_successfully', ['name' => $campaign->name]));
 
         $this->redirect(route('campaigns.detail', $campaign->id), navigate: true);
     }
@@ -254,7 +254,7 @@ class CreateCampaign extends Component
             && $this->max_players !== null
             && $this->min_players > $this->max_players
         ) {
-            $this->addError('min_players', __('Min players cannot exceed max players.'));
+            $this->addError('min_players', __('games.error_min_players_cannot_exceed_max_players'));
         }
     }
 

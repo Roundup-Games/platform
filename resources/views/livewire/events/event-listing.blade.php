@@ -2,48 +2,48 @@
 $locale = app()->getLocale();
 @endphp
 <div>
-    <x-hero title="Events" :subtitle="__('Discover tournaments, leagues, camps, and more in your area.')" />
+    <x-hero title="Events" :subtitle="__('events.content_discover_tournaments_leagues_camps_and')" />
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {{-- Search & Filters --}}
         <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
-                <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search events by name, city, or venue...') }}"
+                <input type="text" aria-label="Search events" wire:model.live.debounce.300ms="search" placeholder="{{ __('events.action_search_events_by_name_city_or_venue') }}"
                        class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
             </div>
             <select wire:model.live="type" aria-label="Filter by event type"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Types') }}</option>
-                <option value="tournament">{{ __('Tournament') }}</option>
-                <option value="league">{{ __('League') }}</option>
-                <option value="camp">{{ __('Camp') }}</option>
-                <option value="clinic">{{ __('Clinic') }}</option>
-                <option value="social">{{ __('Social') }}</option>
-                <option value="other">{{ __('Other') }}</option>
+                <option value="">{{ __('discovery.content_all_types') }}</option>
+                <option value="tournament">{{ __('events.field_tournament') }}</option>
+                <option value="league">{{ __('common.content_league') }}</option>
+                <option value="camp">{{ __('common.content_camp') }}</option>
+                <option value="clinic">{{ __('common.content_clinic') }}</option>
+                <option value="social">{{ __('common.content_social') }}</option>
+                <option value="other">{{ __('common.content_other') }}</option>
             </select>
             <select wire:model.live="status" aria-label="Filter by event status"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Statuses') }}</option>
-                <option value="registration_open">{{ __('Registration Open') }}</option>
-                <option value="registration_closed">{{ __('Registration Closed') }}</option>
-                <option value="in_progress">{{ __('In Progress') }}</option>
-                <option value="published">{{ __('Published') }}</option>
+                <option value="">{{ __('discovery.content_all_statuses') }}</option>
+                <option value="registration_open">{{ __('events.content_registration_open') }}</option>
+                <option value="registration_closed">{{ __('events.content_registration_closed') }}</option>
+                <option value="in_progress">{{ __('common.content_in_progress') }}</option>
+                <option value="published">{{ __('common.status_published') }}</option>
             </select>
             <select wire:model.live="date" aria-label="Filter by date"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('Any Date') }}</option>
-                <option value="upcoming">{{ __('Upcoming') }}</option>
-                <option value="this_week">{{ __('This Week') }}</option>
-                <option value="this_month">{{ __('This Month') }}</option>
-                <option value="past">{{ __('Past') }}</option>
+                <option value="">{{ __('discovery.field_any_date') }}</option>
+                <option value="upcoming">{{ __('common.field_upcoming') }}</option>
+                <option value="this_week">{{ __('common.content_this_week') }}</option>
+                <option value="this_month">{{ __('common.content_this_month') }}</option>
+                <option value="past">{{ __('common.content_past') }}</option>
             </select>
         </div>
 
         {{-- Active filters --}}
         @if($search || $type || $status || $date)
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
+                <span class="text-sm text-on-surface-variant">{{ __('common.content_filters') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
@@ -64,7 +64,7 @@ $locale = app()->getLocale();
                         {{ __(ucfirst(str_replace('_', ' ', $date))) }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('Clear all') }}</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('common.action_clear_all') }}</button>
             </div>
         @endif
 
@@ -87,7 +87,7 @@ $locale = app()->getLocale();
                                 </h3>
                                 @if($event->is_featured)
                                     <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        {{ __('★ Featured') }}
+                                        {{ __('discovery.content_featured_2') }}
                                     </span>
                                 @endif
                             </div>
@@ -99,15 +99,15 @@ $locale = app()->getLocale();
                                 </span>
                                 @if($event->status === 'registration_open')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                                        {{ __('Registration Open') }}
+                                        {{ __('events.content_registration_open') }}
                                     </span>
                                 @elseif($event->status === 'in_progress')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                                        {{ __('In Progress') }}
+                                        {{ __('common.content_in_progress') }}
                                     </span>
                                 @elseif($event->status === 'registration_closed')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        {{ __('Registration Closed') }}
+                                        {{ __('events.content_registration_closed') }}
                                     </span>
                                 @endif
                             </div>
@@ -141,9 +141,9 @@ $locale = app()->getLocale();
                             @if($event->team_registration_fee > 0 || $event->individual_registration_fee > 0)
                                 <p class="mt-2 text-xs text-on-surface-variant/70">
                                     @if($event->individual_registration_fee > 0)
-                                        {{ __('From :amount/player', ['amount' => format_currency($event->individual_registration_fee)]) }}
+                                        {{ __('common.field_from_amount_player', ['amount' => format_currency($event->individual_registration_fee)]) }}
                                     @elseif($event->team_registration_fee > 0)
-                                        {{ __(':amount/team', ['amount' => format_currency($event->team_registration_fee)]) }}
+                                        {{ __('events.field_amount_team_2', ['amount' => format_currency($event->team_registration_fee)]) }}
                                     @endif
                                 </p>
                             @endif
@@ -158,12 +158,12 @@ $locale = app()->getLocale();
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">event_busy</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No events found') }}</h3>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('events.content_no_events_found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
                     @if($search || $type || $status || $date)
-                        {{ __('Try adjusting your filters.') }}
+                        {{ __('common.action_try_adjusting_your_filters') }}
                     @else
-                        {{ __('Check back soon for upcoming events!') }}
+                        {{ __('events.content_check_back_soon_for_upcoming_events') }}
                     @endif
                 </p>
             </div>

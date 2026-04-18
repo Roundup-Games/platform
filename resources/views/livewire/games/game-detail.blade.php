@@ -4,7 +4,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('Back to Dashboard') }}
+                {{ __('profile.action_back_to_dashboard') }}
             </a>
         </div>
     </div>
@@ -15,7 +15,7 @@
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                        {{ __('Owner') }}
+                        {{ __('common.content_owner') }}
                     </span>
                 @endif
                 @if($game->gameSystem)
@@ -32,7 +32,7 @@
             @if($game->campaign)
                 <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary hover:bg-on-primary/30 transition-colors mb-2">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">campaign</span>
-                    {{ __('Part of Campaign: :name', ['name' => $game->campaign?->name]) }}
+                    {{ __('games.content_part_of_campaign_name', ['name' => $game->campaign?->name]) }}
                 </a>
             @endif
 
@@ -62,7 +62,7 @@
                 @else
                     <span class="flex items-center gap-2 text-secondary">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">check_circle</span>
-                        {{ __('Free') }}
+                        {{ __('billing.content_free') }}
                     </span>
                 @endif
                 @if($game->location && !empty($game->location['details']))
@@ -83,11 +83,11 @@
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-on-primary/15 text-on-primary">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">groups</span>
                         @if($game->min_players && $game->max_players)
-                            {{ $game->min_players }}–{{ $game->max_players }} {{ __('players') }}
+                            {{ $game->min_players }}–{{ $game->max_players }} {{ __('common.content_players_2') }}
                         @elseif($game->min_players)
-                            {{ __('Min :count players', ['count' => $game->min_players]) }}
+                            {{ __('common.field_min_count_players', ['count' => $game->min_players]) }}
                         @else
-                            {{ __('Up to :count players', ['count' => $game->max_players]) }}
+                            {{ __('common.content_up_to_count_players', ['count' => $game->max_players]) }}
                         @endif
                     </span>
                 @endif
@@ -108,7 +108,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                {{ __('Participants') }}
+                {{ __('common.content_participants') }}
             </h2>
 
             @if($game->participants->count())
@@ -120,7 +120,7 @@
                                 {{ strtoupper($participant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('common.content_unknown') }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
@@ -134,7 +134,7 @@
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No participants yet.') }}</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('common.content_no_participants_yet') }}</p>
             @endif
         </section>
 
@@ -143,12 +143,12 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">info</span>
-                    {{ __('Session Info') }}
+                    {{ __('campaigns.content_session_info') }}
                 </h2>
 
                 @if($game->complexity)
                     <div class="mb-4">
-                        <p class="text-sm font-medium text-on-surface mb-1">{{ __('Complexity') }}</p>
+                        <p class="text-sm font-medium text-on-surface mb-1">{{ __('games.content_complexity') }}</p>
                         <div class="flex items-center gap-1">
                             @for($i = 1; $i <= 5; $i++)
                                 <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
@@ -162,7 +162,7 @@
 
                 @if($game->vibe_flags && count($game->vibe_flags))
                     <div>
-                        <p class="text-sm font-medium text-on-surface mb-2">{{ __('Vibes') }}</p>
+                        <p class="text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibes') }}</p>
                         <div class="flex flex-wrap gap-2">
                             @foreach($game->vibe_flags as $flag)
                                 @php($flagEnum = App\Enums\VibeFlag::tryFrom($flag))
@@ -188,7 +188,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">inbox</span>
-                    {{ __('Applications') }}
+                    {{ __('common.content_applications') }}
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -198,7 +198,7 @@
                                 {{ strtoupper($application->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $application->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $application->user?->name ?? __('common.content_unknown') }}</p>
                                 @if($application->message)
                                     <p class="text-xs text-on-surface-variant truncate">{{ $application->message }}</p>
                                 @endif
@@ -217,14 +217,14 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person</span>
-                {{ __('Hosted by') }}
+                {{ __('common.content_hosted_by') }}
             </h2>
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
                     {{ strtoupper($game->owner?->name[0] ?? '?') }}
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-on-surface">{{ $game->owner?->name ?? __('Unknown') }}</p>
+                    <p class="text-sm font-medium text-on-surface">{{ $game->owner?->name ?? __('common.content_unknown') }}</p>
                 </div>
             </div>
         </section>

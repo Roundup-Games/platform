@@ -2,13 +2,13 @@
     {{-- ── Compact Header ────────────────────────────────────────── --}}
     <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-            <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('Discover Games & Campaigns') }}</h1>
-            <p class="mt-1 text-sm text-on-primary/80">{{ __('Find games and campaigns that match your vibe.') }}</p>
+            <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('games.action_discover_games_campaigns') }}</h1>
+            <p class="mt-1 text-sm text-on-primary/80">{{ __('discovery.action_find_games_and_campaigns_that_match_your_vibe') }}</p>
 
             {{-- ── Search ─────────────────────────────────────── --}}
             <div class="mt-4 relative max-w-xl">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-primary/60 text-lg" aria-hidden="true">search</span>
-                <input type="text" aria-label="{{ __('Search') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search games and campaigns...') }}"
+                <input type="text" aria-label="{{ __('discovery.action_search') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('games.action_search_games_and_campaigns') }}"
                        class="w-full pl-10 pr-4 py-2.5 bg-on-primary/10 border border-on-primary/20 rounded-full text-on-primary placeholder:text-on-primary/50 focus:bg-on-primary/20 focus:border-on-primary/40 focus:ring-2 focus:ring-on-primary/20" />
             </div>
         </div>
@@ -22,7 +22,7 @@
                 <section class="space-y-3">
                     <h2 class="text-lg font-heading font-semibold text-on-surface flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary" aria-hidden="true">auto_awesome</span>
-                        {{ __('Recommended for You') }}
+                        {{ __('discovery.field_recommended_for_you') }}
                     </h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($recommendations as $item)
@@ -42,51 +42,51 @@
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
 
             {{-- Type pills (replaces mode tabs) --}}
-            <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1" role="radiogroup" aria-label="{{ __('Session type') }}">
+            <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1" role="radiogroup" aria-label="{{ __('campaigns.content_session_type') }}">
                 <button wire:click="setMode('all')"
                         role="radio" aria-checked="{{ $mode === 'all' ? 'true' : 'false' }}"
                         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                    {{ __('Either') }}
+                    {{ __('common.content_either') }}
                 </button>
                 <button wire:click="setMode('games')"
                         role="radio" aria-checked="{{ $mode === 'games' ? 'true' : 'false' }}"
                         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'games' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                    {{ __('One-shot') }}
+                    {{ __('common.content_one_shot') }}
                 </button>
                 <button wire:click="setMode('campaigns')"
                         role="radio" aria-checked="{{ $mode === 'campaigns' ? 'true' : 'false' }}"
                         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $mode === 'campaigns' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                    {{ __('Campaign') }}
+                    {{ __('campaigns.content_campaign') }}
                 </button>
             </div>
 
             {{-- Time pills (contextual to type) --}}
             @if($mode === 'all' || $mode === 'games')
-                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('Time frame') }}">
+                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('common.field_time_frame') }}">
                     <button wire:click="setDate('')"
                             class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$date ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                        {{ __('Any Date') }}
+                        {{ __('discovery.field_any_date') }}
                     </button>
                     <button wire:click="setDate('upcoming')"
                             class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'upcoming' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                        {{ __('Upcoming') }}
+                        {{ __('common.field_upcoming') }}
                     </button>
                     <button wire:click="setDate('this_week')"
                             class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_week' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                        {{ __('This Week') }}
+                        {{ __('common.content_this_week') }}
                     </button>
                     <button wire:click="setDate('this_month')"
                             class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $date === 'this_month' ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                        {{ __('This Month') }}
+                        {{ __('common.content_this_month') }}
                     </button>
                 </div>
             @endif
 
             @if($mode === 'campaigns')
-                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('Schedule') }}">
+                <div class="flex items-center gap-1 bg-surface-container-high rounded-full p-1 overflow-x-auto" role="radiogroup" aria-label="{{ __('campaigns.content_schedule') }}">
                     <button wire:click="setRecurrence('')"
                             class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$recurrence ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                        {{ __('Any Schedule') }}
+                        {{ __('discovery.content_any_schedule') }}
                     </button>
                     @foreach($recurrenceOptions as $option)
                         <button wire:click="setRecurrence('{{ $option }}')"
@@ -103,9 +103,9 @@
                 @if($guestLat && $guestLng)
                     <span>{{ round($guestLat, 1) }}°, {{ round($guestLng, 1) }}°</span>
                 @else
-                    <span>{{ __('Set your location') }}</span>
+                    <span>{{ __('location.action_set_your_location') }}</span>
                 @endif
-                <button wire:click="requestGuestLocation" class="text-primary hover:underline text-xs">{{ __('Change') }}</button>
+                <button wire:click="requestGuestLocation" class="text-primary hover:underline text-xs">{{ __('common.action_change') }}</button>
             </div>
         </div>
 
@@ -115,7 +115,7 @@
                     class="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                     :aria-expanded="expanded">
                 <span class="material-symbols-outlined text-base transition-transform" :class="{ 'rotate-180': expanded }" aria-hidden="true">expand_more</span>
-                {{ __('Narrow it down') }}
+                {{ __('common.content_narrow_it_down') }}
             </button>
 
             <div x-show="expanded"
@@ -130,10 +130,10 @@
 
                 {{-- Game System select --}}
                 <div>
-                    <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Game System') }}</p>
-                    <select wire:model.live="game_system_id" aria-label="{{ __('Filter by game system') }}"
+                    <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('games.content_game_system') }}</p>
+                    <select wire:model.live="game_system_id" aria-label="{{ __('games.action_filter_by_game_system') }}"
                             class="w-full sm:w-auto min-w-[200px] bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                        <option value="">{{ __('All Systems') }}</option>
+                        <option value="">{{ __('discovery.content_all_systems') }}</option>
                         @foreach($gameSystems as $system)
                             <option value="{{ $system->id }}">{{ $system->name }}</option>
                         @endforeach
@@ -143,7 +143,7 @@
                 {{-- Category pills (from curated list) --}}
                 @if($curatedCategories->isNotEmpty())
                     <div>
-                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Categories') }}</p>
+                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('common.content_categories') }}</p>
                         <div class="flex flex-wrap gap-1.5">
                             @foreach($curatedCategories as $category)
                                 <button
@@ -161,7 +161,7 @@
                 {{-- Mechanic pills (from curated list) --}}
                 @if($curatedMechanics->isNotEmpty())
                     <div>
-                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('Mechanics') }}</p>
+                        <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('games.content_mechanics') }}</p>
                         <div class="flex flex-wrap gap-1.5">
                             @foreach($curatedMechanics as $mechanic)
                                 <button
@@ -222,37 +222,37 @@
 
                 {{-- Selects row: Experience Level / Language / Price / Complexity --}}
                 <div class="flex flex-wrap gap-3">
-                    <select wire:model.live="experience_level" aria-label="{{ __('Filter by experience level') }}"
+                    <select wire:model.live="experience_level" aria-label="{{ __('discovery.action_filter_by_experience_level') }}"
                             class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                        <option value="">{{ __('All Levels') }}</option>
+                        <option value="">{{ __('discovery.content_all_levels') }}</option>
                         @foreach($experienceLevels as $level)
                             <option value="{{ $level->value }}">{{ $level->label() }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="language" aria-label="{{ __('Filter by language') }}"
+                    <select wire:model.live="language" aria-label="{{ __('discovery.action_filter_by_language') }}"
                             class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                        <option value="">{{ __('All Languages') }}</option>
+                        <option value="">{{ __('discovery.content_all_languages') }}</option>
                         @foreach($languages as $lang)
                             <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="price" aria-label="{{ __('Filter by price') }}"
+                    <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
                             class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                        <option value="">{{ __('Any Price') }}</option>
-                        <option value="free">{{ __('Free') }}</option>
-                        <option value="paid">{{ __('Paid') }}</option>
+                        <option value="">{{ __('discovery.field_any_price') }}</option>
+                        <option value="free">{{ __('billing.content_free') }}</option>
+                        <option value="paid">{{ __('billing.content_paid') }}</option>
                     </select>
                 </div>
 
                 {{-- Complexity Range --}}
                 <div class="flex items-center gap-3">
-                    <span class="text-sm text-on-surface-variant">{{ __('Complexity') }}</span>
-                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('Min') }}" aria-label="{{ __('Minimum complexity') }}"
+                    <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity') }}</span>
+                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('common.field_min') }}" aria-label="{{ __('games.field_minimum_complexity') }}"
                            class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
                     <span class="text-on-surface-variant">–</span>
-                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('Max') }}" aria-label="{{ __('Maximum complexity') }}"
+                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('common.field_max') }}" aria-label="{{ __('games.field_maximum_complexity') }}"
                            class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
                 </div>
             </div>
@@ -262,7 +262,7 @@
         @php($activeFilters = $this->hasActiveFilters())
         @if($activeFilters)
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
+                <span class="text-sm text-on-surface-variant">{{ __('common.content_filters') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
@@ -270,7 +270,7 @@
                 @endif
                 @if($mode !== 'all')
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {{ $mode === 'games' ? __('One-shot') : __('Campaign') }}
+                        {{ $mode === 'games' ? __('common.content_one_shot') : __('campaigns.content_campaign') }}
                     </span>
                 @endif
                 @if($date)
@@ -341,7 +341,7 @@
                         {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('Clear all') }}</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('common.action_clear_all') }}</button>
             </div>
         @endif
 
@@ -363,12 +363,12 @@
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">explore</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No results found') }}</h3>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('common.content_no_results_found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
                     @if($activeFilters)
-                        {{ __('Try adjusting your filters.') }}
+                        {{ __('common.action_try_adjusting_your_filters') }}
                     @else
-                        {{ __('Check back soon for new games and campaigns!') }}
+                        {{ __('games.content_check_back_soon_for_new_games_and_campaigns') }}
                     @endif
                 </p>
             </div>

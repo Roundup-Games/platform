@@ -162,14 +162,14 @@ class CompleteProfile extends Component
                     'lng' => $result['lng'],
                 ]);
             } else {
-                $this->addError('city', __('Could not find this location. Please try a different city name.'));
+                $this->addError('city', __('location.error_could_not_find_this_location_city'));
             }
         } catch (\Throwable $e) {
             Log::error('Geocoding failed during onboarding', [
                 'city' => $this->city,
                 'error' => $e->getMessage(),
             ]);
-            $this->addError('city', __('Location lookup failed. Please try again.'));
+            $this->addError('city', __('location.error_location_lookup_failed'));
         }
     }
 
@@ -304,7 +304,7 @@ class CompleteProfile extends Component
                 $this->validateOnly('city');
                 if (! $this->locationConfirmed || $this->lat === null || $this->lng === null) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'city' => [__('Please confirm your location to continue.')],
+                        'city' => [__('location.error_please_confirm_your_location_to_continue')],
                     ]);
                 }
             })(),

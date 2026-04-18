@@ -8,7 +8,7 @@
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             <a href="{{ $getBackRoute() }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('Back to :entity', ['entity' => $getEntityName()]) }}
+                {{ __('common.action_back_to_entity', ['entity' => $getEntityName()]) }}
             </a>
         </div>
     </div>
@@ -18,7 +18,7 @@
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-2xl" aria-hidden="true">group_manage</span>
-                {{ __('Manage Participants') }}
+                {{ __('events.action_manage_participants') }}
             </h1>
             <p class="mt-1 text-sm text-on-surface-variant">{{ $entity->name }}</p>
         </div>
@@ -43,7 +43,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span>
-                {{ __('Invite Player') }}
+                {{ __('teams.content_invite_player') }}
             </h2>
 
             <form wire:submit="inviteParticipant" class="flex gap-3">
@@ -58,7 +58,7 @@
                 <button type="submit"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                    {{ __('Send Invite') }}
+                    {{ __('teams.field_send_invite') }}
                 </button>
             </form>
         </section>
@@ -67,7 +67,7 @@
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
-                {{ __('Participants') }} <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
+                {{ __('events.content_participants') }} <span class="text-on-surface-variant font-normal text-base">({{ $approvedParticipants->count() }})</span>
             </h2>
 
             @if($approvedParticipants->count())
@@ -79,7 +79,7 @@
                                 {{ strtoupper($participant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('common.content_unknown') }}</p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
@@ -87,17 +87,17 @@
                             </span>
                             @if($participant->role !== 'owner')
                                 <button wire:click="removeParticipant('{{ $participant->id }}')"
-                                    wire:confirm="{{ __('Are you sure you want to remove this participant?') }}"
+                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
                                     class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
-                                    {{ __('Remove') }}
+                                    {{ __('common.action_remove') }}
                                 </button>
                             @endif
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No approved participants yet.') }}</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('events.content_no_approved_participants_yet') }}</p>
             @endif
         </section>
 
@@ -106,7 +106,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">inbox</span>
-                    {{ __('Pending Applications') }} <span class="text-tertiary font-normal text-base">({{ $pendingApplicants->count() }})</span>
+                    {{ __('common.field_pending_applications') }} <span class="text-tertiary font-normal text-base">({{ $pendingApplicants->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -116,7 +116,7 @@
                                 {{ strtoupper($applicant->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $applicant->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $applicant->user?->name ?? __('common.content_unknown') }}</p>
                                 @php
                                     $app = $entity->applications->firstWhere('user_id', $applicant->user_id)
                                 @endphp
@@ -128,12 +128,12 @@
                                 <button wire:click="approveApplication('{{ $applicant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                                    {{ __('Approve') }}
+                                    {{ __('events.action_approve') }}
                                 </button>
                                 <button wire:click="rejectApplication('{{ $applicant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-                                    {{ __('Reject') }}
+                                    {{ __('common.action_reject') }}
                                 </button>
                             </div>
                         </div>
@@ -147,7 +147,7 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">mail</span>
-                    {{ __('Pending Invites') }} <span class="text-on-surface-variant font-normal text-base">({{ $pendingInvites->count() }})</span>
+                    {{ __('teams.field_pending_invites') }} <span class="text-on-surface-variant font-normal text-base">({{ $pendingInvites->count() }})</span>
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
@@ -157,14 +157,14 @@
                                 {{ strtoupper($invite->user?->name[0] ?? '?') }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $invite->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $invite->user?->name ?? __('common.content_unknown') }}</p>
                                 <p class="text-xs text-on-surface-variant">{{ $invite->user?->email ?? '' }}</p>
                             </div>
                             <button wire:click="cancelInvite('{{ $invite->id }}')"
-                                wire:confirm="{{ __('Cancel this invite?') }}"
+                                wire:confirm="{{ __('common.flash_cancel_this_invite') }}"
                                 class="text-sm text-on-surface-variant hover:text-error transition-colors inline-flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
-                                {{ __('Cancel') }}
+                                {{ __('common.action_cancel') }}
                             </button>
                         </div>
                     @endforeach>

@@ -255,7 +255,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('Cannot change event status from ":from" to ":to".', ['from' => $oldStatus, 'to' => $this->status]),
+                'status' => __('events.error_cannot_change_event_status_from_from_to_to', ['from' => $oldStatus, 'to' => $this->status]),
             ]);
         }
 
@@ -351,7 +351,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('Cannot publish event from status ":from".', ['from' => $oldStatus]),
+                'status' => __('events.error_cannot_publish_event_from_status_from', ['from' => $oldStatus]),
             ]);
         }
 
@@ -363,7 +363,7 @@ class ManageEvent extends Component
             'published_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Event published.'));
+        session()->flash('success', __('events.flash_event_published'));
     }
 
     public function openRegistration(): void
@@ -379,7 +379,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('Cannot open registration from status ":from".', ['from' => $oldStatus]),
+                'status' => __('events.error_cannot_open_registration_from_status_from', ['from' => $oldStatus]),
             ]);
         }
 
@@ -395,7 +395,7 @@ class ManageEvent extends Component
             'opened_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Registration opened.'));
+        session()->flash('success', __('events.content_registration_opened'));
     }
 
     public function closeRegistration(): void
@@ -411,7 +411,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('Cannot close registration from status ":from".', ['from' => $oldStatus]),
+                'status' => __('events.error_cannot_close_registration_from_status_from', ['from' => $oldStatus]),
             ]);
         }
 
@@ -423,7 +423,7 @@ class ManageEvent extends Component
             'closed_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Registration closed.'));
+        session()->flash('success', __('events.content_registration_closed_2'));
     }
 
     public function cancelEvent(): void
@@ -439,7 +439,7 @@ class ManageEvent extends Component
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('Cannot cancel event from status ":from".', ['from' => $oldStatus]),
+                'status' => __('events.error_cannot_cancel_event_from_status_from', ['from' => $oldStatus]),
             ]);
         }
 
@@ -451,7 +451,7 @@ class ManageEvent extends Component
             'cancelled_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('Event cancelled.'));
+        session()->flash('success', __('events.flash_event_cancelled'));
     }
 
     public function render()

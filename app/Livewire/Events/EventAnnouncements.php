@@ -151,7 +151,7 @@ class EventAnnouncements extends Component
         $this->resetForm();
         unset($this->announcements, $this->counts);
 
-        session()->flash('success', $this->editingId ? __('Announcement updated.') : __('Announcement created.'));
+        session()->flash('success', $this->editingId ? __('events.flash_announcement_updated') : __('events.flash_announcement_created'));
     }
 
     // ── Quick Actions ─────────────────────────────────
@@ -170,7 +170,7 @@ class EventAnnouncements extends Component
         ]);
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', __('Announcement published.'));
+        session()->flash('success', __('events.flash_announcement_published'));
     }
 
     public function unpublishAnnouncement(string $id): void
@@ -187,7 +187,7 @@ class EventAnnouncements extends Component
         ]);
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', __('Announcement unpublished.'));
+        session()->flash('success', __('events.flash_announcement_unpublished'));
     }
 
     public function togglePin(string $id): void
@@ -221,7 +221,7 @@ class EventAnnouncements extends Component
         $announcement->delete();
 
         unset($this->announcements, $this->counts);
-        session()->flash('success', __('Announcement deleted.'));
+        session()->flash('success', __('events.flash_announcement_deleted'));
     }
 
     // ── Filters ───────────────────────────────────────

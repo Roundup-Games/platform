@@ -126,7 +126,7 @@ describe('Values Strip', function () {
             ->assertSee(__('Welcoming Community'))
             ->assertSee(__('Imaginative Play'))
             ->assertSee(__('Safe Spaces'))
-            ->assertSee(__('Discovery'));
+            ->assertSee(__('discovery.content_discovery'));
     });
 
     it('shows value descriptions', function () {
@@ -250,81 +250,83 @@ describe('i18n', function () {
             ->assertSee('Discovery');
     });
 
-    it('all landing page keys exist in both en.json and de.json', function () {
+    it('all landing page domain keys exist in both en and de', function () {
         $landingPageKeys = [
-            "There's a seat waiting for you.",
-            'Find your people. Discover new worlds. Share stories around the table that you\'ll be talking about for years.',
-            'Find sessions near me',
-            'Explore games',
-            "What's happening near you?",
-            'Share your location to see game sessions and campaigns happening this week in your area.',
-            'Sessions this week',
-            'People joined sessions this week',
-            'Active campaigns',
-            'Built for real connection',
-            'Tabletop gaming is about more than rules. It\'s about the people you share the table with.',
-            'Welcoming Community',
-            'Every table has room for one more. Find players and hosts who make you feel at home.',
-            'Imaginative Play',
-            'From epic campaigns to quick one-shots, discover stories waiting to be told and worlds waiting to be explored.',
-            'Safe Spaces',
-            'Clear safety tools, session zero support, and community guidelines keep the focus on fun for everyone.',
-            'Discovery',
-            'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
-            'Your next adventure starts here',
-            'Join a community of players, hosts, and storytellers. Find a session, bring a friend, or start your own.',
-            'Create Free Account',
-            'Browse Sessions',
+            'common.content_there_s_a_seat_waiting_for_you',
+            'events.content_find_your_people_discover_new',
+            'campaigns.action_find_sessions_near_me',
+            'games.action_explore_games_2',
+            'discovery.content_what_s_happening_near_you',
+            'games.content_share_your_location_to_see',
+            'campaigns.content_sessions_this_week',
+            'campaigns.content_people_joined_sessions_this_week',
+            'campaigns.content_active_campaigns',
+            'pages.content_built_for_real_connection',
+            'common.content_tabletop_gaming_is_about_more',
+            'common.field_welcoming_community',
+            'pages.content_every_table_has_room_for',
+            'common.content_imaginative_play',
+            'campaigns.content_from_epic_campaigns_to_quick',
+            'common.content_safe_spaces',
+            'safety.content_clear_safety_tools_session_zero',
+            'discovery.content_discovery',
+            'games.content_step_outside_your_comfort_zone',
+            'pages.field_your_next_adventure_starts_here',
+            'campaigns.content_join_a_community_of_players',
+            'profile.action_create_free_account',
+            'campaigns.action_browse_sessions',
         ];
 
-        $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        $de = json_decode(file_get_contents(base_path('lang/de.json')), true);
-
+        app()->setLocale('en');
         foreach ($landingPageKeys as $key) {
-            expect(array_key_exists($key, $en))->toBeTrue("Missing en.json key: {$key}");
-            expect(array_key_exists($key, $de))->toBeTrue("Missing de.json key: {$key}");
-            expect($de[$key])->not->toBe($key, "de.json value identical to key (untranslated): {$key}");
+            $enValue = __($key);
+            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
+        }
+
+        app()->setLocale('de');
+        foreach ($landingPageKeys as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
         }
     });
 
-    it('all /near page keys exist in both en.json and de.json', function () {
+    it('all /near page domain keys exist in both en and de', function () {
         $nearPageKeys = [
-            'Sessions Near You',
-            'Find Sessions Near You',
-            'Share your location',
-            'Share your location to discover game sessions and campaigns in your area.',
-            'Show me sessions near me',
-            'Or enter your city',
-            'Enter your city',
-            'City name',
-            'Radius',
-            'Search radius',
-            'Showing public sessions and campaigns within your selected area.',
-            'No sessions found within :radius km. Showing results within :fallback km.',
-            'This Week',
-            'Coming Up',
-            'Ongoing Campaigns',
-            'Ongoing Campaign',
-            'No sessions near you yet',
-            'Be the first to bring tabletop gaming to your area. Start a session and players will find you.',
-            'Host a Session',
-            'Sign Up to Host',
-            'Change Location',
-            'Join this Session',
-            'View Campaign',
-            'BoardGameGeek Rank #:rank',
-            ':distance away',
-            'Ready to play',
-            'Full',
+            'campaigns.content_sessions_near_you',
+            'campaigns.action_find_sessions_near_you',
+            'location.action_share_your_location',
+            'discovery.content_share_your_location_to_discover_game_sessions',
+            'campaigns.content_show_me_sessions_near_me',
+            'location.field_or_enter_your_city',
+            'location.field_enter_your_city',
+            'location.field_city_name',
+            'common.content_radius',
+            'discovery.action_search_radius',
+            'campaigns.content_showing_public_sessions_and_campaigns',
+            'campaigns.content_no_sessions_found_within_radius',
+            'campaigns.content_no_sessions_near_you_yet',
+            'campaigns.content_be_the_first_to_bring',
+            'campaigns.content_host_a_session',
+            'auth.content_sign_up_to_host',
+            'location.action_change_location',
+            'campaigns.action_join_this_session',
+            'campaigns.action_view_campaign',
+            'games.content_boardgamegeek_rank_rank',
+            'discovery.content_distance_away',
+            'common.content_ready_to_play',
+            'common.content_full',
         ];
 
-        $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        $de = json_decode(file_get_contents(base_path('lang/de.json')), true);
-
+        app()->setLocale('en');
         foreach ($nearPageKeys as $key) {
-            expect(array_key_exists($key, $en))->toBeTrue("Missing en.json key: {$key}");
-            expect(array_key_exists($key, $de))->toBeTrue("Missing de.json key: {$key}");
-            expect($de[$key])->not->toBe($key, "de.json value identical to key (untranslated): {$key}");
+            $enValue = __($key);
+            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
+        }
+
+        app()->setLocale('de');
+        foreach ($nearPageKeys as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
         }
     });
 });

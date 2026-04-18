@@ -263,17 +263,17 @@ class NearbyPage extends Component
         return [
             [
                 'key' => 'this_week',
-                'label' => __('This Week'),
+                'label' => __('common.content_this_week'),
                 'items' => $thisWeek,
             ],
             [
                 'key' => 'coming_up',
-                'label' => __('Coming Up'),
+                'label' => __('common.field_coming_up'),
                 'items' => $comingUp,
             ],
             [
                 'key' => 'campaigns',
-                'label' => __('Ongoing Campaigns'),
+                'label' => __('campaigns.content_ongoing_campaigns'),
                 'items' => $campaigns,
             ],
         ];
@@ -293,9 +293,9 @@ class NearbyPage extends Component
     public function formatDistance(float $km): string
     {
         if ($km < 1) {
-            return __(':meters m away', ['meters' => round($km * 1000)]);
+            return __('discovery.content_meters_m_away', ['meters' => round($km * 1000)]);
         }
-        return __(':km km away', ['km' => number_format($km, 1)]);
+        return __('discovery.content_km_km_away', ['km' => number_format($km, 1)]);
     }
 
     /**

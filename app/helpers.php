@@ -20,23 +20,14 @@ if (! function_exists('format_date')) {
 
         $locale = app()->getLocale();
 
-        if ($locale === 'de') {
-            return match ($type) {
-                'date'            => $date->isoFormat('D. MMMM YYYY'),
-                'short_date'      => $date->isoFormat('D. MMM'),
-                'datetime'        => $date->isoFormat('D. MMMM YYYY, HH:mm'),
-                'short_month_day' => $date->isoFormat('D. MMMM YYYY'),
-                default           => $date->isoFormat('D. MMMM YYYY'),
-            };
-        }
+        $is24Hour = in_array($locale, ['de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'cs', 'ru', 'ja', 'zh', 'ko'], true);
 
-        // English (default)
         return match ($type) {
-            'date'            => $date->format('M j, Y'),
-            'short_date'      => $date->format('M j'),
-            'datetime'        => $date->format('M j, Y \a\t g:i A'),
-            'short_month_day' => $date->format('M d, Y'),
-            default           => $date->format('M j, Y'),
+            'date'            => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
+            'short_date'      => $date->isoFormat($is24Hour ? 'D. MMM' : 'MMM D'),
+            'datetime'        => $date->isoFormat($is24Hour ? 'D. MMMM YYYY, HH:mm' : 'MMM D, YYYY [at] h:mm A'),
+            'short_month_day' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
+            default           => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
         };
     }
 }
@@ -44,8 +35,7 @@ if (! function_exists('format_date')) {
 /**
  * Format a monetary value according to the current app locale.
  *
- * EN: "$5.00"  /  DE: "5,00 €"
- * Zero values show "Free" / "Kostenlos" via __().
+ * Zero values show "Free" / translated equivalent via __().
  *
  * @param  int|float  $amount   The amount to format (cents when $inCents=true, whole currency when false).
  * @param  bool       $inCents  True for event fees (stored as cents), false for game/campaign prices (stored as float dollars).
@@ -56,16 +46,19 @@ if (! function_exists('format_currency')) {
         $value = $inCents ? $amount / 100 : $amount;
 
         if ($value == 0) {
-            return __('Free');
+            return __('billing.content_free');
         }
 
         $locale = app()->getLocale();
 
-        if ($locale === 'de') {
+        // European locales use comma decimal, period thousands, € suffix
+        $europeanLocales = ['de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'cs', 'ru'];
+
+        if (in_array($locale, $europeanLocales, true)) {
             return number_format($value, 2, ',', '.') . ' €';
         }
 
-        // English (default)
+        // English and other locales: $ prefix, period decimal
         return '$' . number_format($value, 2);
     }
 }

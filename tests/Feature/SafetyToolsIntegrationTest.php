@@ -509,37 +509,37 @@ describe('/safety-tools static page', function () {
 
 describe('German translations for safety tools', function () {
     it('has German translations for all safety tool UI strings', function () {
-        $deJson = json_decode(file_get_contents(base_path('lang/de.json')), true);
-
         $requiredKeys = [
-            'Safety Tools',
-            'Select the safety tools you plan to use for this session.',
-            'Select the safety tools you plan to use for this campaign.',
-            'Lines & Veils Details',
-            'Custom Safety Note',
-            'Learn more about safety tools',
-            'Safety Tools for Tabletop Gaming',
+            'safety.content_safety_tools',
+            'safety.action_select_the_safety_tools_you',
+            'safety.action_select_the_safety_tools_you_2',
+            'safety.content_lines_veils_details',
+            'safety.content_custom_safety_note',
+            'safety.content_learn_more_about_safety_tools',
+            'safety.field_safety_tools_for_tabletop_gaming',
         ];
 
+        app()->setLocale('de');
         foreach ($requiredKeys as $key) {
-            expect($deJson)->toHaveKey($key);
-            expect($deJson[$key])->not->toBeEmpty("German translation empty for key: {$key}");
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
+            expect($deValue)->not->toBeEmpty("German translation empty for key: {$key}");
         }
     });
 
     it('has German translations for category section descriptions', function () {
-        $deJson = json_decode(file_get_contents(base_path('lang/de.json')), true);
-
         // Category section descriptions rendered via __() in the template
         $sectionDescriptions = [
-            'Set expectations before the dice start rolling.',
-            'Tools you can use right at the table.',
-            'Reflect and improve after each session.',
+            'common.action_set_expectations_before_the_dice_start_rolling',
+            'common.content_tools_you_can_use_right_at_the_table',
+            'campaigns.content_reflect_and_improve_after_each_session',
         ];
 
-        foreach ($sectionDescriptions as $desc) {
-            expect($deJson)->toHaveKey($desc);
-            expect($deJson[$desc])->not->toBeEmpty();
+        app()->setLocale('de');
+        foreach ($sectionDescriptions as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
+            expect($deValue)->not->toBeEmpty();
         }
     });
 
@@ -552,17 +552,23 @@ describe('German translations for safety tools', function () {
     });
 
     it('German translations are not identical to English originals', function () {
-        $deJson = json_decode(file_get_contents(base_path('lang/de.json')), true);
-
         $keysToVerify = [
-            'Safety Tools',
-            'Custom Safety Note',
-            'Learn more about safety tools',
+            'safety.content_safety_tools',
+            'safety.content_custom_safety_note',
+            'safety.content_learn_more_about_safety_tools',
         ];
 
+        app()->setLocale('en');
+        $enValues = [];
         foreach ($keysToVerify as $key) {
-            if (isset($deJson[$key])) {
-                expect($deJson[$key])->not->toBe($key, "German translation for '{$key}' should not be identical to English");
+            $enValues[$key] = __($key);
+        }
+
+        app()->setLocale('de');
+        foreach ($keysToVerify as $key) {
+            $deValue = __($key);
+            if ($deValue !== $key) {
+                expect($deValue)->not->toBe($enValues[$key], "German translation for '{$key}' should not be identical to English");
             }
         }
     });

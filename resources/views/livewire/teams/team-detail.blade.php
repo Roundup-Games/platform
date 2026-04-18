@@ -3,7 +3,7 @@
         {{-- Back --}}
         <a href="{{ route('teams.browse') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-primary transition-colors">
             <span class="material-symbols-outlined text-base">arrow_back</span>
-            {{ __('Back to Teams') }}
+            {{ __('teams.action_back_to_teams') }}
         </a>
 
         {{-- Team Header --}}
@@ -29,7 +29,7 @@
                         <a href="{{ route('teams.manage', $team->slug) }}" wire:navigate
                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg hover:bg-surface-container hover:text-on-surface text-sm font-medium transition-colors">
                             <span class="material-symbols-outlined text-base">settings</span>
-                            {{ __('Manage') }}
+                            {{ __('common.action_manage') }}
                         </a>
                     @endif
                 </div>
@@ -40,9 +40,9 @@
 
                 <div class="mt-4 flex flex-wrap gap-4 text-sm text-on-surface-variant">
                     @if($team->founded_year)
-                        <span>{{ __('Est.') }} {{ $team->founded_year }}</span>
+                        <span>{{ __('common.content_est') }} {{ $team->founded_year }}</span>
                     @endif
-                    <span>{{ __(':count members', ['count' => $team->activeMembers->count()]) }}</span>
+                    <span>{{ __('teams.content_count_members', ['count' => $team->activeMembers->count()]) }}</span>
                     @if($team->website)
                         <a href="{{ $team->website }}" target="_blank" rel="noopener" class="text-primary hover:underline">{{ $team->website }}</a>
                     @endif
@@ -54,7 +54,7 @@
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">groups</span>
-                {{ __('Roster') }}
+                {{ __('teams.content_roster') }}
             </h2>
 
             @if($team->activeMembers->count())
@@ -68,7 +68,7 @@
                             </div>
 
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $member->user?->name ?? __('Unknown') }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate">{{ $member->user?->name ?? __('common.content_unknown') }}</p>
                                 @if($member->position)
                                     <p class="text-xs text-on-surface-variant">{{ $member->position }}</p>
                                 @endif
@@ -87,7 +87,7 @@
                     @endforeach
                 </div>
             @else
-                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('No active members yet.') }}</p>
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('teams.error_no_active_members_yet') }}</p>
             @endif
         </section>
     </div>

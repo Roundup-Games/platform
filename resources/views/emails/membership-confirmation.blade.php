@@ -1,30 +1,30 @@
 @component('mail::message')
-# {{ __('Membership Confirmed!') }} ✅
+# {{ __('emails.content_membership_confirmed') }} ✅
 
-{{ __('Hey :name,', ['name' => $user->name]) }}
+{{ __('common.field_hey_name', ['name' => $user->name]) }}
 
-{{ __('Your **:plan** membership is now active. Welcome aboard!', ['plan' => $planName]) }}
+{{ __('emails.content_your_plan_membership_is_now_active_welcome_aboard', ['plan' => $planName]) }}
 
-## {{ __('Membership Details') }}
+## {{ __('billing.content_membership_details') }}
 
-- **{{ __('Plan') }}:** {{ $planName }}
+- **{{ __('billing.content_plan') }}:** {{ $planName }}
 @if($amount)
-- **{{ __('Amount') }}:** {{ $amount }}
+- **{{ __('billing.field_amount') }}:** {{ $amount }}
 @endif
 @if($nextBillingDate)
-- **{{ __('Next billing date') }}:** {{ $nextBillingDate }}
+- **{{ __('billing.field_next_billing_date') }}:** {{ $nextBillingDate }}
 @endif
 
-## {{ __("What's Included") }}
+## {{ __("pages.content_what_s_included") }}
 
-{{ __('With your membership you get access to exclusive events, priority registration, and full platform features.') }}
+{{ __('billing.content_with_your_membership_you_get') }}
 
 @component('mail::button', ['url' => config('app.url') . '/' . app()->getLocale() . '/billing'])
-{{ __('Manage Your Membership') }}
+{{ __('billing.action_manage_your_membership') }}
 @endcomponent
 
-{{ __('If you have questions about your membership, just reply to this email.') }}
+{{ __('emails.content_if_you_have_questions_about') }}
 
-{{ __('Thanks for supporting Roundup Games!') }} 🎲
+{{ __('events.content_thanks_for_supporting_roundup_games') }} 🎲
 Roundup Games
 @endcomponent

@@ -1,48 +1,48 @@
 <div>
-    <x-hero title="{{ __('Campaigns') }}" :subtitle="__('Find recurring campaigns to join and embark on epic adventures.')" />
+    <x-hero title="{{ __('campaigns.content_campaigns') }}" :subtitle="__('campaigns.content_find_recurring_campaigns_to_join')" />
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {{-- Search & Primary Filters --}}
         <div class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
-                <input type="text" aria-label="{{ __('Search campaigns') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search campaigns by name or description...') }}"
+                <input type="text" aria-label="{{ __('campaigns.action_search_campaigns') }}" wire:model.live.debounce.300ms="search" placeholder="{{ __('campaigns.action_search_campaigns_by_name_or_description') }}"
                        class="w-full pl-10 bg-surface-container-high border border-transparent rounded-full text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
             </div>
-            <select wire:model.live="game_system_id" aria-label="{{ __('Filter by game system') }}"
+            <select wire:model.live="game_system_id" aria-label="{{ __('games.action_filter_by_game_system') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Systems') }}</option>
+                <option value="">{{ __('discovery.content_all_systems') }}</option>
                 @foreach($gameSystems as $system)
                     <option value="{{ $system->id }}">{{ $system->name }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="recurrence" aria-label="{{ __('Filter by recurrence') }}"
+            <select wire:model.live="recurrence" aria-label="{{ __('campaigns.action_filter_by_recurrence') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('Any Schedule') }}</option>
+                <option value="">{{ __('discovery.content_any_schedule') }}</option>
                 @foreach($recurrenceOptions as $option)
                     <option value="{{ $option }}">{{ __(ucfirst(str_replace('-', ' ', $option))) }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="price" aria-label="{{ __('Filter by price') }}"
+            <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('Any Price') }}</option>
-                <option value="free">{{ __('Free') }}</option>
-                <option value="paid">{{ __('Paid') }}</option>
+                <option value="">{{ __('discovery.field_any_price') }}</option>
+                <option value="free">{{ __('billing.content_free') }}</option>
+                <option value="paid">{{ __('billing.content_paid') }}</option>
             </select>
         </div>
 
         {{-- Secondary Filters --}}
         <div class="flex flex-wrap gap-3">
-            <select wire:model.live="experience_level" aria-label="{{ __('Filter by experience level') }}"
+            <select wire:model.live="experience_level" aria-label="{{ __('discovery.action_filter_by_experience_level') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Levels') }}</option>
+                <option value="">{{ __('discovery.content_all_levels') }}</option>
                 @foreach($experienceLevels as $level)
                     <option value="{{ $level->value }}">{{ $level->label() }}</option>
                 @endforeach
             </select>
-            <select wire:model.live="language" aria-label="{{ __('Filter by language') }}"
+            <select wire:model.live="language" aria-label="{{ __('discovery.action_filter_by_language') }}"
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                <option value="">{{ __('All Languages') }}</option>
+                <option value="">{{ __('discovery.content_all_languages') }}</option>
                 @foreach($languages as $lang)
                     <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
                 @endforeach
@@ -73,18 +73,18 @@
 
         {{-- Complexity Range --}}
         <div class="flex items-center gap-3">
-            <span class="text-sm text-on-surface-variant">{{ __('Complexity:') }}</span>
-            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('Min') }}" aria-label="{{ __('Minimum complexity') }}"
+            <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity_2') }}</span>
+            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('common.field_min') }}" aria-label="{{ __('games.field_minimum_complexity') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
             <span class="text-on-surface-variant">–</span>
-            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('Max') }}" aria-label="{{ __('Maximum complexity') }}"
+            <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('common.field_max') }}" aria-label="{{ __('games.field_maximum_complexity') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
         </div>
 
         {{-- Active Filters --}}
         @if($this->hasActiveFilters())
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-on-surface-variant">{{ __('Filters:') }}</span>
+                <span class="text-sm text-on-surface-variant">{{ __('common.content_filters') }}</span>
                 @if($search)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         "{{ $search }}"
@@ -129,7 +129,7 @@
                         {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }}
                     </span>
                 @endif
-                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('Clear all') }}</button>
+                <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('common.action_clear_all') }}</button>
             </div>
         @endif
 
@@ -151,7 +151,7 @@
                                     </span>
                                 @else
                                     <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        {{ __('Free') }}
+                                        {{ __('billing.content_free') }}
                                     </span>
                                 @endif
                             </div>
@@ -166,7 +166,7 @@
                                 @if($campaign->visibility === 'protected')
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                                         <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                                        {{ __('Members Only') }}
+                                        {{ __('common.content_members_only') }}
                                     </span>
                                 @endif
                                 @if($campaign->experience_level)
@@ -242,7 +242,7 @@
                                 @if(isset($campaign->sessions_count))
                                     <span class="flex items-center gap-1">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">event_note</span>
-                                        {{ $campaign->sessions_count }} {{ __('sessions') }}
+                                        {{ $campaign->sessions_count }} {{ __('campaigns.content_sessions_2') }}
                                     </span>
                                 @endif
                             </div>
@@ -257,12 +257,12 @@
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">campaign</span>
-                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('No campaigns found') }}</h3>
+                <h3 class="mt-2 text-sm font-medium text-on-surface">{{ __('campaigns.content_no_campaigns_found') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">
                     @if($this->hasActiveFilters())
-                        {{ __('Try adjusting your filters.') }}
+                        {{ __('common.action_try_adjusting_your_filters') }}
                     @else
-                        {{ __('Check back soon for new campaigns!') }}
+                        {{ __('campaigns.content_check_back_soon_for_new_campaigns') }}
                     @endif
                 </p>
             </div>

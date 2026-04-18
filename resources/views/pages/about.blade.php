@@ -1,22 +1,22 @@
 <x-public-layout>
-@section('title', __('About'))
+@section('title', __('pages.content_about'))
 
-    <x-hero :title="__('About Roundup Games')" :subtitle="__('Building community through competitive gaming events.')" />
+    <x-hero :title="__('pages.content_about_roundup_games')" :subtitle="__('events.content_building_community_through_competitive_gaming')" />
 
     {{-- Mission Section --}}
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="max-w-3xl mx-auto">
-                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('Our Mission') }}</h2>
+                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('pages.content_our_mission') }}</h2>
                 <div class="mt-6 space-y-4 text-on-surface-variant text-base leading-relaxed">
                     <p>
-                        {{ __('Roundup Games was born from a simple belief: that competitive gaming brings people together. Whether it\'s a weekend tournament, a weekly league night, or a community meetup, we\'ve seen firsthand how games create connections that last far beyond the final score.') }}
+                        {{ __('events.content_roundup_games_was_born_from') }}
                     </p>
                     <p>
-                        {{ __('Our platform makes it easy for organizers to create and manage events of any size — from small local meetups to large-scale competitions. For participants, we provide a seamless experience from discovery to registration to competition day.') }}
+                        {{ __('events.content_our_platform_makes_it_easy') }}
                     </p>
                     <p>
-                        {{ __("We believe that everyone should have access to well-organized competitive events, regardless of their skill level or experience. That's why we've built tools that make event management accessible to organizers while keeping the participant experience front and center.") }}
+                        {{ __("events.content_we_believe_that_everyone_should") }}
                     </p>
                 </div>
             </div>
@@ -26,54 +26,54 @@
     {{-- Values Section — editorial shadows, Material Symbols --}}
     <section class="py-16 sm:py-20 bg-surface-container-low">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface text-center mb-12">{{ __('What We Stand For') }}</h2>
+            <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface text-center mb-12">{{ __('pages.content_what_we_stand_for') }}</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">groups</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Community First') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('Everything we build starts with the community in mind. Events are about people coming together, not just competition.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('pages.content_community_first') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('events.content_everything_we_build_starts_with') }}</p>
                 </div>
 
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">shield</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Fair Play') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("We're committed to creating a level playing field where everyone has an equal opportunity to compete and have fun.") }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.content_fair_play') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("discovery.content_we_re_committed_to_creating") }}</p>
                 </div>
 
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">bolt</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{!! __('Simple & Fast') !!}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("From creating an event to registering a team, we keep things straightforward so you can focus on what matters — competing.") }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{!! __('common.content_simple_fast') !!}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("pages.content_from_creating_an_event_to") }}</p>
                 </div>
 
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">public</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Open to All') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("Whether you're a seasoned competitor or trying something new, there's a place for you in the Roundup Games community.") }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.action_open_to_all') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("events.content_whether_you_re_a_seasoned") }}</p>
                 </div>
 
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">assignment</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Organizer Empowerment') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('We give organizers the tools they need to run professional events without the complexity of traditional management software.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.content_organizer_empowerment') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('events.content_we_give_organizers_the_tools') }}</p>
                 </div>
 
                 <div class="text-center">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">favorite</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('Passion for Games') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("We're gamers ourselves. That passion drives us to build the best possible platform for the community we love.") }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('games.content_passion_for_games') }}</h3>
+                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("games.content_we_re_gamers_ourselves_that") }}</p>
                 </div>
             </div>
         </div>
@@ -83,9 +83,9 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="max-w-3xl mx-auto text-center">
-                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('Our Team') }}</h2>
+                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('teams.content_our_team') }}</h2>
                 <p class="mt-4 text-on-surface-variant text-base leading-relaxed">
-                    {{ __("We're a small team of passionate gamers and developers who believe that organized competition makes gaming better for everyone. We're constantly working to improve the platform and would love to hear your feedback.") }}
+                    {{ __("pages.content_we_re_a_small_team") }}
                 </p>
             </div>
         </div>
@@ -94,16 +94,16 @@
     {{-- Community CTA — warm amber gradient --}}
     <section class="py-16 sm:py-20 bg-gradient-to-br from-primary to-primary-container text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl font-heading font-bold tracking-tight">{{ __('Join Our Community') }}</h2>
+            <h2 class="text-3xl font-heading font-bold tracking-tight">{{ __('common.action_join_our_community') }}</h2>
             <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">
-                {{ __("Whether you want to organize events or compete in them, we'd love to have you.") }}
+                {{ __("events.content_whether_you_want_to_organize") }}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                    {{ __('Browse Events') }}
+                    {{ __('events.action_browse_events') }}
                 </a>
                 <a href="{{ route('contact') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                    {{ __('Get in Touch') }}
+                    {{ __('pages.action_get_in_touch') }}
                 </a>
             </div>
         </div>

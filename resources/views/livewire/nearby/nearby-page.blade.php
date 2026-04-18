@@ -1,4 +1,4 @@
-@section('title', __('Sessions Near You'))
+@section('title', __('campaigns.content_sessions_near_you'))
 
 <div id="nearby-page"
      x-data="{
@@ -12,7 +12,7 @@
     {{-- ── Full-page location CTA (no location stored) ────────── --}}
     @unless($this->hasGuestLocation())
         <section class="flex flex-col items-center justify-center min-h-[60vh] px-4 py-16"
-                 aria-label="{{ __('Share your location') }}">
+                 aria-label="{{ __('location.action_share_your_location') }}">
 
             <div class="text-center max-w-lg">
                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-container mb-6">
@@ -20,26 +20,26 @@
                 </div>
 
                 <h1 class="text-3xl sm:text-4xl font-heading font-bold text-on-surface mb-4">
-                    {{ __('Find Sessions Near You') }}
+                    {{ __('campaigns.action_find_sessions_near_you') }}
                 </h1>
                 <p class="text-on-surface-variant text-lg mb-8 max-w-md mx-auto">
-                    {{ __('Share your location to discover game sessions and campaigns happening in your area.') }}
+                    {{ __('discovery.content_share_your_location_to_discover_game_sessions') }}
                 </p>
 
                 {{-- Primary CTA: Browser geolocation --}}
                 <button wire:click="locateMe"
                         x-on:click="loading = true"
                         class="inline-flex items-center px-8 py-4 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container hover:text-on-primary-container transition-colors text-base shadow-lg"
-                        aria-label="{{ __('Share your location') }}">
+                        aria-label="{{ __('location.action_share_your_location') }}">
                     <span class="material-symbols-outlined mr-2 text-xl" aria-hidden="true">my_location</span>
-                    {{ __('Show me sessions near me') }}
+                    {{ __('campaigns.content_show_me_sessions_near_me') }}
                 </button>
 
                 {{-- Manual city input --}}
                 <div class="mt-6">
                     <button x-on:click="$refs.cityForm.classList.toggle('hidden')"
                             class="text-sm text-primary font-medium hover:underline focus:outline-none focus:underline">
-                        {{ __('Or enter your city') }}
+                        {{ __('location.field_or_enter_your_city') }}
                     </button>
 
                     <div x-ref="cityForm" class="hidden mt-4 max-w-sm mx-auto">
@@ -47,13 +47,13 @@
                             <div class="flex-1">
                                 <input type="text"
                                        wire:model="cityQuery"
-                                       placeholder="{{ __('Enter your city') }}"
+                                       placeholder="{{ __('location.field_enter_your_city') }}"
                                        class="w-full px-4 py-3 rounded-xl border border-outline bg-surface-container-low text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                                       aria-label="{{ __('City name') }}" />
+                                       aria-label="{{ __('location.field_city_name') }}" />
                             </div>
                             <button type="submit"
                                     class="inline-flex items-center justify-center px-4 py-3 bg-secondary-container text-on-secondary-container rounded-xl font-semibold hover:bg-secondary transition-colors text-sm"
-                                    aria-label="{{ __('Search') }}">
+                                    aria-label="{{ __('discovery.action_search') }}">
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">search</span>
                             </button>
                         </form>
@@ -72,20 +72,20 @@
             {{-- Page header --}}
             <div class="mb-8">
                 <h1 class="text-2xl sm:text-3xl font-heading font-bold text-on-surface mb-2">
-                    {{ __('Sessions Near You') }}
+                    {{ __('campaigns.content_sessions_near_you') }}
                 </h1>
                 <p class="text-on-surface-variant">
-                    {{ __('Showing public sessions and campaigns within your selected area.') }}
+                    {{ __('campaigns.content_showing_public_sessions_and_campaigns') }}
                 </p>
             </div>
 
             {{-- Radius toggle --}}
             <div class="flex flex-wrap items-center gap-2 mb-6"
                  role="radiogroup"
-                 aria-label="{{ __('Search radius') }}">
+                 aria-label="{{ __('discovery.action_search_radius') }}">
                 <span class="text-sm font-medium text-on-surface-variant mr-2">
                     <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">straighten</span>
-                    {{ __('Radius') }}:
+                    {{ __('common.content_radius') }}:
                 </span>
                 @foreach(App\Livewire\Nearby\NearbyPage::RADIUS_OPTIONS as $option)
                     <button wire:click="setRadius({{ $option }})"
@@ -107,7 +107,7 @@
                 <div class="mb-6 p-4 bg-primary-container/30 rounded-xl border border-primary/20">
                     <p class="text-sm text-on-surface-variant">
                         <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">info</span>
-                        {{ __('No sessions found within :radius km. Showing results within :fallback km.', [
+                        {{ __('campaigns.content_no_sessions_found_within_radius', [
                             'radius' => (int) $radius,
                             'fallback' => 100,
                         ]) }}
@@ -155,29 +155,29 @@
                         <span class="material-symbols-outlined text-on-primary-container text-4xl" aria-hidden="true">group_add</span>
                     </div>
                     <h2 class="text-2xl font-heading font-semibold text-on-surface mb-3">
-                        {{ __('No sessions near you yet') }}
+                        {{ __('campaigns.content_no_sessions_near_you_yet') }}
                     </h2>
                     <p class="text-on-surface-variant max-w-lg mx-auto mb-8 text-lg">
-                        {{ __('Be the first to bring tabletop gaming to your area. Start a session and players will find you.') }}
+                        {{ __('campaigns.content_be_the_first_to_bring') }}
                     </p>
                     <div class="flex flex-wrap justify-center gap-4">
                         @auth
                             <a href="{{ route('games.create') }}" wire:navigate
                                class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-colors text-sm shadow-md">
                                 <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">add_circle</span>
-                                {{ __('Host a Session') }}
+                                {{ __('campaigns.content_host_a_session') }}
                             </a>
                         @else
                             <a href="{{ route('register') }}" wire:navigate
                                class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-colors text-sm shadow-md">
                                 <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                                {{ __('Sign Up to Host') }}
+                                {{ __('auth.content_sign_up_to_host') }}
                             </a>
                         @endauth
                         <button wire:click="clearGuestLocation"
                                 class="inline-flex items-center px-6 py-3 bg-surface-container text-on-surface rounded-xl font-semibold hover:bg-surface-container-high transition-colors text-sm">
                             <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">edit_location</span>
-                            {{ __('Change Location') }}
+                            {{ __('location.action_change_location') }}
                         </button>
                     </div>
                 </div>
@@ -189,7 +189,7 @@
                     <button wire:click="clearGuestLocation"
                             class="text-sm text-primary font-medium hover:underline focus:outline-none focus:underline inline-flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">edit_location</span>
-                        {{ __('Change Location') }}
+                        {{ __('location.action_change_location') }}
                     </button>
                 </div>
             @endif

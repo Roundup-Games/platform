@@ -170,28 +170,34 @@ describe('GameSystemsPage - i18n', function () {
 
     it('has translation keys for all page copy', function () {
         $keys = [
-            'Explore Games',
-            'Discover new game systems, browse ratings, and find your next favorite game.',
-            'Search game systems',
-            'Search by name...',
-            'Filter by category',
-            'All Categories',
-            'Filter by mechanic',
-            'All Mechanics',
-            'Players:',
-            'Minimum players',
-            'Maximum players',
-            'BGG Rating',
-            'No game systems found',
-            'Game systems will appear here once they are added.',
-            'Try adjusting your filters.',
-            'Clear all',
+            'games.action_explore_games',
+            'games.content_discover_new_game_systems_browse',
+            'games.action_search_game_systems',
+            'discovery.action_search_by_name',
+            'discovery.action_filter_by_category',
+            'discovery.content_all_categories',
+            'games.action_filter_by_mechanic',
+            'discovery.content_all_mechanics',
+            'common.content_players',
+            'common.field_minimum_players',
+            'common.field_maximum_players',
+            'games.content_bgg_rating',
+            'games.content_no_game_systems_found',
+            'games.content_game_systems_will_appear_here_once_they_are_added',
+            'common.action_try_adjusting_your_filters',
+            'common.action_clear_all',
         ];
-        $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
-        $de = json_decode(file_get_contents(base_path('lang/de.json')), true);
+
+        app()->setLocale('en');
         foreach ($keys as $key) {
-            expect(array_key_exists($key, $en))->toBeTrue("Missing en.json key: {$key}");
-            expect(array_key_exists($key, $de))->toBeTrue("Missing de.json key: {$key}");
+            $enValue = __($key);
+            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
+        }
+
+        app()->setLocale('de');
+        foreach ($keys as $key) {
+            $deValue = __($key);
+            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
         }
     });
 });

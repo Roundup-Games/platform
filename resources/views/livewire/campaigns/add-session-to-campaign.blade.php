@@ -6,40 +6,40 @@
                 <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
-                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('Add Session to Campaign') }}</h1>
+                <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('campaigns.action_add_session_to_campaign') }}</h1>
             </div>
-            <p class="ml-8 text-sm text-on-surface-variant">{{ __('Create a new game session linked to :campaign.', ['campaign' => $campaign->name]) }}</p>
+            <p class="ml-8 text-sm text-on-surface-variant">{{ __('campaigns.content_create_new_session_linked_to', ['campaign' => $campaign->name]) }}</p>
         </div>
 
         <form wire:submit="save">
             {{-- Session Details (editable) --}}
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                <h2 class="text-lg font-medium text-on-surface mb-4 font-heading">{{ __('Session Details') }}</h2>
+                <h2 class="text-lg font-medium text-on-surface mb-4 font-heading">{{ __('campaigns.content_session_details') }}</h2>
 
                 <div class="space-y-4">
                     <div>
-                        <label for="session-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('Session Name *') }}</label>
+                        <label for="session-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }}</label>
                         <input type="text" id="session-name" wire:model="name" placeholder="e.g. Session 3 — The Lost Temple"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="session-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('Description') }}</label>
+                        <label for="session-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
                         <textarea id="session-description" wire:model="description" rows="3" placeholder="Describe this session..."
                                   class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
                         @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="session-date-time" class="block text-sm font-medium text-on-surface mb-1">{{ __('Date & Time *') }}</label>
+                        <label for="session-date-time" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_date_time') }}</label>
                         <input type="datetime-local" id="session-date-time" wire:model="date_time"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('date_time') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label for="session-location-details" class="block text-sm font-medium text-on-surface mb-1">{{ __('Location') }}</label>
+                        <label for="session-location-details" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.content_location') }}</label>
                         <input type="text" id="session-location-details" wire:model="location_details" placeholder="Venue name, address, or meeting details"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('location_details') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -51,22 +51,22 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6 mt-8">
                 <h2 class="text-lg font-medium text-on-surface mb-4 font-heading flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">campaign</span>
-                    {{ __('Campaign Settings') }}
+                    {{ __('campaigns.content_campaign_settings') }}
                 </h2>
-                <p class="text-xs text-on-surface-variant mb-4">{{ __('These settings are inherited from the campaign and cannot be changed per session.') }}</p>
+                <p class="text-xs text-on-surface-variant mb-4">{{ __('campaigns.content_settings_inherited_from_campaign') }}</p>
 
                 <div class="space-y-3">
                     {{-- Game System --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Game System') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('games.content_game_system') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->gameSystem ? $campaign->gameSystem?->name : __('Not set') }}
+                            {{ $campaign->gameSystem ? $campaign->gameSystem?->name : __('campaigns.field_not_set') }}
                         </span>
                     </div>
 
                     {{-- Visibility --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Visibility') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_visibility') }}</span>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                             {{ $campaign->visibility === 'public' ? 'bg-tertiary/10 text-tertiary' : ($campaign->visibility === 'protected' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
                             {{ __(ucfirst($campaign->visibility ?? 'private')) }}
@@ -75,7 +75,7 @@
 
                     {{-- Language --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Language') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('common.content_language') }}</span>
                         <span class="text-sm font-medium text-on-surface">
                             {{ strtoupper($campaign->language ?? 'en') }}
                         </span>
@@ -83,37 +83,37 @@
 
                     {{-- Players --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Players') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_players') }}</span>
                         <span class="text-sm font-medium text-on-surface">
                             @if($campaign->min_players && $campaign->max_players)
                                 {{ $campaign->min_players }}–{{ $campaign->max_players }}
                             @elseif($campaign->max_players)
-                                {{ __('Up to :max', ['max' => $campaign->max_players]) }}
+                                {{ __('campaigns.content_up_to_max', ['max' => $campaign->max_players]) }}
                             @else
-                                {{ __('Not set') }}
+                                {{ __('campaigns.field_not_set') }}
                             @endif
                         </span>
                     </div>
 
                     {{-- Experience Level --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Experience Level') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('discovery.content_experience_level') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->experience_level ? __(ucfirst($campaign->experience_level)) : __('Any') }}
+                            {{ $campaign->experience_level ? __(ucfirst($campaign->experience_level)) : __('discovery.content_any') }}
                         </span>
                     </div>
 
                     {{-- Complexity --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Complexity') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->complexity ? $campaign->complexity . ' / 5' : __('Not set') }}
+                            {{ $campaign->complexity ? $campaign->complexity . ' / 5' : __('campaigns.field_not_set') }}
                         </span>
                     </div>
 
                     {{-- Vibe Flags --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Vibe Flags') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('common.content_vibe_flags') }}</span>
                         <div class="flex flex-wrap gap-1 justify-end">
                             @if(is_array($campaign->vibe_flags) && count($campaign->vibe_flags))
                                 @foreach($campaign->vibe_flags as $flag)
@@ -122,24 +122,24 @@
                                     </span>
                                 @endforeach
                             @else
-                                <span class="text-sm text-on-surface-variant">{{ __('None') }}</span>
+                                <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_none') }}</span>
                             @endif
                         </div>
                     </div>
 
                     {{-- Duration --}}
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
-                        <span class="text-sm text-on-surface-variant">{{ __('Duration') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_duration') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->session_duration ? $campaign->session_duration . ' ' . __('hours') : __('Not set') }}
+                            {{ $campaign->session_duration ? $campaign->session_duration . ' ' . __('campaigns.field_hours') : __('campaigns.field_not_set') }}
                         </span>
                     </div>
 
                     {{-- Price --}}
                     <div class="flex items-center justify-between py-2">
-                        <span class="text-sm text-on-surface-variant">{{ __('Price') }}</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_price') }}</span>
                         <span class="text-sm font-medium text-on-surface">
-                            {{ $campaign->price_per_session ? format_currency($campaign->price_per_session, false) : __('Free') }}
+                            {{ $campaign->price_per_session ? format_currency($campaign->price_per_session, false) : __('billing.content_free') }}
                         </span>
                     </div>
                 </div>
@@ -149,12 +149,12 @@
             <div class="flex items-center gap-4 mt-8">
                 <button type="submit" wire:loading.attr="disabled"
                         class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium shadow-ambient">
-                    <span wire:loading.remove>{{ __('Create Session') }}</span>
-                    <span wire:loading>{{ __('Creating...') }}</span>
+                    <span wire:loading.remove>{{ __('campaigns.action_create_session') }}</span>
+                    <span wire:loading>{{ __('common.content_creating') }}</span>
                 </button>
                 <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate
                    class="px-4 py-2.5 text-on-surface-variant hover:text-on-surface text-sm transition-colors">
-                    {{ __('Cancel') }}
+                    {{ __('common.action_cancel') }}
                 </a>
             </div>
         </form>

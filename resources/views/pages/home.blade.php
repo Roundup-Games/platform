@@ -1,5 +1,5 @@
 <x-public-layout>
-@section('title', __('Home'))
+@section('title', __('common.content_home'))
 
     {{-- ── Hero Section ────────────────────────────────────── --}}
     <section class="relative bg-gradient-to-br from-primary to-primary-container text-on-primary overflow-hidden">
@@ -12,21 +12,21 @@
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-36">
             <div class="max-w-3xl">
                 <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                    {{ __("There's a seat waiting for you.") }}
+                    {{ __("common.content_there_s_a_seat_waiting_for_you") }}
                 </h1>
                 <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-xl">
-                    {{ __('Find your people. Discover new worlds. Share stories around the table that you\'ll be talking about for years.') }}
+                    {{ __('events.content_find_your_people_discover_new') }}
                 </p>
                 <div class="mt-8 flex flex-wrap gap-4">
                     <a href="#nearby-sessions"
                        class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
-                        {{ __('Find sessions near me') }}
+                        {{ __('campaigns.action_find_sessions_near_me') }}
                     </a>
                     <a href="{{ route('games.index') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">casino</span>
-                        {{ __('Explore games') }}
+                        {{ __('games.action_explore_games_2') }}
                     </a>
                 </div>
             </div>
@@ -38,10 +38,10 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="text-center mb-10">
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                    {{ __("What's happening near you?") }}
+                    {{ __("discovery.content_what_s_happening_near_you") }}
                 </h2>
                 <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
-                    {{ __('Share your location to see game sessions and campaigns happening this week in your area.') }}
+                    {{ __('games.content_share_your_location_to_see') }}
                 </p>
             </div>
             <div id="nearby-sessions">
@@ -59,7 +59,7 @@
                         {{ $sessionsThisWeek }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('Sessions this week') }}
+                        {{ __('campaigns.content_sessions_this_week') }}
                     </div>
                 </div>
                 <div>
@@ -67,7 +67,7 @@
                         {{ $peopleThisWeek }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('People joined sessions this week') }}
+                        {{ __('campaigns.content_people_joined_sessions_this_week') }}
                     </div>
                 </div>
                 <div>
@@ -75,7 +75,7 @@
                         {{ $activeCampaigns }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('Active campaigns') }}
+                        {{ __('campaigns.content_active_campaigns') }}
                     </div>
                 </div>
             </div>
@@ -87,10 +87,10 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="text-center mb-12">
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                    {{ __('Built for real connection') }}
+                    {{ __('pages.content_built_for_real_connection') }}
                 </h2>
                 <p class="mt-3 text-on-surface-variant max-w-xl mx-auto">
-                    {{ __('Tabletop gaming is about more than rules. It\'s about the people you share the table with.') }}
+                    {{ __('common.content_tabletop_gaming_is_about_more') }}
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -99,8 +99,8 @@
                     <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('Welcoming Community') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('Every table has room for one more. Find players and hosts who make you feel at home.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.field_welcoming_community') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_every_table_has_room_for') }}</p>
                 </div>
 
                 {{-- Imaginative Play --}}
@@ -108,8 +108,8 @@
                     <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">auto_awesome</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('Imaginative Play') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('From epic campaigns to quick one-shots, discover stories waiting to be told and worlds waiting to be explored.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_imaginative_play') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('campaigns.content_from_epic_campaigns_to_quick') }}</p>
                 </div>
 
                 {{-- Safe Spaces --}}
@@ -117,8 +117,8 @@
                     <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('Safe Spaces') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('Clear safety tools, session zero support, and community guidelines keep the focus on fun for everyone.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_safe_spaces') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('safety.content_clear_safety_tools_session_zero') }}</p>
                 </div>
 
                 {{-- Discovery --}}
@@ -126,8 +126,8 @@
                     <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">explore</span>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('Discovery') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.') }}</p>
+                    <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('discovery.content_discovery') }}</h3>
+                    <p class="text-sm text-on-surface-variant">{{ __('games.content_step_outside_your_comfort_zone') }}</p>
                 </div>
             </div>
         </div>
@@ -137,29 +137,29 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface">
-                {{ __('Your next adventure starts here') }}
+                {{ __('pages.field_your_next_adventure_starts_here') }}
             </h2>
             <p class="mt-4 text-lg text-on-surface-variant max-w-2xl mx-auto">
-                {{ __('Join a community of players, hosts, and storytellers. Find a session, bring a friend, or start your own.') }}
+                {{ __('campaigns.content_join_a_community_of_players') }}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 @guest
                     <a href="{{ route('register') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
-                        {{ __('Create Free Account') }}
+                        {{ __('profile.action_create_free_account') }}
                     </a>
                 @else
                     <a href="{{ route('games.index') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">search</span>
-                        {{ __('Browse Sessions') }}
+                        {{ __('campaigns.action_browse_sessions') }}
                     </a>
                 @endguest
                 @guest
                     <a href="{{ route('login') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 border border-outline text-on-surface-variant rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm">
-                        {{ __('Sign In') }}
+                        {{ __('auth.content_sign_in') }}
                     </a>
                 @endguest
             </div>

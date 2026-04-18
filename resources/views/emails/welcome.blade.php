@@ -1,25 +1,25 @@
 @component('mail::message')
-# {{ __('Welcome to Roundup Games!') }} 🎲
+# {{ __('events.content_welcome_to_roundup_games') }} 🎲
 
-{{ __('Hey :name,', ['name' => $user->name]) }}
+{{ __('common.field_hey_name', ['name' => $user->name]) }}
 
-{{ __('Thanks for joining **Roundup Games** — your hub for organizing and participating in tabletop gaming events, campaigns, and tournaments.') }}
+{{ __('events.content_thanks_for_joining_roundup_games') }}
 
-## {{ __('Get Started') }}
+## {{ __('common.field_get_started') }}
 
-{{ __("Here's what you can do next:") }}
+{{ __("common.content_here_s_what_you_can_do_next") }}
 
-- {{ __('**Complete your profile** — Add your preferred game systems, pronouns, and a profile picture.') }}
-- {{ __('**Find or create a team** — Team up with other players for events and campaigns.') }}
-- {{ __('**Browse events** — Discover upcoming tournaments and game sessions near you.') }}
-- {{ __('**Start a campaign** — Organize a recurring game with your group.') }}
+- {{ __('profile.content_complete_your_profile_add_your') }}
+- {{ __('teams.content_find_or_create_a_team') }}
+- {{ __('events.content_browse_events_discover_upcoming_tournaments') }}
+- {{ __('games.content_start_a_campaign_organize_a') }}
 
 @component('mail::button', ['url' => config('app.url') . '/' . app()->getLocale() . '/dashboard'])
-{{ __('Go to Your Dashboard') }}
+{{ __('profile.action_go_to_your_dashboard') }}
 @endcomponent
 
-{{ __("If you have any questions, just reply to this email — we're happy to help.") }}
+{{ __("emails.content_if_you_have_any_questions") }}
 
-{{ __('Happy gaming!') }} 🎯
+{{ __('common.content_happy_gaming') }} 🎯
 Roundup Games
 @endcomponent
