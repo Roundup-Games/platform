@@ -30,7 +30,8 @@ class GamePolicy
 
     /**
      * View a game: public games visible to everyone;
-     * protected/private only to owner and participants.
+     * protected visible to friends/teammates of the owner, plus participants;
+     * private only to owner and participants.
      */
     public function view(?User $user, Game $game): bool
     {
@@ -39,7 +40,10 @@ class GamePolicy
         }
 
         if ($game->visibility === 'protected') {
-            return $user !== null;
+            return $user !== null
+                && ($game->owner_id === $user->id
+                    || $user->isFriendOrTeammate($game->owner)
+                    || $game->participants()->where('user_id', $user->id)->exists());
         }
 
         // Private games require auth and ownership (or participation)

@@ -30,7 +30,8 @@ class CampaignPolicy
 
     /**
      * View a campaign: public campaigns visible to everyone;
-     * protected/private only to owner (or participants).
+     * protected visible to friends/teammates of the owner, plus participants;
+     * private only to owner and participants.
      */
     public function view(?User $user, Campaign $campaign): bool
     {
@@ -39,7 +40,10 @@ class CampaignPolicy
         }
 
         if ($campaign->visibility === 'protected') {
-            return $user !== null;
+            return $user !== null
+                && ($campaign->owner_id === $user->id
+                    || $user->isFriendOrTeammate($campaign->owner)
+                    || $campaign->participants()->where('user_id', $user->id)->exists());
         }
 
         // Private campaigns require auth and ownership (or participation)

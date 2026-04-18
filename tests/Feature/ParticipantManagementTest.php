@@ -33,6 +33,23 @@ function participantCreateCampaignWithOwner(array $campaignAttrs = []): array
     return ['owner' => $owner, 'campaign' => $campaign];
 }
 
+/**
+ * Make two users mutual friends (both follow each other).
+ */
+function makeMutualFriends(User $a, User $b): void
+{
+    \App\Models\UserRelationship::create([
+        'user_id' => $a->id,
+        'related_user_id' => $b->id,
+        'type' => \App\Enums\RelationshipType::Follow,
+    ]);
+    \App\Models\UserRelationship::create([
+        'user_id' => $b->id,
+        'related_user_id' => $a->id,
+        'type' => \App\Enums\RelationshipType::Follow,
+    ]);
+}
+
 // ═══════════════════════════════════════════════════════════
 // GAME MANAGE PARTICIPANTS
 // ═══════════════════════════════════════════════════════════
@@ -65,33 +82,34 @@ describe('Game ManageParticipants Authorization', function () {
 });
 
 describe('Game Invite Participant', function () {
-    test('owner can invite a user by email', function () {
+    test('owner can invite a friend by user ID', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
-        $targetUser = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $targetUser->email)
-            ->call('inviteParticipant')
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
             ->assertHasNoErrors()
-            ->assertSee('Invite sent to ' . $targetUser->email);
+            ->assertSee('friend invited');
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $targetUser->id,
+            'user_id' => $friend->id,
             'role' => 'invited',
             'status' => 'pending',
         ]);
     });
 
-    test('cannot invite non-existent email', function () {
+    test('cannot invite with empty selection', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', 'nonexistent@example.com')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [])
+            ->call('inviteParticipants')
+            ->assertHasErrors(['selectedFriendIds']);
     });
 
     test('cannot invite yourself', function () {
@@ -99,47 +117,83 @@ describe('Game Invite Participant', function () {
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $owner->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$owner->id])
+            ->call('inviteParticipants');
+
+        // Self should be skipped, not invited
+        $this->assertDatabaseMissing('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'invited',
+        ]);
+    });
+
+    test('cannot invite non-friend', function () {
+        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        $stranger = User::factory()->create(['profile_complete' => true]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->set('selectedFriendIds', [$stranger->id])
+            ->call('inviteParticipants');
+
+        // Non-friend should be skipped, not invited
+        $this->assertDatabaseMissing('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $stranger->id,
+            'role' => 'invited',
+        ]);
     });
 
     test('cannot invite user who is already a participant', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
-        $user = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend);
 
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'role' => 'player',
             'status' => 'approved',
         ]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $user->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
+
+        // Should not create a duplicate participant
+        $this->assertEquals(1, GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $friend->id)
+            ->count());
     });
 
-    test('invite email is required', function () {
+    test('can invite multiple friends at once', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        $friend1 = User::factory()->create(['profile_complete' => true]);
+        $friend2 = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend1);
+        makeMutualFriends($owner, $friend2);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', '')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail' => 'required']);
-    });
+            ->set('selectedFriendIds', [$friend1->id, $friend2->id])
+            ->call('inviteParticipants')
+            ->assertHasNoErrors()
+            ->assertSee('friends invited');
 
-    test('invite email must be valid email', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', 'not-an-email')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail' => 'email']);
+        assertDatabaseHas('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $friend1->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
+        assertDatabaseHas('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $friend2->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
     });
 });
 
@@ -537,33 +591,34 @@ describe('Campaign ManageParticipants Authorization', function () {
 });
 
 describe('Campaign Invite Participant', function () {
-    test('owner can invite a user by email', function () {
+    test('owner can invite a friend by user ID', function () {
         ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
-        $targetUser = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $targetUser->email)
-            ->call('inviteParticipant')
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
             ->assertHasNoErrors()
-            ->assertSee('Invite sent to ' . $targetUser->email);
+            ->assertSee('friend invited');
 
         assertDatabaseHas('campaign_participants', [
             'campaign_id' => $campaign->id,
-            'user_id' => $targetUser->id,
+            'user_id' => $friend->id,
             'role' => 'invited',
             'status' => 'pending',
         ]);
     });
 
-    test('cannot invite non-existent email', function () {
+    test('cannot invite with empty selection', function () {
         ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', 'ghost@example.com')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [])
+            ->call('inviteParticipants')
+            ->assertHasErrors(['selectedFriendIds']);
     });
 
     test('cannot invite yourself', function () {
@@ -571,27 +626,52 @@ describe('Campaign Invite Participant', function () {
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $owner->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$owner->id])
+            ->call('inviteParticipants');
+
+        $this->assertDatabaseMissing('campaign_participants', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $owner->id,
+            'role' => 'invited',
+        ]);
+    });
+
+    test('cannot invite non-friend', function () {
+        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        $stranger = User::factory()->create(['profile_complete' => true]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
+            ->set('selectedFriendIds', [$stranger->id])
+            ->call('inviteParticipants');
+
+        $this->assertDatabaseMissing('campaign_participants', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $stranger->id,
+            'role' => 'invited',
+        ]);
     });
 
     test('cannot invite user who is already a participant', function () {
         ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
-        $user = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend);
 
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'role' => 'player',
             'status' => 'approved',
         ]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $user->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
+
+        $this->assertEquals(1, CampaignParticipant::where('campaign_id', $campaign->id)
+            ->where('user_id', $friend->id)
+            ->count());
     });
 });
 
@@ -849,24 +929,25 @@ describe('Game Participant Status Transitions', function () {
 
     test('full invite lifecycle: invite → cancel', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
-        $user = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+        makeMutualFriends($owner, $friend);
 
-        // Step 1: Owner invites
+        // Step 1: Owner invites via friend IDs
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $user->email)
-            ->call('inviteParticipant');
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'role' => 'invited',
             'status' => 'pending',
         ]);
 
         // Step 2: Owner cancels invite
         $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
+            ->where('user_id', $friend->id)
             ->first();
 
         Livewire\Livewire::actingAs($owner)
@@ -875,7 +956,7 @@ describe('Game Participant Status Transitions', function () {
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'status' => 'rejected',
         ]);
     });

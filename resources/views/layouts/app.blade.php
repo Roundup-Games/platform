@@ -79,6 +79,10 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
                             {{ __('discovery.content_near_me') }}
                         </a>
+                        <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('people') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
+                            {{ __('profile.nav_people') }}
+                        </a>
 
                         {{-- Secondary section --}}
                         <div class="border-t border-outline-variant/15 my-2"></div>
@@ -172,6 +176,11 @@
                         <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('near') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
                             {{ __('discovery.content_near_me') }}
+                        </a>
+
+                        <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('people') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
+                            {{ __('profile.nav_people') }}
                         </a>
 
                         {{-- Secondary items --}}

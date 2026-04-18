@@ -46,12 +46,12 @@
                 {{ __('teams.content_invite_player') }}
             </h2>
 
-            <form wire:submit="inviteParticipant" class="flex gap-3">
-                <div class="flex-1">
-                    <input type="email" wire:model="inviteEmail" placeholder="player@example.com"
-                        class="block w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-sm transition-colors"
-                        data-testid="invite-email" />
-                    @error('inviteEmail')
+            <form wire:submit="inviteParticipants" class="space-y-4">
+                <div>
+                    <livewire:components.friend-search
+                        :selected-ids="$selectedFriendIds"
+                    />
+                    @error('selectedFriendIds')
                         <p class="mt-1 text-sm text-error">{{ $message }}</p>
                     @enderror
                 </div>
@@ -74,13 +74,7 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($approvedParticipants as $participant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
-                                {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                {{ strtoupper($participant->user?->name[0] ?? '?') }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('common.content_unknown') }}</p>
-                            </div>
+                            <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                 {{ strtoupper($participant->role) }}
@@ -112,16 +106,13 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($pendingApplicants as $applicant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-tertiary/10 text-tertiary">
-                                {{ strtoupper($applicant->user?->name[0] ?? '?') }}
-                            </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $applicant->user?->name ?? __('common.content_unknown') }}</p>
+                                <x-user-link :user="$applicant->user" avatar-size="w-10 h-10" :truncate="true" />
                                 @php
                                     $app = $entity->applications->firstWhere('user_id', $applicant->user_id)
                                 @endphp
                                 @if($app?->message)
-                                    <p class="text-xs text-on-surface-variant truncate">{{ $app->message }}</p>
+                                    <p class="text-xs text-on-surface-variant truncate ml-12">{{ $app->message }}</p>
                                 @endif
                             </div>
                             <div class="flex gap-2">
@@ -153,12 +144,9 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($pendingInvites as $invite)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-primary/10 text-primary">
-                                {{ strtoupper($invite->user?->name[0] ?? '?') }}
-                            </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $invite->user?->name ?? __('common.content_unknown') }}</p>
-                                <p class="text-xs text-on-surface-variant">{{ $invite->user?->email ?? '' }}</p>
+                                <x-user-link :user="$invite->user" avatar-size="w-10 h-10" :truncate="true" />
+                                <p class="text-xs text-on-surface-variant ml-12">{{ $invite->user?->email ?? '' }}</p>
                             </div>
                             <button wire:click="cancelInvite('{{ $invite->id }}')"
                                 wire:confirm="{{ __('common.flash_cancel_this_invite') }}"

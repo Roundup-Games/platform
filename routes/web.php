@@ -84,7 +84,14 @@ Route::prefix('{locale}')
 
             // Keep profile.edit route name for backward compatibility (OAuth, Breeze redirects)
             Route::get('/profile/view', App\Livewire\Profile\Show::class)->name('profile.edit');
+
+            // People page (following/followers/blocked)
+            Route::get('/people', App\Livewire\People\PeoplePage::class)->name('people');
         });
+
+        // ── Public Profile ────────────────────────────
+
+        Route::get('/u/{user}', App\Livewire\Profile\PublicProfile::class)->name('profile.public');
 
         // ── Teams ─────────────────────────────────────
 

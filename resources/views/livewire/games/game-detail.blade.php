@@ -104,6 +104,48 @@
     {{-- Content --}}
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
+        {{-- Flash Messages --}}
+        @if(session()->has('success'))
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"
+                 class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
+                <span class="material-symbols-outlined text-on-secondary-container" aria-hidden="true">check_circle</span>
+                <p class="text-sm text-on-secondary-container">{{ session('success') }}</p>
+            </div>
+        @endif
+
+        @if(session()->has('error'))
+            <div class="rounded-xl bg-error-container p-4 flex items-center gap-3" role="alert" aria-live="polite">
+                <span class="material-symbols-outlined text-on-error-container" aria-hidden="true">error</span>
+                <p class="text-sm text-on-error-container">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        {{-- Invitation Banner --}}
+        @if($userInvitation)
+            <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-2xl text-primary mt-0.5" aria-hidden="true">mail</span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.action_accept_invitation') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('people.content_you_have_been_invited') }}</p>
+                        <div class="mt-4 flex gap-3">
+                            <button wire:click="acceptInvitation('{{ $userInvitation->id }}')"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
+                                {{ __('common.action_accept') }}
+                            </button>
+                            <button wire:click="declineInvitation('{{ $userInvitation->id }}')"
+                                wire:confirm="{{ __('people.flash_confirm_decline_invitation') }}"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+                                {{ __('common.action_decline') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         {{-- Participants --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
@@ -115,13 +157,7 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($game->participants as $participant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
-                                {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                {{ strtoupper($participant->user?->name[0] ?? '?') }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $participant->user?->name ?? __('common.content_unknown') }}</p>
-                            </div>
+                            <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                 {{ strtoupper($participant->role) }}
@@ -194,13 +230,10 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($game->applications as $application)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-surface-container-high text-on-surface-variant">
-                                {{ strtoupper($application->user?->name[0] ?? '?') }}
-                            </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $application->user?->name ?? __('common.content_unknown') }}</p>
+                                <x-user-link :user="$application->user" avatar-size="w-10 h-10" :truncate="true" />
                                 @if($application->message)
-                                    <p class="text-xs text-on-surface-variant truncate">{{ $application->message }}</p>
+                                    <p class="text-xs text-on-surface-variant truncate ml-12">{{ $application->message }}</p>
                                 @endif
                             </div>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
@@ -220,12 +253,7 @@
                 {{ __('common.content_hosted_by') }}
             </h2>
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold bg-primary/10 text-primary">
-                    {{ strtoupper($game->owner?->name[0] ?? '?') }}
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-on-surface">{{ $game->owner?->name ?? __('common.content_unknown') }}</p>
-                </div>
+                <x-user-link :user="$game->owner" avatar-size="w-12 h-12" />
             </div>
         </section>
     </div>

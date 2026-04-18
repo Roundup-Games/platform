@@ -45,4 +45,18 @@ return [
     'content_this_helps_us_find_games_and_events_near_you' => 'This helps us find games and events near you.',
     'content_vibe_preferences' => 'Vibe Preferences',
     'content_favorites_favorite_avoids_avoided' => ':favorites favorite, :avoids avoided',
+    'nav_people' => 'People',
+    'content_people' => 'People',
+
+    // Privacy settings
+    'content_privacy_settings' => 'Privacy Settings',
+    'action_control_who_sees_your_profile_information' => 'Control who can see your profile information on your public profile.',
+    'content_vibes' => 'Vibes',
+    'content_campaigns' => 'Campaigns',
+    'content_teams' => 'Teams',
+    'content_friends_list' => 'Friends List',
+    'visibility_everyone' => 'Everyone',
+    'visibility_friends' => 'Friends',
+    'visibility_nobody' => 'Nobody',
+    'flash_privacy_settings_saved' => 'Privacy settings saved.',
 ];

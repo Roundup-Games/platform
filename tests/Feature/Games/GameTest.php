@@ -50,11 +50,19 @@ describe('GamePolicy — Visibility Rules', function () {
         expect(Gate::allows('view', $game))->toBeTrue();
     });
 
-    it('allows any authenticated user to view protected games', function () {
-        $game = gameTestCreateGame(['visibility' => 'protected']);
-        $user = User::factory()->make();
+    it('allows owner to view protected games', function () {
+        $owner = User::factory()->create();
+        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
 
-        expect(Gate::forUser($user)->allows('view', $game))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('view', $game))->toBeTrue();
+    });
+
+    it('denies stranger from viewing protected games', function () {
+        $owner = User::factory()->create();
+        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
+        $stranger = User::factory()->make();
+
+        expect(Gate::forUser($stranger)->allows('view', $game))->toBeFalse();
     });
 
     it('denies guest from viewing protected games', function () {
@@ -479,13 +487,23 @@ describe('Game Detail Route', function () {
             ->assertSee('Open Session');
     });
 
-    it('shows protected game to authenticated user', function () {
-        $game = gameTestCreateGame(['visibility' => 'protected']);
-        $user = User::factory()->create();
+    it('shows protected game to owner', function () {
+        $owner = User::factory()->create();
+        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
 
-        actingAs($user)
+        actingAs($owner)
             ->get(route('games.detail', $game->id))
             ->assertOk();
+    });
+
+    it('denies protected game to stranger', function () {
+        $owner = User::factory()->create();
+        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
+        $stranger = User::factory()->create();
+
+        actingAs($stranger)
+            ->get(route('games.detail', $game->id))
+            ->assertForbidden();
     });
 
     it('denies private game to stranger', function () {
@@ -658,81 +676,99 @@ describe('Game Manage Participants — Authorization', function () {
 });
 
 describe('Game Invite Participant', function () {
-    it('creates pending invited participant', function () {
+    it('creates pending invited participant for a friend', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
             ->assertHasNoErrors();
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $target->id,
+            'user_id' => $friend->id,
             'role' => 'invited',
             'status' => 'pending',
         ]);
     });
 
-    it('rejects non-existent user', function () {
+    it('rejects empty selection', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', 'nobody@example.com')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [])
+            ->call('inviteParticipants')
+            ->assertHasErrors(['selectedFriendIds']);
     });
 
-    it('rejects self-invite', function () {
+    it('rejects self-invite silently', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $owner->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$owner->id])
+            ->call('inviteParticipants');
+
+        $this->assertDatabaseMissing('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'invited',
+        ]);
     });
 
-    it('rejects duplicate invite', function () {
+    it('rejects duplicate invite silently', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => $target->id,
+            'user_id' => $friend->id,
             'role' => 'player',
             'status' => 'approved',
         ]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
+
+        $this->assertEquals(1, GameParticipant::where('game_id', $game->id)->where('user_id', $friend->id)->count());
     });
 
-    it('validates email format', function () {
+    it('skips non-friend silently', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
+        $stranger = User::factory()->create();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', 'not-valid')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail' => 'email']);
+            ->set('selectedFriendIds', [$stranger->id])
+            ->call('inviteParticipants');
+
+        $this->assertDatabaseMissing('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $stranger->id,
+            'role' => 'invited',
+        ]);
     });
 
-    it('resets invite email after success', function () {
+    it('resets selected friend IDs after success', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
-            ->assertSet('inviteEmail', '');
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
+            ->assertSet('selectedFriendIds', []);
     });
 });
 
@@ -762,10 +798,13 @@ describe('Game Application — ApplyToGame', function () {
     });
 
     it('stays pending for protected games', function () {
-        $game = gameTestCreateGame(['visibility' => 'protected']);
         $owner = User::factory()->create();
-        $game->update(['owner_id' => $owner->id]);
+        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
         $user = gameTestCreateOwner();
+
+        // Make user a friend of the owner so they can view/apply
+        \App\Models\UserRelationship::follow($owner, $user);
+        \App\Models\UserRelationship::follow($user, $owner);
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
@@ -1032,15 +1071,17 @@ describe('Game Full Lifecycle', function () {
 
     it('invite flow: invite → cancel', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $user = gameTestCreateOwner();
+        $friend = gameTestCreateOwner();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('inviteEmail', $user->email)
-            ->call('inviteParticipant');
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
 
         $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
+            ->where('user_id', $friend->id)
             ->first();
 
         Livewire\Livewire::actingAs($owner)
@@ -1049,7 +1090,7 @@ describe('Game Full Lifecycle', function () {
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'status' => 'rejected',
         ]);
     });
@@ -1058,6 +1099,10 @@ describe('Game Full Lifecycle', function () {
         $owner = gameTestCreateOwner();
         $user = gameTestCreateOwner();
         $game = gameTestCreateGame(['owner_id' => $owner->id, 'visibility' => 'protected']);
+
+        // Make user a friend of the owner so they can view/apply
+        \App\Models\UserRelationship::follow($owner, $user);
+        \App\Models\UserRelationship::follow($user, $owner);
 
         // Apply (stays pending)
         Livewire\Livewire::actingAs($user)

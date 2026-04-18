@@ -109,7 +109,7 @@
                                 {{-- Registrant --}}
                                 <td class="px-4 py-3">
                                     <div>
-                                        <p class="font-medium text-on-surface">{{ $registration->user?->name ?? __('common.content_unknown') }}</p>
+                                        <x-user-link :user="$registration->user" :show-avatar="false" />
                                         <p class="text-xs text-on-surface-variant">{{ $registration->user?->email }}</p>
                                         @if($registration->team)
                                             <p class="text-xs text-primary">{{ __('events.field_team_name_2', ['name' => $registration->team?->name]) }}</p>

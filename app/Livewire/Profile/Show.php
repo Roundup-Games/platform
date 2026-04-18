@@ -6,6 +6,7 @@ use App\Enums\ContentLanguage;
 use App\Enums\VibeFlag;
 use App\Models\Location;
 use App\Services\GeocodingService;
+use App\Services\ProfileVisibilityResolver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -64,7 +65,11 @@ class Show extends Component
     public string $delete_password = '';
     public string $delete_confirmation = '';
 
+    /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
+    public array $privacySettings = [];
+
     public bool $saved = false;
+    public bool $privacySaved = false;
 
     public function mount(): void
     {
@@ -90,6 +95,12 @@ class Show extends Component
         $this->vibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
             return [$pref->vibe_preference_value->value => $pref->preference_type];
         })->toArray();
+
+        // Initialize privacy settings with defaults for unset fields
+        $storedSettings = $user->privacy_settings ?? [];
+        foreach (ProfileVisibilityResolver::FIELDS as $field) {
+            $this->privacySettings[$field] = $storedSettings[$field] ?? 'everyone';
+        }
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -292,6 +303,31 @@ class Show extends Component
         ]);
 
         $this->saved = true;
+    }
+
+    public function savePrivacySettings(): void
+    {
+        $user = Auth::user();
+
+        $validated = $this->validate([
+            'privacySettings' => ['required', 'array'],
+            'privacySettings.*' => ['required', 'string', 'in:everyone,friends,nobody'],
+        ]);
+
+        // Only store fields that are part of the known FIELDS constant
+        $settings = [];
+        foreach (ProfileVisibilityResolver::FIELDS as $field) {
+            $settings[$field] = $validated['privacySettings'][$field] ?? 'everyone';
+        }
+
+        $user->update(['privacy_settings' => $settings]);
+
+        Log::info('Privacy settings updated', [
+            'user_id' => $user->id,
+            'settings' => $settings,
+        ]);
+
+        $this->privacySaved = true;
     }
 
     public function changePassword(): void

@@ -54,19 +54,109 @@ describe('GameListing', function () {
             ->assertDontSee('Private Game');
     });
 
-    it('shows protected games to authenticated users', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
+    it('hides protected games from strangers', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $stranger = User::factory()->create(['profile_complete' => true]);
 
         Game::factory()->create([
-            'name' => 'Members Only Game',
+            'name' => 'Protected Game',
             'visibility' => 'protected',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
         ]);
 
-        actingAs($user);
+        actingAs($stranger);
         Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->assertSee('Members Only Game');
+            ->assertDontSee('Protected Game');
+    });
+
+    it('shows protected games to the owner', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+
+        Game::factory()->create([
+            'name' => 'My Protected Game',
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($owner);
+        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+            ->assertSee('My Protected Game');
+    });
+
+    it('shows protected games to friends of the owner', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $friend = User::factory()->create(['profile_complete' => true]);
+
+        // Mutual follow = friendship
+        \App\Models\UserRelationship::follow($owner, $friend);
+        \App\Models\UserRelationship::follow($friend, $owner);
+
+        Game::factory()->create([
+            'name' => 'Friends Only Game',
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($friend);
+        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+            ->assertSee('Friends Only Game');
+    });
+
+    it('shows protected games to teammates of the owner', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $teammate = User::factory()->create(['profile_complete' => true]);
+        $team = \App\Models\Team::factory()->create();
+
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id, 'user_id' => $owner->id,
+            'role' => 'captain', 'status' => 'active', 'joined_at' => now(),
+        ]);
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id, 'user_id' => $teammate->id,
+            'role' => 'player', 'status' => 'active', 'joined_at' => now(),
+        ]);
+
+        Game::factory()->create([
+            'name' => 'Team Game',
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($teammate);
+        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+            ->assertSee('Team Game');
+    });
+
+    it('shows protected games to participants', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $participant = User::factory()->create(['profile_complete' => true]);
+
+        $game = Game::factory()->create([
+            'name' => 'Participant Visible Game',
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $participant->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        actingAs($participant);
+        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
+            ->assertSee('Participant Visible Game');
     });
 
     it('hides protected games from guests', function () {

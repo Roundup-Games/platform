@@ -2,9 +2,10 @@
 
 namespace App\Traits;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Livewire\Attributes\Validate;
+use Livewire\Attributes\On;
 
 /**
  * Shared participant management logic for Games and Campaigns.
@@ -19,8 +20,8 @@ use Livewire\Attributes\Validate;
  */
 trait ManagesParticipants
 {
-    #[Validate('required|email|max:255')]
-    public string $inviteEmail = '';
+    /** @var int[] User IDs selected from FriendSearch component */
+    public array $selectedFriendIds = [];
 
     // ── Abstract contracts ─────────────────────────────
 
@@ -38,49 +39,96 @@ trait ManagesParticipants
 
     // ── Invite ─────────────────────────────────────────
 
-    public function inviteParticipant(): void
+    /**
+     * Invites all selected friends as participants.
+     * Called when the user clicks "Send Invites" after selecting friends via FriendSearch.
+     * Each selected user is validated to be a mutual friend (per D048).
+     */
+    public function inviteParticipants(): void
     {
-        $this->validateOnly('inviteEmail');
-
-        $targetUser = \App\Models\User::where('email', $this->inviteEmail)->first();
-
-        if (! $targetUser) {
-            $this->addError('inviteEmail', __('emails.error_no_user_found_with_that_email_address'));
+        if (empty($this->selectedFriendIds)) {
+            $this->addError('selectedFriendIds', __('people.error_select_at_least_one_friend'));
 
             return;
         }
 
-        if ($targetUser->id === Auth::id()) {
-            $this->addError('inviteEmail', __('common.error_you_cannot_invite_yourself'));
-
-            return;
-        }
-
+        $authUser = Auth::user();
         $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+        $participantModel = $this->getParticipantModel();
+        $invitedCount = 0;
+        $skippedCount = 0;
 
-        if ($entity->participants()->where('user_id', $targetUser->id)->exists()) {
-            $this->addError('inviteEmail', __('common.error_this_user_is_already_a'));
+        foreach ($this->selectedFriendIds as $userId) {
+            $userId = (int) $userId;
+            $targetUser = User::find($userId);
 
-            return;
+            // Skip if user doesn't exist (stale selection)
+            if (! $targetUser) {
+                $skippedCount++;
+                Log::warning($this->getEntityName() . ' invite skipped: user not found', [
+                    $entityIdColumn => $entity->id,
+                    'target_user_id' => $userId,
+                ]);
+                continue;
+            }
+
+            // Skip self-invite
+            if ($targetUser->id === $authUser->id) {
+                $skippedCount++;
+                continue;
+            }
+
+            // Validate mutual friendship (D048: friends only)
+            if (! $authUser->isFriend($targetUser)) {
+                $skippedCount++;
+                Log::warning($this->getEntityName() . ' invite skipped: not a friend', [
+                    $entityIdColumn => $entity->id,
+                    'target_user_id' => $targetUser->id,
+                    'invited_by' => $authUser->id,
+                ]);
+                continue;
+            }
+
+            // Skip if already a participant
+            if ($entity->participants()->where('user_id', $targetUser->id)->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            $participantModel::create([
+                $entityIdColumn => $entity->id,
+                'user_id' => $targetUser->id,
+                'role' => 'invited',
+                'status' => 'pending',
+            ]);
+
+            Log::info($this->getEntityName() . ' participant invited', [
+                $entityIdColumn => $entity->id,
+                'invited_user_id' => $targetUser->id,
+                'invited_by' => $authUser->id,
+            ]);
+
+            $invitedCount++;
         }
 
-        $participantModel = $this->getParticipantModel();
+        $this->reset('selectedFriendIds');
 
-        $participantModel::create([
-            $this->getEntityIdColumn() => $entity->id,
-            'user_id' => $targetUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
+        if ($invitedCount > 0) {
+            session()->flash('success', trans_choice('people.flash_friends_invited', $invitedCount, ['count' => $invitedCount]));
+        } elseif ($skippedCount > 0) {
+            session()->flash('error', __('people.error_no_valid_friends_to_invite'));
+        }
+    }
 
-        Log::info($this->getEntityName() . ' participant invited', [
-            $this->getEntityIdColumn() => $entity->id,
-            'invited_user_id' => $targetUser->id,
-            'invited_by' => Auth::id(),
-        ]);
-
-        $this->reset('inviteEmail');
-        session()->flash('success', __('emails.content_invite_sent_to_email', ['email' => $targetUser->email]));
+    /**
+     * Handle the friends-selected event from FriendSearch component.
+     * Syncs the selected friend IDs with the trait's property.
+     */
+    #[On('friends-selected')]
+    public function onFriendsSelected(array $ids): void
+    {
+        $this->selectedFriendIds = $ids;
     }
 
     // ── Approve Application ────────────────────────────
@@ -182,6 +230,91 @@ trait ManagesParticipants
         ]);
 
         session()->flash('success', __('common.flash_invite_cancelled'));
+    }
+
+    // ── Accept Invitation ──────────────────────────────
+
+    /**
+     * Accept a pending invitation for the authenticated user.
+     * Validates the user is the invited participant and checks capacity.
+     */
+    public function acceptInvitation(string $participantId): void
+    {
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+        $authUser = Auth::user();
+
+        // Must be the invited user
+        if ($participant->user_id !== $authUser->id) {
+            session()->flash('error', __('people.error_not_your_invitation'));
+
+            return;
+        }
+
+        // Must have invited role and pending status
+        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+            session()->flash('error', __('people.error_invitation_no_longer_valid'));
+
+            return;
+        }
+
+        // Check capacity
+        $currentCount = $entity->participants()
+            ->where('status', 'approved')
+            ->count();
+
+        if ($entity->max_players && $currentCount >= $entity->max_players) {
+            session()->flash('error', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
+
+            return;
+        }
+
+        $participant->update([
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Log::info($this->getEntityName() . ' invitation accepted', [
+            $entityIdColumn => $entity->id,
+            'user_id' => $authUser->id,
+        ]);
+
+        session()->flash('success', __('people.flash_invitation_accepted'));
+    }
+
+    /**
+     * Decline a pending invitation for the authenticated user.
+     */
+    public function declineInvitation(string $participantId): void
+    {
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+        $authUser = Auth::user();
+
+        // Must be the invited user
+        if ($participant->user_id !== $authUser->id) {
+            session()->flash('error', __('people.error_not_your_invitation'));
+
+            return;
+        }
+
+        // Must have invited role and pending status
+        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+            session()->flash('error', __('people.error_invitation_no_longer_valid'));
+
+            return;
+        }
+
+        $participant->update(['status' => 'rejected']);
+
+        Log::info($this->getEntityName() . ' invitation declined', [
+            $entityIdColumn => $entity->id,
+            'user_id' => $authUser->id,
+        ]);
+
+        session()->flash('success', __('common.flash_invite_declined'));
     }
 
     // ── Helpers ────────────────────────────────────────

@@ -326,6 +326,80 @@
             </div>
         </section>
 
+        {{-- Privacy Settings --}}
+        <form wire:submit="savePrivacySettings" class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 space-y-4">
+            <div>
+                <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('profile.content_privacy_settings') }}</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">{{ __('profile.action_control_who_sees_your_profile_information') }}</p>
+            </div>
+
+            @if($privacySaved)
+                <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
+                     class="rounded-lg bg-secondary-container p-4" role="status" aria-live="polite">
+                    <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                        {{ __('profile.flash_privacy_settings_saved') }}
+                    </p>
+                </div>
+            @endif
+
+            <div class="space-y-4">
+                @php
+                    $fieldLabels = [
+                        'location' => __('location.content_location'),
+                        'game_systems' => __('games.content_game_systems'),
+                        'vibes' => __('profile.content_vibes'),
+                        'campaigns' => __('profile.content_campaigns'),
+                        'teams' => __('profile.content_teams'),
+                        'friends_list' => __('profile.content_friends_list'),
+                    ];
+                    $fieldIcons = [
+                        'location' => 'location_on',
+                        'game_systems' => 'casino',
+                        'vibes' => 'mood',
+                        'campaigns' => 'auto_stories',
+                        'teams' => 'groups',
+                        'friends_list' => 'group',
+                    ];
+                @endphp
+
+                @foreach(\App\Services\ProfileVisibilityResolver::FIELDS as $field)
+                    <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-lg text-on-surface-variant">{{ $fieldIcons[$field] ?? 'info' }}</span>
+                            <span class="text-sm font-medium text-on-surface">{{ $fieldLabels[$field] ?? $field }}</span>
+                        </div>
+                        <div class="flex rounded-lg overflow-hidden border border-outline-variant/30">
+                            @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('profile.visibility_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
+                                @php
+                                    $isActive = ($privacySettings[$field] ?? 'everyone') === $value;
+                                @endphp
+                                <button type="button"
+                                        wire:click="$set('privacySettings.{{ $field }}', '{{ $value }}')"
+                                        @class([
+                                            'px-3 py-1.5 text-xs font-medium transition-colors',
+                                            'bg-primary text-on-primary' => $isActive,
+                                            'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => !$isActive,
+                                        ])>
+                                    {{ $label }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            @error('privacySettings') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
+
+            <div class="pt-2">
+                <button type="submit" wire:loading.attr="disabled"
+                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                    <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
+                    <span wire:loading>{{ __('common.content_saving') }}</span>
+                </button>
+            </div>
+        </form>
+
         {{-- Password Section --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <div class="flex items-center justify-between mb-4">

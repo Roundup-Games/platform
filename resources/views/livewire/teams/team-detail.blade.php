@@ -61,16 +61,10 @@
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($team->activeMembers as $member)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            {{-- Avatar --}}
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
-                                {{ $member->role === 'captain' ? 'bg-primary/10 text-primary' : ($member->role === 'coach' ? 'bg-tertiary/10 text-tertiary' : 'bg-surface-container-high text-on-surface-variant') }}">
-                                {{ strtoupper($member->user?->name[0] ?? '?') }}
-                            </div>
-
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ $member->user?->name ?? __('common.content_unknown') }}</p>
+                                <x-user-link :user="$member->user" avatar-size="w-10 h-10" :truncate="true" />
                                 @if($member->position)
-                                    <p class="text-xs text-on-surface-variant">{{ $member->position }}</p>
+                                    <p class="text-xs text-on-surface-variant ml-12">{{ $member->position }}</p>
                                 @endif
                             </div>
 

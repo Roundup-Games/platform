@@ -66,11 +66,19 @@ describe('CampaignPolicy — Visibility Rules', function () {
         expect(Gate::allows('view', $campaign))->toBeTrue();
     });
 
-    it('allows any authenticated user to view protected campaigns', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'protected']);
-        $user = User::factory()->make();
+    it('allows owner to view protected campaigns', function () {
+        $owner = User::factory()->create();
+        $campaign = campaignTestCreateCampaign(['visibility' => 'protected', 'owner_id' => $owner->id]);
 
-        expect(Gate::forUser($user)->allows('view', $campaign))->toBeTrue();
+        expect(Gate::forUser($owner)->allows('view', $campaign))->toBeTrue();
+    });
+
+    it('denies stranger from viewing protected campaigns', function () {
+        $owner = User::factory()->create();
+        $campaign = campaignTestCreateCampaign(['visibility' => 'protected', 'owner_id' => $owner->id]);
+        $stranger = User::factory()->make();
+
+        expect(Gate::forUser($stranger)->allows('view', $campaign))->toBeFalse();
     });
 
     it('denies guest from viewing protected campaigns', function () {
@@ -559,13 +567,23 @@ describe('Campaign Detail Route', function () {
             ->assertSee('Open Campaign');
     });
 
-    it('shows protected campaign to authenticated user', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'protected']);
-        $user = User::factory()->create();
+    it('shows protected campaign to owner', function () {
+        $owner = User::factory()->create();
+        $campaign = campaignTestCreateCampaign(['visibility' => 'protected', 'owner_id' => $owner->id]);
 
-        actingAs($user)
+        actingAs($owner)
             ->get(route('campaigns.detail', $campaign->id))
             ->assertOk();
+    });
+
+    it('denies protected campaign to stranger', function () {
+        $owner = User::factory()->create();
+        $campaign = campaignTestCreateCampaign(['visibility' => 'protected', 'owner_id' => $owner->id]);
+        $stranger = User::factory()->create();
+
+        actingAs($stranger)
+            ->get(route('campaigns.detail', $campaign->id))
+            ->assertForbidden();
     });
 
     it('denies private campaign to stranger', function () {
@@ -756,71 +774,83 @@ describe('Campaign Manage Participants — Authorization', function () {
 });
 
 describe('Campaign Invite Participant', function () {
-    it('creates pending invited participant', function () {
+    it('creates pending invited participant for a friend', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
             ->assertHasNoErrors();
 
         assertDatabaseHas('campaign_participants', [
             'campaign_id' => $campaign->id,
-            'user_id' => $target->id,
+            'user_id' => $friend->id,
             'role' => 'invited',
             'status' => 'pending',
         ]);
     });
 
-    it('rejects non-existent user', function () {
+    it('rejects empty selection', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', 'ghost@example.com')
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [])
+            ->call('inviteParticipants')
+            ->assertHasErrors(['selectedFriendIds']);
     });
 
-    it('rejects self-invite', function () {
+    it('rejects self-invite silently', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $owner->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$owner->id])
+            ->call('inviteParticipants');
+
+        $this->assertDatabaseMissing('campaign_participants', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $owner->id,
+            'role' => 'invited',
+        ]);
     });
 
-    it('rejects duplicate invite', function () {
+    it('rejects duplicate invite silently', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
-            'user_id' => $target->id,
+            'user_id' => $friend->id,
             'role' => 'player',
             'status' => 'approved',
         ]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
-            ->assertHasErrors(['inviteEmail']);
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
+
+        $this->assertEquals(1, CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $friend->id)->count());
     });
 
-    it('resets invite email after success', function () {
+    it('resets selected friend IDs after success', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
-        $target = User::factory()->create();
+        $friend = User::factory()->create();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $target->email)
-            ->call('inviteParticipant')
-            ->assertSet('inviteEmail', '');
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants')
+            ->assertSet('selectedFriendIds', []);
     });
 });
 
@@ -1030,15 +1060,17 @@ describe('Campaign Full Lifecycle', function () {
 
     it('invite flow: invite → cancel', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
-        $user = campaignTestCreateOwner();
+        $friend = campaignTestCreateOwner();
+        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('inviteEmail', $user->email)
-            ->call('inviteParticipant');
+            ->set('selectedFriendIds', [$friend->id])
+            ->call('inviteParticipants');
 
         $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $user->id)
+            ->where('user_id', $friend->id)
             ->first();
 
         Livewire\Livewire::actingAs($owner)
@@ -1047,7 +1079,7 @@ describe('Campaign Full Lifecycle', function () {
 
         assertDatabaseHas('campaign_participants', [
             'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
+            'user_id' => $friend->id,
             'status' => 'rejected',
         ]);
     });
@@ -1254,5 +1286,229 @@ describe('AddSessionToCampaign — Integration', function () {
 
         Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee('Session 42 — Grand Finale');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// ADD SESSION TO CAMPAIGN — AUTO-INVITE
+// ═══════════════════════════════════════════════════════════
+
+describe('AddSessionToCampaign — Auto-Invite Campaign Participants', function () {
+    it('auto-invites approved campaign participants to the new session', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+        $player1 = User::factory()->create();
+        $player2 = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $player1->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $player2->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Auto-Invite Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+        expect($game)->not->toBeNull();
+
+        // Both approved participants should be invited to the game
+        assertDatabaseHas('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $player1->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
+        assertDatabaseHas('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $player2->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
+
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(2);
+    });
+
+    it('skips the campaign owner from auto-invite', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        // Owner is also an approved campaign participant
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => 'approved',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Owner Skip Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+
+        // Owner should NOT be a game participant — they're already the game owner
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $owner->id)
+            ->exists())->toBeFalse();
+    });
+
+    it('does not auto-invite non-approved participants', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+        $pendingPlayer = User::factory()->create();
+        $rejectedPlayer = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $pendingPlayer->id,
+            'role' => 'player',
+            'status' => 'pending',
+        ]);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $rejectedPlayer->id,
+            'role' => 'player',
+            'status' => 'rejected',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Filtered Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+
+        // Neither pending nor rejected participants should be invited
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(0);
+    });
+
+    it('works with mixed statuses — only approved are invited', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+        $approvedPlayer = User::factory()->create();
+        $pendingPlayer = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $approvedPlayer->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $pendingPlayer->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Mixed Status Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+
+        // Only approved player invited
+        assertDatabaseHas('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $approvedPlayer->id,
+            'role' => 'invited',
+            'status' => 'pending',
+        ]);
+
+        // Pending campaign participant NOT invited
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $pendingPlayer->id)
+            ->exists())->toBeFalse();
+
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(1);
+    });
+
+    it('handles campaign with no participants gracefully', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Empty Campaign Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+        expect($game)->not->toBeNull();
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(0);
+    });
+
+    it('logs auto-invite count for funnel analytics', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+        $player = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Log::shouldReceive('info')
+            ->once()
+            ->with('Game session added to campaign', \Mockery::on(function ($context) use ($campaign, $owner, $player) {
+                return $context['campaign_id'] === $campaign->id
+                    && $context['owner_id'] === $owner->id
+                    && $context['auto_invited_count'] === 1
+                    && isset($context['game_id']);
+            }));
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Logged Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save');
+    });
+
+    it('wraps game creation and auto-invite in a transaction', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+        $player = User::factory()->create();
+
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Transactional Session')
+            ->set('date_time', '2026-06-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        // Verify both game and participant were created atomically
+        $game = Game::where('campaign_id', $campaign->id)->first();
+        expect($game)->not->toBeNull();
+        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(1);
     });
 });

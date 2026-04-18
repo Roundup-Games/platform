@@ -2,7 +2,9 @@
 
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\User;
+use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -37,6 +39,11 @@ beforeEach(function () {
         'owner_id' => $this->owner->id,
         'visibility' => 'private',
     ]);
+
+    $this->protectedGame = Game::factory()->create([
+        'owner_id' => $this->owner->id,
+        'visibility' => 'protected',
+    ]);
 });
 
 // ── global admin bypass ──────────────────────────────
@@ -68,6 +75,42 @@ test('guest cannot view private game', function () {
 test('owner can view their private game', function () {
     $this->actingAs($this->owner);
     expect(Gate::allows('view', $this->privateGame))->toBeTrue();
+});
+
+// ── protected visibility ─────────────────────────────
+
+test('guest cannot view protected game', function () {
+    expect(Gate::allows('view', $this->protectedGame))->toBeFalse();
+});
+
+test('owner can view their protected game', function () {
+    $this->actingAs($this->owner);
+    expect(Gate::allows('view', $this->protectedGame))->toBeTrue();
+});
+
+test('stranger cannot view protected game', function () {
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedGame))->toBeFalse();
+});
+
+test('friend of owner can view protected game', function () {
+    UserRelationship::follow($this->regularUser, $this->owner);
+    UserRelationship::follow($this->owner, $this->regularUser);
+
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedGame))->toBeTrue();
+});
+
+test('participant can view protected game', function () {
+    GameParticipant::create([
+        'game_id' => $this->protectedGame->id,
+        'user_id' => $this->regularUser->id,
+        'role' => 'player',
+        'status' => 'approved',
+    ]);
+
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedGame))->toBeTrue();
 });
 
 // ── update ───────────────────────────────────────────

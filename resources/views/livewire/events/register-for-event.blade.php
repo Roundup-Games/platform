@@ -97,7 +97,7 @@
                                 <div class="max-h-48 overflow-y-auto space-y-1">
                                     @foreach($this->selectedTeam->activeMembers as $member)
                                         <div class="flex items-center justify-between py-1 text-sm">
-                                            <span class="text-on-surface-variant">{{ $member->user?->name ?? __('common.content_unknown') }}</span>
+                                            <x-user-link :user="$member->user" :show-avatar="false" />
                                             <span class="text-xs text-on-surface-variant/60 uppercase">{{ $member->role }}</span>
                                         </div>
                                     @endforeach

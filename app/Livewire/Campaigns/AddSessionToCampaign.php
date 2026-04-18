@@ -4,7 +4,9 @@ namespace App\Livewire\Campaigns;
 
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -43,34 +45,58 @@ class AddSessionToCampaign extends Component
         $this->authorize('create', Game::class);
 
         $validated = $this->validate();
+        $campaign = $this->campaign;
+        $ownerId = Auth::id();
 
-        $game = Game::create([
-            'owner_id' => Auth::id(),
-            'campaign_id' => $this->campaign->id,
-            'game_system_id' => $this->campaign->game_system_id,
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'date_time' => $validated['date_time'],
-            'expected_duration' => $this->campaign->session_duration ?? 2,
-            'price' => $this->campaign->price_per_session ?? 0,
-            'language' => $this->campaign->language,
-            'location' => [
-                'details' => $validated['location_details'],
-            ],
-            'status' => 'scheduled',
-            'visibility' => $this->campaign->visibility,
-            'min_players' => $this->campaign->min_players,
-            'max_players' => $this->campaign->max_players,
-            'experience_level' => $this->campaign->experience_level,
-            'complexity' => $this->campaign->complexity,
-            'vibe_flags' => $this->campaign->vibe_flags,
-        ]);
+        $game = DB::transaction(function () use ($validated, $campaign, $ownerId) {
+            $game = Game::create([
+                'owner_id' => $ownerId,
+                'campaign_id' => $campaign->id,
+                'game_system_id' => $campaign->game_system_id,
+                'name' => $validated['name'],
+                'description' => $validated['description'],
+                'date_time' => $validated['date_time'],
+                'expected_duration' => $campaign->session_duration ?? 2,
+                'price' => $campaign->price_per_session ?? 0,
+                'language' => $campaign->language,
+                'location' => [
+                    'details' => $validated['location_details'],
+                ],
+                'status' => 'scheduled',
+                'visibility' => $campaign->visibility,
+                'min_players' => $campaign->min_players,
+                'max_players' => $campaign->max_players,
+                'experience_level' => $campaign->experience_level,
+                'complexity' => $campaign->complexity,
+                'vibe_flags' => $campaign->vibe_flags,
+            ]);
 
-        Log::info('Game session added to campaign', [
-            'game_id' => $game->id,
-            'campaign_id' => $this->campaign->id,
-            'owner_id' => Auth::id(),
-        ]);
+            // Auto-invite approved campaign participants as invited to this session
+            $autoInvitedCount = 0;
+            $approvedParticipants = $campaign->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $ownerId)
+                ->get();
+
+            foreach ($approvedParticipants as $campaignParticipant) {
+                GameParticipant::create([
+                    'game_id' => $game->id,
+                    'user_id' => $campaignParticipant->user_id,
+                    'role' => 'invited',
+                    'status' => 'pending',
+                ]);
+                $autoInvitedCount++;
+            }
+
+            Log::info('Game session added to campaign', [
+                'game_id' => $game->id,
+                'campaign_id' => $campaign->id,
+                'owner_id' => $ownerId,
+                'auto_invited_count' => $autoInvitedCount,
+            ]);
+
+            return $game;
+        });
 
         session()->flash('success', __('campaigns.flash_session_name_added_to_campaign', ['name' => $game->name]));
 

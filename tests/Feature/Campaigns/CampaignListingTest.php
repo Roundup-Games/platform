@@ -80,13 +80,76 @@ describe('CampaignListing — Visibility Scoping', function () {
             ->assertDontSee('Protected One');
     });
 
-    it('shows protected campaigns to authenticated users', function () {
-        $user = User::factory()->create();
-        createProtectedCampaign(['name' => 'Protected One']);
+    it('hides protected campaigns from strangers', function () {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        createProtectedCampaign(['name' => 'Protected One', 'owner_id' => $owner->id]);
 
-        Livewire\Livewire::actingAs($user)
+        Livewire\Livewire::actingAs($stranger)
             ->test(\App\Livewire\Campaigns\CampaignListing::class)
-            ->assertSee('Protected One');
+            ->assertDontSee('Protected One');
+    });
+
+    it('shows protected campaigns to the owner', function () {
+        $owner = User::factory()->create();
+        createProtectedCampaign(['name' => 'My Campaign', 'owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSee('My Campaign');
+    });
+
+    it('shows protected campaigns to friends of the owner', function () {
+        $owner = User::factory()->create();
+        $friend = User::factory()->create();
+
+        \App\Models\UserRelationship::follow($owner, $friend);
+        \App\Models\UserRelationship::follow($friend, $owner);
+
+        createProtectedCampaign(['name' => 'Friends Campaign', 'owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($friend)
+            ->test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSee('Friends Campaign');
+    });
+
+    it('shows protected campaigns to teammates of the owner', function () {
+        $owner = User::factory()->create();
+        $teammate = User::factory()->create();
+        $team = \App\Models\Team::factory()->create();
+
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id, 'user_id' => $owner->id,
+            'role' => 'captain', 'status' => 'active', 'joined_at' => now(),
+        ]);
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id, 'user_id' => $teammate->id,
+            'role' => 'player', 'status' => 'active', 'joined_at' => now(),
+        ]);
+
+        createProtectedCampaign(['name' => 'Team Campaign', 'owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($teammate)
+            ->test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSee('Team Campaign');
+    });
+
+    it('shows protected campaigns to participants', function () {
+        $owner = User::factory()->create();
+        $participant = User::factory()->create();
+
+        $campaign = createProtectedCampaign(['name' => 'Participant Campaign', 'owner_id' => $owner->id]);
+
+        \App\Models\CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $participant->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Livewire\Livewire::actingAs($participant)
+            ->test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSee('Participant Campaign');
     });
 
     it('hides private campaigns from everyone except owner', function () {

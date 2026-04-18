@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\User;
+use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -28,6 +30,11 @@ beforeEach(function () {
         'owner_id' => $this->owner->id,
         'visibility' => 'private',
     ]);
+
+    $this->protectedCampaign = Campaign::factory()->create([
+        'owner_id' => $this->owner->id,
+        'visibility' => 'protected',
+    ]);
 });
 
 // ── view ─────────────────────────────────────────────
@@ -43,6 +50,42 @@ test('guest cannot view private campaign', function () {
 test('owner can view their private campaign', function () {
     $this->actingAs($this->owner);
     expect(Gate::allows('view', $this->privateCampaign))->toBeTrue();
+});
+
+// ── protected visibility ─────────────────────────────
+
+test('guest cannot view protected campaign', function () {
+    expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
+});
+
+test('owner can view their protected campaign', function () {
+    $this->actingAs($this->owner);
+    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
+});
+
+test('stranger cannot view protected campaign', function () {
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
+});
+
+test('friend of owner can view protected campaign', function () {
+    UserRelationship::follow($this->regularUser, $this->owner);
+    UserRelationship::follow($this->owner, $this->regularUser);
+
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
+});
+
+test('participant can view protected campaign', function () {
+    CampaignParticipant::create([
+        'campaign_id' => $this->protectedCampaign->id,
+        'user_id' => $this->regularUser->id,
+        'role' => 'player',
+        'status' => 'approved',
+    ]);
+
+    $this->actingAs($this->regularUser);
+    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
 });
 
 // ── update ───────────────────────────────────────────

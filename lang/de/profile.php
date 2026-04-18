@@ -45,4 +45,18 @@ return [
     'content_preferred_language' => 'Preferred Language',
     'content_this_helps_us_find_games_and_events_near_you' => 'This helps us find games and events near you.',
     'content_vibe_preferences' => 'Vibe Preferences',
+    'nav_people' => 'Leute',
+    'content_people' => 'Leute',
+
+    // Privacy settings
+    'content_privacy_settings' => 'Privatsphäre-Einstellungen',
+    'action_control_who_sees_your_profile_information' => 'Kontrolliere, wer deine Profilinformationen auf deinem öffentlichen Profil sehen kann.',
+    'content_vibes' => 'Stimmungen',
+    'content_campaigns' => 'Kampagnen',
+    'content_teams' => 'Teams',
+    'content_friends_list' => 'Freundesliste',
+    'visibility_everyone' => 'Alle',
+    'visibility_friends' => 'Freunde',
+    'visibility_nobody' => 'Niemand',
+    'flash_privacy_settings_saved' => 'Privatsphäre-Einstellungen gespeichert.',
 ];

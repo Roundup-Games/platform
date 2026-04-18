@@ -27,29 +27,29 @@
                     </div>
                 </a>
 
-                <div class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient">
+                <a href="{{ route('people') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">sports_esports</span>
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">people</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface">{{ __('games.content_games') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('common.field_coming_soon_2') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">People</h3>
+                            <p class="text-sm text-on-surface-variant">Manage following, followers & blocked</p>
                         </div>
                     </div>
-                </div>
+                </a>
 
-                <div class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient">
+                <a href="{{ route('discover') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">explore</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface">{{ __('pages.content_community') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('common.field_coming_soon_2') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('discovery.action_discover') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('discovery.content_find_games_near_you') }}</p>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
     </div>

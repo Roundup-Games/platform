@@ -130,11 +130,18 @@ class CampaignListing extends Component
         $user = Auth::user();
 
         $query = Campaign::query()
-            // Visibility scoping: public for everyone, protected for authed, private excluded
+            // Visibility scoping: public for everyone, protected for friends/teammates/participants, private excluded
             ->where(function ($q) use ($user) {
                 $q->where('visibility', 'public');
                 if ($user) {
-                    $q->orWhere('visibility', 'protected');
+                    $q->orWhere(function ($q) use ($user) {
+                        $q->where('visibility', 'protected')
+                            ->where(function ($q) use ($user) {
+                                $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
+                                $q->whereIn('owner_id', $allowedOwnerIds)
+                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                            });
+                    });
                 }
             })
             // Only active campaigns

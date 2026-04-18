@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentLanguage;
+use App\Enums\RelationshipType;
 use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
 use Database\Factories\UserFactory;
@@ -322,7 +323,186 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             ->sharpen(10);
     }
 
+    // ── User Relationships ────────────────────────────
+
+    /**
+     * Users who follow this user (incoming follows).
+     */
+    public function followers()
+    {
+        return $this->hasMany(UserRelationship::class, 'related_user_id')
+            ->where('type', RelationshipType::Follow);
+    }
+
+    /**
+     * Users this user follows (outgoing follows).
+     */
+    public function followings()
+    {
+        return $this->hasMany(UserRelationship::class, 'user_id')
+            ->where('type', RelationshipType::Follow);
+    }
+
+    /**
+     * Users this user has blocked (outgoing blocks).
+     */
+    public function blocks()
+    {
+        return $this->hasMany(UserRelationship::class, 'user_id')
+            ->where('type', RelationshipType::Block);
+    }
+
+    /**
+     * Users who have blocked this user (incoming blocks).
+     */
+    public function blockedBy()
+    {
+        return $this->hasMany(UserRelationship::class, 'related_user_id')
+            ->where('type', RelationshipType::Block);
+    }
+
+    // ── Relationship Resolution ──────────────────────
+
+    /**
+     * Check if this user follows the given user.
+     */
+    public function isFollowing(self $user): bool
+    {
+        return $this->followings()
+            ->where('related_user_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Check if this user is followed by the given user.
+     */
+    public function isFollowedBy(self $user): bool
+    {
+        return $this->followers()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Check if two users are friends (mutual follow with no blocks either direction).
+     */
+    public function isFriend(self $user): bool
+    {
+        return $this->isFollowing($user)
+            && $this->isFollowedBy($user)
+            && ! $this->hasBlocked($user)
+            && ! $this->isBlockedBy($user);
+    }
+
+    /**
+     * Check if this user has been blocked by the given user.
+     */
+    public function isBlockedBy(self $user): bool
+    {
+        return $this->blockedBy()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Check if this user has blocked the given user.
+     */
+    public function hasBlocked(self $user): bool
+    {
+        return $this->blocks()
+            ->where('related_user_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Get user IDs whose protected content this user can see: self + friends + teammates.
+     *
+     * Friends are mutual follows (I follow them AND they follow me, no blocks).
+     * Teammates are users sharing an active team membership.
+     */
+    public function getAllowedOwnerIdsForProtectedContent(): array
+    {
+        $ids = [$this->id];
+
+        // Friend IDs: mutual follows (user follows X AND X follows user)
+        $iFollow = $this->followings()->pluck('related_user_id');
+        $followsMe = $this->followers()->pluck('user_id');
+        $friendIds = $iFollow->intersect($followsMe)->toArray();
+        $ids = array_merge($ids, $friendIds);
+
+        // Teammate user IDs: users who share an active team membership
+        $myActiveTeamIds = $this->teams()
+            ->wherePivot('status', 'active')
+            ->pluck('teams.id');
+
+        if ($myActiveTeamIds->isNotEmpty()) {
+            $teammateUserIds = \DB::table('team_members')
+                ->whereIn('team_id', $myActiveTeamIds)
+                ->where('status', 'active')
+                ->where('user_id', '!=', $this->id)
+                ->distinct()
+                ->pluck('user_id')
+                ->toArray();
+            $ids = array_merge($ids, $teammateUserIds);
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Check if two users are friends or teammates on an active team.
+     */
+    public function isFriendOrTeammate(self $user): bool
+    {
+        if ($this->isFriend($user)) {
+            return true;
+        }
+
+        return $this->hasSharedActiveTeamWith($user);
+    }
+
+    /**
+     * Get the relationship level between this user and another user.
+     *
+     * Returns one of: 'self', 'friend_or_teammate', 'blocked', 'stranger'.
+     */
+    public function getRelationshipLevel(self $user): string
+    {
+        if ($this->is($user)) {
+            return 'self';
+        }
+
+        if ($this->isBlockedBy($user) || $this->hasBlocked($user)) {
+            return 'blocked';
+        }
+
+        if ($this->isFriendOrTeammate($user)) {
+            return 'friend_or_teammate';
+        }
+
+        return 'stranger';
+    }
+
     // ── Helpers ────────────────────────────────────────
+
+    /**
+     * Check if this user shares an active team membership with the given user.
+     */
+    private function hasSharedActiveTeamWith(self $user): bool
+    {
+        $myTeamIds = $this->teams()
+            ->wherePivot('status', 'active')
+            ->pluck('teams.id');
+
+        if ($myTeamIds->isEmpty()) {
+            return false;
+        }
+
+        return $user->teams()
+            ->wherePivot('status', 'active')
+            ->whereIn('teams.id', $myTeamIds)
+            ->exists();
+    }
 
     public function hasActiveMembership(): bool
     {
