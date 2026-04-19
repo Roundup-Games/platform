@@ -86,7 +86,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="campaign-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language_2') }}</label>
+                        <label for="campaign-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language_required') }}</label>
                         <select id="campaign-language" wire:model="language"
                                 class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                             @foreach($this->languageOptions as $value => $label)

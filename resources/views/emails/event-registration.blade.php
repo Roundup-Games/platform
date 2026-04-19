@@ -19,7 +19,7 @@
 - **{{ __('events.content_division') }}:** {{ $registration->division }}
 @endif
 @if($registration->registration_type)
-- **{{ __('events.content_registration_type_3') }}:** {{ ucfirst($registration->registration_type) }}
+- **{{ __('events.label_registration_type') }}:** {{ ucfirst($registration->registration_type) }}
 @endif
 
 @if($registration->event->contact_email)

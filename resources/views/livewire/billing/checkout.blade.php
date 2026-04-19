@@ -29,7 +29,7 @@
                     @if($membershipType->description)
                         <p class="text-sm text-on-surface-variant">{{ $membershipType->description }}</p>
                     @endif
-                    <p class="text-xs text-on-surface-variant/70">{{ __('common.content_duration') }} {{ trans_choice(':count month|:count months', $membershipType->duration_months) }}</p>
+                    <p class="text-xs text-on-surface-variant/70">{{ __('common.content_duration') }} {{ trans_choice('billing.content_duration_months', $membershipType->duration_months) }}</p>
                 </div>
             @elseif($mode === 'one-time')
                 <div class="space-y-3">

@@ -67,7 +67,7 @@
     <section class="py-16 sm:py-20 bg-surface-container-low">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-4">
-                {{ __('pages.content_what_we_stand_for_2') }}
+                {{ __('pages.heading_what_we_stand_for') }}
             </h2>
             <p class="text-on-surface-variant text-center max-w-2xl mx-auto mb-12">
                 {{ __('common.content_these_aren_t_just_words') }}
@@ -82,7 +82,7 @@
                         <div>
                             <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_inclusivity') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_every_table_has_room_for_2') }}
+                                {{ __('pages.content_every_table_welcoming_body') }}
                             </p>
                         </div>
                     </div>

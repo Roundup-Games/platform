@@ -185,7 +185,7 @@
                                             {{ $game->visibility === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
                                             {{ __(ucfirst($game->visibility)) }}
                                         </span>
-                                        <span class="text-xs text-on-surface-variant">{{ $game->participants_count }} {{ __('common.content_players_2') }}</span>
+                                        <span class="text-xs text-on-surface-variant">{{ trans_choice('common.content_count_players', $game->participants_count) }}</span>
                                     </div>
                                 </div>
                                 @can('view', $game)
@@ -218,7 +218,7 @@
                                             {{ $campaign->visibility === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
                                             {{ __(ucfirst($campaign->visibility)) }}
                                         </span>
-                                        <span class="text-xs text-on-surface-variant">{{ $campaign->participants_count }} {{ __('common.content_participants') }}</span>
+                                        <span class="text-xs text-on-surface-variant">{{ trans_choice('common.content_count_participants', $campaign->participants_count) }}</span>
                                     </div>
                                 </div>
                                 @can('view', $campaign)

@@ -166,7 +166,7 @@ describe('Icon-only Buttons', function () {
     it('announcement buttons have aria-labels instead of emoji', function () {
         $template = file_get_contents(resource_path('views/livewire/events/event-announcements.blade.php'));
         expect($template)->toContain("aria-label=\"{{ __('events.action_delete_announcement') }}\"");
-        expect($template)->toContain("aria-label=\"{{ __('events.action_edit_announcement_2') }}\"");
+        expect($template)->toContain("aria-label=\"{{ __('events.action_edit_announcement') }}\"");
         // Should NOT contain emoji in buttons
         expect($template)->not->toContain('🗑️');
         expect($template)->not->toContain('✏️');

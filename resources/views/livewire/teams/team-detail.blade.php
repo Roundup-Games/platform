@@ -42,7 +42,7 @@
                     @if($team->founded_year)
                         <span>{{ __('common.content_est') }} {{ $team->founded_year }}</span>
                     @endif
-                    <span>{{ __('teams.content_count_members', ['count' => $team->activeMembers->count()]) }}</span>
+                    <span>{{ trans_choice('teams.content_count_members', $team->activeMembers->count()) }}</span>
                     @if($team->website)
                         <a href="{{ $team->website }}" target="_blank" rel="noopener" class="text-primary hover:underline">{{ $team->website }}</a>
                     @endif

@@ -157,7 +157,7 @@
             <div class="max-w-3xl mx-auto">
                 <span class="material-symbols-outlined text-inverse-primary text-5xl mb-4 block" aria-hidden="true">groups</span>
                 <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
-                    {{ __('common.action_join_count_organizers_who_bring_people_together', ['count' => $displayCount]) }}
+                    {{ trans_choice('common.action_join_count_organizers_who_bring_people_together', $displayCount) }}
                 </h2>
                 <p class="mt-4 text-inverse-on-surface/70 max-w-xl mx-auto text-lg">
                     {{ __('events.content_from_weekly_board_game_nights') }}

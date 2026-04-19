@@ -36,7 +36,7 @@ return [
     'content_experience_level' => 'Experience Level',
     'content_exploration' => 'Exploration',
     'content_featured' => 'Featured',
-    'content_featured_2' => '★ Featured',
+    'content_featured_badge' => '★ Featured',
     'content_horror' => 'Horror',
     'content_humorous' => 'Humorous',
     'content_intermediate' => 'Intermediate',
@@ -67,4 +67,5 @@ return [
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Find games and campaigns that match your vibe.',
     'content_near_me' => 'Near Me',
     'content_share_your_location_to_discover_game_sessions' => 'Share your location to discover game sessions and campaigns happening in your area.',
+    'content_find_games_near_you' => 'Find games and sessions happening near you.',
 ];

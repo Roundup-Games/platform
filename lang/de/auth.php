@@ -28,8 +28,8 @@ return [
     'field_set_password' => 'Passwort festlegen',
     'field_update_password' => 'Passwort aktualisieren',
     'flash_password_updated_successfully' => 'Passwort erfolgreich aktualisiert.',
-    'action_sign_up_to_get_started' => 'Sign Up to Get Started',
-    'error_your_account_has_been_disabled' => 'Your account has been disabled.',
+    'action_sign_up_to_get_started' => 'Registrieren und loslegen',
+    'error_your_account_has_been_disabled' => 'Dein Konto wurde deaktiviert.',
 
     // Laravel/Breeze framework authentication messages
     'failed' => 'Diese Anmeldedaten stimmen nicht mit unseren Aufzeichnungen überein.',

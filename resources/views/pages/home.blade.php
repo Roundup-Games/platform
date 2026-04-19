@@ -26,7 +26,7 @@
                     <a href="{{ route('games.index') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">casino</span>
-                        {{ __('games.action_explore_games_2') }}
+                        {{ __('games.action_explore_games_cta') }}
                     </a>
                 </div>
             </div>
@@ -59,7 +59,7 @@
                         {{ $sessionsThisWeek }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('campaigns.content_sessions_this_week') }}
+                    {{ trans_choice('campaigns.content_sessions_this_week', $sessionsThisWeek) }}
                     </div>
                 </div>
                 <div>
@@ -67,7 +67,7 @@
                         {{ $peopleThisWeek }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('campaigns.content_people_joined_sessions_this_week') }}
+                        {{ trans_choice('campaigns.content_people_joined_sessions_this_week', $peopleThisWeek) }}
                     </div>
                 </div>
                 <div>
@@ -75,7 +75,7 @@
                         {{ $activeCampaigns }}
                     </div>
                     <div class="text-sm text-inverse-on-surface/70 mt-1">
-                        {{ __('campaigns.content_active_campaigns') }}
+                        {{ trans_choice('campaigns.content_active_campaigns', $activeCampaigns) }}
                     </div>
                 </div>
             </div>

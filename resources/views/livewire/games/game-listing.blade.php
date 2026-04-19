@@ -73,7 +73,7 @@
 
         {{-- Complexity Range --}}
         <div class="flex items-center gap-3">
-            <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity_2') }}</span>
+            <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity') }}</span>
             <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('common.field_min') }}" aria-label="{{ __('games.field_minimum_complexity') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
             <span class="text-on-surface-variant">–</span>
@@ -249,7 +249,7 @@
                                 @if(isset($game->participants_count))
                                     <span class="flex items-center gap-1">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                                        {{ $game->participants_count }} {{ __('common.content_joined') }}
+                                        {{ trans_choice('common.content_joined', $game->participants_count) }}
                                     </span>
                                 @endif
                             </div>

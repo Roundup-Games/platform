@@ -108,7 +108,7 @@
             @if(isset($campaign->sessions_count))
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">event_note</span>
-                    {{ $campaign->sessions_count }} {{ __('campaigns.content_sessions_2') }}
+                    {{ trans_choice('campaigns.content_count_sessions', $campaign->sessions_count) }}
                 </span>
             @endif
         </div>

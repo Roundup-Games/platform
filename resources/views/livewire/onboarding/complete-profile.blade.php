@@ -173,7 +173,7 @@
         <!-- Step 4: Game Preferences -->
         @if($step === 4)
             <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
-                {{ __('games.content_game_preferences_2') }}
+                {{ __('games.heading_game_preferences') }}
             </h2>
             <p class="text-sm text-on-surface-variant mb-6">
                 {{ __("events.content_select_the_games_you_enjoy") }}
@@ -203,7 +203,7 @@
             </div>
 
             <p class="mt-4 text-xs text-on-surface-variant">
-                {{ __('common.content_count_selected', ['count' => count($this->favoriteGameSystemIds)]) }}
+                {{ trans_choice('common.content_count_selected', count($this->favoriteGameSystemIds)) }}
             </p>
         @endif
 

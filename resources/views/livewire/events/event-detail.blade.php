@@ -18,20 +18,20 @@
                 </span>
                 @if($event->status === 'registration_open')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
-                        {{ __('events.content_registration_open_2') }}
+                        {{ __('events.content_registration_open_badge') }}
                     </span>
                 @elseif($event->status === 'in_progress')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
-                        {{ __('common.content_in_progress_2') }}
+                        {{ __('common.content_in_progress_badge') }}
                     </span>
                 @elseif($event->status === 'registration_closed')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
-                        {{ __('events.content_registration_closed_3') }}
+                        {{ __('events.content_registration_closed_badge') }}
                     </span>
                 @endif
                 @if($event->is_featured)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/10 text-on-primary">
-                        {{ __('discovery.content_featured_2') }}
+                        {{ __('discovery.content_featured_badge') }}
                     </span>
                 @endif
             </div>
@@ -149,7 +149,7 @@
                                     <div class="flex items-center gap-2">
                                         <h3 class="font-semibold text-on-surface">{{ $announcement->title }}</h3>
                                         @if($announcement->is_pinned)
-                                            <span class="text-xs text-primary">{{ __('common.content_pinned_2') }}</span>
+                                            <span class="text-xs text-primary">{{ __('common.content_pinned_badge') }}</span>
                                         @endif
                                     </div>
                                     <p class="mt-1 text-sm text-on-surface-variant">{{ $announcement->content }}</p>

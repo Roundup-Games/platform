@@ -112,7 +112,7 @@
                                         <x-user-link :user="$registration->user" :show-avatar="false" />
                                         <p class="text-xs text-on-surface-variant">{{ $registration->user?->email }}</p>
                                         @if($registration->team)
-                                            <p class="text-xs text-primary">{{ __('events.field_team_name_2', ['name' => $registration->team?->name]) }}</p>
+                                            <p class="text-xs text-primary">{{ __('events.field_team_display_name', ['name' => $registration->team?->name]) }}</p>
                                         @endif
                                     </div>
                                 </td>
@@ -238,7 +238,7 @@
                                     {{-- Roster info for team registrations --}}
                                     @if($registration->roster && count($registration->roster) > 0)
                                         <details class="mt-1">
-                                            <summary class="text-xs text-on-surface-variant cursor-pointer hover:text-on-surface">{{ __('events.content_roster_count', ['count' => count($registration->roster)]) }}</summary>
+                                            <summary class="text-xs text-on-surface-variant cursor-pointer hover:text-on-surface">{{ trans_choice('events.content_roster_count', count($registration->roster)) }}</summary>
                                             <div class="mt-1 pl-3 text-xs text-on-surface-variant space-y-0.5">
                                                 @foreach($registration->roster as $member)
                                                     <p>{{ $member['name'] ?? __('common.content_unknown') }} <span class="text-on-surface-variant/60">({{ $member['role'] ?? '' }})</span></p>

@@ -36,6 +36,6 @@
                 <span class="material-symbols-outlined text-on-surface-variant text-sm">person</span>
             </span>
         @endif
-        <span class="font-medium text-on-surface-variant">Unknown</span>
+        <span class="font-medium text-on-surface-variant">{{ __('common.content_unknown') }}</span>
     </span>
 @endif

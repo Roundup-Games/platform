@@ -56,7 +56,7 @@
                     </div>
 
                     <div>
-                        <label for="game-price" class="block text-sm font-medium text-on-surface mb-1">{{ __('billing.content_price_2') }}</label>
+                        <label for="game-price" class="block text-sm font-medium text-on-surface mb-1">{{ __('billing.content_price_eur') }}</label>
                         <input type="number" id="game-price" wire:model="price" step="0.01" min="0" placeholder="0.00"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         <p class="mt-1 text-xs text-on-surface-variant">{{ __('billing.content_amount_in_eur_leave_0_for_free') }}</p>
@@ -66,7 +66,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label for="game-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language_2') }}</label>
+                        <label for="game-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language_required') }}</label>
                         <select id="game-language" wire:model="language"
                                 class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
                             @foreach($this->languageOptions as $value => $label)
@@ -160,7 +160,7 @@
                 {{-- Safety Tools --}}
                 <div>
                     <label class="block text-sm font-medium text-on-surface mb-2">{{ __('safety.content_safety_tools') }}</label>
-                    <p class="text-xs text-on-surface-variant mb-3">{{ __('safety.action_select_the_safety_tools_you_2') }}</p>
+                    <p class="text-xs text-on-surface-variant mb-3">{{ __('safety.action_select_safety_tools_session') }}</p>
 
                     <livewire:components.safety-tool-picker
                         mode="selection"

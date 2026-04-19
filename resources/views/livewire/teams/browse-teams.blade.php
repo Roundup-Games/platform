@@ -44,7 +44,7 @@
                                     {{ $team->name }}
                                 </h3>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                    {{ __('teams.content_count_members', ['count' => $team->active_members_count ?? 0]) }}
+                                    {{ trans_choice('teams.content_count_members', $team->active_members_count ?? 0) }}
                                 </span>
                             </div>
 

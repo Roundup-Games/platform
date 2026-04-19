@@ -512,7 +512,7 @@ describe('German translations for safety tools', function () {
         $requiredKeys = [
             'safety.content_safety_tools',
             'safety.action_select_the_safety_tools_you',
-            'safety.action_select_the_safety_tools_you_2',
+            'safety.action_select_safety_tools_session',
             'safety.content_lines_veils_details',
             'safety.content_custom_safety_note',
             'safety.content_learn_more_about_safety_tools',

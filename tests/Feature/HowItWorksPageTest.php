@@ -105,7 +105,7 @@ describe('HowItWorksPage - i18n', function () {
             'campaigns.action_discover_sessions_near_you',
             'games.action_find_your_kind_of_game',
             'common.content_show_up_and_play',
-            'pages.content_what_we_stand_for_2',
+            'pages.heading_what_we_stand_for',
             'common.content_inclusivity',
             'safety.content_safety',
             'pages.content_community',

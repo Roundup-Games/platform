@@ -83,11 +83,11 @@
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-on-primary/15 text-on-primary">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">groups</span>
                         @if($game->min_players && $game->max_players)
-                            {{ $game->min_players }}–{{ $game->max_players }} {{ __('common.content_players_2') }}
+                            {{ $game->min_players }}–{{ $game->max_players }} {{ __('common.content_count_players', ['count' => $game->max_players]) }}
                         @elseif($game->min_players)
-                            {{ __('common.field_min_count_players', ['count' => $game->min_players]) }}
+                            {{ trans_choice('common.field_min_count_players', $game->min_players) }}
                         @else
-                            {{ __('common.content_up_to_count_players', ['count' => $game->max_players]) }}
+                            {{ trans_choice('common.content_up_to_count_players', $game->max_players) }}
                         @endif
                     </span>
                 @endif

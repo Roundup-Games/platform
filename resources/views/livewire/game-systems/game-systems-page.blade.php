@@ -48,7 +48,7 @@
                    aria-label="{{ __('common.field_maximum_players') }}"
                    class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
 
-            <span class="text-sm text-on-surface-variant ml-4">{{ __('games.content_complexity_2') }}</span>
+            <span class="text-sm text-on-surface-variant ml-4">{{ __('games.content_complexity') }}</span>
             <input type="number" min="1" max="5" step="0.5"
                    wire:model.live="complexity_min"
                    placeholder="{{ __('common.field_min') }}"
@@ -73,7 +73,7 @@
                 @endif
                 @if($min_players || $max_players)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {{ $min_players ?? '1' }}–{{ $max_players ?? '20' }} {{ __('common.content_players_2') }}
+                        {{ $min_players ?? '1' }}–{{ $max_players ?? '20' }} {{ __('common.content_count_players', ['count' => $max_players ?? 20]) }}
                     </span>
                 @endif
                 @if($complexity_min || $complexity_max)

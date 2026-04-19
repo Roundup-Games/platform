@@ -423,7 +423,7 @@ class ManageEvent extends Component
             'closed_by' => Auth::id(),
         ]);
 
-        session()->flash('success', __('events.content_registration_closed_2'));
+        session()->flash('success', __('events.flash_registration_closed'));
     }
 
     public function cancelEvent(): void

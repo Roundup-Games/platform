@@ -55,7 +55,7 @@
                     {{ ucfirst(str_replace('_', ' ', $event->status)) }}
                 </span>
                 <span class="text-sm text-on-surface-variant">
-                    {{ $event->registrations()->count() }} {{ __('events.content_registration_s') }}
+                    {{ trans_choice('events.content_count_registrations', $event->registrations()->count()) }}
                 </span>
             </div>
             <div class="flex items-center gap-2">
@@ -72,7 +72,7 @@
                     </button>
                 @endif
                 @if($event->status === 'registration_open')
-                    <button wire:click="closeRegistration" wire:confirm="{{ __('events.action_close_registration_2') }}"
+                    <button wire:click="closeRegistration" wire:confirm="{{ __('events.action_confirm_close_registration') }}"
                             class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
                         {{ __('events.action_close_registration') }}
                     </button>
@@ -281,7 +281,7 @@
             @if($activeTab === 'registration')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_registration_type_2') }}</label>
+                        <label class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_registration_type') }}</label>
                         <div class="flex gap-3 mt-1">
                             @foreach(['team' => __('events.content_team_only'), 'individual' => __('common.content_individual_only'), 'both' => __('common.content_both')] as $val => $label)
                                 <button type="button" wire:click="$set('registration_type', '{{ $val }}')"
@@ -371,7 +371,7 @@
                     <div class="bg-surface-container rounded-lg p-4 space-y-3">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                                <input type="text" wire:model="newDivisionName" placeholder="{{ __('events.field_division_name_2') }}"
+                                <input type="text" wire:model="newDivisionName" placeholder="{{ __('events.placeholder_new_division_name') }}"
                                        class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                                 @error('newDivisionName') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                             </div>

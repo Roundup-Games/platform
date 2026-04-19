@@ -5,7 +5,7 @@
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">
                 <span class="material-symbols-outlined text-2xl align-middle mr-1" style="font-variation-settings: 'FILL' 1">people</span>
-                People
+                {{ __('people.content_people') }}
             </h1>
         </div>
 
@@ -25,17 +25,17 @@
         <div class="flex border-b border-outline-variant/20">
             <button wire:click="$set('activeTab', 'following')"
                     class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === 'following' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
-                Following
+                {{ __('people.content_following') }}
                 <span class="ml-1 text-xs {{ $activeTab === 'following' ? 'text-primary/70' : 'text-on-surface-variant/60' }}">({{ $this->followingCount }})</span>
             </button>
             <button wire:click="$set('activeTab', 'followers')"
                     class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === 'followers' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
-                Followers
+                {{ __('people.content_followers') }}
                 <span class="ml-1 text-xs {{ $activeTab === 'followers' ? 'text-primary/70' : 'text-on-surface-variant/60' }}">({{ $this->followersCount }})</span>
             </button>
             <button wire:click="$set('activeTab', 'blocked')"
                     class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === 'blocked' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
-                Blocked
+                {{ __('people.content_blocked_tab') }}
                 <span class="ml-1 text-xs {{ $activeTab === 'blocked' ? 'text-primary/70' : 'text-on-surface-variant/60' }}">({{ $this->blockedCount }})</span>
             </button>
         </div>
@@ -71,7 +71,7 @@
                                     wire:loading.attr="disabled"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
                                 <span class="material-symbols-outlined text-base">person_remove</span>
-                                <span wire:loading.remove wire:target="unfollow({{ $user->id }})">Unfollow</span>
+                                <span wire:loading.remove wire:target="unfollow({{ $user->id }})">{{ __('common.action_unfollow') }}</span>
                                 <span wire:loading wire:target="unfollow({{ $user->id }})">...</span>
                             </button>
                         </div>
@@ -82,12 +82,12 @@
                 @else
                     <div class="text-center py-12">
                         <span class="material-symbols-outlined text-4xl text-on-surface-variant">person_add</span>
-                        <p class="mt-2 text-on-surface-variant">You're not following anyone yet.</p>
+                        <p class="mt-2 text-on-surface-variant">{{ __('people.content_not_following_anyone_yet') }}</p>
                         <a href="{{ route('discover', ['locale' => app()->getLocale()]) }}"
                            wire:navigate
                            class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors">
                             <span class="material-symbols-outlined text-base">explore</span>
-                            Discover people
+                            {{ __('people.action_discover_people') }}
                         </a>
                     </div>
                 @endif
@@ -123,7 +123,7 @@
                                         wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
                                     <span class="material-symbols-outlined text-base">person_remove</span>
-                                    Remove
+                                    {{ __('common.action_remove') }}
                                 </button>
                             @else
                                 {{-- Not mutual: show follow back --}}
@@ -131,7 +131,7 @@
                                         wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors shrink-0">
                                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">person_add</span>
-                                    Follow back
+                                    {{ __('people.action_follow_back') }}
                                 </button>
                             @endif
                         </div>
@@ -142,7 +142,7 @@
                 @else
                     <div class="text-center py-12">
                         <span class="material-symbols-outlined text-4xl text-on-surface-variant">group</span>
-                        <p class="mt-2 text-on-surface-variant">No followers yet.</p>
+                        <p class="mt-2 text-on-surface-variant">{{ __('people.content_no_followers_yet') }}</p>
                     </div>
                 @endif
 
@@ -164,7 +164,7 @@
                                     wire:loading.attr="disabled"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-error-container text-on-error-container hover:brightness-110 transition-colors shrink-0">
                                 <span class="material-symbols-outlined text-base">lock_open</span>
-                                Unblock
+                                {{ __('common.action_unblock') }}
                             </button>
                         </div>
                     @endforeach
@@ -174,7 +174,7 @@
                 @else
                     <div class="text-center py-12">
                         <span class="material-symbols-outlined text-4xl text-on-surface-variant">block</span>
-                        <p class="mt-2 text-on-surface-variant">You haven't blocked anyone.</p>
+                        <p class="mt-2 text-on-surface-variant">{{ __('people.content_you_haven_t_blocked_anyone') }}</p>
                     </div>
                 @endif
             @endif

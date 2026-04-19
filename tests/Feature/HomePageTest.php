@@ -255,7 +255,7 @@ describe('i18n', function () {
             'common.content_there_s_a_seat_waiting_for_you',
             'events.content_find_your_people_discover_new',
             'campaigns.action_find_sessions_near_me',
-            'games.action_explore_games_2',
+            'games.action_explore_games_cta',
             'discovery.content_what_s_happening_near_you',
             'games.content_share_your_location_to_see',
             'campaigns.content_sessions_this_week',

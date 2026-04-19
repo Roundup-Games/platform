@@ -2,7 +2,7 @@
 
 return [
     'action_select_the_safety_tools_you' => 'Wähle die Sicherheitstools, die du für diese Kampagne verwenden möchtest.',
-    'action_select_the_safety_tools_you_2' => 'Wähle die Sicherheitstools, die du für diese Sitzung verwenden möchtest.',
+    'action_select_safety_tools_session' => 'Wähle die Sicherheitstools, die du für diese Sitzung verwenden möchtest.',
     'content_clear_safety_tools_session_zero' => 'Klare Safety-Tools, Session-Zero-Unterstützung und Community-Richtlinien halten den Spaß für alle im Fokus.',
     'content_custom_safety_note' => 'Eigener Sicherheitshinweis',
     'content_everyone_deserves_to_feel_safe' => 'Jeder verdient es, sich am Tisch sicher und wohl zu fühlen. Sicherheitstools sind einfache Methoden, die Gruppen helfen, Grenzen zu kommunizieren und den Spaß im Fokus zu behalten.',

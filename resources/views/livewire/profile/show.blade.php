@@ -2,7 +2,7 @@
     <div class="max-w-2xl mx-auto space-y-8">
         {{-- Page Header --}}
         <div>
-            <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">My Profile</h1>
+            <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('profile.content_my_profile') }}</h1>
             <p class="mt-1 text-sm text-on-surface-variant">{{ __('profile.action_manage_your_account_information_preferences') }}</p>
         </div>
 

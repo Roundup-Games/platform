@@ -106,7 +106,7 @@
             @if(isset($game->participants_count))
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                    {{ $game->participants_count }} {{ __('common.content_joined') }}
+                    {{ trans_choice('common.content_joined', $game->participants_count) }}
                 </span>
             @endif
         </div>

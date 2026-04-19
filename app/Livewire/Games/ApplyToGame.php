@@ -41,7 +41,7 @@ class ApplyToGame extends Component
 
         // Check if already a participant or has pending application
         if ($game->participants()->where('user_id', Auth::id())->exists()) {
-            session()->flash('info', __('events.content_you_are_already_a_participant_2'));
+            session()->flash('info', __('events.content_already_participant_or_pending_game'));
 
             return;
         }

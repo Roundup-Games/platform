@@ -62,7 +62,7 @@
                                     @if($subscription->ends_at)
                                         {{ __('common.field_renews_date', ['date' => format_date($subscription->ends_at, 'short_month_day')]) }}
                                     @else
-                                        {{ __('common.status_active_2') }}
+                                        {{ __('common.status_active_lowercase') }}
                                     @endif
                                 @endif
                             </p>
@@ -105,7 +105,7 @@
                                 {{-- Price --}}
                                 <div class="mt-4 text-center">
                                     <span class="text-3xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
-                                    <span class="text-sm text-on-surface-variant">/{{ trans_choice(':count month|:count months', $plan->duration_months) }}</span>
+                                    <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
                                     @if($plan->duration_months === 12)
                                         <p class="mt-1 text-xs text-secondary font-medium">
                                             {{ format_currency((int)round($plan->price_cents / 12)) }}/month

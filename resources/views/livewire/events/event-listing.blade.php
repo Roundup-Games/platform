@@ -87,7 +87,7 @@ $locale = app()->getLocale();
                                 </h3>
                                 @if($event->is_featured)
                                     <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        {{ __('discovery.content_featured_2') }}
+                                        {{ __('discovery.content_featured_badge') }}
                                     </span>
                                 @endif
                             </div>
@@ -143,7 +143,7 @@ $locale = app()->getLocale();
                                     @if($event->individual_registration_fee > 0)
                                         {{ __('common.field_from_amount_player', ['amount' => format_currency($event->individual_registration_fee)]) }}
                                     @elseif($event->team_registration_fee > 0)
-                                        {{ __('events.field_amount_team_2', ['amount' => format_currency($event->team_registration_fee)]) }}
+                                        {{ __('teams.field_amount_team', ['amount' => format_currency($event->team_registration_fee)]) }}
                                     @endif
                                 </p>
                             @endif

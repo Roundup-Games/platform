@@ -52,11 +52,11 @@
         <div
             class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
             role="listbox"
-            aria-label="{{ __('games.content_game_systems_2') }}"
+            aria-label="{{ __('games.label_game_systems') }}"
         >
             @if($results->isEmpty())
                 <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
-                    {{ __('games.content_no_game_systems_found_2') }}
+                    {{ __('games.content_no_game_systems_found') }}
                 </div>
             @else
                 @foreach($results as $index => $system)
@@ -92,7 +92,7 @@
                                 </span>
                                 @if($system->expansions_count > 0)
                                     <span class="text-xs text-on-surface-variant">
-                                        {{ $system->expansions_count }} {{ __('games.content_expansions') }}
+                                        {{ trans_choice('games.content_count_expansions', $system->expansions_count) }}
                                     </span>
                                 @endif
                                 @if($system->bgg_rank)

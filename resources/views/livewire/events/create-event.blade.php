@@ -221,7 +221,7 @@
             <h2 class="text-lg font-medium text-on-surface font-heading">{{ __('billing.field_registration_fees') }}</h2>
 
             <div>
-                <label class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_registration_type_2') }}</label>
+                <label class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_registration_type') }}</label>
                 <div class="flex gap-3 mt-1">
                     @foreach(['team' => __('events.content_team_only'), 'individual' => __('common.content_individual_only'), 'both' => __('common.content_both')] as $val => $label)
                         <button type="button" wire:click="$set('registration_type', '{{ $val }}')"

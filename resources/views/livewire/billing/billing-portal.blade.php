@@ -107,7 +107,7 @@
                             @endif
                             <div class="mt-3">
                                 <span class="text-2xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
-                                <span class="text-sm text-on-surface-variant">/{{ trans_choice(':count month|:count months', $plan->duration_months) }}</span>
+                                <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
                             </div>
                             <div class="mt-auto pt-4">
                                 @if($plan->paddle_price_id)

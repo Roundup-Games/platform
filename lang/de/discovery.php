@@ -36,7 +36,7 @@ return [
     'content_experience_level' => 'Erfahrungslevel',
     'content_exploration' => 'Erkundung',
     'content_featured' => 'Empfohlen',
-    'content_featured_2' => '★ Empfohlen',
+    'content_featured_badge' => '★ Empfohlen',
     'content_horror' => 'Horror',
     'content_humorous' => 'Humorvoll',
     'content_intermediate' => 'Fortgeschritten',
@@ -65,6 +65,7 @@ return [
     'field_new_player_friendly' => 'Anfängerfreundlich',
     'field_recommended_for_you' => 'Empfehlungen für dich',
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Finde Spiele und Kampagnen, die zu deinem Style passen.',
-    'content_near_me' => 'Near Me',
-    'content_share_your_location_to_discover_game_sessions' => 'Share your location to discover game sessions and campaigns happening in your area.',
+    'content_near_me' => 'In meiner Nähe',
+    'content_share_your_location_to_discover_game_sessions' => 'Teile deinen Standort, um Spielsessions und Kampagnen in deiner Nähe zu entdecken.',
+    'content_find_games_near_you' => 'Finde Spiele und Sessions in deiner Nähe.',
 ];

@@ -218,7 +218,7 @@
                                 @endif
                                 <button wire:click="editAnnouncement('{{ $announcement->id }}')"
                                         class="p-1.5 rounded text-on-surface-variant hover:text-on-surface transition-colors"
-                                        aria-label="{{ __('events.action_edit_announcement_2') }}"
+                                        aria-label="{{ __('events.action_edit_announcement') }}"
                                         title="{{ __('common.action_edit') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
                                 </button>

@@ -33,8 +33,8 @@
                             <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">people</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">People</h3>
-                            <p class="text-sm text-on-surface-variant">Manage following, followers & blocked</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('people.content_people') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('people.content_manage_following_followers_blocked') }}</p>
                         </div>
                     </div>
                 </a>

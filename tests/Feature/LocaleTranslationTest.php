@@ -231,7 +231,7 @@ test('event flash and validation message keys have German translations', functio
     expect(__('events.flash_event_name_created_successfully', ['name' => 'Test']))->toBe('Veranstaltung "Test" erfolgreich erstellt!');
     expect(__('events.flash_event_published'))->toBe('Veranstaltung veröffentlicht.');
     expect(__('events.content_registration_opened'))->toBe('Anmeldung geöffnet.');
-    expect(__('events.content_registration_closed_2'))->toBe('Anmeldung geschlossen.');
+    expect(__('events.flash_registration_closed'))->toBe('Anmeldung geschlossen.');
     expect(__('events.flash_event_cancelled'))->toBe('Veranstaltung abgesagt.');
     expect(__('events.error_cannot_change_event_status_from_from_to_to', ['from' => 'draft', 'to' => 'cancelled']))->toBe('Veranstaltungsstatus kann nicht von "draft" zu "cancelled" geändert werden.');
     expect(__('events.error_cannot_publish_event_from_status_from', ['from' => 'draft']))->toBe('Veranstaltung kann nicht aus dem Status "draft" veröffentlicht werden.');
