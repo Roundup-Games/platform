@@ -146,4 +146,9 @@ return [
     // GamesPage — Community-Bereich
     'heading_community' => 'Community',
     'content_no_community_games' => 'Aktuell keine Community-Spiele verfügbar.',
+    'content_no_community_activity' => 'Noch keine Aktivität aus deinem Netzwerk.',
+    'content_follow_players_to_see_activity' => 'Folge anderen Spielern, um ihre Spielaktivitäten hier zu sehen.',
+    'activity_created_game' => 'hat ein neues Spiel erstellt',
+    'activity_joined_game' => 'hat sich einem Spiel angeschlossen',
+    'activity_completed_game' => 'hat ein Spiel abgeschlossen',
 ];

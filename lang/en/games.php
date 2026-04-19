@@ -146,4 +146,9 @@ return [
     // GamesPage — Community section
     'heading_community' => 'Community',
     'content_no_community_games' => 'No community games available right now.',
+    'content_no_community_activity' => 'No activity from your network yet.',
+    'content_follow_players_to_see_activity' => 'Follow other players to see their game activity here.',
+    'activity_created_game' => 'created a new game',
+    'activity_joined_game' => 'joined a game',
+    'activity_completed_game' => 'completed a game',
 ];

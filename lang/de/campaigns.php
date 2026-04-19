@@ -146,4 +146,11 @@ return [
     'content_no_community_campaigns' => 'Derzeit keine Community-Kampagnen verfügbar.',
     'action_search_campaigns_by_name_or_description' => 'Kampagnen nach Name oder Beschreibung suchen...',
     'action_filter_by_recurrence' => 'Nach Wiederholung filtern',
+    'content_no_community_activity' => 'Noch keine Aktivität aus deinem Netzwerk.',
+    'content_follow_players_to_see_activity' => 'Folge anderen Spielern, um ihre Kampagnenaktivitäten hier zu sehen.',
+    'activity_created_campaign' => 'hat eine neue Kampagne erstellt',
+    'activity_joined_campaign' => 'hat sich einer Kampagne angeschlossen',
+    'activity_completed_campaign' => 'hat eine Kampagne abgeschlossen',
+    'activity_scheduled_session_for' => 'hat eine neue Sitzung geplant für',
+    'activity_scheduled_session' => 'hat eine neue Sitzung geplant',
 ];

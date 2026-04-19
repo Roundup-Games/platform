@@ -304,4 +304,7 @@ return [
     'content_light' => 'Hell',
     'content_dark' => 'Dunkel',
     'content_system' => 'System',
+
+    // Activity feed
+    'activity_and_others' => 'und :count andere',
 ];

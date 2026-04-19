@@ -689,8 +689,13 @@ describe('CampaignsPage — Accept Invitation Action', function () {
 // COMMUNITY SECTION — DISPLAY
 // ═══════════════════════════════════════════════════════════
 
-describe('CampaignsPage — Community Display', function () {
-    it('shows Community section heading', function () {
+
+// ═══════════════════════════════════════════════════════════
+// COMMUNITY SECTION — ACTIVITY FEED
+// ═══════════════════════════════════════════════════════════
+
+describe('CampaignsPage — Community Activity Feed', function () {
+    it('shows community section heading', function () {
         $user = campaignsPageCreateUser();
 
         actingAs($user)
@@ -698,301 +703,113 @@ describe('CampaignsPage — Community Display', function () {
             ->assertSee(__('campaigns.heading_community'));
     });
 
-    it('shows empty state when no community campaigns exist', function () {
+    it('shows empty state when user follows nobody', function () {
         $user = campaignsPageCreateUser();
 
         actingAs($user)
             ->get('/en/campaigns')
-            ->assertSee(__('campaigns.content_no_community_campaigns'));
+            ->assertSee(__('campaigns.content_no_community_activity'));
     });
 
-    it('shows public active campaigns in community', function () {
+    it('shows activity when a followed user creates a campaign', function () {
         $user = campaignsPageCreateUser();
+        $friend = campaignsPageCreateUser();
+        \App\Models\UserRelationship::follow($user, $friend);
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => 'Friend Created Campaign']);
+
+        actingAs($user)
+            ->get('/en/campaigns')
+            ->assertSee('Friend Created Campaign')
+            ->assertSee(__('campaigns.activity_created_campaign'));
+    });
+
+    it('shows activity when a followed user joins a campaign', function () {
+        $user = campaignsPageCreateUser();
+        $friend = campaignsPageCreateUser();
         $owner = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'active',
-            'name' => 'Public Campaign Alpha',
+        \App\Models\UserRelationship::follow($user, $friend);
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $owner->id, 'name' => 'Campaign Friend Joined']);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $friend->id,
+            'role' => 'player',
+            'status' => 'approved',
         ]);
 
         actingAs($user)
             ->get('/en/campaigns')
-            ->assertSee('Public Campaign Alpha');
+            ->assertSee('Campaign Friend Joined')
+            ->assertSee(__('campaigns.activity_joined_campaign'));
     });
 
-    it('hides private campaigns from community', function () {
+    it('shows activity when a followed user completes a campaign', function () {
         $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'private',
-            'status' => 'active',
-            'name' => 'Secret Private Campaign',
-        ]);
+        $friend = campaignsPageCreateUser();
+        \App\Models\UserRelationship::follow($user, $friend);
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => 'Completed Campaign', 'status' => 'completed']);
 
-        $response = actingAs($user)->get('/en/campaigns');
-        $content = $response->getContent();
-
-        // Find the Community section and ensure private campaign is NOT there
-        $heading = __('campaigns.heading_community');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        expect($pos)->not->toBeFalse('Community section heading should be present');
-
-        $sectionContent = substr($content, $pos);
-        expect($sectionContent)->not->toContain('Secret Private Campaign');
+        actingAs($user)
+            ->get('/en/campaigns')
+            ->assertSee('Completed Campaign')
+            ->assertSee(__('campaigns.activity_completed_campaign'));
     });
 
-    it('excludes cancelled campaigns from community', function () {
+    it('shows session scheduled activity when a followed user adds a session', function () {
         $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'cancelled',
-            'name' => 'Cancelled Community Campaign',
+        $friend = campaignsPageCreateUser();
+        \App\Models\UserRelationship::follow($user, $friend);
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => 'Session Campaign']);
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $friend->id,
+            'campaign_id' => $campaign->id,
+            'name' => 'New Session Game',
+            'status' => 'scheduled',
         ]);
 
-        $response = actingAs($user)->get('/en/campaigns');
-        $content = $response->getContent();
-
-        $heading = __('campaigns.heading_community');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        expect($pos)->not->toBeFalse('Community section heading should be present');
-
-        $sectionContent = substr($content, $pos);
-        expect($sectionContent)->not->toContain('Cancelled Community Campaign');
+        actingAs($user)
+            ->get('/en/campaigns')
+            ->assertSee('New Session Game')
+            ->assertSee(__('campaigns.activity_scheduled_session'));
     });
 
-    it('excludes completed campaigns from community', function () {
+    it('does not show activity from unfollowed users', function () {
         $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'completed',
-            'name' => 'Completed Community Campaign',
-        ]);
+        $stranger = campaignsPageCreateUser();
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $stranger->id, 'name' => 'Stranger Campaign']);
 
-        $response = actingAs($user)->get('/en/campaigns');
-        $content = $response->getContent();
-
-        $heading = __('campaigns.heading_community');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        expect($pos)->not->toBeFalse('Community section heading should be present');
-
-        $sectionContent = substr($content, $pos);
-        expect($sectionContent)->not->toContain('Completed Community Campaign');
+        actingAs($user)
+            ->get('/en/campaigns')
+            ->assertDontSee('Stranger Campaign');
     });
-});
 
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — SEARCH FILTER
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community Search Filter', function () {
-    it('filters campaigns by search term', function () {
+    it('shows friend name in activity', function () {
         $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $match = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'active',
-            'name' => 'Dragonlance Chronicles',
-        ]);
-        $noMatch = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'active',
-            'name' => 'Forgotten Realms',
-        ]);
+        $friend = campaignsPageCreateUser(['name' => 'Bob Player']);
+        \App\Models\UserRelationship::follow($user, $friend);
+        $campaign = campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => 'Bob Campaign']);
 
-        $response = actingAs($user)
-            ->get('/en/campaigns?q=Dragonlance');
-
-        $content = $response->getContent();
-        $heading = __('campaigns.heading_community');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        $sectionContent = substr($content, $pos);
-
-        expect($sectionContent)->toContain('Dragonlance Chronicles');
-        expect($sectionContent)->not->toContain('Forgotten Realms');
+        actingAs($user)
+            ->get('/en/campaigns')
+            ->assertSee('Bob Player');
     });
-});
 
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — GAME SYSTEM FILTER
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community Game System Filter', function () {
-    it('filters campaigns by game system', function () {
+    it('paginates activity feed at 15 per page', function () {
         $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $systemA = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $systemB = GameSystem::factory()->create(['name' => 'Pathfinder 2e']);
-        $match = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'active',
-            'name' => 'DND Campaign',
-            'game_system_id' => $systemA->id,
-        ]);
-        $noMatch = campaignsPageCreateCampaign([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-            'status' => 'active',
-            'name' => 'Pathfinder Campaign',
-            'game_system_id' => $systemB->id,
-        ]);
+        $friend = campaignsPageCreateUser();
+        \App\Models\UserRelationship::follow($user, $friend);
 
-        $response = actingAs($user)
-            ->get('/en/campaigns?game_system_id=' . $systemA->id);
-
-        $content = $response->getContent();
-        $heading = __('campaigns.heading_community');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        $sectionContent = substr($content, $pos);
-
-        expect($sectionContent)->toContain('DND Campaign');
-        expect($sectionContent)->not->toContain('Pathfinder Campaign');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — PAGINATION
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community Pagination', function () {
-    it('paginates community campaigns at 12 per page', function () {
-        $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-
-        // Create 14 active public campaigns
-        for ($i = 0; $i < 14; $i++) {
-            campaignsPageCreateCampaign([
-                'owner_id' => $owner->id,
-                'visibility' => 'public',
-                'status' => 'active',
-                'name' => "Campaign Page Item {$i}",
-            ]);
+        for ($i = 0; $i < 18; $i++) {
+            campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => "Feed Campaign {$i}"]);
         }
 
-        // Page 1 should show 12 items (campaigns 13 and 14 on page 2)
         $component = Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Campaigns\CampaignsPage::class);
+        $feed = $component->viewData('activityFeed');
 
-        $campaigns = $component->viewData('communityCampaigns');
-        expect($campaigns->count())->toBe(12);
-        expect($campaigns->hasMorePages())->toBeTrue();
+        expect($feed->count())->toBe(15);
+        expect($feed->hasMorePages())->toBeTrue();
     });
 });
-
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — CLEAR FILTERS
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community Clear Filters', function () {
-    it('clears all filters', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->set('search', 'test')
-            ->set('game_system_id', 1)
-            ->set('recurrence', 'weekly')
-            ->assertSet('search', 'test')
-            ->assertSet('game_system_id', 1)
-            ->assertSet('recurrence', 'weekly')
-            ->call('clearFilters')
-            ->assertSet('search', '')
-            ->assertSet('game_system_id', null)
-            ->assertSet('recurrence', '');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — VIBE FLAGS TOGGLE
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community Vibe Flags Toggle', function () {
-    it('toggles vibe flags on and off', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->assertSet('vibe_flags', [])
-            ->call('toggleVibeFlag', 'rules_light')
-            ->assertSet('vibe_flags', ['rules_light'])
-            ->call('toggleVibeFlag', 'roleplay_heavy')
-            ->assertSet('vibe_flags', ['rules_light', 'roleplay_heavy'])
-            ->call('toggleVibeFlag', 'rules_light')
-            ->assertSet('vibe_flags', ['roleplay_heavy']);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// COMMUNITY SECTION — HAS ACTIVE FILTERS
-// ═══════════════════════════════════════════════════════════
-
-describe('CampaignsPage — Community hasActiveFilters', function () {
-    it('returns false when no filters are active', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class);
-
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-    });
-
-    it('returns true when search filter is active', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->set('search', 'test');
-
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-
-    it('returns true when game_system_id filter is active', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->set('game_system_id', 1);
-
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-
-    it('returns true when vibe_flags filter is active', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('toggleVibeFlag', 'rules_light');
-
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-
-    it('returns true when recurrence filter is active', function () {
-        $user = campaignsPageCreateUser();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->set('recurrence', 'weekly');
-
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// DECLINE INVITATION ACTION
-// ═══════════════════════════════════════════════════════════
 
 describe('CampaignsPage — Decline Invitation Action', function () {
     it('declines a pending invitation', function () {

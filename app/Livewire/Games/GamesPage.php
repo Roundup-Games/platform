@@ -2,138 +2,25 @@
 
 namespace App\Livewire\Games;
 
-use App\Enums\ContentLanguage;
-use App\Enums\ExperienceLevel;
-use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
-use App\Traits\EscapesLikeWildcards;
+use App\Services\GameActivityFeedService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 class GamesPage extends Component
 {
-    use EscapesLikeWildcards;
     use WithPagination;
-
-    // Community filters
-    #[Url(as: 'q')]
-    public string $search = '';
-
-    #[Url]
-    public ?int $game_system_id = null;
-
-    #[Url]
-    public string $experience_level = '';
-
-    #[Url]
-    public array $vibe_flags = [];
-
-    #[Url]
-    public string $language = '';
-
-    #[Url]
-    public string $date = '';
-
-    #[Url]
-    public string $price = '';
-
-    #[Url]
-    public ?string $complexity_min = null;
-
-    #[Url]
-    public ?string $complexity_max = null;
 
     public function mount(): void
     {
         if (Auth::guest()) {
             $this->redirect(route('discover', app()->getLocale()));
         }
-    }
-
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingGameSystemId(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingExperienceLevel(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingVibeFlags(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingLanguage(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingDate(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPrice(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingComplexityMin(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingComplexityMax(): void
-    {
-        $this->resetPage();
-    }
-
-    public function clearFilters(): void
-    {
-        $this->reset([
-            'search', 'game_system_id', 'experience_level', 'vibe_flags',
-            'language', 'date', 'price', 'complexity_min', 'complexity_max',
-        ]);
-        $this->resetPage();
-    }
-
-    public function toggleVibeFlag(string $flag): void
-    {
-        $index = array_search($flag, $this->vibe_flags, true);
-        if ($index !== false) {
-            unset($this->vibe_flags[$index]);
-            $this->vibe_flags = array_values($this->vibe_flags);
-        } else {
-            $this->vibe_flags[] = $flag;
-        }
-        $this->resetPage();
-    }
-
-    public function hasActiveFilters(): bool
-    {
-        return $this->search
-            || $this->game_system_id
-            || $this->experience_level
-            || !empty($this->vibe_flags)
-            || $this->language
-            || $this->date
-            || $this->price
-            || $this->complexity_min
-            || $this->complexity_max;
     }
 
     public function render()
@@ -160,71 +47,14 @@ class GamesPage extends Component
             ->with(['game.gameSystem', 'game.owner'])
             ->get();
 
-        // Community games query — visibility-scoped, filtered, paginated
-        $communityQuery = Game::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                $q->orWhere(function ($q) use ($user) {
-                    $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($user) {
-                            $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-                            $q->whereIn('owner_id', $allowedOwnerIds)
-                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                        });
-                });
-            })
-            ->where('status', 'scheduled')
-            ->where('date_time', '>', now())
-            ->with(['owner', 'gameSystem', 'campaign'])
-            ->withCount('participants');
-
-        // Search
-        $communityQuery->when($this->search, fn ($q) => $q->where(function ($q) {
-            $escaped = $this->escapeLikeWildcards($this->search);
-            $q->where('name', 'like', "%{$escaped}%")
-              ->orWhere('description', 'like', "%{$escaped}%");
-        }));
-
-        // Game system filter
-        $communityQuery->when($this->game_system_id, fn ($q) => $q->where('game_system_id', $this->game_system_id));
-
-        // Experience level filter
-        $communityQuery->when($this->experience_level, fn ($q) => $q->where('experience_level', $this->experience_level));
-
-        // Vibe flags filter (JSON containment)
-        $communityQuery->when(!empty($this->vibe_flags), function ($q) {
-            foreach ($this->vibe_flags as $flag) {
-                $q->whereJsonContains('vibe_flags', $flag);
-            }
-        });
-
-        // Language filter
-        $communityQuery->when($this->language, fn ($q) => $q->where('language', $this->language));
-
-        // Date range filter
-        $communityQuery->when($this->date === 'upcoming', fn ($q) => $q->where('date_time', '>=', now()));
-        $communityQuery->when($this->date === 'this_week', fn ($q) => $q->whereBetween('date_time', [now()->startOfWeek(), now()->endOfWeek()]));
-        $communityQuery->when($this->date === 'this_month', fn ($q) => $q->whereBetween('date_time', [now()->startOfMonth(), now()->endOfMonth()]));
-
-        // Price filter
-        $communityQuery->when($this->price === 'free', fn ($q) => $q->where(fn ($q) => $q->where('price', 0)->orWhereNull('price')));
-        $communityQuery->when($this->price === 'paid', fn ($q) => $q->where('price', '>', 0));
-
-        // Complexity range
-        $communityQuery->when($this->complexity_min, fn ($q) => $q->where('complexity', '>=', (float) $this->complexity_min));
-        $communityQuery->when($this->complexity_max, fn ($q) => $q->where('complexity', '<=', (float) $this->complexity_max));
-
-        $communityGames = $communityQuery->orderBy('date_time')->paginate(12);
+        // Community activity feed — what friends/followed users are doing in games
+        $activityFeed = app(GameActivityFeedService::class)->getFeed($user, 15);
 
         return view('livewire.games.games-page', [
             'ownedGames' => $ownedGames,
             'participatingGames' => $participatingGames,
             'pendingInvitations' => $pendingInvitations,
-            'communityGames' => $communityGames,
-            'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
-            'experienceLevels' => ExperienceLevel::cases(),
-            'vibeFlagGroups' => VibeFlag::grouped(),
-            'languages' => ContentLanguage::cases(),
+            'activityFeed' => $activityFeed,
         ]);
     }
 
