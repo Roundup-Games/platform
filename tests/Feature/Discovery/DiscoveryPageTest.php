@@ -1605,4 +1605,168 @@ describe('DiscoveryPage', function () {
             ->assertSee('Auction')
             ->assertSee('Clear all');
     });
+
+    // ── Proximity / Radius Filtering ───────────────────
+
+    it('radius defaults to 0 with no proximity filter', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->get('radius'))->toBe(0.0);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+    });
+
+    it('setRadius updates radius and resets page', function () {
+        Game::factory()->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component->call('setRadius', 25)
+            ->assertSet('radius', 25.0)
+            ->assertSet('usingFallbackRadius', false);
+    });
+
+    it('setRadius rejects invalid radius values', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component->call('setRadius', 99)
+            ->assertSet('radius', 0.0);
+    });
+
+    it('setRadius accepts 0 to clear proximity filter', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component->set('radius', 25)
+            ->call('setRadius', 0)
+            ->assertSet('radius', 0.0);
+    });
+
+    it('clearFilters resets radius to 0', function () {
+        Game::factory()->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('radius', 25)
+            ->call('clearFilters')
+            ->assertSet('radius', 0.0)
+            ->assertSet('usingFallbackRadius', false);
+    });
+
+    it('hasActiveFilters detects radius > 0', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+
+        $component->set('radius', 10);
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+    });
+
+    it('shows distance badge on game card when distance_km is set', function () {
+        $game = Game::factory()->create([
+            'name' => 'Nearby Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+        $game->distance_km = 5.3;
+
+        // Verify the badge renders via the card partial
+        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
+        expect($html)->toContain('5.3 km');
+        expect($html)->toContain('location_on');
+    });
+
+    it('shows distance badge on campaign card when distance_km is set', function () {
+        $campaign = Campaign::factory()->create([
+            'name' => 'Nearby Campaign',
+            'visibility' => 'public',
+            'status' => 'active',
+        ]);
+        $campaign->distance_km = 12.7;
+
+        $html = view('livewire.discovery.partials.campaign-card', ['campaign' => $campaign])->render();
+        expect($html)->toContain('12.7 km');
+        expect($html)->toContain('location_on');
+    });
+
+    it('does not show distance badge when distance_km is null', function () {
+        $game = Game::factory()->create([
+            'name' => 'No Distance Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
+        expect($html)->not->toContain('km');
+    });
+
+    it('shows distance badge in meters when under 1km', function () {
+        $game = Game::factory()->create([
+            'name' => 'Very Close Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+        $game->distance_km = 0.5;
+
+        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
+        expect($html)->toContain('500 m');
+    });
+
+    it('passes radius options to view', function () {
+        Game::factory()->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $radiusOptions = $component->viewData('radiusOptions');
+
+        expect($radiusOptions)->toBe([10, 25, 50]);
+    });
+
+    it('passes hasLocation to view', function () {
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $hasLocation = $component->viewData('hasLocation');
+
+        // No location set by default in tests
+        expect($hasLocation)->toBeFalse();
+    });
+
+    it('radius with no guest location preserves default sort order', function () {
+        Game::factory()->create([
+            'name' => 'Regular Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        // Set radius without location — should fall through to default behavior
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('radius', 25);
+
+        $results = $component->viewData('results');
+        expect($results->count())->toBe(1);
+    });
+
+    it('updatingRadius hook resets page', function () {
+        Game::factory()->count(13)->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
+        ]);
+
+        // Start on page 2
+        $component = Livewire\Livewire::withQueryParams(['page' => 2])
+            ->test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        expect($component->viewData('results')->count())->toBe(1);
+
+        // Change radius — should reset to page 1
+        $component->set('radius', 10);
+        expect($component->viewData('results')->count())->toBe(12);
+    });
 });

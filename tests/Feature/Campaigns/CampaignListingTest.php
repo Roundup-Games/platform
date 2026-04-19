@@ -42,22 +42,17 @@ function createPrivateCampaign(array $overrides = []): Campaign
 // ═══════════════════════════════════════════════════════════
 
 describe('Campaign Listing Route', function () {
-    it('renders the listing page for guests', function () {
-        createPublicCampaign(['name' => 'Visible Campaign']);
-
+    it('redirects /campaigns listing to discover page for guests', function () {
         get(route('campaigns.index'))
-            ->assertOk()
-            ->assertSeeLivewire('campaigns.campaign-listing');
+            ->assertRedirect(route('discover', app()->getLocale()));
     });
 
-    it('renders the listing page for authenticated users', function () {
+    it('serves CampaignsPage for authenticated users', function () {
         $user = User::factory()->create(['profile_complete' => true]);
-        createPublicCampaign(['name' => 'Public Campaign']);
 
         actingAs($user)
             ->get(route('campaigns.index'))
-            ->assertOk()
-            ->assertSee('Public Campaign');
+            ->assertOk();
     });
 });
 

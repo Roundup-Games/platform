@@ -5,10 +5,8 @@ namespace App\Livewire\Campaigns;
 use App\Models\Campaign;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
 class CampaignDetail extends Component
 {
     use ManagesParticipants;
@@ -95,6 +93,7 @@ class CampaignDetail extends Component
             'userInvitation' => $userInvitation,
             'canApply' => $canApply,
             'hasExistingApplication' => $hasExistingApplication,
-        ]);
+            'isGuest' => Auth::guest(),
+        ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

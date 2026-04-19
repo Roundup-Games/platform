@@ -57,6 +57,7 @@ return [
     'content_we_re_committed_to_creating' => 'We\'re committed to creating a level playing field where everyone has an equal opportunity to compete and have fun.',
     'content_what_s_happening_near_you' => 'What\'s happening near you?',
     'field_any_date' => 'Any Date',
+    'field_any_distance' => 'Any Distance',
     'field_any_price' => 'Any Price',
     'field_drop_in_friendly' => 'Drop-In Friendly',
     'field_family_friendly' => 'Family-Friendly',

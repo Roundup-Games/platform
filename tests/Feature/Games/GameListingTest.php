@@ -391,10 +391,9 @@ describe('GameListing', function () {
         expect($games->hasMorePages())->toBeTrue();
     });
 
-    it('is accessible via route', function () {
+    it('redirects /games listing to discover page', function () {
         get(route('games.index'))
-            ->assertOk()
-            ->assertSee('Games');
+            ->assertRedirect(route('discover', app()->getLocale()));
     });
 
     it('eager loads owner, gameSystem, and campaign relationships', function () {

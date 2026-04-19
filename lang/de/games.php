@@ -107,4 +107,43 @@ return [
     'error_no_favorite_game_systems_selected_yet' => 'Noch keine Lieblings-Spielsysteme ausgewählt.',
     'placeholder_search_game_systems_to_add_as_favorites' => 'Spielsysteme als Favoriten suchen...',
     'placeholder_search_game_systems_to_avoid' => 'Spielsysteme zum Meiden suchen...',
+
+    // Gast-Nudge-Schlüssel
+    'guest_nudge_join_game' => 'Melde dich an, um an dieser Spielsitzung teilzunehmen!',
+    'guest_nudge_game_detail' => 'Erstelle ein kostenloses Konto, um an Spielsitzungen in deiner Nähe teilzunehmen.',
+
+    // Gast-Navigation
+    'action_back_to_discover' => 'Zurück zur Entdeckungsseite',
+
+    // GamesPage - Meine Spiele
+    'heading_my_games' => 'Meine Spiele',
+    'action_cancel_game' => 'Spiel absagen',
+    'action_complete_game' => 'Als abgeschlossen markieren',
+    'status_scheduled' => 'Geplant',
+    'status_canceled' => 'Abgesagt',
+    'status_completed' => 'Abgeschlossen',
+    'flash_game_canceled' => 'Spiel erfolgreich abgesagt.',
+    'flash_game_completed' => 'Spiel als abgeschlossen markiert.',
+    'error_game_not_scheduled' => 'Nur geplante Spiele können geändert werden.',
+    'confirm_cancel_game' => 'Bist du sicher, dass du dieses Spiel absagen möchtest?',
+    'content_no_owned_games' => 'Du hast noch keine Spiele erstellt.',
+
+    // GamesPage — Spiele, an denen ich teilnehme
+    'heading_games_im_in' => 'Spiele, an denen ich teilnehme',
+    'content_no_games_joined' => 'Du hast noch an keinen Spielen teilgenommen.',
+
+    // GamesPage — Offene Einladungen
+    'heading_open_invitations' => 'Offene Einladungen',
+    'action_accept_invitation' => 'Annehmen',
+    'action_decline_invitation' => 'Ablehnen',
+    'flash_invitation_accepted' => 'Einladung angenommen! Du bist dem Spiel beigetreten.',
+    'flash_invitation_declined' => 'Einladung abgelehnt.',
+    'error_not_your_invitation' => 'Diese Einladung gehört dir nicht.',
+    'error_invitation_invalid' => 'Diese Einladung ist nicht mehr gültig.',
+    'error_game_full' => 'Dieses Spiel ist bereits voll.',
+    'content_no_pending_invitations' => 'Keine ausstehenden Einladungen.',
+
+    // GamesPage — Community-Bereich
+    'heading_community' => 'Community',
+    'content_no_community_games' => 'Aktuell keine Community-Spiele verfügbar.',
 ];

@@ -29,9 +29,16 @@ class UserPolicy
 
     /**
      * View a user profile.
+     * Guests (null $user) can view any public profile — ProfileVisibilityResolver
+     * controls what fields are actually shown.
      */
-    public function view(User $user, User $targetUser): bool
+    public function view(?User $user, User $targetUser): bool
     {
+        // Guests can view any profile (visibility is handled by ProfileVisibilityResolver)
+        if ($user === null) {
+            return true;
+        }
+
         // Users can always view their own profile
         if ($user->id === $targetUser->id) {
             return true;

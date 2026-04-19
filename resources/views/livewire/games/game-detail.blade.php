@@ -2,10 +2,17 @@
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
-            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
-                <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('profile.action_back_to_dashboard') }}
-            </a>
+            @guest
+                <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                    {{ __('games.action_back_to_discover') }}
+                </a>
+            @else
+                <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                    {{ __('profile.action_back_to_dashboard') }}
+                </a>
+            @endguest
         </div>
     </div>
 
@@ -68,7 +75,14 @@
                 @if($game->location && !empty($game->location['details']))
                     <span class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                        {{ $game->location['details'] }}
+                        @if($isGuest)
+                            @php
+                                $cityOnly = trim(explode(',', $game->location['details'])[0]);
+                            @endphp
+                            {{ $cityOnly }}
+                        @else
+                            {{ $game->location['details'] }}
+                        @endif
                     </span>
                 @endif
             </div>
@@ -119,6 +133,9 @@
                 <p class="text-sm text-on-error-container">{{ session('error') }}</p>
             </div>
         @endif
+
+        {{-- Registration CTA for guests --}}
+        <x-registration-cta :message="__('games.guest_nudge_game_detail')" />
 
         {{-- Invitation Banner --}}
         @if($userInvitation)
@@ -223,6 +240,9 @@
                     <p class="text-sm text-on-surface-variant mt-1">{{ __('games.content_waiting_for_host_approval') }}</p>
                 </section>
             @endif
+        @else
+            {{-- Guest CTA: show registration nudge --}}
+            <x-registration-cta :message="__('games.guest_nudge_join_game')" />
         @endauth
 
         {{-- Discovery Meta --}}

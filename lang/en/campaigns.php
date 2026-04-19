@@ -105,4 +105,45 @@ return [
     // Errors
     'error_this_campaign_does_not_accept_applications' => 'This campaign does not accept applications.',
     'error_you_cannot_apply_to_your_own_campaign' => 'You cannot apply to your own campaign.',
+
+    // Guest nudge keys
+    'guest_nudge_join_campaign' => 'Sign up to join this campaign!',
+    'guest_nudge_campaign_detail' => 'Create a free account to join campaigns near you.',
+
+    // Guest navigation
+    'action_back_to_discover' => 'Back to Discover',
+
+    // CampaignsPage - My Campaigns section
+    'heading_my_campaigns' => 'My Campaigns',
+    'action_cancel_campaign' => 'Cancel Campaign',
+    'action_complete_campaign' => 'Mark Complete',
+    'status_active' => 'Active',
+    'status_cancelled' => 'Cancelled',
+    'status_completed' => 'Completed',
+    'flash_campaign_canceled' => 'Campaign canceled successfully.',
+    'flash_campaign_completed' => 'Campaign marked as completed.',
+    'error_campaign_not_active' => 'Only active campaigns can be modified.',
+    'confirm_cancel_campaign' => 'Are you sure you want to cancel this campaign?',
+    'content_no_owned_campaigns' => 'You haven\'t created any campaigns yet.',
+
+    // CampaignsPage — Campaigns I'm In section
+    'heading_campaigns_im_in' => 'Campaigns I\'m In',
+    'content_no_campaigns_joined' => 'You haven\'t joined any campaigns yet.',
+
+    // CampaignsPage — Open Invitations section
+    'heading_open_invitations' => 'Open Invitations',
+    'action_accept_invitation' => 'Accept',
+    'action_decline_invitation' => 'Decline',
+    'flash_invitation_accepted' => 'Invitation accepted! You have joined the campaign.',
+    'flash_invitation_declined' => 'Invitation declined.',
+    'error_not_your_invitation' => 'This invitation does not belong to you.',
+    'error_invitation_invalid' => 'This invitation is no longer valid.',
+    'error_campaign_full' => 'This campaign is already full.',
+    'content_no_pending_invitations' => 'No pending invitations.',
+
+    // CampaignsPage — Community section
+    'heading_community' => 'Community',
+    'content_no_community_campaigns' => 'No community campaigns available right now.',
+    'action_search_campaigns_by_name_or_description' => 'Search campaigns by name or description...',
+    'action_filter_by_recurrence' => 'Filter by recurrence',
 ];

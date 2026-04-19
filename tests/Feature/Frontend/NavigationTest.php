@@ -26,7 +26,6 @@ describe('Public Layout Mobile Nav', function () {
             ->assertSee(route('discover'))
             ->assertSee(route('games.index'))
             ->assertSee(route('campaigns.index'))
-            ->assertSee(route('near'))
             ->assertSee(route('about'))
             ->assertSee(route('contact'));
     });
@@ -117,7 +116,7 @@ describe('Public Layout Desktop Nav', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee('location_on')  // Material Symbol for Near Me
-            ->assertSee(route('near'));
+            ->assertSee(route('discover'));
     });
 });
 
@@ -129,8 +128,7 @@ describe('Public Layout Footer', function () {
             ->assertSee(route('discover'))
             ->assertSee(route('games.index'))
             ->assertSee(route('campaigns.index'))
-            ->assertSee(route('events.index'))
-            ->assertSee(route('near'));
+            ->assertSee(route('events.index'));
     });
 
     it('includes Support column with correct links', function () {
@@ -177,16 +175,18 @@ describe('Public Layout Footer', function () {
     });
 });
 
-describe('Satellite Page Routes', function () {
-    it('renders /near page for unauthenticated users', function () {
+describe('Near Route Redirect', function () {
+    it('redirects /near to /discover with 301', function () {
         get(route('near'))
-            ->assertOk();
+            ->assertStatus(301)
+            ->assertRedirect(route('discover'));
     });
 
-    it('renders /near with locale prefix', function () {
+    it('redirects /near with locale prefix to /discover', function () {
         $locale = app()->getLocale();
         get('/' . $locale . '/near')
-            ->assertOk();
+            ->assertStatus(301)
+            ->assertRedirect('/' . $locale . '/discover');
     });
 
     it('renders /game-systems URL for unauthenticated users', function () {
@@ -247,12 +247,11 @@ describe('App Sidebar Navigation', function () {
         actingAs($this->user)
             ->get(route('dashboard'))
             ->assertOk()
-            // Primary items
+            // Primary items — reordered: Dashboard, My Games, My Campaigns, People, Discover
             ->assertSee('Dashboard')
+            ->assertSee('My Games')
+            ->assertSee('My Campaigns')
             ->assertSee('Discover')
-            ->assertSee('Games')
-            ->assertSee('Campaigns')
-            ->assertSee('Near Me')
             // Secondary items
             ->assertSee('Events')
             ->assertSee('Teams')
@@ -269,7 +268,7 @@ describe('App Sidebar Navigation', function () {
             ->assertSee(route('discover'))
             ->assertSee(route('games.index'))
             ->assertSee(route('campaigns.index'))
-            ->assertSee(route('near'))
+            ->assertSee(route('people'))
             // Secondary items
             ->assertSee(route('events.index'))
             ->assertSee(route('teams.browse'))
@@ -282,10 +281,9 @@ describe('App Sidebar Navigation', function () {
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Dashboard')
+            ->assertSee('My Games')
+            ->assertSee('My Campaigns')
             ->assertSee('Discover')
-            ->assertSee('Games')
-            ->assertSee('Campaigns')
-            ->assertSee('Near Me')
             ->assertSee('Events')
             ->assertSee('Teams')
             ->assertSee('Billing')
@@ -293,12 +291,16 @@ describe('App Sidebar Navigation', function () {
             ->assertSee('Log Out');
     });
 
-    it('includes Near Me with location icon in sidebar', function () {
-        actingAs($this->user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('location_on')
-            ->assertSee(route('near'));
+    it('does not include Near Me as a separate nav item', function () {
+        $response = actingAs($this->user)
+            ->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // "Near Me" (location_on icon as a separate nav link) should no longer appear
+        // in the authenticated sidebar or mobile nav
+        // The discover route still exists, but not as a "Near Me" duplicate link
+        $this->assertStringNotContainsString(__('discovery.content_near_me'), $content);
     });
 
     it('demotes Events to secondary Manage section in sidebar', function () {
@@ -313,5 +315,20 @@ describe('App Sidebar Navigation', function () {
         // Events should appear after a border-t separator (secondary section)
         // Verify Events route is present in sidebar
         $this->assertStringContainsString(route('events.index'), $content);
+    });
+
+    it('shows My Games before My Campaigns in sidebar', function () {
+        $response = actingAs($this->user)
+            ->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // My Games link should appear before My Campaigns link in the HTML
+        $myGamesPos = strpos($content, __('games.heading_my_games'));
+        $myCampaignsPos = strpos($content, __('campaigns.heading_my_campaigns'));
+
+        $this->assertNotFalse($myGamesPos, 'My Games text should appear in sidebar');
+        $this->assertNotFalse($myCampaignsPos, 'My Campaigns text should appear in sidebar');
+        $this->assertLessThan($myCampaignsPos, $myGamesPos, 'My Games should appear before My Campaigns');
     });
 });

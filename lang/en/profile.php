@@ -66,4 +66,14 @@ return [
     'action_neutral' => 'Neutral',
     'action_favorite' => 'favorite',
     'action_avoid' => 'avoid',
+
+    // Guest nudge keys
+    'guest_nudge_follow' => 'Sign up to follow :name and join game sessions!',
+    'guest_nudge_profile' => 'Create a free account to connect with tabletop gamers.',
+
+    // Dashboard cards
+    'dashboard_card_my_games' => 'My Games',
+    'dashboard_card_my_games_desc' => 'View and manage your scheduled game sessions.',
+    'dashboard_card_my_campaigns' => 'My Campaigns',
+    'dashboard_card_my_campaigns_desc' => 'View and manage your active campaigns.',
 ];

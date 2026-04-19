@@ -8,11 +8,9 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
 class PublicProfile extends Component
 {
     #[Locked]
@@ -136,6 +134,9 @@ class PublicProfile extends Component
 
     public function render()
     {
+        $isGuest = Auth::guest();
+        $layout = $isGuest ? 'components.public-layout' : 'layouts.app';
+
         $eagerLoads = [];
 
         // Only load relationships for fields the viewer is allowed to see
@@ -172,7 +173,8 @@ class PublicProfile extends Component
             'visibleFields' => $this->visibleFields,
             'games' => $games,
             'campaigns' => $campaigns,
-        ]);
+            'isGuest' => $isGuest,
+        ])->layout($layout);
     }
 
     /**

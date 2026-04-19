@@ -107,4 +107,43 @@ return [
     'error_name_is_in_your_favorites_the_avoid_preference' => ':name is in your favorites. The avoid preference will take priority.',
     'error_name_s_base_game_base_name_is_in_your_avoid_list' => ':name\'s base game (:baseName) is in your avoid list. You cannot favorite an expansion of an avoided base game.',
     'error_name_s_base_game_base_name_is_in_your_favorites' => ':name\'s base game (:baseName) is in your favorites. The avoid preference will take priority.',
+
+    // Guest nudge keys
+    'guest_nudge_join_game' => 'Sign up to join this game session!',
+    'guest_nudge_game_detail' => 'Create a free account to join game sessions near you.',
+
+    // Guest navigation
+    'action_back_to_discover' => 'Back to Discover',
+
+    // GamesPage - My Games section
+    'heading_my_games' => 'My Games',
+    'action_cancel_game' => 'Cancel Game',
+    'action_complete_game' => 'Mark Complete',
+    'status_scheduled' => 'Scheduled',
+    'status_canceled' => 'Canceled',
+    'status_completed' => 'Completed',
+    'flash_game_canceled' => 'Game canceled successfully.',
+    'flash_game_completed' => 'Game marked as completed.',
+    'error_game_not_scheduled' => 'Only scheduled games can be modified.',
+    'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
+    'content_no_owned_games' => 'You haven\'t created any games yet.',
+
+    // GamesPage — Games I'm In section
+    'heading_games_im_in' => 'Games I\'m In',
+    'content_no_games_joined' => 'You haven\'t joined any games yet.',
+
+    // GamesPage — Open Invitations section
+    'heading_open_invitations' => 'Open Invitations',
+    'action_accept_invitation' => 'Accept',
+    'action_decline_invitation' => 'Decline',
+    'flash_invitation_accepted' => 'Invitation accepted! You have joined the game.',
+    'flash_invitation_declined' => 'Invitation declined.',
+    'error_not_your_invitation' => 'This invitation does not belong to you.',
+    'error_invitation_invalid' => 'This invitation is no longer valid.',
+    'error_game_full' => 'This game is already full.',
+    'content_no_pending_invitations' => 'No pending invitations.',
+
+    // GamesPage — Community section
+    'heading_community' => 'Community',
+    'content_no_community_games' => 'No community games available right now.',
 ];

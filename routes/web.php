@@ -75,7 +75,10 @@ Route::prefix('{locale}')
         // ── Authenticated (Breeze) ────────────────────
 
         Route::get('/dashboard', function () {
-            return view('dashboard');
+            return view('dashboard', [
+                'gameCount' => \App\Models\Game::where('owner_id', auth()->id())->where('status', 'scheduled')->count(),
+                'campaignCount' => \App\Models\Campaign::where('owner_id', auth()->id())->where('status', 'active')->count(),
+            ]);
         })->middleware(['auth', 'verified', 'profile.complete'])->name('dashboard');
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
@@ -134,9 +137,9 @@ Route::prefix('{locale}')
         });
 
         Route::get('/discover', App\Livewire\Discovery\DiscoveryPage::class)->name('discover');
-        Route::get('/near', App\Livewire\Nearby\NearbyPage::class)->name('near');
+        Route::get('/near', fn () => redirect()->route('discover', app()->getLocale(), 301))->name('near');
 
-        Route::get('/games', App\Livewire\Games\GameListing::class)->name('games.index');
+        Route::get('/games', App\Livewire\Games\GamesPage::class)->name('games.index');
         Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Campaigns ─────────────────────────────────
@@ -148,7 +151,7 @@ Route::prefix('{locale}')
             Route::get('/campaigns/{id}/add-session', App\Livewire\Campaigns\AddSessionToCampaign::class)->name('campaigns.add-session')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         });
 
-        Route::get('/campaigns', App\Livewire\Campaigns\CampaignListing::class)->name('campaigns.index');
+        Route::get('/campaigns', App\Livewire\Campaigns\CampaignsPage::class)->name('campaigns.index');
         Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Billing (authenticated) ───────────────────

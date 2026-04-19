@@ -63,25 +63,21 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('profile.content_dashboard') }}
                         </a>
-                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('discovery.action_discover') }}
-                        </a>
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('games.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
-                            {{ __('games.content_games') }}
+                            {{ __('games.heading_my_games') }}
                         </a>
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('campaigns.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
-                            {{ __('campaigns.content_campaigns') }}
-                        </a>
-                        <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('near') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
-                            {{ __('discovery.content_near_me') }}
+                            {{ __('campaigns.heading_my_campaigns') }}
                         </a>
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('people') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
                             {{ __('profile.nav_people') }}
+                        </a>
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
+                            {{ __('discovery.action_discover') }}
                         </a>
 
                         {{-- Secondary section --}}
@@ -158,29 +154,24 @@
                             {{ __('profile.content_dashboard') }}
                         </a>
 
-                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('discovery.action_discover') }}
-                        </a>
-
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
-                            {{ __('games.content_games') }}
+                            {{ __('games.heading_my_games') }}
                         </a>
 
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('campaigns.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
-                            {{ __('campaigns.content_campaigns') }}
-                        </a>
-
-                        <a href="{{ route('near') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('near') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('near') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>location_on</span>
-                            {{ __('discovery.content_near_me') }}
+                            {{ __('campaigns.heading_my_campaigns') }}
                         </a>
 
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('people') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
                             {{ __('profile.nav_people') }}
+                        </a>
+
+                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
+                            {{ __('discovery.action_discover') }}
                         </a>
 
                         {{-- Secondary items --}}

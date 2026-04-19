@@ -14,17 +14,41 @@
             </div>
 
             {{-- Quick Actions --}}
-            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('profile.show') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{{ route('games.index') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">person</span>
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">stadium</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('profile.content_my_profile') }}</h3>
-                            <p class="text-sm text-on-surface-variant">{{ __('profile.action_view_and_edit_your_profile') }}</p>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('profile.dashboard_card_my_games') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('profile.dashboard_card_my_games_desc') }}</p>
                         </div>
                     </div>
+                    @if($gameCount > 0)
+                        <div class="mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">stadium</span>
+                            {{ $gameCount }} {{ $gameCount === 1 ? __('games.content_game') : __('games.content_games') }}
+                        </div>
+                    @endif
+                </a>
+
+                <a href="{{ route('campaigns.index') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">campaign</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('profile.dashboard_card_my_campaigns') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('profile.dashboard_card_my_campaigns_desc') }}</p>
+                        </div>
+                    </div>
+                    @if($campaignCount > 0)
+                        <div class="mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">campaign</span>
+                            {{ $campaignCount }} {{ $campaignCount === 1 ? __('campaigns.content_campaign') : __('campaigns.content_campaigns') }}
+                        </div>
+                    @endif
                 </a>
 
                 <a href="{{ route('people') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">

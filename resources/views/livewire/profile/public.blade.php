@@ -120,6 +120,9 @@
                 <p class="mt-2 text-on-surface-variant">{{ __('profile.content_profile_not_available') }}</p>
             </section>
         @else
+            {{-- Registration CTA for guests --}}
+            <x-registration-cta :message="__('profile.guest_nudge_profile')" />
+
             {{-- Game Systems --}}
             @if(in_array('game_systems', $visibleFields))
                 @php

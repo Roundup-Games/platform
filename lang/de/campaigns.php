@@ -105,4 +105,45 @@ return [
     // Errors
     'error_this_campaign_does_not_accept_applications' => 'Diese Kampagne nimmt keine Bewerbungen an.',
     'error_you_cannot_apply_to_your_own_campaign' => 'Du kannst dich nicht auf deine eigene Kampagne bewerben.',
+
+    // Gast-Nudge-Schlüssel
+    'guest_nudge_join_campaign' => 'Melde dich an, um dieser Kampagne beizutreten!',
+    'guest_nudge_campaign_detail' => 'Erstelle ein kostenloses Konto, um an Kampagnen in deiner Nähe teilzunehmen.',
+
+    // Gast-Navigation
+    'action_back_to_discover' => 'Zurück zur Entdeckungsseite',
+
+    // CampaignsPage — Meine Kampagnen
+    'heading_my_campaigns' => 'Meine Kampagnen',
+    'action_cancel_campaign' => 'Kampagne abbrechen',
+    'action_complete_campaign' => 'Als abgeschlossen markieren',
+    'status_active' => 'Aktiv',
+    'status_cancelled' => 'Abgebrochen',
+    'status_completed' => 'Abgeschlossen',
+    'flash_campaign_canceled' => 'Kampagne erfolgreich abgebrochen.',
+    'flash_campaign_completed' => 'Kampagne als abgeschlossen markiert.',
+    'error_campaign_not_active' => 'Nur aktive Kampagnen können geändert werden.',
+    'confirm_cancel_campaign' => 'Bist du sicher, dass du diese Kampagne abbrechen möchtest?',
+    'content_no_owned_campaigns' => 'Du hast noch keine Kampagnen erstellt.',
+
+    // CampaignsPage — Kampagnen, an denen ich teilnehme
+    'heading_campaigns_im_in' => 'Kampagnen, an denen ich teilnehme',
+    'content_no_campaigns_joined' => 'Du hast noch keine Kampagnen beigetreten.',
+
+    // CampaignsPage — Offene Einladungen
+    'heading_open_invitations' => 'Offene Einladungen',
+    'action_accept_invitation' => 'Annehmen',
+    'action_decline_invitation' => 'Ablehnen',
+    'flash_invitation_accepted' => 'Einladung angenommen! Du bist der Kampagne beigetreten.',
+    'flash_invitation_declined' => 'Einladung abgelehnt.',
+    'error_not_your_invitation' => 'Diese Einladung gehört dir nicht.',
+    'error_invitation_invalid' => 'Diese Einladung ist nicht mehr gültig.',
+    'error_campaign_full' => 'Diese Kampagne ist bereits voll.',
+    'content_no_pending_invitations' => 'Keine ausstehenden Einladungen.',
+
+    // CampaignsPage — Community
+    'heading_community' => 'Community',
+    'content_no_community_campaigns' => 'Derzeit keine Community-Kampagnen verfügbar.',
+    'action_search_campaigns_by_name_or_description' => 'Kampagnen nach Name oder Beschreibung suchen...',
+    'action_filter_by_recurrence' => 'Nach Wiederholung filtern',
 ];

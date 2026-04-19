@@ -57,6 +57,7 @@ return [
     'content_we_re_committed_to_creating' => 'Wir setzen uns dafür ein, ein faires Spielfeld zu schaffen, auf dem jeder die gleiche Chance hat, zu konkurrieren und Spaß zu haben.',
     'content_what_s_happening_near_you' => 'Was passiert in deiner Nähe?',
     'field_any_date' => 'Jedes Datum',
+    'field_any_distance' => 'Jede Entfernung',
     'field_any_price' => 'Jeder Preis',
     'field_drop_in_friendly' => 'Drop-In freundlich',
     'field_family_friendly' => 'Familienfreundlich',

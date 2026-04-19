@@ -66,4 +66,14 @@ return [
     'action_neutral' => 'Neutral',
     'action_favorite' => 'Favorit',
     'action_avoid' => 'vermeiden',
+
+    // Gast-Nudge-Schlüssel
+    'guest_nudge_follow' => 'Melde dich an, um :name zu folgen und an Spielsitzungen teilzunehmen!',
+    'guest_nudge_profile' => 'Erstelle ein kostenloses Konto, um dich mit Brettspielern zu verbinden.',
+
+    // Dashboard-Karten
+    'dashboard_card_my_games' => 'Meine Spiele',
+    'dashboard_card_my_games_desc' => 'Verwalte deine geplanten Spielsitzungen.',
+    'dashboard_card_my_campaigns' => 'Meine Kampagnen',
+    'dashboard_card_my_campaigns_desc' => 'Verwalte deine aktiven Kampagnen.',
 ];

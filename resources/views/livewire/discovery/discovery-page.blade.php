@@ -109,6 +109,45 @@
             </div>
         </div>
 
+        {{-- ── Radius toggle (when guest has location) ──────────── --}}
+        @if($hasLocation)
+            <div class="flex flex-wrap items-center gap-2"
+                 role="radiogroup"
+                 aria-label="{{ __('discovery.action_search_radius') }}">
+                <span class="text-sm font-medium text-on-surface-variant mr-1">
+                    <span class="material-symbols-outlined text-sm align-middle mr-0.5" aria-hidden="true">straighten</span>
+                    {{ __('common.content_radius') }}:
+                </span>
+                <button wire:click="setRadius(0)"
+                        class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == 0 ? 'bg-tertiary-container text-on-tertiary-container shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                        role="radio"
+                        aria-checked="{{ $radius == 0 ? 'true' : 'false' }}">
+                    {{ __('discovery.field_any_distance') }}
+                </button>
+                @foreach($radiusOptions as $option)
+                    <button wire:click="setRadius({{ $option }})"
+                            class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors {{ $radius == $option ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high' }}"
+                            role="radio"
+                            aria-checked="{{ $radius == $option ? 'true' : 'false' }}">
+                        {{ $option }} km
+                    </button>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- ── Fallback radius notice ──────────────────────────────── --}}
+        @if($usingFallbackRadius)
+            <div class="p-3 bg-primary-container/30 rounded-xl border border-primary/20">
+                <p class="text-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm align-middle mr-1" aria-hidden="true">info</span>
+                    {{ __('campaigns.content_no_sessions_found_within_radius', [
+                        'radius' => (int) $radius,
+                        'fallback' => 100,
+                    ]) }}
+                </p>
+            </div>
+        @endif
+
         {{-- ── Expandable "Narrow it down" Section ───────────────── --}}
         <div x-data="{ expanded: false }">
             <button @click="expanded = !expanded"
@@ -323,6 +362,12 @@
                 @if($complexity_min || $complexity_max)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
                         {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }}
+                    </span>
+                @endif
+                @if($radius > 0)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-xs" aria-hidden="true">location_on</span>
+                        {{ $radius }} km
                     </span>
                 @endif
                 <button wire:click="clearFilters" class="text-xs text-primary hover:underline">{{ __('common.action_clear_all') }}</button>
