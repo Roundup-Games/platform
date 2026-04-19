@@ -9,10 +9,10 @@ describe('SafetyToolCategory', function () {
         expect(SafetyToolCategory::values())->toBe(['before', 'during', 'after']);
     });
 
-    it('returns correct labels', function () {
-        expect(SafetyToolCategory::Before->label())->toBe('Before the Game');
-        expect(SafetyToolCategory::During->label())->toBe('During the Game');
-        expect(SafetyToolCategory::After->label())->toBe('After the Game');
+    it('returns translated labels', function () {
+        expect(SafetyToolCategory::Before->label())->toBe(__('safety.category_before'));
+        expect(SafetyToolCategory::During->label())->toBe(__('safety.category_during'));
+        expect(SafetyToolCategory::After->label())->toBe(__('safety.category_after'));
     });
 
     it('provides values() for validation', function () {
@@ -36,16 +36,16 @@ describe('SafetyTool', function () {
         expect(SafetyTool::values())->toBe($expected);
     });
 
-    it('returns correct labels', function () {
-        expect(SafetyTool::SessionZero->label())->toBe('Session Zero');
-        expect(SafetyTool::LinesAndVeils->label())->toBe('Lines & Veils');
-        expect(SafetyTool::OpenDoor->label())->toBe('Open Door Policy');
-        expect(SafetyTool::XCard->label())->toBe('X-Card');
-        expect(SafetyTool::XnoCard->label())->toBe('X·No Card');
-        expect(SafetyTool::ScriptChange->label())->toBe('Script Change');
-        expect(SafetyTool::Breaks->label())->toBe('Breaks');
-        expect(SafetyTool::StarsAndWishes->label())->toBe('Stars & Wishes');
-        expect(SafetyTool::Debriefing->label())->toBe('Debriefing');
+    it('returns translated labels', function () {
+        expect(SafetyTool::SessionZero->label())->toBe(__('safety.tool_session_zero'));
+        expect(SafetyTool::LinesAndVeils->label())->toBe(__('safety.tool_lines_and_veils'));
+        expect(SafetyTool::OpenDoor->label())->toBe(__('safety.tool_open_door'));
+        expect(SafetyTool::XCard->label())->toBe(__('safety.tool_x_card'));
+        expect(SafetyTool::XnoCard->label())->toBe(__('safety.tool_xno_card'));
+        expect(SafetyTool::ScriptChange->label())->toBe(__('safety.tool_script_change'));
+        expect(SafetyTool::Breaks->label())->toBe(__('safety.tool_breaks'));
+        expect(SafetyTool::StarsAndWishes->label())->toBe(__('safety.tool_stars_and_wishes'));
+        expect(SafetyTool::Debriefing->label())->toBe(__('safety.tool_debriefing'));
     });
 
     it('returns non-empty short descriptions for all tools', function () {
@@ -117,11 +117,11 @@ describe('SafetyTool', function () {
         expect($allValues)->toBe(SafetyTool::values());
     });
 
-    it('grouped() has correct category labels', function () {
+    it('grouped() has translated category labels', function () {
         $grouped = SafetyTool::grouped();
-        expect($grouped['before']['label'])->toBe('Before the Game');
-        expect($grouped['during']['label'])->toBe('During the Game');
-        expect($grouped['after']['label'])->toBe('After the Game');
+        expect($grouped['before']['label'])->toBe(__('safety.category_before'));
+        expect($grouped['during']['label'])->toBe(__('safety.category_during'));
+        expect($grouped['after']['label'])->toBe(__('safety.category_after'));
     });
 
     it('grouped() distributes tools correctly', function () {

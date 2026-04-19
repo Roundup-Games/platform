@@ -17,6 +17,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -46,6 +47,9 @@ class DiscoveryPage extends Component
 
     #[Url]
     public array $vibe_flags = [];
+
+    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', for VibePreferencePicker */
+    public array $vibePreferences = [];
 
     #[Url]
     public array $safety_tools = [];
@@ -87,10 +91,22 @@ class DiscoveryPage extends Component
             $this->language = $user->preferred_language->value;
         }
 
+        // Build vibePreferences from URL vibe_flags (all treated as favorites)
+        foreach (VibeFlag::cases() as $flag) {
+            if (in_array($flag->value, $this->vibe_flags, true)) {
+                $this->vibePreferences[$flag->value] = 'favorite';
+            } else {
+                $this->vibePreferences[$flag->value] = null;
+            }
+        }
+
         // Pre-select vibe flags from user preferences (only if no URL values already set)
         if ($user && empty($this->vibe_flags)) {
             $resolvedVibes = $user->resolvedVibePreferences();
             if (!empty($resolvedVibes['favorites'])) {
+                foreach ($resolvedVibes['favorites'] as $flagValue) {
+                    $this->vibePreferences[$flagValue] = 'favorite';
+                }
                 $this->vibe_flags = $resolvedVibes['favorites'];
             }
         }
@@ -114,11 +130,6 @@ class DiscoveryPage extends Component
     }
 
     public function updatingExperienceLevel(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingVibeFlags(): void
     {
         $this->resetPage();
     }
@@ -188,18 +199,6 @@ class DiscoveryPage extends Component
         $this->resetPage();
     }
 
-    public function toggleVibeFlag(string $flag): void
-    {
-        $index = array_search($flag, $this->vibe_flags, true);
-        if ($index !== false) {
-            unset($this->vibe_flags[$index]);
-            $this->vibe_flags = array_values($this->vibe_flags);
-        } else {
-            $this->vibe_flags[] = $flag;
-        }
-        $this->resetPage();
-    }
-
     public function toggleSafetyTool(string $tool): void
     {
         $index = array_search($tool, $this->safety_tools, true);
@@ -243,6 +242,32 @@ class DiscoveryPage extends Component
             'safety_tools', 'language', 'price', 'complexity_min', 'complexity_max',
             'date', 'recurrence', 'category_ids', 'mechanic_ids',
         ]);
+        // Reset vibe preferences to neutral
+        foreach (VibeFlag::cases() as $flag) {
+            $this->vibePreferences[$flag->value] = null;
+        }
+        $this->resetPage();
+    }
+
+    // ── Picker event listeners ─────────────────────────
+
+    #[On('value-updated')]
+    public function onGameSystemUpdated($value): void
+    {
+        $this->game_system_id = $value;
+        $this->resetPage();
+    }
+
+    #[On('vibe-preferences-changed')]
+    public function onVibePreferencesChanged(array $preferences): void
+    {
+        $this->vibePreferences = $preferences;
+        // Extract only favorites for the query filter
+        $this->vibe_flags = collect($preferences)
+            ->filter(fn ($value) => $value === 'favorite')
+            ->keys()
+            ->values()
+            ->all();
         $this->resetPage();
     }
 
@@ -582,9 +607,7 @@ class DiscoveryPage extends Component
         return view('livewire.discovery.discovery-page', [
             'results' => $results,
             'recommendations' => $this->getRecommendations(),
-            'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
             'experienceLevels' => ExperienceLevel::cases(),
-            'vibeFlagGroups' => VibeFlag::grouped(),
             'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
             'recurrenceOptions' => ['weekly', 'bi-weekly', 'monthly'],

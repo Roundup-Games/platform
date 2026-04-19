@@ -234,7 +234,7 @@ describe('DiscoveryPage', function () {
         get('/en/discover')->assertOk();
     });
 
-    it('toggles vibe flags', function () {
+    it('toggles vibe flags via preference picker', function () {
         Game::factory()->create([
             'name' => 'Test',
             'visibility' => 'public',
@@ -242,10 +242,24 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        // Simulate the VibePreferencePicker event flow:
+        // Favorite a flag → vibe_flags should contain it
+        $preferences = [];
+        foreach (\App\Enums\VibeFlag::cases() as $flag) {
+            $preferences[$flag->value] = null;
+        }
+        $preferences['lighthearted'] = 'favorite';
+
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->call('toggleVibeFlag', 'lighthearted')
+            ->dispatch('vibe-preferences-changed', preferences: $preferences)
             ->assertSet('vibe_flags', ['lighthearted'])
-            ->call('toggleVibeFlag', 'lighthearted')
+            ->assertSet('vibePreferences.lighthearted', 'favorite');
+
+        // Clear the favorite → vibe_flags should be empty
+        $preferences['lighthearted'] = null;
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->dispatch('vibe-preferences-changed', preferences: $preferences)
             ->assertSet('vibe_flags', []);
     });
 

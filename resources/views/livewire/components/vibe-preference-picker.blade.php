@@ -63,9 +63,9 @@
                                     'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => $pair['valueA'] !== 'favorite',
                                 ])
                                 aria-pressed="{{ $pair['valueA'] === 'favorite' ? 'true' : 'false' }}"
-                                aria-label="{{ $pair['labelA'] }}: favorite"
+                                aria-label="{{ $pair['labelA'] }}: {{ __('profile.action_favorite') }}"
                             >
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $pair['valueA'] === 'favorite' ? 'thumb_up' : 'thumb_up' }}</span>
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">thumb_up</span>
                                 {{ $pair['labelA'] }}
                             </button>
 
@@ -79,7 +79,7 @@
                                     'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => !($pair['valueA'] === null && $pair['valueB'] === null),
                                 ])
                                 aria-pressed="{{ ($pair['valueA'] === null && $pair['valueB'] === null) ? 'true' : 'false' }}"
-                                aria-label="Neutral"
+                                aria-label="{{ __('profile.action_neutral') }}"
                             >
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">remove</span>
                             </button>
@@ -94,7 +94,7 @@
                                     'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => $pair['valueB'] !== 'favorite',
                                 ])
                                 aria-pressed="{{ $pair['valueB'] === 'favorite' ? 'true' : 'false' }}"
-                                aria-label="{{ $pair['labelB'] }}: favorite"
+                                aria-label="{{ $pair['labelB'] }}: {{ __('profile.action_favorite') }}"
                             >
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">thumb_up</span>
                                 {{ $pair['labelB'] }}
@@ -107,13 +107,13 @@
                                 @if($pair['valueA'] === 'avoid')
                                     <span class="inline-flex items-center gap-1 text-xs text-error">
                                         <span class="material-symbols-outlined text-xs" aria-hidden="true">thumb_down</span>
-                                        {{ $pair['labelA'] }} avoided
+                                        {{ $pair['labelA'] }} {{ __('profile.content_avoided') }}
                                     </span>
                                 @endif
                                 @if($pair['valueB'] === 'avoid')
                                     <span class="inline-flex items-center gap-1 text-xs text-error">
                                         <span class="material-symbols-outlined text-xs" aria-hidden="true">thumb_down</span>
-                                        {{ $pair['labelB'] }} avoided
+                                        {{ $pair['labelB'] }} {{ __('profile.content_avoided') }}
                                     </span>
                                 @endif
                             </div>
@@ -135,7 +135,7 @@
                                     'bg-error-container border-error text-on-error-container' => $sf['value'] === 'avoid',
                                 ])
                                 aria-pressed="{{ $sf['value'] === 'favorite' ? 'true' : ($sf['value'] === 'avoid' ? 'false' : 'mixed') }}"
-                                aria-label="{{ $sf['label'] }}: {{ $sf['value'] === 'favorite' ? 'favorite' : ($sf['value'] === 'avoid' ? 'avoid' : 'neutral') }}"
+                                aria-label="{{ $sf['label'] }}: {{ $sf['value'] === 'favorite' ? __('profile.action_favorite') : ($sf['value'] === 'avoid' ? __('profile.action_avoid') : __('profile.action_neutral')) }}"
                             >
                                 <span class="material-symbols-outlined text-sm" aria-hidden="true">
                                     {{ $sf['value'] === 'favorite' ? 'thumb_up' : ($sf['value'] === 'avoid' ? 'thumb_down' : 'remove') }}

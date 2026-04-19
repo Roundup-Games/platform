@@ -43,26 +43,26 @@ enum VibeFlag: string
     public function label(): string
     {
         return match ($this) {
-            self::Atmospheric => 'Atmospheric',
-            self::Lighthearted => 'Lighthearted',
-            self::Serious => 'Serious',
-            self::Horror => 'Horror',
-            self::Humorous => 'Humorous',
-            self::MatureThemes => 'Mature Themes',
-            self::FamilyFriendly => 'Family-Friendly',
-            self::CharacterDriven => 'Character-Driven',
-            self::StoryRich => 'Story-Rich',
-            self::RulesLight => 'Rules-Light',
-            self::RulesHeavy => 'Rules-Heavy',
-            self::Tactical => 'Tactical',
-            self::CombatFocused => 'Combat-Focused',
-            self::RoleplayHeavy => 'Roleplay-Heavy',
-            self::Exploration => 'Exploration',
-            self::PuzzleSolving => 'Puzzle-Solving',
-            self::Competitive => 'Competitive',
-            self::Cooperative => 'Cooperative',
-            self::NewPlayerFriendly => 'New-Player-Friendly',
-            self::DropInFriendly => 'Drop-In Friendly',
+            self::Atmospheric => __('discovery.content_atmospheric'),
+            self::Lighthearted => __('discovery.content_lighthearted'),
+            self::Serious => __('discovery.content_serious'),
+            self::Horror => __('discovery.content_horror'),
+            self::Humorous => __('discovery.content_humorous'),
+            self::MatureThemes => __('discovery.content_mature_themes'),
+            self::FamilyFriendly => __('discovery.field_family_friendly'),
+            self::CharacterDriven => __('discovery.content_character_driven'),
+            self::StoryRich => __('discovery.content_story_rich'),
+            self::RulesLight => __('discovery.content_rules_light'),
+            self::RulesHeavy => __('discovery.content_rules_heavy'),
+            self::Tactical => __('discovery.content_tactical'),
+            self::CombatFocused => __('discovery.content_combat_focused'),
+            self::RoleplayHeavy => __('discovery.content_roleplay_heavy'),
+            self::Exploration => __('discovery.content_exploration'),
+            self::PuzzleSolving => __('discovery.content_puzzle_solving'),
+            self::Competitive => __('discovery.content_competitive'),
+            self::Cooperative => __('discovery.content_cooperative'),
+            self::NewPlayerFriendly => __('discovery.field_new_player_friendly'),
+            self::DropInFriendly => __('discovery.field_drop_in_friendly'),
         };
     }
 
@@ -93,19 +93,19 @@ enum VibeFlag: string
     {
         $groups = [
             'tone' => [
-                'label' => 'Tone & Atmosphere',
+                'label' => __('discovery.content_tone_atmosphere'),
                 'flags' => [self::Atmospheric, self::Lighthearted, self::Serious, self::Horror, self::Humorous],
             ],
             'content' => [
-                'label' => 'Content',
+                'label' => __('discovery.content_content'),
                 'flags' => [self::MatureThemes, self::FamilyFriendly, self::CharacterDriven, self::StoryRich],
             ],
             'playstyle' => [
-                'label' => 'Playstyle',
+                'label' => __('discovery.content_playstyle'),
                 'flags' => [self::RulesLight, self::RulesHeavy, self::Tactical, self::CombatFocused, self::RoleplayHeavy, self::Exploration, self::PuzzleSolving],
             ],
             'social' => [
-                'label' => 'Social',
+                'label' => __('discovery.content_social'),
                 'flags' => [self::Competitive, self::Cooperative, self::NewPlayerFriendly, self::DropInFriendly],
             ],
         ];

@@ -23,4 +23,16 @@ class GameSystemMechanic extends Model
     {
         return $this->belongsToMany(GameSystem::class, 'game_system_mechanic');
     }
+
+    /**
+     * Return the translated name if a translation key exists, otherwise the DB name.
+     * Keys follow the pattern: discovery.mech_{slug}
+     */
+    public function translatedName(): string
+    {
+        $key = "discovery.mech_{$this->slug}";
+        $translated = __($key);
+
+        return $translated === $key ? $this->name : $translated;
+    }
 }

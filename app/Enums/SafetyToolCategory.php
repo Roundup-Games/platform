@@ -19,9 +19,9 @@ enum SafetyToolCategory: string
     public function label(): string
     {
         return match ($this) {
-            self::Before => 'Before the Game',
-            self::During => 'During the Game',
-            self::After => 'After the Game',
+            self::Before => __('safety.category_before'),
+            self::During => __('safety.category_during'),
+            self::After => __('safety.category_after'),
         };
     }
 }

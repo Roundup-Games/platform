@@ -23,4 +23,16 @@ class GameSystemCategory extends Model
     {
         return $this->belongsToMany(GameSystem::class, 'game_system_category');
     }
+
+    /**
+     * Return the translated name if a translation key exists, otherwise the DB name.
+     * Keys follow the pattern: discovery.cat_{slug}
+     */
+    public function translatedName(): string
+    {
+        $key = "discovery.cat_{$this->slug}";
+        $translated = __($key);
+
+        return $translated === $key ? $this->name : $translated;
+    }
 }

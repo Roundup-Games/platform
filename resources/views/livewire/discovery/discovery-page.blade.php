@@ -128,16 +128,13 @@
                  class="mt-4 space-y-5"
                  x-cloak>
 
-                {{-- Game System select --}}
+                {{-- Game System picker (search-based with expansion support) --}}
                 <div>
-                    <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('games.content_game_system') }}</p>
-                    <select wire:model.live="game_system_id" aria-label="{{ __('games.action_filter_by_game_system') }}"
-                            class="w-full sm:w-auto min-w-[200px] bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
-                        <option value="">{{ __('discovery.content_all_systems') }}</option>
-                        @foreach($gameSystems as $system)
-                            <option value="{{ $system->id }}">{{ $system->name }}</option>
-                        @endforeach
-                    </select>
+                    <livewire:components.game-system-picker
+                        :fieldId="'discovery-game-system'"
+                        :label="__('games.content_game_system')"
+                        :value="$game_system_id"
+                    />
                 </div>
 
                 {{-- Category pills (from curated list) --}}
@@ -151,7 +148,7 @@
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
                                         {{ in_array($category->id, $category_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                                 >
-                                    {{ $category->name }}
+                                    {{ $category->translatedName() }}
                                 </button>
                             @endforeach
                         </div>
@@ -169,34 +166,21 @@
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
                                         {{ in_array($mechanic->id, $mechanic_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                                 >
-                                    {{ $mechanic->name }}
+                                    {{ $mechanic->translatedName() }}
                                 </button>
                             @endforeach
                         </div>
                     </div>
                 @endif
 
-                {{-- Vibe flag groups --}}
-                @if($vibeFlagGroups)
-                    <div class="space-y-3">
-                        @foreach($vibeFlagGroups as $groupKey => $group)
-                            <div>
-                                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ $group['label'] }}</p>
-                                <div class="flex flex-wrap gap-1.5">
-                                    @foreach($group['options'] as $flagValue => $flagLabel)
-                                        <button
-                                            wire:click="toggleVibeFlag('{{ $flagValue }}')"
-                                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
-                                                {{ in_array($flagValue, $vibe_flags) ? 'bg-tertiary/15 text-on-tertiary-container ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
-                                        >
-                                            {{ $flagLabel }}
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                {{-- Vibe preference picker (paired segmented + tri-state chips) --}}
+                <div>
+                    <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ __('common.content_vibes') }}</p>
+                    <livewire:components.vibe-preference-picker
+                        :preferences="$vibePreferences"
+                        mode="selection"
+                    />
+                </div>
 
                 {{-- Safety tool groups --}}
                 @if($safetyToolGroups)
@@ -216,7 +200,7 @@
                                     @endforeach
                                 </div>
                             </div>
-                        @endforeach>
+                        @endforeach
                     </div>
                 @endif
 
@@ -284,7 +268,7 @@
                     </span>
                 @endif
                 @if($game_system_id)
-                    @php($systemName = $gameSystems->firstWhere('id', $game_system_id)?->name)
+                    @php($systemName = \App\Models\GameSystem::find($game_system_id)?->name)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {{ $systemName }}
                     </span>

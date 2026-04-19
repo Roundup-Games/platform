@@ -62,4 +62,8 @@ return [
     'visibility_friends' => 'Freunde',
     'visibility_nobody' => 'Niemand',
     'flash_privacy_settings_saved' => 'Privatsphäre-Einstellungen gespeichert.',
+    'content_avoided' => 'vermieden',
+    'action_neutral' => 'Neutral',
+    'action_favorite' => 'Favorit',
+    'action_avoid' => 'vermeiden',
 ];
