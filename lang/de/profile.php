@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'action_log_in_to_follow' => 'Anmelden um zu folgen',
     'action_back_to_dashboard' => 'Zurück zum Dashboard',
     'action_create_account' => 'Konto erstellen',
     'action_create_free_account' => 'Kostenloses Konto erstellen',
@@ -52,6 +53,8 @@ return [
     'content_privacy_settings' => 'Privatsphäre-Einstellungen',
     'action_control_who_sees_your_profile_information' => 'Kontrolliere, wer deine Profilinformationen auf deinem öffentlichen Profil sehen kann.',
     'content_vibes' => 'Stimmungen',
+    'content_cannot_interact' => 'Du kannst mit diesem Profil nicht interagieren.',
+    'content_profile_not_available' => 'Dieses Profil ist nicht verfügbar.',
     'content_campaigns' => 'Kampagnen',
     'content_teams' => 'Teams',
     'content_friends_list' => 'Freundesliste',

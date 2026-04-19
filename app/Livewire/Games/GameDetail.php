@@ -64,21 +64,37 @@ class GameDetail extends Component
             'applications.user',
         ]);
 
+        $viewer = Auth::user();
+        $isOwner = $viewer && $this->game->owner_id === $viewer->id;
+        $isParticipant = $viewer && $this->game->participants
+            ->contains(fn ($p) => $p->user_id === $viewer->id);
+
         $userInvitation = null;
-        if (Auth::check()) {
+        $hasExistingApplication = false;
+        if ($viewer) {
             $userInvitation = $this->game->participants
-                ->first(fn ($p) => $p->user_id === Auth::id()
+                ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->role === 'invited'
                     && $p->status === 'pending');
+
+            $hasExistingApplication = $this->game->applications()
+                ->where('user_id', $viewer->id)
+                ->exists();
         }
+
+        $canApply = $viewer
+            && ! $isOwner
+            && ! $isParticipant
+            && ! $hasExistingApplication
+            && $this->game->visibility !== 'private';
 
         return view('livewire.games.game-detail', [
             'game' => $this->game,
-            'isOwner' => Auth::check() && $this->game->owner_id === Auth::id(),
-            'isParticipant' => Auth::check() && $this->game->participants()
-                ->where('user_id', Auth::id())
-                ->exists(),
+            'isOwner' => $isOwner,
+            'isParticipant' => $isParticipant,
             'userInvitation' => $userInvitation,
+            'canApply' => $canApply,
+            'hasExistingApplication' => $hasExistingApplication,
         ]);
     }
 }

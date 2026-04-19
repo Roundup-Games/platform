@@ -182,6 +182,57 @@
             @endif
         </section>
 
+        {{-- Apply / Join CTA --}}
+        @auth
+            @if($canApply)
+                <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
+                                    @if($campaign->visibility === 'public')
+                                        login
+                                    @else
+                                        edit_note
+                                    @endif
+                                </span>
+                                @if($campaign->visibility === 'public')
+                                    {{ __('campaigns.action_join_campaign') }}
+                                @else
+                                    {{ __('campaigns.action_apply_to_join') }}
+                                @endif
+                            </h2>
+                            @if($campaign->visibility === 'protected')
+                                <p class="mt-1 text-sm text-on-surface-variant">{{ __('campaigns.content_this_is_a_protected_campaign') }}</p>
+                            @endif
+                        </div>
+                        <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">
+                                @if($campaign->visibility === 'public')
+                                    login
+                                @else
+                                    send
+                                @endif
+                            </span>
+                            @if($campaign->visibility === 'public')
+                                {{ __('campaigns.action_join_campaign') }}
+                            @else
+                                {{ __('campaigns.action_apply_to_join') }}
+                            @endif
+                        </a>
+                    </div>
+                </section>
+            @elseif($hasExistingApplication)
+                <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6 text-center">
+                    <span class="material-symbols-outlined text-3xl text-tertiary mb-2" aria-hidden="true">schedule</span>
+                    <p class="text-on-surface font-medium">{{ __('campaigns.content_application_pending') }}</p>
+                    <p class="text-sm text-on-surface-variant mt-1">{{ __('campaigns.content_waiting_for_host_approval') }}</p>
+                </section>
+            @endif
+        @endauth
+
         {{-- Safety Tools --}}
         @if($campaign->safety_rules)
             @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $campaign->safety_rules])

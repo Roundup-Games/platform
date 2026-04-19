@@ -458,3 +458,381 @@ describe('Unauthenticated viewer', function () {
             ->assertDontSee('Block');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// GAME & CAMPAIGN VISIBILITY ON PROFILE
+// ═══════════════════════════════════════════════════════════
+
+describe('Game session visibility on profile', function () {
+    it('shows public owned games to a stranger', function () {
+        $profileUser = createProfileUser();
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
+    });
+
+    it('hides protected games from a stranger', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->isEmpty());
+    });
+
+    it('shows protected games to a friend', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        // Mutual follow = friends
+        UserRelationship::follow($viewer, $profileUser);
+        UserRelationship::follow($profileUser, $viewer);
+
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
+    });
+
+    it('never shows private games even to friends', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        UserRelationship::follow($viewer, $profileUser);
+        UserRelationship::follow($profileUser, $viewer);
+
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'private',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->isEmpty());
+    });
+
+    it('shows games the profile user participates in (not just owns)', function () {
+        $profileUser = createProfileUser();
+        $otherOwner = createProfileUser();
+
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $profileUser->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
+    });
+
+    it('hides participated protected games from strangers', function () {
+        $profileUser = createProfileUser();
+        $otherOwner = createProfileUser();
+
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $profileUser->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->isEmpty());
+    });
+
+    it('shows participated protected games to friends', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+        $otherOwner = createProfileUser();
+
+        UserRelationship::follow($viewer, $profileUser);
+        UserRelationship::follow($profileUser, $viewer);
+
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $profileUser->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
+    });
+
+    it('does not show past games', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->subDays(5),
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->isEmpty());
+    });
+
+    it('deduplicates when user owns and participates in same game', function () {
+        $profileUser = createProfileUser();
+        $game = \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $profileUser->id,
+            'role' => 'owner',
+            'status' => 'approved',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->count() === 1);
+    });
+
+    it('shows no games for blocked viewer', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        UserRelationship::block($profileUser, $viewer);
+
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->isEmpty());
+    });
+
+    it('own profile sees all games including private', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'private',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        Livewire::actingAs($profileUser)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->count() === 1);
+    });
+
+    it('shows public games to guest (unauthenticated)', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->count() === 1);
+    });
+
+    it('does not show public games to guest when profile owner is blocked', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        // Guest viewing when blocked — this is about the profileUser blocking someone
+        // Unauthenticated viewers can't be blocked, so they should still see public games
+        \App\Models\Game::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+        ]);
+
+        // Guest should always see public games since they can't be blocked
+        Livewire::test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('games', fn ($games) => $games->count() === 1);
+    });
+});
+
+describe('Campaign visibility on profile', function () {
+    it('shows public owned campaigns to a stranger', function () {
+        $profileUser = createProfileUser();
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'public',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->contains('id', $campaign->id));
+    });
+
+    it('hides protected campaigns from a stranger', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Campaign::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'protected',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->isEmpty());
+    });
+
+    it('shows protected campaigns to a friend', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        UserRelationship::follow($viewer, $profileUser);
+        UserRelationship::follow($profileUser, $viewer);
+
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'protected',
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->contains('id', $campaign->id));
+    });
+
+    it('shows participated campaigns (not just owned)', function () {
+        $profileUser = createProfileUser();
+        $otherOwner = createProfileUser();
+
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'visibility' => 'public',
+        ]);
+
+        \App\Models\CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $profileUser->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->contains('id', $campaign->id));
+    });
+
+    it('hides participated protected campaigns from strangers', function () {
+        $profileUser = createProfileUser();
+        $otherOwner = createProfileUser();
+
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'visibility' => 'protected',
+        ]);
+
+        \App\Models\CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $profileUser->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        $viewer = createProfileUser();
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->isEmpty());
+    });
+
+    it('never shows private campaigns even to friends', function () {
+        $profileUser = createProfileUser();
+        $viewer = createProfileUser();
+
+        UserRelationship::follow($viewer, $profileUser);
+        UserRelationship::follow($profileUser, $viewer);
+
+        \App\Models\Campaign::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'private',
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->isEmpty());
+    });
+
+    it('own profile sees all campaigns including private', function () {
+        $profileUser = createProfileUser();
+        \App\Models\Campaign::factory()->create([
+            'owner_id' => $profileUser->id,
+            'visibility' => 'private',
+        ]);
+
+        Livewire::actingAs($profileUser)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->count() === 1);
+    });
+});

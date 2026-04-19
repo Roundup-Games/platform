@@ -30,7 +30,7 @@
                         @if($isFriend)
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                 <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">group</span>
-                                Friends
+                                {{ __('common.status_friends') }}
                             </span>
                         @endif
                     </div>
@@ -47,7 +47,7 @@
                         </span>
                         <span>
                             <strong class="text-on-surface">{{ $followingCount }}</strong>
-                            following
+                            {{ __('common.status_following') }}
                         </span>
                     </div>
                 </div>
@@ -70,48 +70,43 @@
 
                     <div class="flex items-center gap-3 mt-4 pt-4 border-t border-outline-variant/20">
                         @if($isBlockedBy)
-                            {{-- Viewer is blocked by this user — no actions available --}}
-                            <p class="text-sm text-on-surface-variant italic">You cannot interact with this profile.</p>
+                            <p class="text-sm text-on-surface-variant italic">{{ __('profile.content_cannot_interact') }}</p>
                         @elseif($hasBlocked)
-                            {{-- Viewer has blocked this user — show unblock --}}
                             <button wire:click="unblock"
                                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-error-container text-on-error-container hover:brightness-110 transition-colors">
                                 <span class="material-symbols-outlined text-base">lock_open</span>
-                                Unblock
+                                {{ __('common.action_unblock') }}
                             </button>
                         @else
-                            {{-- Follow/Unfollow --}}
                             @if($isFollowing)
                                 <button wire:click="unfollow"
                                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors">
                                     <span class="material-symbols-outlined text-base">person_remove</span>
-                                    Unfollow
+                                    {{ __('common.action_unfollow') }}
                                 </button>
                             @else
                                 <button wire:click="follow"
                                         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors">
                                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">person_add</span>
-                                    Follow
+                                    {{ __('common.action_follow') }}
                                 </button>
                             @endif
 
-                            {{-- Block --}}
                             <button wire:click="block"
                                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-error-container/20 hover:text-error transition-colors">
                                 <span class="material-symbols-outlined text-base">block</span>
-                                Block
+                                {{ __('common.action_block') }}
                             </button>
                         @endif
                     </div>
                 @endunless
             @else
-                {{-- Unauthenticated viewer — login prompt --}}
                 @unless($isOwnProfile)
                     <div class="flex items-center gap-3 mt-4 pt-4 border-t border-outline-variant/20">
                         <a href="{{ route('login') }}"
                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors">
                             <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">person_add</span>
-                            Log in to follow
+                            {{ __('profile.action_log_in_to_follow') }}
                         </a>
                     </div>
                 @endunless
@@ -122,7 +117,7 @@
         @if($isBlockedBy)
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 text-center">
                 <span class="material-symbols-outlined text-4xl text-on-surface-variant">lock</span>
-                <p class="mt-2 text-on-surface-variant">This profile is not available.</p>
+                <p class="mt-2 text-on-surface-variant">{{ __('profile.content_profile_not_available') }}</p>
             </section>
         @else
             {{-- Game Systems --}}
@@ -134,7 +129,7 @@
                     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                             <span class="material-symbols-outlined text-base align-middle mr-1">casino</span>
-                            Game Systems
+                            {{ __('games.content_game_systems') }}
                         </h2>
                         <div class="flex flex-wrap gap-2">
                             @foreach($gameSystems as $system)
@@ -156,7 +151,7 @@
                     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                             <span class="material-symbols-outlined text-base align-middle mr-1">mood</span>
-                            Vibes
+                            {{ __('profile.content_vibes') }}
                         </h2>
                         <div class="flex flex-wrap gap-2">
                             @foreach($vibes as $vibe)
@@ -169,35 +164,71 @@
                 @endif
             @endif
 
-            {{-- Campaigns --}}
-            @if(in_array('campaigns', $visibleFields))
-                @php
-                    $campaigns = $profileUser->relationLoaded('ownedCampaigns') ? $profileUser->ownedCampaigns : collect();
-                @endphp
-                @if($campaigns->isNotEmpty())
-                    <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
-                        <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
-                            <span class="material-symbols-outlined text-base align-middle mr-1">auto_stories</span>
-                            Campaigns
-                        </h2>
-                        <div class="space-y-2">
-                            @foreach($campaigns as $campaign)
-                                <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high">
-                                    <div>
-                                        <p class="font-medium text-on-surface">{{ $campaign->name }}</p>
-                                        @if($campaign->gameSystem?->name)
-                                            <p class="text-sm text-on-surface-variant">{{ $campaign->gameSystem->name }}</p>
-                                        @endif
+            {{-- Game Sessions --}}
+            @if($games->isNotEmpty())
+                <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
+                        <span class="material-symbols-outlined text-base align-middle mr-1">event_note</span>
+                        {{ __('games.content_upcoming_game_sessions') }}
+                    </h2>
+                    <div class="space-y-2">
+                        @foreach($games as $game)
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high">
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-medium text-on-surface truncate">{{ $game->name }}</p>
+                                    @if($game->gameSystem?->name)
+                                        <p class="text-sm text-on-surface-variant">{{ $game->gameSystem->name }}</p>
+                                    @endif
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs text-on-surface-variant">{{ format_date($game->date_time, 'datetime') }}</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                            {{ $game->visibility === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
+                                            {{ __(ucfirst($game->visibility)) }}
+                                        </span>
+                                        <span class="text-xs text-on-surface-variant">{{ $game->participants_count }} {{ __('common.content_players_2') }}</span>
                                     </div>
-                                    @can('view', $campaign)
-                                        <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
-                                           class="text-sm text-primary hover:underline">View</a>
-                                    @endcan
                                 </div>
-                            @endforeach
-                        </div>
-                    </section>
-                @endif
+                                @can('view', $game)
+                                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}"
+                                       wire:navigate class="text-sm text-primary hover:underline ml-3 shrink-0">{{ __('common.action_view') }}</a>
+                                @endcan
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
+            {{-- Campaigns --}}
+            @if($campaigns->isNotEmpty())
+                <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
+                        <span class="material-symbols-outlined text-base align-middle mr-1">auto_stories</span>
+                        {{ __('campaigns.content_campaigns') }}
+                    </h2>
+                    <div class="space-y-2">
+                        @foreach($campaigns as $campaign)
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high">
+                                <div class="min-w-0 flex-1">
+                                    <p class="font-medium text-on-surface truncate">{{ $campaign->name }}</p>
+                                    @if($campaign->gameSystem?->name)
+                                        <p class="text-sm text-on-surface-variant">{{ $campaign->gameSystem->name }}</p>
+                                    @endif
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                            {{ $campaign->visibility === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
+                                            {{ __(ucfirst($campaign->visibility)) }}
+                                        </span>
+                                        <span class="text-xs text-on-surface-variant">{{ $campaign->participants_count }} {{ __('common.content_participants') }}</span>
+                                    </div>
+                                </div>
+                                @can('view', $campaign)
+                                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
+                                       wire:navigate class="text-sm text-primary hover:underline ml-3 shrink-0">{{ __('common.action_view') }}</a>
+                                @endcan
+                            </div>
+                        @endforeach>
+                    </div>
+                </section>
             @endif
 
             {{-- Teams --}}
@@ -209,7 +240,7 @@
                     <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                         <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-3">
                             <span class="material-symbols-outlined text-base align-middle mr-1">groups</span>
-                            Teams
+                            {{ __('teams.content_teams') }}
                         </h2>
                         <div class="space-y-2">
                             @foreach($teamMemberships as $membership)
@@ -221,9 +252,9 @@
                                         @endif
                                     </div>
                                     <a href="{{ route('teams.detail', ['locale' => app()->getLocale(), 'slug' => $membership->team->slug]) }}"
-                                       class="text-sm text-primary hover:underline">View</a>
+                                       wire:navigate class="text-sm text-primary hover:underline">{{ __('common.action_view') }}</a>
                                 </div>
-                            @endforeach
+                            @endforeach>
                         </div>
                     </section>
                 @endif

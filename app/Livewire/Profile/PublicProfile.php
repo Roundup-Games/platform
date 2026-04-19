@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Profile;
 
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
@@ -143,9 +145,6 @@ class PublicProfile extends Component
         if (in_array('vibes', $this->visibleFields)) {
             $eagerLoads[] = 'favoriteVibes';
         }
-        if (in_array('campaigns', $this->visibleFields)) {
-            $eagerLoads['ownedCampaigns'] = fn ($q) => $q->where('visibility', 'public')->latest()->limit(5);
-        }
 
         if (! empty($eagerLoads)) {
             $this->profileUser->load($eagerLoads);
@@ -163,10 +162,125 @@ class PublicProfile extends Component
                 ->filter(fn ($m) => $m->team);
         }
 
+        // Visibility-scoped games and campaigns
+        $games = $this->resolveVisibleGames();
+        $campaigns = $this->resolveVisibleCampaigns();
+
         return view('livewire.profile.public', [
             'profileUser' => $this->profileUser,
             'teamMemberships' => $teamMemberships,
             'visibleFields' => $this->visibleFields,
+            'games' => $games,
+            'campaigns' => $campaigns,
         ]);
+    }
+
+    /**
+     * Build the visibility scope for the current viewer.
+     *
+     * Own profile: public + protected + private
+     * Friend/teammate: public + protected
+     * Stranger/unauthenticated: public only
+     * Blocked: empty (nothing visible)
+     */
+    private function visibilityScope(): array
+    {
+        if ($this->isBlockedBy || $this->hasBlocked) {
+            return [];
+        }
+
+        if ($this->isOwnProfile) {
+            return ['public', 'protected', 'private'];
+        }
+
+        if ($this->isFriend || $this->isFriendOrTeammate()) {
+            return ['public', 'protected'];
+        }
+
+        return ['public'];
+    }
+
+    private function isFriendOrTeammate(): bool
+    {
+        $viewer = Auth::user();
+        if (! $viewer) {
+            return false;
+        }
+
+        return $viewer->isFriendOrTeammate($this->profileUser);
+    }
+
+    /**
+     * Resolve visibility-scoped games: owned + participated, deduplicated.
+     */
+    private function resolveVisibleGames()
+    {
+        $scope = $this->visibilityScope();
+        if (empty($scope)) {
+            return collect();
+        }
+
+        $userId = $this->profileUser->id;
+
+        // Owned games
+        $ownedGameIds = Game::where('owner_id', $userId)
+            ->whereIn('visibility', $scope)
+            ->where('status', 'scheduled')
+            ->where('date_time', '>', now())
+            ->pluck('id');
+
+        // Participated games (approved participants only)
+        $participatedGameIds = \DB::table('game_participants')
+            ->where('user_id', $userId)
+            ->where('status', 'approved')
+            ->pluck('game_id');
+
+        // Merge and deduplicate, then load with visibility filter
+        $allGameIds = $ownedGameIds->merge($participatedGameIds)->unique();
+
+        return Game::whereIn('id', $allGameIds)
+            ->whereIn('visibility', $scope)
+            ->where('status', 'scheduled')
+            ->where('date_time', '>', now())
+            ->with(['owner', 'gameSystem'])
+            ->withCount('participants')
+            ->orderBy('date_time')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * Resolve visibility-scoped campaigns: owned + participated, deduplicated.
+     */
+    private function resolveVisibleCampaigns()
+    {
+        $scope = $this->visibilityScope();
+        if (empty($scope)) {
+            return collect();
+        }
+
+        $userId = $this->profileUser->id;
+
+        // Owned campaigns
+        $ownedCampaignIds = Campaign::where('owner_id', $userId)
+            ->whereIn('visibility', $scope)
+            ->pluck('id');
+
+        // Participated campaigns (approved participants only)
+        $participatedCampaignIds = \DB::table('campaign_participants')
+            ->where('user_id', $userId)
+            ->where('status', 'approved')
+            ->pluck('campaign_id');
+
+        // Merge and deduplicate, then load with visibility filter
+        $allCampaignIds = $ownedCampaignIds->merge($participatedCampaignIds)->unique();
+
+        return Campaign::whereIn('id', $allCampaignIds)
+            ->whereIn('visibility', $scope)
+            ->with(['owner', 'gameSystem'])
+            ->withCount('participants')
+            ->latest()
+            ->limit(10)
+            ->get();
     }
 }

@@ -14,6 +14,9 @@ return [
     'action_search_campaigns' => 'Search campaigns',
     'action_search_campaigns_by_name_or_description' => 'Search campaigns by name or description...',
     'action_view_campaign' => 'View Campaign',
+    'action_back_to_campaign' => 'Back to Campaign',
+    'action_join_campaign' => 'Join Campaign',
+    'action_apply_to_join' => 'Apply to Join',
     'content_active_campaigns' => 'Active campaigns',
     'content_be_the_first_to_bring' => 'Be the first to bring tabletop gaming to your area. Start a session and players will find you.',
     'content_campaign' => 'Campaign',
@@ -91,4 +94,15 @@ return [
     'field_price_per_session_eur' => 'Price per Session (€)',
     'flash_session_name_added_to_campaign' => 'Session ":name" added to campaign!',
     'content_describe_campaign_vibe' => 'Describe the campaign vibe. Favorite what fits, avoid what doesn\'t.',
+    'content_this_is_a_protected_campaign' => 'This is a protected campaign. Your application will be reviewed by the campaign owner before you can join.',
+    'content_you_are_already_a_participant_of_this_campaign' => 'You are already a participant of this campaign.',
+    'content_you_have_already_applied_to_this_campaign' => 'You have already applied to this campaign.',
+    'content_you_have_joined_the_campaign' => 'You have joined the campaign!',
+    'content_application_submitted_the_campaign_owner' => 'Application submitted! The campaign owner will review it.',
+    'content_application_pending' => 'Application Pending',
+    'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',
+
+    // Errors
+    'error_this_campaign_does_not_accept_applications' => 'This campaign does not accept applications.',
+    'error_you_cannot_apply_to_your_own_campaign' => 'You cannot apply to your own campaign.',
 ];

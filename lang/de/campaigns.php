@@ -14,6 +14,9 @@ return [
     'action_search_campaigns' => 'Kampagnen suchen',
     'action_search_campaigns_by_name_or_description' => 'Kampagnen nach Name oder Beschreibung suchen...',
     'action_view_campaign' => 'Kampagne ansehen',
+    'action_back_to_campaign' => 'Zurück zur Kampagne',
+    'action_join_campaign' => 'Kampagne beitreten',
+    'action_apply_to_join' => 'Bewerben',
     'content_active_campaigns' => 'Aktive Kampagnen',
     'content_be_the_first_to_bring' => 'Sei der Erste, der Brettspiele in deine Nähe bringt. Erstelle eine Sitzung und Spieler finden dich.',
     'content_campaign' => 'Kampagne',
@@ -91,4 +94,15 @@ return [
     'field_price_per_session_eur' => 'Preis pro Session (€)',
     'flash_session_name_added_to_campaign' => 'Session ":name" zur Kampagne hinzugefügt!',
     'content_describe_campaign_vibe' => 'Beschreibe die Kampagnen-Atmosphäre. Favorisiere, was passt, vermeide, was nicht passt.',
+    'content_this_is_a_protected_campaign' => 'Dies ist eine geschützte Kampagne. Deine Bewerbung wird vom Kampagnenbesitzer geprüft, bevor du beitreten kannst.',
+    'content_you_are_already_a_participant_of_this_campaign' => 'Du bist bereits Teilnehmer dieser Kampagne.',
+    'content_you_have_already_applied_to_this_campaign' => 'Du hast dich bereits für diese Kampagne beworben.',
+    'content_you_have_joined_the_campaign' => 'Du bist der Kampagne beigetreten!',
+    'content_application_submitted_the_campaign_owner' => 'Bewerbung eingereicht! Der Kampagnenbesitzer wird sie prüfen.',
+    'content_application_pending' => 'Bewerbung ausstehend',
+    'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
+
+    // Errors
+    'error_this_campaign_does_not_accept_applications' => 'Diese Kampagne nimmt keine Bewerbungen an.',
+    'error_you_cannot_apply_to_your_own_campaign' => 'Du kannst dich nicht auf deine eigene Kampagne bewerben.',
 ];

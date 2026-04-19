@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'action_log_in_to_follow' => 'Log in to follow',
     'action_back_to_dashboard' => 'Back to Dashboard',
     'action_create_account' => 'Create Account',
     'action_create_free_account' => 'Create Free Account',
@@ -52,6 +53,8 @@ return [
     'content_privacy_settings' => 'Privacy Settings',
     'action_control_who_sees_your_profile_information' => 'Control who can see your profile information on your public profile.',
     'content_vibes' => 'Vibes',
+    'content_cannot_interact' => 'You cannot interact with this profile.',
+    'content_profile_not_available' => 'This profile is not available.',
     'content_campaigns' => 'Campaigns',
     'content_teams' => 'Teams',
     'content_friends_list' => 'Friends List',

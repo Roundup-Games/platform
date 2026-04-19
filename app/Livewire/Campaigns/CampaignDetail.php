@@ -64,21 +64,37 @@ class CampaignDetail extends Component
             'sessions' => fn ($q) => $q->orderBy('date_time')->limit(10),
         ]);
 
+        $viewer = Auth::user();
+        $isOwner = $viewer && $this->campaign->owner_id === $viewer->id;
+        $isParticipant = $viewer && $this->campaign->participants
+            ->contains(fn ($p) => $p->user_id === $viewer->id);
+
         $userInvitation = null;
-        if (Auth::check()) {
+        $hasExistingApplication = false;
+        if ($viewer) {
             $userInvitation = $this->campaign->participants
-                ->first(fn ($p) => $p->user_id === Auth::id()
+                ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->role === 'invited'
                     && $p->status === 'pending');
+
+            $hasExistingApplication = $this->campaign->applications()
+                ->where('user_id', $viewer->id)
+                ->exists();
         }
+
+        $canApply = $viewer
+            && ! $isOwner
+            && ! $isParticipant
+            && ! $hasExistingApplication
+            && $this->campaign->visibility !== 'private';
 
         return view('livewire.campaigns.campaign-detail', [
             'campaign' => $this->campaign,
-            'isOwner' => Auth::check() && $this->campaign->owner_id === Auth::id(),
-            'isParticipant' => Auth::check() && $this->campaign->participants()
-                ->where('user_id', Auth::id())
-                ->exists(),
+            'isOwner' => $isOwner,
+            'isParticipant' => $isParticipant,
             'userInvitation' => $userInvitation,
+            'canApply' => $canApply,
+            'hasExistingApplication' => $hasExistingApplication,
         ]);
     }
 }
