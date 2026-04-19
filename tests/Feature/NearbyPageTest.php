@@ -157,14 +157,14 @@ describe('Session Grouping', function () {
         ]);
         $gameSystem = GameSystem::factory()->create(['name' => 'Test System']);
 
-        // This week session
+        // This week session (guaranteed within current week and in the future)
         Game::factory()->create([
             'location_id' => $location->id,
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
             'name' => 'This Week Game',
-            'date_time' => now()->addDays(2),
+            'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(5)),
         ]);
 
         // Coming up session (next week)

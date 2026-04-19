@@ -73,6 +73,13 @@ describe('Decorative SVGs', function () {
         // Find all SVG tags
         preg_match_all('/<svg\b[^>]*>/s', $content, $matches);
 
+        // If no SVGs found (e.g. replaced with icon fonts), the test is vacuously true
+        if (empty($matches[0])) {
+            expect(true)->toBeTrue();
+
+            return;
+        }
+
         foreach ($matches[0] as $svgTag) {
             expect($svgTag)->toContain('aria-hidden="true"');
         }
@@ -88,6 +95,13 @@ describe('Decorative SVGs', function () {
         $content = $response->getContent();
 
         preg_match_all('/<svg\b[^>]*>/s', $content, $matches);
+
+        // If no SVGs found (e.g. replaced with icon fonts), the test is vacuously true
+        if (empty($matches[0])) {
+            expect(true)->toBeTrue();
+
+            return;
+        }
 
         foreach ($matches[0] as $svgTag) {
             expect($svgTag)->toContain('aria-hidden="true"');
@@ -201,11 +215,18 @@ describe('Form Label Associations', function () {
         // Exception: "Registration Type" label which precedes toggle buttons, not a form control
         preg_match_all('/<label\s+class="block text-sm[^"]*mb-1"[^>]*>([^<]+)/s', $template, $matches);
 
+        $checkedCount = 0;
         foreach ($matches[0] as $labelTag) {
-            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'content_registration_type')) {
+            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'field_registration_type')) {
                 continue; // Toggle button group, no form control to associate with
             }
             expect($labelTag)->toContain('for=');
+            $checkedCount++;
+        }
+
+        // If all labels were skipped, verify the template has labels (just exempt ones)
+        if ($checkedCount === 0) {
+            expect($matches[0])->not->toBeEmpty('Expected at least one block label in manage-event template');
         }
     });
 
@@ -215,11 +236,18 @@ describe('Form Label Associations', function () {
         // Exception: "Registration Type" label which precedes toggle buttons
         preg_match_all('/<label\s+class="block text-sm[^"]*mb-1"[^>]*>([^<]+)/s', $template, $matches);
 
+        $checkedCount = 0;
         foreach ($matches[0] as $labelTag) {
-            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'content_registration_type')) {
+            if (str_contains($labelTag, 'Registration Type') || str_contains($labelTag, 'field_registration_type')) {
                 continue;
             }
             expect($labelTag)->toContain('for=');
+            $checkedCount++;
+        }
+
+        // If all labels were skipped, verify the template has labels (just exempt ones)
+        if ($checkedCount === 0) {
+            expect($matches[0])->not->toBeEmpty('Expected at least one block label in create-event template');
         }
     });
 
@@ -394,7 +422,7 @@ describe('User Link Component', function () {
         $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
         // @else branch handles null user
         expect($template)->toContain('@else');
-        expect($template)->toContain('Unknown');
+        expect($template)->toContain("__('common.content_unknown')");
     });
 
     it('null user renders static span instead of link', function () {

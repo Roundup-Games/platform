@@ -70,7 +70,7 @@ class PeoplePageTest extends TestCase
     {
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
-            ->assertSee("You're not following anyone yet.", false);
+            ->assertSee("You're not following anyone yet.");
     }
 
     public function test_following_tab_lists_followed_users(): void
@@ -246,7 +246,7 @@ class PeoplePageTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'blocked')
-            ->assertSee("You haven't blocked anyone", false);
+            ->assertSee("You haven't blocked anyone");
     }
 
     public function test_blocked_tab_lists_blocked_users(): void

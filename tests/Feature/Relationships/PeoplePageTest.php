@@ -73,7 +73,7 @@ describe('PeoplePage following tab', function () {
 
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
-            ->assertSee("You're not following anyone yet.", false);
+            ->assertSee("You're not following anyone yet.");
     });
 
     it('lists followed users with unfollow button', function () {
@@ -225,7 +225,7 @@ describe('PeoplePage blocked tab', function () {
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
             ->set('activeTab', 'blocked')
-            ->assertSee("You haven't blocked anyone", false);
+            ->assertSee("You haven't blocked anyone");
     });
 
     it('lists blocked users with Unblock button', function () {

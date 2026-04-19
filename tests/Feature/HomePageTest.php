@@ -80,13 +80,13 @@ describe('Living Stats', function () {
         $location = Location::factory()->create();
         $gameSystem = GameSystem::factory()->create();
 
-        // Session this week
+        // Session this week (use endOfWeek to guarantee it's both this week and future)
         Game::factory()->create([
             'location_id' => $location->id,
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'date_time' => now()->addDays(2),
+            'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(5)),
         ]);
 
         // Session next week (should not count)

@@ -408,6 +408,10 @@ describe('Game ApplyToGame', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
+        // Protected games require friend/teammate relationship for view access
+        \App\Models\UserRelationship::follow($user, $owner);
+        \App\Models\UserRelationship::follow($owner, $user);
+
         actingAs($user)
             ->get(route('games.apply', $game->id))
             ->assertOk();
@@ -450,12 +454,12 @@ describe('Game ApplyToGame', function () {
     });
 
     test('protected game application requires approval', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
-        // Manually create protected game scenario by changing visibility after mount
-        // (Protected games work the same for Livewire testing since view policy allows auth users)
-        $game->update(['visibility' => 'protected']);
+        // Protected games require friend/teammate relationship for view access
+        \App\Models\UserRelationship::follow($user, $owner);
+        \App\Models\UserRelationship::follow($owner, $user);
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
