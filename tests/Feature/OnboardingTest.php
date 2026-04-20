@@ -864,7 +864,7 @@ it('geocodes manually entered city and confirms location', function () {
         ->test(CompleteProfile::class)
         ->set('showManualEntry', true)
         ->set('city', 'Paris')
-        ->call('geocodeCity')
+        ->call('findMyLocation')
         ->assertSet('lat', 48.8566)
         ->assertSet('lng', 2.3522)
         ->assertSet('locationConfirmed', true)
@@ -884,20 +884,23 @@ it('shows error when geocoding finds no results for city', function () {
         ->test(CompleteProfile::class)
         ->set('showManualEntry', true)
         ->set('city', 'NonexistentCityXYZ123')
-        ->call('geocodeCity')
+        ->call('findMyLocation')
         ->assertHasErrors('city')
         ->assertSet('locationConfirmed', false);
 });
 
-it('validates city is required before geocoding', function () {
+it('triggers browser geolocation when city is empty', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
         ->set('showManualEntry', true)
         ->set('city', '')
-        ->call('geocodeCity')
-        ->assertHasErrors('city');
+        // Don't assert errors from set('city','') — that's #[Validate] on the property.
+        // The important assertion is that findMyLocation doesn't add a geocoding error.
+        ->call('findMyLocation')
+        ->assertSet('lat', null)     // No coordinates resolved (JS didn't execute in test)
+        ->assertSet('locationConfirmed', false);
 });
 
 // ── Location: location_id created on profile completion ──

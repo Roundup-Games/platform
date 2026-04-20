@@ -148,15 +148,53 @@ class CompleteProfile extends Component
     }
 
     /**
-     * Geocode the city input to resolve coordinates.
+     * "Find my location" action.
+     *
+     * If the user has typed a city, geocode that text.
+     * If the city field is empty, trigger browser geolocation which
+     * dispatches back via onGuestLocationUpdated() after reverse-geocoding.
      */
-    public function geocodeCity(): void
+    public function findMyLocation(): void
     {
-        $this->validateOnly('city');
+        $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
 
+        if ($query === '') {
+            // No text entered — trigger browser geolocation.
+            // The result arrives asynchronously via onGuestLocationUpdated(),
+            // which reverse-geocodes and populates the city field.
+            $this->js(<<<'JS'
+                if (window.GuestLocation) {
+                    window.GuestLocation.locateAndDispatch('onboarding').catch(err => {
+                        // Browser denied or unavailable — show manual entry hint
+                        $wire.set('showManualEntry', true);
+                        $wire.call('addGeolocationError');
+                    });
+                }
+            JS);
+
+            return;
+        }
+
+        // User typed something — geocode their text
+        $this->geocodeCityText($query);
+    }
+
+    /**
+     * Add an error when browser geolocation was denied or unavailable.
+     * Called from the JS fallback after locateAndDispatch fails.
+     */
+    public function addGeolocationError(): void
+    {
+        $this->addError('city', __('location.error_location_permission_denied'));
+    }
+
+    /**
+     * Geocode a city/address text query to resolve coordinates.
+     */
+    private function geocodeCityText(string $query): void
+    {
         try {
             $geocodingService = app(GeocodingService::class);
-            $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
             $result = $geocodingService->geocode($query);
 
             if ($result) {

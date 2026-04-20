@@ -25,6 +25,7 @@ return [
     'error_could_not_find_that_location' => 'Could not find that location. Please try a different search.',
     'error_could_not_find_this_location_city' => 'Could not find this location. Please try a different city name.',
     'error_location_lookup_failed' => 'Location lookup failed. Please try again.',
+    'error_location_permission_denied' => 'Could not detect your location. Please allow browser location access or enter your city manually.',
     'error_please_confirm_your_location_to_continue' => 'Please confirm your location to continue.',
     'placeholder_search_for_a_city_or_address' => 'Search for a city or address...',
     'placeholder_street_address_neighborhood' => 'Street address, neighborhood',

@@ -98,10 +98,10 @@
                         @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
-                    <button wire:click="geocodeCity"
+                    <button wire:click="findMyLocation"
                             class="w-full px-4 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                        <span wire:loading.remove wire:target="geocodeCity">{{ __('location.action_find_my_location') }}</span>
-                        <span wire:loading wire:target="geocodeCity">{{ __('common.content_searching') }}</span>
+                        <span wire:loading.remove wire:target="findMyLocation">{{ __('location.action_find_my_location') }}</span>
+                        <span wire:loading wire:target="findMyLocation">{{ __('common.content_searching') }}</span>
                     </button>
                 </div>
             @endif
