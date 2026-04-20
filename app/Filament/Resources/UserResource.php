@@ -103,6 +103,7 @@ class UserResource extends Resource
                                 Select::make('location_id')
                                     ->label('Location')
                                     ->relationship('linkedLocation', 'address')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->address ?? $record->city ?? ($record->latitude . ', ' . $record->longitude))
                                     ->searchable()
                                     ->preload()
                                     ->helperText('Geocoded location from profile or onboarding.'),
