@@ -60,7 +60,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <button wire:click="acceptInvite({{ $invite->id }})"
-                                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                        class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                     {{ __('common.action_accept') }}
                                 </button>
                                 <button wire:click="declineInvite({{ $invite->id }})"

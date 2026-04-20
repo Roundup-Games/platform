@@ -2,7 +2,7 @@
 @section('title', __('common.content_home'))
 
     {{-- ── Hero Section ────────────────────────────────────── --}}
-    <section class="relative bg-gradient-to-br from-primary to-primary-container text-on-primary overflow-hidden">
+    <section class="relative bg-primary text-on-primary overflow-hidden">
         {{-- Decorative background shapes --}}
         <div class="absolute inset-0 opacity-10">
             <div class="absolute top-0 right-0 w-96 h-96 bg-on-primary rounded-full -translate-y-1/2 translate-x-1/3"></div>
@@ -145,13 +145,13 @@
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 @guest
                     <a href="{{ route('register') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
+                       class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
                         {{ __('profile.action_create_free_account') }}
                     </a>
                 @else
                     <a href="{{ route('games.index') }}" wire:navigate
-                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
+                       class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">search</span>
                         {{ __('campaigns.action_browse_sessions') }}
                     </a>

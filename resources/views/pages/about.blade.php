@@ -92,7 +92,7 @@
     </section>
 
     {{-- Community CTA — warm amber gradient --}}
-    <section class="py-16 sm:py-20 bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="py-16 sm:py-20 bg-primary text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
             <h2 class="text-3xl font-heading font-bold tracking-tight">{{ __('common.action_join_our_community') }}</h2>
             <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">

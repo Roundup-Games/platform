@@ -1,6 +1,6 @@
 <div>
     {{-- ── Compact Header ────────────────────────────────────────── --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('games.action_discover_games_campaigns') }}</h1>
             <p class="mt-1 text-sm text-on-primary/80">{{ __('discovery.action_find_games_and_campaigns_that_match_your_vibe') }}</p>

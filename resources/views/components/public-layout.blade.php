@@ -73,12 +73,12 @@
                     @auth
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
-                            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
+                            <button type="submit" class="px-5 py-2.5 bg-primary text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
                                 {{ __('auth.content_log_out') }}
                             </button>
                         </form>
                     @else
-                        <a href="{{ route('register') }}" wire:navigate class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
+                        <a href="{{ route('register') }}" wire:navigate class="px-6 py-2.5 bg-primary text-on-primary font-semibold rounded-xl shadow-md active:scale-95 duration-150 text-sm">
                             {{ __('auth.content_sign_up') }}
                         </a>
                     @endauth
@@ -128,7 +128,7 @@
                                     </form>
                                 @else
                                     <a href="{{ route('login') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5">{{ __('auth.content_log_in') }}</a>
-                                    <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight font-bold bg-gradient-to-r from-primary to-primary-container text-on-primary mt-2">{{ __('auth.content_sign_up') }}</a>
+                                    <a href="{{ route('register') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight font-bold bg-primary text-on-primary mt-2">{{ __('auth.content_sign_up') }}</a>
                                 @endauth
                             </div>
                         </div>
@@ -199,8 +199,7 @@
                 </div>
             </div>
 
-            {{-- Amber gradient strip at bottom --}}
-            <div class="w-full h-2 bg-gradient-to-r from-primary via-primary-container to-secondary"></div>
+            <div class="w-full h-1 bg-primary"></div>
         </footer>
     </div>
 </body>

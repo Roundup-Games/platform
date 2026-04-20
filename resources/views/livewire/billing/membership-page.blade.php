@@ -35,7 +35,7 @@
                         </p>
                         <div class="mt-3">
                             <a href="{{ route('billing.portal') }}" wire:navigate
-                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                 {{ __('billing.action_manage_subscription') }}
                             </a>
                         </div>
@@ -90,7 +90,7 @@
                                 {{-- Popular Badge --}}
                                 @if($plan->metadata['popular'] ?? false)
                                     <div class="absolute -top-3 left-1/2 -translate-x-1/2">
-                                        <span class="px-3 py-1 bg-gradient-to-r from-primary to-primary-container text-on-primary text-xs font-bold rounded-full tracking-wide">{{ __('billing.content_best_value') }}</span>
+                                        <span class="px-3 py-1 bg-primary text-on-primary text-xs font-bold rounded-full tracking-wide">{{ __('billing.content_best_value') }}</span>
                                     </div>
                                 @endif
 
@@ -131,7 +131,7 @@
                                         <button wire:click="initiateCheckout({{ $plan->id }})"
                                                 class="w-full px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all active:scale-95
                                                     {{ ($plan->metadata['popular'] ?? false)
-                                                        ? 'bg-gradient-to-r from-primary to-primary-container text-on-primary shadow-ambient hover:brightness-110'
+                                                        ? 'bg-primary text-on-primary shadow-ambient hover:brightness-110'
                                                         : 'border border-primary text-primary hover:bg-primary hover:text-on-primary' }}">
                                             {{ __('billing.action_get_plan', ['plan' => $plan->name]) }}
                                         </button>

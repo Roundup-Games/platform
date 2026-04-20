@@ -3,13 +3,13 @@
 namespace App\Livewire\Onboarding;
 
 use App\Enums\ContentLanguage;
-use App\Models\GameSystem;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -17,6 +17,14 @@ use Livewire\Component;
 class CompleteProfile extends Component
 {
     use HasGuestLocation;
+
+    #[On('selection-changed')]
+    public function onSelectionChanged(string $preferenceType, array $selectedIds): void
+    {
+        if ($preferenceType === 'favorite') {
+            $this->favoriteGameSystemIds = $selectedIds;
+        }
+    }
 
     public int $step = 1;
 
@@ -239,9 +247,7 @@ class CompleteProfile extends Component
 
     public function render()
     {
-        return view('livewire.onboarding.complete-profile', [
-            'gameSystems' => GameSystem::orderBy('name')->get(),
-        ]);
+        return view('livewire.onboarding.complete-profile');
     }
 
     /**

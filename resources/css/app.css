@@ -178,12 +178,39 @@
     *:focus {
         --tw-ring-color: rgb(var(--rgb-primary));
     }
+
+    /* Form inputs: override @tailwindcss/forms white background for dark mode */
+    .dark {
+        input[type="text"],
+        input[type="email"],
+        input[type="url"],
+        input[type="password"],
+        input[type="number"],
+        input[type="date"],
+        input[type="datetime-local"],
+        input[type="month"],
+        input[type="search"],
+        input[type="tel"],
+        input[type="time"],
+        input[type="week"],
+        select,
+        textarea {
+            background-color: rgb(var(--rgb-surface-container-high));
+            border-color: rgb(var(--rgb-outline-variant));
+            color: rgb(var(--rgb-on-surface));
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: rgb(var(--rgb-on-surface-variant));
+        }
+    }
 }
 
 @layer components {
     /* Primary button */
     .btn-brand {
-        @apply inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container border border-transparent rounded-xl font-heading font-semibold text-sm text-on-primary tracking-tight hover:brightness-110 active:brightness-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
+        @apply inline-flex items-center justify-center px-5 py-2.5 bg-primary border border-transparent rounded-xl font-heading font-semibold text-sm text-on-primary tracking-tight hover:brightness-110 active:brightness-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150;
     }
 
     /* Secondary outline button */

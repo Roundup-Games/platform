@@ -14,7 +14,7 @@
                     {{ __('events.content_back_to_event') }}
                 </a>
                 <button wire:click="showCreateForm"
-                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium inline-flex items-center gap-1">
+                        class="px-4 py-2 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium inline-flex items-center gap-1">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                     {{ __('events.content_new_announcement') }}
                 </button>
@@ -130,7 +130,7 @@
 
                 <div class="flex items-center gap-3 pt-2">
                     <button wire:click="save" wire:loading.attr="disabled"
-                            class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                            class="px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
                         <span wire:loading.remove>{{ $editingId ? __('common.field_update') : __('common.action_create') }} {{ __('events.content_announcement') }}</span>
                         <span wire:loading>{{ __('common.content_saving') }}</span>
                     </button>

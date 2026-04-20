@@ -221,7 +221,7 @@
                                         <div class="mt-2 pt-2 border-t border-outline-variant/30">
                                             <textarea wire:model="internalNotes" rows="2" placeholder="{{ __('common.content_internal_notes_visible_only_to_organizers') }}"
                                                 class="w-full bg-surface-container-high border border-transparent rounded text-on-surface text-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20"></textarea>
-                                            <button wire:click="saveInternalNotes('{{ $registration->id }}')" class="mt-1 text-xs px-2 py-1 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded hover:opacity-90 transition-opacity">
+                                            <button wire:click="saveInternalNotes('{{ $registration->id }}')" class="mt-1 text-xs px-2 py-1 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
                                                 {{ __('common.field_save_notes') }}
                                             </button>
                                         </div>

@@ -2,7 +2,7 @@
 @section('title', __('pages.content_how_it_works'))
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
-    <section class="relative bg-gradient-to-br from-primary to-primary-container text-on-primary overflow-hidden">
+    <section class="relative bg-primary text-on-primary overflow-hidden">
         <div class="absolute inset-0 opacity-10">
             <div class="absolute top-0 right-0 w-72 h-72 bg-on-primary rounded-full -translate-y-1/2 translate-x-1/3"></div>
             <div class="absolute bottom-0 left-0 w-56 h-56 bg-on-primary rounded-full translate-y-1/2 -translate-x-1/3"></div>
@@ -184,7 +184,7 @@
     </section>
 
     {{-- ── CTA Section ──────────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="py-16 sm:py-20 bg-primary text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
                 {{ __('common.content_ready_to_find_your_table') }}

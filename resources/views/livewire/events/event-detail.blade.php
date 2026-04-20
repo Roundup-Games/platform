@@ -10,7 +10,7 @@
     </div>
 
     {{-- Event Header / Banner --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
@@ -262,11 +262,11 @@
                     <div class="mt-6">
                         @if($event->isRegistrationOpen() && $event->hasCapacity())
                             @auth
-                                <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate class="block w-full text-center px-4 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium">
+                                <a href="{{ route('events.register', ['slug' => $event->slug]) }}" wire:navigate class="block w-full text-center px-4 py-3 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium">
                                     {{ __('events.action_register_now') }}
                                 </a>
                             @else
-                                <a href="{{ route('login') }}" wire:navigate class="block w-full text-center px-4 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium">
+                                <a href="{{ route('login') }}" wire:navigate class="block w-full text-center px-4 py-3 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium">
                                     {{ __('auth.content_sign_in_to_register') }}
                                 </a>
                             @endauth

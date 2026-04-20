@@ -52,7 +52,7 @@
                     </select>
                 </div>
                 <button wire:click="inviteMember" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium whitespace-nowrap">
+                        class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium whitespace-nowrap">
                     <span wire:loading.remove>{{ __('teams.field_send_invite') }}</span>
                     <span wire:loading>{{ __('common.content_sending') }}</span>
                 </button>

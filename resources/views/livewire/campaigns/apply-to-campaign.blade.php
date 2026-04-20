@@ -10,7 +10,7 @@
     </div>
 
     {{-- Campaign Header / Banner --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
             <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $campaign->name }}</h1>
             @if($campaign->gameSystem)
@@ -41,7 +41,7 @@
                         {{ __('campaigns.content_you_have_already_applied_to_this_campaign') }}
                     @endif
                 </p>
-                <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
                     {{ __('campaigns.action_view_campaign') }}
                 </a>
@@ -85,7 +85,7 @@
                     </div>
 
                     <button type="submit"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                         @if($campaign->visibility === 'public')
                             {{ __('campaigns.action_join_campaign') }}

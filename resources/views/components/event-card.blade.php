@@ -11,8 +11,8 @@ $hasFallback = !$hasTranslationRow && $event->name !== null;
 
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden hover:shadow-ambient-md transition-shadow duration-200">
     <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block">
-        {{-- Card Header: gradient overlay on primary --}}
-        <div class="relative bg-gradient-to-br from-primary to-primary-container px-4 py-3">
+        {{-- Card Header --}}
+        <div class="relative bg-primary px-4 py-3">
             <div class="flex items-center justify-between">
                 @if($event->is_featured)
                     <span class="inline-flex items-center gap-1 text-xs font-medium text-primary-fixed">

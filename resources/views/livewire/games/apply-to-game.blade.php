@@ -10,7 +10,7 @@
     </div>
 
     {{-- Game Header / Banner --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
             <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $game->name }}</h1>
             @if($game->gameSystem)
@@ -41,7 +41,7 @@
                         {{ __('games.content_you_have_already_applied_to_this_game') }}
                     @endif
                 </p>
-                <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
                     {{ __('games.action_view_game') }}
                 </a>
@@ -85,7 +85,7 @@
                     </div>
 
                     <button type="submit"
-                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                         @if($game->visibility === 'public')
                             {{ __('games.action_join_game') }}

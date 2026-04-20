@@ -308,6 +308,10 @@ return [
     // Activity feed
     'activity_and_others' => 'and :count others',
 
+    // Onboarding
+    'content_this_step_is_optional' => 'This step is optional — you can always update your preferences later.',
+    'content_step_optional_badge' => 'Optional',
+
     // Authorization
     'status_not_authorized' => 'Not Authorized',
 ];

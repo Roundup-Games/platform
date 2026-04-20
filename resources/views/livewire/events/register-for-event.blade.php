@@ -10,7 +10,7 @@
     </div>
 
     {{-- Header --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <h1 class="text-2xl sm:text-3xl font-heading font-bold tracking-tight">{{ __('events.action_register_for_event') }}</h1>
             <p class="mt-2 text-on-primary/80">{{ $event->name }}</p>
@@ -185,7 +185,7 @@
                     {{ __('common.action_cancel') }}
                 </a>
                 <button type="submit"
-                    class="px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="px-6 py-3 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                     {{ $this->effectiveFee > 0 ? __('billing.action_proceed_to_payment') : __('events.content_complete_registration') }}
                 </button>
             </div>

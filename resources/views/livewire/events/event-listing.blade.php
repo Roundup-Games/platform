@@ -75,7 +75,7 @@ $locale = app()->getLocale();
                     <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         {{-- Featured indicator --}}
                         @if($event->is_featured)
-                            <div class="h-1.5 bg-gradient-to-r from-primary to-primary-container"></div>
+                            <div class="h-1.5 bg-primary"></div>
                         @else
                             <div class="h-1.5 bg-outline-variant/30"></div>
                         @endif

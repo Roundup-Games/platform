@@ -56,7 +56,7 @@
                     @enderror
                 </div>
                 <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
                     {{ __('teams.field_send_invite') }}
                 </button>

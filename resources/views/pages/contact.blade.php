@@ -66,7 +66,7 @@
                         </div>
 
                         <button type="submit"
-                            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm">
+                            class="inline-flex items-center px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold hover:brightness-110 transition-all text-sm">
                             <span class="material-symbols-outlined mr-2 text-base" aria-hidden="true">mail</span>
                             {{ __('common.field_send_message') }}
                         </button>

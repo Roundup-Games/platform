@@ -8,7 +8,7 @@
             </div>
             @auth
                 <a href="{{ route('teams.create') }}" wire:navigate
-                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">add</span>
                     {{ __('teams.action_create_team') }}
                 </a>

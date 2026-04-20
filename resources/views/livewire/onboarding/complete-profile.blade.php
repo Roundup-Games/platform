@@ -47,7 +47,7 @@
 
                     <div class="flex gap-3">
                         <button wire:click="confirmLocation"
-                                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                                class="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
                             {{ __('common.content_yes_that_s_right') }}
                         </button>
                         <button wire:click="editLocation"
@@ -85,7 +85,7 @@
                             {{ __('location.field_city') }} <span class="text-error">*</span>
                         </label>
                         <input type="text" id="city" wire:model="city" placeholder="{{ __('location.field_enter_your_city') }}"
-                               class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -94,12 +94,12 @@
                             {{ __('location.field_address') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                         </label>
                         <input type="text" id="address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
-                               class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
+                               class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('address') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <button wire:click="geocodeCity"
-                            class="w-full px-4 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                            class="w-full px-4 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
                         <span wire:loading.remove wire:target="geocodeCity">{{ __('location.action_find_my_location') }}</span>
                         <span wire:loading wire:target="geocodeCity">{{ __('common.content_searching') }}</span>
                     </button>
@@ -122,7 +122,7 @@
                         {{ __('common.field_gender') }} <span class="text-error">*</span>
                     </label>
                     <select id="gender" wire:model="gender"
-                            class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary">
+                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="male">{{ __('common.content_male') }}</option>
                         <option value="female">{{ __('common.content_female') }}</option>
@@ -138,7 +138,7 @@
                         {{ __('profile.content_pronouns') }} <span class="text-error">*</span>
                     </label>
                     <select id="pronouns" wire:model="pronouns"
-                            class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary">
+                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
                         <option value="">{{ __('common.content_select') }}</option>
                         <option value="he/him">{{ __('common.content_he_him') }}</option>
                         <option value="she/her">{{ __('common.content_she_her') }}</option>
@@ -165,45 +165,36 @@
                     {{ __('common.field_phone_number') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                 </label>
                 <input type="tel" id="phone" wire:model="phone" placeholder="+1 (555) 000-0000"
-                       class="w-full rounded-md border-outline-variant/30 shadow-sm focus:border-primary focus:ring-primary" />
+                       class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                 @error('phone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
         @endif
 
         <!-- Step 4: Game Preferences -->
         @if($step === 4)
-            <h2 class="text-xl font-heading font-semibold text-on-surface mb-1">
-                {{ __('games.heading_game_preferences') }}
-            </h2>
+            <div class="flex items-center gap-3 mb-1">
+                <h2 class="text-xl font-heading font-semibold text-on-surface">
+                    {{ __('games.heading_game_preferences') }}
+                </h2>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant/30">
+                    {{ __('common.content_step_optional_badge') }}
+                </span>
+            </div>
             <p class="text-sm text-on-surface-variant mb-6">
-                {{ __("events.content_select_the_games_you_enjoy") }}
+                {{ __('events.content_select_the_games_you_enjoy') }}
             </p>
 
-            <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
-                @foreach($gameSystems as $gameSystem)
-                    <label class="flex items-center space-x-3 p-3 rounded-xl hover:bg-surface-container-low cursor-pointer transition-colors">
-                        <input type="checkbox"
-                               value="{{ $gameSystem->id }}"
-                               wire:model="favoriteGameSystemIds"
-                               class="rounded border-outline-variant text-primary focus:ring-primary" />
-                        <div>
-                            <span class="text-sm font-medium text-on-surface">{{ $gameSystem->name }}</span>
-                            @if($gameSystem->description)
-                                <p class="text-xs text-on-surface-variant line-clamp-1">{{ Str::limit($gameSystem->description, 80) }}</p>
-                            @endif
-                        </div>
-                    </label>
-                @endforeach
+            <livewire:components.game-system-preference-picker
+                :wire:key="'onboarding-favorite-picker'"
+                preferenceType="favorite"
+                :selectedIds="$favoriteGameSystemIds"
+                :conflictIds="[]"
+            />
 
-                @if($gameSystems->isEmpty())
-                    <p class="text-sm text-on-surface-variant italic py-4 text-center">
-                        {{ __('games.content_no_game_systems_available_yet') }}
-                    </p>
-                @endif
-            </div>
+            @error('favoriteGameSystemIds') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
 
             <p class="mt-4 text-xs text-on-surface-variant">
-                {{ trans_choice('common.content_count_selected', count($this->favoriteGameSystemIds)) }}
+                {{ __('common.content_this_step_is_optional') }}
             </p>
         @endif
 
@@ -221,13 +212,13 @@
 
             @if($step < 4)
                 <button wire:click="nextStep"
-                        class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                        class="px-6 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
                     {{ __('common.action_continue') }}
                 </button>
             @else
                 <div class="flex items-center gap-3">
                     <button wire:click="complete" wire:loading.attr="disabled"
-                            class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
+                            class="px-6 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
                         <span wire:loading.remove>{{ __('profile.content_complete_profile') }}</span>
                         <span wire:loading>{{ __('common.content_saving') }}</span>
                     </button>

@@ -497,7 +497,7 @@
     {{-- Save Button --}}
     <div class="flex items-center gap-4">
         <button wire:click="save" wire:loading.attr="disabled"
-                class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
+                class="px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 transition-opacity text-sm font-medium">
             <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
             <span wire:loading>{{ __('common.content_saving') }}</span>
         </button>

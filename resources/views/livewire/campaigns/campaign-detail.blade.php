@@ -17,7 +17,7 @@
     </div>
 
     {{-- Campaign Header / Banner --}}
-    <section class="bg-gradient-to-br from-primary to-primary-container text-on-primary">
+    <section class="bg-primary text-on-primary">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
@@ -115,7 +115,7 @@
                         <p class="mt-1 text-sm text-on-surface-variant">{{ __('people.content_you_have_been_invited') }}</p>
                         <div class="mt-4 flex gap-3">
                             <button wire:click="acceptInvitation('{{ $userInvitation->id }}')"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
                                 {{ __('common.action_accept') }}
                             </button>
@@ -225,7 +225,7 @@
                         </div>
                         <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}"
                            wire:navigate
-                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                             <span class="material-symbols-outlined text-base" aria-hidden="true">
                                 @if($campaign->visibility === 'public')
                                     login

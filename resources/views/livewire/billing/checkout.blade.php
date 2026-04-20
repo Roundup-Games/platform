@@ -42,7 +42,7 @@
 
             <div class="mt-6">
                 <button wire:click="checkout"
-                        class="w-full px-4 py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-semibold tracking-wide">
+                        class="w-full px-4 py-3 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-semibold tracking-wide">
                     {{ __('billing.action_proceed_to_payment') }}
                 </button>
             </div>

@@ -80,7 +80,7 @@
         {{-- Actions --}}
         <div class="flex items-center gap-4">
             <button wire:click="save" wire:loading.attr="disabled"
-                    class="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                    class="px-6 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                 <span wire:loading.remove>{{ __('teams.action_create_team') }}</span>
                 <span wire:loading>{{ __('common.content_creating') }}</span>
             </button>

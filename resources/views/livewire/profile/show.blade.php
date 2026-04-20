@@ -281,7 +281,7 @@
             {{-- Save Button --}}
             <div class="pt-2">
                 <button type="submit" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                        class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                     <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
                     <span wire:loading>{{ __('common.content_saving') }}</span>
                 </button>
@@ -393,7 +393,7 @@
 
             <div class="pt-2">
                 <button type="submit" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                        class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                     <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
                     <span wire:loading>{{ __('common.content_saving') }}</span>
                 </button>
@@ -445,7 +445,7 @@
 
                     <div class="flex items-center gap-3 pt-2">
                         <button type="submit" wire:loading.attr="disabled"
-                                class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                             <span wire:loading.remove>{{ $userHasPassword ? __('auth.field_update_password') : __('auth.field_set_password') }}</span>
                             <span wire:loading>{{ $userHasPassword ? __('common.content_updating') : __('profile.content_setting') }}</span>
                         </button>

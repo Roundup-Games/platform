@@ -65,7 +65,7 @@
                     <div class="flex flex-wrap gap-3 pt-2">
                         @if($subscription->onGracePeriod())
                             <button wire:click="resumeSubscription" wire:confirm="{{ __('billing.flash_are_you_sure_you_want_to_resume_your_subscription') }}"
-                                    class="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                    class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                 {{ __('billing.action_resume_subscription') }}
                             </button>
                         @else
@@ -112,7 +112,7 @@
                             <div class="mt-auto pt-4">
                                 @if($plan->paddle_price_id)
                                     <a href="{{ route('billing.checkout', ['planId' => $plan->id]) }}" wire:navigate
-                                       class="block w-full text-center px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                       class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                         {{ __('common.content_subscribe') }}
                                     </a>
                                 @else
