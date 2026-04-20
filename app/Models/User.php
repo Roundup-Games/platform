@@ -69,6 +69,25 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         ];
     }
 
+    // ── Avatar ─────────────────────────────────────────
+
+    /**
+     * Resolve avatar URL: media library upload first, then fallback to DB column (OAuth).
+     */
+    protected function avatarUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function (?string $value) {
+                $media = $this->getFirstMedia('avatar');
+                if ($media) {
+                    return $media->getUrl();
+                }
+
+                return $value;
+            },
+        );
+    }
+
     // ── Relationships ──────────────────────────────────
 
     public function linkedAccounts()
@@ -312,7 +331,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     {
         $this->addMediaCollection('avatar')
             ->singleFile()
-            ->acceptMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
     }
 
     public function registerMediaConversions(?Media $media = null): void
