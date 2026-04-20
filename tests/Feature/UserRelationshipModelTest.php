@@ -134,6 +134,9 @@ class UserRelationshipModelTest extends TestCase
                     && isset($context['target_id']);
             });
 
+        // Allow cache invalidation debug logs
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
+
         $user = User::factory()->create();
         $target = User::factory()->create();
 
@@ -286,6 +289,9 @@ class UserRelationshipModelTest extends TestCase
                     && isset($context['user_id'])
                     && isset($context['target_id']);
             });
+
+        // Allow cache invalidation debug logs
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $user = User::factory()->create();
         $target = User::factory()->create();

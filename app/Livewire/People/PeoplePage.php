@@ -5,6 +5,9 @@ namespace App\Livewire\People;
 use App\Enums\RelationshipType;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\PeopleDiscoveryService;
+use App\Traits\HasGuestLocation;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -16,6 +19,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class PeoplePage extends Component
 {
+    use HasGuestLocation;
     use WithPagination;
 
     #[Url(as: 'tab')]
@@ -61,6 +65,61 @@ class PeoplePage extends Component
             ->with('related')
             ->latest()
             ->paginate(12, ['*'], 'blocked_page');
+    }
+
+    #[Computed]
+    public function nearbyUsers(): array
+    {
+        // Resolve viewer location: prefer linked location, fall back to guest location
+        $lat = null;
+        $lng = null;
+
+        $location = $this->authUser->linkedLocation;
+        if ($location && $location->latitude && $location->longitude) {
+            $lat = (float) $location->latitude;
+            $lng = (float) $location->longitude;
+        }
+
+        if ($lat === null || $lng === null) {
+            $lat = $this->guestLat;
+            $lng = $this->guestLng;
+        }
+
+        $service = app(PeopleDiscoveryService::class);
+        $response = $service->discover($this->authUser, $lat, $lng);
+
+        /** @var LengthAwarePaginator $paginator */
+        $paginator = $response['results'];
+
+        // Convert paginator items to plain arrays (user_id instead of User model)
+        // to prevent Livewire serialization failures with Eloquent models
+        $items = collect($paginator->items())->map(fn (array $item) => [
+            'user_id' => $item['user']->id,
+            'compatibility_score' => $item['compatibility_score'],
+            'match_reasons' => $item['match_reasons'],
+            'tier' => $item['tier'],
+            'distance_km' => $item['distance_km'],
+        ])->all();
+
+        $serializablePaginator = new LengthAwarePaginator(
+            $items,
+            $paginator->total(),
+            $paginator->perPage(),
+            $paginator->currentPage(),
+            ['path' => $paginator->path()],
+        );
+
+        return [
+            'results' => $serializablePaginator,
+            'status' => $response['status'],
+            'noLocation' => $response['status'] === 'no_location',
+        ];
+    }
+
+    #[Computed]
+    public function nearbyCount(): int
+    {
+        return $this->nearbyUsers['results']->total();
     }
 
     // ── Follow Stats ─────────────────────────────────
@@ -140,6 +199,22 @@ class PeoplePage extends Component
         unset($this->blockedUsers, $this->blockedCount);
 
         session()->flash('success', 'You unblocked ' . $target->name . '.');
+    }
+
+    public function followFromNearby(int $userId): void
+    {
+        $target = User::find($userId);
+        if (! $target || $target->is($this->authUser)) {
+            return;
+        }
+
+        UserRelationship::follow($this->authUser, $target);
+
+        // Invalidate discovery cache and refresh nearby results
+        PeopleDiscoveryService::invalidateCacheFor($this->authUser->id);
+        unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
+
+        session()->flash('success', 'You are now following ' . $target->name . '.');
     }
 
     // ── Helpers ──────────────────────────────────────

@@ -24,4 +24,18 @@ return [
     'flash_confirm_decline_invitation' => 'Are you sure you want to decline this invitation?',
     'flash_friends_invited' => '{1} :count friend invited.|[2,*] :count friends invited.',
     'flash_invitation_accepted' => 'Invitation accepted! You\'re now a participant.',
+
+    // Nearby tab
+    'tab_nearby' => 'Nearby',
+    'nearby_in_your_area' => 'In your area',
+    'nearby_distance_label' => 'Nearby — ~:distance km',
+    'nearby_compatibility' => ':percent% match',
+    'nearby_reason_shared_game_systems' => 'Shared game systems',
+    'nearby_reason_shared_vibes' => 'Shared vibes',
+    'nearby_reason_shared_teams' => 'Shared team',
+    'nearby_reason_mutual_follow' => 'Mutual connection',
+    'nearby_reason_nearby' => 'Nearby player',
+    'nearby_no_location' => 'Set your location to discover nearby players.',
+    'nearby_no_results' => 'No nearby players found yet. Try expanding your search area.',
+    'nearby_action_set_location' => 'Set Location',
 ];

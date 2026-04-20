@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RelationshipType;
+use App\Services\PeopleDiscoveryService;
 use Database\Factories\UserRelationshipFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -47,13 +48,18 @@ class UserRelationship extends Model
             'action' => 'follow',
         ]);
 
-        return static::firstOrCreate(
+        $rel = static::firstOrCreate(
             [
                 'user_id' => $initiator->id,
                 'related_user_id' => $target->id,
                 'type' => RelationshipType::Follow,
             ],
         );
+
+        // Invalidate discovery caches — initiator's candidate pool changed
+        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+
+        return $rel;
     }
 
     /**
@@ -68,10 +74,16 @@ class UserRelationship extends Model
             'action' => 'unfollow',
         ]);
 
-        return static::where('user_id', $initiator->id)
+        $deleted = static::where('user_id', $initiator->id)
             ->where('related_user_id', $target->id)
             ->where('type', RelationshipType::Follow)
             ->delete() > 0;
+
+        if ($deleted) {
+            PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+        }
+
+        return $deleted;
     }
 
     /**
@@ -97,13 +109,19 @@ class UserRelationship extends Model
             'action' => 'block',
         ]);
 
-        return static::firstOrCreate(
+        $rel = static::firstOrCreate(
             [
                 'user_id' => $initiator->id,
                 'related_user_id' => $target->id,
                 'type' => RelationshipType::Block,
             ],
         );
+
+        // Invalidate discovery caches for both users
+        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+        PeopleDiscoveryService::invalidateCacheFor($target->id);
+
+        return $rel;
     }
 
     /**
@@ -118,9 +136,17 @@ class UserRelationship extends Model
             'action' => 'unblock',
         ]);
 
-        return static::where('user_id', $initiator->id)
+        $deleted = static::where('user_id', $initiator->id)
             ->where('related_user_id', $target->id)
             ->where('type', RelationshipType::Block)
             ->delete() > 0;
+
+        if ($deleted) {
+            // Both users' candidate pools change after unblock
+            PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+            PeopleDiscoveryService::invalidateCacheFor($target->id);
+        }
+
+        return $deleted;
     }
 }

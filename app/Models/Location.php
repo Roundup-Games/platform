@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Geohash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,6 +20,7 @@ class Location extends Model
         'country',
         'latitude',
         'longitude',
+        'geohash_4',
         'place_id',
         'source',
         'metadata',
@@ -31,6 +33,21 @@ class Location extends Model
             'longitude' => 'decimal:7',
             'metadata' => 'array',
         ];
+    }
+
+    // ── Model Events ───────────────────────────────────
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $location) {
+            if ($location->latitude && $location->longitude) {
+                $location->geohash_4 = Geohash::tilePrefix(
+                    (float) $location->latitude,
+                    (float) $location->longitude,
+                    4
+                );
+            }
+        });
     }
 
     // ── Relationships ──────────────────────────────────
