@@ -2,21 +2,29 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ContentLanguage;
 use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\RelationManagers\LinkedAccountsRelationManager;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class UserResource extends Resource
 {
@@ -57,10 +65,22 @@ class UserResource extends Resource
                                     ]),
                                 TextInput::make('pronouns')
                                     ->maxLength(50),
+                                Select::make('preferred_language')
+                                    ->label('Preferred Language')
+                                    ->options(
+                                        collect(ContentLanguage::cases())->mapWithKeys(
+                                            fn(ContentLanguage $lang) => [$lang->value => $lang->label()]
+                                        )
+                                    ),
+                                TextInput::make('avatar_url')
+                                    ->label('Avatar URL')
+                                    ->url()
+                                    ->maxLength(500)
+                                    ->helperText('External avatar URL. Managed via media library on the profile page.'),
                             ]),
                     ]),
 
-                Section::make('Account')
+                Section::make('Account Status')
                     ->schema([
                         Grid::make(2)
                             ->schema([
@@ -68,14 +88,56 @@ class UserResource extends Resource
                                     ->label('Email Verified At'),
                                 Toggle::make('profile_complete')
                                     ->label('Profile Complete'),
+                                Placeholder::make('password_status')
+                                    ->label('Password Set')
+                                    ->content(fn(?User $record): string => $record?->hasPasswordSet() ? 'Yes' : 'No (OAuth only)'),
+                                Placeholder::make('password_set_at')
+                                    ->label('Password Set At')
+                                    ->content(fn(?User $record): string => $record?->password_set_at?->format('M j, Y H:i') ?? '—'),
+                            ]),
+                        Grid::make(2)
+                            ->schema([
+                                Toggle::make('can_create_public_entries')
+                                    ->label('Can create public entries')
+                                    ->helperText('Allow this user to create public game sessions and campaigns visible to everyone. Without this, entries default to private.'),
+                                Select::make('location_id')
+                                    ->label('Location')
+                                    ->relationship('linkedLocation', 'address')
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText('Geocoded location from profile or onboarding.'),
                             ]),
                     ]),
 
-                Section::make('Permissions')
+                Section::make('Access Control')
                     ->schema([
-                        Toggle::make('can_create_public_entries')
-                            ->label('Can create public entries')
-                            ->helperText('Allow this user to create public game sessions and campaigns visible to everyone. Without this, entries default to private.'),
+                        Toggle::make('is_disabled')
+                            ->label('Disable Account')
+                            ->reactive()
+                            ->helperText('Disabled users are immediately logged out and cannot log back in. Their content remains visible but they lose all access.'),
+                        DateTimePicker::make('disabled_at')
+                            ->label('Disabled At')
+                            ->visible(fn(callable $get): bool => (bool) $get('is_disabled'))
+                            ->helperText('Automatically set when account is disabled.'),
+                    ]),
+
+                Section::make('Audit Metadata')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                Placeholder::make('created_at')
+                                    ->label('Created At')
+                                    ->content(fn(?User $record): string => $record?->created_at?->format('M j, Y H:i') ?? '—'),
+                                Placeholder::make('updated_at')
+                                    ->label('Updated At')
+                                    ->content(fn(?User $record): string => $record?->updated_at?->format('M j, Y H:i') ?? '—'),
+                                Placeholder::make('profile_updated_at')
+                                    ->label('Profile Updated At')
+                                    ->content(fn(?User $record): string => $record?->profile_updated_at?->format('M j, Y H:i') ?? '—'),
+                                Placeholder::make('profile_version')
+                                    ->label('Profile Version')
+                                    ->content(fn(?User $record): string => (string) ($record?->profile_version ?? '—')),
+                            ]),
                     ]),
 
                 Section::make('Roles')
@@ -107,6 +169,18 @@ class UserResource extends Resource
                 IconColumn::make('profile_complete')
                     ->label('Profile')
                     ->boolean(),
+                IconColumn::make('is_disabled')
+                    ->label('Disabled')
+                    ->boolean()
+                    ->trueIcon(Heroicon::OutlinedLockClosed)
+                    ->falseIcon(Heroicon::OutlinedLockOpen)
+                    ->trueColor('danger')
+                    ->falseColor('success')
+                    ->sortable(),
+                TextColumn::make('preferred_language')
+                    ->label('Language')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('can_create_public_entries')
                     ->label('Public entries')
                     ->boolean()
@@ -122,10 +196,69 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TernaryFilter::make('is_disabled')
+                    ->label('Disabled')
+                    ->placeholder('All users')
+                    ->trueLabel('Disabled only')
+                    ->falseLabel('Active only'),
+                TernaryFilter::make('email_verified_at')
+                    ->label('Email Verified')
+                    ->placeholder('All users')
+                    ->trueLabel('Verified only')
+                    ->falseLabel('Unverified only')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereNotNull('email_verified_at'),
+                        false: fn(Builder $query) => $query->whereNull('email_verified_at'),
+                        blank: fn(Builder $query) => $query,
+                    ),
+                TernaryFilter::make('profile_complete')
+                    ->label('Profile Complete'),
+                SelectFilter::make('preferred_language')
+                    ->label('Language')
+                    ->options(
+                        collect(ContentLanguage::cases())->mapWithKeys(
+                            fn(ContentLanguage $lang) => [$lang->value => $lang->label()]
+                        )
+                    ),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make(),
+                Action::make('disable')
+                    ->label('Disable')
+                    ->icon(Heroicon::OutlinedLockClosed)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Disable User Account')
+                    ->modalDescription('This user will be immediately logged out and cannot log back in. Their data will be preserved.')
+                    ->visible(fn(User $record): bool => !$record->is_disabled)
+                    ->action(function (User $record) {
+                        $record->update([
+                            'is_disabled' => true,
+                            'disabled_at' => now(),
+                        ]);
+                        Log::warning('User account disabled via admin panel', [
+                            'user_id' => $record->id,
+                            'disabled_by' => auth()->id(),
+                        ]);
+                    }),
+                Action::make('enable')
+                    ->label('Re-enable')
+                    ->icon(Heroicon::OutlinedLockOpen)
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Re-enable User Account')
+                    ->modalDescription('This user will be able to log in again.')
+                    ->visible(fn(User $record): bool => $record->is_disabled)
+                    ->action(function (User $record) {
+                        $record->update([
+                            'is_disabled' => false,
+                            'disabled_at' => null,
+                        ]);
+                        Log::info('User account re-enabled via admin panel', [
+                            'user_id' => $record->id,
+                            'enabled_by' => auth()->id(),
+                        ]);
+                    }),
             ])
             ->toolbarActions([
                 \Filament\Actions\BulkActionGroup::make([
@@ -137,7 +270,7 @@ class UserResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            LinkedAccountsRelationManager::class,
         ];
     }
 
