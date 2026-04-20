@@ -272,11 +272,27 @@
                 {{-- Complexity Range --}}
                 <div class="flex items-center gap-3">
                     <span class="text-sm text-on-surface-variant">{{ __('games.content_complexity') }}</span>
-                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_min" placeholder="{{ __('common.field_min') }}" aria-label="{{ __('games.field_minimum_complexity') }}"
-                           class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
-                    <span class="text-on-surface-variant">–</span>
-                    <input type="number" min="1" max="5" step="0.5" wire:model.live="complexity_max" placeholder="{{ __('common.field_max') }}" aria-label="{{ __('games.field_maximum_complexity') }}"
-                           class="w-20 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                    <div class="flex items-center gap-2 flex-1 max-w-xs">
+                        <input type="range" min="1" max="5" step="0.5"
+                               value="{{ $complexity_min ?? 1 }}"
+                               wire:change="$set('complexity_min', $event.target.value <= 1 ? null : $event.target.value)"
+                               aria-label="{{ __('games.field_minimum_complexity') }}"
+                               class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
+                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
+                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                        <span class="text-on-surface-variant text-sm">–</span>
+                        <input type="range" min="1" max="5" step="0.5"
+                               value="{{ $complexity_max ?? 5 }}"
+                               wire:change="$set('complexity_max', $event.target.value >= 5 ? null : $event.target.value)"
+                               aria-label="{{ __('games.field_maximum_complexity') }}"
+                               class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
+                                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
+                                      [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                    </div>
+                    <div class="flex justify-between w-full max-w-xs mt-0.5">
+                        <span class="text-[10px] text-on-surface-variant">{{ __('games.content_weight_light') }}</span>
+                        <span class="text-[10px] text-on-surface-variant">{{ __('games.content_weight_heavy') }}</span>
+                    </div>
                 </div>
             </div>
         </div>

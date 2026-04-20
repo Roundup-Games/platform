@@ -62,34 +62,60 @@
 
             {{-- Inline controls: player count, complexity, expansions toggle --}}
             <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-primary uppercase tracking-wide">{{ __('games.field_player_count') }}</span>
-                    <input type="number" min="1" max="20"
-                           wire:model.live="min_players"
-                           placeholder="{{ __('common.field_min') }}"
-                           aria-label="{{ __('common.field_minimum_players') }}"
-                           class="w-16 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center py-1 shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
-                    <span class="text-on-surface-variant text-sm">–</span>
-                    <input type="number" min="1" max="20"
-                           wire:model.live="max_players"
-                           placeholder="{{ __('common.field_max') }}"
-                           aria-label="{{ __('common.field_maximum_players') }}"
-                           class="w-16 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center py-1 shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                {{-- Player count slider --}}
+                <div class="flex items-center gap-3 min-w-[200px]">
+                    <span class="text-xs font-bold text-primary uppercase tracking-wide whitespace-nowrap">{{ __('games.field_player_count') }}</span>
+                    <div class="flex-1 relative">
+                        <div class="flex items-center gap-2">
+                            <input type="range" min="1" max="10" step="1"
+                                   value="{{ $min_players ?? 1 }}"
+                                   wire:change="$set('min_players', $event.target.value == 1 ? null : $event.target.value)"
+                                   aria-label="{{ __('common.field_minimum_players') }}"
+                                   class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary
+                                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm
+                                          [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                            <span class="text-xs text-on-surface-variant">–</span>
+                            <input type="range" min="1" max="10" step="1"
+                                   value="{{ $max_players ?? 10 }}"
+                                   wire:change="$set('max_players', $event.target.value >= 10 ? null : $event.target.value)"
+                                   aria-label="{{ __('common.field_maximum_players') }}"
+                                   class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary
+                                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm
+                                          [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-[10px] text-on-surface-variant">{{ $min_players ?? '1' }}p</span>
+                            <span class="text-[10px] text-on-surface-variant">{{ $max_players ?? '10+' }}p</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-primary uppercase tracking-wide">{{ __('games.content_complexity') }}</span>
-                    <input type="number" min="1" max="5" step="0.5"
-                           wire:model.live="complexity_min"
-                           placeholder="1"
-                           aria-label="{{ __('games.field_minimum_complexity') }}"
-                           class="w-14 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center py-1 shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
-                    <span class="text-on-surface-variant text-sm">–</span>
-                    <input type="number" min="1" max="5" step="0.5"
-                           wire:model.live="complexity_max"
-                           placeholder="5"
-                           aria-label="{{ __('games.field_maximum_complexity') }}"
-                           class="w-14 bg-surface-container-high border border-transparent rounded-lg text-on-surface text-sm text-center py-1 shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20" />
+                {{-- Complexity slider --}}
+                <div class="flex items-center gap-3 min-w-[200px]">
+                    <span class="text-xs font-bold text-primary uppercase tracking-wide whitespace-nowrap">{{ __('games.content_complexity') }}</span>
+                    <div class="flex-1 relative">
+                        <div class="flex items-center gap-2">
+                            <input type="range" min="1" max="5" step="0.5"
+                                   value="{{ $complexity_min ?? 1 }}"
+                                   wire:change="$set('complexity_min', $event.target.value <= 1 ? null : $event.target.value)"
+                                   aria-label="{{ __('games.field_minimum_complexity') }}"
+                                   class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
+                                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
+                                          [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                            <span class="text-xs text-on-surface-variant">–</span>
+                            <input type="range" min="1" max="5" step="0.5"
+                                   value="{{ $complexity_max ?? 5 }}"
+                                   wire:change="$set('complexity_max', $event.target.value >= 5 ? null : $event.target.value)"
+                                   aria-label="{{ __('games.field_maximum_complexity') }}"
+                                   class="flex-1 h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-secondary
+                                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-secondary [&::-webkit-slider-thumb]:shadow-sm
+                                          [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-secondary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-sm" />
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-[10px] text-on-surface-variant">{{ __('games.content_weight_light') }}</span>
+                            <span class="text-[10px] text-on-surface-variant">{{ __('games.content_weight_heavy') }}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <label class="flex items-center gap-2 cursor-pointer">

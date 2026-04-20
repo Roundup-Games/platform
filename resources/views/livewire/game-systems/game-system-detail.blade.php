@@ -20,14 +20,14 @@
         @endif
         @if($coverUrl)
             <div class="absolute inset-0">
-                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-[0.08]" aria-hidden="true">
-                <div class="absolute inset-0 bg-gradient-to-b from-primary/40 via-primary to-primary"></div>
+                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true">
             </div>
+            <div class="absolute inset-0 bg-gradient-to-b from-primary/85 via-primary/95 to-primary"></div>
         @endif
 
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
             {{-- Small centered thumbnail --}}
-            <div class="mx-auto w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shadow-lg bg-on-primary/10 mb-5">
+            <div class="mx-auto w-32 h-32 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-lg bg-on-primary/10 mb-5">
                 @if($coverUrl)
                     <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover">
                 @else
@@ -168,7 +168,7 @@
                 @if($system->description)
                     <section>
                         <h2 class="text-lg font-heading font-bold text-on-surface mb-3">{{ __('games.heading_about_this_game') }}</h2>
-                        <div class="prose prose-sm max-w-none text-on-surface-variant prose-headings:text-on-surface prose-a:text-primary">
+                        <div class="prose prose-sm max-w-none text-on-surface-variant prose-headings:text-on-surface prose-a:text-primary whitespace-pre-line">
                             {!! $system->description !!}
                         </div>
                     </section>
@@ -390,7 +390,7 @@
                 <p class="text-sm text-on-surface-variant mb-4">
                     {{ __('games.content_no_game_systems_available_yet_short') }}
                 </p>
-                <a href="{{ route('discover') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-container-high text-on-surface-variant rounded-xl text-sm font-medium hover:text-primary transition-colors">
+                <a href="{{ route('discover', ['game_system_id' => $system->id]) }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-container-high text-on-surface-variant rounded-xl text-sm font-medium hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">explore</span>
                     {{ __('games.action_find_sessions') }}
                 </a>

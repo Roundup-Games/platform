@@ -162,16 +162,6 @@ class DiscoveryPage extends Component
         $this->resetPage();
     }
 
-    public function updatingComplexityMin(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingComplexityMax(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatingPrice(): void
     {
         $this->resetPage();

@@ -61,26 +61,6 @@ class GameSystemsPage extends Component
         $this->resetPage();
     }
 
-    public function updatingMinPlayers(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingMaxPlayers(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingComplexityMin(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingComplexityMax(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatingShowExpansions(): void
     {
         $this->resetPage();
