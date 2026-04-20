@@ -172,12 +172,12 @@
                     <div class="flex flex-col gap-2">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_platform') }}</span>
                         <a href="{{ route('discover') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('discovery.action_discover') }}</a>
+                        <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_game_systems') }}</a>
+                        <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('events.content_events') }}</a>
                         @auth
                             <a href="{{ route('games.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_games') }}</a>
                             <a href="{{ route('campaigns.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('campaigns.content_campaigns') }}</a>
                         @endauth
-                        <a href="{{ route('events.index') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('events.content_events') }}</a>
-                        <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('games.content_game_systems') }}</a>
                     </div>
                     <div class="flex flex-col gap-2">
                         <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_support') }}</span>

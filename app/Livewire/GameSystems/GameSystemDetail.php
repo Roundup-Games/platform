@@ -143,6 +143,19 @@ class GameSystemDetail extends Component
             ->count();
     }
 
+    /**
+     * Returns active session and campaign counts for this game system.
+     */
+    public function getSessionCampaignStatsProperty(): array
+    {
+        $system = $this->resolveSystem();
+
+        return [
+            'active_sessions' => $system->active_sessions_count ?? 0,
+            'active_campaigns' => $system->active_campaigns_count ?? 0,
+        ];
+    }
+
     // ── Render ─────────────────────────────────────────
 
     public function render()
