@@ -78,9 +78,15 @@
 
                     @if($avatar)
                         <div class="mt-3 flex items-center gap-3">
-                            <img src="{{ $avatar->temporaryUrl() }}" alt="Preview"
-                                 class="w-12 h-12 rounded-full object-cover" />
-                            <span class="text-xs text-on-surface-variant">{{ $avatar->getFilename() }}</span>
+                            @php
+                                $previewUrl = null;
+                                try { $previewUrl = $avatar->temporaryUrl(); } catch (\Throwable $e) {}
+                            @endphp
+                            @if($previewUrl)
+                                <img src="{{ $previewUrl }}" alt="Preview"
+                                     class="w-12 h-12 rounded-full object-cover" />
+                            @endif
+                            <span class="text-xs text-on-surface-variant">{{ $avatar->getClientOriginalName() }}</span>
                         </div>
                     @endif
 

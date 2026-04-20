@@ -206,9 +206,11 @@ class Show extends Component
 
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
+            $filename = $this->avatar->getClientOriginalName()
+                ?? ('avatar.' . ($this->avatar->extension() ?: 'jpg'));
             $user->addMedia($this->avatar->getRealPath())
                 ->usingName($user->name . ' avatar')
-                ->usingFileName($this->avatar->getClientOriginalName())
+                ->usingFileName($filename)
                 ->toMediaCollection('avatar');
 
             Log::info('Avatar uploaded', ['user_id' => $user->id]);
