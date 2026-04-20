@@ -17,21 +17,6 @@ Route::post('api/geocode', [GeocodeController::class, 'geocode'])
 // ── Root Redirect ──────────────────────────────────────
 // Bare "/" detects preferred locale and redirects.
 
-if (! function_exists('resolvePreferredLocale')) {
-    function resolvePreferredLocale(): string
-    {
-        $locale = session('locale')
-            ?? request()->getPreferredLanguage(config('app.available_locales'))
-            ?? config('app.fallback_locale');
-
-        if (! in_array($locale, config('app.available_locales'), true)) {
-            $locale = config('app.fallback_locale');
-        }
-
-        return $locale;
-    }
-}
-
 Route::get('/', function () {
     return redirect('/' . resolvePreferredLocale() . '/');
 })->name('root');

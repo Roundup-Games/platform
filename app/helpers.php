@@ -1,6 +1,28 @@
 <?php
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Request;
+
+/**
+ * Resolve the preferred locale for the current request.
+ *
+ * Priority: session > Accept-Language header > app fallback.
+ * Used by the root redirect and the locale-less URL catch-all.
+ */
+if (! function_exists('resolvePreferredLocale')) {
+    function resolvePreferredLocale(): string
+    {
+        $locale = session('locale')
+            ?? Request::getPreferredLanguage(config('app.available_locales'))
+            ?? config('app.fallback_locale');
+
+        if (! in_array($locale, config('app.available_locales'), true)) {
+            $locale = config('app.fallback_locale');
+        }
+
+        return $locale;
+    }
+}
 
 /**
  * Format a Carbon date according to the current app locale.
