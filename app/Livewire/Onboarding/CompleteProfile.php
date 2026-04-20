@@ -274,7 +274,8 @@ class CompleteProfile extends Component
             // Extract address components from raw result
             $raw = $geocodeResult['raw'] ?? [];
             $address = $raw['address'] ?? [];
-            $country = $address['country'] ?? null;
+            // Use country_code (ISO 2-char like "DE") — country column is varchar(3)
+            $country = strtoupper($address['country_code'] ?? '') ?: null;
             $postalCode = $address['postcode'] ?? null;
         }
 

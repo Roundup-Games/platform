@@ -765,7 +765,7 @@ it('reverse geocodes coordinates from onGuestLocationUpdated to pre-populate cit
     Http::fake([
         '*nominatim*' => Http::response([
             'display_name' => 'Berlin, Germany',
-            'address' => ['city' => 'Berlin', 'country' => 'Germany'],
+            'address' => ['city' => 'Berlin', 'country' => 'Germany', 'country_code' => 'de'],
         ], 200),
     ]);
 
@@ -787,7 +787,7 @@ it('does not overwrite manually entered city when guest location arrives', funct
     Http::fake([
         '*nominatim*' => Http::response([
             'display_name' => 'Munich, Germany',
-            'address' => ['city' => 'Munich', 'country' => 'Germany'],
+            'address' => ['city' => 'Munich', 'country' => 'Germany', 'country_code' => 'de'],
         ], 200),
     ]);
 
@@ -806,7 +806,7 @@ it('does not overwrite confirmed location when guest location arrives', function
     Http::fake([
         '*nominatim*' => Http::response([
             'display_name' => 'Munich, Germany',
-            'address' => ['city' => 'Munich', 'country' => 'Germany'],
+            'address' => ['city' => 'Munich', 'country' => 'Germany', 'country_code' => 'de'],
         ], 200),
     ]);
 
@@ -913,7 +913,7 @@ it('creates a Location record on profile completion with geocoded data', functio
             'place_id' => 'onboarding-berlin-123',
             'address' => [
                 'city' => 'Berlin',
-                'country' => 'Germany',
+                'country' => 'Germany', 'country_code' => 'de',
                 'postcode' => '10115',
             ],
         ]], 200),
@@ -944,7 +944,7 @@ it('creates a Location record on profile completion with geocoded data', functio
     $location = Location::find($fresh->location_id);
     expect($location)->not->toBeNull()
         ->and($location->city)->toBe('Berlin')
-        ->and($location->country)->toBe('Germany')
+        ->and($location->country)->toBe('DE')
         ->and($location->place_id)->toBe('onboarding-berlin-123')
         ->and($location->source)->toBe('onboarding');
 });
@@ -953,7 +953,7 @@ it('reuses existing Location record when place_id matches during completion', fu
     $existingLocation = Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
-        'country' => 'Germany',
+        'country' => 'DE',
         'place_id' => 'shared-place-456',
         'latitude' => '52.5200000',
         'longitude' => '13.4050000',
@@ -969,7 +969,7 @@ it('reuses existing Location record when place_id matches during completion', fu
             'place_id' => 'shared-place-456',
             'address' => [
                 'city' => 'Berlin',
-                'country' => 'Germany',
+                'country' => 'Germany', 'country_code' => 'de',
             ],
         ]], 200),
     ]);
@@ -1000,7 +1000,7 @@ it('pre-fills location from existing user location_id on mount', function () {
     $location = Location::factory()->create([
         'name' => 'Hamburg',
         'city' => 'Hamburg',
-        'country' => 'Germany',
+        'country' => 'DE',
         'latitude' => '53.5510000',
         'longitude' => '9.9930000',
     ]);
@@ -1028,7 +1028,7 @@ it('logs location_source as localStorage when location came from browser', funct
             'lon' => '13.4050',
             'display_name' => 'Berlin, Germany',
             'place_id' => 'log-test-789',
-            'address' => ['city' => 'Berlin', 'country' => 'Germany'],
+            'address' => ['city' => 'Berlin', 'country' => 'Germany', 'country_code' => 'de'],
         ]], 200),
     ]);
 
@@ -1064,7 +1064,7 @@ it('logs location_source as manual when location entered manually', function () 
             'lon' => '11.5800',
             'display_name' => 'Munich, Germany',
             'place_id' => 'manual-munich-012',
-            'address' => ['city' => 'Munich', 'country' => 'Germany'],
+            'address' => ['city' => 'Munich', 'country' => 'Germany', 'country_code' => 'de'],
         ]], 200),
     ]);
 

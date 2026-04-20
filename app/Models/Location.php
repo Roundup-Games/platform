@@ -107,7 +107,6 @@ class Location extends Model
         $parts = array_filter([
             $this->address,
             $this->postal_code ? "{$this->postal_code} {$this->city}" : $this->city,
-            $this->country,
         ]);
 
         return implode(', ', $parts);

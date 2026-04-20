@@ -612,7 +612,7 @@ it('loads preferred_language and location on mount', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
-        'country' => 'Germany',
+        'country' => 'DE',
     ]);
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -658,7 +658,7 @@ it('persists location_id on save', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Munich',
         'city' => 'Munich',
-        'country' => 'Germany',
+        'country' => 'DE',
     ]);
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -732,7 +732,7 @@ it('displays current location from location_id relationship', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Tokyo',
         'city' => 'Tokyo',
-        'country' => 'Japan',
+        'country' => 'JP',
         'address' => 'Shibuya',
         'postal_code' => '150-0001',
     ]);
@@ -767,7 +767,7 @@ it('enters edit mode when editLocation called', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Paris',
         'city' => 'Paris',
-        'country' => 'France',
+        'country' => 'FR',
     ]);
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -800,7 +800,7 @@ it('removes location when removeLocation called', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Vienna',
         'city' => 'Vienna',
-        'country' => 'Austria',
+        'country' => 'AT',
     ]);
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -831,6 +831,7 @@ it('searches and resolves location via geocoding', function () {
             'address' => [
                 'city' => 'Berlin',
                 'country' => 'Germany',
+                'country_code' => 'de',
                 'postcode' => '10115',
             ],
         ]], 200),
@@ -853,7 +854,7 @@ it('searches and resolves location via geocoding', function () {
     $location = \App\Models\Location::find($locationId);
     expect($location)->not->toBeNull();
     expect($location->city)->toBe('Berlin');
-    expect($location->country)->toBe('Germany');
+    expect($location->country)->toBe('DE');
 
     // Persist via saveProfile
     $component->call('saveProfile');
@@ -864,7 +865,7 @@ it('reuses existing location when place_id matches', function () {
     $existingLocation = \App\Models\Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
-        'country' => 'Germany',
+        'country' => 'DE',
         'place_id' => 'existing-place-123',
         'latitude' => '52.5200000',
         'longitude' => '13.4050000',
@@ -884,6 +885,7 @@ it('reuses existing location when place_id matches', function () {
             'address' => [
                 'city' => 'Berlin',
                 'country' => 'Germany',
+                'country_code' => 'de',
             ],
         ]], 200),
     ]);
@@ -946,6 +948,7 @@ it('displays location preview after successful search', function () {
             'address' => [
                 'city' => 'Paris',
                 'country' => 'France',
+                'country_code' => 'fr',
                 'postcode' => '75001',
             ],
         ]], 200),
@@ -957,7 +960,7 @@ it('displays location preview after successful search', function () {
         ->test(Show::class)
         ->set('locationSearch', 'Paris')
         ->call('searchLocation')
-        ->assertSet('locationPreview', '75001 Paris, France');
+        ->assertSet('locationPreview', '75001 Paris');
 });
 
 // ── Location: edit and replace ────────────────────────
@@ -966,7 +969,7 @@ it('can edit location by searching for a new one', function () {
     $oldLocation = \App\Models\Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
-        'country' => 'Germany',
+        'country' => 'DE',
         'place_id' => 'old-berlin-place',
         'latitude' => '52.5200000',
         'longitude' => '13.4050000',
@@ -985,6 +988,7 @@ it('can edit location by searching for a new one', function () {
             'address' => [
                 'city' => 'Paris',
                 'country' => 'France',
+                'country_code' => 'fr',
                 'postcode' => '75001',
             ],
         ]], 200),
@@ -1015,7 +1019,7 @@ it('can edit location by searching for a new one', function () {
     // Verify the new location record
     $newLocation = \App\Models\Location::find($newLocationId);
     expect($newLocation->city)->toBe('Paris')
-        ->and($newLocation->country)->toBe('France');
+        ->and($newLocation->country)->toBe('FR');
 });
 
 it('searches and persists location_id in single component session', function () {
@@ -1033,6 +1037,7 @@ it('searches and persists location_id in single component session', function () 
             'address' => [
                 'city' => 'Zurich',
                 'country' => 'Switzerland',
+                'country_code' => 'ch',
                 'postcode' => '8001',
             ],
         ]], 200),
@@ -1058,7 +1063,7 @@ it('searches and persists location_id in single component session', function () 
     // Verify the Location record
     $location = \App\Models\Location::find($resolvedLocationId);
     expect($location->city)->toBe('Zurich')
-        ->and($location->country)->toBe('Switzerland')
+        ->and($location->country)->toBe('CH')
         ->and($location->source)->toBe('profile');
 });
 
@@ -1068,7 +1073,7 @@ it('user linkedLocation() relationship returns the linked Location', function ()
     $location = \App\Models\Location::factory()->create([
         'name' => 'Test City',
         'city' => 'Test City',
-        'country' => 'Test Country',
+        'country' => 'XX',
     ]);
     $user = User::factory()->create([
         'location_id' => $location->id,
@@ -1089,7 +1094,7 @@ it('user linkedLocation() returns null when no location_id set', function () {
 it('user location_id is accessible via direct attribute', function () {
     $location = \App\Models\Location::factory()->create([
         'city' => 'Dresden',
-        'country' => 'Germany',
+        'country' => 'DE',
     ]);
     $user = User::factory()->create(['location_id' => $location->id]);
 

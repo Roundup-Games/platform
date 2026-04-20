@@ -168,7 +168,7 @@ class Show extends Component
             'name' => $city,
             'address' => $address['road'] ?? null,
             'city' => $city,
-            'country' => $address['country'] ?? null,
+            'country' => strtoupper($address['country_code'] ?? '') ?: null,
             'postal_code' => $address['postcode'] ?? null,
             'latitude' => $result['lat'],
             'longitude' => $result['lng'],
