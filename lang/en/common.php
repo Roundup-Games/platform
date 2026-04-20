@@ -307,4 +307,7 @@ return [
 
     // Activity feed
     'activity_and_others' => 'and :count others',
+
+    // Authorization
+    'status_not_authorized' => 'Not Authorized',
 ];

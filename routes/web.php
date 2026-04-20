@@ -17,16 +17,23 @@ Route::post('api/geocode', [GeocodeController::class, 'geocode'])
 // ── Root Redirect ──────────────────────────────────────
 // Bare "/" detects preferred locale and redirects.
 
-Route::get('/', function () {
-    $locale = session('locale')
-        ?? request()->getPreferredLanguage(config('app.available_locales'))
-        ?? config('app.fallback_locale');
+if (! function_exists('resolvePreferredLocale')) {
+    function resolvePreferredLocale(): string
+    {
+        $locale = session('locale')
+            ?? request()->getPreferredLanguage(config('app.available_locales'))
+            ?? config('app.fallback_locale');
 
-    if (! in_array($locale, config('app.available_locales'), true)) {
-        $locale = config('app.fallback_locale');
+        if (! in_array($locale, config('app.available_locales'), true)) {
+            $locale = config('app.fallback_locale');
+        }
+
+        return $locale;
     }
+}
 
-    return redirect('/' . $locale . '/');
+Route::get('/', function () {
+    return redirect('/' . resolvePreferredLocale() . '/');
 })->name('root');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
@@ -175,3 +182,18 @@ Route::prefix('{locale}')
         require __DIR__.'/auth.php';
 
     });
+
+// ── Locale-less URL fallback ─────────────────────────
+// Redirects bare paths (e.g. /login, /discover, /about) to the
+// locale-prefixed equivalent using Accept-Language + session.
+// This must come after all explicit non-locale routes and the locale
+// group so it only catches genuinely unmatched GET requests.
+
+Route::get('/{path}', function (string $path) {
+    // Skip paths that have their own handling outside the locale group
+    if (preg_match('#^(admin|api|auth|filament|livewire|locale|paddle|storage|sitemap|telescope|up|vendor)/#i', $path)) {
+        abort(404);
+    }
+
+    return redirect('/' . resolvePreferredLocale() . '/' . $path, 302);
+})->where('path', '.*');

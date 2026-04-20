@@ -169,3 +169,26 @@ test('regular user cannot create any entity without permissions', function () {
     expect(Gate::allows('create', \App\Models\Event::class))->toBeFalse();
     expect(Gate::allows('create', \App\Models\MembershipType::class))->toBeFalse();
 });
+
+// ── Platform Login & Custom 403 ──────────────────────
+
+test('guest is redirected to platform login, not admin login', function () {
+    $response = $this->get('/admin');
+    $response->assertRedirect();
+    // Should redirect to the platform login route, not /admin/login
+    expect($response->headers->get('Location'))->not->toContain('/admin/login');
+    expect($response->headers->get('Location'))->toContain('login');
+});
+
+test('unauthorized user sees custom 403 page with dashboard link', function () {
+    $this->actingAs($this->regularUser);
+    $response = $this->get('/admin');
+    $response->assertForbidden();
+    $response->assertSee('Not Authorized');
+    $response->assertSee('Return to Dashboard');
+});
+
+test('admin login route no longer exists', function () {
+    $response = $this->get('/admin/login');
+    $response->assertNotFound();
+});
