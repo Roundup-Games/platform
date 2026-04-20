@@ -23,6 +23,7 @@ return [
     'action_find_my_location' => 'Meinen Standort finden',
     'content_we_think_you_re_in_city_is_that_right' => 'Wir glauben, du bist in :city — stimmt das?',
     'content_where_are_you_based' => 'Wo bist du ansässig?',
+    'error_could_not_detect_city' => 'Stadt konnte nicht anhand deines Standorts ermittelt werden. Bitte gib sie manuell ein.',
     'error_could_not_find_that_location' => 'Standort nicht gefunden. Bitte versuche eine andere Suche.',
     'error_could_not_find_this_location_city' => 'Standort nicht gefunden. Bitte versuche einen anderen Stadtnamen.',
     'error_location_lookup_failed' => 'Standortsuche fehlgeschlagen. Bitte versuche es erneut.',

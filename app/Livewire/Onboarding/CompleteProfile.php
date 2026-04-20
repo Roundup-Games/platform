@@ -160,13 +160,12 @@ class CompleteProfile extends Component
 
         if ($query === '') {
             // No text entered — trigger browser geolocation.
-            // The result arrives asynchronously via onGuestLocationUpdated(),
-            // which reverse-geocodes and populates the city field.
+            // The result arrives via handleBrowserLocation() below.
             $this->js(<<<'JS'
                 if (window.GuestLocation) {
-                    window.GuestLocation.locateAndDispatch('onboarding').catch(err => {
-                        // Browser denied or unavailable — show manual entry hint
-                        $wire.set('showManualEntry', true);
+                    window.GuestLocation.requestBrowserLocation().then(result => {
+                        $wire.call('handleBrowserLocation', result.lat, result.lng);
+                    }).catch(err => {
                         $wire.call('addGeolocationError');
                     });
                 }
@@ -177,6 +176,38 @@ class CompleteProfile extends Component
 
         // User typed something — geocode their text
         $this->geocodeCityText($query);
+    }
+
+    /**
+     * Receive browser geolocation coordinates from the JS bridge.
+     * Reverse-geocode to populate the city field and show the detected location.
+     */
+    public function handleBrowserLocation(float $lat, float $lng): void
+    {
+        $this->lat = $lat;
+        $this->lng = $lng;
+        $this->locationSource = 'localStorage';
+
+        try {
+            $geocodingService = app(GeocodingService::class);
+            $result = $geocodingService->reverseGeocode($lat, $lng);
+
+            if ($result && isset($result['address'])) {
+                $address = $result['address'];
+                $this->city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? '';
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Reverse geocoding failed during onboarding findMyLocation', [
+                'lat' => $lat,
+                'lng' => $lng,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // If reverse geocoding couldn't resolve a city, show an error
+        if ($this->city === '') {
+            $this->addError('city', __('location.error_could_not_detect_city'));
+        }
     }
 
     /**

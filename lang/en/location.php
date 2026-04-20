@@ -22,6 +22,7 @@ return [
     'action_add_location' => 'Add Location',
     'action_find_my_location' => 'Find my location',
     'content_where_are_you_based' => 'Where are you based?',
+    'error_could_not_detect_city' => 'Could not determine your city from your location. Please enter it manually.',
     'error_could_not_find_that_location' => 'Could not find that location. Please try a different search.',
     'error_could_not_find_this_location_city' => 'Could not find this location. Please try a different city name.',
     'error_location_lookup_failed' => 'Location lookup failed. Please try again.',

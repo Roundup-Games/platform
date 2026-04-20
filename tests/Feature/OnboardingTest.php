@@ -896,11 +896,48 @@ it('triggers browser geolocation when city is empty', function () {
         ->test(CompleteProfile::class)
         ->set('showManualEntry', true)
         ->set('city', '')
-        // Don't assert errors from set('city','') — that's #[Validate] on the property.
-        // The important assertion is that findMyLocation doesn't add a geocoding error.
         ->call('findMyLocation')
-        ->assertSet('lat', null)     // No coordinates resolved (JS didn't execute in test)
+        ->assertSet('lat', null)     // JS didn't execute in test — no coordinates
         ->assertSet('locationConfirmed', false);
+});
+
+it('populates city from browser geolocation via handleBrowserLocation', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Http::fake([
+        '*nominatim*' => Http::response([
+            'address' => ['city' => 'Munich', 'country' => 'Germany'],
+        ], 200),
+    ]);
+
+    Cache::flush();
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('showManualEntry', true)
+        ->set('city', '')
+        ->call('handleBrowserLocation', 48.1351, 11.5820)
+        ->assertSet('city', 'Munich')
+        ->assertSet('lat', 48.1351)
+        ->assertSet('lng', 11.5820)
+        ->assertSet('locationSource', 'localStorage')
+        ->assertSet('locationConfirmed', false);
+});
+
+it('shows error when handleBrowserLocation cannot resolve a city', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Http::fake([
+        '*nominatim*' => Http::response([], 200),
+    ]);
+
+    Cache::flush();
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('showManualEntry', true)
+        ->call('handleBrowserLocation', 0.0, 0.0)
+        ->assertHasErrors('city');
 });
 
 // ── Location: location_id created on profile completion ──
