@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Reports;
 use App\Filament\Exports\MembershipExporter;
 use Filament\Actions\ExportAction;
 use Filament\Pages\Page;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -51,6 +52,12 @@ class MembershipReport extends Page implements HasTable
                     ->label('User')
                     ->searchable()
                     ->sortable(),
+                ImageColumn::make('billable.avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true'])
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('billable.email')
                     ->label('Email')
                     ->searchable()

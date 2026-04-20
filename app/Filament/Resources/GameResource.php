@@ -15,6 +15,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -124,6 +125,11 @@ class GameResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(30),
+                ImageColumn::make('owner.avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('owner.name')
                     ->label('Game Master')
                     ->searchable()

@@ -9,6 +9,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -51,6 +52,11 @@ class ParticipantsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                ImageColumn::make('user.avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('user.name')
                     ->label('Name')
                     ->searchable()

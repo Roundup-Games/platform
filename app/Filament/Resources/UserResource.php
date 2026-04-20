@@ -19,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -76,7 +77,8 @@ class UserResource extends Resource
                                     ->label('Avatar URL')
                                     ->url()
                                     ->maxLength(500)
-                                    ->helperText('External avatar URL. Managed via media library on the profile page.'),
+                                    ->disabled()
+                                    ->helperText('Managed via media library on the profile page. Shows uploaded avatar or OAuth provider image.'),
                             ]),
                     ]),
 
@@ -157,6 +159,11 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (User $record): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),

@@ -12,11 +12,7 @@
                 <span
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-sm"
                 >
-                    @if($friend->avatar_url)
-                        <img src="{{ $friend->avatar_url }}" alt="" class="w-5 h-5 rounded-full object-cover" aria-hidden="true">
-                    @else
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                    @endif
+                    <x-user-avatar :user="$friend" size="w-5 h-5" text-size="text-xs" />
                     <span class="font-medium">{{ $friend->name }}</span>
                     <button
                         type="button"
@@ -84,13 +80,7 @@
                         role="option"
                         :aria-selected="activeIndex === {{ $index }}"
                     >
-                        @if($friend->avatar_url)
-                            <img src="{{ $friend->avatar_url }}" alt="" class="w-10 h-10 rounded-full object-cover flex-shrink-0" aria-hidden="true">
-                        @else
-                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">person</span>
-                            </div>
-                        @endif
+                        <x-user-avatar :user="$friend" size="w-10 h-10" />
 
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-medium text-on-surface truncate">

@@ -6,6 +6,7 @@ use App\Filament\Exports\EventAttendanceExporter;
 use App\Models\EventRegistration;
 use Filament\Actions\ExportAction;
 use Filament\Pages\Page;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -58,6 +59,12 @@ class EventAttendanceReport extends Page implements HasTable
                     ->label('Participant')
                     ->searchable()
                     ->sortable(),
+                ImageColumn::make('user.avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true'])
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('user.email')
                     ->label('Email')
                     ->searchable()

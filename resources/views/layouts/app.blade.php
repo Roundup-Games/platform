@@ -203,9 +203,7 @@
                     {{-- User section at sidebar bottom --}}
                     <div class="border-t border-outline-variant/15 p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span class="text-primary font-heading font-bold text-sm">{{ strtoupper(Auth::user()->name[0] ?? 'U') }}</span>
-                            </div>
+                            <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-on-surface truncate">{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-on-surface-variant truncate">{{ Auth::user()->email }}</p>

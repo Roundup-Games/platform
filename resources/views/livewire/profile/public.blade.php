@@ -6,19 +6,7 @@
             <div class="flex items-start gap-6">
                 {{-- Avatar --}}
                 <div class="shrink-0">
-                    @php
-                        $avatarMedia = $profileUser->getFirstMedia('avatar');
-                    @endphp
-
-                    @if($avatarMedia)
-                        <img src="{{ $avatarMedia->getUrl() }}"
-                             alt="{{ $profileUser->name }}"
-                             class="w-20 h-20 rounded-full object-cover ring-2 ring-outline-variant/30" />
-                    @else
-                        <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold font-heading">
-                            {{ strtoupper(\Illuminate\Support\Str::substr($profileUser->name, 0, 1)) }}
-                        </div>
-                    @endif
+                    <x-user-avatar :user="$profileUser" size="w-20 h-20" text-size="text-2xl" />
                 </div>
 
                 {{-- Name, Pronouns, Stats --}}

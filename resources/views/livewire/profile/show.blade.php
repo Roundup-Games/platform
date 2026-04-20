@@ -41,20 +41,7 @@
 
             <div class="flex items-center gap-6">
                 <div class="shrink-0">
-                    @php
-                        $user = auth()->user();
-                        $avatarMedia = $user->getFirstMedia('avatar');
-                    @endphp
-
-                    @if($avatarMedia)
-                        <img src="{{ $avatarMedia->getUrl() }}"
-                             alt="{{ $user->name }}"
-                             class="w-20 h-20 rounded-full object-cover ring-2 ring-outline-variant/30" />
-                    @else
-                        <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold font-heading">
-                            {{ strtoupper(Str::substr($user->name, 0, 1)) }}
-                        </div>
-                    @endif
+                    <x-user-avatar :user="auth()->user()" size="w-20 h-20" text-size="text-2xl" />
                 </div>
 
                 <div class="flex-1">
@@ -64,6 +51,9 @@
                             <input type="file" wire:model="avatar" accept="image/*" class="hidden" />
                         </label>
 
+                        @php
+                            $avatarMedia = auth()->user()->getFirstMedia('avatar');
+                        @endphp
                         @if($avatarMedia)
                             <button wire:click="removeAvatar" wire:loading.attr="disabled"
                                     class="text-sm text-error hover:brightness-110 transition-colors">

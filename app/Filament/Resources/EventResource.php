@@ -23,6 +23,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -189,6 +190,11 @@ class EventResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(30),
+                ImageColumn::make('organizer.avatar_url')
+                    ->label('')
+                    ->circular()
+                    ->defaultImageUrl(fn (): ?string => null)
+                    ->extraImgAttributes(['aria-hidden' => 'true']),
                 TextColumn::make('organizer.name')
                     ->label('Organizer')
                     ->searchable()
