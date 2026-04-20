@@ -12,7 +12,6 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
-
 #[Layout('onboarding.layout')]
 class CompleteProfile extends Component
 {

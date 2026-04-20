@@ -5,7 +5,6 @@ namespace App\Livewire\Profile;
 use App\Enums\ContentLanguage;
 use App\Enums\VibeFlag;
 use App\Models\Location;
-use App\Services\GeocodingService;
 use App\Services\ProfileVisibilityResolver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -32,11 +31,6 @@ class Show extends Component
     public string $preferredLanguage = '';
 
     public ?int $locationId = null;
-
-    // Location search/edit state
-    public string $locationSearch = '';
-    public bool $locationEditing = false;
-    public ?string $locationPreview = null;
 
     #[Locked]
     public bool $userHasPassword;
@@ -126,95 +120,21 @@ class Show extends Component
     }
 
     /**
-     * Search for a location by city/address string, geocode it, and set the location_id.
+     * Receive location selection from the LocationPicker component.
      */
-    public function searchLocation(): void
+    #[On('location-selected')]
+    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
     {
-        $this->validate([
-            'locationSearch' => ['required', 'string', 'max:255'],
-        ]);
-
-        $searchQuery = $this->locationSearch;
-
-        $geocodingService = app(GeocodingService::class);
-        $result = $geocodingService->geocode($searchQuery);
-
-        if (! $result) {
-            $this->addError('locationSearch', __('location.error_could_not_find_that_location'));
-
-            return;
-        }
-
-        $placeId = $result['place_id'] ?? null;
-        $raw = $result['raw'] ?? [];
-        $address = $raw['address'] ?? [];
-        $city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['municipality'] ?? $this->locationSearch;
-
-        // Check for existing location by place_id
-        if ($placeId) {
-            $existing = Location::where('place_id', $placeId)->first();
-            if ($existing) {
-                $this->locationId = $existing->id;
-                $this->locationPreview = $existing->fullAddress();
-                $this->locationSearch = '';
-                $this->locationEditing = false;
-
-                return;
-            }
-        }
-
-        // Create new location record
-        $location = Location::create([
-            'name' => $city,
-            'address' => $address['road'] ?? null,
-            'city' => $city,
-            'country' => strtoupper($address['country_code'] ?? '') ?: null,
-            'postal_code' => $address['postcode'] ?? null,
-            'latitude' => $result['lat'],
-            'longitude' => $result['lng'],
-            'place_id' => $placeId,
-            'source' => 'profile',
-        ]);
-
-        $this->locationId = $location->id;
-        $this->locationPreview = $location->fullAddress();
-        $this->locationSearch = '';
-        $this->locationEditing = false;
-
-        Log::info('Profile location updated via search', [
-            'user_id' => Auth::id(),
-            'location_id' => $location->id,
-            'search_query' => $searchQuery,
-        ]);
+        $this->locationId = $locationId;
     }
 
     /**
-     * Clear the current location and show the search input.
+     * Handle location removal from the LocationPicker component.
      */
-    public function editLocation(): void
-    {
-        $this->locationEditing = true;
-        $this->locationSearch = '';
-    }
-
-    /**
-     * Cancel editing and restore previous state.
-     */
-    public function cancelEditLocation(): void
-    {
-        $this->locationEditing = false;
-        $this->locationSearch = '';
-    }
-
-    /**
-     * Remove the user's location entirely.
-     */
-    public function removeLocation(): void
+    #[On('location-removed')]
+    public function onLocationRemoved(): void
     {
         $this->locationId = null;
-        $this->locationPreview = null;
-        $this->locationEditing = false;
-        $this->locationSearch = '';
     }
 
     public function saveProfile(): void

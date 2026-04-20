@@ -3,6 +3,7 @@
 use App\Livewire\Profile\Show;
 use App\Models\GameSystem;
 use App\Models\LinkedAccount;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -698,9 +699,16 @@ it('sets location_id to null when location removed', function () {
         'location_id' => $location->id,
     ]);
 
+    // Remove location via the LocationPicker component
+    Livewire::actingAs($user)
+        ->test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
+        ->call('removeLocation')
+        ->assertDispatched('location-removed');
+
+    // Verify profile save with null locationId clears it
     Livewire::actingAs($user)
         ->test(Show::class)
-        ->call('removeLocation')
+        ->set('locationId', null)
         ->call('saveProfile');
 
     expect($user->fresh()->location_id)->toBeNull();
@@ -716,14 +724,14 @@ it('validates preferred_language must be a valid ContentLanguage value', functio
         ->assertHasErrors(['preferredLanguage']);
 });
 
-it('validates locationSearch max length', function () {
+it('validates city max length in LocationPicker', function () {
     $user = User::factory()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', str_repeat('a', 256))
-        ->call('searchLocation')
-        ->assertHasErrors(['locationSearch']);
+        ->test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', str_repeat('a', 256))
+        ->call('confirmLocation')
+        ->assertHasErrors(['city']);
 });
 
 // ── Location Search & Edit ────────────────────────────
@@ -759,71 +767,56 @@ it('shows add location prompt when user has no location', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->assertSet('locationId', null)
-        ->assertSet('locationEditing', false)
         ->assertSee('Add Location');
 });
 
-it('enters edit mode when editLocation called', function () {
+it('enters edit mode in LocationPicker when startEditing called', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Paris',
         'city' => 'Paris',
         'country' => 'FR',
     ]);
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => $location->id,
-    ]);
 
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->call('editLocation')
-        ->assertSet('locationEditing', true)
-        ->assertSet('locationSearch', '');
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
+        ->call('startEditing')
+        ->assertSet('editing', true)
+        ->assertSet('locationConfirmed', false);
 });
 
-it('cancels edit mode when cancelEditLocation called', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => null,
+it('cancels edit mode in LocationPicker when cancelEditing called', function () {
+    $location = \App\Models\Location::factory()->create([
+        'name' => 'Berlin',
+        'city' => 'Berlin',
     ]);
 
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationEditing', true)
-        ->set('locationSearch', 'Berlin')
-        ->call('cancelEditLocation')
-        ->assertSet('locationEditing', false)
-        ->assertSet('locationSearch', '');
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
+        ->call('startEditing')
+        ->set('city', 'Munich')
+        ->call('cancelEditing')
+        ->assertSet('editing', false)
+        ->assertSet('locationConfirmed', true);
 });
 
-it('removes location when removeLocation called', function () {
+it('removes location when removeLocation called in LocationPicker', function () {
     $location = \App\Models\Location::factory()->create([
         'name' => 'Vienna',
         'city' => 'Vienna',
         'country' => 'AT',
     ]);
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => $location->id,
-    ]);
 
-    Livewire::actingAs($user)
-        ->test(Show::class)
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
         ->call('removeLocation')
         ->assertSet('locationId', null)
-        ->assertSet('locationPreview', null)
-        ->assertSet('locationEditing', false)
-        ->assertSet('locationSearch', '');
+        ->assertSet('editing', false)
+        ->assertSet('locationConfirmed', false)
+        ->assertSet('city', '')
+        ->assertDispatched('location-removed');
 });
 
-it('searches and resolves location via geocoding', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => null,
-    ]);
 
-    \Illuminate\Support\Facades\Http::fake([
-        '*nominatim*' => \Illuminate\Support\Facades\Http::response([[
+it('searches and resolves location via geocoding in LocationPicker', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([[
             'lat' => '52.5200',
             'lon' => '13.4050',
             'display_name' => 'Berlin, Germany',
@@ -837,32 +830,26 @@ it('searches and resolves location via geocoding', function () {
         ]], 200),
     ]);
 
-    \Illuminate\Support\Facades\Cache::flush();
+    Cache::flush();
 
-    Log::shouldReceive('info')->andReturn(null);
+    $component = Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', 'Berlin, Germany')
+        ->call('findMyLocation');
 
-    $component = Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', 'Berlin, Germany')
-        ->call('searchLocation');
-
-    // Component state should have a locationId set
     $locationId = $component->get('locationId');
     expect($locationId)->not->toBeNull();
 
-    // Verify a Location record was created with correct data
-    $location = \App\Models\Location::find($locationId);
-    expect($location)->not->toBeNull();
-    expect($location->city)->toBe('Berlin');
-    expect($location->country)->toBe('DE');
+    $location = Location::find($locationId);
+    expect($location)->not->toBeNull()
+        ->and($location->city)->toBe('Berlin')
+        ->and($location->country)->toBe('DE')
+        ->and($location->source)->toBe('profile');
 
-    // Persist via saveProfile
-    $component->call('saveProfile');
-    expect($user->fresh()->location_id)->toBe($locationId);
+    $component->assertDispatched('location-selected');
 });
 
-it('reuses existing location when place_id matches', function () {
-    $existingLocation = \App\Models\Location::factory()->create([
+it('reuses existing location when place_id matches in LocationPicker', function () {
+    $existingLocation = Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
         'country' => 'DE',
@@ -871,13 +858,8 @@ it('reuses existing location when place_id matches', function () {
         'longitude' => '13.4050000',
     ]);
 
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => null,
-    ]);
-
-    \Illuminate\Support\Facades\Http::fake([
-        '*nominatim*' => \Illuminate\Support\Facades\Http::response([[
+    Http::fake([
+        '*nominatim*' => Http::response([[
             'lat' => '52.5200',
             'lon' => '13.4050',
             'display_name' => 'Berlin, Germany',
@@ -890,57 +872,39 @@ it('reuses existing location when place_id matches', function () {
         ]], 200),
     ]);
 
-    \Illuminate\Support\Facades\Cache::flush();
+    Cache::flush();
 
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', 'Berlin')
-        ->call('searchLocation')
-        ->assertSet('locationId', $existingLocation->id)
-        ->call('saveProfile');
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', 'Berlin')
+        ->call('findMyLocation')
+        ->assertSet('locationId', $existingLocation->id);
 
-    // Should reuse the existing location, not create a new one
-    expect($user->fresh()->location_id)->toBe($existingLocation->id);
-    expect(\App\Models\Location::count())->toBe(1);
+    expect(Location::count())->toBe(1);
 });
 
-it('shows error when geocoding finds no results', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => null,
+it('shows error when geocoding finds no results in LocationPicker', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([], 200),
     ]);
 
-    \Illuminate\Support\Facades\Http::fake([
-        '*nominatim*' => \Illuminate\Support\Facades\Http::response([], 200),
-    ]);
+    Cache::flush();
 
-    \Illuminate\Support\Facades\Cache::flush();
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', 'asdfghjkl nonexistent')
-        ->call('searchLocation')
-        ->assertHasErrors(['locationSearch']);
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', 'asdfghjkl nonexistent')
+        ->call('findMyLocation')
+        ->assertHasErrors(['city']);
 });
 
-it('validates locationSearch is required for search', function () {
-    $user = User::factory()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', '')
-        ->call('searchLocation')
-        ->assertHasErrors(['locationSearch']);
+it('validates city is required for confirm in LocationPicker', function () {
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', '')
+        ->call('confirmLocation')
+        ->assertHasErrors(['city']);
 });
 
-it('displays location preview after successful search', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => null,
-    ]);
-
-    \Illuminate\Support\Facades\Http::fake([
-        '*nominatim*' => \Illuminate\Support\Facades\Http::response([[
+it('confirms location and sets confirmed state in LocationPicker', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([[
             'lat' => '48.8566',
             'lon' => '2.3522',
             'display_name' => 'Paris, France',
@@ -954,29 +918,23 @@ it('displays location preview after successful search', function () {
         ]], 200),
     ]);
 
-    \Illuminate\Support\Facades\Cache::flush();
+    Cache::flush();
 
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationSearch', 'Paris')
-        ->call('searchLocation')
-        ->assertSet('locationPreview', '75001 Paris');
+    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', 'Paris')
+        ->call('findMyLocation')
+        ->assertSet('locationConfirmed', true)
+        ->assertSet('city', 'Paris');
 });
 
-// ── Location: edit and replace ────────────────────────
-
-it('can edit location by searching for a new one', function () {
-    $oldLocation = \App\Models\Location::factory()->create([
+it('can edit and replace location in LocationPicker', function () {
+    $oldLocation = Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
         'country' => 'DE',
         'place_id' => 'old-berlin-place',
         'latitude' => '52.5200000',
         'longitude' => '13.4050000',
-    ]);
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => $oldLocation->id,
     ]);
 
     Http::fake([
@@ -996,33 +954,24 @@ it('can edit location by searching for a new one', function () {
 
     Cache::flush();
 
-    Log::shouldReceive('info')->andReturn(null);
-
-    $component = Livewire::actingAs($user)
-        ->test(Show::class)
+    $component = Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $oldLocation->id])
         ->assertSet('locationId', $oldLocation->id)
-        ->call('editLocation')
-        ->assertSet('locationEditing', true)
-        ->set('locationSearch', 'Paris')
-        ->call('searchLocation')
-        ->assertSet('locationEditing', false);
+        ->call('startEditing')
+        ->assertSet('editing', true)
+        ->set('city', 'Paris')
+        ->call('findMyLocation')
+        ->assertSet('editing', false);
 
-    // Verify the new locationId is different from the old one
     $newLocationId = $component->get('locationId');
     expect($newLocationId)->not->toBeNull()
         ->and($newLocationId)->not->toBe($oldLocation->id);
 
-    // Save and verify persistence
-    $component->call('saveProfile');
-    expect($user->fresh()->location_id)->toBe($newLocationId);
-
-    // Verify the new location record
-    $newLocation = \App\Models\Location::find($newLocationId);
+    $newLocation = Location::find($newLocationId);
     expect($newLocation->city)->toBe('Paris')
         ->and($newLocation->country)->toBe('FR');
 });
 
-it('searches and persists location_id in single component session', function () {
+it('persists location via Show after LocationPicker resolves it', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
         'location_id' => null,
@@ -1045,28 +994,27 @@ it('searches and persists location_id in single component session', function () 
 
     Cache::flush();
 
-    Log::shouldReceive('info')->andReturn(null);
+    // Resolve location via picker
+    $picker = Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => null])
+        ->set('city', 'Zurich')
+        ->call('findMyLocation');
 
-    $component = Livewire::actingAs($user)
-        ->test(Show::class)
-        ->assertSet('locationId', null)
-        ->set('locationSearch', 'Zurich')
-        ->call('searchLocation');
-
-    $resolvedLocationId = $component->get('locationId');
+    $resolvedLocationId = $picker->get('locationId');
     expect($resolvedLocationId)->not->toBeNull();
 
-    // Save to persist
-    $component->call('saveProfile');
-    expect($user->fresh()->location_id)->toBe($resolvedLocationId);
-
-    // Verify the Location record
-    $location = \App\Models\Location::find($resolvedLocationId);
+    $location = Location::find($resolvedLocationId);
     expect($location->city)->toBe('Zurich')
         ->and($location->country)->toBe('CH')
         ->and($location->source)->toBe('profile');
-});
 
+    // Persist via Show component
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('locationId', $resolvedLocationId)
+        ->call('saveProfile');
+
+    expect($user->fresh()->location_id)->toBe($resolvedLocationId);
+});
 // ── User Model: location() relationship ───────────────
 
 it('user linkedLocation() relationship returns the linked Location', function () {
