@@ -3,6 +3,7 @@
 namespace App\Livewire\Profile;
 
 use App\Enums\ContentLanguage;
+use App\Enums\NotificationCategory;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
@@ -63,8 +64,12 @@ class Show extends Component
     /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
     public array $privacySettings = [];
 
+    /** @var array<string, array{database: bool, mail: bool}> Per-category notification channel preferences */
+    public array $notificationSettings = [];
+
     public bool $saved = false;
     public bool $privacySaved = false;
+    public bool $notificationSaved = false;
 
     public function mount(): void
     {
@@ -95,6 +100,17 @@ class Show extends Component
         $storedSettings = $user->privacy_settings ?? [];
         foreach (ProfileVisibilityResolver::FIELDS as $field) {
             $this->privacySettings[$field] = $storedSettings[$field] ?? 'everyone';
+        }
+
+        // Initialize notification settings from stored preferences or defaults
+        $storedNotifications = $user->notification_settings ?? [];
+        $defaults = NotificationCategory::defaultSettings();
+        foreach (NotificationCategory::cases() as $category) {
+            $key = $category->value;
+            $this->notificationSettings[$key] = [
+                'database' => $storedNotifications[$key]['database'] ?? $defaults[$key]['database'],
+                'mail' => $storedNotifications[$key]['mail'] ?? $defaults[$key]['mail'],
+            ];
         }
     }
 
@@ -284,6 +300,37 @@ class Show extends Component
         ]);
 
         $this->privacySaved = true;
+    }
+
+    public function saveNotificationSettings(): void
+    {
+        $user = Auth::user();
+
+        $validated = $this->validate([
+            'notificationSettings' => ['required', 'array'],
+            'notificationSettings.*' => ['required', 'array'],
+            'notificationSettings.*.database' => ['required', 'boolean'],
+            'notificationSettings.*.mail' => ['required', 'boolean'],
+        ]);
+
+        // Ensure every known category is present and at least one channel is enabled
+        $settings = [];
+        $allValues = NotificationCategory::values();
+        foreach ($allValues as $categoryValue) {
+            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false];
+            $settings[$categoryValue] = [
+                'database' => (bool) ($entry['database'] ?? true),
+                'mail' => (bool) ($entry['mail'] ?? false),
+            ];
+        }
+
+        $user->update(['notification_settings' => $settings]);
+
+        Log::info('Notification settings updated', [
+            'user_id' => $user->id,
+        ]);
+
+        $this->notificationSaved = true;
     }
 
     public function changePassword(): void

@@ -36,6 +36,13 @@ return [
     'group_participation' => 'Teilnahme',
     'group_status' => 'Status',
 
+    // Benachrichtigungseinstellungen
+    'content_notification_preferences' => 'Benachrichtigungseinstellungen',
+    'action_control_which_notifications_you_receive' => 'Steuere, welche Benachrichtigungen du erhältst und wie sie zugestellt werden.',
+    'flash_notification_preferences_saved' => 'Benachrichtigungseinstellungen gespeichert.',
+    'channel_in_app' => 'In-App',
+    'channel_email' => 'E-Mail',
+
     // Gemeinsame E-Mail-Texte
     'email_brand_name' => 'Roundup Games',
     'email_default_subject' => 'Benachrichtigung von Roundup Games',

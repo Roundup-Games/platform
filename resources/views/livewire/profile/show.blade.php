@@ -352,6 +352,77 @@
             </div>
         </form>
 
+        {{-- Notification Preferences --}}
+        <form wire:submit="saveNotificationSettings" class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 space-y-4">
+            <div>
+                <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('notifications.content_notification_preferences') }}</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">{{ __('notifications.action_control_which_notifications_you_receive') }}</p>
+            </div>
+
+            @if($notificationSaved)
+                <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
+                     class="rounded-lg bg-secondary-container p-4" role="status" aria-live="polite">
+                    <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                        {{ __('notifications.flash_notification_preferences_saved') }}
+                    </p>
+                </div>
+            @endif
+
+            @php
+                $channelLabels = [
+                    'database' => __('notifications.channel_in_app'),
+                    'mail' => __('notifications.channel_email'),
+                ];
+            @endphp
+
+            @foreach(\App\Enums\NotificationCategory::grouped() as $groupKey => $group)
+                <div class="pt-2 first:pt-0">
+                    <h3 class="text-sm font-heading font-semibold tracking-tight text-on-surface-variant mb-2">{{ $group['label'] }}</h3>
+                    <div class="space-y-2">
+                        @foreach($group['options'] as $categoryValue => $categoryLabel)
+                            <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+                                <span class="text-sm font-medium text-on-surface">{{ $categoryLabel }}</span>
+                                <div class="flex items-center gap-2">
+                                    @foreach(['database', 'mail'] as $channel)
+                                        @php
+                                            $isEnabled = $notificationSettings[$categoryValue][$channel] ?? true;
+                                        @endphp
+                                        <button type="button"
+                                                wire:click="$toggle('notificationSettings.{{ $categoryValue }}.{{ $channel }}')"
+                                                @class([
+                                                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-secondary/20',
+                                                    'bg-primary' => $isEnabled,
+                                                    'bg-surface-container-high' => !$isEnabled,
+                                                ])
+                                                role="switch"
+                                                aria-checked="{{ $isEnabled ? 'true' : 'false' }}"
+                                                aria-label="{{ $categoryLabel . ' — ' . $channelLabels[$channel] }}">
+                                            <span @class([
+                                                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                                                'translate-x-6' => $isEnabled,
+                                                'translate-x-1' => !$isEnabled,
+                                            ])></span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+
+            @error('notificationSettings') <p class="mt-2 text-sm text-error">{{ $message }}</p> @enderror
+
+            <div class="pt-2">
+                <button type="submit" wire:loading.attr="disabled"
+                        class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                    <span wire:loading.remove>{{ __('common.action_save_changes') }}</span>
+                    <span wire:loading>{{ __('common.content_saving') }}</span>
+                </button>
+            </div>
+        </form>
+
         {{-- Password Section --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <div class="flex items-center justify-between mb-4">
