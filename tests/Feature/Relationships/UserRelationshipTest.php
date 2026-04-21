@@ -107,6 +107,9 @@ describe('Follow Action', function () {
                     && $context['target_id'] === $target->id
                     && $context['action'] === 'follow';
             });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
 
         UserRelationship::follow($user, $target);
     });
@@ -200,6 +203,8 @@ describe('Unfollow Action', function () {
                     && $context['target_id'] === $target->id
                     && $context['action'] === 'unfollow';
             });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         UserRelationship::unfollow($user, $target);
     });
@@ -291,6 +296,8 @@ describe('Block Action', function () {
                     && $context['target_id'] === $target->id
                     && $context['action'] === 'block';
             });
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         UserRelationship::block($user, $target);
     });

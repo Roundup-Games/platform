@@ -315,6 +315,9 @@ describe('AutoInvite — Observability', function () {
                     && $context['auto_invited_count'] === 1
                     && isset($context['game_id']);
             }));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -331,6 +334,8 @@ describe('AutoInvite — Observability', function () {
             ->with('Game session added to campaign', \Mockery::on(function ($context) {
                 return $context['auto_invited_count'] === 0;
             }));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])

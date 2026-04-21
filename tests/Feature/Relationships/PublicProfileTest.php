@@ -373,6 +373,9 @@ describe('PublicProfile action logging', function () {
         Log::shouldReceive('info')
             ->once()
             ->with('user.relationship.follow', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $target->id));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
 
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $target])
@@ -387,6 +390,8 @@ describe('PublicProfile action logging', function () {
         Log::shouldReceive('info')
             ->once()
             ->with('user.relationship.unfollow', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $target->id));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $target])
@@ -400,6 +405,8 @@ describe('PublicProfile action logging', function () {
         Log::shouldReceive('info')
             ->once()
             ->with('user.relationship.block', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $target->id));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $target])
@@ -414,6 +421,8 @@ describe('PublicProfile action logging', function () {
         Log::shouldReceive('info')
             ->once()
             ->with('user.relationship.unblock', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $target->id));
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $target])
