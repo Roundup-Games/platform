@@ -37,6 +37,11 @@ return [
     'email_view_entity' => ':entity anzeigen',
     'email_manage_participants' => 'Teilnehmer verwalten',
 
+    // Entitätstyp-Bezeichnungen (Kleinschreibung, für Verwendung in Sätzen)
+    'entity_type_game' => 'Spiel',
+    'entity_type_campaign' => 'Kampagne',
+    'entity_type_team' => 'Team',
+
     // E-Mail-Betreffs — Soziales
     'subject_new_follower' => ':follower folgt dir jetzt',
     'body_new_follower' => '**:follower** folgt dir jetzt auf Roundup Games. Schau dir ihr Profil an und sag Hallo!',

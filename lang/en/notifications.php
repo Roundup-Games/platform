@@ -37,6 +37,11 @@ return [
     'email_view_entity' => 'View :entity',
     'email_manage_participants' => 'Manage Participants',
 
+    // Entity type labels (lowercase, for use in sentences)
+    'entity_type_game' => 'game',
+    'entity_type_campaign' => 'campaign',
+    'entity_type_team' => 'team',
+
     // Email subjects — Social
     'subject_new_follower' => ':follower started following you',
     'body_new_follower' => '**:follower** started following you on Roundup Games. Check out their profile and say hello!',
