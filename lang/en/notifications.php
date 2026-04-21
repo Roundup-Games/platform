@@ -18,6 +18,17 @@ return [
     'category_campaign_cancelled' => 'Campaign Cancelled',
     'category_campaign_completed' => 'Campaign Completed',
 
+    // UI — Bell dropdown
+    'bell_label' => 'Notifications (:count unread)',
+    'nav_label' => 'Notifications',
+    'dropdown_heading' => 'Notifications',
+    'action_mark_all_read' => 'Mark all read',
+    'action_mark_read' => 'Mark as read',
+    'action_view_all' => 'View all notifications',
+    'label_notifications' => 'notifications',
+    'empty_state' => 'No notifications yet',
+    'page_title' => 'Notifications',
+
     // Group labels
     'group_social' => 'Social',
     'group_invitations' => 'Invitations',

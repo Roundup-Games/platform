@@ -18,6 +18,17 @@ return [
     'category_campaign_cancelled' => 'Kampagne abgesagt',
     'category_campaign_completed' => 'Kampagne abgeschlossen',
 
+    // UI — Benachrichtigungsglocke
+    'bell_label' => 'Benachrichtigungen (:count ungelesen)',
+    'nav_label' => 'Benachrichtigungen',
+    'dropdown_heading' => 'Benachrichtigungen',
+    'action_mark_all_read' => 'Alle gelesen',
+    'action_mark_read' => 'Als gelesen markieren',
+    'action_view_all' => 'Alle Benachrichtigungen anzeigen',
+    'label_notifications' => 'Benachrichtigungen',
+    'empty_state' => 'Noch keine Benachrichtigungen',
+    'page_title' => 'Benachrichtigungen',
+
     // Group labels
     'group_social' => 'Soziales',
     'group_invitations' => 'Einladungen',
