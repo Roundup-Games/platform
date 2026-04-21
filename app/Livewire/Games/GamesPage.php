@@ -5,6 +5,8 @@ namespace App\Livewire\Games;
 use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Notifications\GameCancelled;
+use App\Notifications\GameCompleted;
 use App\Notifications\GameInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Services\GameActivityFeedService;
@@ -82,6 +84,28 @@ class GamesPage extends Component
             'new_status' => 'canceled',
         ]);
 
+        // Notify all approved participants (excluding owner) that the game was cancelled
+        try {
+            $approvedParticipants = $game->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $game->owner_id)
+                ->with('user')
+                ->get();
+
+            foreach ($approvedParticipants as $participant) {
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new GameCancelled($game),
+                    NotificationCategory::GameCancelled
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.game_cancelled_dispatch_failed', [
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         session()->flash('success', __('games.flash_game_canceled'));
     }
 
@@ -104,6 +128,28 @@ class GamesPage extends Component
             'previous_status' => 'scheduled',
             'new_status' => 'completed',
         ]);
+
+        // Notify all approved participants (excluding owner) that the game was completed
+        try {
+            $approvedParticipants = $game->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $game->owner_id)
+                ->with('user')
+                ->get();
+
+            foreach ($approvedParticipants as $participant) {
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new GameCompleted($game),
+                    NotificationCategory::GameCompleted
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.game_completed_dispatch_failed', [
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('games.flash_game_completed'));
     }

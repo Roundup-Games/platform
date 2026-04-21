@@ -5,6 +5,8 @@ namespace App\Livewire\Campaigns;
 use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
+use App\Notifications\CampaignCancelled;
+use App\Notifications\CampaignCompleted;
 use App\Notifications\CampaignInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Services\GameActivityFeedService;
@@ -86,6 +88,28 @@ class CampaignsPage extends Component
             'new_status' => 'cancelled',
         ]);
 
+        // Notify all approved participants (excluding owner) that the campaign was cancelled
+        try {
+            $approvedParticipants = $campaign->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $campaign->owner_id)
+                ->with('user')
+                ->get();
+
+            foreach ($approvedParticipants as $participant) {
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new CampaignCancelled($campaign),
+                    NotificationCategory::CampaignCancelled
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.campaign_cancelled_dispatch_failed', [
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         session()->flash('success', __('campaigns.flash_campaign_canceled'));
     }
 
@@ -109,6 +133,28 @@ class CampaignsPage extends Component
             'previous_status' => $previousStatus,
             'new_status' => 'completed',
         ]);
+
+        // Notify all approved participants (excluding owner) that the campaign was completed
+        try {
+            $approvedParticipants = $campaign->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $campaign->owner_id)
+                ->with('user')
+                ->get();
+
+            foreach ($approvedParticipants as $participant) {
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new CampaignCompleted($campaign),
+                    NotificationCategory::CampaignCompleted
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.campaign_completed_dispatch_failed', [
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('campaigns.flash_campaign_completed'));
     }
