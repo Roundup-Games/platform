@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class ApplicationRejected extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
@@ -46,7 +48,8 @@ class ApplicationRejected extends Notification
             ->line(__('notifications.body_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_application_rejected'), route('games.index'));
+            ->action(__('notifications.action_application_rejected'), route('games.index'))
+            ->line($this->unsubscribeLine($notifiable, 'application_rejected'));
     }
 
     /**

@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class NewApplication extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  User  $applicant  The user who applied
      * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
@@ -52,7 +54,8 @@ class NewApplication extends Notification
                 'entity_type' => $entityTypeLabel,
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_new_application'), $actionUrl);
+            ->action(__('notifications.action_new_application'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'new_application'));
     }
 
     /**

@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class CampaignCancelled extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Campaign  $campaign  The campaign that was cancelled
      */
@@ -43,7 +45,8 @@ class CampaignCancelled extends Notification
             ->line(__('notifications.body_campaign_cancelled', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_campaign_cancelled'), route('campaigns.index'));
+            ->action(__('notifications.action_campaign_cancelled'), route('campaigns.index'))
+            ->line($this->unsubscribeLine($notifiable, 'campaign_cancelled'));
     }
 
     /**

@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class TeamMemberRemoved extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Team  $team  The team the user was removed from
      * @param  User  $remover  The user who performed the removal
@@ -45,7 +47,8 @@ class TeamMemberRemoved extends Notification
             ->line(__('notifications.body_team_member_removed', [
                 'team' => $this->team->name,
             ]))
-            ->action(__('notifications.action_team_member_removed'), route('teams.browse'));
+            ->action(__('notifications.action_team_member_removed'), route('teams.browse'))
+            ->line($this->unsubscribeLine($notifiable, 'team_member_removed'));
     }
 
     /**

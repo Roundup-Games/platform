@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\GeocodeController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
@@ -159,6 +160,12 @@ Route::prefix('{locale}')
             Route::post('/billing/one-time', [PaddleBillingController::class, 'oneTimeCheckout'])
                 ->name('billing.one-time-checkout');
         });
+
+        // ── Notification Unsubscribe (signed URL, no auth required) ──
+
+        Route::get('/notifications/unsubscribe/{user}/{category}', [NotificationController::class, 'unsubscribe'])
+            ->name('notifications.unsubscribe')
+            ->middleware('signed');
 
         // ── Onboarding (authenticated, profile NOT complete) ──
 

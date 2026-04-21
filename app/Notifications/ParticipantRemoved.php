@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class ParticipantRemoved extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  User  $removedUser  The user who was removed
      * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
@@ -48,7 +50,8 @@ class ParticipantRemoved extends Notification
             ->line(__('notifications.body_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_participant_removed'), route('games.index'));
+            ->action(__('notifications.action_participant_removed'), route('games.index'))
+            ->line($this->unsubscribeLine($notifiable, 'participant_removed'));
     }
 
     /**

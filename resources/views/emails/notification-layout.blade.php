@@ -73,9 +73,11 @@
             <div class="footer">
                 <p>{{ __('notifications.email_footer_reason') }}</p>
                 <p>
-                    <a href="{{ $unsubscribeUrl ?? '#' }}">{{ __('notifications.email_unsubscribe') }}</a>
-                    &nbsp;&middot&nbsp;
-                    <a href="{{ config('app.url') }}/{{ app()->getLocale() }}/notification-settings">{{ __('notifications.email_manage_settings') }}</a>
+                    @isset($unsubscribeUrl)
+                        <a href="{{ $unsubscribeUrl }}">{{ __('notifications.email_unsubscribe') }}</a>
+                        &nbsp;&middot&nbsp;
+                    @endisset
+                    <a href="{{ config('app.url') }}/{{ app()->getLocale() }}/profile">{{ __('notifications.email_manage_settings') }}</a>
                 </p>
                 <p style="margin-top: 12px;">&copy; {{ date('Y') }} Roundup Games</p>
             </div>

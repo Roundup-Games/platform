@@ -223,22 +223,37 @@ class NotificationQueryService
             $entityName = $data['entity_name'] ?? $data['game_name'] ?? $data['campaign_name'] ?? null;
 
             if ($entityName !== null) {
-                return "{$verb}: {$entityName}";
+                return __('notifications.display_no_actor_with_entity', [
+                    'verb' => $verb,
+                    'entity' => $entityName,
+                ]);
             }
 
-            return $verb;
+            return __('notifications.display_no_actor', ['verb' => $verb]);
         }
 
         if ($count === 1) {
-            return "{$actors[0]} {$verb}";
+            return __('notifications.display_one_actor', [
+                'actor' => $actors[0],
+                'verb' => $verb,
+            ]);
         }
 
         if ($count === 2) {
-            return "{$actors[0]} and {$actors[1]} {$verb}";
+            return __('notifications.display_two_actors', [
+                'actor1' => $actors[0],
+                'actor2' => $actors[1],
+                'verb' => $verb,
+            ]);
         }
 
         $others = $count - 2;
-        return "{$actors[0]}, {$actors[1]}, and {$others} other" . ($others > 1 ? 's' : '') . " {$verb}";
+        return trans_choice('notifications.display_many_actors', $others, [
+            'actor1' => $actors[0],
+            'actor2' => $actors[1],
+            'count' => $others,
+            'verb' => $verb,
+        ]);
     }
 
     /**
@@ -249,23 +264,16 @@ class NotificationQueryService
      */
     protected function resolveVerb(string $shortType): string
     {
-        return match ($shortType) {
-            'NewFollower'           => 'followed you',
-            'GameInvitation'        => 'invited you to a game',
-            'CampaignInvitation'    => 'invited you to a campaign',
-            'TeamInvitation'        => 'invited you to a team',
-            'SessionAddedToCampaign' => 'added a session to your campaign',
-            'NewApplication'        => 'applied to join',
-            'ApplicationApproved'   => 'approved your application',
-            'ApplicationRejected'   => 'rejected your application',
-            'ParticipantJoined'     => 'joined',
-            'ParticipantRemoved'    => 'removed you from',
-            'TeamMemberRemoved'     => 'removed you from a team',
-            'GameCancelled'         => 'Game cancelled',
-            'GameCompleted'         => 'Game completed',
-            'CampaignCancelled'     => 'Campaign cancelled',
-            'CampaignCompleted'     => 'Campaign completed',
-            default                 => str_replace('_', ' ', \Illuminate\Support\Str::snake($shortType)),
-        };
+        $key = 'notifications.verb_' . \Illuminate\Support\Str::snake($shortType);
+
+        $translated = __($key);
+
+        // If the translation key doesn't exist, __() returns the key itself —
+        // fall back to a humanized snake_case version of the type.
+        if ($translated === $key) {
+            return str_replace('_', ' ', \Illuminate\Support\Str::snake($shortType));
+        }
+
+        return $translated;
     }
 }

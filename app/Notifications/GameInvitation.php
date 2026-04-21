@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class GameInvitation extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Game  $game  The game the user is invited to
      * @param  User  $inviter  The user who sent the invitation
@@ -48,7 +50,8 @@ class GameInvitation extends Notification
                 'inviter' => $this->inviter->name,
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_game_invitation'), $actionUrl);
+            ->action(__('notifications.action_game_invitation'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'game_invitation'));
     }
 
     /**

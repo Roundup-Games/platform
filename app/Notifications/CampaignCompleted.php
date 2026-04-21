@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class CampaignCompleted extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Campaign  $campaign  The campaign that was completed
      */
@@ -43,7 +45,8 @@ class CampaignCompleted extends Notification
             ->line(__('notifications.body_campaign_completed', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_campaign_completed'), route('campaigns.detail', $this->campaign->id));
+            ->action(__('notifications.action_campaign_completed'), route('campaigns.detail', $this->campaign->id))
+            ->line($this->unsubscribeLine($notifiable, 'campaign_completed'));
     }
 
     /**

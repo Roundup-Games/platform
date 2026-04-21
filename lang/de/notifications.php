@@ -56,9 +56,39 @@ return [
     'email_manage_participants' => 'Teilnehmer verwalten',
 
     // Entitätstyp-Bezeichnungen (Kleinschreibung, für Verwendung in Sätzen)
+    // Abmeldung
+    'unsubscribe_success' => 'Du wurdest von :category-E-Mail-Benachrichtigungen abgemeldet.',
+    'unsubscribe_invalid_link' => 'Dieser Abmeldelink ist ungültig oder abgelaufen.',
+    'unsubscribe_unknown_category' => 'Die Benachrichtigungskategorie konnte nicht gefunden werden.',
+
+    // Entitätstyp-Bezeichnungen (Kleinschreibung, für Verwendung in Sätzen)
     'entity_type_game' => 'Spiel',
     'entity_type_campaign' => 'Kampagne',
     'entity_type_team' => 'Team',
+
+    // Anzeigetexte für Benachrichtigungsliste (Verb + Satzbausteine)
+    'verb_new_follower' => 'folgt dir',
+    'verb_game_invitation' => 'hat dich zu einem Spiel eingeladen',
+    'verb_campaign_invitation' => 'hat dich zu einer Kampagne eingeladen',
+    'verb_team_invitation' => 'hat dich in ein Team eingeladen',
+    'verb_session_added_to_campaign' => 'hat eine Sitzung zur Kampagne hinzugefügt',
+    'verb_new_application' => 'hat sich beworben',
+    'verb_application_approved' => 'hat deine Bewerbung angenommen',
+    'verb_application_rejected' => 'hat deine Bewerbung abgelehnt',
+    'verb_participant_joined' => 'ist beigetreten',
+    'verb_participant_removed' => 'hat dich entfernt aus',
+    'verb_team_member_removed' => 'hat dich aus dem Team entfernt',
+    'verb_game_cancelled' => 'Spiel abgesagt',
+    'verb_game_completed' => 'Spiel abgeschlossen',
+    'verb_campaign_cancelled' => 'Kampagne abgesagt',
+    'verb_campaign_completed' => 'Kampagne abgeschlossen',
+
+    // Anzeigetexte — Satzbausteine (1/2/3+ Akteure)
+    'display_one_actor' => ':actor :verb',
+    'display_two_actors' => ':actor1 und :actor2 :verb',
+    'display_many_actors' => ':actor1, :actor2 und :count weitere :verb|:actor1, :actor2 und :count weitere :verb',
+    'display_no_actor_with_entity' => ':verb: :entity',
+    'display_no_actor' => ':verb',
 
     // E-Mail-Betreffs — Soziales
     'subject_new_follower' => ':follower folgt dir jetzt',

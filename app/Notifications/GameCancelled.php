@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class GameCancelled extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Game  $game  The game that was cancelled
      */
@@ -46,7 +48,8 @@ class GameCancelled extends Notification
                 'game' => $this->game->name,
                 'date' => $date,
             ]))
-            ->action(__('notifications.action_game_cancelled'), route('games.index'));
+            ->action(__('notifications.action_game_cancelled'), route('games.index'))
+            ->line($this->unsubscribeLine($notifiable, 'game_cancelled'));
     }
 
     /**

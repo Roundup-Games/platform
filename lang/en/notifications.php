@@ -55,10 +55,39 @@ return [
     'email_view_entity' => 'View :entity',
     'email_manage_participants' => 'Manage Participants',
 
+    // Unsubscribe
+    'unsubscribe_success' => 'You have been unsubscribed from :category email notifications.',
+    'unsubscribe_invalid_link' => 'This unsubscribe link is invalid or has expired.',
+    'unsubscribe_unknown_category' => 'The notification category could not be found.',
+
     // Entity type labels (lowercase, for use in sentences)
     'entity_type_game' => 'game',
     'entity_type_campaign' => 'campaign',
     'entity_type_team' => 'team',
+
+    // Display strings for notification list (verb + sentence templates)
+    'verb_new_follower' => 'followed you',
+    'verb_game_invitation' => 'invited you to a game',
+    'verb_campaign_invitation' => 'invited you to a campaign',
+    'verb_team_invitation' => 'invited you to a team',
+    'verb_session_added_to_campaign' => 'added a session to your campaign',
+    'verb_new_application' => 'applied to join',
+    'verb_application_approved' => 'approved your application',
+    'verb_application_rejected' => 'rejected your application',
+    'verb_participant_joined' => 'joined',
+    'verb_participant_removed' => 'removed you from',
+    'verb_team_member_removed' => 'removed you from a team',
+    'verb_game_cancelled' => 'Game cancelled',
+    'verb_game_completed' => 'Game completed',
+    'verb_campaign_cancelled' => 'Campaign cancelled',
+    'verb_campaign_completed' => 'Campaign completed',
+
+    // Display strings — sentence templates (1/2/3+ actors)
+    'display_one_actor' => ':actor :verb',
+    'display_two_actors' => ':actor1 and :actor2 :verb',
+    'display_many_actors' => ':actor1, :actor2, and :count other :verb|:actor1, :actor2, and :count others :verb',
+    'display_no_actor_with_entity' => ':verb: :entity',
+    'display_no_actor' => ':verb',
 
     // Email subjects — Social
     'subject_new_follower' => ':follower started following you',

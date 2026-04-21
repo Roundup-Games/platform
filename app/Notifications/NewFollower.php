@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class NewFollower extends Notification
 {
+    use HasUnsubscribeLink;
+
     public function __construct(
         public User $follower,
     ) {}
@@ -37,7 +39,8 @@ class NewFollower extends Notification
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_new_follower', ['follower' => $this->follower->name]))
-            ->action(__('notifications.action_new_follower'), $actionUrl);
+            ->action(__('notifications.action_new_follower'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'new_follower'));
     }
 
     /**

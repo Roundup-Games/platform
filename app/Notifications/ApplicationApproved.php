@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class ApplicationApproved extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
      * @param  string  $entityType  'game' or 'campaign'
@@ -49,7 +51,8 @@ class ApplicationApproved extends Notification
             ->line(__('notifications.body_application_approved', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_application_approved', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl);
+            ->action(__('notifications.action_application_approved', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'application_approved'));
     }
 
     /**

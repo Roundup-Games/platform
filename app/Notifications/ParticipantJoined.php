@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 
 class ParticipantJoined extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  User  $participant  The user who joined
      * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
@@ -52,7 +54,8 @@ class ParticipantJoined extends Notification
                 'entity_type' => $entityTypeLabel,
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_participant_joined', ['entity_type' => $entityTypeLabel]), $actionUrl);
+            ->action(__('notifications.action_participant_joined', ['entity_type' => $entityTypeLabel]), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'participant_joined'));
     }
 
     /**

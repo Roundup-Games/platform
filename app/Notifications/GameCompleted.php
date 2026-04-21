@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class GameCompleted extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Game  $game  The game that was completed
      */
@@ -43,7 +45,8 @@ class GameCompleted extends Notification
             ->line(__('notifications.body_game_completed', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_game_completed'), route('games.detail', $this->game->id));
+            ->action(__('notifications.action_game_completed'), route('games.detail', $this->game->id))
+            ->line($this->unsubscribeLine($notifiable, 'game_completed'));
     }
 
     /**

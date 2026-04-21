@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class CampaignInvitation extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Campaign  $campaign  The campaign the user is invited to
      * @param  User  $inviter  The user who sent the invitation
@@ -48,7 +50,8 @@ class CampaignInvitation extends Notification
                 'inviter' => $this->inviter->name,
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_campaign_invitation'), $actionUrl);
+            ->action(__('notifications.action_campaign_invitation'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'campaign_invitation'));
     }
 
     /**

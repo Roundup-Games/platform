@@ -12,6 +12,8 @@ use Illuminate\Notifications\Notification;
 
 class SessionAddedToCampaign extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Game  $session  The session (Game model) added to the campaign
      * @param  Campaign  $campaign  The parent campaign
@@ -48,7 +50,8 @@ class SessionAddedToCampaign extends Notification
             ->line(__('notifications.body_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_session_added_to_campaign'), $actionUrl);
+            ->action(__('notifications.action_session_added_to_campaign'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'session_added_to_campaign'));
     }
 
     /**

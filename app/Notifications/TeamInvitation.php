@@ -11,6 +11,8 @@ use Illuminate\Notifications\Notification;
 
 class TeamInvitation extends Notification
 {
+    use HasUnsubscribeLink;
+
     /**
      * @param  Team  $team  The team the user is invited to
      * @param  User  $inviter  The user who sent the invitation
@@ -49,7 +51,8 @@ class TeamInvitation extends Notification
                 'inviter' => $this->inviter->name,
                 'team' => $this->team->name,
             ]))
-            ->action(__('notifications.action_team_invitation'), $actionUrl);
+            ->action(__('notifications.action_team_invitation'), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, 'team_invitation'));
     }
 
     /**
