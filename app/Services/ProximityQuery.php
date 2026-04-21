@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Architecture:
  *   - Bounding box pre-filter uses composite (lat, lng) B-tree index for fast row elimination.
- *   - Haversine formula applied via subquery for precise distance (SQLite/MySQL compatible).
+ *   - Haversine formula applied via subquery for precise distance computation.
  *   - Hub results cached per geohash tile prefix (default 15min TTL).
  */
 class ProximityQuery
@@ -76,7 +76,7 @@ class ProximityQuery
      * 1. Bounding box pre-filter using the composite (lat, lng) index.
      * 2. Haversine distance calculation via subquery, filtering by exact radius.
      *
-     * Uses a subquery wrapper (not HAVING) for SQLite compatibility.
+     * Uses a subquery wrapper (not HAVING) for clean distance filtering.
      *
      * @param  float  $lat  Center latitude
      * @param  float  $lng  Center longitude
@@ -119,7 +119,7 @@ class ProximityQuery
             $innerQuery->where("{$table}.status", $config['status_scope']);
         }
 
-        // Outer query: filter by exact radius using WHERE (not HAVING) for SQLite compat
+        // Outer query: filter by exact radius using WHERE (not HAVING)
         $results = DB::table(DB::raw("({$innerQuery->toSql()}) AS proxied"))
             ->mergeBindings($innerQuery)
             ->where('distance_km', '<=', $radiusKm)

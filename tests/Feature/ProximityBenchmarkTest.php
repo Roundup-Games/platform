@@ -89,7 +89,7 @@ class ProximityBenchmarkTest extends TestCase
         }
 
         // Report benchmark timing (informational — not a hard fail condition for CI)
-        // The slice verification says log if >100ms, but SQLite in-memory is fast
+        // The slice verification says log if >100ms
         Log::info('Proximity query benchmark', [
             'total_locations' => 1000,
             'radius_km' => 10,

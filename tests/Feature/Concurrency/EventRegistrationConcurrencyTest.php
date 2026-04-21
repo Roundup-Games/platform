@@ -14,9 +14,9 @@ use function Pest\Laravel\actingAs;
  * correctly serializes the capacity check + duplicate check + create sequence,
  * preventing over-capacity and duplicate registrations under concurrent requests.
  *
- * Note: SQLite (used in tests) supports lockForUpdate as a no-op passthrough,
- * but wrapping in DB::transaction still ensures atomicity. The real concurrency
- * protection comes from the transaction boundary + pessimistic locking on MySQL/PG.
+ * Note: Pessimistic locking (lockForUpdate) is fully supported on PostgreSQL.
+ * The DB::transaction() boundary ensures atomicity of the capacity check +
+ * duplicate check + create sequence under concurrent requests.
  */
 describe('Event Registration Concurrency', function () {
     it('prevents over-capacity registration under simulated concurrency', function () {
