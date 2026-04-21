@@ -120,4 +120,101 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         $job = new UpdateUserDiscoveryCache(1, 'sweep');
         $job->failed(new \RuntimeException('test error'));
     }
+
+    #[Test]
+    public function it_stores_results_in_cache(): void
+    {
+        $location = Location::factory()->create([
+            'latitude' => self::LAT,
+            'longitude' => self::LNG,
+        ]);
+
+        $user = User::factory()->create([
+            'location_id' => $location->id,
+            'profile_complete' => true,
+        ]);
+
+        Log::shouldReceive('info')->atLeast(2);
+        Log::shouldReceive('debug')->atLeast(0);
+
+        $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
+        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+
+        // The cache key follows the pattern people:nearby:{userId}:{geohash4}
+        $geohash4 = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        $cacheKey = "people:nearby:{$user->id}:{$geohash4}";
+
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        $this->assertNotNull($cached, 'Discovery cache should be populated after job runs');
+        $this->assertIsArray($cached);
+    }
+
+    #[Test]
+    public function it_updates_nearby_discovery_view_with_geohash(): void
+    {
+        $location = Location::factory()->create([
+            'latitude' => self::LAT,
+            'longitude' => self::LNG,
+        ]);
+
+        $user = User::factory()->create([
+            'location_id' => $location->id,
+            'profile_complete' => true,
+        ]);
+
+        Log::shouldReceive('info')->atLeast(2);
+        Log::shouldReceive('debug')->atLeast(0);
+
+        $job = new UpdateUserDiscoveryCache($user->id, 'follow');
+        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+
+        $view = NearbyDiscoveryView::where('user_id', $user->id)->first();
+        $this->assertNotNull($view);
+
+        $expectedGeohash = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        $this->assertEquals($expectedGeohash, $view->geohash_4);
+    }
+
+    #[Test]
+    public function it_deletes_when_model_missing(): void
+    {
+        $job = new UpdateUserDiscoveryCache(99999, 'location_change');
+
+        $this->assertTrue($job->deleteWhenMissingModels);
+    }
+
+    #[Test]
+    public function it_can_be_dispatched_with_various_trigger_types(): void
+    {
+        $triggerTypes = ['location_change', 'vibe_change', 'game_system_change', 'follow', 'unfollow', 'block', 'unblock', 'sweep', 'cache_miss_refresh'];
+
+        foreach ($triggerTypes as $type) {
+            $job = new UpdateUserDiscoveryCache(1, $type);
+            $this->assertEquals($type, $job->triggerType, "Failed for trigger type: {$type}");
+            $this->assertEquals(1, $job->userId);
+            $this->assertEquals('discovery', $job->queue);
+        }
+    }
+
+    #[Test]
+    public function it_handles_user_with_location_but_no_lat_lng(): void
+    {
+        // Location exists but has null lat/lng
+        $location = Location::factory()->create([
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+
+        $user = User::factory()->create([
+            'location_id' => $location->id,
+            'profile_complete' => true,
+        ]);
+
+        Log::shouldReceive('info')->atLeast(1);
+
+        $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
+        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
+
+        $this->assertEquals(0, NearbyDiscoveryView::where('user_id', $user->id)->count());
+    }
 }

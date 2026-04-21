@@ -245,6 +245,73 @@ class DiscoveryCacheTriggersTest extends TestCase
         });
     }
 
+    // ── No Change Cases ────────────────────────────────
+
+    #[Test]
+    public function no_vibe_change_does_not_dispatch_vibe_job(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create([
+            'profile_complete' => true,
+        ]);
+
+        // First save: set initial vibes
+        $initialVibes = [VibeFlag::Atmospheric->value => 'favorite'];
+        \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Profile\Show::class)
+            ->set('vibePreferences', $initialVibes)
+            ->call('saveProfile');
+
+        Queue::fake(); // Reset after first save
+
+        // Second save: mount loads existing vibes, we set the same, no vibe_change should fire
+        \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Profile\Show::class)
+            // Don't set vibePreferences — it's already loaded from DB by mount()
+            ->call('saveProfile');
+
+        Queue::assertNotPushed(function (UpdateUserDiscoveryCache $job) {
+            return $job->triggerType === 'vibe_change';
+        });
+    }
+
+    // ── Nearby Discovery View Updates ──────────────────
+
+    #[Test]
+    public function subsequent_nearby_views_update_timestamp(): void
+    {
+        $location = Location::factory()->create(['latitude' => 52.5, 'longitude' => 13.3]);
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $location->id,
+        ]);
+
+        // First view
+        $component = \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\People\PeoplePage::class);
+        $component->set('activeTab', 'nearby');
+        $component->instance()->nearbyUsers;
+
+        $firstView = NearbyDiscoveryView::where('user_id', $user->id)->first();
+        $firstTimestamp = $firstView->last_discovery_view;
+
+        // Advance time and view again
+        $this->travel(1)->hour();
+
+        $component2 = \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\People\PeoplePage::class);
+        $component2->set('activeTab', 'nearby');
+        $component2->instance()->nearbyUsers;
+
+        $secondView = NearbyDiscoveryView::where('user_id', $user->id)->first();
+        $this->assertEquals($firstView->id, $secondView->id, 'Should be the same row');
+        $this->assertTrue(
+            $secondView->last_discovery_view->gt($firstTimestamp),
+            'Timestamp should be updated on subsequent view'
+        );
+    }
+
     // ── Onboarding Trigger ─────────────────────────────
 
     #[Test]
