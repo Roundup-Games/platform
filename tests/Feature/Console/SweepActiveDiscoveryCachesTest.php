@@ -4,6 +4,7 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 describe('SweepActiveDiscoveryCaches command', function () {
@@ -190,5 +191,43 @@ describe('SweepActiveDiscoveryCaches command', function () {
             ->expectsOutputToContain('Dispatched: 1');
 
         Queue::assertPushed(UpdateUserDiscoveryCache::class, 1);
+    });
+
+    it('logs structured sweep started and completed fields', function () {
+        Queue::fake();
+
+        $location = Location::factory()->create();
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $location->id,
+        ]);
+        NearbyDiscoveryView::create([
+            'user_id' => $user->id,
+            'last_discovery_view' => now()->subMinutes(5),
+            'geohash_4' => 'zzzz',
+        ]);
+
+        $log = Log::spy();
+
+        $this->artisan('discovery:sweep-active')
+            ->assertSuccessful();
+
+        // Verify started log
+        $log->shouldHaveReceived('info', function ($message, $context) {
+            return $message === 'discovery.sweep.started'
+                && isset($context['window_minutes'])
+                && isset($context['dry_run']);
+        });
+
+        // Verify completed log with structured fields
+        $log->shouldHaveReceived('info', function ($message, $context) {
+            return $message === 'discovery.sweep.completed'
+                && isset($context['user_count'])
+                && isset($context['job_dispatch_count'])
+                && isset($context['skip_count'])
+                && isset($context['duration_ms'])
+                && isset($context['dry_run'])
+                && isset($context['window_minutes']);
+        });
     });
 });
