@@ -96,3 +96,8 @@ Artisan::command('bgg:weekly-sync', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('bgg:weekly-sync')->weekly()->mondays()->at('03:00');
+
+Schedule::command('discovery:sweep-active --window=60')
+    ->everyTenMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();
