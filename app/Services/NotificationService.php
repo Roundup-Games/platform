@@ -95,17 +95,18 @@ class NotificationService
      * Used by accept/decline invitation flows to clear the related
      * in-app notification.
      */
-    public function markReadByType(User $user, string $notificationType, ?int $entityId = null): void
+    public function markReadByType(User $user, string $notificationType, int|string|null $entityId = null, ?string $dataKey = null): void
     {
         try {
             $query = $user->unreadNotifications()->where('type', $notificationType);
 
             if ($entityId !== null) {
+                $key = $dataKey ?? 'entity_id';
                 $driver = $query->getQuery()->getConnection()->getDriverName();
                 if ($driver === 'pgsql') {
-                    $query->whereRaw("CAST(data AS json)->>'entity_id' = CAST(? AS text)", [$entityId]);
+                    $query->whereRaw("CAST(data AS json)->>'{$key}' = CAST(? AS text)", [$entityId]);
                 } else {
-                    $query->where('data->entity_id', $entityId);
+                    $query->where("data->{$key}", $entityId);
                 }
             }
 

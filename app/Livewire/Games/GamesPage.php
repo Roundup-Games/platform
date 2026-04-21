@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Notifications\GameInvitation;
+use App\Notifications\ParticipantJoined;
 use App\Services\GameActivityFeedService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -144,6 +148,41 @@ class GamesPage extends Component
             'previous_status' => 'pending',
             'new_status' => 'approved',
         ]);
+
+        // Notify game owner that a participant joined
+        try {
+            $owner = $game->owner;
+            $acceptingUser = Auth::user();
+            if ($owner && $owner->id !== $acceptingUser->id) {
+                app(NotificationService::class)->send(
+                    $owner,
+                    new ParticipantJoined($acceptingUser, $game, 'game'),
+                    NotificationCategory::ParticipantJoined
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.participant_joined_dispatch_failed', [
+                'game_id' => $game->id,
+                'participant_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Mark the related GameInvitation notification as read
+        try {
+            app(NotificationService::class)->markReadByType(
+                Auth::user(),
+                GameInvitation::class,
+                $game->id,
+                'game_id'
+            );
+        } catch (\Throwable $e) {
+            Log::error('notification.mark_read_on_accept_failed', [
+                'game_id' => $game->id,
+                'user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('games.flash_invitation_accepted'));
     }

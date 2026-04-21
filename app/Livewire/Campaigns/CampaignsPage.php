@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
+use App\Notifications\CampaignInvitation;
+use App\Notifications\ParticipantJoined;
 use App\Services\GameActivityFeedService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -151,6 +155,41 @@ class CampaignsPage extends Component
             'previous_status' => $previousStatus,
             'new_status' => 'approved',
         ]);
+
+        // Notify campaign owner that a participant joined
+        try {
+            $owner = $campaign->owner;
+            $acceptingUser = Auth::user();
+            if ($owner && $owner->id !== $acceptingUser->id) {
+                app(NotificationService::class)->send(
+                    $owner,
+                    new ParticipantJoined($acceptingUser, $campaign, 'campaign'),
+                    NotificationCategory::ParticipantJoined
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.participant_joined_dispatch_failed', [
+                'campaign_id' => $campaign->id,
+                'participant_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Mark the related CampaignInvitation notification as read
+        try {
+            app(NotificationService::class)->markReadByType(
+                Auth::user(),
+                CampaignInvitation::class,
+                $campaign->id,
+                'campaign_id'
+            );
+        } catch (\Throwable $e) {
+            Log::error('notification.mark_read_on_accept_failed', [
+                'campaign_id' => $campaign->id,
+                'user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('campaigns.flash_invitation_accepted'));
     }

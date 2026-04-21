@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Notifications\TeamInvitation;
+use App\Notifications\TeamMemberRemoved;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -334,6 +335,24 @@ class ManageRoster extends Component
             'user_id' => $member->user_id,
             'removed_by' => Auth::id(),
         ]);
+
+        // Notify the removed user
+        try {
+            $removedUser = User::find($member->user_id);
+            if ($removedUser) {
+                app(NotificationService::class)->send(
+                    $removedUser,
+                    new TeamMemberRemoved($this->team, Auth::user()),
+                    NotificationCategory::TeamMemberRemoved
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.team_member_removed_dispatch_failed', [
+                'team_id' => $this->team->id,
+                'removed_user_id' => $member->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('teams.content_member_removed_from_team'));
     }

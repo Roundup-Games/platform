@@ -8,6 +8,8 @@ use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
 use App\Notifications\CampaignInvitation;
 use App\Notifications\GameInvitation;
+use App\Notifications\ParticipantJoined;
+use App\Notifications\ParticipantRemoved;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -264,6 +266,8 @@ trait ManagesParticipants
             return;
         }
 
+        $removedUser = User::find($participant->user_id);
+
         $participant->update(['status' => 'rejected']);
 
         Log::info($this->getEntityName() . ' participant removed', [
@@ -271,6 +275,25 @@ trait ManagesParticipants
             'user_id' => $participant->user_id,
             'removed_by' => Auth::id(),
         ]);
+
+        // Notify removed user
+        try {
+            if ($removedUser) {
+                $entityType = strtolower($this->getEntityName());
+                app(NotificationService::class)->send(
+                    $removedUser,
+                    new ParticipantRemoved($removedUser, $entity, $entityType),
+                    NotificationCategory::ParticipantRemoved
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.participant_removed_dispatch_failed', [
+                'entity_type' => $this->getEntityName(),
+                $this->getEntityIdColumn() => $entity->id,
+                'removed_user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('common.flash_participant_removed'));
     }
@@ -346,6 +369,42 @@ trait ManagesParticipants
             $entityIdColumn => $entity->id,
             'user_id' => $authUser->id,
         ]);
+
+        // Notify entity owner that a participant joined
+        try {
+            $owner = User::find($entity->owner_id);
+            if ($owner && $owner->id !== $authUser->id) {
+                $entityType = strtolower($this->getEntityName());
+                app(NotificationService::class)->send(
+                    $owner,
+                    new ParticipantJoined($authUser, $entity, $entityType),
+                    NotificationCategory::ParticipantJoined
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.participant_joined_dispatch_failed', [
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'participant_id' => $authUser->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Mark the related invitation notification as read
+        try {
+            $invitationType = $this->getEntityName() === 'Game'
+                ? GameInvitation::class
+                : CampaignInvitation::class;
+            $dataKey = $this->getEntityName() === 'Game' ? 'game_id' : 'campaign_id';
+            app(NotificationService::class)->markReadByType($authUser, $invitationType, $entity->id, $dataKey);
+        } catch (\Throwable $e) {
+            Log::error('notification.mark_read_on_accept_failed', [
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'user_id' => $authUser->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('people.flash_invitation_accepted'));
     }
