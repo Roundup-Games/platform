@@ -257,6 +257,26 @@ class PeopleDiscoveryService
     }
 
     /**
+     * Compute and cache discovery results for a user (background job entry point).
+     *
+     * Called by UpdateUserDiscoveryCache to pre-populate the cache. Invalidates
+     * any existing cached results first, then runs discover() to compute fresh
+     * candidates and write them to cache.
+     *
+     * @return int Number of candidates found and cached.
+     */
+    public function computeAndCache(User $viewer, float $lat, float $lng): int
+    {
+        // Invalidate any stale cache entries first
+        self::invalidateCacheFor($viewer->id);
+
+        // Run discovery — this populates the cache as a side effect
+        $result = $this->discover($viewer, $lat, $lng);
+
+        return $result['results']->total();
+    }
+
+    /**
      * Invalidate the discovery cache for a user.
      *
      * Called after follow/unfollow/block/unblock actions that change

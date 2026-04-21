@@ -5,7 +5,7 @@
 cd /var/www/html
 
 exec php artisan queue:work \
-    --queue=default \
+    --queue=default,discovery \
     --sleep=3 \
     --tries=3 \
     --max-time=3600 \
