@@ -98,7 +98,8 @@ class UpdateUserDiscoveryCache implements ShouldQueue
         $geohash4 = Geohash::tilePrefix($lat, $lng, 4);
 
         // Delegate cache population to the service
-        $candidateCount = $discovery->computeAndCache($user, $lat, $lng);
+        $scoredResults = $discovery->computeAndCache($user, $lat, $lng);
+        $candidateCount = count($scoredResults);
 
         // Update the NearbyDiscoveryView tracking row with current geohash
         NearbyDiscoveryView::updateOrCreate(

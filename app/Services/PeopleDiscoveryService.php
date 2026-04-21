@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -37,6 +38,10 @@ class PeopleDiscoveryService
     /**
      * Discover nearby users compatible with the viewer.
      *
+     * Reads from cache first. On cache miss, falls back to synchronous
+     * computeAndCache() to preserve current UX, then dispatches a background
+     * refresh job so subsequent views are faster.
+     *
      * @return array{results: LengthAwarePaginator<int, object{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}>, status: string}
      */
     public function discover(User $viewer, ?float $lat = null, ?float $lng = null, int $perPage = 12, int $page = 1): array
@@ -57,60 +62,119 @@ class PeopleDiscoveryService
 
         $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
         $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
-        $ttl = now()->addMinutes(5);
 
-        // Try cache hit (page 1 only to keep cache simple and deterministic)
-        if ($page === 1) {
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                Log::debug('discovery.cache_hit', [
+        // ── Cache read ──
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            Log::debug('discovery.cache_hit', [
+                'viewer_id' => $viewer->id,
+                'geohash' => $viewerGeohash,
+                'page' => $page,
+            ]);
+
+            // Guard against stale cache entries that stored User models
+            // instead of user_id. If the first item lacks 'user_id',
+            // invalidate and fall through to fresh computation.
+            $firstItem = $cached[0] ?? null;
+            if ($firstItem && ! isset($firstItem['user_id'])) {
+                Log::warning('discovery.stale_cache_format', [
                     'viewer_id' => $viewer->id,
-                    'geohash' => $viewerGeohash,
+                    'cache_key' => $cacheKey,
                 ]);
-
-                // Guard against stale cache entries that stored User models
-                // instead of user_id. If the first item lacks 'user_id',
-                // invalidate and fall through to fresh computation.
-                $firstItem = $cached[0] ?? null;
-                if ($firstItem && ! isset($firstItem['user_id'])) {
-                    Log::warning('discovery.stale_cache_format', [
-                        'viewer_id' => $viewer->id,
-                        'cache_key' => $cacheKey,
-                    ]);
-                    Cache::forget($cacheKey);
-                    // Fall through to fresh computation below
-                } else {
-                    // Reconstruct User models from cached user_ids
-                    $userIds = array_column($cached, 'user_id');
-                    $users = User::whereIn('id', $userIds)->get()->keyBy('id');
-
-                    $items = collect($cached)->map(function (array $cachedItem) use ($users) {
-                        $user = $users->get($cachedItem['user_id']);
-                        if (! $user) {
-                            return null;
-                        }
-
-                        return [
-                            'user' => $user,
-                            'compatibility_score' => $cachedItem['compatibility_score'],
-                            'match_reasons' => $cachedItem['match_reasons'],
-                            'tier' => $cachedItem['tier'],
-                            'distance_km' => $cachedItem['distance_km'],
-                        ];
-                    })->filter()->values();
-
-                    $total = count($cached);
-                    $paginatedItems = $items->forPage($page, $perPage)->values();
-
-                    return [
-                        'results' => new LengthAwarePaginator($paginatedItems, $total, $perPage, $page, [
-                            'path' => request()?->url(),
-                        ]),
-                        'status' => 'ok',
-                    ];
-                }
+                Cache::forget($cacheKey);
+                // Fall through to fresh computation below
+            } else {
+                return $this->paginatedFromCache($cached, $perPage, $page);
             }
         }
+
+        // ── Cache miss: synchronous fallback ──
+        Log::debug('discovery.cache_miss', [
+            'viewer_id' => $viewer->id,
+            'geohash' => $viewerGeohash,
+        ]);
+
+        $scored = $this->computeAndCache($viewer, $lat, $lng);
+
+        // Dispatch background refresh so next view is faster
+        // (uses the viewer's linked location, not guest location)
+        if ($viewer->linkedLocation) {
+            UpdateUserDiscoveryCache::dispatch($viewer->id, 'cache_miss_refresh');
+        }
+
+        // Paginate from the computed results
+        $total = count($scored);
+        $items = collect($scored)->forPage($page, $perPage)->values();
+
+        return [
+            'results' => new LengthAwarePaginator($items, $total, $perPage, $page, [
+                'path' => request()?->url(),
+            ]),
+            'status' => 'ok',
+        ];
+    }
+
+    /**
+     * Build a paginated response from cached user_id-based data.
+     *
+     * Reconstructs User models from cached user_ids and returns a
+     * paginated result set.
+     *
+     * @param  array[]  $cached  Array of cached items with user_id keys.
+     * @return array{results: LengthAwarePaginator, status: string}
+     */
+    private function paginatedFromCache(array $cached, int $perPage, int $page): array
+    {
+        $userIds = array_column($cached, 'user_id');
+        $users = User::whereIn('id', $userIds)->get()->keyBy('id');
+
+        $items = collect($cached)->map(function (array $cachedItem) use ($users) {
+            $user = $users->get($cachedItem['user_id']);
+            if (! $user) {
+                return null;
+            }
+
+            return [
+                'user' => $user,
+                'compatibility_score' => $cachedItem['compatibility_score'],
+                'match_reasons' => $cachedItem['match_reasons'],
+                'tier' => $cachedItem['tier'],
+                'distance_km' => $cachedItem['distance_km'],
+            ];
+        })->filter()->values();
+
+        $total = count($cached);
+        $paginatedItems = $items->forPage($page, $perPage)->values();
+
+        return [
+            'results' => new LengthAwarePaginator($paginatedItems, $total, $perPage, $page, [
+                'path' => request()?->url(),
+            ]),
+            'status' => 'ok',
+        ];
+    }
+
+    /**
+     * Compute and cache discovery results for a user.
+     *
+     * Contains the full Phase 1–4 pipeline: candidate retrieval, preference
+     * loading, scoring, and cache storage. Called by:
+     *   - UpdateUserDiscoveryCache job (async cache population)
+     *   - discover() on cache miss (synchronous fallback)
+     *
+     * Invalidates existing cache first, then computes and stores fresh results.
+     * Stores user_id instead of User model to prevent deserialization errors.
+     *
+     * @return array<int, array{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}> Scored results sorted by compatibility descending.
+     */
+    public function computeAndCache(User $viewer, float $lat, float $lng): array
+    {
+        $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
+        $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
+        $ttl = now()->addMinutes(5);
+
+        // Invalidate any stale cache entries first
+        self::invalidateCacheFor($viewer->id);
 
         $queryCount = 0;
         DB::listen(function () use (&$queryCount) {
@@ -121,6 +185,10 @@ class PeopleDiscoveryService
         [$candidateRows, $tierMap] = $this->retrieveCandidates($viewer, $viewerGeohash);
 
         if ($candidateRows->isEmpty()) {
+            // Store empty cache to prevent repeated empty computations
+            Cache::put($cacheKey, [], $ttl);
+            $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
+
             if ($queryCount > 10) {
                 Log::warning('discovery.query_count_high', [
                     'viewer_id' => $viewer->id,
@@ -135,10 +203,7 @@ class PeopleDiscoveryService
                 'queries' => $queryCount,
             ]);
 
-            return [
-                'results' => new LengthAwarePaginator([], 0, $perPage, $page),
-                'status' => 'ok',
-            ];
+            return [];
         }
 
         $candidateIds = $candidateRows->pluck('id')->all();
@@ -201,37 +266,21 @@ class PeopleDiscoveryService
 
         $scored = $scored->sortByDesc('compatibility_score')->values();
 
-        // Cache the full scored set (for page-1 cache hits)
-        // Store user_id instead of User model to prevent __PHP_Incomplete_Class
-        // errors when the cache driver unserializes before the autoloader runs.
-        if ($page === 1) {
-            $cacheable = $scored->map(fn (array $item) => [
-                'user_id' => $item['user']->id,
-                'compatibility_score' => $item['compatibility_score'],
-                'match_reasons' => $item['match_reasons'],
-                'tier' => $item['tier'],
-                'distance_km' => $item['distance_km'],
-            ])->all();
-            Cache::put($cacheKey, $cacheable, $ttl);
+        // Store the full scored set as user_id-based cache entries.
+        // This happens unconditionally (not page-dependent) since the job
+        // populates the full result set.
+        $cacheable = $scored->map(fn (array $item) => [
+            'user_id' => $item['user']->id,
+            'compatibility_score' => $item['compatibility_score'],
+            'match_reasons' => $item['match_reasons'],
+            'tier' => $item['tier'],
+            'distance_km' => $item['distance_km'],
+        ])->all();
 
-            // Track this key for later invalidation
-            $keySetKey = "people:nearby:keys:{$viewer->id}";
-            $existingKeys = Cache::get($keySetKey, []);
-            if (! in_array($cacheKey, $existingKeys)) {
-                $existingKeys[] = $cacheKey;
-                Cache::put($keySetKey, $existingKeys, $ttl);
-            }
+        Cache::put($cacheKey, $cacheable, $ttl);
+        $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
 
-            Log::debug('discovery.cache_miss', [
-                'viewer_id' => $viewer->id,
-                'geohash' => $viewerGeohash,
-                'candidates' => $scored->count(),
-            ]);
-        }
-
-        // Phase 4 — Pagination
         $total = $scored->count();
-        $items = $scored->forPage($page, $perPage)->values();
 
         if ($queryCount > 10) {
             Log::warning('discovery.query_count_high', [
@@ -248,32 +297,20 @@ class PeopleDiscoveryService
             'tier_distribution' => array_count_values(array_values($tierMap)),
         ]);
 
-        return [
-            'results' => new LengthAwarePaginator($items, $total, $perPage, $page, [
-                'path' => request()?->url(),
-            ]),
-            'status' => 'ok',
-        ];
+        return $scored->all();
     }
 
     /**
-     * Compute and cache discovery results for a user (background job entry point).
-     *
-     * Called by UpdateUserDiscoveryCache to pre-populate the cache. Invalidates
-     * any existing cached results first, then runs discover() to compute fresh
-     * candidates and write them to cache.
-     *
-     * @return int Number of candidates found and cached.
+     * Track a cache key in the user's key set for later invalidation.
      */
-    public function computeAndCache(User $viewer, float $lat, float $lng): int
+    private function trackCacheKey(int $userId, string $cacheKey, $ttl): void
     {
-        // Invalidate any stale cache entries first
-        self::invalidateCacheFor($viewer->id);
-
-        // Run discovery — this populates the cache as a side effect
-        $result = $this->discover($viewer, $lat, $lng);
-
-        return $result['results']->total();
+        $keySetKey = "people:nearby:keys:{$userId}";
+        $existingKeys = Cache::get($keySetKey, []);
+        if (! in_array($cacheKey, $existingKeys)) {
+            $existingKeys[] = $cacheKey;
+            Cache::put($keySetKey, $existingKeys, $ttl);
+        }
     }
 
     /**

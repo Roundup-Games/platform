@@ -210,8 +210,13 @@ class PeoplePage extends Component
 
         UserRelationship::follow($this->authUser, $target);
 
-        // Invalidate discovery cache and refresh nearby results
+        // Invalidate discovery cache and dispatch async refresh
         PeopleDiscoveryService::invalidateCacheFor($this->authUser->id);
+
+        if ($this->authUser->linkedLocation) {
+            \App\Jobs\UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'follow');
+        }
+
         unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
 
         session()->flash('success', 'You are now following ' . $target->name . '.');

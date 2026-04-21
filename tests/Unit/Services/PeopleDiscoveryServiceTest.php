@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -650,6 +651,8 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function it_logs_cache_hit_and_miss()
     {
+        Queue::fake();
+
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
@@ -665,6 +668,7 @@ class PeopleDiscoveryServiceTest extends TestCase
         Log::shouldReceive('debug')->with('discovery.stats', \Mockery::any())->zeroOrMoreTimes();
         Log::shouldReceive('debug')->with('discovery.cache_invalidated', \Mockery::any())->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
 
         // First call — miss
         $this->discoverWithStatus($viewer, self::LAT, self::LNG);
@@ -762,6 +766,144 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertEquals('ok', $response['status']);
         $this->assertEquals(0, $response['results']->total());
         $this->assertCount(0, $response['results']->items());
+    }
+
+    // ── Cache Read vs Compute ──
+
+    #[Test]
+    public function compute_and_cache_returns_same_results_as_discover()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $sys1 = GameSystem::factory()->create();
+        $sys2 = GameSystem::factory()->create();
+        $this->attachGameSystems($viewer, [$sys1, $sys2]);
+
+        $candidateA = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
+        $this->attachGameSystems($candidateA, [$sys1, $sys2]);
+
+        $candidateB = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
+        $this->attachGameSystems($candidateB, [$sys1]);
+
+        // computeAndCache returns raw scored results
+        $scored = $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
+        $this->assertCount(2, $scored);
+        $this->assertEquals($candidateA->id, $scored[0]['user']->id);
+        $this->assertEquals($candidateB->id, $scored[1]['user']->id);
+        $this->assertGreaterThan($scored[1]['compatibility_score'], $scored[0]['compatibility_score']);
+    }
+
+    #[Test]
+    public function compute_and_cache_stores_results_in_cache()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
+
+        $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
+        // Delete candidate from DB — cache should still return it
+        User::where('id', $candidate->id)->delete();
+
+        $response = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+        $this->assertEquals('ok', $response['status']);
+        $this->assertEquals(1, $response['results']->total(), 'Cache should contain the pre-computed result');
+    }
+
+    #[Test]
+    public function discover_reads_from_cache_on_page_2()
+    {
+        Queue::fake();
+
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $sys1 = GameSystem::factory()->create();
+        $this->attachGameSystems($viewer, [$sys1]);
+
+        // Create 5 candidates with varying scores
+        for ($i = 0; $i < 5; $i++) {
+            $c = $this->createUserWithLocation(self::LAT + 0.001 * ($i + 1), self::LNG);
+            if ($i < 2) {
+                $this->attachGameSystems($c, [$sys1]);
+            }
+        }
+
+        // Pre-populate cache via computeAndCache
+        $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
+        // Page 2 should be served from cache (no page=1 restriction)
+        $response = $this->discoverWithStatus($viewer, self::LAT, self::LNG, 3, 2);
+        $this->assertEquals('ok', $response['status']);
+        $this->assertEquals(5, $response['results']->total(), 'Cache should serve all 5 results');
+        $this->assertCount(2, $response['results']->items(), 'Page 2 should have 2 items');
+
+        // Verify the background job was NOT dispatched (cache hit)
+        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+    }
+
+    #[Test]
+    public function discover_dispatches_background_refresh_on_cache_miss()
+    {
+        Queue::fake();
+
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
+
+        // First call — cache miss, should dispatch background refresh
+        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+
+        Queue::assertPushed(\App\Jobs\UpdateUserDiscoveryCache::class, function ($job) use ($viewer) {
+            return $job->userId === $viewer->id
+                && $job->triggerType === 'cache_miss_refresh';
+        });
+    }
+
+    #[Test]
+    public function discover_does_not_dispatch_job_when_no_linked_location()
+    {
+        Queue::fake();
+
+        // Viewer with location but no linkedLocation (guest location)
+        $viewer = User::factory()->create([
+            'location_id' => null,
+            'profile_complete' => true,
+        ]);
+
+        // discover with explicit lat/lng (simulating guest location)
+        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+
+        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+    }
+
+    #[Test]
+    public function discover_does_not_dispatch_job_on_cache_hit()
+    {
+        Queue::fake();
+
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
+
+        // Pre-populate cache
+        $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+        Queue::fake(); // Reset after computeAndCache
+
+        // Second call — cache hit, should NOT dispatch
+        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+
+        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+    }
+
+    #[Test]
+    public function compute_and_cache_handles_empty_candidates()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+
+        $scored = $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
+        $this->assertEquals([], $scored);
+
+        // Empty cache should be stored (preventing repeated empty computations)
+        $response = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+        $this->assertEquals('ok', $response['status']);
+        $this->assertEquals(0, $response['results']->total());
     }
 
     // ── Helper ──
