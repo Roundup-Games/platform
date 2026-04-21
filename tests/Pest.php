@@ -22,6 +22,13 @@ pest()->extend(TestCase::class)
     })
     ->in('Feature');
 
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->beforeEach(function () {
+        URL::defaults(['locale' => 'en']);
+    })
+    ->in('Unit/Notifications');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

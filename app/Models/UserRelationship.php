@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\NotificationCategory;
 use App\Enums\RelationshipType;
 use App\Jobs\UpdateUserDiscoveryCache;
+use App\Notifications\NewFollower;
+use App\Services\NotificationService;
 use App\Services\PeopleDiscoveryService;
 use Database\Factories\UserRelationshipFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +63,23 @@ class UserRelationship extends Model
         // Invalidate discovery caches — initiator's candidate pool changed
         PeopleDiscoveryService::invalidateCacheFor($initiator->id);
         UpdateUserDiscoveryCache::dispatch($initiator->id, 'follow');
+
+        // Dispatch NewFollower notification to the target user
+        if ($rel->wasRecentlyCreated) {
+            try {
+                app(NotificationService::class)->send(
+                    $target,
+                    new NewFollower($initiator),
+                    NotificationCategory::NewFollower,
+                );
+            } catch (\Throwable $e) {
+                Log::error('notification.follow_dispatch_failed', [
+                    'initiator_id' => $initiator->id,
+                    'target_id' => $target->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return $rel;
     }
