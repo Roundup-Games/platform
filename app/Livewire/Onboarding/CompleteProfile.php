@@ -3,6 +3,7 @@
 namespace App\Livewire\Onboarding;
 
 use App\Enums\ContentLanguage;
+use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Traits\HasGuestLocation;
@@ -309,6 +310,12 @@ class CompleteProfile extends Component
             'location_id' => $locationId,
             'location_source' => $this->locationSource,
         ]);
+
+        // Dispatch discovery cache population for new users with a valid location
+        $freshUser = $user->fresh();
+        if ($freshUser->linkedLocation?->latitude && $freshUser->linkedLocation?->longitude) {
+            UpdateUserDiscoveryCache::dispatch($freshUser->id, 'location_change');
+        }
 
         $this->redirectRoute('dashboard');
     }

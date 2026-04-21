@@ -3,6 +3,8 @@
 namespace App\Livewire\People;
 
 use App\Enums\RelationshipType;
+use App\Jobs\UpdateUserDiscoveryCache;
+use App\Models\NearbyDiscoveryView;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\PeopleDiscoveryService;
@@ -70,6 +72,12 @@ class PeoplePage extends Component
     #[Computed]
     public function nearbyUsers(): array
     {
+        // Track this tab view for sweep targeting (no job dispatch)
+        NearbyDiscoveryView::updateOrCreate(
+            ['user_id' => $this->authUser->id],
+            ['last_discovery_view' => now()],
+        );
+
         // Resolve viewer location: prefer linked location, fall back to guest location
         $lat = null;
         $lng = null;
@@ -210,13 +218,7 @@ class PeoplePage extends Component
 
         UserRelationship::follow($this->authUser, $target);
 
-        // Invalidate discovery cache and dispatch async refresh
-        PeopleDiscoveryService::invalidateCacheFor($this->authUser->id);
-
-        if ($this->authUser->linkedLocation) {
-            \App\Jobs\UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'follow');
-        }
-
+        // follow() now handles cache invalidation + dispatch internally
         unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
 
         session()->flash('success', 'You are now following ' . $target->name . '.');

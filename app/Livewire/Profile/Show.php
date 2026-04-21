@@ -4,6 +4,7 @@ namespace App\Livewire\Profile;
 
 use App\Enums\ContentLanguage;
 use App\Enums\VibeFlag;
+use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Services\ProfileVisibilityResolver;
 use Illuminate\Support\Facades\Auth;
@@ -158,6 +159,20 @@ class Show extends Component
 
         $emailChanged = $user->email !== $validated['email'];
 
+        // Capture pre-update values for discovery cache change detection
+        $oldLocationId = $user->location_id;
+        $oldVibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
+            return [$pref->vibe_preference_value->value => $pref->preference_type];
+        })->toArray();
+        $oldFavoriteIds = $user->gameSystemPreferences()
+            ->wherePivot('preference_type', 'favorite')
+            ->pluck('game_systems.id')
+            ->sort()->values()->toArray();
+        $oldAvoidedIds = $user->gameSystemPreferences()
+            ->wherePivot('preference_type', 'avoid')
+            ->pluck('game_systems.id')
+            ->sort()->values()->toArray();
+
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -204,6 +219,12 @@ class Show extends Component
             $user->vibePreferences()->createMany($inserts);
         }
 
+        // Detect changes for discovery cache invalidation
+        $vibesChanged = $oldVibePreferences !== $this->vibePreferences;
+        $newFavoriteIds = collect($validated['favoriteGameSystemIds'])->map('intval')->sort()->values()->toArray();
+        $newAvoidedIds = collect($validated['avoidedGameSystemIds'])->map('intval')->sort()->values()->toArray();
+        $gameSystemsChanged = $oldFavoriteIds !== $newFavoriteIds || $oldAvoidedIds !== $newAvoidedIds;
+
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
             $filename = $this->avatar->getClientOriginalName()
@@ -225,6 +246,17 @@ class Show extends Component
             'vibe_avoids_count' => count(array_filter($this->vibePreferences, fn ($v) => $v === 'avoid')),
             'profile_version' => $user->profile_version,
         ]);
+
+        // Dispatch discovery cache refresh if location, vibes, or game systems changed
+        if ($user->location_id !== ($oldLocationId ?? null)) {
+            UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
+        }
+        if ($vibesChanged) {
+            UpdateUserDiscoveryCache::dispatch($user->id, 'vibe_change');
+        }
+        if ($gameSystemsChanged) {
+            UpdateUserDiscoveryCache::dispatch($user->id, 'game_system_change');
+        }
 
         $this->saved = true;
     }

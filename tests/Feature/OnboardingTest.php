@@ -446,6 +446,7 @@ it('logs onboarding completion event', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
     Log::shouldReceive('info')
+        ->atLeast()
         ->once()
         ->with('Onboarding completed', \Mockery::on(function ($context) use ($user) {
             return $context['user_id'] === $user->id
@@ -453,6 +454,12 @@ it('logs onboarding completion event', function () {
                 && $context['game_systems_count'] === 0
                 && isset($context['location_source']);
         }));
+
+    // Allow additional log calls from sync-dispatched discovery job
+    Log::shouldReceive('info')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('debug')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('warning')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('error')->atLeast(0)->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -610,6 +617,7 @@ it('logs profile version and updated_at on completion for funnel tracking', func
     ]);
 
     Log::shouldReceive('info')
+        ->atLeast()
         ->once()
         ->with('Onboarding completed', \Mockery::on(function ($context) use ($user) {
             return $context['user_id'] === $user->id
@@ -617,6 +625,12 @@ it('logs profile version and updated_at on completion for funnel tracking', func
                 && $context['game_systems_count'] === 0
                 && isset($context['location_source']);
         }));
+
+    // Allow additional log calls from sync-dispatched discovery job
+    Log::shouldReceive('info')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('debug')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('warning')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('error')->atLeast(0)->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -962,6 +976,9 @@ it('creates a Location record on profile completion with geocoded data', functio
     Cache::flush();
 
     Log::shouldReceive('info')->andReturn(null);
+    Log::shouldReceive('debug')->andReturn(null);
+    Log::shouldReceive('warning')->andReturn(null);
+    Log::shouldReceive('error')->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -1017,6 +1034,9 @@ it('reuses existing Location record when place_id matches during completion', fu
     Cache::flush();
 
     Log::shouldReceive('info')->andReturn(null);
+    Log::shouldReceive('debug')->andReturn(null);
+    Log::shouldReceive('warning')->andReturn(null);
+    Log::shouldReceive('error')->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -1075,10 +1095,17 @@ it('logs location_source as localStorage when location came from browser', funct
     Cache::flush();
 
     Log::shouldReceive('info')
+        ->atLeast()
         ->once()
         ->with('Onboarding completed', \Mockery::on(function ($context) {
             return $context['location_source'] === 'localStorage';
         }));
+
+    // Allow additional log calls from sync-dispatched discovery job
+    Log::shouldReceive('info')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('debug')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('warning')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('error')->atLeast(0)->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -1111,10 +1138,17 @@ it('logs location_source as manual when location entered manually', function () 
     Cache::flush();
 
     Log::shouldReceive('info')
+        ->atLeast()
         ->once()
         ->with('Onboarding completed', \Mockery::on(function ($context) {
             return $context['location_source'] === 'manual';
         }));
+
+    // Allow additional log calls from sync-dispatched discovery job
+    Log::shouldReceive('info')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('debug')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('warning')->atLeast(0)->andReturn(null);
+    Log::shouldReceive('error')->atLeast(0)->andReturn(null);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)

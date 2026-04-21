@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RelationshipType;
+use App\Jobs\UpdateUserDiscoveryCache;
 use App\Services\PeopleDiscoveryService;
 use Database\Factories\UserRelationshipFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -58,6 +59,7 @@ class UserRelationship extends Model
 
         // Invalidate discovery caches — initiator's candidate pool changed
         PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+        UpdateUserDiscoveryCache::dispatch($initiator->id, 'follow');
 
         return $rel;
     }
@@ -81,6 +83,7 @@ class UserRelationship extends Model
 
         if ($deleted) {
             PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+            UpdateUserDiscoveryCache::dispatch($initiator->id, 'unfollow');
         }
 
         return $deleted;
@@ -120,6 +123,8 @@ class UserRelationship extends Model
         // Invalidate discovery caches for both users
         PeopleDiscoveryService::invalidateCacheFor($initiator->id);
         PeopleDiscoveryService::invalidateCacheFor($target->id);
+        UpdateUserDiscoveryCache::dispatch($initiator->id, 'block');
+        UpdateUserDiscoveryCache::dispatch($target->id, 'block');
 
         return $rel;
     }
@@ -145,6 +150,8 @@ class UserRelationship extends Model
             // Both users' candidate pools change after unblock
             PeopleDiscoveryService::invalidateCacheFor($initiator->id);
             PeopleDiscoveryService::invalidateCacheFor($target->id);
+            UpdateUserDiscoveryCache::dispatch($initiator->id, 'unblock');
+            UpdateUserDiscoveryCache::dispatch($target->id, 'unblock');
         }
 
         return $deleted;
