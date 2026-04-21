@@ -2,9 +2,12 @@
 
 namespace App\Livewire\Teams;
 
+use App\Enums\NotificationCategory;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Notifications\TeamInvitation;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -130,6 +133,21 @@ class ManageRoster extends Component
             'invited_by' => $invitedBy,
             'role' => $inviteRole,
         ]);
+
+        // Dispatch TeamInvitation notification
+        try {
+            app(NotificationService::class)->send(
+                $targetUser,
+                new TeamInvitation($this->team, Auth::user()),
+                NotificationCategory::TeamInvitation,
+            );
+        } catch (\Throwable $e) {
+            Log::error('notification.team_invite_dispatch_failed', [
+                'team_id' => $teamId,
+                'target_user_id' => $targetUserId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         $this->reset('inviteEmail', 'inviteRole');
         session()->flash('success', __('emails.content_invite_sent_to_email', ['email' => $targetUser->email]));

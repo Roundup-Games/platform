@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\User;
+use App\Notifications\SessionAddedToCampaign;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -97,6 +101,34 @@ class AddSessionToCampaign extends Component
 
             return $game;
         });
+
+        // Dispatch SessionAddedToCampaign to each auto-invited participant
+        try {
+            $notificationService = app(NotificationService::class);
+            $notification = new SessionAddedToCampaign($game, $campaign);
+
+            $notifiedUserIds = $campaign->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $ownerId)
+                ->pluck('user_id');
+
+            foreach ($notifiedUserIds as $userId) {
+                $participant = User::find($userId);
+                if ($participant) {
+                    $notificationService->send(
+                        $participant,
+                        new SessionAddedToCampaign($game, $campaign),
+                        NotificationCategory::SessionAddedToCampaign,
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.session_added_dispatch_failed', [
+                'game_id' => $game->id,
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('campaigns.flash_session_name_added_to_campaign', ['name' => $game->name]));
 

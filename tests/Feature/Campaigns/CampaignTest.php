@@ -1480,6 +1480,12 @@ describe('AddSessionToCampaign — Auto-Invite Campaign Participants', function 
                     && isset($context['game_id']);
             }));
 
+        // NotificationService may also log (dispatched/skipped/failed)
+        Log::shouldReceive('info')->byDefault();
+        Log::shouldReceive('error')->byDefault();
+        Log::shouldReceive('debug')->byDefault();
+        Log::shouldReceive('warning')->byDefault();
+
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Logged Session')

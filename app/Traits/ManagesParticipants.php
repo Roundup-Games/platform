@@ -2,7 +2,11 @@
 
 namespace App\Traits;
 
+use App\Enums\NotificationCategory;
 use App\Models\User;
+use App\Notifications\CampaignInvitation;
+use App\Notifications\GameInvitation;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
@@ -108,6 +112,25 @@ trait ManagesParticipants
                 'invited_user_id' => $targetUser->id,
                 'invited_by' => $authUser->id,
             ]);
+
+            // Dispatch invitation notification
+            try {
+                $notificationClass = $this->getEntityName() === 'Game'
+                    ? new GameInvitation($entity, $authUser)
+                    : new CampaignInvitation($entity, $authUser);
+                $category = $this->getEntityName() === 'Game'
+                    ? NotificationCategory::GameInvitation
+                    : NotificationCategory::CampaignInvitation;
+
+                app(NotificationService::class)->send($targetUser, $notificationClass, $category);
+            } catch (\Throwable $e) {
+                Log::error('notification.invite_dispatch_failed', [
+                    'entity_type' => $this->getEntityName(),
+                    $entityIdColumn => $entity->id,
+                    'target_user_id' => $targetUser->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             $invitedCount++;
         }
