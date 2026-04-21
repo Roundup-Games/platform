@@ -85,7 +85,7 @@ Route::prefix('{locale}')
             Route::get('/people', App\Livewire\People\PeoplePage::class)->name('people');
 
             // Notifications page (full paginated history)
-            Route::get('/notifications', App\Livewire\Profile\Show::class)->name('notifications.index');
+            Route::get('/notifications', App\Livewire\Notifications\NotificationsPage::class)->name('notifications.index');
         });
 
         // ── Public Profile ────────────────────────────
