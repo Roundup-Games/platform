@@ -68,15 +68,47 @@ class PeopleDiscoveryService
                     'geohash' => $viewerGeohash,
                 ]);
 
-                $total = count($cached);
-                $items = collect($cached)->forPage($page, $perPage)->values();
+                // Guard against stale cache entries that stored User models
+                // instead of user_id. If the first item lacks 'user_id',
+                // invalidate and fall through to fresh computation.
+                $firstItem = $cached[0] ?? null;
+                if ($firstItem && ! isset($firstItem['user_id'])) {
+                    Log::warning('discovery.stale_cache_format', [
+                        'viewer_id' => $viewer->id,
+                        'cache_key' => $cacheKey,
+                    ]);
+                    Cache::forget($cacheKey);
+                    // Fall through to fresh computation below
+                } else {
+                    // Reconstruct User models from cached user_ids
+                    $userIds = array_column($cached, 'user_id');
+                    $users = User::whereIn('id', $userIds)->get()->keyBy('id');
 
-                return [
-                    'results' => new LengthAwarePaginator($items, $total, $perPage, $page, [
-                        'path' => request()?->url(),
-                    ]),
-                    'status' => 'ok',
-                ];
+                    $items = collect($cached)->map(function (array $cachedItem) use ($users) {
+                        $user = $users->get($cachedItem['user_id']);
+                        if (! $user) {
+                            return null;
+                        }
+
+                        return [
+                            'user' => $user,
+                            'compatibility_score' => $cachedItem['compatibility_score'],
+                            'match_reasons' => $cachedItem['match_reasons'],
+                            'tier' => $cachedItem['tier'],
+                            'distance_km' => $cachedItem['distance_km'],
+                        ];
+                    })->filter()->values();
+
+                    $total = count($cached);
+                    $paginatedItems = $items->forPage($page, $perPage)->values();
+
+                    return [
+                        'results' => new LengthAwarePaginator($paginatedItems, $total, $perPage, $page, [
+                            'path' => request()?->url(),
+                        ]),
+                        'status' => 'ok',
+                    ];
+                }
             }
         }
 
@@ -170,8 +202,17 @@ class PeopleDiscoveryService
         $scored = $scored->sortByDesc('compatibility_score')->values();
 
         // Cache the full scored set (for page-1 cache hits)
+        // Store user_id instead of User model to prevent __PHP_Incomplete_Class
+        // errors when the cache driver unserializes before the autoloader runs.
         if ($page === 1) {
-            Cache::put($cacheKey, $scored->all(), $ttl);
+            $cacheable = $scored->map(fn (array $item) => [
+                'user_id' => $item['user']->id,
+                'compatibility_score' => $item['compatibility_score'],
+                'match_reasons' => $item['match_reasons'],
+                'tier' => $item['tier'],
+                'distance_km' => $item['distance_km'],
+            ])->all();
+            Cache::put($cacheKey, $cacheable, $ttl);
 
             // Track this key for later invalidation
             $keySetKey = "people:nearby:keys:{$viewer->id}";
