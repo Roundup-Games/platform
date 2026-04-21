@@ -8,8 +8,8 @@ use Testcontainers\Modules\PostgresContainer;
  * Starts an ephemeral PostgreSQL container before the test suite runs
  * and configures Laravel's database connection to point to it.
  *
- * The container is automatically removed when the PHP process exits
- * (testcontainers uses --rm by default).
+ * A shutdown function stops and removes the container when the PHP process exits,
+ * preventing orphaned containers from accumulating between runs.
  */
 
 // Require the autoloader first
@@ -48,6 +48,19 @@ $container = new PostgresContainer(
     database: 'roundup_games_test',
 );
 $started = $container->start();
+
+// Register teardown: stop and remove the container when the test process exits.
+// This prevents orphaned containers from accumulating and consuming resources.
+register_shutdown_function(function () use ($started): void {
+    try {
+        $started->stop();
+    } catch (\Throwable $e) {
+        // Best-effort cleanup — don't let a teardown failure mask test results.
+        // The container will still be stopped by Docker if autoRemove was set,
+        // or can be cleaned up manually via `docker rm`.
+        fprintf(STDERR, "  Testcontainers: warning — failed to stop PostgreSQL container: %s\n", $e->getMessage());
+    }
+});
 
 // Expose connection details via environment variables that Laravel will pick up.
 // These override phpunit.xml <env> values at runtime.
