@@ -345,6 +345,16 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     // ── User Relationships ────────────────────────────
 
     /**
+     * Discovery view tracking row (1:1 with User).
+     * Used for sweep targeting: last_discovery_view filters active users,
+     * geohash_4 enables skip-if-location-unchanged optimization.
+     */
+    public function discoveryView()
+    {
+        return $this->hasOne(NearbyDiscoveryView::class);
+    }
+
+    /**
      * Users who follow this user (incoming follows).
      */
     public function followers()
