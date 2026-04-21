@@ -4,6 +4,8 @@ namespace App\Traits;
 
 use App\Enums\NotificationCategory;
 use App\Models\User;
+use App\Notifications\ApplicationApproved;
+use App\Notifications\ApplicationRejected;
 use App\Notifications\CampaignInvitation;
 use App\Notifications\GameInvitation;
 use App\Services\NotificationService;
@@ -160,6 +162,7 @@ trait ManagesParticipants
     {
         $participant = $this->findParticipant($participantId);
         $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
 
         if ($participant->role !== 'applicant') {
             return;
@@ -175,10 +178,30 @@ trait ManagesParticipants
             ->update(['status' => 'approved']);
 
         Log::info($this->getEntityName() . ' application approved', [
-            $this->getEntityIdColumn() => $entity->id,
+            $entityIdColumn => $entity->id,
             'user_id' => $participant->user_id,
             'approved_by' => Auth::id(),
         ]);
+
+        // Notify applicant that their application was approved
+        try {
+            $applicant = User::find($participant->user_id);
+            if ($applicant) {
+                $entityType = strtolower($this->getEntityName());
+                app(NotificationService::class)->send(
+                    $applicant,
+                    new ApplicationApproved($entity, $entityType, Auth::user()),
+                    NotificationCategory::ApplicationApproved
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.application_approved_dispatch_failed', [
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'applicant_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('common.flash_application_approved'));
     }
@@ -187,6 +210,7 @@ trait ManagesParticipants
     {
         $participant = $this->findParticipant($participantId);
         $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
 
         if ($participant->role !== 'applicant') {
             return;
@@ -199,10 +223,30 @@ trait ManagesParticipants
             ->update(['status' => 'rejected']);
 
         Log::info($this->getEntityName() . ' application rejected', [
-            $this->getEntityIdColumn() => $entity->id,
+            $entityIdColumn => $entity->id,
             'user_id' => $participant->user_id,
             'rejected_by' => Auth::id(),
         ]);
+
+        // Notify applicant that their application was rejected
+        try {
+            $applicant = User::find($participant->user_id);
+            if ($applicant) {
+                $entityType = strtolower($this->getEntityName());
+                app(NotificationService::class)->send(
+                    $applicant,
+                    new ApplicationRejected($entity, $entityType, Auth::user()),
+                    NotificationCategory::ApplicationRejected
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.application_rejected_dispatch_failed', [
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'applicant_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('success', __('common.flash_application_rejected'));
     }

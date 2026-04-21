@@ -1,8 +1,14 @@
 <?php
 
+use App\Enums\RelationshipType;
 use App\Models\Campaign;
+use App\Models\CampaignApplication;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
+use App\Models\GameApplication;
+use App\Models\GameParticipant;
 use App\Models\User;
+use App\Models\UserRelationship;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
 use App\Notifications\NewApplication;
@@ -269,5 +275,253 @@ describe('ApplicationRejected Notification', function () {
             \Illuminate\Notifications\Channels\DatabaseChannel::class,
             \Illuminate\Notifications\Channels\MailChannel::class,
         );
+    });
+});
+
+// ── Trigger integration tests ─────────────────────────
+
+describe('Protected game apply → NewApplication trigger', function () {
+    it('dispatches NewApplication to game owner when applying to a protected game', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'protected',
+        ]);
+
+        // Protected games require friend/teammate relationship for view access
+        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $applicant->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $applicant->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
+
+        \Livewire\Livewire::actingAs($applicant)
+            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->set('message', 'I would love to join!')
+            ->call('submitApplication')
+            ->assertHasNoErrors();
+
+        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('new_application')
+            ->and($data['applicant_id'])->toBe($applicant->id)
+            ->and($data['entity_type'])->toBe('game')
+            ->and($data['entity_id'])->toBe($game->id);
+    });
+
+    it('does not dispatch notification for public game (auto-approved)', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'public',
+        ]);
+
+        \Livewire\Livewire::actingAs($applicant)
+            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->call('submitApplication')
+            ->assertHasNoErrors();
+
+        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        expect($notifications)->toHaveCount(0);
+    });
+});
+
+describe('Protected campaign apply → NewApplication trigger', function () {
+    it('dispatches NewApplication to campaign owner when applying to a protected campaign', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'protected',
+        ]);
+
+        // Protected campaigns require friend/teammate relationship for view access
+        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $applicant->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $applicant->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
+
+        \Livewire\Livewire::actingAs($applicant)
+            ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+            ->set('message', 'Please let me in!')
+            ->call('submitApplication')
+            ->assertHasNoErrors();
+
+        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('new_application')
+            ->and($data['applicant_id'])->toBe($applicant->id)
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id);
+    });
+
+    it('does not dispatch notification for public campaign (auto-approved)', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'visibility' => 'public',
+        ]);
+
+        \Livewire\Livewire::actingAs($applicant)
+            ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+            ->call('submitApplication')
+            ->assertHasNoErrors();
+
+        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        expect($notifications)->toHaveCount(0);
+    });
+});
+
+describe('Approve application → ApplicationApproved trigger', function () {
+    it('dispatches ApplicationApproved to applicant when game owner approves', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'protected']);
+
+        // Create the application + pending participant manually
+        GameApplication::create([
+            'game_id' => $game->id,
+            'user_id' => $applicant->id,
+            'status' => 'pending',
+            'message' => null,
+        ]);
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $applicant->id,
+            'role' => 'applicant',
+            'status' => 'pending',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->call('approveApplication', $participant->id)
+            ->assertHasNoErrors();
+
+        $notifications = $applicant->notifications()->where('type', ApplicationApproved::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('application_approved')
+            ->and($data['entity_type'])->toBe('game')
+            ->and($data['entity_id'])->toBe($game->id)
+            ->and($data['approver_id'])->toBe($owner->id);
+    });
+
+    it('dispatches ApplicationApproved to applicant when campaign owner approves', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id, 'visibility' => 'protected']);
+
+        CampaignApplication::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $applicant->id,
+            'status' => 'pending',
+            'message' => null,
+        ]);
+        $participant = CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $applicant->id,
+            'role' => 'applicant',
+            'status' => 'pending',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
+            ->call('approveApplication', $participant->id)
+            ->assertHasNoErrors();
+
+        $notifications = $applicant->notifications()->where('type', ApplicationApproved::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('application_approved')
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
+            ->and($data['approver_id'])->toBe($owner->id);
+    });
+});
+
+describe('Reject application → ApplicationRejected trigger', function () {
+    it('dispatches ApplicationRejected to applicant when game owner rejects', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create(['owner_id' => $owner->id, 'visibility' => 'protected']);
+
+        GameApplication::create([
+            'game_id' => $game->id,
+            'user_id' => $applicant->id,
+            'status' => 'pending',
+            'message' => null,
+        ]);
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $applicant->id,
+            'role' => 'applicant',
+            'status' => 'pending',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->call('rejectApplication', $participant->id)
+            ->assertHasNoErrors();
+
+        $notifications = $applicant->notifications()->where('type', ApplicationRejected::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('application_rejected')
+            ->and($data['entity_type'])->toBe('game')
+            ->and($data['entity_id'])->toBe($game->id)
+            ->and($data['rejector_id'])->toBe($owner->id);
+    });
+
+    it('dispatches ApplicationRejected to applicant when campaign owner rejects', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $applicant = User::factory()->create(['profile_complete' => true]);
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id, 'visibility' => 'protected']);
+
+        CampaignApplication::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $applicant->id,
+            'status' => 'pending',
+            'message' => null,
+        ]);
+        $participant = CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $applicant->id,
+            'role' => 'applicant',
+            'status' => 'pending',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
+            ->call('rejectApplication', $participant->id)
+            ->assertHasNoErrors();
+
+        $notifications = $applicant->notifications()->where('type', ApplicationRejected::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('application_rejected')
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
+            ->and($data['rejector_id'])->toBe($owner->id);
+    });
+
+    it('does not dispatch notification for non-applicant participant', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $player = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create(['owner_id' => $owner->id]);
+
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->call('rejectApplication', $participant->id);
+
+        // rejectApplication returns early if role !== 'applicant', so no notification
+        $notifications = $player->notifications()->where('type', ApplicationRejected::class)->get();
+        expect($notifications)->toHaveCount(0);
     });
 });

@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
+use App\Models\User;
+use App\Notifications\NewApplication;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -123,6 +127,26 @@ class ApplyToCampaign extends Component
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic,
         ]);
+
+        // Notify campaign owner of new application (protected campaigns only)
+        if (! $isPublic) {
+            try {
+                $owner = User::find($this->campaign->owner_id);
+                if ($owner) {
+                    app(NotificationService::class)->send(
+                        $owner,
+                        new NewApplication(Auth::user(), $this->campaign, 'campaign'),
+                        NotificationCategory::NewApplication
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.new_application_dispatch_failed', [
+                    'campaign_id' => $this->campaign->id,
+                    'applicant_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         if ($isPublic) {
             session()->flash('success', __('campaigns.content_you_have_joined_the_campaign'));

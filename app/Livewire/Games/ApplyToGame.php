@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
+use App\Models\User;
+use App\Notifications\NewApplication;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -134,6 +138,26 @@ class ApplyToGame extends Component
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic,
         ]);
+
+        // Notify game owner of new application (protected games only)
+        if (! $isPublic) {
+            try {
+                $owner = User::find($this->game->owner_id);
+                if ($owner) {
+                    app(NotificationService::class)->send(
+                        $owner,
+                        new NewApplication(Auth::user(), $this->game, 'game'),
+                        NotificationCategory::NewApplication
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.new_application_dispatch_failed', [
+                    'game_id' => $this->game->id,
+                    'applicant_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         if ($isPublic) {
             session()->flash('success', __('games.content_you_have_joined_the_game'));
