@@ -71,6 +71,17 @@ return [
     'content_near_me' => 'Near Me',
     'content_share_your_location_to_discover_game_sessions' => 'Share your location to discover game sessions and campaigns happening in your area.',
     'content_find_games_near_you' => 'Find games and sessions happening near you.',
+    'content_sandbox' => 'Sandbox',
+    'content_rule_of_cool' => 'Rule of Cool',
+    'content_dungeon_crawl' => 'Dungeon Crawl',
+    'content_kingdom_building' => 'Kingdom Building',
+    'content_theater_of_the_mind' => 'Theater of the Mind',
+    'content_rules_as_written' => 'Rules as Written',
+    'content_roleplay_light' => 'Roleplay-Light',
+    'content_play_by_post' => 'Play-by-Post',
+    'content_organized_play' => 'Organized Play',
+    'content_west_marches' => 'West Marches',
+    'content_format' => 'Format',
 
     // ── Game System Categories (top 15 by count) ───────────────────
     'cat_card-game' => 'Card Game',

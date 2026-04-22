@@ -10,11 +10,11 @@ class VibeFlagMutualExclusivityTest extends TestCase
 {
     // ── Pair structure validation ─────────────────────
 
-    public function test_returns_six_mutually_exclusive_pairs(): void
+    public function test_returns_eight_mutually_exclusive_pairs(): void
     {
         $pairs = VibeFlag::mutuallyExclusivePairs();
 
-        $this->assertCount(6, $pairs);
+        $this->assertCount(8, $pairs);
     }
 
     public function test_each_pair_has_exactly_two_members(): void
@@ -124,6 +124,16 @@ class VibeFlagMutualExclusivityTest extends TestCase
     public function test_competitive_and_cooperative_are_paired(): void
     {
         $this->assertPairExists(VibeFlag::Competitive, VibeFlag::Cooperative);
+    }
+
+    public function test_rule_of_cool_and_rules_heavy_are_paired(): void
+    {
+        $this->assertPairExists(VibeFlag::RuleOfCool, VibeFlag::RulesHeavy);
+    }
+
+    public function test_roleplay_light_and_roleplay_heavy_are_paired(): void
+    {
+        $this->assertPairExists(VibeFlag::RoleplayLight, VibeFlag::RoleplayHeavy);
     }
 
     // ── Helpers ────────────────────────────────────────

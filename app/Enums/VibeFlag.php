@@ -26,6 +26,20 @@ enum VibeFlag: string
     case Exploration = 'exploration';
     case PuzzleSolving = 'puzzle-solving';
 
+    // TTRPG Playstyle
+    case Sandbox = 'sandbox';
+    case RuleOfCool = 'rule-of-cool';
+    case DungeonCrawl = 'dungeon-crawl';
+    case KingdomBuilding = 'kingdom-building';
+    case TheaterOfTheMind = 'theater-of-the-mind';
+    case RulesAsWritten = 'rules-as-written';
+    case RoleplayLight = 'roleplay-light';
+
+    // TTRPG Format
+    case PlayByPost = 'play-by-post';
+    case OrganizedPlay = 'organized-play';
+    case WestMarches = 'west-marches';
+
     // Social
     case Competitive = 'competitive';
     case Cooperative = 'cooperative';
@@ -63,6 +77,16 @@ enum VibeFlag: string
             self::Cooperative => __('discovery.content_cooperative'),
             self::NewPlayerFriendly => __('discovery.field_new_player_friendly'),
             self::DropInFriendly => __('discovery.field_drop_in_friendly'),
+            self::Sandbox => __('discovery.content_sandbox'),
+            self::RuleOfCool => __('discovery.content_rule_of_cool'),
+            self::DungeonCrawl => __('discovery.content_dungeon_crawl'),
+            self::KingdomBuilding => __('discovery.content_kingdom_building'),
+            self::TheaterOfTheMind => __('discovery.content_theater_of_the_mind'),
+            self::RulesAsWritten => __('discovery.content_rules_as_written'),
+            self::RoleplayLight => __('discovery.content_roleplay_light'),
+            self::PlayByPost => __('discovery.content_play_by_post'),
+            self::OrganizedPlay => __('discovery.content_organized_play'),
+            self::WestMarches => __('discovery.content_west_marches'),
         };
     }
 
@@ -81,6 +105,8 @@ enum VibeFlag: string
             [self::RulesLight, self::RulesHeavy],
             [self::CombatFocused, self::RoleplayHeavy],
             [self::Competitive, self::Cooperative],
+            [self::RuleOfCool, self::RulesHeavy],
+            [self::RoleplayLight, self::RoleplayHeavy],
         ];
     }
 
@@ -102,11 +128,15 @@ enum VibeFlag: string
             ],
             'playstyle' => [
                 'label' => __('discovery.content_playstyle'),
-                'flags' => [self::RulesLight, self::RulesHeavy, self::Tactical, self::CombatFocused, self::RoleplayHeavy, self::Exploration, self::PuzzleSolving],
+                'flags' => [self::RulesLight, self::RulesHeavy, self::Tactical, self::CombatFocused, self::RoleplayHeavy, self::Exploration, self::PuzzleSolving, self::Sandbox, self::RuleOfCool, self::DungeonCrawl, self::KingdomBuilding, self::TheaterOfTheMind, self::RulesAsWritten, self::RoleplayLight],
             ],
             'social' => [
                 'label' => __('discovery.content_social'),
                 'flags' => [self::Competitive, self::Cooperative, self::NewPlayerFriendly, self::DropInFriendly],
+            ],
+            'format' => [
+                'label' => __('discovery.content_format'),
+                'flags' => [self::PlayByPost, self::OrganizedPlay, self::WestMarches],
             ],
         ];
 
