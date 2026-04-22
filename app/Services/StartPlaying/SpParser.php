@@ -305,6 +305,64 @@ class SpParser
     }
 
     /**
+     * Parse a playstyle detail page from the Apollo cache.
+     *
+     * Playstyle pages follow the same structure as genre/mechanic pages
+     * but with SeoEntity type GAME_STYLE.
+     *
+     * @param  array<string, mixed>  $cache  The initialCache from SpClient::fetchPage()
+     * @param  string  $slug  The style slug (e.g. 'roleplay-heavy')
+     * @return array<string, mixed>|null Parsed style data or null if not found.
+     */
+    public function parseStyle(array $cache, string $slug): ?array
+    {
+        $seoPage = $this->findSeoPage($cache, $slug);
+        if (! $seoPage) {
+            return null;
+        }
+
+        $heroSection = $seoPage['heroSection'] ?? [];
+
+        // Find the SeoEntity for this style
+        $entity = $this->findSeoEntity($cache, $slug, 'GAME_STYLE');
+
+        // Extract popular RPGs from relatedSeoEntities
+        $popularRpgs = [];
+        if ($entity) {
+            $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
+            foreach ($entity[$relatedKey] ?? [] as $related) {
+                $popularRpgs[] = [
+                    'slug' => $related['slug'] ?? '',
+                    'title' => $related['title'] ?? '',
+                    'image' => $related['thumbnailImage'] ?? null,
+                    'description' => $related['thumbnailDescription'] ?? null,
+                ];
+            }
+        }
+
+        // Extract similar styles from similarSeoEntities
+        $similarStyles = [];
+        if ($entity) {
+            foreach ($entity['similarSeoEntities({})'] ?? [] as $similar) {
+                $pages = $similar['seoPages'] ?? [];
+                if (! empty($pages)) {
+                    $page = $pages[0];
+                    $canonicalUrl = $page['canonicalUrl'] ?? '';
+                    $similarStyles[] = ltrim($canonicalUrl, '/');
+                }
+            }
+        }
+
+        return [
+            'slug' => $slug,
+            'name' => $heroSection['title'] ?? $seoPage['title'] ?? $slug,
+            'description' => $heroSection['descriptionPrimary'] ?? null,
+            'popular_rpgs' => $popularRpgs,
+            'similar_styles' => $similarStyles,
+        ];
+    }
+
+    /**
      * Resolve an Apollo cache __ref pointer to its cached object.
      *
      * Apollo's normalized cache stores objects with keys like "TypeName:id".
