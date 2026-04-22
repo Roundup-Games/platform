@@ -394,16 +394,19 @@ describe('User Link Component', function () {
     });
 
     it('renders avatar image with aria-hidden and empty alt', function () {
-        $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
+        // Avatar was extracted from user-link to user-avatar component
+        $template = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
         // Avatar image should be decorative (aria-hidden, alt="")
         expect($template)->toContain('aria-hidden="true"');
         expect($template)->toContain('alt=""');
     });
 
     it('renders avatar initial fallback as decorative', function () {
-        $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
+        // Avatar was extracted from user-link to user-avatar component
+        $template = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
         // Initial-letter fallback span should be aria-hidden
         // Count that aria-hidden appears in avatar-related contexts
+        // (3 instances: img, initial span, null-user fallback span)
         $ariaHiddenCount = substr_count($template, 'aria-hidden="true"');
         expect($ariaHiddenCount)->toBeGreaterThanOrEqual(2, 'Expected aria-hidden on both img and fallback span');
     });
@@ -507,11 +510,13 @@ describe('User Link Component Sweep', function () {
         // but the sidebar/footer nav should have user links elsewhere.
         // We verify the component template itself has the right structure.
         $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
+        // Avatar was extracted to user-avatar component
+        $avatarTemplate = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
 
         // Link should have wire:navigate for SPA transitions
         expect($template)->toContain('wire:navigate');
-        // Avatar is decorative (aria-hidden)
-        expect($template)->toContain('aria-hidden="true"');
+        // Avatar is decorative (aria-hidden) — now in user-avatar component
+        expect($avatarTemplate)->toContain('aria-hidden="true"');
         // Screen reader text provides context
         expect($template)->toContain('sr-only');
         expect($template)->toContain("View {{ \$user->name }}'s profile");
