@@ -54,8 +54,8 @@ describe('Rendering', function () {
         $component = Livewire::test(VibePreferencePicker::class);
         $pairedFlags = $component->instance()->getPairedFlags;
 
-        // 6 mutually exclusive pairs
-        expect($pairedFlags)->toHaveCount(6);
+        // 8 mutually exclusive pairs
+        expect($pairedFlags)->toHaveCount(8);
 
         foreach ($pairedFlags as $pair) {
             expect($pair)->toHaveKeys(['flagA', 'labelA', 'flagB', 'labelB', 'valueA', 'valueB']);
