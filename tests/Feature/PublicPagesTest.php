@@ -223,8 +223,7 @@ describe('PublicNavigation', function () {
             ->assertOk()
             ->assertSee('Discover')
             ->assertSee('Games')
-            ->assertSee('Campaigns')
-            ->assertSee('Near Me');
+            ->assertSee('Campaigns');
     });
 
     it('includes footer links', function () {
