@@ -23,6 +23,9 @@ class GameSystem extends Model implements HasMedia
         'bgg_id', 'bgg_type', 'thumbnail_url', 'base_game_id',
         'bgg_average_rating', 'bgg_bayes_average', 'bgg_rank',
         'bgg_users_rated', 'bgg_average_weight', 'bgg_last_synced_at',
+        'type', 'source', 'source_slug', 'creator', 'player_range',
+        'sp_rating', 'sp_review_count', 'faq_content', 'external_links',
+        'showcases', 'instructions',
     ];
 
     protected function casts(): array
@@ -42,6 +45,14 @@ class GameSystem extends Model implements HasMedia
             'bgg_users_rated' => 'integer',
             'bgg_average_weight' => 'decimal:2',
             'bgg_last_synced_at' => 'datetime',
+            'type' => 'string',
+            'source' => 'string',
+            'sp_rating' => 'decimal:2',
+            'sp_review_count' => 'integer',
+            'faq_content' => 'array',
+            'external_links' => 'array',
+            'showcases' => 'array',
+            'instructions' => 'array',
         ];
     }
 
@@ -51,7 +62,29 @@ class GameSystem extends Model implements HasMedia
             if (empty($gameSystem->slug)) {
                 $gameSystem->slug = Str::slug($gameSystem->name);
             }
+            if (empty($gameSystem->type)) {
+                $gameSystem->type = 'boardgame';
+            }
         });
+    }
+
+    // ── Scopes ─────────────────────────────────────────
+
+    public function scopeTtrpg($query)
+    {
+        $query->where('type', 'ttrpg');
+    }
+
+    public function scopeBoardgame($query)
+    {
+        $query->where('type', 'boardgame');
+    }
+
+    // ── Accessors ──────────────────────────────────────
+
+    public function isTtrpg(): bool
+    {
+        return $this->type === 'ttrpg';
     }
 
     public function registerMediaCollections(): void

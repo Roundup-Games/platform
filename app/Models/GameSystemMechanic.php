@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class GameSystemMechanic extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'description'];
 
     protected static function booted(): void
     {
@@ -22,6 +22,32 @@ class GameSystemMechanic extends Model
     public function gameSystems(): BelongsToMany
     {
         return $this->belongsToMany(GameSystem::class, 'game_system_mechanic');
+    }
+
+    /**
+     * Self-referencing cross-link: mechanics similar to this one.
+     */
+    public function similarMechanics(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'game_system_mechanic_relations',
+            'mechanic_id',
+            'related_mechanic_id'
+        )->withPivot('type');
+    }
+
+    /**
+     * Inverse: mechanics that reference this one as similar.
+     */
+    public function inverseSimilarMechanics(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'game_system_mechanic_relations',
+            'related_mechanic_id',
+            'mechanic_id'
+        )->withPivot('type');
     }
 
     /**

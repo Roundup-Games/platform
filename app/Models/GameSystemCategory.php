@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class GameSystemCategory extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'description'];
 
     protected static function booted(): void
     {
@@ -22,6 +22,32 @@ class GameSystemCategory extends Model
     public function gameSystems(): BelongsToMany
     {
         return $this->belongsToMany(GameSystem::class, 'game_system_category');
+    }
+
+    /**
+     * Self-referencing cross-link: categories similar to this one.
+     */
+    public function similarCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'game_system_category_relations',
+            'category_id',
+            'related_category_id'
+        )->withPivot('type');
+    }
+
+    /**
+     * Inverse: categories that reference this one as similar.
+     */
+    public function inverseSimilarCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'game_system_category_relations',
+            'related_category_id',
+            'category_id'
+        )->withPivot('type');
     }
 
     /**
