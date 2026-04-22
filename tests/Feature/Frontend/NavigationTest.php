@@ -9,10 +9,7 @@ describe('Public Layout Mobile Nav', function () {
             ->assertOk()
             // Mobile nav links — primary items
             ->assertSee('Discover')
-            ->assertSee('Games')
-            ->assertSee('Campaigns')
             ->assertSee('How It Works')
-            ->assertSee('Near Me')
             // Secondary items still accessible in mobile
             ->assertSee('About')
             ->assertSee('Contact')
@@ -24,8 +21,6 @@ describe('Public Layout Mobile Nav', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee(route('discover'))
-            ->assertSee(route('games.index'))
-            ->assertSee(route('campaigns.index'))
             ->assertSee(route('about'))
             ->assertSee(route('contact'));
     });
@@ -67,7 +62,7 @@ describe('Public Layout Mobile Nav', function () {
 
         // Events should NOT appear as a primary mobile nav link
         // (it's demoted to footer). The mobile dropdown shows Discover,
-        // Games, Campaigns, How It Works, Near Me, About, Contact — but not Events.
+        // How It Works, About, Contact — but not Events.
         // Extract the mobile nav section (inside x-show="open" block)
         preg_match('/x-show="open"(.*?)@click\.away/s', $content, $mobileMatch);
         $mobileSection = $mobileMatch[1] ?? $content;
@@ -82,10 +77,7 @@ describe('Public Layout Desktop Nav', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee('Discover')
-            ->assertSee('Games')
-            ->assertSee('Campaigns')
-            ->assertSee('How It Works')
-            ->assertSee('Near Me');
+            ->assertSee('How It Works');
     });
 
     it('does not show Events as a prominent desktop nav item', function () {
@@ -96,9 +88,8 @@ describe('Public Layout Desktop Nav', function () {
         $response->assertOk();
         $content = $response->getContent();
 
-        // Desktop nav section exists with Discover, Games, Campaigns
-        $this->assertStringContainsString(route('games.index'), $content);
-        $this->assertStringContainsString(route('campaigns.index'), $content);
+        // Desktop nav section exists with Discover
+        $this->assertStringContainsString(route('discover'), $content);
 
         // Events route still exists (in footer) but not as a primary nav item
         // This is a structural check — events.index is in the footer, not desktop nav
@@ -126,8 +117,6 @@ describe('Public Layout Footer', function () {
             ->assertOk()
             ->assertSee('Platform')
             ->assertSee(route('discover'))
-            ->assertSee(route('games.index'))
-            ->assertSee(route('campaigns.index'))
             ->assertSee(route('events.index'));
     });
 
