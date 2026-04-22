@@ -37,10 +37,10 @@ class BrowseTeams extends Component
                   ->orWhere('city', 'like', "%{$escaped}%")
                   ->orWhere('country', 'like', "%{$escaped}%");
             }))
+            ->withCount('activeMembers')
             ->when($this->sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))
             ->when($this->sort === 'name', fn ($q) => $q->orderBy('name'))
-            ->when($this->sort === 'members', fn ($q) => $q->withCount('activeMembers')->orderByDesc('active_members_count'))
-            ->withCount('activeMembers')
+            ->when($this->sort === 'members', fn ($q) => $q->orderByDesc('active_members_count'))
             ->paginate(12);
 
         return view('livewire.teams.browse-teams', [
