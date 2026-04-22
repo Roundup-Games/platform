@@ -393,7 +393,7 @@ describe('GameDetail', function () {
     });
 
     it('returns 404 for nonexistent game', function () {
-        get(route('games.detail', 'nonexistent-id'))
+        get(route('games.detail', Str::uuid()->toString()))
             ->assertNotFound();
     });
 
@@ -703,7 +703,7 @@ describe('CampaignDetail', function () {
     });
 
     it('returns 404 for nonexistent campaign', function () {
-        get(route('campaigns.detail', 'nonexistent-id'))
+        get(route('campaigns.detail', Str::uuid()->toString()))
             ->assertNotFound();
     });
 
