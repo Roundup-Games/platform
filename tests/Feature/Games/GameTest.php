@@ -6,6 +6,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
 
 // ── Helpers ──────────────────────────────────────────────
@@ -540,7 +541,7 @@ describe('Game Detail Route', function () {
     });
 
     it('returns 404 for non-existent game', function () {
-        get(route('games.detail', 'nonexistent-uuid'))
+        get(route('games.detail', Str::uuid()->toString()))
             ->assertNotFound();
     });
 });

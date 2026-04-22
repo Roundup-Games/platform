@@ -173,7 +173,7 @@ class HubDetectionTest extends TestCase
         Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
         Game::factory()->create(['location_id' => $location->id, 'status' => 'completed', 'visibility' => 'public']);
         Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'cancelled', 'visibility' => 'public']);
+        Game::factory()->create(['location_id' => $location->id, 'status' => 'canceled', 'visibility' => 'public']);
         Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
 
         $results = $this->proximity->hubs($this->centerLat, $this->centerLng, 10);

@@ -47,7 +47,7 @@ class PaddleBillingController extends Controller
     {
         $request->validate([
             'price_id' => 'required|string',
-            'event_id' => 'required|string|exists:events,id',
+            'event_id' => 'required|string|uuid|exists:events,id',
         ]);
 
         $user = Auth::user();
