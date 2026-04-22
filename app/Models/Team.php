@@ -10,11 +10,13 @@ use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Traits\HasTranslations;
+use App\Traits\StringMorphMediaKey;
 
 class Team extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
+    use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use HasTranslations;
 
     protected $translatable = ['description'];

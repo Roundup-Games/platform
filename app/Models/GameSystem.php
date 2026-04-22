@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Traits\StringMorphMediaKey;
 
 class GameSystem extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
+    use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     protected $fillable = [
         'name', 'slug', 'description', 'images', 'min_players', 'max_players',
         'optimal_players', 'average_play_time', 'age_rating', 'complexity_rating', 'year_released',

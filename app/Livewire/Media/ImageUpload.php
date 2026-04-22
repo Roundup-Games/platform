@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use App\Models\Media;
 
 class ImageUpload extends Component
 {
