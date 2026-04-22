@@ -6,7 +6,7 @@ use App\Filament\Resources\GameSystemMechanicResource\Pages;
 use App\Models\GameSystemMechanic;
 use BackedEnum;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
