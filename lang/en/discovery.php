@@ -71,7 +71,7 @@ return [
     'content_near_me' => 'Near Me',
     'content_share_your_location_to_discover_game_sessions' => 'Share your location to discover game sessions and campaigns happening in your area.',
     'content_find_games_near_you' => 'Find games and sessions happening near you.',
-    'content_sandbox' => 'Sandbox',
+    'content_sandbox' => 'Sandbox / Open World',
     'content_rule_of_cool' => 'Rule of Cool',
     'content_dungeon_crawl' => 'Dungeon Crawl',
     'content_kingdom_building' => 'Kingdom Building',
