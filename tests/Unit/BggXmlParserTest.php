@@ -7,57 +7,56 @@ beforeEach(function () {
     $this->parser = new BggXmlParser;
 });
 
-// ── Happy path: Gloomhaven fixture ────────────────────
+describe('Happy path: Gloomhaven fixture', function () {
+    test('parses Gloomhaven fixture correctly with all fields populated', function () {
+        $xml = file_get_contents(__DIR__.'/../Fixtures/bgg-gloomhaven.xml');
+        $items = $this->parser->parseItems($xml);
 
-test('parses Gloomhaven fixture correctly with all fields populated', function () {
-    $xml = file_get_contents(__DIR__.'/../Fixtures/bgg-gloomhaven.xml');
-    $items = $this->parser->parseItems($xml);
+        expect($items)->toHaveCount(1);
 
-    expect($items)->toHaveCount(1);
+        $data = $items[0];
 
-    $data = $items[0];
+        // Core identity
+        expect($data['bgg_id'])->toBe(174430);
+        expect($data['bgg_type'])->toBe('boardgame');
+        expect($data['name'])->toBe('Gloomhaven');
+        expect($data['description'])->toContain('Euro-inspired tactical combat');
+        expect($data['description'])->toContain('<br/>'); // HTML preserved
 
-    // Core identity
-    expect($data['bgg_id'])->toBe(174430);
-    expect($data['bgg_type'])->toBe('boardgame');
-    expect($data['name'])->toBe('Gloomhaven');
-    expect($data['description'])->toContain('Euro-inspired tactical combat');
-    expect($data['description'])->toContain('<br/>'); // HTML preserved
+        // Numeric fields
+        expect($data['year_released'])->toBe(2017);
+        expect($data['min_players'])->toBe(1);
+        expect($data['max_players'])->toBe(4);
+        expect($data['average_play_time'])->toBe(150);
+        expect($data['age_rating'])->toBe(14);
 
-    // Numeric fields
-    expect($data['year_released'])->toBe(2017);
-    expect($data['min_players'])->toBe(1);
-    expect($data['max_players'])->toBe(4);
-    expect($data['average_play_time'])->toBe(150);
-    expect($data['age_rating'])->toBe(14);
+        // URLs
+        expect($data['thumbnail_url'])->toBe('https://cf.geekdo-images.com/thumb-thumb.jpg');
+        expect($data['image_url'])->toBe('https://cf.geekdo-images.com/original-image.jpg');
 
-    // URLs
-    expect($data['thumbnail_url'])->toBe('https://cf.geekdo-images.com/thumb-thumb.jpg');
-    expect($data['image_url'])->toBe('https://cf.geekdo-images.com/original-image.jpg');
+        // Ratings
+        expect($data['bgg_average_rating'])->toBe(8.71);
+        expect($data['bgg_bayes_average'])->toBe(8.562);
+        expect($data['bgg_users_rated'])->toBe(43210);
+        expect($data['bgg_average_weight'])->toBe(3.86);
+        expect($data['bgg_rank'])->toBe(1);
 
-    // Ratings
-    expect($data['bgg_average_rating'])->toBe(8.71);
-    expect($data['bgg_bayes_average'])->toBe(8.562);
-    expect($data['bgg_users_rated'])->toBe(43210);
-    expect($data['bgg_average_weight'])->toBe(3.86);
-    expect($data['bgg_rank'])->toBe(1);
+        // Taxonomy
+        expect($data['categories'])->toContain('Adventure', 'Exploration', 'Fantasy', 'Fighting');
+        expect($data['mechanics'])->toContain('Action Points', 'Cooperative Game', 'Variable Player Powers', 'Storytelling');
+        expect($data['families'])->toContain('Gloomhaven', 'Components: Miniatures', 'Mechanism: Legacy');
+        expect($data['designers'])->toBe(['Isaac Childres']);
+        expect($data['publishers'])->toContain('Cephalofair Games', 'Asmodee Italia');
 
-    // Taxonomy
-    expect($data['categories'])->toContain('Adventure', 'Exploration', 'Fantasy', 'Fighting');
-    expect($data['mechanics'])->toContain('Action Points', 'Cooperative Game', 'Variable Player Powers', 'Storytelling');
-    expect($data['families'])->toContain('Gloomhaven', 'Components: Miniatures', 'Mechanism: Legacy');
-    expect($data['designers'])->toBe(['Isaac Childres']);
-    expect($data['publishers'])->toContain('Cephalofair Games', 'Asmodee Italia');
-
-    // Expansions (outbound)
-    expect($data['expansion_ids'])->toContain(246900, 256238);
-    expect($data['base_game_bgg_id'])->toBeNull(); // Gloomhaven is a base game, not an expansion
+        // Expansions (outbound)
+        expect($data['expansion_ids'])->toContain(246900, 256238);
+        expect($data['base_game_bgg_id'])->toBeNull(); // Gloomhaven is a base game, not an expansion
+    });
 });
 
-// ── Edge cases ────────────────────────────────────────
-
-test('handles missing statistics gracefully with all stat fields null', function () {
-    $xml = <<<'XML'
+describe('Edge cases', function () {
+    test('handles missing statistics gracefully with all stat fields null', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="99999">
         <name type="primary" value="No Stats Game"/>
@@ -66,18 +65,18 @@ test('handles missing statistics gracefully with all stat fields null', function
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['bgg_average_rating'])->toBeNull();
-    expect($data['bgg_bayes_average'])->toBeNull();
-    expect($data['bgg_users_rated'])->toBeNull();
-    expect($data['bgg_average_weight'])->toBeNull();
-    expect($data['bgg_rank'])->toBeNull();
-});
+        expect($data['bgg_average_rating'])->toBeNull();
+        expect($data['bgg_bayes_average'])->toBeNull();
+        expect($data['bgg_users_rated'])->toBeNull();
+        expect($data['bgg_average_weight'])->toBeNull();
+        expect($data['bgg_rank'])->toBeNull();
+    });
 
-test('handles unranked game with rank value "Not Ranked"', function () {
-    $xml = <<<'XML'
+    test('handles unranked game with rank value "Not Ranked"', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="55555">
         <name type="primary" value="Unranked Game"/>
@@ -97,12 +96,12 @@ test('handles unranked game with rank value "Not Ranked"', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['bgg_rank'])->toBeNull();
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['bgg_rank'])->toBeNull();
+    });
 
-test('handles unranked game with empty rank value', function () {
-    $xml = <<<'XML'
+    test('handles unranked game with empty rank value', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="55556">
         <name type="primary" value="Empty Rank Game"/>
@@ -122,12 +121,12 @@ test('handles unranked game with empty rank value', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['bgg_rank'])->toBeNull();
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['bgg_rank'])->toBeNull();
+    });
 
-test('handles expansion type item with base_game_bgg_id from inbound link', function () {
-    $xml = <<<'XML'
+    test('handles expansion type item with base_game_bgg_id from inbound link', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgameexpansion" id="246900">
         <name type="primary" value="Gloomhaven: Forgotten Circles"/>
@@ -139,16 +138,16 @@ test('handles expansion type item with base_game_bgg_id from inbound link', func
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['bgg_type'])->toBe('boardgameexpansion');
-    expect($data['base_game_bgg_id'])->toBe(174430);
-    expect($data['expansion_ids'])->toBe([]);
-});
+        expect($data['bgg_type'])->toBe('boardgameexpansion');
+        expect($data['base_game_bgg_id'])->toBe(174430);
+        expect($data['expansion_ids'])->toBe([]);
+    });
 
-test('handles empty description', function () {
-    $xml = <<<'XML'
+    test('handles empty description', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="11111">
         <name type="primary" value="No Desc Game"/>
@@ -157,12 +156,12 @@ test('handles empty description', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['description'])->toBe('');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['description'])->toBe('');
+    });
 
-test('handles missing description element', function () {
-    $xml = <<<'XML'
+    test('handles missing description element', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="11112">
         <name type="primary" value="No Desc Element"/>
@@ -170,12 +169,12 @@ test('handles missing description element', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['description'])->toBe('');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['description'])->toBe('');
+    });
 
-test('handles special characters in taxonomy names', function () {
-    $xml = <<<'XML'
+    test('handles special characters in taxonomy names', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="22222">
         <name type="primary" value="Special Chars Game"/>
@@ -186,13 +185,13 @@ test('handles special characters in taxonomy names', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['categories'])->toContain('Sci-Fi & Fantasy');
-    expect($items[0]['mechanics'])->toContain('Worker Placement & Drafting');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['categories'])->toContain('Sci-Fi & Fantasy');
+        expect($items[0]['mechanics'])->toContain('Worker Placement & Drafting');
+    });
 
-test('falls back to first name when no primary name', function () {
-    $xml = <<<'XML'
+    test('falls back to first name when no primary name', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="33333">
         <name type="alternate" value="Alt Name Game"/>
@@ -201,12 +200,12 @@ test('falls back to first name when no primary name', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['name'])->toBe('Alt Name Game');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['name'])->toBe('Alt Name Game');
+    });
 
-test('returns Unknown when no name elements present', function () {
-    $xml = <<<'XML'
+    test('returns Unknown when no name elements present', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="44444">
         <description>No name.</description>
@@ -214,12 +213,12 @@ test('returns Unknown when no name elements present', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items[0]['name'])->toBe('Unknown');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items[0]['name'])->toBe('Unknown');
+    });
 
-test('parseItems handles multiple items', function () {
-    $xml = <<<'XML'
+    test('parseItems handles multiple items', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="111">
         <name type="primary" value="Game A"/>
@@ -236,40 +235,18 @@ test('parseItems handles multiple items', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    expect($items)->toHaveCount(3);
-    expect($items[0]['bgg_id'])->toBe(111);
-    expect($items[0]['name'])->toBe('Game A');
-    expect($items[1]['bgg_id'])->toBe(222);
-    expect($items[1]['name'])->toBe('Game B');
-    expect($items[2]['bgg_id'])->toBe(333);
-    expect($items[2]['name'])->toBe('Game C');
-});
+        $items = $this->parser->parseItems($xml);
+        expect($items)->toHaveCount(3);
+        expect($items[0]['bgg_id'])->toBe(111);
+        expect($items[0]['name'])->toBe('Game A');
+        expect($items[1]['bgg_id'])->toBe(222);
+        expect($items[1]['name'])->toBe('Game B');
+        expect($items[2]['bgg_id'])->toBe(333);
+        expect($items[2]['name'])->toBe('Game C');
+    });
 
-// ── Negative tests ────────────────────────────────────
-
-test('throws BggParseException on malformed XML', function () {
-    $thrown = false;
-    try {
-        $this->parser->parseItems('<not valid xml <<<');
-    } catch (BggParseException $e) {
-        $thrown = true;
-    }
-    expect($thrown)->toBeTrue('Expected BggParseException to be thrown');
-});
-
-test('exception message contains descriptive context', function () {
-    try {
-        $this->parser->parseItems('<not valid xml <<<');
-        expect(true)->toBeFalse('Should have thrown');
-    } catch (BggParseException $e) {
-        expect($e->getMessage())->toContain('Failed to parse BGG XML');
-        expect($e->getPrevious())->toBeInstanceOf(\Throwable::class);
-    }
-});
-
-test('handles item with zero links producing empty taxonomy arrays', function () {
-    $xml = <<<'XML'
+    test('handles item with zero links producing empty taxonomy arrays', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="88888">
         <name type="primary" value="Lonely Game"/>
@@ -279,20 +256,20 @@ test('handles item with zero links producing empty taxonomy arrays', function ()
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['categories'])->toBe([]);
-    expect($data['mechanics'])->toBe([]);
-    expect($data['families'])->toBe([]);
-    expect($data['designers'])->toBe([]);
-    expect($data['publishers'])->toBe([]);
-    expect($data['expansion_ids'])->toBe([]);
-    expect($data['base_game_bgg_id'])->toBeNull();
-});
+        expect($data['categories'])->toBe([]);
+        expect($data['mechanics'])->toBe([]);
+        expect($data['families'])->toBe([]);
+        expect($data['designers'])->toBe([]);
+        expect($data['publishers'])->toBe([]);
+        expect($data['expansion_ids'])->toBe([]);
+        expect($data['base_game_bgg_id'])->toBeNull();
+    });
 
-test('deduplicates taxonomy names from duplicate link elements', function () {
-    $xml = <<<'XML'
+    test('deduplicates taxonomy names from duplicate link elements', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="99999">
         <name type="primary" value="Dup Game"/>
@@ -306,15 +283,15 @@ test('deduplicates taxonomy names from duplicate link elements', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['categories'])->toBe(['Fantasy', 'Exploration']);
-    expect($data['designers'])->toBe(['Designer A']);
-});
+        expect($data['categories'])->toBe(['Fantasy', 'Exploration']);
+        expect($data['designers'])->toBe(['Designer A']);
+    });
 
-test('handles missing optional fields with null values', function () {
-    $xml = <<<'XML'
+    test('handles missing optional fields with null values', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="77777">
         <name type="primary" value="Sparse Game"/>
@@ -323,20 +300,20 @@ test('handles missing optional fields with null values', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['year_released'])->toBeNull();
-    expect($data['min_players'])->toBeNull();
-    expect($data['max_players'])->toBeNull();
-    expect($data['average_play_time'])->toBeNull();
-    expect($data['age_rating'])->toBeNull();
-    expect($data['thumbnail_url'])->toBeNull();
-    expect($data['image_url'])->toBeNull();
-});
+        expect($data['year_released'])->toBeNull();
+        expect($data['min_players'])->toBeNull();
+        expect($data['max_players'])->toBeNull();
+        expect($data['average_play_time'])->toBeNull();
+        expect($data['age_rating'])->toBeNull();
+        expect($data['thumbnail_url'])->toBeNull();
+        expect($data['image_url'])->toBeNull();
+    });
 
-test('handles self-closing image element with null image_url', function () {
-    $xml = <<<'XML'
+    test('handles self-closing image element with null image_url', function () {
+        $xml = <<<'XML'
     <items>
       <item type="boardgame" id="77778">
         <name type="primary" value="No Image Game"/>
@@ -347,9 +324,32 @@ test('handles self-closing image element with null image_url', function () {
     </items>
     XML;
 
-    $items = $this->parser->parseItems($xml);
-    $data = $items[0];
+        $items = $this->parser->parseItems($xml);
+        $data = $items[0];
 
-    expect($data['thumbnail_url'])->toBe('https://cf.geekdo-images.com/thumb.jpg');
-    expect($data['image_url'])->toBeNull();
+        expect($data['thumbnail_url'])->toBe('https://cf.geekdo-images.com/thumb.jpg');
+        expect($data['image_url'])->toBeNull();
+    });
+});
+
+describe('Negative tests', function () {
+    test('throws BggParseException on malformed XML', function () {
+        $thrown = false;
+        try {
+            $this->parser->parseItems('<not valid xml <<<');
+        } catch (BggParseException $e) {
+            $thrown = true;
+        }
+        expect($thrown)->toBeTrue('Expected BggParseException to be thrown');
+    });
+
+    test('exception message contains descriptive context', function () {
+        try {
+            $this->parser->parseItems('<not valid xml <<<');
+            expect(true)->toBeFalse('Should have thrown');
+        } catch (BggParseException $e) {
+            expect($e->getMessage())->toContain('Failed to parse BGG XML');
+            expect($e->getPrevious())->toBeInstanceOf(\Throwable::class);
+        }
+    });
 });

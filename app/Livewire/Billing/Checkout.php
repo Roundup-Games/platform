@@ -75,11 +75,11 @@ class Checkout extends Component
             'paddle_price_id' => $plan->paddle_price_id,
         ]);
 
-        $checkout = $user->subscribe($plan->paddle_price_id)
+        $checkoutOptions = $user->subscribe($plan->paddle_price_id)
             ->returnTo(route('billing.portal'))
-            ->create();
+            ->options();
 
-        $this->redirect($checkout);
+        $this->dispatch('open-paddle-checkout', options: $checkoutOptions);
     }
 
     private function initOneTimeCheckout($user): void
@@ -131,11 +131,12 @@ class Checkout extends Component
             'event_id' => $this->eventId,
         ]);
 
-        $checkout = $user->pay($this->eventPriceId)
+        $checkoutOptions = $user->checkout($this->eventPriceId)
+            ->customData(['event_id' => $this->eventId])
             ->returnTo(route('billing.portal'))
-            ->create();
+            ->options();
 
-        $this->redirect($checkout);
+        $this->dispatch('open-paddle-checkout', options: $checkoutOptions);
     }
 
     public function render()

@@ -33,7 +33,7 @@ class NewFollower extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('profile.public', $this->follower);
+        $actionUrl = route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
@@ -54,7 +54,7 @@ class NewFollower extends Notification
             'type' => 'new_follower',
             'follower_id' => $this->follower->id,
             'follower_name' => $this->follower->name,
-            'action_url' => route('profile.public', $this->follower),
+            'action_url' => route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]),
         ];
     }
 

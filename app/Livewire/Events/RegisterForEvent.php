@@ -291,24 +291,25 @@ class RegisterForEvent extends Component
                 'fee' => $fee,
             ]);
 
-            $checkout = $user->pay($priceId)
+            $checkoutOptions = $user->checkout($priceId)
+                ->customData(['event_id' => $this->event->id, 'registration_id' => $registration->id])
                 ->returnTo(route('events.detail', [
                     'slug' => $this->event->slug,
                     'registration' => $registration->id,
                 ]))
-                ->create();
+                ->options();
 
-            // Store the Paddle checkout/session ID on the registration for reconciliation
+            // Store a reference on the registration for reconciliation after webhook
             $registration->update([
-                'payment_id' => $checkout->id(),
+                'payment_id' => 'paddle_checkout_' . $registration->id,
             ]);
 
-            Log::info('Stored payment_id on registration', [
+            Log::info('Paddle checkout options prepared for registration', [
                 'registration_id' => $registration->id,
-                'payment_id' => $checkout->id(),
+                'event_id' => $this->event->id,
             ]);
 
-            $this->redirect($checkout);
+            $this->dispatch('open-paddle-checkout', options: $checkoutOptions);
 
             return;
         }

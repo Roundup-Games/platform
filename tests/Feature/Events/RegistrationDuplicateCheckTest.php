@@ -62,141 +62,128 @@ function regActingAsUser(User $user, Event $event, string $mode = 'individual', 
         ->call('register');
 }
 
-// ═══════════════════════════════════════════════════════════
-// C3: DUPLICATE REGISTRATION CHECK SQL LOGIC BUG
-// ═══════════════════════════════════════════════════════════
+describe('Duplicate registration check — cross-user team registration', function () {
+    test('individual registration not blocked by existing team registration from different user', function () {
+        $userA = regCreateUser();
+        $event = regCreateEvent();
+        $team = regCreateTeam($userA);
 
-test('individual registration not blocked by existing team registration from different user', function () {
-    // User A registers a team for the event
-    $userA = regCreateUser();
-    $event = regCreateEvent();
-    $team = regCreateTeam($userA);
+        EventRegistration::create([
+            'event_id' => $event->id,
+            'user_id' => $userA->id,
+            'team_id' => $team->id,
+            'registration_type' => 'team',
+            'status' => 'confirmed',
+            'payment_status' => 'not_required',
+            'confirmed_at' => now(),
+        ]);
 
-    EventRegistration::create([
-        'event_id' => $event->id,
-        'user_id' => $userA->id,
-        'team_id' => $team->id,
-        'registration_type' => 'team',
-        'status' => 'confirmed',
-        'payment_status' => 'not_required',
-        'confirmed_at' => now(),
-    ]);
+        $userB = regCreateUser();
 
-    // User B registers individually — should succeed
-    // Before the fix, the orWhere at top level meant user B would see:
-    //   (user_id=B AND status≠cancelled) OR (team_id=teamA AND status≠cancelled)
-    // which returns true because teamA has an active registration, blocking user B.
-    $userB = regCreateUser();
+        regActingAsUser($userB, $event, 'individual');
 
-    regActingAsUser($userB, $event, 'individual');
-
-    // Verify the registration was actually created (redirect happens on both success and failure)
-    expect(EventRegistration::where('event_id', $event->id)
-        ->where('user_id', $userB->id)
-        ->where('registration_type', 'individual')
-        ->where('status', '!=', 'cancelled')
-        ->exists())->toBeTrue();
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $userB->id)
+            ->where('registration_type', 'individual')
+            ->where('status', '!=', 'cancelled')
+            ->exists())->toBeTrue();
+    });
 });
 
-test('duplicate individual registration prevented', function () {
-    $user = regCreateUser();
-    $event = regCreateEvent();
+describe('Duplicate registration prevention', function () {
+    test('duplicate individual registration prevented', function () {
+        $user = regCreateUser();
+        $event = regCreateEvent();
 
-    // First individual registration — succeeds
-    EventRegistration::create([
-        'event_id' => $event->id,
-        'user_id' => $user->id,
-        'team_id' => null,
-        'registration_type' => 'individual',
-        'status' => 'confirmed',
-        'payment_status' => 'not_required',
-        'confirmed_at' => now(),
-    ]);
+        EventRegistration::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'team_id' => null,
+            'registration_type' => 'individual',
+            'status' => 'confirmed',
+            'payment_status' => 'not_required',
+            'confirmed_at' => now(),
+        ]);
 
-    // Second individual registration by same user — should be blocked
-    regActingAsUser($user, $event, 'individual')
-        ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+        regActingAsUser($user, $event, 'individual')
+            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
 
-    // Only one registration should exist
-    expect(EventRegistration::where('event_id', $event->id)
-        ->where('user_id', $user->id)
-        ->count())->toBe(1);
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->count())->toBe(1);
+    });
+
+    test('duplicate team registration prevented', function () {
+        $captain = regCreateUser();
+        $event = regCreateEvent(['registration_type' => 'team', 'individual_registration_fee' => 0]);
+        $team = regCreateTeam($captain);
+
+        EventRegistration::create([
+            'event_id' => $event->id,
+            'user_id' => $captain->id,
+            'team_id' => $team->id,
+            'registration_type' => 'team',
+            'status' => 'confirmed',
+            'payment_status' => 'not_required',
+            'confirmed_at' => now(),
+        ]);
+
+        regActingAsUser($captain, $event, 'team', $team->id)
+            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('team_id', $team->id)
+            ->count())->toBe(1);
+    });
 });
 
-test('duplicate team registration prevented', function () {
-    $captain = regCreateUser();
-    $event = regCreateEvent(['registration_type' => 'team', 'individual_registration_fee' => 0]);
-    $team = regCreateTeam($captain);
+describe('Independent team registrations', function () {
+    test('different teams can register independently', function () {
+        $captainA = regCreateUser();
+        $captainB = regCreateUser();
+        $event = regCreateEvent(['registration_type' => 'team', 'team_registration_fee' => 0]);
+        $teamA = regCreateTeam($captainA);
+        $teamB = regCreateTeam($captainB);
 
-    // First team registration — succeeds
-    EventRegistration::create([
-        'event_id' => $event->id,
-        'user_id' => $captain->id,
-        'team_id' => $team->id,
-        'registration_type' => 'team',
-        'status' => 'confirmed',
-        'payment_status' => 'not_required',
-        'confirmed_at' => now(),
-    ]);
+        EventRegistration::create([
+            'event_id' => $event->id,
+            'user_id' => $captainA->id,
+            'team_id' => $teamA->id,
+            'registration_type' => 'team',
+            'status' => 'confirmed',
+            'payment_status' => 'not_required',
+            'confirmed_at' => now(),
+        ]);
 
-    // Same captain tries to register same team again — should be blocked
-    regActingAsUser($captain, $event, 'team', $team->id)
-        ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
+        regActingAsUser($captainB, $event, 'team', $teamB->id);
 
-    // Only one team registration should exist
-    expect(EventRegistration::where('event_id', $event->id)
-        ->where('team_id', $team->id)
-        ->count())->toBe(1);
+        expect(EventRegistration::where('event_id', $event->id)
+            ->whereIn('team_id', [$teamA->id, $teamB->id])
+            ->where('status', '!=', 'cancelled')
+            ->count())->toBe(2);
+    });
 });
 
-test('different teams can register independently', function () {
-    $captainA = regCreateUser();
-    $captainB = regCreateUser();
-    $event = regCreateEvent(['registration_type' => 'team', 'team_registration_fee' => 0]);
-    $teamA = regCreateTeam($captainA);
-    $teamB = regCreateTeam($captainB);
+describe('Cancelled registration re-registration', function () {
+    test('cancelled registration does not block new registration', function () {
+        $user = regCreateUser();
+        $event = regCreateEvent();
 
-    // Team A registers
-    EventRegistration::create([
-        'event_id' => $event->id,
-        'user_id' => $captainA->id,
-        'team_id' => $teamA->id,
-        'registration_type' => 'team',
-        'status' => 'confirmed',
-        'payment_status' => 'not_required',
-        'confirmed_at' => now(),
-    ]);
+        EventRegistration::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'team_id' => null,
+            'registration_type' => 'individual',
+            'status' => 'cancelled',
+            'payment_status' => 'not_required',
+            'cancelled_at' => now(),
+        ]);
 
-    // Team B registers — should succeed (not blocked by team A's registration)
-    regActingAsUser($captainB, $event, 'team', $teamB->id);
+        regActingAsUser($user, $event, 'individual');
 
-    // Both team registrations should exist
-    expect(EventRegistration::where('event_id', $event->id)
-        ->whereIn('team_id', [$teamA->id, $teamB->id])
-        ->where('status', '!=', 'cancelled')
-        ->count())->toBe(2);
-});
-
-test('cancelled registration does not block new registration', function () {
-    $user = regCreateUser();
-    $event = regCreateEvent();
-
-    // Create a cancelled registration
-    EventRegistration::create([
-        'event_id' => $event->id,
-        'user_id' => $user->id,
-        'team_id' => null,
-        'registration_type' => 'individual',
-        'status' => 'cancelled',
-        'payment_status' => 'not_required',
-        'cancelled_at' => now(),
-    ]);
-
-    // User should be able to register again
-    regActingAsUser($user, $event, 'individual');
-
-    expect(EventRegistration::where('event_id', $event->id)
-        ->where('user_id', $user->id)
-        ->where('status', '!=', 'cancelled')
-        ->exists())->toBeTrue();
+        expect(EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('status', '!=', 'cancelled')
+            ->exists())->toBeTrue();
+    });
 });

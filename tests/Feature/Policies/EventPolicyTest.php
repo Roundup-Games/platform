@@ -40,93 +40,95 @@ beforeEach(function () {
     setPermissionsTeamId(1);
 });
 
-// ── before() global admin bypass ─────────────────────
+describe('Event Policy', function () {
+    describe('before() global admin bypass', function () {
+        test('Platform Admin can do anything on events', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('viewAny', Event::class))->toBeTrue();
+            expect(Gate::allows('create', Event::class))->toBeTrue();
+            expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
+            expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
+        });
+    });
 
-test('Platform Admin can do anything on events', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('viewAny', Event::class))->toBeTrue();
-    expect(Gate::allows('create', Event::class))->toBeTrue();
-    expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-    expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
-});
+    describe('view', function () {
+        test('guest can view public event', function () {
+            expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
+        });
 
-// ── view ─────────────────────────────────────────────
+        test('guest cannot view private event', function () {
+            expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
+        });
 
-test('guest can view public event', function () {
-    expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
-});
+        test('organizer can view their own private event', function () {
+            $this->actingAs($this->organizer);
+            expect(Gate::allows('view', $this->privateEvent))->toBeTrue();
+        });
 
-test('guest cannot view private event', function () {
-    expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
-});
+        test('event admin can view their scoped event', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
+        });
 
-test('organizer can view their own private event', function () {
-    $this->actingAs($this->organizer);
-    expect(Gate::allows('view', $this->privateEvent))->toBeTrue();
-});
+        test('event admin cannot view unscoped private event', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
+        });
+    });
 
-test('event admin can view their scoped event', function () {
-    $this->actingAs($this->eventAdmin);
-    expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
-});
+    describe('create', function () {
+        test('user with create event permission can create', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('create event');
+            $this->regularUser->unsetRelations();
+            setPermissionsTeamId(1);
 
-test('event admin cannot view unscoped private event', function () {
-    $this->actingAs($this->eventAdmin);
-    expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', Event::class))->toBeTrue();
+        });
 
-// ── create ───────────────────────────────────────────
+        test('user without permission cannot create event', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', Event::class))->toBeFalse();
+        });
+    });
 
-test('user with create event permission can create', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('create event');
-    $this->regularUser->unsetRelations();
-    setPermissionsTeamId(1);
+    describe('update', function () {
+        test('organizer can update their own event', function () {
+            $this->actingAs($this->organizer);
+            expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
+        });
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('create', Event::class))->toBeTrue();
-});
+        test('event admin can update their scoped event', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
+        });
 
-test('user without permission cannot create event', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('create', Event::class))->toBeFalse();
-});
+        test('event admin cannot update unscoped event', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('update', $this->privateEvent))->toBeFalse();
+        });
 
-// ── update ───────────────────────────────────────────
+        test('regular user cannot update event', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->publicEvent))->toBeFalse();
+        });
+    });
 
-test('organizer can update their own event', function () {
-    $this->actingAs($this->organizer);
-    expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-});
+    describe('delete', function () {
+        test('organizer can delete their own event', function () {
+            $this->actingAs($this->organizer);
+            expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
+        });
 
-test('event admin can update their scoped event', function () {
-    $this->actingAs($this->eventAdmin);
-    expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-});
+        test('event admin can delete their scoped event', function () {
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
+        });
 
-test('event admin cannot update unscoped event', function () {
-    $this->actingAs($this->eventAdmin);
-    expect(Gate::allows('update', $this->privateEvent))->toBeFalse();
-});
-
-test('regular user cannot update event', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->publicEvent))->toBeFalse();
-});
-
-// ── delete ───────────────────────────────────────────
-
-test('organizer can delete their own event', function () {
-    $this->actingAs($this->organizer);
-    expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
-});
-
-test('event admin can delete their scoped event', function () {
-    $this->actingAs($this->eventAdmin);
-    expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
-});
-
-test('regular user cannot delete event', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->publicEvent))->toBeFalse();
+        test('regular user cannot delete event', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->publicEvent))->toBeFalse();
+        });
+    });
 });

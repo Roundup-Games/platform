@@ -41,122 +41,118 @@ function checkoutCreateEvent(array $overrides = []): Event
     ]);
 }
 
-// ═══════════════════════════════════════════════════════════
-// ONE-TIME CHECKOUT SECURITY — CONTROLLER TESTS
-// ═══════════════════════════════════════════════════════════
+describe('Controller Tests', function () {
+    test('one-time checkout rejects mismatched price_id', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
+        $event = checkoutCreateEvent();
 
-test('one-time checkout rejects mismatched price_id', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
-    $event = checkoutCreateEvent();
+        Http::preventStrayRequests();
 
-    Http::preventStrayRequests();
+        Log::shouldReceive('warning')->once();
 
-    Log::shouldReceive('warning')->once();
+        $response = actingAs($user)
+            ->post(route('billing.one-time-checkout'), [
+                'price_id' => 'pri_cheaper_price',
+                'event_id' => $event->id,
+            ]);
 
-    $response = actingAs($user)
-        ->post(route('billing.one-time-checkout'), [
-            'price_id' => 'pri_cheaper_price',
-            'event_id' => $event->id,
-        ]);
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Invalid payment option selected.');
+    });
 
-    $response->assertRedirect();
-    $response->assertSessionHas('error', 'Invalid payment option selected.');
+    test('one-time checkout accepts matching price_id and proceeds to payment', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
+        $event = checkoutCreateEvent();
+
+        // The price_id matched, so validation passed and controller proceeds
+        // to redirect to the checkout page with the correct priceId and eventId.
+        $response = actingAs($user)
+            ->post(route('billing.one-time-checkout'), [
+                'price_id' => 'pri_valid_event_price',
+                'event_id' => $event->id,
+            ]);
+
+        // No validation error flash — price_id was accepted
+        $response->assertSessionMissing('error');
+        // Redirected to checkout page with the event context
+        $response->assertRedirectContains('checkout');
+    });
+
+    test('one-time checkout rejects request without event_id', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
+
+        $response = actingAs($user)
+            ->post(route('billing.one-time-checkout'), [
+                'price_id' => 'pri_some_price',
+            ]);
+
+        // event_id is now required by validation rules
+        $response->assertSessionHasErrors('event_id');
+    });
+
+    test('one-time checkout rejects when event has no paddle_price_id', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
+        $event = checkoutCreateEvent(['metadata' => []]);
+
+        Http::preventStrayRequests();
+
+        Log::shouldReceive('warning')->once();
+
+        $response = actingAs($user)
+            ->post(route('billing.one-time-checkout'), [
+                'price_id' => 'pri_any_price',
+                'event_id' => $event->id,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'This event does not have a payment configuration.');
+    });
 });
 
-test('one-time checkout accepts matching price_id and proceeds to payment', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
-    $event = checkoutCreateEvent();
+describe('Livewire Component Tests', function () {
+    test('checkout component rejects mismatched price_id', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
+        $event = checkoutCreateEvent();
 
-    // The price_id matched, so validation passed and controller proceeds
-    // past the security check. The downstream pay()/create() call may fail
-    // (pre-existing issue), but the key security assertion is that no
-    // 'error' session flash was set — meaning the price_id was accepted.
-    $response = actingAs($user)
-        ->post(route('billing.one-time-checkout'), [
-            'price_id' => 'pri_valid_event_price',
-            'event_id' => $event->id,
-        ]);
+        Http::preventStrayRequests();
 
-    // No validation error flash — price_id was accepted
-    $response->assertSessionMissing('error');
-});
+        Log::shouldReceive('warning')->once();
 
-test('one-time checkout rejects request without event_id', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
+        // Component should handle the error gracefully and not redirect to Paddle
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Billing\Checkout::class, [
+                'priceId' => 'pri_cheaper_price',
+                'eventId' => $event->id,
+            ])
+            ->call('checkout');
 
-    $response = actingAs($user)
-        ->post(route('billing.one-time-checkout'), [
-            'price_id' => 'pri_some_price',
-        ]);
+        // Component handled gracefully without redirecting to Paddle
+        // (session flash is set internally but Livewire test lifecycle
+        // doesn't expose it the same way — verified via Log::warning)
+        $this->assertTrue(true);
+    });
 
-    // event_id is now required by validation rules
-    $response->assertSessionHasErrors('event_id');
-});
+    test('checkout component rejects without event_id', function () {
+        $user = checkoutCreateUser();
+        checkoutCreateCustomer($user);
 
-test('one-time checkout rejects when event has no paddle_price_id', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
-    $event = checkoutCreateEvent(['metadata' => []]);
+        Http::preventStrayRequests();
 
-    Http::preventStrayRequests();
+        Log::shouldReceive('warning')->once();
 
-    Log::shouldReceive('warning')->once();
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Billing\Checkout::class, [
+                'priceId' => 'pri_some_price',
+                'eventId' => null,
+            ])
+            ->call('checkout');
 
-    $response = actingAs($user)
-        ->post(route('billing.one-time-checkout'), [
-            'price_id' => 'pri_any_price',
-            'event_id' => $event->id,
-        ]);
-
-    $response->assertRedirect();
-    $response->assertSessionHas('error', 'This event does not have a payment configuration.');
-});
-
-// ═══════════════════════════════════════════════════════════
-// ONE-TIME CHECKOUT SECURITY — LIVEWIRE COMPONENT TESTS
-// ═══════════════════════════════════════════════════════════
-
-test('checkout component rejects mismatched price_id', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
-    $event = checkoutCreateEvent();
-
-    Http::preventStrayRequests();
-
-    Log::shouldReceive('warning')->once();
-
-    // Component should handle the error gracefully and not redirect to Paddle
-    Livewire::actingAs($user)
-        ->test(\App\Livewire\Billing\Checkout::class, [
-            'priceId' => 'pri_cheaper_price',
-            'eventId' => $event->id,
-        ])
-        ->call('checkout');
-
-    // Component handled gracefully without redirecting to Paddle
-    // (session flash is set internally but Livewire test lifecycle
-    // doesn't expose it the same way — verified via Log::warning)
-    $this->assertTrue(true);
-});
-
-test('checkout component rejects without event_id', function () {
-    $user = checkoutCreateUser();
-    checkoutCreateCustomer($user);
-
-    Http::preventStrayRequests();
-
-    Log::shouldReceive('warning')->once();
-
-    Livewire::actingAs($user)
-        ->test(\App\Livewire\Billing\Checkout::class, [
-            'priceId' => 'pri_some_price',
-            'eventId' => null,
-        ])
-        ->call('checkout');
-
-    // Component handled gracefully without redirecting to Paddle
-    $this->assertTrue(true);
+        // Component handled gracefully without redirecting to Paddle
+        $this->assertTrue(true);
+    });
 });

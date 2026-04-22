@@ -29,114 +29,116 @@ beforeEach(function () {
     setPermissionsTeamId(1);
 });
 
-// ── before() global admin bypass ─────────────────────
+describe('User Policy', function () {
+    describe('before() global admin bypass', function () {
+        test('Platform Admin can do anything on users', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('viewAny', User::class))->toBeTrue();
+            expect(Gate::allows('view', $this->otherUser))->toBeTrue();
+            expect(Gate::allows('create', User::class))->toBeTrue();
+            expect(Gate::allows('update', $this->otherUser))->toBeTrue();
+            expect(Gate::allows('delete', $this->otherUser))->toBeTrue();
+        });
 
-test('Platform Admin can do anything on users', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('viewAny', User::class))->toBeTrue();
-    expect(Gate::allows('view', $this->otherUser))->toBeTrue();
-    expect(Gate::allows('create', User::class))->toBeTrue();
-    expect(Gate::allows('update', $this->otherUser))->toBeTrue();
-    expect(Gate::allows('delete', $this->otherUser))->toBeTrue();
-});
+        test('Games Admin can do anything on users', function () {
+            $this->actingAs($this->gamesAdmin);
+            expect(Gate::allows('viewAny', User::class))->toBeTrue();
+            expect(Gate::allows('update', $this->otherUser))->toBeTrue();
+        });
+    });
 
-test('Games Admin can do anything on users', function () {
-    $this->actingAs($this->gamesAdmin);
-    expect(Gate::allows('viewAny', User::class))->toBeTrue();
-    expect(Gate::allows('update', $this->otherUser))->toBeTrue();
-});
+    describe('viewAny', function () {
+        test('user with view user permission can viewAny', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('view user');
+            $this->regularUser->unsetRelations();
 
-// ── viewAny ──────────────────────────────────────────
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('viewAny', User::class))->toBeTrue();
+        });
 
-test('user with view user permission can viewAny', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('view user');
-    $this->regularUser->unsetRelations();
+        test('user without permission cannot viewAny', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('viewAny', User::class))->toBeFalse();
+        });
+    });
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('viewAny', User::class))->toBeTrue();
-});
+    describe('view', function () {
+        test('user can view their own profile', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->regularUser))->toBeTrue();
+        });
 
-test('user without permission cannot viewAny', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('viewAny', User::class))->toBeFalse();
-});
+        test('user with permission can view other user', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('view user');
+            $this->regularUser->unsetRelations();
 
-// ── view ─────────────────────────────────────────────
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->otherUser))->toBeTrue();
+        });
 
-test('user can view their own profile', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->regularUser))->toBeTrue();
-});
+        test('user without permission cannot view other user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->otherUser))->toBeFalse();
+        });
+    });
 
-test('user with permission can view other user', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('view user');
-    $this->regularUser->unsetRelations();
+    describe('update', function () {
+        test('user can update their own profile', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->regularUser))->toBeTrue();
+        });
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->otherUser))->toBeTrue();
-});
+        test('user with permission can update other user', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('update user');
+            $this->regularUser->unsetRelations();
 
-test('user without permission cannot view other user', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->otherUser))->toBeFalse();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->otherUser))->toBeTrue();
+        });
 
-// ── update ───────────────────────────────────────────
+        test('user without permission cannot update other user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->otherUser))->toBeFalse();
+        });
+    });
 
-test('user can update their own profile', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->regularUser))->toBeTrue();
-});
+    describe('delete', function () {
+        test('user cannot delete themselves', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->regularUser))->toBeFalse();
+        });
 
-test('user with permission can update other user', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('update user');
-    $this->regularUser->unsetRelations();
+        test('user with permission can delete other user', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('delete user');
+            $this->regularUser->unsetRelations();
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->otherUser))->toBeTrue();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->otherUser))->toBeTrue();
+        });
 
-test('user without permission cannot update other user', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->otherUser))->toBeFalse();
-});
+        test('user without permission cannot delete other user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->otherUser))->toBeFalse();
+        });
+    });
 
-// ── delete ───────────────────────────────────────────
+    describe('create', function () {
+        test('user with create user permission can create', function () {
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('create user');
+            $this->regularUser->unsetRelations();
 
-test('user cannot delete themselves', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->regularUser))->toBeFalse();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', User::class))->toBeTrue();
+        });
 
-test('user with permission can delete other user', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('delete user');
-    $this->regularUser->unsetRelations();
-
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->otherUser))->toBeTrue();
-});
-
-test('user without permission cannot delete other user', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->otherUser))->toBeFalse();
-});
-
-// ── create ───────────────────────────────────────────
-
-test('user with create user permission can create', function () {
-    setPermissionsTeamId(1);
-    $this->regularUser->givePermissionTo('create user');
-    $this->regularUser->unsetRelations();
-
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('create', User::class))->toBeTrue();
-});
-
-test('user without permission cannot create user', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('create', User::class))->toBeFalse();
+        test('user without permission cannot create user', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', User::class))->toBeFalse();
+        });
+    });
 });

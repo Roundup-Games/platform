@@ -22,49 +22,51 @@ beforeEach(function () {
     $this->inactiveMembership = MembershipType::factory()->create(['status' => 'inactive']);
 });
 
-// ── view ─────────────────────────────────────────────
+describe('MembershipType Policy', function () {
+    describe('view', function () {
+        test('guest can view active membership type', function () {
+            expect(Gate::allows('view', $this->activeMembership))->toBeTrue();
+        });
 
-test('guest can view active membership type', function () {
-    expect(Gate::allows('view', $this->activeMembership))->toBeTrue();
-});
+        test('guest cannot view inactive membership type', function () {
+            expect(Gate::allows('view', $this->inactiveMembership))->toBeFalse();
+        });
 
-test('guest cannot view inactive membership type', function () {
-    expect(Gate::allows('view', $this->inactiveMembership))->toBeFalse();
-});
+        test('Platform Admin can view inactive membership type', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('view', $this->inactiveMembership))->toBeTrue();
+        });
+    });
 
-test('Platform Admin can view inactive membership type', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('view', $this->inactiveMembership))->toBeTrue();
-});
+    describe('create/update/delete', function () {
+        test('Platform Admin can create membership type', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('create', MembershipType::class))->toBeTrue();
+        });
 
-// ── create/update/delete ─────────────────────────────
+        test('regular user cannot create membership type', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', MembershipType::class))->toBeFalse();
+        });
 
-test('Platform Admin can create membership type', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('create', MembershipType::class))->toBeTrue();
-});
+        test('Platform Admin can update membership type', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
+        });
 
-test('regular user cannot create membership type', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('create', MembershipType::class))->toBeFalse();
-});
+        test('regular user cannot update membership type', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->activeMembership))->toBeFalse();
+        });
 
-test('Platform Admin can update membership type', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
-});
+        test('Platform Admin can delete membership type', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
+        });
 
-test('regular user cannot update membership type', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->activeMembership))->toBeFalse();
-});
-
-test('Platform Admin can delete membership type', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
-});
-
-test('regular user cannot delete membership type', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->activeMembership))->toBeFalse();
+        test('regular user cannot delete membership type', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->activeMembership))->toBeFalse();
+        });
+    });
 });

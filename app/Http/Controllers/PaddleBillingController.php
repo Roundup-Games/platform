@@ -13,6 +13,8 @@ class PaddleBillingController extends Controller
 {
     /**
      * Redirect to Paddle checkout for a membership subscription.
+     * Cashier Paddle uses client-side Paddle.js — we build the Checkout
+     * options server-side and pass them to the checkout page for rendering.
      */
     public function checkout(Request $request, MembershipType $membershipType): RedirectResponse
     {
@@ -24,7 +26,7 @@ class PaddleBillingController extends Controller
                 'membership_type_name' => $membershipType->name,
             ]);
 
-            return back()->with('error', 'This membership plan is not available for purchase yet.');
+            return back()->with('error', __('billing.error_this_membership_plan_is_not'));
         }
 
         Log::info('Paddle checkout initiated', [
@@ -34,14 +36,15 @@ class PaddleBillingController extends Controller
         ]);
 
         $checkout = $user->subscribe($membershipType->paddle_price_id)
-            ->returnTo(route('billing.portal'))
-            ->create();
+            ->returnTo(route('billing.portal'));
 
-        return redirect($checkout);
+        return redirect()->route('billing.checkout', ['planId' => $membershipType->id]);
     }
 
     /**
      * Redirect to Paddle checkout for a one-time event registration payment.
+     * Cashier Paddle uses client-side Paddle.js — we build the Checkout
+     * options server-side and pass them to the checkout page for rendering.
      */
     public function oneTimeCheckout(Request $request): RedirectResponse
     {
@@ -65,7 +68,7 @@ class PaddleBillingController extends Controller
                 'provided_price_id' => $priceId,
             ]);
 
-            return back()->with('error', 'This event does not have a payment configuration.');
+            return back()->with('error', __('billing.error_this_event_does_not_have_a_payment_configuration'));
         }
 
         if ($priceId !== $expectedPriceId) {
@@ -76,7 +79,7 @@ class PaddleBillingController extends Controller
                 'expected_price_id' => $expectedPriceId,
             ]);
 
-            return back()->with('error', 'Invalid payment option selected.');
+            return back()->with('error', __('billing.error_invalid_payment_option_selected'));
         }
 
         Log::info('Paddle one-time checkout initiated', [
@@ -85,10 +88,9 @@ class PaddleBillingController extends Controller
             'event_id' => $eventId,
         ]);
 
-        $checkout = $user->pay($priceId)
-            ->returnTo(route('billing.portal'))
-            ->create();
-
-        return redirect($checkout);
+        return redirect()->route('billing.checkout', [
+            'priceId' => $priceId,
+            'eventId' => $eventId,
+        ]);
     }
 }

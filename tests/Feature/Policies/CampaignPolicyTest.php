@@ -37,82 +37,84 @@ beforeEach(function () {
     ]);
 });
 
-// ── view ─────────────────────────────────────────────
+describe('Campaign Policy', function () {
+    describe('view', function () {
+        test('guest can view public campaign', function () {
+            expect(Gate::allows('view', $this->publicCampaign))->toBeTrue();
+        });
 
-test('guest can view public campaign', function () {
-    expect(Gate::allows('view', $this->publicCampaign))->toBeTrue();
-});
+        test('guest cannot view private campaign', function () {
+            expect(Gate::allows('view', $this->privateCampaign))->toBeFalse();
+        });
 
-test('guest cannot view private campaign', function () {
-    expect(Gate::allows('view', $this->privateCampaign))->toBeFalse();
-});
+        test('owner can view their private campaign', function () {
+            $this->actingAs($this->owner);
+            expect(Gate::allows('view', $this->privateCampaign))->toBeTrue();
+        });
+    });
 
-test('owner can view their private campaign', function () {
-    $this->actingAs($this->owner);
-    expect(Gate::allows('view', $this->privateCampaign))->toBeTrue();
-});
+    describe('protected visibility', function () {
+        test('guest cannot view protected campaign', function () {
+            expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
+        });
 
-// ── protected visibility ─────────────────────────────
+        test('owner can view their protected campaign', function () {
+            $this->actingAs($this->owner);
+            expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
+        });
 
-test('guest cannot view protected campaign', function () {
-    expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
-});
+        test('stranger cannot view protected campaign', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
+        });
 
-test('owner can view their protected campaign', function () {
-    $this->actingAs($this->owner);
-    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
-});
+        test('friend of owner can view protected campaign', function () {
+            UserRelationship::follow($this->regularUser, $this->owner);
+            UserRelationship::follow($this->owner, $this->regularUser);
 
-test('stranger cannot view protected campaign', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->protectedCampaign))->toBeFalse();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
+        });
 
-test('friend of owner can view protected campaign', function () {
-    UserRelationship::follow($this->regularUser, $this->owner);
-    UserRelationship::follow($this->owner, $this->regularUser);
+        test('participant can view protected campaign', function () {
+            CampaignParticipant::create([
+                'campaign_id' => $this->protectedCampaign->id,
+                'user_id' => $this->regularUser->id,
+                'role' => 'player',
+                'status' => 'approved',
+            ]);
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
-});
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
+        });
+    });
 
-test('participant can view protected campaign', function () {
-    CampaignParticipant::create([
-        'campaign_id' => $this->protectedCampaign->id,
-        'user_id' => $this->regularUser->id,
-        'role' => 'player',
-        'status' => 'approved',
-    ]);
+    describe('update', function () {
+        test('owner can update their campaign', function () {
+            $this->actingAs($this->owner);
+            expect(Gate::allows('update', $this->publicCampaign))->toBeTrue();
+        });
 
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('view', $this->protectedCampaign))->toBeTrue();
-});
+        test('Platform Admin can update any campaign', function () {
+            $this->actingAs($this->admin);
+            expect(Gate::allows('update', $this->publicCampaign))->toBeTrue();
+        });
 
-// ── update ───────────────────────────────────────────
+        test('regular user cannot update campaign', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('update', $this->publicCampaign))->toBeFalse();
+        });
+    });
 
-test('owner can update their campaign', function () {
-    $this->actingAs($this->owner);
-    expect(Gate::allows('update', $this->publicCampaign))->toBeTrue();
-});
+    describe('delete', function () {
+        test('owner can delete their campaign', function () {
+            $this->actingAs($this->owner);
+            expect(Gate::allows('delete', $this->publicCampaign))->toBeTrue();
+        });
 
-test('Platform Admin can update any campaign', function () {
-    $this->actingAs($this->admin);
-    expect(Gate::allows('update', $this->publicCampaign))->toBeTrue();
-});
-
-test('regular user cannot update campaign', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('update', $this->publicCampaign))->toBeFalse();
-});
-
-// ── delete ───────────────────────────────────────────
-
-test('owner can delete their campaign', function () {
-    $this->actingAs($this->owner);
-    expect(Gate::allows('delete', $this->publicCampaign))->toBeTrue();
-});
-
-test('regular user cannot delete campaign', function () {
-    $this->actingAs($this->regularUser);
-    expect(Gate::allows('delete', $this->publicCampaign))->toBeFalse();
+        test('regular user cannot delete campaign', function () {
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('delete', $this->publicCampaign))->toBeFalse();
+        });
+    });
 });

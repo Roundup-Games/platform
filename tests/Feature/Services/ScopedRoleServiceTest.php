@@ -18,196 +18,183 @@ beforeEach(function () {
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 });
 
-// ── assignTeamScopedRole exception safety ─────────────
+describe('assignTeamScopedRole exception safety', function () {
+    test('assignTeamScopedRole resets context when role does not exist', function () {
+        expect(getPermissionsTeamId())->toBeNull();
 
-test('assignTeamScopedRole resets context when role does not exist', function () {
-    expect(getPermissionsTeamId())->toBeNull();
+        try {
+            $this->service->assignTeamScopedRole($this->user, 'Nonexistent Role', $this->team);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Expected
+        }
 
-    try {
-        $this->service->assignTeamScopedRole($this->user, 'Nonexistent Role', $this->team);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Expected
-    }
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 
-    expect(getPermissionsTeamId())->toBeNull();
+    test('assignTeamScopedRole resets context when assignRole throws', function () {
+        $user = Mockery::mock($this->user)->makePartial();
+        $user->shouldReceive('assignRole')->andThrow(new \RuntimeException('DB error'));
+
+        expect(getPermissionsTeamId())->toBeNull();
+
+        try {
+            $this->service->assignTeamScopedRole($user, 'Team Admin', $this->team);
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
+
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-test('assignTeamScopedRole resets context when assignRole throws', function () {
-    // Create a user that will cause assignRole to fail by mocking
-    $user = Mockery::mock($this->user)->makePartial();
-    $user->shouldReceive('assignRole')->andThrow(new \RuntimeException('DB error'));
+describe('assignEventScopedRole exception safety', function () {
+    test('assignEventScopedRole resets context when role does not exist', function () {
+        expect(getPermissionsTeamId())->toBeNull();
 
-    expect(getPermissionsTeamId())->toBeNull();
+        try {
+            $this->service->assignEventScopedRole($this->user, 'Nonexistent Role', $this->event);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Expected
+        }
 
-    try {
-        $this->service->assignTeamScopedRole($user, 'Team Admin', $this->team);
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
-
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-// ── assignEventScopedRole exception safety ────────────
+describe('removeTeamScopedRole exception safety', function () {
+    test('removeTeamScopedRole resets context when removeRole throws', function () {
+        $user = Mockery::mock($this->user)->makePartial();
+        $user->shouldReceive('removeRole')->andThrow(new \RuntimeException('DB error'));
 
-test('assignEventScopedRole resets context when role does not exist', function () {
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
 
-    try {
-        $this->service->assignEventScopedRole($this->user, 'Nonexistent Role', $this->event);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Expected
-    }
+        try {
+            $this->service->removeTeamScopedRole($user, 'Team Admin', $this->team);
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
 
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-// ── removeTeamScopedRole exception safety ─────────────
+describe('removeEventScopedRole exception safety', function () {
+    test('removeEventScopedRole resets context when removeRole throws', function () {
+        $user = Mockery::mock($this->user)->makePartial();
+        $user->shouldReceive('removeRole')->andThrow(new \RuntimeException('DB error'));
 
-test('removeTeamScopedRole resets context when removeRole throws', function () {
-    $user = Mockery::mock($this->user)->makePartial();
-    $user->shouldReceive('removeRole')->andThrow(new \RuntimeException('DB error'));
+        expect(getPermissionsTeamId())->toBeNull();
 
-    expect(getPermissionsTeamId())->toBeNull();
+        try {
+            $this->service->removeEventScopedRole($user, 'Event Admin', $this->event);
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
 
-    try {
-        $this->service->removeTeamScopedRole($user, 'Team Admin', $this->team);
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
-
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-// ── removeEventScopedRole exception safety ────────────
+describe('hasTeamPermission exception safety', function () {
+    test('hasTeamPermission resets context when checkPermission throws', function () {
+        $service = Mockery::mock(ScopedRoleService::class)->makePartial();
+        $service->shouldReceive('checkPermission')
+            ->andReturn(false)
+            ->andReturnUsing(function () { throw new \RuntimeException('Unexpected'); });
 
-test('removeEventScopedRole resets context when removeRole throws', function () {
-    $user = Mockery::mock($this->user)->makePartial();
-    $user->shouldReceive('removeRole')->andThrow(new \RuntimeException('DB error'));
+        expect(getPermissionsTeamId())->toBeNull();
 
-    expect(getPermissionsTeamId())->toBeNull();
+        try {
+            $service->hasTeamPermission($this->user, 'update team', $this->team);
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
 
-    try {
-        $this->service->removeEventScopedRole($user, 'Event Admin', $this->event);
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
-
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-// ── hasTeamPermission exception safety ────────────────
+describe('hasEventPermission exception safety', function () {
+    test('hasEventPermission resets context when checkPermission throws', function () {
+        $service = Mockery::mock(ScopedRoleService::class)->makePartial();
+        $service->shouldReceive('checkPermission')
+            ->andReturn(false)
+            ->andReturnUsing(function () { throw new \RuntimeException('Unexpected'); });
 
-test('hasTeamPermission resets context when checkPermission throws', function () {
-    // Use a service with a mocked checkPermission that throws
-    $service = Mockery::mock(ScopedRoleService::class)->makePartial();
-    $service->shouldReceive('checkPermission')
-        ->andReturn(false)  // first call (global check)
-        ->andReturnUsing(function () { throw new \RuntimeException('Unexpected'); }); // second call (scoped check)
+        expect(getPermissionsTeamId())->toBeNull();
 
-    expect(getPermissionsTeamId())->toBeNull();
+        try {
+            $service->hasEventPermission($this->user, 'update event', $this->event);
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
 
-    try {
-        $service->hasTeamPermission($this->user, 'update team', $this->team);
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
-
-    expect(getPermissionsTeamId())->toBeNull();
+        expect(getPermissionsTeamId())->toBeNull();
+    });
 });
 
-// ── hasEventPermission exception safety ───────────────
+describe('hasPermissionInAnyScope exception safety', function () {
+    test('hasPermissionInAnyScope restores original context on exception', function () {
+        setPermissionsTeamId(42);
 
-test('hasEventPermission resets context when checkPermission throws', function () {
-    $service = Mockery::mock(ScopedRoleService::class)->makePartial();
-    $service->shouldReceive('checkPermission')
-        ->andReturn(false)
-        ->andReturnUsing(function () { throw new \RuntimeException('Unexpected'); });
+        $service = Mockery::mock(ScopedRoleService::class)->makePartial();
+        $service->shouldReceive('checkPermission')->andReturn(false);
 
-    expect(getPermissionsTeamId())->toBeNull();
+        $realService = app(ScopedRoleService::class);
+        setPermissionsTeamId(null);
+        $realService->assignTeamScopedRole($this->user, 'Team Admin', $this->team);
 
-    try {
-        $service->hasEventPermission($this->user, 'update event', $this->event);
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
+        setPermissionsTeamId(42);
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->user->unsetRelations();
 
-    expect(getPermissionsTeamId())->toBeNull();
+        $mockUser = Mockery::mock($this->user)->makePartial();
+        $mockUser->shouldReceive('hasPermissionTo')->andThrow(new \RuntimeException('Break iteration'));
+
+        try {
+            $service->hasPermissionInAnyScope($mockUser, 'update team');
+        } catch (\RuntimeException $e) {
+            // Expected
+        }
+
+        expect(getPermissionsTeamId())->toBe(42);
+    });
 });
 
-// ── hasPermissionInAnyScope exception safety ──────────
+describe('Sequential operations remain isolated', function () {
+    test('context isolation between sequential assignTeamScopedRole calls after failure', function () {
+        try {
+            $this->service->assignTeamScopedRole($this->user, 'Nonexistent Role', $this->team);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Expected
+        }
 
-test('hasPermissionInAnyScope restores original context on exception', function () {
-    // Set a known original context to verify restoration
-    setPermissionsTeamId(42);
+        expect(getPermissionsTeamId())->toBeNull();
 
-    // Create a service where iteration will fail
-    $service = Mockery::mock(ScopedRoleService::class)->makePartial();
-    $service->shouldReceive('checkPermission')->andReturn(false);
+        $this->service->assignTeamScopedRole($this->user, 'Team Admin', $this->team);
 
-    // Assign a scoped role so there's something to iterate
-    $realService = app(ScopedRoleService::class);
-    setPermissionsTeamId(null);
-    $realService->assignTeamScopedRole($this->user, 'Team Admin', $this->team);
+        expect(getPermissionsTeamId())->toBeNull();
+        expect($this->service->hasTeamPermission($this->user, 'update team', $this->team))->toBeTrue();
+    });
 
-    // Reset to our test context
-    setPermissionsTeamId(42);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-    $this->user->unsetRelations();
+    test('context isolation between sequential assignEventScopedRole calls after failure', function () {
+        try {
+            $this->service->assignEventScopedRole($this->user, 'Nonexistent Role', $this->event);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Expected
+        }
 
-    // Now override hasPermissionTo to throw during iteration
-    $mockUser = Mockery::mock($this->user)->makePartial();
-    $mockUser->shouldReceive('hasPermissionTo')->andThrow(new \RuntimeException('Break iteration'));
+        expect(getPermissionsTeamId())->toBeNull();
 
-    try {
-        $service->hasPermissionInAnyScope($mockUser, 'update team');
-    } catch (\RuntimeException $e) {
-        // Expected
-    }
+        $this->service->assignEventScopedRole($this->user, 'Event Admin', $this->event);
 
-    expect(getPermissionsTeamId())->toBe(42);
-});
-
-// ── sequential operations remain isolated ─────────────
-
-test('context isolation between sequential assignTeamScopedRole calls after failure', function () {
-    // First call fails with nonexistent role
-    try {
-        $this->service->assignTeamScopedRole($this->user, 'Nonexistent Role', $this->team);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Expected
-    }
-
-    // Context should be clean for the next operation
-    expect(getPermissionsTeamId())->toBeNull();
-
-    // Second call succeeds
-    $this->service->assignTeamScopedRole($this->user, 'Team Admin', $this->team);
-
-    expect(getPermissionsTeamId())->toBeNull();
-    expect($this->service->hasTeamPermission($this->user, 'update team', $this->team))->toBeTrue();
-});
-
-test('context isolation between sequential assignEventScopedRole calls after failure', function () {
-    // First call fails
-    try {
-        $this->service->assignEventScopedRole($this->user, 'Nonexistent Role', $this->event);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Expected
-    }
-
-    expect(getPermissionsTeamId())->toBeNull();
-
-    // Second call succeeds
-    $this->service->assignEventScopedRole($this->user, 'Event Admin', $this->event);
-
-    expect(getPermissionsTeamId())->toBeNull();
-    expect($this->service->hasEventPermission($this->user, 'update event', $this->event))->toBeTrue();
+        expect(getPermissionsTeamId())->toBeNull();
+        expect($this->service->hasEventPermission($this->user, 'update event', $this->event))->toBeTrue();
+    });
 });
 
 afterEach(function () {
     Mockery::close();
-    // Always clean up global state
     setPermissionsTeamId(null);
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 });
