@@ -317,4 +317,18 @@ return [
     // Authorization
     'status_not_authorized' => 'Keine Berechtigung',
     'price_free' => 'Kostenlos',
+
+    // Activity types
+    'activity_type_game_created' => 'Spiel erstellt',
+    'activity_type_game_completed' => 'Spiel abgeschlossen',
+    'activity_type_game_canceled' => 'Spiel abgesagt',
+    'activity_type_campaign_created' => 'Kampagne erstellt',
+    'activity_type_campaign_completed' => 'Kampagne abgeschlossen',
+    'activity_type_campaign_canceled' => 'Kampagne abgesagt',
+    'activity_type_player_joined' => 'Spieler beigetreten',
+    'activity_type_review_received' => 'Bewertung erhalten',
+    'activity_type_follow_received' => 'Neuer Follower',
+    'activity_type_invitation_received' => 'Einladung erhalten',
+    'activity_type_invitation_accepted' => 'Einladung angenommen',
+    'activity_type_session_scheduled' => 'Sitzung geplant',
 ];
