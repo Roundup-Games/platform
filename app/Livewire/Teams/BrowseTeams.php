@@ -33,9 +33,9 @@ class BrowseTeams extends Component
             ->where('is_active', true)
             ->when($this->search, fn ($q) => $q->where(function ($q) {
                 $escaped = $this->escapeLikeWildcards($this->search);
-                $q->where('name', 'like', "%{$escaped}%")
-                  ->orWhere('city', 'like', "%{$escaped}%")
-                  ->orWhere('country', 'like', "%{$escaped}%");
+                $q->where('name', $this->likeOperator(), "%{$escaped}%")
+                  ->orWhere('city', $this->likeOperator(), "%{$escaped}%")
+                  ->orWhere('country', $this->likeOperator(), "%{$escaped}%");
             }))
             ->withCount('activeMembers')
             ->when($this->sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))

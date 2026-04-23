@@ -129,24 +129,3 @@ describe('DiscoveryPortal – cross-track hints', function () {
             ->assertViewHas('boardGameSessionCount', 0);
     });
 });
-
-describe('DiscoveryPortal – localStorage', function () {
-    it('portal renders localStorage auto-redirect script', function () {
-        $html = Livewire\Livewire::test(DiscoveryPortal::class)->html();
-
-        expect($html)->toContain("localStorage.getItem('discover_preference')");
-        expect($html)->toContain("localStorage.setItem('discover_last_visit'");
-    });
-
-    it('board games page sets discover_preference to board-games', function () {
-        $html = Livewire\Livewire::test(BoardGamesDiscovery::class)->html(false);
-
-        expect($html)->toContain("localStorage.setItem(&#039;discover_preference&#039;, &#039;board-games&#039;)");
-    });
-
-    it('adventures page sets discover_preference to adventures', function () {
-        $html = Livewire\Livewire::test(AdventuresDiscovery::class)->html(false);
-
-        expect($html)->toContain("localStorage.setItem(&#039;discover_preference&#039;, &#039;adventures&#039;)");
-    });
-});

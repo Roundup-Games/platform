@@ -319,8 +319,8 @@ class DiscoveryPage extends Component
     {
         $query->when($this->search, fn ($q) => $q->where(function ($q) {
             $escaped = $this->escapeLikeWildcards($this->search);
-            $q->where('name', 'like', "%{$escaped}%")
-              ->orWhere('description', 'like', "%{$escaped}%");
+            $q->where('name', $this->likeOperator(), "%{$escaped}%")
+              ->orWhere('description', $this->likeOperator(), "%{$escaped}%");
         }));
 
         $query->when($this->game_system_id, fn ($q) => $q->where('game_system_id', $this->game_system_id));

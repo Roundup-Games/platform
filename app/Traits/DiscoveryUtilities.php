@@ -61,8 +61,9 @@ trait DiscoveryUtilities
     {
         $query->when($this->search, fn ($q) => $q->where(function ($q) {
             $escaped = $this->escapeLikeWildcards($this->search);
-            $q->where('name', 'like', "%{$escaped}%")
-              ->orWhere('description', 'like', "%{$escaped}%");
+            $op = $this->likeOperator();
+            $q->where('name', $op, "%{$escaped}%")
+              ->orWhere('description', $op, "%{$escaped}%");
         }));
 
         $query->when($this->game_system_id, fn ($q) => $q->where('game_system_id', $this->game_system_id));

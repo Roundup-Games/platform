@@ -103,9 +103,6 @@ class BoardGamesDiscovery extends Component
                 $this->vibe_flags = $resolvedVibes['favorites'];
             }
         }
-
-        // Save discovery preference so the portal auto-redirects returning visitors
-        $this->js("localStorage.setItem('discover_preference', 'board-games')");
     }
 
     // ── Updating hooks ─────────────────────────────────

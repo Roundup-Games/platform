@@ -218,4 +218,15 @@ return [
     'action_type_all' => 'All',
     'action_type_boardgame' => 'Board Games',
     'action_type_ttrpg' => 'Tabletop Adventures',
+
+    // TTRPG detail page
+    'heading_how_to_play' => 'How to Play',
+    'heading_faq' => 'Frequently Asked Questions',
+    'heading_showcase' => 'Showcase',
+    'heading_get_this_game' => 'Get This Game',
+    'field_creator' => 'Creator',
+    'field_publisher' => 'Publisher|Publishers',
+    'field_designer' => 'Designer|Designers',
+    'content_sp_rating' => 'Community Rating',
+    'link_type_purchase' => 'Purchase',
 ];

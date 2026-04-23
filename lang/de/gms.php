@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'title_game_master_directory' => 'Spielleiter-Verzeichnis',
-    'description_find_your_perfect_gm' => 'Finde den perfekten Spielleiter für dein nächstes Abenteuer.',
-    'action_search_gms' => 'Spielleiter suchen',
+    'title_game_master_directory' => 'Game Master Verzeichnis',
+    'description_find_your_perfect_gm' => 'Finde den perfekten Game Master für dein nächstes Abenteuer.',
+    'action_search_gms' => 'Game Master suchen',
     'action_search_by_name' => 'Nach Name suchen…',
     'field_sort_by' => 'Sortieren nach',
     'sort_highest_rated' => 'Bestbewertet',
@@ -16,6 +16,6 @@ return [
     'field_min_rating' => 'Mindestbewertung',
     'field_any_rating' => 'Alle Bewertungen',
     'action_clear_filters' => 'Filter zurücksetzen',
-    'content_no_gms_found' => 'Keine Spielleiter gefunden',
+    'content_no_gms_found' => 'Keine Game Master gefunden',
     'content_try_adjusting_filters' => 'Versuche, deine Suche oder Filter anzupassen.',
 ];

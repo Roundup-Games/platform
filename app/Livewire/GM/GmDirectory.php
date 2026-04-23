@@ -3,10 +3,10 @@
 namespace App\Livewire\GM;
 
 use App\Enums\GmProficiency;
-use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Traits\EscapesLikeWildcards;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -45,16 +45,6 @@ class GmDirectory extends Component
         $this->resetPage();
     }
 
-    public function updatingSpecialization(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingGameSystemId(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatingMinRating(): void
     {
         $this->resetPage();
@@ -66,6 +56,19 @@ class GmDirectory extends Component
     }
 
     // ── Actions ─────────────────────────────────────────
+
+    public function toggleSpecialization(string $value): void
+    {
+        $this->specialization = $this->specialization === $value ? null : $value;
+        $this->resetPage();
+    }
+
+    #[On('value-updated')]
+    public function onGameSystemUpdated($value): void
+    {
+        $this->game_system_id = $value;
+        $this->resetPage();
+    }
 
     public function clearFilters(): void
     {
@@ -94,7 +97,7 @@ class GmDirectory extends Component
         if ($this->search) {
             $escaped = $this->escapeLikeWildcards($this->search);
             $query->whereHas('user', function ($q) use ($escaped) {
-                $q->where('name', 'like', "%{$escaped}%");
+                $q->where('name', $this->likeOperator(), "%{$escaped}%");
             });
         }
 
@@ -133,7 +136,6 @@ class GmDirectory extends Component
         return view('livewire.gm.gm-directory', [
             'results' => $results,
             'proficiencies' => GmProficiency::cases(),
-            'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

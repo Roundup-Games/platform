@@ -32,6 +32,8 @@ class GameSystemDetail extends Component
             ->with([
                 'categories',
                 'mechanics',
+                'designers',
+                'publishers',
                 'baseGame',
                 'expansions' => fn ($q) => $q
                     ->withCount([

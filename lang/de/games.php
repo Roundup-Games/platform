@@ -218,4 +218,15 @@ return [
     'action_type_all' => 'Alle',
     'action_type_boardgame' => 'Brettspiele',
     'action_type_ttrpg' => 'Tabletop-Abenteuer',
+
+    // TTRPG-Detailseite
+    'heading_how_to_play' => 'Spielanleitung',
+    'heading_faq' => 'Häufig gestellte Fragen',
+    'heading_showcase' => 'Vorschau',
+    'heading_get_this_game' => 'Spiel besorgen',
+    'field_creator' => 'Ersteller',
+    'field_publisher' => 'Verlag|Verlage',
+    'field_designer' => 'Designer|Designer',
+    'content_sp_rating' => 'Community-Bewertung',
+    'link_type_purchase' => 'Kaufen',
 ];

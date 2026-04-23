@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'title_gm_workspace' => 'SL-Arbeitsbereich',
-    'description_your_gm_command_center' => 'Dein Spielleiter-Kontrollzentrum — verwalte Sitzungen, verfolge Bewertungen und sieh deine Statistiken.',
+    'title_gm_workspace' => 'GM Arbeitsbereich',
+    'description_your_gm_command_center' => 'Dein Game Master Kontrollzentrum — verwalte Sitzungen, verfolge Bewertungen und sieh deine Statistiken.',
     'heading_upcoming_sessions' => 'Kommende Sitzungen',
     'heading_review_summary' => 'Bewertungsübersicht',
     'heading_participant_stats' => 'Teilnehmerstatistiken',
@@ -19,11 +19,11 @@ return [
     'action_create_game_desc' => 'Plane eine neue Spielsitzung.',
     'action_create_campaign' => 'Kampagne erstellen',
     'action_create_campaign_desc' => 'Starte eine neue Kampagnenreihe.',
-    'action_manage_profile' => 'SL-Profil verwalten',
-    'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches SL-Profil.',
+    'action_manage_profile' => 'GM-Profil verwalten',
+    'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches GM-Profil.',
     'action_create_session_zero' => 'Session Zero erstellen',
     'action_create_session_zero_desc' => 'Erstelle einen Fragebogen vor dem Spiel, um Erwartungen und Safety-Tools zu klären.',
-    'error_access_denied' => 'Du benötigst ein aktives SL-Abonnement, um auf den Arbeitsbereich zuzugreifen.',
+    'error_access_denied' => 'Du benötigst ein aktives GM-Abonnement, um auf den Arbeitsbereich zuzugreifen.',
 
     // Session-Zero-Umfragen
     'heading_session_zero_surveys' => 'Session-Zero-Umfragen',

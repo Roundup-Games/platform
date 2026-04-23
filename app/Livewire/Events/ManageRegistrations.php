@@ -50,10 +50,10 @@ class ManageRegistrations extends Component
             $escaped = $this->escapeLikeWildcards($this->search);
             $query->where(function ($q) use ($escaped) {
                 $q->whereHas('user', function ($uq) use ($escaped) {
-                    $uq->where('name', 'like', "%{$escaped}%")
-                        ->orWhere('email', 'like', "%{$escaped}%");
+                    $uq->where('name', $this->likeOperator(), "%{$escaped}%")
+                        ->orWhere('email', $this->likeOperator(), "%{$escaped}%");
                 })->orWhereHas('team', function ($tq) use ($escaped) {
-                    $tq->where('name', 'like', "%{$escaped}%");
+                    $tq->where('name', $this->likeOperator(), "%{$escaped}%");
                 });
             });
         }

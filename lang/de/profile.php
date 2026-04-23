@@ -102,8 +102,8 @@ return [
     'gm_proficiency_world_builder_desc' => 'Erschafft reiche, detaillierte Settings mit tiefer Lore und verbundenen Fraktionen.',
 
     // GM-Badge & Profilbereich
-    'gm_badge_label' => 'Spielleiter',
-    'gm_profile_section_title' => 'Spielleiter-Profil',
+    'gm_badge_label' => 'Game Master',
+    'gm_profile_section_title' => 'Game Master Profil',
     'gm_profile_specializations' => 'Spezialisierungen',
     'gm_profile_bio' => 'Über mich',
     'gm_profile_rating' => 'Bewertung',
@@ -111,10 +111,10 @@ return [
     'gm_profile_no_reviews' => 'Noch keine Bewertungen',
 
     // GM-Navigation
-    'nav_gm_directory' => 'SL-Verzeichnis',
-    'nav_gm_workspace' => 'SL-Arbeitsbereich',
+    'nav_gm_directory' => 'GM Verzeichnis',
+    'nav_gm_workspace' => 'GM Arbeitsbereich',
 
     // Dashboard-Karten - GM
-    'dashboard_card_gm_workspace' => 'SL-Arbeitsbereich',
-    'dashboard_card_gm_workspace_desc' => 'Verwalte deine SL-Sitzungen, Bewertungen und dein Profil.',
+    'dashboard_card_gm_workspace' => 'GM Arbeitsbereich',
+    'dashboard_card_gm_workspace_desc' => 'Verwalte deine GM-Sitzungen, Bewertungen und dein Profil.',
 ];

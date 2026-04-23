@@ -153,8 +153,8 @@ class GameListing extends Component
         // Search
         $query->when($this->search, fn ($q) => $q->where(function ($q) {
             $escaped = $this->escapeLikeWildcards($this->search);
-            $q->where('name', 'like', "%{$escaped}%")
-              ->orWhere('description', 'like', "%{$escaped}%");
+            $q->where('name', $this->likeOperator(), "%{$escaped}%")
+              ->orWhere('description', $this->likeOperator(), "%{$escaped}%");
         }));
 
         // Game system filter

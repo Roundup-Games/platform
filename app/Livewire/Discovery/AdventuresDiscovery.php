@@ -118,9 +118,6 @@ class AdventuresDiscovery extends Component
                 $this->vibe_flags = $resolvedVibes['favorites'];
             }
         }
-
-        // Save discovery preference so the portal auto-redirects returning visitors
-        $this->js("localStorage.setItem('discover_preference', 'adventures')");
     }
 
     // ── Updating hooks ─────────────────────────────────

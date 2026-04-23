@@ -389,7 +389,10 @@ class GmDirectoryTest extends TestCase
     {
         $response = $this->get('/en/gms');
 
-        $response->assertSee(__('gms.field_all_specializations'));
+        // Pills render each proficiency label from the enum
+        foreach (GmProficiency::cases() as $proficiency) {
+            $response->assertSee($proficiency->label());
+        }
     }
 
     public function test_filter_bar_shows_min_rating_options(): void

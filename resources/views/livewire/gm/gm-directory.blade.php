@@ -18,67 +18,66 @@
     </section>
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-        {{-- ── Filter Bar ────────────────────────────────────────── --}}
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
+        {{-- ── Filter Section ─────────────────────────────────────── --}}
+        <div class="space-y-4 mb-6">
 
-            {{-- Sort --}}
-            <div class="flex items-center gap-2">
-                <label for="gm-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_sort_by') }}</label>
-                <select id="gm-sort"
-                        wire:model.live="sortBy"
-                        class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="highest_rated">{{ __('gms.sort_highest_rated') }}</option>
-                    <option value="most_reviewed">{{ __('gms.sort_most_reviewed') }}</option>
-                    <option value="newest">{{ __('gms.sort_newest') }}</option>
-                </select>
-            </div>
-
-            {{-- Specialization filter --}}
-            <div class="flex items-center gap-2">
-                <label for="gm-specialization" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_specialization') }}</label>
-                <select id="gm-specialization"
-                        wire:model.live="specialization"
-                        class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">{{ __('gms.field_all_specializations') }}</option>
+            {{-- Row 1: Specialization pills --}}
+            <div>
+                <p class="text-xs font-medium text-on-surface-variant mb-2">{{ __('gms.field_specialization') }}</p>
+                <div class="flex flex-wrap gap-1.5">
                     @foreach($proficiencies as $proficiency)
-                        <option value="{{ $proficiency->value }}">{{ $proficiency->label() }}</option>
+                        <button
+                            wire:click="toggleSpecialization('{{ $proficiency->value }}')"
+                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                {{ $specialization === $proficiency->value ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
+                        >
+                            {{ $proficiency->label() }}
+                        </button>
                     @endforeach
-                </select>
+                </div>
             </div>
 
-            {{-- Game system filter --}}
-            <div class="flex items-center gap-2">
-                <label for="gm-game-system" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_game_system') }}</label>
-                <select id="gm-game-system"
-                        wire:model.live="game_system_id"
-                        class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">{{ __('gms.field_all_systems') }}</option>
-                    @foreach($gameSystems as $system)
-                        <option value="{{ $system->id }}">{{ $system->name }}</option>
-                    @endforeach
-                </select>
+            {{-- Row 2: Game system picker --}}
+            <div class="max-w-sm">
+                <livewire:components.game-system-picker
+                    :fieldId="'gm-directory-game-system'"
+                    :label="__('gms.field_game_system')"
+                    :value="$game_system_id"
+                />
             </div>
 
-            {{-- Min rating filter --}}
-            <div class="flex items-center gap-2">
-                <label for="gm-min-rating" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_min_rating') }}</label>
-                <select id="gm-min-rating"
-                        wire:model.live="min_rating"
-                        class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">{{ __('gms.field_any_rating') }}</option>
-                    @for($i = 1; $i <= 5; $i++)
-                        <option value="{{ $i }}">{{ $i }}+ ★</option>
-                    @endfor
-                </select>
-            </div>
+            {{-- Row 3: Sort + Min Rating + Clear filters --}}
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label for="gm-sort" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_sort_by') }}</label>
+                    <select id="gm-sort"
+                            wire:model.live="sortBy"
+                            class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        <option value="highest_rated">{{ __('gms.sort_highest_rated') }}</option>
+                        <option value="most_reviewed">{{ __('gms.sort_most_reviewed') }}</option>
+                        <option value="newest">{{ __('gms.sort_newest') }}</option>
+                    </select>
+                </div>
 
-            {{-- Clear filters --}}
-            @if($this->hasActiveFilters())
-                <button wire:click="clearFilters"
-                        class="text-sm text-primary font-medium hover:underline whitespace-nowrap">
-                    {{ __('gms.action_clear_filters') }}
-                </button>
-            @endif
+                <div class="flex items-center gap-2">
+                    <label for="gm-min-rating" class="text-sm font-medium text-on-surface-variant whitespace-nowrap">{{ __('gms.field_min_rating') }}</label>
+                    <select id="gm-min-rating"
+                            wire:model.live="min_rating"
+                            class="bg-surface-container-high text-on-surface text-sm rounded-lg px-3 py-1.5 border border-outline-variant/30 focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                        <option value="">{{ __('gms.field_any_rating') }}</option>
+                        @for($i = 1; $i <= 5; $i++)
+                            <option value="{{ $i }}">{{ $i }}+ ★</option>
+                        @endfor
+                    </select>
+                </div>
+
+                @if($this->hasActiveFilters())
+                    <button wire:click="clearFilters"
+                            class="text-sm text-primary font-medium hover:underline whitespace-nowrap">
+                        {{ __('gms.action_clear_filters') }}
+                    </button>
+                @endif
+            </div>
         </div>
 
         {{-- ── GM Cards Grid ─────────────────────────────────────── --}}

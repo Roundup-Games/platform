@@ -203,6 +203,125 @@
                         @endif
                     </section>
                 @endif
+
+                {{-- ── How to Play (TTRPG instructions) ──────────── --}}
+                @php($instructions = $system->instructions)
+                @if($instructions && !empty($instructions['description']))
+                    <section>
+                        <h2 class="text-lg font-heading font-bold text-on-surface mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary" aria-hidden="true">menu_book</span>
+                            {{ $instructions['title'] ?? __('games.heading_how_to_play') }}
+                        </h2>
+                        <div class="prose prose-sm max-w-none text-on-surface-variant prose-headings:text-on-surface prose-a:text-primary">
+                            {!! nl2br(e($instructions['description'])) !!}
+                        </div>
+                        @if(!empty($instructions['videoUrl']))
+                            <div class="mt-4 aspect-video rounded-xl overflow-hidden shadow-md">
+                                <iframe src="{{ $instructions['videoUrl'] }}"
+                                        title="{{ $instructions['title'] ?? $system->name . ' — How to Play' }}"
+                                        class="w-full h-full"
+                                        frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen
+                                        loading="lazy"></iframe>
+                            </div>
+                        @endif
+                    </section>
+                @endif
+
+                {{-- ── Showcases (character classes, etc.) ────────── --}}
+                @php($showcases = $system->showcases ?? [])
+                @if(!empty($showcases))
+                    @foreach($showcases as $showcase)
+                        <section>
+                            <h2 class="text-lg font-heading font-bold text-on-surface mb-3 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary" aria-hidden="true">theater_comedy</span>
+                                {{ $showcase['title'] ?? __('games.heading_showcase') }}
+                            </h2>
+                            @if(!empty($showcase['description']))
+                                <p class="text-sm text-on-surface-variant mb-4">{{ $showcase['description'] }}</p>
+                            @endif
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                @foreach($showcase['items'] ?? [] as $item)
+                                    <div class="bg-surface-container rounded-xl p-4 flex gap-3">
+                                        @if(!empty($item['image']))
+                                            <div class="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-surface-container-high">
+                                                <img src="{{ $item['image'] }}" alt="{{ $item['title'] ?? '' }}" class="w-full h-full object-cover" loading="lazy">
+                                            </div>
+                                        @endif
+                                        <div class="min-w-0">
+                                            <h4 class="text-sm font-semibold text-on-surface">{{ $item['title'] ?? '' }}</h4>
+                                            @if(!empty($item['description']))
+                                                <p class="text-xs text-on-surface-variant mt-1 line-clamp-3">{{ $item['description'] }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endforeach
+                @endif
+
+                {{-- ── FAQ ──────────────────────────────────────── --}}
+                @php($faqs = $system->faq_content ?? [])
+                @if(!empty($faqs))
+                    <section>
+                        <h2 class="text-lg font-heading font-bold text-on-surface mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary" aria-hidden="true">help</span>
+                            {{ __('games.heading_faq') }}
+                        </h2>
+                        <div class="space-y-3">
+                            @foreach($faqs as $faq)
+                                <details class="group bg-surface-container rounded-xl">
+                                    <summary class="px-5 py-3.5 cursor-pointer text-sm font-semibold text-on-surface flex items-center justify-between gap-3 hover:bg-surface-container-high rounded-xl transition-colors">
+                                        {{ $faq['question'] ?? '' }}
+                                        <span class="material-symbols-outlined text-lg text-on-surface-variant group-open:rotate-180 transition-transform shrink-0" aria-hidden="true">expand_more</span>
+                                    </summary>
+                                    <div class="px-5 pb-4 text-sm text-on-surface-variant leading-relaxed">
+                                        {{ $faq['answer'] ?? '' }}
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                {{-- ── External Links (buy, VTT, etc.) ──────────────── --}}
+                @php($links = $system->external_links ?? [])
+                @if(!empty($links))
+                    <section>
+                        <h2 class="text-lg font-heading font-bold text-on-surface mb-3 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary" aria-hidden="true">open_in_new</span>
+                            {{ __('games.heading_get_this_game') }}
+                        </h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            @foreach($links as $link)
+                                <a href="{{ $link['url'] ?? '#' }}"
+                                   target="_blank" rel="noopener noreferrer"
+                                   class="flex items-center gap-3 p-3 bg-surface-container rounded-xl hover:bg-surface-container-high hover:shadow-sm transition-all group">
+                                    @if(!empty($link['image']))
+                                        <div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-surface-container-high">
+                                            <img src="{{ $link['image'] }}" alt="" class="w-full h-full object-cover" loading="lazy" aria-hidden="true">
+                                        </div>
+                                    @else
+                                        <div class="shrink-0 w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">
+                                                {{ ($link['type'] ?? '') === 'VTT' ? 'computer' : 'shopping_cart' }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                    <div class="min-w-0 flex-1">
+                                        <span class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate block">{{ $link['title'] ?? '' }}</span>
+                                        @if(!empty($link['type']))
+                                            <span class="text-xs text-on-surface-variant">{{ $link['type'] === 'PURCHASE_OPTION' ? __('games.link_type_purchase') : $link['type'] }}</span>
+                                        @endif
+                                    </div>
+                                    <span class="material-symbols-outlined text-on-surface-variant text-sm shrink-0 group-hover:text-primary transition-colors" aria-hidden="true">open_in_new</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
             </div>
 
             {{-- Metadata sidebar (1/3 width) --}}
@@ -211,7 +330,16 @@
                     <h2 class="text-sm font-heading font-bold text-primary uppercase tracking-wide">{{ __('games.heading_game_details') }}</h2>
 
                     <dl class="space-y-3 text-sm">
-                        @if($system->min_players || $system->max_players)
+                        {{-- TTRPG: player_range takes precedence --}}
+                        @if($system->isTtrpg() && $system->player_range)
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">group</span>
+                                <div>
+                                    <dt class="text-on-surface-variant">{{ __('games.field_player_count') }}</dt>
+                                    <dd class="font-medium text-on-surface">{{ $system->player_range }}</dd>
+                                </div>
+                            </div>
+                        @elseif($system->min_players || $system->max_players)
                             <div class="flex items-start gap-3">
                                 <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">group</span>
                                 <div>
@@ -247,6 +375,51 @@
                                 </div>
                             </div>
                         @endif
+                        {{-- TTRPG: Creator --}}
+                        @if($system->creator)
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">person_edit</span>
+                                <div>
+                                    <dt class="text-on-surface-variant">{{ __('games.field_creator') }}</dt>
+                                    <dd class="font-medium text-on-surface">{{ $system->creator }}</dd>
+                                </div>
+                            </div>
+                        @endif
+                        {{-- TTRPG: Publishers --}}
+                        @if($system->publishers->count())
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">business</span>
+                                <div>
+                                    <dt class="text-on-surface-variant">{{ __('games.field_publisher', ['count' => $system->publishers->count()]) }}</dt>
+                                    <dd class="font-medium text-on-surface">{{ $system->publishers->pluck('name')->join(', ') }}</dd>
+                                </div>
+                            </div>
+                        @endif
+                        {{-- TTRPG: Designers --}}
+                        @if($system->designers->count())
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-lg text-on-surface-variant mt-0.5" aria-hidden="true">draw</span>
+                                <div>
+                                    <dt class="text-on-surface-variant">{{ __('games.field_designer', ['count' => $system->designers->count()]) }}</dt>
+                                    <dd class="font-medium text-on-surface">{{ $system->designers->pluck('name')->join(', ') }}</dd>
+                                </div>
+                            </div>
+                        @endif
+                        {{-- TTRPG: SP Rating --}}
+                        @if($system->sp_rating && $system->sp_rating > 0)
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-lg text-amber-500 mt-0.5" aria-hidden="true">star</span>
+                                <div>
+                                    <dt class="text-on-surface-variant">{{ __('games.content_sp_rating') }}</dt>
+                                    <dd class="font-medium text-on-surface">{{ number_format((float) $system->sp_rating, 1) }} / 5
+                                        @if($system->sp_review_count)
+                                            <span class="text-on-surface-variant text-xs">({{ $system->sp_review_count }})</span>
+                                        @endif
+                                    </dd>
+                                </div>
+                            </div>
+                        @endif
+                        {{-- BGG Rating (board games) --}}
                         @if($system->bgg_average_rating)
                             <div class="flex items-start gap-3">
                                 <span class="material-symbols-outlined text-lg text-amber-500 mt-0.5" aria-hidden="true">star</span>

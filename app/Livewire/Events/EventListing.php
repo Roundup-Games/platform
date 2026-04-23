@@ -60,9 +60,9 @@ class EventListing extends Component
             ->whereIn('status', ['published', 'registration_open', 'registration_closed', 'in_progress'])
             ->when($this->search, fn ($q) => $q->where(function ($q) {
                 $escaped = $this->escapeLikeWildcards($this->search);
-                $q->where('name', 'like', "%{$escaped}%")
-                  ->orWhere('city', 'like', "%{$escaped}%")
-                  ->orWhere('venue_name', 'like', "%{$escaped}%");
+                $q->where('name', $this->likeOperator(), "%{$escaped}%")
+                  ->orWhere('city', $this->likeOperator(), "%{$escaped}%")
+                  ->orWhere('venue_name', $this->likeOperator(), "%{$escaped}%");
             }))
             ->when($this->type, fn ($q) => $q->where('type', $this->type))
             ->when($this->status, fn ($q) => $q->where('status', $this->status))
