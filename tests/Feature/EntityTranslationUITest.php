@@ -430,43 +430,62 @@ describe('EventAnnouncements Translations', function () {
     });
 });
 
-// ── Eager Loading ────────────────────────────────────
+// ── No DE Form Fields ────────────────────────────────
 
-describe('Eager Loading', function () {
-    it('getTranslation uses eager-loaded collection without extra queries', function () {
-        $event = Event::factory()->create([
-            'name' => 'Test Event',
-            'description' => 'English desc',
-        ]);
-        $event->setTranslation('de', 'name', 'Testveranstaltung');
-        $event->setTranslation('de', 'description', 'Deutsche Beschreibung');
+describe('No DE Form Fields', function () {
+    it('does not render _de fields on CreateEvent form', function () {
+        seedPermissions();
+        $user = User::factory()->create();
+        setPermissionsTeamId(1);
+        $user->givePermissionTo('create event');
+        $user->unsetRelations();
+        setPermissionsTeamId(1);
+        $this->actingAs($user);
 
-        // Eager load translations
-        $loaded = Event::with('translations')->find($event->id);
+        $html = Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)->html();
 
-        // Verify translations are loaded (no extra query)
-        expect($loaded->relationLoaded('translations'))->toBeTrue()
-            ->and($loaded->getTranslation('de', 'name'))->toBe('Testveranstaltung')
-            ->and($loaded->getTranslation('de', 'description'))->toBe('Deutsche Beschreibung');
+        expect($html)
+            ->not->toContain('name_de')
+            ->not->toContain('short_description_de')
+            ->not->toContain('description_de')
+            ->not->toContain('rules_de')
+            ->not->toContain('schedule_de');
     });
 
-    it('getTranslationsForLocale uses eager-loaded collection', function () {
+    it('does not render _de fields on ManageEvent form', function () {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
         $event = Event::factory()->create([
-            'name' => 'Test Event',
-            'short_description' => 'English short',
-            'description' => 'English desc',
+            'organizer_id' => $user->id,
+            'status' => 'draft',
         ]);
-        $event->setTranslation('de', 'name', 'Testveranstaltung');
-        $event->setTranslation('de', 'description', 'Deutsche Beschreibung');
 
-        // Eager load translations
-        $loaded = Event::with('translations')->find($event->id);
+        $html = Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])->html();
 
-        $translations = $loaded->getTranslationsForLocale('de');
+        expect($html)
+            ->not->toContain('name_de')
+            ->not->toContain('short_description_de')
+            ->not->toContain('description_de')
+            ->not->toContain('rules_de')
+            ->not->toContain('schedule_de');
+    });
 
-        expect($translations['name'])->toBe('Testveranstaltung')
-            ->and($translations['description'])->toBe('Deutsche Beschreibung')
-            // short_description falls back to entity attribute since no DE translation
-            ->and($translations['short_description'])->toBe('English short');
+    it('does not render _de fields on EventAnnouncements form', function () {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $event = Event::factory()->create([
+            'organizer_id' => $user->id,
+            'status' => 'registration_open',
+        ]);
+
+        $html = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+            ->call('showCreateForm')
+            ->html();
+
+        expect($html)
+            ->not->toContain('title_de')
+            ->not->toContain('content_de');
     });
 });
