@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Review;
 use App\Models\Team;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -35,5 +36,7 @@ class AppServiceProvider extends ServiceProvider
             'team' => Team::class,
             'game_system' => GameSystem::class,
         ]);
+
+        Review::observe(\App\Observers\ReviewObserver::class);
     }
 }

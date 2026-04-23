@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class GMProfile extends Model
@@ -55,5 +56,40 @@ class GMProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    // ── Convenience Methods ────────────────────────────
+
+    /**
+     * Get the average rating, returning null if no reviews exist.
+     */
+    public function averageRating(): ?float
+    {
+        return $this->average_rating;
+    }
+
+    /**
+     * Get the top proficiency badges for this GM.
+     *
+     * @return \Illuminate\Support\Collection<int, array{name: string, count: int}>
+     */
+    public function topProficiencies(int $limit = 3)
+    {
+        return app(\App\Services\ReviewAggregateService::class)
+            ->topProficiencies($this, $limit);
+    }
+
+    /**
+     * Get recent published reviews for this GM, paginated.
+     */
+    public function recentReviews(int $perPage = 5)
+    {
+        return app(\App\Services\ReviewAggregateService::class)
+            ->recentReviews($this, $perPage);
     }
 }
