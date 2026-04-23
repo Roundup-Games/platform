@@ -102,6 +102,15 @@ class GameDetail extends Component
             ->limit(10)
             ->get();
 
+        $activeSessionZero = $this->game->activeSessionZeroSurvey();
+
+        $isSessionZeroConfirmed = false;
+        if ($activeSessionZero && $viewer) {
+            $isSessionZeroConfirmed = \App\Models\SessionZeroConfirmation::where('session_zero_survey_id', $activeSessionZero->id)
+                ->where('user_id', $viewer->id)
+                ->exists();
+        }
+
         return view('livewire.games.game-detail', [
             'game' => $this->game,
             'isOwner' => $isOwner,
@@ -112,6 +121,8 @@ class GameDetail extends Component
             'isGuest' => Auth::guest(),
             'reviews' => $reviews,
             'canReview' => $canReview,
+            'activeSessionZero' => $activeSessionZero,
+            'isSessionZeroConfirmed' => $isSessionZeroConfirmed,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

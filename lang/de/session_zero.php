@@ -52,4 +52,8 @@ return [
     'action_login_to_confirm' => 'Anmelden zum Bestätigen',
     'heading_confirmations' => 'Spielerbestätigungen',
     'unknown_user' => 'Unbekannter Benutzer',
+
+    // Spiele-Detail-Integration
+    'title_session_zero' => 'Session Zero',
+    'action_view_session_zero' => 'Session Zero ansehen',
 ];

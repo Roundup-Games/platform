@@ -207,7 +207,88 @@
                         <p class="text-xs text-on-surface-variant">{{ __('gws.action_manage_profile_desc') }}</p>
                     </div>
                 </a>
+
+                <a href="{{ route('gm.session-zero.create') }}" wire:navigate
+                   class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-high/50 hover:bg-surface-container-high transition-colors group">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-primary">assignment</span>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-on-surface group-hover:text-primary">{{ __('gws.action_create_session_zero') }}</span>
+                        <p class="text-xs text-on-surface-variant">{{ __('gws.action_create_session_zero_desc') }}</p>
+                    </div>
+                </a>
             </div>
         </div>
+    </div>
+
+    {{-- ── Session Zero Surveys ─────────────────────────────────── --}}
+    <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">assignment</span>
+                <h3 class="font-heading font-semibold text-on-surface">{{ __('gws.heading_session_zero_surveys') }}</h3>
+            </div>
+            @if($sessionZeroSurveys->count())
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    {{ $sessionZeroSurveys->count() }}
+                </span>
+            @endif
+        </div>
+
+        @if($sessionZeroSurveys->count())
+            <div class="space-y-3">
+                @foreach($sessionZeroSurveys as $survey)
+                    <div class="flex items-center gap-4 p-3 rounded-lg bg-surface-container-high/50 group">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-medium text-on-surface truncate">{{ $survey->title }}</h4>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-on-surface-variant">
+                                @if($survey->game)
+                                    <span class="flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">casino</span>
+                                        {{ $survey->game->name }}
+                                    </span>
+                                @else
+                                    <span class="flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
+                                        {{ __('gws.content_no_linked_game') }}
+                                    </span>
+                                @endif
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                    {{ $survey->confirmation_count }}
+                                </span>
+                                <span>{{ $survey->created_at->format('M j, Y') }}</span>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
+                            {{ $survey->isActive() ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-highest text-on-surface-variant' }}">
+                            {{ $survey->isActive() ? __('gws.label_active') : __('gws.label_archived') }}
+                        </span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $survey->uuid]) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity"
+                               wire:navigate>
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">visibility</span>
+                                {{ __('gws.action_view') }}
+                            </a>
+                            <button type="button"
+                                x-data="{ copied: false }"
+                                @click="navigator.clipboard.writeText('{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $survey->uuid]) }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="!copied">content_copy</span>
+                                <span class="material-symbols-outlined text-sm text-secondary" aria-hidden="true" x-show="copied">check</span>
+                                <span x-text="copied ? '{{ __('session_zero.action_copied') }}' : '{{ __('session_zero.action_copy_link') }}'"></span>
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-8">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">assignment</span>
+                <p class="text-sm text-on-surface-variant">{{ __('gws.content_no_session_zero_surveys') }}</p>
+            </div>
+        @endif
     </div>
 </div>

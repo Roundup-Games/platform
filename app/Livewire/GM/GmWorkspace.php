@@ -5,6 +5,7 @@ namespace App\Livewire\GM;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
+use App\Models\SessionZeroSurvey;
 use App\Services\GmRoleService;
 use App\Services\ReviewAggregateService;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,7 @@ class GmWorkspace extends Component
                 'repeatPlayers' => 0,
                 'totalGames' => 0,
                 'activeCampaigns' => 0,
+                'sessionZeroSurveys' => collect(),
             ]);
         }
 
@@ -80,6 +82,13 @@ class GmWorkspace extends Component
             ->where('status', 'active')
             ->count();
 
+        // (5) Session Zero Surveys
+        $sessionZeroSurveys = SessionZeroSurvey::where('gm_profile_id', $this->gmProfile->id)
+            ->with('game')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
         return view('livewire.gm.gm-workspace', [
             'upcomingSessions' => $upcomingSessions,
             'recentReviews' => $recentReviews,
@@ -87,6 +96,7 @@ class GmWorkspace extends Component
             'repeatPlayers' => $repeatPlayers,
             'totalGames' => $totalGames,
             'activeCampaigns' => $activeCampaigns,
+            'sessionZeroSurveys' => $sessionZeroSurveys,
         ]);
     }
 }

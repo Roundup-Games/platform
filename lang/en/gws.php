@@ -21,5 +21,15 @@ return [
     'action_create_campaign_desc' => 'Start a new campaign series.',
     'action_manage_profile' => 'Manage GM Profile',
     'action_manage_profile_desc' => 'View and update your public GM profile.',
+    'action_create_session_zero' => 'Create Session Zero',
+    'action_create_session_zero_desc' => 'Build a pre-game questionnaire to set expectations and safety tools.',
     'error_access_denied' => 'You need an active GM subscription to access the workspace.',
+
+    // Session Zero Surveys section
+    'heading_session_zero_surveys' => 'Session Zero Surveys',
+    'content_no_session_zero_surveys' => 'No Session Zero surveys yet. Create one to align your group before the first session.',
+    'content_no_linked_game' => 'No linked game',
+    'label_active' => 'Active',
+    'label_archived' => 'Archived',
+    'action_view' => 'View',
 ];

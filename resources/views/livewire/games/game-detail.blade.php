@@ -191,6 +191,37 @@
             @endif
         </section>
 
+        {{-- Session Zero Link --}}
+        @if($activeSessionZero && ($isParticipant || $isOwner))
+            <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('session_zero.title_session_zero') }}</h2>
+                            <p class="text-sm text-on-surface-variant">{{ $activeSessionZero->title }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        @if($isSessionZeroConfirmed)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-secondary-container text-on-secondary-container">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
+                                {{ __('session_zero.confirmation_confirmed') }}
+                            </span>
+                        @endif
+                        <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $activeSessionZero->uuid]) }}"
+                           wire:navigate
+                           class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
+                            {{ __('session_zero.action_view_session_zero') }}
+                        </a>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         {{-- Apply / Join CTA --}}
         @auth
             @if($canApply)

@@ -21,5 +21,15 @@ return [
     'action_create_campaign_desc' => 'Starte eine neue Kampagnenreihe.',
     'action_manage_profile' => 'SL-Profil verwalten',
     'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches SL-Profil.',
+    'action_create_session_zero' => 'Session Zero erstellen',
+    'action_create_session_zero_desc' => 'Erstelle einen Fragebogen vor dem Spiel, um Erwartungen und Safety-Tools zu klären.',
     'error_access_denied' => 'Du benötigst ein aktives SL-Abonnement, um auf den Arbeitsbereich zuzugreifen.',
+
+    // Session-Zero-Umfragen
+    'heading_session_zero_surveys' => 'Session-Zero-Umfragen',
+    'content_no_session_zero_surveys' => 'Noch keine Session-Zero-Umfragen. Erstelle eine, um deine Gruppe vor der ersten Sitzung abzustimmen.',
+    'content_no_linked_game' => 'Kein verknüpftes Spiel',
+    'label_active' => 'Aktiv',
+    'label_archived' => 'Archiviert',
+    'action_view' => 'Ansehen',
 ];

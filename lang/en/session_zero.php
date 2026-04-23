@@ -52,4 +52,8 @@ return [
     'action_login_to_confirm' => 'Log in to confirm',
     'heading_confirmations' => 'Player Confirmations',
     'unknown_user' => 'Unknown User',
+
+    // Game Detail integration
+    'title_session_zero' => 'Session Zero',
+    'action_view_session_zero' => 'View Session Zero',
 ];

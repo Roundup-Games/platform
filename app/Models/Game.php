@@ -78,6 +78,16 @@ class Game extends Model
         return $this->hasMany(GameApplication::class);
     }
 
+    public function sessionZeroSurveys(): HasMany
+    {
+        return $this->hasMany(SessionZeroSurvey::class);
+    }
+
+    public function activeSessionZeroSurvey(): ?SessionZeroSurvey
+    {
+        return $this->sessionZeroSurveys()->active()->first();
+    }
+
     // ── Scopes ─────────────────────────────────────────
 
     public function scopePublic($query)
