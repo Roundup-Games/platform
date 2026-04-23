@@ -291,9 +291,9 @@ describe('CreateEvent Translations', function () {
             ->and($event->content_language)->toBe('en');
     });
 
-    it('creates event with content_language=de and stores DE translations', function () {
+    it('creates event with content_language=de and stores content directly', function () {
         Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('name', 'German Event')
+            ->set('name', 'Deutsches Event')
             ->set('type', 'tournament')
             ->set('content_language', 'de')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
@@ -302,25 +302,18 @@ describe('CreateEvent Translations', function () {
             ->call('nextStep') // step 2 → 3
             ->call('nextStep') // step 3 → 4
             ->call('nextStep') // step 4 → 5
-            ->set('name_de', 'Deutsches Event')
-            ->set('short_description_de', 'Kurzbeschreibung')
-            ->set('description_de', 'Beschreibung')
-            ->set('rules_de', 'Regel 1')
-            ->set('schedule_de', 'Zeitplan 1')
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::where('name', 'German Event')->first();
+        $event = Event::where('name', 'Deutsches Event')->first();
         expect($event)->not->toBeNull()
             ->and($event->content_language)->toBe('de')
-            ->and($event->getTranslation('de', 'name'))->toBe('Deutsches Event')
-            ->and($event->getTranslation('de', 'short_description'))->toBe('Kurzbeschreibung')
-            ->and($event->getTranslation('de', 'description'))->toBe('Beschreibung');
+            ->and($event->name)->toBe('Deutsches Event');
     });
 
-    it('fails validation when content_language=de but DE fields missing', function () {
+    it('creates event with content_language=de without requiring separate DE fields', function () {
         Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('name', 'Missing DE Event')
+            ->set('name', 'Event in German')
             ->set('type', 'tournament')
             ->set('content_language', 'de')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
@@ -329,9 +322,13 @@ describe('CreateEvent Translations', function () {
             ->call('nextStep') // step 2 → 3
             ->call('nextStep') // step 3 → 4
             ->call('nextStep') // step 4 → 5
-            // Don't set any DE fields
             ->call('create')
-            ->assertHasErrors(['name_de']);
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $event = Event::where('name', 'Event in German')->first();
+        expect($event)->not->toBeNull()
+            ->and($event->content_language)->toBe('de');
     });
 });
 

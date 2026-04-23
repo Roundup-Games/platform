@@ -50,30 +50,9 @@
 
             <div>
                 <label for="event-name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_event_name') }}</label>
-                @if(in_array($content_language, ['de', 'de+en']))
-                <div class="mb-2">
-                    <div class="flex gap-1">
-                        <button type="button" wire:click="setLocaleTab('en')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            EN
-                        </button>
-                        <button type="button" wire:click="setLocaleTab('de')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            DE
-                        </button>
-                    </div>
-                </div>
-                @endif
-                @if(!in_array($content_language, ['de', 'de+en']) || $activeLocale === 'en')
                 <input type="text" id="event-name" wire:model="name" placeholder="{{ __('events.placeholder_event_name') }}"
                        class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                 @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
-                @if(in_array($content_language, ['de', 'de+en']) && $activeLocale === 'de')
-                <input type="text" id="event-name-de" wire:model="name_de" placeholder="{{ __('events.placeholder_german_event_name') }}"
-                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                @error('name_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
             </div>
 
             <div>
@@ -88,58 +67,16 @@
 
             <div>
                 <label for="event-short-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_short_description') }}</label>
-                @if(in_array($content_language, ['de', 'de+en']))
-                <div class="mb-2">
-                    <div class="flex gap-1">
-                        <button type="button" wire:click="setLocaleTab('en')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            EN
-                        </button>
-                        <button type="button" wire:click="setLocaleTab('de')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            DE
-                        </button>
-                    </div>
-                </div>
-                @endif
-                @if(!in_array($content_language, ['de', 'de+en']) || $activeLocale === 'en')
                 <input type="text" id="event-short-description" wire:model="short_description" maxlength="500" placeholder="{{ __('events.placeholder_one_liner_for_listings') }}"
                        class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                 @error('short_description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
-                @if(in_array($content_language, ['de', 'de+en']) && $activeLocale === 'de')
-                <input type="text" id="event-short-description-de" wire:model="short_description_de" maxlength="500" placeholder="{{ __('events.placeholder_german_short_description') }}"
-                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                @error('short_description_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
             </div>
 
             <div>
                 <label for="event-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_full_description') }}</label>
-                @if(in_array($content_language, ['de', 'de+en']))
-                <div class="mb-2">
-                    <div class="flex gap-1">
-                        <button type="button" wire:click="setLocaleTab('en')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            EN
-                        </button>
-                        <button type="button" wire:click="setLocaleTab('de')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            DE
-                        </button>
-                    </div>
-                </div>
-                @endif
-                @if(!in_array($content_language, ['de', 'de+en']) || $activeLocale === 'en')
                 <textarea id="event-description" wire:model="description" rows="5" placeholder="{{ __('events.placeholder_detailed_event_description') }}"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                 @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
-                @if(in_array($content_language, ['de', 'de+en']) && $activeLocale === 'de')
-                <textarea id="event-description-de" wire:model="description_de" rows="5" placeholder="{{ __('events.placeholder_german_detailed_description') }}"
-                          class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                @error('description_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
             </div>
 
             <div>
@@ -371,58 +308,16 @@
 
             <div>
                 <label for="event-rules" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_rules') }} <span class="text-xs text-on-surface-variant">({{ __('common.content_one_per_line') }})</span></label>
-                @if(in_array($content_language, ['de', 'de+en']))
-                <div class="mb-2">
-                    <div class="flex gap-1">
-                        <button type="button" wire:click="setLocaleTab('en')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            EN
-                        </button>
-                        <button type="button" wire:click="setLocaleTab('de')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            DE
-                        </button>
-                    </div>
-                </div>
-                @endif
-                @if(!in_array($content_language, ['de', 'de+en']) || $activeLocale === 'en')
                 <textarea id="event-rules" wire:model="rules" rows="5" placeholder="{{ __('events.placeholder_enter_each_rule') }}"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                 @error('rules') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
-                @if(in_array($content_language, ['de', 'de+en']) && $activeLocale === 'de')
-                <textarea id="event-rules-de" wire:model="rules_de" rows="5" placeholder="{{ __('events.placeholder_german_rules') }}"
-                          class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                @error('rules_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
             </div>
 
             <div>
                 <label for="event-schedule" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('campaigns.content_schedule') }} <span class="text-xs text-on-surface-variant">({{ __('common.content_one_item_per_line') }})</span></label>
-                @if(in_array($content_language, ['de', 'de+en']))
-                <div class="mb-2">
-                    <div class="flex gap-1">
-                        <button type="button" wire:click="setLocaleTab('en')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            EN
-                        </button>
-                        <button type="button" wire:click="setLocaleTab('de')"
-                                class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                            DE
-                        </button>
-                    </div>
-                </div>
-                @endif
-                @if(!in_array($content_language, ['de', 'de+en']) || $activeLocale === 'en')
                 <textarea id="event-schedule" wire:model="schedule" rows="4" placeholder="{{ __('events.placeholder_enter_schedule_items') }}"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                 @error('schedule') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
-                @if(in_array($content_language, ['de', 'de+en']) && $activeLocale === 'de')
-                <textarea id="event-schedule-de" wire:model="schedule_de" rows="4" placeholder="{{ __('events.placeholder_german_schedule') }}"
-                          class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                @error('schedule_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                @endif
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
