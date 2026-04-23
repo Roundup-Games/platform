@@ -32,6 +32,9 @@ enum NotificationCategory: string
     case CampaignCancelled = 'campaign_cancelled';
     case CampaignCompleted = 'campaign_completed';
 
+    // Moderation
+    case ReviewReported = 'review_reported';
+
     /**
      * @return string[]
      */
@@ -58,6 +61,7 @@ enum NotificationCategory: string
             self::GameCompleted => __('notifications.category_game_completed'),
             self::CampaignCancelled => __('notifications.category_campaign_cancelled'),
             self::CampaignCompleted => __('notifications.category_campaign_completed'),
+            self::ReviewReported => __('notifications.category_review_reported'),
         };
     }
 
@@ -69,6 +73,7 @@ enum NotificationCategory: string
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted => 'status',
+            self::ReviewReported => 'moderation',
         };
     }
 
@@ -99,6 +104,10 @@ enum NotificationCategory: string
             'status' => [
                 'label' => __('notifications.group_status'),
                 'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted],
+            ],
+            'moderation' => [
+                'label' => __('notifications.group_moderation'),
+                'categories' => [self::ReviewReported],
             ],
         ];
 
@@ -153,6 +162,7 @@ enum NotificationCategory: string
             self::GameCompleted => false,
             self::CampaignCancelled => true,
             self::CampaignCompleted => false,
+            self::ReviewReported => true,
         };
     }
 

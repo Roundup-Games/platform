@@ -36,15 +36,6 @@
                     @endforeach
                 </div>
             @endif
-
-            {{-- Report button (only for authenticated users who didn't write the review, on published reviews) --}}
-            @auth
-                @if($review->isPublished() && $review->reviewer_id !== auth()->id())
-                    <div class="mt-2">
-                        <livewire:reviews.report-review :review-id="$review->id" wire:key="report-{{ $review->id }}" />
-                    </div>
-                @endif
-            @endauth
         </div>
     </div>
 </div>

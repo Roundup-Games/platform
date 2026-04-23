@@ -18,6 +18,10 @@ return [
     'category_campaign_cancelled' => 'Campaign Cancelled',
     'category_campaign_completed' => 'Campaign Completed',
 
+    // Moderation
+    'category_review_reported' => 'Review Reported',
+    'group_moderation' => 'Moderation',
+
     // UI — Bell dropdown
     'bell_label' => 'Notifications (:count unread)',
     'nav_label' => 'Notifications',
@@ -153,4 +157,10 @@ return [
     'subject_campaign_completed' => ':campaign has been completed',
     'body_campaign_completed' => 'The campaign **:campaign** is now complete. What a journey! Browse for your next adventure.',
     'action_campaign_completed' => 'View Campaign',
+
+    // Email subjects — Moderation
+    'subject_review_reported' => 'A review has been reported',
+    'body_review_reported' => '**:reporter** reported a review for: **:reason**.',
+    'body_review_rating' => 'Review rating: :rating/5',
+    'body_review_content' => 'Review content: :body',
 ];

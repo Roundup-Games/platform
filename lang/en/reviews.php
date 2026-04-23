@@ -39,4 +39,20 @@ return [
 
     // Review count
     'content_review_count' => ':count review|:count reviews',
+
+    // Report
+    'action_report' => 'Report',
+    'title_report_review' => 'Report Review',
+    'content_report_explanation' => 'Why are you reporting this review? Reports are sent to our moderation team for review.',
+    'action_submit_report' => 'Submit Report',
+    'action_load_more' => 'Load more reviews',
+    'report_reason_inappropriate' => 'Inappropriate content',
+    'report_reason_spam' => 'Spam or misleading',
+    'report_reason_harassment' => 'Harassment or abuse',
+    'report_reason_other' => 'Other',
+    'validation_report_reason_required' => 'Please select a reason for reporting.',
+    'validation_report_reason_invalid' => 'Please select a valid reason.',
+    'error_review_not_found' => 'The review could not be found.',
+    'error_already_reported' => 'This review has already been reported.',
+    'flash_review_reported' => 'Thank you. This review has been reported to our moderation team.',
 ];

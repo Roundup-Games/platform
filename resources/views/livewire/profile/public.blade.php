@@ -150,6 +150,50 @@
                             ({{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }})
                         </span>
                     </div>
+
+                    {{-- Top proficiencies --}}
+                    @php
+                        $topProficiencies = $gmProfile->topProficiencies();
+                    @endphp
+                    @if($topProficiencies->isNotEmpty())
+                        <div class="mt-3">
+                            <p class="text-sm font-medium text-on-surface mb-2">{{ __('reviews.title_gm_reviews') }}</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($topProficiencies as $badge)
+                                    @php
+                                        $enum = \App\Enums\GmProficiency::tryFrom($badge['name']);
+                                    @endphp
+                                    @if($enum)
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700">
+                                            <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1">verified</span>
+                                            {{ $enum->label() }}
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Recent reviews --}}
+                    @if($gmReviews && $gmReviews->isNotEmpty())
+                        <div class="mt-4 pt-4 border-t border-outline-variant/20">
+                            <h3 class="text-sm font-medium text-on-surface mb-3">{{ __('reviews.title_reviews') }}</h3>
+                            <div class="divide-y divide-outline-variant/20">
+                                @foreach($gmReviews as $review)
+                                    @include('reviews.partials._review-card-compact', ['review' => $review])
+                                @endforeach
+                            </div>
+
+                            @if($gmReviews->hasMorePages())
+                                <div class="mt-3 text-center">
+                                    <button wire:click="loadMoreReviews"
+                                            class="text-sm text-primary hover:underline">
+                                        {{ __('reviews.action_load_more') }}
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 @else
                     <p class="text-xs text-on-surface-variant italic">{{ __('profile.gm_profile_no_reviews') }}</p>
                 @endif

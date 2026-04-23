@@ -44,6 +44,9 @@ class PublicProfile extends Component
     #[Locked]
     public array $visibleFields = [];
 
+    /** @var int Current page for GM reviews pagination */
+    public int $reviewsPage = 1;
+
     public function mount(User $user): void
     {
         $this->profileUser = $user;
@@ -132,6 +135,11 @@ class PublicProfile extends Component
         session()->flash('success', 'You unblocked ' . $this->profileUser->name . '.');
     }
 
+    public function loadMoreReviews(): void
+    {
+        $this->reviewsPage++;
+    }
+
     public function render()
     {
         $isGuest = Auth::guest();
@@ -170,6 +178,13 @@ class PublicProfile extends Component
         // Load GM profile (always visible regardless of privacy settings when active)
         $this->profileUser->load(['gmProfile' => fn ($q) => $q->where('is_active', true)]);
 
+        // Resolve GM reviews with pagination if GM profile exists
+        $gmReviews = null;
+        if ($this->profileUser->gmProfile) {
+            $gmReviews = app(\App\Services\ReviewAggregateService::class)
+                ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
+        }
+
         return view('livewire.profile.public', [
             'profileUser' => $this->profileUser,
             'teamMemberships' => $teamMemberships,
@@ -177,6 +192,7 @@ class PublicProfile extends Component
             'games' => $games,
             'campaigns' => $campaigns,
             'isGuest' => $isGuest,
+            'gmReviews' => $gmReviews,
         ])->layout($layout);
     }
 

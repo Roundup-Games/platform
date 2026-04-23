@@ -149,6 +149,7 @@ Route::prefix('{locale}')
             Route::get('/campaigns/{id}/manage-participants', App\Livewire\Campaigns\ManageParticipants::class)->name('campaigns.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/add-session', App\Livewire\Campaigns\AddSessionToCampaign::class)->name('campaigns.add-session')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/reviews/write/{reviewable_type}/{reviewable_id}', App\Livewire\Reviews\WriteReview::class)->name('reviews.write');
+            Route::get('/reviews/{reviewId}/report', App\Livewire\Reviews\ReportReview::class)->name('reviews.report');
         });
 
         Route::get('/campaigns', App\Livewire\Campaigns\CampaignsPage::class)->name('campaigns.index');

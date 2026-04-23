@@ -27,6 +27,7 @@ class Review extends Model
         'status',
         'reported_at',
         'reported_by',
+        'report_reason',
         'reply',
         'replied_at',
     ];
@@ -112,5 +113,31 @@ class Review extends Model
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    /**
+     * Valid reasons for reporting a review.
+     */
+    public const REPORT_REASONS = [
+        'inappropriate',
+        'spam',
+        'harassment',
+        'other',
+    ];
+
+    /**
+     * Report this review for moderation.
+     *
+     * Sets status to 'reported', records reporter, reason, and timestamp.
+     * Does NOT hide the review — only admin action does that.
+     */
+    public function report(string $reporterId, string $reason): void
+    {
+        $this->update([
+            'status' => 'reported',
+            'reported_by' => $reporterId,
+            'report_reason' => $reason,
+            'reported_at' => now(),
+        ]);
     }
 }
