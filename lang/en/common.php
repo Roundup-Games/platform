@@ -182,6 +182,8 @@ return [
     'content_show_up_and_play' => 'Show up and play',
     'content_simple_fast' => 'Simple & Fast',
     'content_skip_to_content' => 'Skip to content',
+    'aria_toggle_navigation_menu' => 'Toggle navigation menu',
+    'aria_main_navigation' => 'Main navigation',
     'content_social' => 'Social',
     'content_status' => 'Status',
     'content_stay_informed' => 'Stay Informed',

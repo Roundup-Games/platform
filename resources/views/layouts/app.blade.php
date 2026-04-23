@@ -42,7 +42,7 @@
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                         <span class="text-xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
                     </a>
-                    <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="Toggle navigation menu" :aria-expanded="open.toString()">
+                    <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.aria_toggle_navigation_menu') }}" :aria-expanded="open.toString()">
                         <span class="material-symbols-outlined text-2xl" :class="{'hidden': open, 'block': !open}">menu</span>
                         <span class="material-symbols-outlined text-2xl" :class="{'block': open, 'hidden': !open}">close</span>
                     </button>
@@ -141,7 +141,7 @@
                     </div>
 
                     {{-- Navigation --}}
-                    <nav class="flex-1 px-3 py-6 space-y-1" aria-label="Main navigation">
+                    <nav class="flex-1 px-3 py-6 space-y-1" aria-label="{{ __('common.aria_main_navigation') }}">
                         {{-- Primary navigation items --}}
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>

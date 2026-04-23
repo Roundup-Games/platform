@@ -182,6 +182,8 @@ return [
     'content_show_up_and_play' => 'Komm vorbei und spiel',
     'content_simple_fast' => 'Einfach & Schnell',
     'content_skip_to_content' => 'Zum Inhalt springen',
+    'aria_toggle_navigation_menu' => 'Navigationsmenü umschalten',
+    'aria_main_navigation' => 'Hauptnavigation',
     'content_social' => 'Sozial',
     'content_status' => 'Status',
     'content_stay_informed' => 'Informiert bleiben',
