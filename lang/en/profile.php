@@ -109,4 +109,12 @@ return [
     'gm_profile_rating' => 'Rating',
     'gm_profile_reviews' => ':count review|:count reviews',
     'gm_profile_no_reviews' => 'No reviews yet',
+
+    // GM Navigation
+    'nav_gm_directory' => 'GM Directory',
+    'nav_gm_workspace' => 'GM Workspace',
+
+    // Dashboard cards - GM
+    'dashboard_card_gm_workspace' => 'GM Workspace',
+    'dashboard_card_gm_workspace_desc' => 'Manage your GM sessions, reviews, and profile.',
 ];

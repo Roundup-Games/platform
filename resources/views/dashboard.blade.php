@@ -74,6 +74,20 @@
                         </div>
                     </div>
                 </a>
+
+                @if(Auth::user()?->isGM())
+                <a href="{{ route('gm.workspace') }}" wire:navigate class="bg-surface-container-lowest p-6 rounded-xl shadow-ambient hover:shadow-ambient-md transition-all group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">casino</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('profile.dashboard_card_gm_workspace') }}</h3>
+                            <p class="text-sm text-on-surface-variant">{{ __('profile.dashboard_card_gm_workspace_desc') }}</p>
+                        </div>
+                    </div>
+                </a>
+                @endif
             </div>
         </div>
     </div>

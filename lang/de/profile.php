@@ -109,4 +109,12 @@ return [
     'gm_profile_rating' => 'Bewertung',
     'gm_profile_reviews' => ':count Bewertung|:count Bewertungen',
     'gm_profile_no_reviews' => 'Noch keine Bewertungen',
+
+    // GM-Navigation
+    'nav_gm_directory' => 'SL-Verzeichnis',
+    'nav_gm_workspace' => 'SL-Arbeitsbereich',
+
+    // Dashboard-Karten - GM
+    'dashboard_card_gm_workspace' => 'SL-Arbeitsbereich',
+    'dashboard_card_gm_workspace_desc' => 'Verwalte deine SL-Sitzungen, Bewertungen und dein Profil.',
 ];

@@ -91,6 +91,16 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
                             {{ __('events.content_events') }}
                         </a>
+                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.directory') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.directory') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>school</span>
+                            {{ __('profile.nav_gm_directory') }}
+                        </a>
+                        @if(Auth::user()?->isGM())
+                        <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.workspace') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
+                            {{ __('profile.nav_gm_workspace') }}
+                        </a>
+                        @endif
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('teams.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
                             {{ __('teams.content_teams') }}
@@ -190,6 +200,18 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
                             {{ __('events.content_events') }}
                         </a>
+
+                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>school</span>
+                            {{ __('profile.nav_gm_directory') }}
+                        </a>
+
+                        @if(Auth::user()?->isGM())
+                        <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.workspace') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
+                            {{ __('profile.nav_gm_workspace') }}
+                        </a>
+                        @endif
 
                         <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('teams.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
