@@ -117,4 +117,18 @@ return [
     // Dashboard cards - GM
     'dashboard_card_gm_workspace' => 'GM Workspace',
     'dashboard_card_gm_workspace_desc' => 'Manage your GM sessions, reviews, and profile.',
+
+    // Dashboard stat labels
+    'dashboard_stats_upcoming_sessions' => 'Upcoming Sessions',
+    'dashboard_stats_active_games' => 'Active Games',
+    'dashboard_stats_active_campaigns' => 'Active Campaigns',
+    'dashboard_stats_pending_invitations' => 'Pending Invitations',
+    'dashboard_stats_followers' => 'Followers',
+    'dashboard_stats_following' => 'Following',
+    'dashboard_stats_unread_notifications' => 'Unread',
+    'dashboard_stats_gm_rating' => 'GM Rating',
+    'dashboard_stats_gm_reviews' => 'Reviews',
+    'dashboard_stats_gm_upcoming' => 'Upcoming GM Sessions',
+    'dashboard_recent_activity' => 'Recent Activity',
+    'dashboard_gm_overview' => 'GM Overview',
 ];

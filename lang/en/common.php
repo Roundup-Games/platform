@@ -331,4 +331,8 @@ return [
     'activity_type_invitation_received' => 'Invitation Received',
     'activity_type_invitation_accepted' => 'Invitation Accepted',
     'activity_type_session_scheduled' => 'Session Scheduled',
+
+    // Dashboard activity timeline
+    'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',
+    'activity_no_results' => 'No activity yet',
 ];

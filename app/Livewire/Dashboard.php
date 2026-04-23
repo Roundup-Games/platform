@@ -19,7 +19,7 @@ class Dashboard extends Component
 {
     public function render()
     {
-        return view('dashboard', [
+        return view('livewire.dashboard', [
             'upcomingSessionsCount' => $this->upcomingSessionsCount(),
             'activeGamesCount' => $this->activeGamesCount(),
             'activeCampaignsCount' => $this->activeCampaignsCount(),

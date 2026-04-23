@@ -117,4 +117,18 @@ return [
     // Dashboard-Karten - GM
     'dashboard_card_gm_workspace' => 'GM Arbeitsbereich',
     'dashboard_card_gm_workspace_desc' => 'Verwalte deine GM-Sitzungen, Bewertungen und dein Profil.',
+
+    // Dashboard-Statistikbeschriftungen
+    'dashboard_stats_upcoming_sessions' => 'Kommende Sitzungen',
+    'dashboard_stats_active_games' => 'Aktive Spiele',
+    'dashboard_stats_active_campaigns' => 'Aktive Kampagnen',
+    'dashboard_stats_pending_invitations' => 'Ausstehende Einladungen',
+    'dashboard_stats_followers' => 'Follower',
+    'dashboard_stats_following' => 'Folge ich',
+    'dashboard_stats_unread_notifications' => 'Ungelesen',
+    'dashboard_stats_gm_rating' => 'GM Bewertung',
+    'dashboard_stats_gm_reviews' => 'Bewertungen',
+    'dashboard_stats_gm_upcoming' => 'Kommende GM-Sitzungen',
+    'dashboard_recent_activity' => 'Letzte Aktivität',
+    'dashboard_gm_overview' => 'GM Übersicht',
 ];

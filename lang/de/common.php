@@ -331,4 +331,8 @@ return [
     'activity_type_invitation_received' => 'Einladung erhalten',
     'activity_type_invitation_accepted' => 'Einladung angenommen',
     'activity_type_session_scheduled' => 'Sitzung geplant',
+
+    // Dashboard-Aktivitätszeitlinie
+    'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',
+    'activity_no_results' => 'Noch keine Aktivität',
 ];
