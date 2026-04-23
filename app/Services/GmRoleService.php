@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\GameType;
 use App\Models\GMProfile;
 use App\Models\LocalSubscription;
 use App\Models\MembershipType;
@@ -219,11 +220,11 @@ class GmRoleService
      * Can the given user create a game in GM mode?
      *
      * GM mode means the game is being offered as a professional/paid GM session.
-     * Only active GMs can create games as GM. Non-GMs can still create casual
-     * board game sessions.
+     * Only active GMs can create TTRPG games as GM. Board games are never
+     * eligible for GM creation mode.
      */
-    public function canCreateAsGm(User $user): bool
+    public function canCreateAsGm(User $user, string $gameType): bool
     {
-        return $this->isGmActive($user);
+        return $this->isGmActive($user) && $gameType === GameType::Ttrpg->value;
     }
 }

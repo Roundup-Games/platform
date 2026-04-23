@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\GM;
 
+use App\Enums\GameType;
 use App\Models\GMProfile;
 use App\Models\User;
 use App\Services\GmRoleService;
@@ -277,19 +278,27 @@ class GmRoleServiceTest extends TestCase
 
     // ── canCreateAsGm ──────────────────────────────────
 
-    public function test_can_create_as_gm_when_active(): void
+    public function test_can_create_as_gm_when_active_ttrpg(): void
     {
         $user = $this->createSubscribedUser();
         $this->service->assignGMRole($user);
 
-        $this->assertTrue($this->service->canCreateAsGm($user));
+        $this->assertTrue($this->service->canCreateAsGm($user, GameType::Ttrpg->value));
+    }
+
+    public function test_cannot_create_as_gm_for_board_game_even_when_active(): void
+    {
+        $user = $this->createSubscribedUser();
+        $this->service->assignGMRole($user);
+
+        $this->assertFalse($this->service->canCreateAsGm($user, GameType::BoardGame->value));
     }
 
     public function test_cannot_create_as_gm_without_role(): void
     {
         $user = $this->createSubscribedUser();
 
-        $this->assertFalse($this->service->canCreateAsGm($user));
+        $this->assertFalse($this->service->canCreateAsGm($user, GameType::Ttrpg->value));
     }
 
     public function test_cannot_create_as_gm_without_subscription(): void
@@ -297,7 +306,7 @@ class GmRoleServiceTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('Game Master');
 
-        $this->assertFalse($this->service->canCreateAsGm($user));
+        $this->assertFalse($this->service->canCreateAsGm($user, GameType::Ttrpg->value));
     }
 
     // ── Subscription Lapse Integration ─────────────────
