@@ -199,5 +199,15 @@ Route::get('/{path}', function (string $path) {
         abort(404);
     }
 
+    // If the path already starts with a valid locale prefix (e.g. "en/discovery"),
+    // it was already locale-resolved and genuinely doesn't match any route — 404.
+    // Without this check, the redirect adds another locale prefix on every request
+    // causing an infinite redirect loop: /en/en/en/en/...
+    $availableLocales = config('app.available_locales');
+    $escapedLocales = implode('|', array_map('preg_quote', $availableLocales));
+    if (preg_match('#^(' . $escapedLocales . ')/(.+)#i', $path, $matches)) {
+        abort(404);
+    }
+
     return redirect('/' . resolvePreferredLocale() . '/' . $path, 302);
 })->where('path', '.*');
