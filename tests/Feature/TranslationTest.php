@@ -199,18 +199,16 @@ describe('Morph Map Aliases', function () {
 describe('ContentLanguage Enum', function () {
     it('has expected cases and values', function () {
         expect(ContentLanguage::En->value)->toBe('en')
-            ->and(ContentLanguage::De->value)->toBe('de')
-            ->and(ContentLanguage::DeEn->value)->toBe('de+en');
+            ->and(ContentLanguage::De->value)->toBe('de');
     });
 
     it('provides human-readable labels', function () {
         expect(ContentLanguage::En->label())->toBe('English')
-            ->and(ContentLanguage::De->label())->toBe('German')
-            ->and(ContentLanguage::DeEn->label())->toBe('German + English');
+            ->and(ContentLanguage::De->label())->toBe('German');
     });
 
     it('returns all values', function () {
         $values = ContentLanguage::values();
-        expect($values)->toBe(['en', 'de', 'de+en']);
+        expect($values)->toBe(['en', 'de']);
     });
 });

@@ -6,7 +6,6 @@ enum ContentLanguage: string
 {
     case En = 'en';
     case De = 'de';
-    case DeEn = 'de+en';
 
     /**
      * @return string[]
@@ -21,7 +20,6 @@ enum ContentLanguage: string
         return match ($this) {
             self::En => 'English',
             self::De => 'German',
-            self::DeEn => 'German + English',
         };
     }
 }
