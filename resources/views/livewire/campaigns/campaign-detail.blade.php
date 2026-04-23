@@ -258,6 +258,35 @@
             @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $campaign->safety_rules])
         @endif
 
+        {{-- Reviews --}}
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
+                    {{ __('reviews.title_reviews') }}
+                </h2>
+                @auth
+                    @if($canReview)
+                        <a href="{{ route('reviews.write', ['reviewable_type' => 'campaign', 'reviewable_id' => $campaign->id]) }}" wire:navigate
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                            {{ __('reviews.action_write_review') }}
+                        </a>
+                    @endif
+                @endauth
+            </div>
+
+            @if($reviews->count())
+                <div class="divide-y divide-outline-variant/30">
+                    @foreach($reviews as $review)
+                        @include('reviews.partials._review-card', ['review' => $review])
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
+            @endif
+        </section>
+
         {{-- Campaign Owner Info --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
@@ -270,5 +299,6 @@
                     <x-gm-badge size="sm" />
                 @endif
             </div>
+        </section>
     </div>
 </div>

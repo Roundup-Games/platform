@@ -86,6 +86,22 @@ class GameDetail extends Component
             && ! $hasExistingApplication
             && $this->game->visibility !== 'private';
 
+        $canReview = false;
+        $reviews = collect();
+
+        if ($viewer) {
+            $canReview = app(\App\Services\ReviewEligibilityService::class)
+                ->canReviewSession($viewer, $this->game);
+        }
+
+        $reviews = \App\Models\Review::where('reviewable_type', \App\Models\Game::class)
+            ->where('reviewable_id', $this->game->id)
+            ->published()
+            ->with('reviewer')
+            ->latest()
+            ->limit(10)
+            ->get();
+
         return view('livewire.games.game-detail', [
             'game' => $this->game,
             'isOwner' => $isOwner,
@@ -94,6 +110,8 @@ class GameDetail extends Component
             'canApply' => $canApply,
             'hasExistingApplication' => $hasExistingApplication,
             'isGuest' => Auth::guest(),
+            'reviews' => $reviews,
+            'canReview' => $canReview,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

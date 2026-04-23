@@ -86,6 +86,21 @@ class CampaignDetail extends Component
             && ! $hasExistingApplication
             && $this->campaign->visibility !== 'private';
 
+        $canReview = false;
+
+        if ($viewer) {
+            $canReview = app(\App\Services\ReviewEligibilityService::class)
+                ->canReviewCampaign($viewer, $this->campaign);
+        }
+
+        $reviews = \App\Models\Review::where('reviewable_type', \App\Models\Campaign::class)
+            ->where('reviewable_id', $this->campaign->id)
+            ->published()
+            ->with('reviewer')
+            ->latest()
+            ->limit(10)
+            ->get();
+
         return view('livewire.campaigns.campaign-detail', [
             'campaign' => $this->campaign,
             'isOwner' => $isOwner,
@@ -94,6 +109,8 @@ class CampaignDetail extends Component
             'canApply' => $canApply,
             'hasExistingApplication' => $hasExistingApplication,
             'isGuest' => Auth::guest(),
+            'reviews' => $reviews,
+            'canReview' => $canReview,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }
