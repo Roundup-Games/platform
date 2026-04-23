@@ -133,6 +133,49 @@ class BillingPortal extends Component
         session()->flash('success', __('billing.content_gm_subscription_reactivated'));
     }
 
+    public function activateLocalPlan(int $planId): void
+    {
+        $user = Auth::user();
+        $plan = MembershipType::active()->findOrFail($planId);
+
+        if ($plan->type !== 'local') {
+            session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
+
+            return;
+        }
+
+        // GM plan
+        if (($plan->metadata['gm_plan'] ?? false) === true) {
+            if ($user->hasGmSubscription()) {
+                session()->flash('error', __('billing.error_you_already_have_a_gm_subscription'));
+
+                return;
+            }
+
+            Log::info('User activated GM subscription from billing portal', [
+                'user_id' => $user->id,
+                'plan_id' => $plan->id,
+            ]);
+
+            $result = app(GmRoleService::class)->activateGmSubscription($user);
+
+            if ($result) {
+                session()->flash('success', __('billing.content_gm_subscription_activated'));
+            } else {
+                session()->flash('error', __('billing.error_failed_to_activate_gm_subscription'));
+            }
+
+            return;
+        }
+
+        Log::warning('Unhandled local plan activation', [
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+        ]);
+
+        session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
+    }
+
     public function render()
     {
         $user = Auth::user();

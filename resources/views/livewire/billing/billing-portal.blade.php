@@ -159,10 +159,10 @@
                             </div>
                             <div class="mt-auto pt-4">
                                 @if($plan->type === 'local')
-                                    <a href="{{ route('membership') }}" wire:navigate
+                                    <button wire:click="activateLocalPlan({{ $plan->id }})"
                                        class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                         {{ __('billing.action_activate') }}
-                                    </a>
+                                    </button>
                                 @elseif($plan->paddle_price_id)
                                     <a href="{{ route('billing.checkout', ['planId' => $plan->id]) }}" wire:navigate
                                        class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
@@ -175,7 +175,7 @@
                                 @endif
                             </div>
                         </div>
-                    @endforeach>
+                    @endforeach
                 </div>
             @else
                 <p class="text-sm text-on-surface-variant">{{ __('billing.content_no_membership_plans_are_currently_available') }}</p>
@@ -215,7 +215,7 @@
                                         </span>
                                     </td>
                                 </tr>
-                            @endforeach>
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -223,7 +223,7 @@
                 <div class="text-center py-6">
                     <p class="text-sm text-on-surface-variant">{{ __('billing.content_no_payment_history_yet') }}</p>
                 </div>
-            @endif>
+            @endif
         </section>
     </div>
 </div>

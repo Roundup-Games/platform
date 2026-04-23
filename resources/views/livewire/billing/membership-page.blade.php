@@ -161,7 +161,7 @@
                                                 <span class="material-symbols-outlined text-sm text-secondary" style="font-variation-settings: 'FILL' 1">check_circle</span>
                                                 {{ $feature }}
                                             </li>
-                                        @endforeach>
+                                        @endforeach
                                     </ul>
                                 @endif
 
@@ -182,7 +182,7 @@
                                     @endif
                                 </div>
                             </div>
-                        @endforeach>
+                        @endforeach
                     </div>
                 </section>
             @else
