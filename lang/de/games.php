@@ -75,6 +75,7 @@ return [
     'content_you_ve_got_the_game' => 'Du hast das Spiel. Wir helfen dir, die richtigen Spieler zu finden — und kümmern uns um die Logistik, damit du dich auf das konzentrieren kannst, was du am besten kannst: unvergessliche Sessions ausrichten.',
     'error_min_players_cannot_exceed_max_players' => 'Min. Spieler können max. Spieler nicht überschreiten.',
     'error_you_cannot_apply_to_your_own_game' => 'Du kannst dich nicht auf dein eigenes Spiel bewerben.',
+    'field_game_type' => 'Spielart',
     'field_max_players' => 'Max. Spieler',
     'field_maximum_complexity' => 'Maximale Komplexität',
     'field_min_players' => 'Min. Spieler',

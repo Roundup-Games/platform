@@ -4,6 +4,7 @@ namespace App\Livewire\Games;
 
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\GameType;
 use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -18,6 +19,8 @@ use Livewire\Component;
 class CreateGame extends Component
 {
     public string $name = '';
+
+    public string $game_type = 'board_game';
 
     public ?int $game_system_id = null;
 
@@ -54,6 +57,7 @@ class CreateGame extends Component
     {
         return [
             'name' => 'required|string|max:255',
+            'game_type' => 'required|string|in:' . implode(',', GameType::values()),
             'game_system_id' => 'nullable|exists:game_systems,id',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',
@@ -135,6 +139,17 @@ class CreateGame extends Component
     }
 
     #[Computed]
+    public function gameTypeOptions(): array
+    {
+        $options = [];
+        foreach (GameType::cases() as $case) {
+            $options[$case->value] = __('games.type_' . $case->value);
+        }
+
+        return $options;
+    }
+
+    #[Computed]
     public function experienceLevelOptions(): array
     {
         $options = ['' => __('discovery.content_any')];
@@ -183,6 +198,7 @@ class CreateGame extends Component
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
             'name' => $validated['name'],
+            'game_type' => $validated['game_type'],
             'date_time' => $validated['date_time'],
             'description' => $validated['description'],
             'expected_duration' => $validated['expected_duration'] ?: 2,

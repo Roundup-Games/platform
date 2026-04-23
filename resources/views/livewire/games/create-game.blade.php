@@ -24,6 +24,17 @@
                 </div>
 
                 <div>
+                    <label for="game-type" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_game_type') }}</label>
+                    <select id="game-type" wire:model="game_type"
+                            class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                        @foreach($this->gameTypeOptions as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('game_type') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
                     <livewire:components.game-system-picker
                         :fieldId="'game-system'"
                         :label="__('games.content_game_system')"

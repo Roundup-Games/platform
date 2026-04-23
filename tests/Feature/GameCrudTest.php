@@ -340,6 +340,60 @@ describe('CreateGame', function () {
         $game = Game::where('name', 'Located Game')->first();
         expect($game->location)->toBe(['details' => 'https://example.com/vtt']);
     });
+
+    it('defaults game_type to board_game', function () {
+        $user = gameCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Games\CreateGame::class)
+            ->assertSet('game_type', 'board_game');
+    });
+
+    it('creates a board_game successfully', function () {
+        $user = gameCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Board Game Night')
+            ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
+            ->set('game_type', 'board_game')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Board Game Night',
+            'game_type' => 'board_game',
+        ]);
+    });
+
+    it('creates a ttrpg game successfully', function () {
+        $user = gameCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Games\CreateGame::class)
+            ->set('name', 'TTRPG Session')
+            ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
+            ->set('game_type', 'ttrpg')
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'TTRPG Session',
+            'game_type' => 'ttrpg',
+        ]);
+    });
+
+    it('rejects an invalid game_type', function () {
+        $user = gameCrudCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Games\CreateGame::class)
+            ->set('name', 'Bad Type Game')
+            ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
+            ->set('game_type', 'miniatures')
+            ->call('save')
+            ->assertHasErrors(['game_type']);
+    });
 });
 
 // ── GameDetail ──────────────────────────────────────────
