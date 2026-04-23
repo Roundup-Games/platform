@@ -74,12 +74,9 @@ Route::prefix('{locale}')
 
         // ── Authenticated (Breeze) ────────────────────
 
-        Route::get('/dashboard', function () {
-            return view('dashboard', [
-                'gameCount' => \App\Models\Game::where('owner_id', auth()->id())->where('status', 'scheduled')->count(),
-                'campaignCount' => \App\Models\Campaign::where('owner_id', auth()->id())->where('status', 'active')->count(),
-            ]);
-        })->middleware(['auth', 'verified', 'profile.complete'])->name('dashboard');
+        Route::get('/dashboard', App\Livewire\Dashboard::class)
+            ->middleware(['auth', 'verified', 'profile.complete'])
+            ->name('dashboard');
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
             // GM Workspace (auth + GM role + subscription checked in component mount)
