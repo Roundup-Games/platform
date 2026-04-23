@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GameType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ class Game extends Model
     protected $fillable = [
         'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
         'description', 'expected_duration', 'price', 'language', 'location', 'location_id',
-        'status', 'minimum_requirements', 'visibility', 'safety_rules',
+        'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
     ];
 
@@ -34,6 +35,7 @@ class Game extends Model
             'max_players' => 'integer',
             'complexity' => 'decimal:2',
             'vibe_flags' => 'array',
+            'game_type' => GameType::class,
         ];
     }
 

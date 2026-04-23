@@ -229,4 +229,8 @@ return [
     'field_designer' => 'Designer|Designers',
     'content_sp_rating' => 'Community Rating',
     'link_type_purchase' => 'Purchase',
+
+    // Game type labels
+    'type_board_game' => 'Board Game',
+    'type_ttrpg' => 'TTRPG',
 ];

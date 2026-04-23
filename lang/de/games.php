@@ -229,4 +229,8 @@ return [
     'field_designer' => 'Designer|Designer',
     'content_sp_rating' => 'Community-Bewertung',
     'link_type_purchase' => 'Kaufen',
+
+    // Spielart-Bezeichnungen
+    'type_board_game' => 'Brettspiel',
+    'type_ttrpg' => 'TTRPG',
 ];
