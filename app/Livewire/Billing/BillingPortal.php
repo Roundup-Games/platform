@@ -3,6 +3,7 @@
 namespace App\Livewire\Billing;
 
 use App\Models\MembershipType;
+use App\Services\GmRoleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -42,6 +43,11 @@ class BillingPortal extends Component
 
         $subscription->cancel();
 
+        // If the user also has a GM role, revoke it (Paddle subscription lapsed)
+        if ($user->isGM()) {
+            app(GmRoleService::class)->revokeGMRole($user);
+        }
+
         Log::info('Subscription canceled successfully', [
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
@@ -70,12 +76,61 @@ class BillingPortal extends Component
 
         $subscription->resume();
 
+        // Re-assign GM role if subscription resumed
+        if (! $user->isGM() && $user->gmProfile) {
+            app(GmRoleService::class)->assignGMRole($user);
+        }
+
         Log::info('Subscription resumed successfully', [
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
         ]);
 
         session()->flash('success', __('billing.content_your_subscription_has_been_resumed_welcome_back'));
+    }
+
+    public function cancelGmSubscription(): void
+    {
+        $user = Auth::user();
+
+        if (! $user->hasGmSubscription()) {
+            session()->flash('error', __('billing.error_no_active_gm_subscription_to_cancel'));
+
+            return;
+        }
+
+        Log::info('User initiated GM subscription cancellation', [
+            'user_id' => $user->id,
+        ]);
+
+        app(GmRoleService::class)->deactivateGmSubscription($user);
+
+        session()->flash('success', __('billing.content_gm_subscription_canceled'));
+    }
+
+    public function reactivateGmSubscription(): void
+    {
+        $user = Auth::user();
+
+        // Check if they have a canceled GM subscription they can reactivate
+        $canceledGmSub = $user->localSubscriptions()
+            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->where('status', 'canceled')
+            ->first();
+
+        if (! $canceledGmSub) {
+            session()->flash('error', __('billing.error_no_gm_subscription_to_reactivate'));
+
+            return;
+        }
+
+        Log::info('User reactivated GM subscription', [
+            'user_id' => $user->id,
+        ]);
+
+        app(GmRoleService::class)->activateGmSubscription($user);
+
+        session()->flash('success', __('billing.content_gm_subscription_reactivated'));
     }
 
     public function render()
@@ -85,10 +140,16 @@ class BillingPortal extends Component
         $transactions = $user->transactions()->latest('billed_at')->take(10)->get();
         $membershipTypes = MembershipType::active()->orderBy('price_cents')->get();
 
+        // Check for active GM (local) subscription
+        $gmSubscription = $user->localSubscriptions()
+            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->first(); // active or canceled
+
         return view('livewire.billing.billing-portal', [
             'subscription' => $subscription,
             'transactions' => $transactions,
             'membershipTypes' => $membershipTypes,
+            'gmSubscription' => $gmSubscription,
         ]);
     }
 

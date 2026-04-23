@@ -92,6 +92,47 @@
             @endif
         </section>
 
+        {{-- Game Master Subscription --}}
+        @if($gmSubscription)
+        <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+            <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-4">{{ __('billing.content_game_master_tools') }}</h2>
+
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full {{ $gmSubscription->isActive() ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg {{ $gmSubscription->isActive() ? 'text-on-secondary-container' : 'text-on-tertiary-container' }}" style="font-variation-settings: 'FILL' 1" aria-hidden="true">school</span>
+                    </div>
+                    <div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                            {{ $gmSubscription->isActive() ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary-container text-on-tertiary-container' }}">
+                            {{ $gmSubscription->isActive() ? __('common.status_active') : __('common.content_inactive') }}
+                        </span>
+                        <p class="mt-1 text-sm text-on-surface-variant">
+                            @if($gmSubscription->isActive())
+                                {{ __('billing.content_gm_tools_active_description') }}
+                            @else
+                                {{ __('billing.content_gm_tools_inactive_description') }}
+                            @endif
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    @if($gmSubscription->isActive())
+                        <button wire:click="cancelGmSubscription" wire:confirm="{{ __('billing.error_are_you_sure_you_want_to_deactivate_your_gm_tools') }}"
+                                class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium">
+                            {{ __('billing.action_deactivate') }}
+                        </button>
+                    @else
+                        <button wire:click="reactivateGmSubscription"
+                                class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                            {{ __('billing.action_reactivate') }}
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </section>
+        @endif
+
         {{-- Available Plans --}}
         @if(!$subscription || !$subscription->active())
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
@@ -100,17 +141,29 @@
             @if($membershipTypes->count())
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($membershipTypes as $plan)
+                        @if($plan->type === 'local' && $gmSubscription && $gmSubscription->isActive())
+                            @continue
+                        @endif
                         <div class="bg-surface-container-low rounded-xl shadow-ambient p-5 flex flex-col">
                             <h3 class="font-heading font-semibold text-lg tracking-tight text-on-surface">{{ $plan->name }}</h3>
                             @if($plan->description)
                                 <p class="mt-1 text-sm text-on-surface-variant">{{ $plan->description }}</p>
                             @endif
                             <div class="mt-3">
-                                <span class="text-2xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
-                                <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
+                                @if($plan->price_cents === 0)
+                                    <span class="text-2xl font-bold text-secondary">{{ __('common.price_free') }}</span>
+                                @else
+                                    <span class="text-2xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
+                                    <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
+                                @endif
                             </div>
                             <div class="mt-auto pt-4">
-                                @if($plan->paddle_price_id)
+                                @if($plan->type === 'local')
+                                    <a href="{{ route('membership') }}" wire:navigate
+                                       class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                                        {{ __('billing.action_activate') }}
+                                    </a>
+                                @elseif($plan->paddle_price_id)
                                     <a href="{{ route('billing.checkout', ['planId' => $plan->id]) }}" wire:navigate
                                        class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                         {{ __('common.content_subscribe') }}

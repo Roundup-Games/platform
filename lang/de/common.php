@@ -312,7 +312,9 @@ return [
     // Onboarding
     'content_this_step_is_optional' => 'Dieser Schritt ist optional — du kannst deine Präferenzen jederzeit später anpassen.',
     'content_step_optional_badge' => 'Optional',
+    'content_inactive' => 'Inaktiv',
 
     // Authorization
     'status_not_authorized' => 'Keine Berechtigung',
+    'price_free' => 'Kostenlos',
 ];

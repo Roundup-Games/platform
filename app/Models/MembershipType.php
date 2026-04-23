@@ -10,7 +10,7 @@ class MembershipType extends Model
     use HasFactory;
     protected $fillable = [
         'name', 'description', 'price_cents', 'duration_months',
-        'status', 'paddle_price_id', 'metadata',
+        'status', 'type', 'paddle_price_id', 'metadata',
     ];
 
     protected function casts(): array

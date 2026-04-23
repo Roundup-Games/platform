@@ -3,6 +3,7 @@
 namespace App\Livewire\Billing;
 
 use App\Models\MembershipType;
+use App\Services\GmRoleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -20,6 +21,12 @@ class MembershipPage extends Component
     {
         $user = Auth::user();
         $plan = MembershipType::active()->findOrFail($planId);
+
+        // Local plans (e.g. free GM subscription) bypass Paddle
+        if ($plan->type === 'local') {
+            $this->handleLocalSubscription($user, $plan);
+            return;
+        }
 
         if (! $plan->paddle_price_id) {
             session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
@@ -43,6 +50,38 @@ class MembershipPage extends Component
         $this->redirect(route('billing.checkout', ['planId' => $plan->id]));
     }
 
+    protected function handleLocalSubscription($user, MembershipType $plan): void
+    {
+        // GM plan — activate via GmRoleService
+        if (($plan->metadata['gm_plan'] ?? false) === true) {
+            if ($user->hasGmSubscription()) {
+                session()->flash('error', __('billing.error_you_already_have_a_gm_subscription'));
+
+                return;
+            }
+
+            $gmRoleService = app(GmRoleService::class);
+            $result = $gmRoleService->activateGmSubscription($user);
+
+            if ($result) {
+                session()->flash('success', __('billing.content_gm_subscription_activated'));
+            } else {
+                session()->flash('error', __('billing.error_failed_to_activate_gm_subscription'));
+            }
+
+            return;
+        }
+
+        // Generic local plan — not yet implemented
+        Log::warning('Unhandled local subscription plan', [
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+        ]);
+
+        session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -62,11 +101,18 @@ class MembershipPage extends Component
             }
         }
 
+        // Check for active GM (local) subscription
+        $gmSubscription = $user->localSubscriptions()
+            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->active()
+            ->first();
+
         return view('livewire.billing.membership-page', [
             'subscription' => $subscription,
             'membershipTypes' => $membershipTypes,
             'expiringSoon' => $expiringSoon,
             'daysUntilExpiry' => $daysUntilExpiry,
+            'gmSubscription' => $gmSubscription,
         ]);
     }
 }

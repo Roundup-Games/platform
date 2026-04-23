@@ -23,6 +23,7 @@ class MembershipTypeSeeder extends Seeder
                 'price_cents' => 4999,
                 'duration_months' => 12,
                 'status' => 'active',
+                'type' => 'paddle',
                 'paddle_price_id' => config('billing.annual_price_id'),
                 'metadata' => ['popular' => true, 'features' => [
                     'Unlimited game sessions',
@@ -37,12 +38,28 @@ class MembershipTypeSeeder extends Seeder
                 'price_cents' => 599,
                 'duration_months' => 1,
                 'status' => 'active',
+                'type' => 'paddle',
                 'paddle_price_id' => config('billing.monthly_price_id'),
                 'metadata' => ['features' => [
                     'Unlimited game sessions',
                     'Campaign participation',
                     'Event registration',
                     'Community access',
+                ]],
+            ],
+            [
+                'name' => 'Game Master',
+                'description' => 'Access GM tools: workspace dashboard, session zero builder, professional profile, and review system. Free for all members.',
+                'price_cents' => 0,
+                'duration_months' => 0,
+                'status' => 'active',
+                'type' => 'local',
+                'paddle_price_id' => null,
+                'metadata' => ['gm_plan' => true, 'features' => [
+                    'GM workspace dashboard',
+                    'Session zero builder',
+                    'Professional GM profile',
+                    'Review and rating system',
                 ]],
             ],
         ];

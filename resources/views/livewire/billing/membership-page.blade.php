@@ -76,6 +76,42 @@
             </section>
         @endif
 
+        {{-- GM Subscription Status --}}
+        @if($gmSubscription)
+            <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0 w-12 h-12 rounded-full {{ $gmSubscription->isActive() ? 'bg-secondary-container' : 'bg-tertiary-container' }} flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl {{ $gmSubscription->isActive() ? 'text-on-secondary-container' : 'text-on-tertiary-container' }}" style="font-variation-settings: 'FILL' 1" aria-hidden="true">{{ $gmSubscription->isActive() ? 'school' : 'pause_circle' }}</span>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('billing.content_game_master_tools') }}</h2>
+                            <p class="text-sm text-on-surface-variant">
+                                @if($gmSubscription->isActive())
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">{{ __('common.status_active') }}</span>
+                                    &mdash; {{ __('billing.content_gm_tools_active') }}
+                                @else
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">{{ __('common.content_inactive') }}</span>
+                                    &mdash; {{ __('billing.content_gm_tools_inactive') }}
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    @if($gmSubscription->isActive())
+                        <a href="{{ route('billing.portal') }}" wire:navigate
+                           class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+                            {{ __('billing.action_manage') }}
+                        </a>
+                    @else
+                        <a href="{{ route('billing.portal') }}" wire:navigate
+                           class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
+                            {{ __('billing.action_reactivate') }}
+                        </a>
+                    @endif
+                </div>
+            </section>
+        @endif
+
         {{-- Membership Plans --}}
         @if(!$subscription || !$subscription->active())
             @if($membershipTypes->count())
@@ -104,12 +140,16 @@
 
                                 {{-- Price --}}
                                 <div class="mt-4 text-center">
-                                    <span class="text-3xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
-                                    <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
-                                    @if($plan->duration_months === 12)
-                                        <p class="mt-1 text-xs text-secondary font-medium">
-                                            {{ format_currency((int)round($plan->price_cents / 12)) }}/month
-                                        </p>
+                                    @if($plan->price_cents === 0)
+                                        <span class="text-3xl font-bold text-secondary">{{ __('common.price_free') }}</span>
+                                    @else
+                                        <span class="text-3xl font-bold text-on-surface">{{ $plan->formattedPrice() }}</span>
+                                        <span class="text-sm text-on-surface-variant">/{{ trans_choice('billing.content_duration_months', $plan->duration_months) }}</span>
+                                        @if($plan->duration_months === 12)
+                                            <p class="mt-1 text-xs text-secondary font-medium">
+                                                {{ format_currency((int)round($plan->price_cents / 12)) }}/month
+                                            </p>
+                                        @endif
                                     @endif
                                 </div>
 

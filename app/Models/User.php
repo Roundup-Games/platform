@@ -358,12 +358,28 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         return $this->hasOne(GMProfile::class);
     }
 
+    public function localSubscriptions()
+    {
+        return $this->hasMany(LocalSubscription::class);
+    }
+
     /**
      * Check if this user has the Game Master role (subscription-gated).
      */
     public function isGM(): bool
     {
         return $this->hasRole('Game Master');
+    }
+
+    /**
+     * Check if this user has an active GM subscription (local).
+     */
+    public function hasGmSubscription(): bool
+    {
+        return $this->localSubscriptions()
+            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->active()
+            ->exists();
     }
 
     public function discoveryView()
@@ -552,7 +568,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
 
     public function hasActiveMembership(): bool
     {
-        return $this->subscribed();
+        return $this->subscribed() || $this->localSubscriptions()->active()->exists();
     }
 
     /**

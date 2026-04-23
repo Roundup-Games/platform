@@ -46,6 +46,15 @@ class MembershipTypeResource extends Resource
                                     ])
                                     ->default('active')
                                     ->required(),
+                                Select::make('type')
+                                    ->label('Plan Type')
+                                    ->options([
+                                        'paddle' => 'Paddle (paid)',
+                                        'local' => 'Local (free / in-app)',
+                                    ])
+                                    ->default('paddle')
+                                    ->required()
+                                    ->helperText('Local plans are handled entirely in-app without Paddle.'),
                                 TextInput::make('price_cents')
                                     ->label('Price (cents)')
                                     ->required()
@@ -56,8 +65,9 @@ class MembershipTypeResource extends Resource
                                     ->label('Duration (months)')
                                     ->required()
                                     ->numeric()
-                                    ->minValue(1)
-                                    ->default(1),
+                                    ->minValue(0)
+                                    ->default(1)
+                                    ->helperText('Set to 0 for indefinite/free plans.'),
                                 TextInput::make('paddle_price_id')
                                     ->label('Paddle Price ID')
                                     ->maxLength(255)
@@ -98,6 +108,14 @@ class MembershipTypeResource extends Resource
                         'archived' => 'gray',
                         default => 'gray',
                     }),
+                TextColumn::make('type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'local' => 'info',
+                        'paddle' => 'success',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
                 TextColumn::make('paddle_price_id')
                     ->label('Paddle ID')
                     ->toggleable(isToggledHiddenByDefault: true),
