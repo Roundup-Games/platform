@@ -145,6 +145,9 @@ describe('logForParticipants()', function () {
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $user1->id, 'role' => 'owner', 'status' => 'approved']);
         GameParticipant::create(['game_id' => $game->id, 'user_id' => $user2->id, 'role' => 'player', 'status' => 'approved']);
 
+        // Clear observer-generated logs so we only measure logForParticipants output
+        ActivityLog::query()->delete();
+
         $this->service->logForParticipants(ActivityType::GameCreated, $game, ['name' => 'Test Game']);
 
         $logs = ActivityLog::where('subject_type', Game::class)

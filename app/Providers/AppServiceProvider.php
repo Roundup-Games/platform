@@ -6,9 +6,12 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Review;
 use App\Models\Team;
+use App\Models\UserRelationship;
+use App\Observers\ActivityLogObserver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
@@ -38,5 +41,13 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Review::observe(\App\Observers\ReviewObserver::class);
+
+        // Activity logging observers — resilient, never block primary actions
+        $activityObserver = $this->app->make(ActivityLogObserver::class);
+        Game::observe($activityObserver);
+        Campaign::observe($activityObserver);
+        GameParticipant::observe($activityObserver);
+        Review::observe($activityObserver);
+        UserRelationship::observe($activityObserver);
     }
 }
