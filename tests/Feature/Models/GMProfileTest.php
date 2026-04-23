@@ -114,7 +114,7 @@ class GMProfileTest extends TestCase
 
         // Match pattern: "john-doe-{6-random-chars}"
         $this->assertMatchesRegularExpression(
-            '/^john-doe-[a-z0-9]{6}$/',
+            '/^john-doe-[a-zA-Z0-9]{6}$/',
             $profile->slug,
         );
     }

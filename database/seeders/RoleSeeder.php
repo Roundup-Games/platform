@@ -119,5 +119,14 @@ class RoleSeeder extends Seeder
             'view game',
             'view user',
         ]);
+
+        // Game Master: subscription-gated GM role (assigned via GmRoleService)
+        // No permissions needed — GM status gates features via GmRoleService checks,
+        // not via Spatie permissions. The role acts as a capability flag.
+        Role::firstOrCreate([
+            'name' => 'Game Master',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
     }
 }
