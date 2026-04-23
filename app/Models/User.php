@@ -353,6 +353,19 @@ class User extends Authenticatable implements FilamentUser, HasMedia
      * Used for sweep targeting: last_discovery_view filters active users,
      * geohash_4 enables skip-if-location-unchanged optimization.
      */
+    public function gmProfile()
+    {
+        return $this->hasOne(GMProfile::class);
+    }
+
+    /**
+     * Check if this user has the Game Master role (subscription-gated).
+     */
+    public function isGM(): bool
+    {
+        return $this->hasRole('Game Master');
+    }
+
     public function discoveryView()
     {
         return $this->hasOne(NearbyDiscoveryView::class);
