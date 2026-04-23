@@ -80,6 +80,10 @@ Route::prefix('{locale}')
             // GM Workspace (auth + GM role + subscription checked in component mount)
             Route::get('/gm-workspace', App\Livewire\GM\GmWorkspace::class)->name('gm.workspace');
 
+            // GM Session Zero Builder
+            Route::get('/gm/session-zero/create', App\Livewire\GM\SessionZero\CreateSessionZero::class)->name('gm.session-zero.create');
+            Route::get('/gm/session-zero/create/{game_id}', App\Livewire\GM\SessionZero\CreateSessionZero::class)->name('gm.session-zero.create-for-game');
+
             // Profile page (Livewire — handles all profile management inline)
             Route::get('/profile', App\Livewire\Profile\Show::class)->name('profile.show');
 

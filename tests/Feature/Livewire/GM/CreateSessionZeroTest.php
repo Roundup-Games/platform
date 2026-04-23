@@ -1,0 +1,438 @@
+<?php
+
+use App\Enums\SafetyTool;
+use App\Models\Game;
+use App\Models\GMProfile;
+use App\Models\SessionZeroSurvey;
+use App\Models\User;
+use Illuminate\Support\Str;
+use Laravel\Paddle\Cashier;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
+
+// ── Helpers ──────────────────────────────────────────────
+
+function createSubscribedGmForSurvey(array $userOverrides = [], array $gmOverrides = []): User
+{
+    Role::firstOrCreate([
+        'name' => 'Game Master',
+        'guard_name' => 'web',
+        'team_id' => null,
+    ]);
+
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+        'profile_complete' => true,
+        ...$userOverrides,
+    ]);
+
+    Cashier::$subscriptionModel::create([
+        'billable_type' => get_class($user),
+        'billable_id' => $user->id,
+        'type' => 'default',
+        'paddle_id' => 'sub_' . Str::random(12),
+        'status' => 'active',
+        'trial_ends_at' => null,
+        'paused_at' => null,
+        'ends_at' => null,
+    ]);
+
+    $user->assignRole('Game Master');
+
+    GMProfile::factory()->create([
+        'user_id' => $user->id,
+        'is_active' => true,
+        ...$gmOverrides,
+    ]);
+
+    return $user;
+}
+
+function createNonGmUser(): User
+{
+    return User::factory()->create([
+        'email_verified_at' => now(),
+        'profile_complete' => true,
+    ]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACCESS CONTROL
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Access Control', function () {
+    it('redirects unauthenticated users', function () {
+        $this->get(route('gm.session-zero.create', 'en'))
+            ->assertRedirect(route('login', 'en'));
+    });
+
+    it('redirects non-GM users to dashboard', function () {
+        $user = createNonGmUser();
+
+        $this->actingAs($user)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertRedirect(route('dashboard', 'en'));
+    });
+
+    it('redirects GMs without subscription to dashboard', function () {
+        Role::firstOrCreate([
+            'name' => 'Game Master',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
+
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+            'profile_complete' => true,
+        ]);
+        $user->assignRole('Game Master');
+        GMProfile::factory()->create(['user_id' => $user->id, 'is_active' => true]);
+
+        // No subscription → isGmActive returns false
+        $this->actingAs($user)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertRedirect(route('dashboard', 'en'));
+    });
+
+    it('allows active subscribed GMs to view the form', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        $this->actingAs($gm)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertOk()
+            ->assertSee('Create Session Zero');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORM RENDERING
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Form Rendering', function () {
+    it('renders all 5 form sections', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        $this->actingAs($gm)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertOk()
+            ->assertSee('Safety Tools')
+            ->assertSee('Tone & Genre')
+            ->assertSee('House Rules')
+            ->assertSee('Content Warnings')
+            ->assertSee('Player Expectations');
+    });
+
+    it('renders title input field', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        $this->actingAs($gm)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertOk()
+            ->assertSee('Survey Title');
+    });
+
+    it('renders the create survey button', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        $this->actingAs($gm)
+            ->get(route('gm.session-zero.create', 'en'))
+            ->assertOk()
+            ->assertSee('Create Survey');
+    });
+
+    it('shows default title when game_id is provided and game belongs to GM', function () {
+        $gm = createSubscribedGmForSurvey();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'name' => 'Dragon Heist',
+        ]);
+
+        $this->actingAs($gm)
+            ->get(route('gm.session-zero.create-for-game', ['locale' => 'en', 'game_id' => $game->id]))
+            ->assertOk()
+            ->assertSee('Session Zero for Dragon Heist');
+    });
+
+    it('does not prefill title when game does not belong to GM', function () {
+        $gm = createSubscribedGmForSurvey();
+        $otherGm = createSubscribedGmForSurvey(['name' => 'Other GM']);
+        $game = Game::factory()->create([
+            'owner_id' => $otherGm->id,
+            'name' => 'Other Game',
+        ]);
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->assertSet('title', '');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORM VALIDATION
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Validation', function () {
+    it('requires a title', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', '')
+            ->call('save')
+            ->assertHasErrors(['title' => 'required']);
+    });
+
+    it('validates title max length', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', str_repeat('x', 256))
+            ->call('save')
+            ->assertHasErrors(['title' => 'max']);
+    });
+
+    it('accepts valid form data', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'My Session Zero')
+            ->set('tone_and_genre', 'Heroic fantasy')
+            ->set('house_rules', 'Flanking rules apply')
+            ->set('content_warnings', 'Horror themes')
+            ->set('player_expectations', 'Be on time')
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+
+    it('accepts form with only title', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Minimal Session Zero')
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+
+    it('validates safety tools are from enum values', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Test')
+            ->set('selectedSafetyTools', ['invalid-tool'])
+            ->call('save')
+            ->assertHasErrors(['selectedSafetyTools.0']);
+    });
+
+    it('accepts valid safety tool values', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Test')
+            ->set('selectedSafetyTools', ['x-card', 'lines-and-veils'])
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SURVEY CREATION
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Survey Creation', function () {
+    it('creates a SessionZeroSurvey in the database', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Dragon Heist Session Zero')
+            ->set('tone_and_genre', 'Urban intrigue')
+            ->set('house_rules', 'Flanking rules')
+            ->set('content_warnings', 'Violence, betrayal')
+            ->set('player_expectations', 'Weekly attendance')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey)->not->toBeNull();
+        expect($survey->title)->toBe('Dragon Heist Session Zero');
+        expect($survey->gm_profile_id)->toBe($gm->gmProfile->id);
+        expect($survey->content['tone_and_genre'])->toBe('Urban intrigue');
+        expect($survey->content['house_rules'])->toBe('Flanking rules');
+        expect($survey->content['content_warnings'])->toBe('Violence, betrayal');
+        expect($survey->content['player_expectations'])->toBe('Weekly attendance');
+    });
+
+    it('generates a UUID for sharing', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Test Survey')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey->uuid)->not->toBeNull();
+        expect(strlen($survey->uuid))->toBe(36); // Standard UUID format
+    });
+
+    it('stores safety tools in content JSON', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Safety Test')
+            ->set('selectedSafetyTools', ['x-card', 'lines-and-veils', 'open-door'])
+            ->set('linesAndVeilsText', 'No spiders please')
+            ->set('safetyCustomNote', 'Break every hour')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey->content['safety_tools'])->toBe(['x-card', 'lines-and-veils', 'open-door']);
+        expect($survey->content['lines_and_veils_text'])->toBe('No spiders please');
+        expect($survey->content['safety_custom_note'])->toBe('Break every hour');
+    });
+
+    it('links survey to game when game_id is provided', function () {
+        $gm = createSubscribedGmForSurvey();
+        $game = Game::factory()->create(['owner_id' => $gm->id]);
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->set('title', 'Linked Survey')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey->game_id)->toBe($game->id);
+    });
+
+    it('does not link game when game belongs to different GM', function () {
+        $gm = createSubscribedGmForSurvey();
+        $otherGm = createSubscribedGmForSurvey(['name' => 'Other GM']);
+        $game = Game::factory()->create(['owner_id' => $otherGm->id]);
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class, ['game_id' => $game->id])
+            ->set('title', 'Unlinked Survey')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey->game_id)->toBeNull();
+    });
+
+    it('sets survey status to active by default', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Status Test')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+        expect($survey->status)->toBe('active');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SUCCESS STATE
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Success State', function () {
+    it('shows shareable link after saving', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        $component = Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Link Test')
+            ->call('save');
+
+        $survey = SessionZeroSurvey::first();
+
+        $component
+            ->assertSet('saved', true)
+            ->assertSet('shareableUuid', $survey->uuid)
+            ->assertSee('Session Zero Survey Created!')
+            ->assertSee('session-zero/' . $survey->uuid);
+    });
+
+    it('includes copy link button', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Copy Test')
+            ->call('save')
+            ->assertSee('Copy Link');
+    });
+
+    it('shows back to workspace link', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Back Test')
+            ->call('save')
+            ->assertSee('Back to Workspace');
+    });
+
+    it('shows preview link', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Preview Test')
+            ->call('save')
+            ->assertSee('Preview');
+    });
+
+    it('hides the form after successful save', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->set('title', 'Hide Form Test')
+            ->call('save')
+            ->assertDontSee('Create Survey');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SAFETY TOOLS EVENT HANDLING
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Safety Tool Events', function () {
+    it('receives safety tools from the picker component', function () {
+        $gm = createSubscribedGmForSurvey();
+
+        Livewire::actingAs($gm)
+            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
+            ->dispatch('safety-tools-changed', safetyRules: [
+                'tools' => ['x-card', 'open-door'],
+                'lines_and_veils_text' => 'My boundaries',
+                'custom_note' => 'Extra note',
+            ])
+            ->assertSet('selectedSafetyTools', ['x-card', 'open-door'])
+            ->assertSet('linesAndVeilsText', 'My boundaries')
+            ->assertSet('safetyCustomNote', 'Extra note');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// ROUTE REGISTRATION
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateSessionZero Routes', function () {
+    it('registers create route with correct path', function () {
+        $url = route('gm.session-zero.create', 'en');
+        $this->assertStringContainsString('/en/gm/session-zero/create', $url);
+    });
+
+    it('registers create-for-game route with game_id parameter', function () {
+        $gameId = (string) Str::uuid();
+        $url = route('gm.session-zero.create-for-game', ['locale' => 'en', 'game_id' => $gameId]);
+        $this->assertStringContainsString('/en/gm/session-zero/create/' . $gameId, $url);
+    });
+});
