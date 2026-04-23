@@ -48,22 +48,22 @@ describe('GameSystemsPage', function () {
             ->assertSee('1');
     });
 
-    it('sorts by BGG rank with nulls last', function () {
+    it('sorts by platform_score with zero scores last', function () {
         $unranked = GameSystem::factory()->create([
             'name' => 'Unranked Game',
-            'bgg_rank' => null,
+            'platform_score' => 0,
         ]);
-        $topRanked = GameSystem::factory()->create([
-            'name' => 'Top Ranked Game',
-            'bgg_rank' => 1,
+        $midScored = GameSystem::factory()->create([
+            'name' => 'Mid Scored Game',
+            'platform_score' => 50,
         ]);
-        $midRanked = GameSystem::factory()->create([
-            'name' => 'Mid Ranked Game',
-            'bgg_rank' => 100,
+        $topScored = GameSystem::factory()->create([
+            'name' => 'Top Scored Game',
+            'platform_score' => 100,
         ]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
-            ->assertSeeInOrder(['Top Ranked Game', 'Mid Ranked Game', 'Unranked Game']);
+            ->assertSeeInOrder(['Top Scored Game', 'Mid Scored Game', 'Unranked Game']);
     });
 
     it('filters by search query', function () {
@@ -152,6 +152,138 @@ describe('GameSystemsPage', function () {
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->assertViewHas('systems', fn ($systems) => $systems->count() === 24);
+    });
+
+    it('filters by type boardgame', function () {
+        $boardGame = GameSystem::factory()->create(['name' => 'Chess Classic', 'type' => 'boardgame']);
+        $ttrpg = GameSystem::factory()->create(['name' => 'Dragon Quest RPG', 'type' => 'ttrpg']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('setType', 'boardgame')
+            ->assertSee('Chess Classic')
+            ->assertDontSee('Dragon Quest RPG');
+    });
+
+    it('filters by type ttrpg', function () {
+        $boardGame = GameSystem::factory()->create(['name' => 'Checkers Fun', 'type' => 'boardgame']);
+        $ttrpg = GameSystem::factory()->create(['name' => 'Epic Adventures', 'type' => 'ttrpg']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('setType', 'ttrpg')
+            ->assertSee('Epic Adventures')
+            ->assertDontSee('Checkers Fun');
+    });
+
+    it('shows all types when type is all', function () {
+        GameSystem::factory()->create(['name' => 'Board Game One', 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => 'TTRPG One', 'type' => 'ttrpg']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->set('type', 'all')
+            ->assertSee('Board Game One')
+            ->assertSee('TTRPG One');
+    });
+
+    it('type filter is included in clearFilters', function () {
+        GameSystem::factory()->create(['name' => 'Board Game X', 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => 'TTRPG Y', 'type' => 'ttrpg']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('setType', 'boardgame')
+            ->assertSee('Board Game X')
+            ->assertDontSee('TTRPG Y')
+            ->call('clearFilters')
+            ->assertSee('Board Game X')
+            ->assertSee('TTRPG Y');
+    });
+
+    it('type filter is persisted via URL', function () {
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->set('type', 'ttrpg')
+            ->assertSet('type', 'ttrpg');
+    });
+
+    it('falls back to name sort when all scores are 0', function () {
+        $alpha = GameSystem::factory()->create(['name' => 'Alpha Game', 'platform_score' => 0]);
+        $beta = GameSystem::factory()->create(['name' => 'Beta Game', 'platform_score' => 0]);
+        $gamma = GameSystem::factory()->create(['name' => 'Gamma Game', 'platform_score' => 0]);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->assertSeeInOrder(['Alpha Game', 'Beta Game', 'Gamma Game']);
+    });
+
+    it('category filters scope to selected type', function () {
+        $strategy = GameSystemCategory::create(['name' => 'Strategy', 'slug' => 'strategy']);
+        $boardGame = GameSystem::factory()->create(['name' => 'Strategy Board Game', 'type' => 'boardgame']);
+        $boardGame->categories()->attach($strategy);
+        $ttrpg = GameSystem::factory()->create(['name' => 'Strategy TTRPG', 'type' => 'ttrpg']);
+        $ttrpg->categories()->attach($strategy);
+
+        // When filtering by boardgame type, only boardgame systems should show
+        // even when both share the same category
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('setType', 'boardgame')
+            ->call('toggleCategory', $strategy->id)
+            ->assertSee('Strategy Board Game')
+            ->assertDontSee('Strategy TTRPG');
+    });
+
+    // ── Play Style filter (TTRPG mode) ──────────────
+
+    it('filters by play style in TTRPG mode via category slugs', function () {
+        $imaginative = GameSystemCategory::create(['name' => 'Imaginative', 'slug' => 'imaginative']);
+        $narrativeSystem = GameSystem::factory()->create(['name' => 'Narrative RPG', 'type' => 'ttrpg']);
+        $narrativeSystem->categories()->attach($imaginative);
+
+        $otherSystem = GameSystem::factory()->create(['name' => 'Other RPG', 'type' => 'ttrpg']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('setType', 'ttrpg')
+            ->call('togglePlayStyle', 'narrative-first')
+            ->assertSee('Narrative RPG')
+            ->assertDontSee('Other RPG');
+    });
+
+    it('togglePlayStyle adds and removes play styles', function () {
+        GameSystem::factory()->create(['name' => 'Test']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->call('togglePlayStyle', 'narrative-first')
+            ->assertSet('play_styles', ['narrative-first'])
+            ->call('togglePlayStyle', 'narrative-first')
+            ->assertSet('play_styles', []);
+    });
+
+    it('play styles are included in clearFilters', function () {
+        GameSystem::factory()->create(['name' => 'Test']);
+
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->set('play_styles', ['horror'])
+            ->call('clearFilters')
+            ->assertSet('play_styles', []);
+    });
+
+    it('play styles count as active filters', function () {
+        GameSystem::factory()->create(['name' => 'Test']);
+
+        $component = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class);
+        expect($component->instance()->hasActiveFilters())->toBeFalse();
+
+        $component->set('play_styles', ['osr']);
+        expect($component->instance()->hasActiveFilters())->toBeTrue();
+    });
+
+    it('passes play style groups to view', function () {
+        $component = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class);
+        $groups = $component->viewData('playStyleGroups');
+
+        expect($groups)->not->toBeNull();
+        expect($groups)->toHaveKey('play_styles');
+        expect($groups['play_styles']['options'])->toHaveKey('narrative-first');
+        expect($groups['play_styles']['options'])->toHaveKey('tactical');
+        expect($groups['play_styles']['options'])->toHaveKey('osr');
+        expect($groups['play_styles']['options'])->toHaveKey('sandbox');
+        expect($groups['play_styles']['options'])->toHaveKey('horror');
     });
 });
 

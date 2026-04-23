@@ -19,7 +19,31 @@
     </div>
 </div>
 
-{{-- ── Mechanics ─────────────────────────────────────────────────── --}}
+{{-- ── Play Styles (TTRPG mode only) ────────────────────────────── --}}
+@if($type === 'ttrpg' && !empty($playStyleGroups))
+    @foreach($playStyleGroups as $groupKey => $group)
+        <div>
+            <h3 class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ $group['label'] }}</h3>
+            <div class="flex flex-wrap gap-1.5">
+                @foreach($group['options'] as $styleValue => $styleLabel)
+                    @php($styleIcon = $group['icons'][$styleValue] ?? '')
+                    @php($styleDesc = $group['descriptions'][$styleValue] ?? '')
+                    <button wire:click="togglePlayStyle('{{ $styleValue }}')"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ in_array($styleValue, $play_styles) ? 'bg-tertiary-container text-on-tertiary-container shadow-sm ring-1 ring-tertiary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-tertiary-container/50 hover:text-on-tertiary-container' }}"
+                            title="{{ $styleDesc }}">
+                        @if($styleIcon)
+                            <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $styleIcon }}</span>
+                        @endif
+                        {{ $styleLabel }}
+                    </button>
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+@endif
+
+{{-- ── Mechanics (non-TTRPG or all mode) ─────────────────────────── --}}
+@if($type !== 'ttrpg')
 <div>
     <h3 class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('games.heading_mechanics') }}</h3>
     <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
@@ -37,6 +61,7 @@
         @endif
     </div>
 </div>
+@endif
 
 {{-- ── Player Count ──────────────────────────────────────────────── --}}
 <div>

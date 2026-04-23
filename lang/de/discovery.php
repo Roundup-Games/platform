@@ -65,6 +65,8 @@ return [
     'field_filter_by_price' => 'Nach Preis filtern',
     'field_new_player_friendly' => 'Anfängerfreundlich',
     'field_recommended_for_you' => 'Empfehlungen für dich',
+    'action_find_board_games_that_match_your_vibe' => 'Finde Brettspiele, die zu deinem Style passen.',
+    'action_find_your_next_adventure' => 'Finde dein nächstes Abenteuer — Kampagnen, One-Shots und alles dazwischen.',
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Finde Spiele und Kampagnen, die zu deinem Style passen.',
     'content_tone_atmosphere' => 'Stimmung & Atmosphäre',
     'content_social' => 'Sozial',
@@ -116,4 +118,41 @@ return [
     'mech_simultaneous-action-selection' => 'Gleichzeitige Aktionswahl',
     'mech_cooperative-game' => 'Kooperatives Spiel',
     'mech_team-based-game' => 'Teamspiel',
+
+    // TTRPG / Adventures discovery
+    'content_genre_categories' => 'Genre-Kategorien',
+    'content_play_styles' => 'Spielstile',
+    'content_also_into_board_games' => 'Auch Brettspieler? :count anstehende Session|Auch Brettspieler? :count anstehende Sessions',
+    'content_also_looking_for_adventures' => 'Auch auf Abenteuersuche? :count aktive Kampagne|Auch auf Abenteuersuche? :count aktive Kampagnen',
+    'action_browse_adventures' => 'Abenteuer entdecken',
+    'action_browse_board_games' => 'Brettspiele entdecken',
+    'play_style_narrative' => 'Narrativ',
+    'play_style_gameplay' => 'Gameplay',
+    'play_style_structure' => 'Struktur',
+    'play_style_tone' => 'Tonfall',
+    'play_style_rules' => 'Regeln',
+    'play_style_format' => 'Format',
+
+    // PlayStyle enum labels
+    'playstyle_narrative_first' => 'Narrativ',
+    'playstyle_tactical' => 'Taktisch',
+    'playstyle_osr' => 'OSR',
+    'playstyle_sandbox' => 'Sandbox',
+    'playstyle_horror' => 'Horror',
+
+    // PlayStyle enum descriptions
+    'playstyle_narrative_first_desc' => 'Story und Charakterentwicklung stehen im Mittelpunkt. Regeln dienen der Erzählung.',
+    'playstyle_tactical_desc' => 'Strategische Tiefe, detaillierter Kampf und komplexe Mechaniken. Jede Entscheidung zählt.',
+    'playstyle_osr_desc' => 'Old-School-Herausforderung, Spielerfindungsreichtum und Urteile über Regeln. Die Würfel sind grausam, aber fair.',
+    'playstyle_sandbox_desc' => 'Offene Weltfreiheit ohne feste Handlung. Geh wohin du willst, tu was du willst, trage die Konsequenzen.',
+    'playstyle_horror_desc' => 'Spannung, Grauen und Überleben gegen überwältigende Widrigkeiten. Hoffnung ist eine begrenzte Ressource.',
+
+    // ── Discovery Portal ────────────────────────────────────────
+    'field_what_are_you_in_the_mood_for' => 'Worauf hast du Lust?',
+    'content_choose_your_adventure' => 'Wähle dein Abenteuer.',
+    'field_board_game_night' => 'Brettspielabend',
+    'content_find_sessions_near_you' => 'Finde Brettspiel-Sessions in deiner Nähe.',
+    'field_tabletop_adventures' => 'Tabletop-Abenteuer',
+    'content_join_campaigns_oneshots' => 'Kampagnen, One-Shots und alles dazwischen.',
+    'content_looking_for_players' => 'suchen Spieler',
 ];

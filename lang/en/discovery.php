@@ -65,6 +65,8 @@ return [
     'field_filter_by_price' => 'Filter by price',
     'field_new_player_friendly' => 'New-Player-Friendly',
     'field_recommended_for_you' => 'Recommended for You',
+    'action_find_board_games_that_match_your_vibe' => 'Find board games that match your vibe.',
+    'action_find_your_next_adventure' => 'Find your next adventure — campaigns, one-shots, and everything in between.',
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Find games and campaigns that match your vibe.',
     'content_tone_atmosphere' => 'Tone & Atmosphere',
     'content_social' => 'Social',
@@ -116,4 +118,41 @@ return [
     'mech_simultaneous-action-selection' => 'Simultaneous Action Selection',
     'mech_cooperative-game' => 'Cooperative Game',
     'mech_team-based-game' => 'Team-Based Game',
+
+    // TTRPG / Adventures discovery
+    'content_genre_categories' => 'Genre Categories',
+    'content_play_styles' => 'Play Styles',
+    'content_also_into_board_games' => 'Also into board games? :count upcoming session|Also into board games? :count upcoming sessions',
+    'content_also_looking_for_adventures' => 'Also looking for adventures? :count active campaign|Also looking for adventures? :count active campaigns',
+    'action_browse_adventures' => 'Browse adventures',
+    'action_browse_board_games' => 'Browse board games',
+    'play_style_narrative' => 'Narrative',
+    'play_style_gameplay' => 'Gameplay',
+    'play_style_structure' => 'Structure',
+    'play_style_tone' => 'Tone',
+    'play_style_rules' => 'Rules',
+    'play_style_format' => 'Format',
+
+    // PlayStyle enum labels
+    'playstyle_narrative_first' => 'Narrative-First',
+    'playstyle_tactical' => 'Tactical',
+    'playstyle_osr' => 'OSR',
+    'playstyle_sandbox' => 'Sandbox',
+    'playstyle_horror' => 'Horror',
+
+    // PlayStyle enum descriptions
+    'playstyle_narrative_first_desc' => 'Story and character development take center stage. Rules serve the narrative.',
+    'playstyle_tactical_desc' => 'Strategic depth, detailed combat, and crunchy mechanics. Every decision matters.',
+    'playstyle_osr_desc' => 'Old-school challenge, player ingenuity, and rulings over rules. The dice are cruel but fair.',
+    'playstyle_sandbox_desc' => 'Open-world freedom with no fixed plot. Go anywhere, do anything, face the consequences.',
+    'playstyle_horror_desc' => 'Tension, dread, and survival against overwhelming odds. Hope is a limited resource.',
+
+    // ── Discovery Portal ────────────────────────────────────────
+    'field_what_are_you_in_the_mood_for' => 'What are you in the mood for?',
+    'content_choose_your_adventure' => 'Choose your adventure.',
+    'field_board_game_night' => 'Board Game Night',
+    'content_find_sessions_near_you' => 'Find board game sessions happening near you.',
+    'field_tabletop_adventures' => 'Tabletop Adventures',
+    'content_join_campaigns_oneshots' => 'Join campaigns, one-shots, and everything in between.',
+    'content_looking_for_players' => 'looking for players',
 ];

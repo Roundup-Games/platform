@@ -133,7 +133,9 @@ Route::prefix('{locale}')
             Route::get('/games/{id}/apply', App\Livewire\Games\ApplyToGame::class)->name('games.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         });
 
-        Route::get('/discover', App\Livewire\Discovery\DiscoveryPage::class)->name('discover');
+        Route::get('/discover', App\Livewire\Discovery\DiscoveryPortal::class)->name('discover');
+        Route::get('/discover/board-games', App\Livewire\Discovery\BoardGamesDiscovery::class)->name('discover.board-games');
+        Route::get('/discover/adventures', App\Livewire\Discovery\AdventuresDiscovery::class)->name('discover.adventures');
         Route::get('/near', fn () => redirect()->route('discover', app()->getLocale(), 301))->name('near');
 
         Route::get('/games', App\Livewire\Games\GamesPage::class)->name('games.index');

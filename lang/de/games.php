@@ -5,6 +5,8 @@ return [
     'action_choose_specific_game_or_expansion' => 'Spiel oder Erweiterung auswählen',
     'action_create_game' => 'Spiel erstellen',
     'action_create_game_session' => 'Spielsitzung erstellen',
+    'action_discover_adventures' => 'Abenteuer entdecken',
+    'action_discover_board_games' => 'Brettspiele entdecken',
     'action_discover_games_campaigns' => 'Spiele & Kampagnen entdecken',
     'action_explore_games' => 'Spiele entdecken',
     'action_explore_games_cta' => 'Spiele entdecken',
@@ -16,6 +18,8 @@ return [
     'action_search_game_systems' => 'Spielsysteme durchsuchen',
     'placeholder_search_game_systems_picker' => 'Spielesysteme suchen...',
     'action_search_games' => 'Spiele suchen',
+    'action_search_adventures' => 'Abenteuer suchen...',
+    'action_search_board_games' => 'Brettspiele suchen...',
     'action_search_games_and_campaigns' => 'Spiele und Kampagnen suchen...',
     'action_search_games_by_name_or_description' => 'Spiele nach Name oder Beschreibung suchen...',
     'action_view_game' => 'Spiel ansehen',
@@ -24,6 +28,8 @@ return [
     'content_bgg_rating' => 'BGG-Bewertung',
     'content_boardgamegeek_rank_rank' => 'BoardGameGeek-Rang #:rank',
     'content_bring_your_games_to_the_table' => 'Bring deine Spiele an den Tisch',
+    'content_check_back_soon_for_new_adventures' => 'Schau bald wieder vorbei für neue Abenteuer!',
+    'content_check_back_soon_for_new_games' => 'Schau bald wieder vorbei für neue Brettspiele!',
     'content_check_back_soon_for_new_games_and_campaigns' => 'Schau bald wieder vorbei für neue Spiele und Kampagnen!',
     'content_check_back_soon_for_upcoming_games' => 'Schau bald wieder vorbei für kommende Spiele!',
     'content_choose_your_visibility_level_add' => 'Wähle deinen Sichtbarkeitsgrad, füge eine Beschreibung hinzu, setze Hausregeln oder halte es einfach. Deine Entscheidung. Jede Session ist so einzigartig wie das Spiel, das du leitest.',
@@ -207,4 +213,9 @@ return [
     'content_avoid' => 'Meiden',
     'heading_about_this_game' => 'Über dieses Spiel',
     'heading_game_details' => 'Spieldetails',
+
+    // Typ-Registerkarten
+    'action_type_all' => 'Alle',
+    'action_type_boardgame' => 'Brettspiele',
+    'action_type_ttrpg' => 'Tabletop-Abenteuer',
 ];

@@ -27,6 +27,22 @@
             </div>
         </div>
 
+        {{-- ── Type Tabs ──────────────────────────────────────────────────────── --}}
+        <div class="flex items-center justify-center gap-2 mb-6">
+            <button wire:click="setType('all')"
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'all' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                {{ __('games.action_type_all') }}
+            </button>
+            <button wire:click="setType('boardgame')"
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'boardgame' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                {{ __('games.action_type_boardgame') }}
+            </button>
+            <button wire:click="setType('ttrpg')"
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-150 {{ $type === 'ttrpg' ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
+                {{ __('games.action_type_ttrpg') }}
+            </button>
+        </div>
+
         {{-- ── Top toolbar: mobile filter toggle + results count ───────────── --}}
         <div class="flex items-center justify-between gap-4 mb-4">
             <p class="text-sm text-on-surface-variant">
@@ -68,6 +84,15 @@
                         </span>
                     @endif
                 @endforeach
+                @foreach($play_styles as $style)
+                    @php($playStyleEnum = App\Enums\PlayStyle::tryFrom($style))
+                    @if($playStyleEnum)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary-container text-on-tertiary-container">
+                            <span class="material-symbols-outlined text-xs" aria-hidden="true">{{ $playStyleEnum->icon() }}</span>
+                            {{ $playStyleEnum->label() }}
+                        </span>
+                    @endif
+                @endforeach
                 @if($min_players || $max_players)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                         {{ $min_players ?? '1' }}–{{ $max_players ?? '20' }} {{ __('common.content_players') }}
@@ -76,6 +101,11 @@
                 @if($complexity_min || $complexity_max)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface">
                         {{ $complexity_min ?? '1' }}–{{ $complexity_max ?? '5' }} {{ __('games.content_complexity') }}
+                    </span>
+                @endif
+                @if($type !== 'all')
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {{ $type === 'boardgame' ? __('games.action_type_boardgame') : __('games.action_type_ttrpg') }}
                     </span>
                 @endif
                 @if($showExpansions)

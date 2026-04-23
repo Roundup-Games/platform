@@ -24,7 +24,7 @@ class GameSystem extends Model implements HasMedia
         'bgg_average_rating', 'bgg_bayes_average', 'bgg_rank',
         'bgg_users_rated', 'bgg_average_weight', 'bgg_last_synced_at',
         'type', 'source', 'source_slug', 'creator', 'player_range',
-        'sp_rating', 'sp_review_count', 'faq_content', 'external_links',
+        'sp_rating', 'sp_review_count', 'platform_score', 'faq_content', 'external_links',
         'showcases', 'instructions',
     ];
 
@@ -49,6 +49,7 @@ class GameSystem extends Model implements HasMedia
             'source' => 'string',
             'sp_rating' => 'decimal:2',
             'sp_review_count' => 'integer',
+            'platform_score' => 'integer',
             'faq_content' => 'array',
             'external_links' => 'array',
             'showcases' => 'array',

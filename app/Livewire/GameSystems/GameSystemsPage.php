@@ -2,6 +2,7 @@
 
 namespace App\Livewire\GameSystems;
 
+use App\Enums\PlayStyle;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
@@ -44,6 +45,13 @@ class GameSystemsPage extends Component
     #[Url]
     public bool $showExpansions = false;
 
+    #[Url]
+    public string $type = 'all'; // 'all', 'boardgame', 'ttrpg'
+
+    /** @var string[] Active play style enum values (only used in TTRPG mode) */
+    #[Url]
+    public array $play_styles = [];
+
     // ── Category / mechanic expansion state ────────────
 
     public bool $showAllCategories = false;
@@ -63,6 +71,24 @@ class GameSystemsPage extends Component
 
     public function updatingShowExpansions(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatingType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPlayStyles(): void
+    {
+        $this->resetPage();
+    }
+
+    // ── Type toggle ────────────────────────────────────
+
+    public function setType(string $type): void
+    {
+        $this->type = $type;
         $this->resetPage();
     }
 
@@ -92,6 +118,18 @@ class GameSystemsPage extends Component
         $this->resetPage();
     }
 
+    public function togglePlayStyle(string $style): void
+    {
+        $index = array_search($style, $this->play_styles, true);
+        if ($index !== false) {
+            unset($this->play_styles[$index]);
+            $this->play_styles = array_values($this->play_styles);
+        } else {
+            $this->play_styles[] = $style;
+        }
+        $this->resetPage();
+    }
+
     // ── Actions ────────────────────────────────────────
 
     public function clearFilters(): void
@@ -100,7 +138,7 @@ class GameSystemsPage extends Component
             'search', 'min_players', 'max_players',
             'complexity_min', 'complexity_max',
             'category_ids', 'mechanic_ids',
-            'showExpansions',
+            'showExpansions', 'type', 'play_styles',
         ]);
         $this->resetPage();
     }
@@ -114,7 +152,9 @@ class GameSystemsPage extends Component
             || $this->complexity_max
             || ! empty($this->category_ids)
             || ! empty($this->mechanic_ids)
-            || $this->showExpansions;
+            || $this->showExpansions
+            || $this->type !== 'all'
+            || ! empty($this->play_styles);
     }
 
     // ── Query ──────────────────────────────────────────
@@ -161,9 +201,26 @@ class GameSystemsPage extends Component
         // Mechanic filter (multi-select)
         $query->when($this->mechanic_ids, fn ($q) => $q->whereHas('mechanics', fn ($q2) => $q2->whereIn('game_system_mechanics.id', $this->mechanic_ids)));
 
-        // Sort by BGG rank (nulls last)
-        $query->orderByRaw('CASE WHEN bgg_rank IS NOT NULL THEN 0 ELSE 1 END')
-              ->orderBy('bgg_rank', 'asc')
+        // Play style filter: map selected PlayStyle enum values to category slugs
+        if (!empty($this->play_styles)) {
+            $slugs = collect($this->play_styles)
+                ->map(fn (string $value) => PlayStyle::tryFrom($value))
+                ->filter()
+                ->flatMap(fn (PlayStyle $style) => $style->categorySlugs())
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($slugs)) {
+                $query->whereHas('categories', fn ($q) => $q->whereIn('slug', $slugs));
+            }
+        }
+
+        // Type filter
+        $query->when($this->type !== 'all', fn ($q) => $q->where('type', $this->type));
+
+        // Sort by platform_score DESC (cold-start systems with 0 fall to bottom), then name ASC
+        $query->orderByDesc('platform_score')
               ->orderBy('name', 'asc');
 
         return $query;
@@ -175,16 +232,28 @@ class GameSystemsPage extends Component
     {
         $systems = $this->buildQuery()->paginate(self::PER_PAGE);
 
-        // Load categories with game count for filter display
-        $allCategories = GameSystemCategory::withCount('gameSystems')
+        // Load categories with game count for filter display, scoped to selected type
+        $categoryQuery = GameSystemCategory::query()
+            ->withCount(['gameSystems' => function ($q) {
+                if ($this->type !== 'all') {
+                    $q->where('type', $this->type);
+                }
+            }])
             ->orderByDesc('game_systems_count')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
 
-        $allMechanics = GameSystemMechanic::withCount('gameSystems')
+        $allCategories = $categoryQuery->get();
+
+        $mechanicQuery = GameSystemMechanic::query()
+            ->withCount(['gameSystems' => function ($q) {
+                if ($this->type !== 'all') {
+                    $q->where('type', $this->type);
+                }
+            }])
             ->orderByDesc('game_systems_count')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        $allMechanics = $mechanicQuery->get();
 
         return view('livewire.game-systems.game-systems-page', [
             'systems' => $systems,
@@ -192,6 +261,28 @@ class GameSystemsPage extends Component
             'allMechanics' => $allMechanics,
             'visibleCategories' => $this->showAllCategories ? $allCategories : $allCategories->take(12),
             'visibleMechanics' => $this->showAllMechanics ? $allMechanics : $allMechanics->take(12),
+            'playStyleGroups' => $this->getPlayStyleGroups(),
         ]);
+    }
+
+    /**
+     * Get play style groups from the PlayStyle enum for TTRPG mode filtering.
+     *
+     * @return array<string, array{label: string, options: array<string, string>, descriptions: array<string, string>, icons: array<string, string>}>
+     */
+    protected function getPlayStyleGroups(): array
+    {
+        $groups = PlayStyle::grouped();
+
+        // Enrich with icon data for the chip UI
+        foreach ($groups as $key => &$group) {
+            $icons = [];
+            foreach (PlayStyle::cases() as $style) {
+                $icons[$style->value] = $style->icon();
+            }
+            $group['icons'] = $icons;
+        }
+
+        return $groups;
     }
 }

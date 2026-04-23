@@ -131,6 +131,7 @@ return [
     'content_one_item_per_line' => 'ein Eintrag pro Zeile',
     'content_one_per_line' => 'eine pro Zeile',
     'content_one_shot' => 'One-Shot',
+    'content_one_shots' => 'One-Shots',
     'content_opens' => 'Eröffnet:',
     'content_opens_at' => 'Eröffnet am',
     'content_optional' => '(optional)',

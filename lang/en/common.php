@@ -131,6 +131,7 @@ return [
     'content_one_item_per_line' => 'one item per line',
     'content_one_per_line' => 'one per line',
     'content_one_shot' => 'One-shot',
+    'content_one_shots' => 'One-shots',
     'content_opens' => 'Opens:',
     'content_opens_at' => 'Opens At',
     'content_optional' => '(optional)',

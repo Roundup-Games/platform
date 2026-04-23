@@ -5,6 +5,8 @@ return [
     'action_choose_specific_game_or_expansion' => 'Choose specific game or expansion',
     'action_create_game' => 'Create Game',
     'action_create_game_session' => 'Create Game Session',
+    'action_discover_adventures' => 'Discover Adventures',
+    'action_discover_board_games' => 'Discover Board Games',
     'action_discover_games_campaigns' => 'Discover Games & Campaigns',
     'action_explore_games' => 'Explore Games',
     'action_explore_games_cta' => 'Explore games',
@@ -16,6 +18,8 @@ return [
     'action_search_game_systems' => 'Search game systems',
     'placeholder_search_game_systems_picker' => 'Search game systems...',
     'action_search_games' => 'Search games',
+    'action_search_adventures' => 'Search adventures...',
+    'action_search_board_games' => 'Search board games...',
     'action_search_games_and_campaigns' => 'Search games and campaigns...',
     'action_search_games_by_name_or_description' => 'Search games by name or description...',
     'action_view_game' => 'View Game',
@@ -24,6 +28,8 @@ return [
     'content_bgg_rating' => 'BGG Rating',
     'content_boardgamegeek_rank_rank' => 'BoardGameGeek Rank #:rank',
     'content_bring_your_games_to_the_table' => 'Bring your games to the table',
+    'content_check_back_soon_for_new_adventures' => 'Check back soon for new adventures!',
+    'content_check_back_soon_for_new_games' => 'Check back soon for new board games!',
     'content_check_back_soon_for_new_games_and_campaigns' => 'Check back soon for new games and campaigns!',
     'content_check_back_soon_for_upcoming_games' => 'Check back soon for upcoming games!',
     'content_choose_your_visibility_level_add' => 'Choose your visibility level, add a description, set house rules, or keep it simple. Your call. Every session is as unique as the game you\'re running.',
@@ -207,4 +213,9 @@ return [
     'content_avoid' => 'Avoid',
     'heading_about_this_game' => 'About this Game',
     'heading_game_details' => 'Game Details',
+
+    // Type tabs
+    'action_type_all' => 'All',
+    'action_type_boardgame' => 'Board Games',
+    'action_type_ttrpg' => 'Tabletop Adventures',
 ];

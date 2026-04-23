@@ -93,9 +93,20 @@ Artisan::command('bgg:weekly-sync', function () {
     }
 })->purpose('Run weekly BGG sync for all existing game systems');
 
+Artisan::command('platform-scores:compute', function () {
+    $service = app(\App\Services\PlatformScoreService::class);
+    $stats = $service->computeAll();
+
+    $this->info("Scored {$stats['scored']} systems ({$stats['errors']} errors) in {$stats['duration_ms']}ms");
+
+    return $stats['errors'] > 0 ? 1 : 0;
+})->purpose('Compute platform popularity scores for all game systems');
+
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('bgg:weekly-sync')->weekly()->mondays()->at('03:00');
+
+Schedule::command('platform-scores:compute')->dailyAt('03:00')->onOneServer();
 
 Schedule::command('discovery:sweep-active --window=60')
     ->everyTenMinutes()
