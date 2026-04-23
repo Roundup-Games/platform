@@ -115,7 +115,7 @@ class ManageEvent extends Component
      */
     protected function validatedTranslationRules(): array
     {
-        if (! in_array($this->content_language, ['de', 'de+en'])) {
+        if ($this->content_language !== 'de') {
             return [];
         }
 
@@ -133,7 +133,7 @@ class ManageEvent extends Component
      */
     public function translationMessages(): array
     {
-        if (! in_array($this->content_language, ['de', 'de+en'])) {
+        if ($this->content_language !== 'de') {
             return [];
         }
 
@@ -313,7 +313,7 @@ class ManageEvent extends Component
         ], fn ($value) => $value !== null));
 
         // Persist German translations if content_language includes DE
-        if (in_array($this->content_language, ['de', 'de+en'])) {
+        if ($this->content_language === 'de') {
             foreach (['name', 'short_description', 'description', 'rules', 'schedule'] as $field) {
                 $deProperty = $field . '_de';
                 $deValue = $this->$deProperty;

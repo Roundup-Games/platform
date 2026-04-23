@@ -143,7 +143,7 @@ class EventAnnouncements extends Component
 
         // Persist DE translations when event content_language includes German
         $contentLanguage = $this->event->content_language ?? 'en';
-        if (in_array($contentLanguage, ['de', 'de+en'])) {
+        if ($contentLanguage === 'de') {
             $announcement->setTranslation('de', 'title', $this->title_de);
             $announcement->setTranslation('de', 'content', $this->content_de);
         }
@@ -264,7 +264,7 @@ class EventAnnouncements extends Component
     {
         $contentLanguage = $this->event->content_language ?? 'en';
 
-        if (! in_array($contentLanguage, ['de', 'de+en'])) {
+        if ($contentLanguage !== 'de') {
             return;
         }
 

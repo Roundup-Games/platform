@@ -39,15 +39,6 @@ class UserProfileFieldsTest extends TestCase
         $this->assertEquals(ContentLanguage::De, $user->preferred_language);
     }
 
-    public function test_preferred_language_stores_bilingual(): void
-    {
-        $user = User::factory()->create([
-            'preferred_language' => 'de+en',
-        ]);
-
-        $this->assertEquals(ContentLanguage::DeEn, $user->preferred_language);
-    }
-
     public function test_preferred_language_can_be_set_after_creation(): void
     {
         $user = User::factory()->create();

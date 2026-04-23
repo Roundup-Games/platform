@@ -162,7 +162,7 @@ class CreateEvent extends Component
         ], fn ($value) => $value !== null));
 
         // Persist German translations if content_language includes DE
-        if (in_array($this->content_language, ['de', 'de+en'])) {
+        if ($this->content_language === 'de') {
             foreach (['name', 'short_description', 'description', 'rules', 'schedule'] as $field) {
                 $deProperty = $field . '_de';
                 $deValue = $this->$deProperty;
@@ -227,7 +227,7 @@ class CreateEvent extends Component
                 'contact_phone' => 'nullable|string|max:30',
                 'is_public' => 'boolean',
             ])->when(
-                in_array($this->content_language, ['de', 'de+en']),
+                $this->content_language === 'de',
                 fn ($r) => $r->merge([
                     'name_de' => 'required|string|max:255',
                     'short_description_de' => 'nullable|string|max:500',
@@ -250,7 +250,7 @@ class CreateEvent extends Component
      */
     private function translationMessages(): array
     {
-        if (! in_array($this->content_language, ['de', 'de+en'])) {
+        if ($this->content_language !== 'de') {
             return [];
         }
 

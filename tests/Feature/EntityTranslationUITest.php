@@ -291,18 +291,18 @@ describe('CreateEvent Translations', function () {
             ->and($event->content_language)->toBe('en');
     });
 
-    it('creates event with content_language=de+en and stores DE translations', function () {
+    it('creates event with content_language=de and stores DE translations', function () {
         Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('name', 'Bilingual Event')
+            ->set('name', 'German Event')
             ->set('type', 'tournament')
-            ->set('content_language', 'de+en')
+            ->set('content_language', 'de')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
             ->call('nextStep') // step 1 → 2
             ->call('nextStep') // step 2 → 3
             ->call('nextStep') // step 3 → 4
             ->call('nextStep') // step 4 → 5
-            ->set('name_de', 'Zweisprachiges Event')
+            ->set('name_de', 'Deutsches Event')
             ->set('short_description_de', 'Kurzbeschreibung')
             ->set('description_de', 'Beschreibung')
             ->set('rules_de', 'Regel 1')
@@ -310,19 +310,19 @@ describe('CreateEvent Translations', function () {
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::where('name', 'Bilingual Event')->first();
+        $event = Event::where('name', 'German Event')->first();
         expect($event)->not->toBeNull()
-            ->and($event->content_language)->toBe('de+en')
-            ->and($event->getTranslation('de', 'name'))->toBe('Zweisprachiges Event')
+            ->and($event->content_language)->toBe('de')
+            ->and($event->getTranslation('de', 'name'))->toBe('Deutsches Event')
             ->and($event->getTranslation('de', 'short_description'))->toBe('Kurzbeschreibung')
             ->and($event->getTranslation('de', 'description'))->toBe('Beschreibung');
     });
 
-    it('fails validation when content_language=de+en but DE fields missing', function () {
+    it('fails validation when content_language=de but DE fields missing', function () {
         Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
             ->set('name', 'Missing DE Event')
             ->set('type', 'tournament')
-            ->set('content_language', 'de+en')
+            ->set('content_language', 'de')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
             ->set('end_date', now()->addDays(16)->format('Y-m-d'))
             ->call('nextStep') // step 1 → 2
@@ -345,7 +345,7 @@ describe('ManageEvent Translations', function () {
         $this->event = Event::factory()->create([
             'organizer_id' => $this->user->id,
             'name' => 'Test Event',
-            'content_language' => 'de+en',
+            'content_language' => 'de',
             'status' => 'draft',
         ]);
         $this->event->setTranslation('de', 'name', 'Testveranstaltung');
@@ -358,7 +358,7 @@ describe('ManageEvent Translations', function () {
             ->assertSet('name_de', 'Testveranstaltung')
             ->assertSet('short_description_de', 'Deutsche Kurzbeschreibung')
             ->assertSet('description_de', 'Deutsche Beschreibung')
-            ->assertSet('content_language', 'de+en');
+            ->assertSet('content_language', 'de');
     });
 
     it('updates DE translations via manage form', function () {
@@ -373,7 +373,7 @@ describe('ManageEvent Translations', function () {
             ->and($this->event->getTranslation('de', 'short_description'))->toBe('Neue Kurzbeschreibung');
     });
 
-    it('fails validation when switching content_language to de+en without DE fields', function () {
+    it('fails validation when switching content_language to de without DE fields', function () {
         // Create an event with content_language=en (no DE translations)
         $enEvent = Event::factory()->create([
             'organizer_id' => $this->user->id,
@@ -383,7 +383,7 @@ describe('ManageEvent Translations', function () {
         ]);
 
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $enEvent->slug])
-            ->set('content_language', 'de+en')
+            ->set('content_language', 'de')
             ->call('save')
             ->assertHasErrors(['name_de']);
     });
@@ -399,7 +399,7 @@ describe('EventAnnouncements Translations', function () {
         $this->event = Event::factory()->create([
             'organizer_id' => $this->user->id,
             'name' => 'Test Event',
-            'content_language' => 'de+en',
+            'content_language' => 'de',
             'status' => 'registration_open',
         ]);
     });

@@ -809,20 +809,6 @@ describe('DiscoveryPage', function () {
         expect($component->get('language'))->toBe('en');
     });
 
-    it('does not set language filter when preferred language is bilingual de+en', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'de+en',
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        // DeEn sets the language to 'de+en' which is not a valid filter value,
-        // so no content will match the language filter — effectively bilingual (no filter effect)
-        expect($component->get('language'))->toBe('de+en');
-    });
-
     it('recommendations return null when user only has avoided systems and no favorites', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $avoidedSystem = GameSystem::factory()->create(['name' => 'Avoided Only']);
