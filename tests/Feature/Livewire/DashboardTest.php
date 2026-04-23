@@ -343,4 +343,25 @@ class DashboardTest extends TestCase
             ->assertSet('gmReviewCount', 0)
             ->assertSet('gmUpcomingSessionsCount', 0);
     }
+
+    // ── Full render with all stat sections ─────────────
+
+    public function test_livewire_dashboard_renders_all_stat_sections(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\Dashboard::class)
+            ->assertOk()
+            ->assertSee(__('profile.dashboard_stats_upcoming_sessions'))
+            ->assertSee(__('profile.dashboard_stats_active_games'))
+            ->assertSee(__('profile.dashboard_stats_active_campaigns'))
+            ->assertSee(__('profile.dashboard_stats_pending_invitations'))
+            ->assertSee(__('profile.dashboard_stats_followers'))
+            ->assertSee(__('profile.dashboard_stats_following'))
+            ->assertSee(__('profile.dashboard_recent_activity'))
+            // Quick actions
+            ->assertSee(__('profile.dashboard_card_my_games'))
+            ->assertSee(__('profile.dashboard_card_my_campaigns'))
+            ->assertSee(__('people.content_people'))
+            ->assertSee(__('discovery.action_discover'));
+    }
 }
