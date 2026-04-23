@@ -17,6 +17,7 @@ return [
     'category_game_completed' => 'Spiel abgeschlossen',
     'category_campaign_cancelled' => 'Kampagne abgesagt',
     'category_campaign_completed' => 'Kampagne abgeschlossen',
+    'category_review_reported' => 'Bewertung gemeldet',
 
     // UI — Benachrichtigungsglocke
     'bell_label' => 'Benachrichtigungen (:count ungelesen)',
@@ -154,4 +155,7 @@ return [
     'subject_campaign_completed' => ':campaign wurde abgeschlossen',
     'body_campaign_completed' => 'Die Kampagne **:campaign** ist nun abgeschlossen. Was für eine Reise! Entdecke dein nächstes Abenteuer.',
     'action_campaign_completed' => 'Kampagne anzeigen',
+
+    'subject_review_reported' => 'Eine Bewertung wurde gemeldet',
+    'body_review_reported' => '**:reporter** hat eine Bewertung gemeldet: **:reason**.',
 ];

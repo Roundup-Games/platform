@@ -60,7 +60,7 @@ class GMProfile extends Model
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(Review::class, 'gm_profile_id');
     }
 
     // ── Convenience Methods ────────────────────────────

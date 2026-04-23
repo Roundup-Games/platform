@@ -60,6 +60,7 @@ Route::prefix('{locale}')
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
         Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
+        Route::get('/gms', App\Livewire\GM\GmDirectory::class)->name('gm.directory');
         Route::get('/game-systems', App\Livewire\GameSystems\GameSystemsPage::class)->name('game-systems');
         Route::get('/game-systems/{slug}', App\Livewire\GameSystems\GameSystemDetail::class)->name('game-systems.show')->where('slug', '[a-zA-Z0-9\-]+');
         Route::post('/contact', [PageController::class, 'submitContact'])
