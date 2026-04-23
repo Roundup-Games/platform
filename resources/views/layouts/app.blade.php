@@ -39,7 +39,7 @@
             {{-- ============================================================ --}}
             <div class="lg:hidden bg-surface border-b border-outline-variant/15" x-data="{ open: false }">
                 <div class="flex items-center justify-between px-4 py-3">
-                    <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
+                    <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                         <span class="text-xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
                     </a>
                     <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="Toggle navigation menu" :aria-expanded="open.toString()">
@@ -79,32 +79,12 @@
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
                             {{ __('profile.nav_people') }}
                         </a>
-                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('discover') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('discovery.action_discover') }}
-                        </a>
-
-                        {{-- Secondary section --}}
-                        <div class="border-t border-outline-variant/15 my-2"></div>
-
-                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('events.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('events.content_events') }}
-                        </a>
-                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.directory') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.directory') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>school</span>
-                            {{ __('profile.nav_gm_directory') }}
-                        </a>
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.workspace') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
                             {{ __('profile.nav_gm_workspace') }}
                         </a>
                         @endif
-                        <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('teams.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
-                            {{ __('teams.content_teams') }}
-                        </a>
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('billing.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
                             {{ __('billing.content_billing') }}
@@ -150,7 +130,7 @@
 
                     {{-- Logo area --}}
                     <div class="flex items-center h-16 px-6 border-b border-outline-variant/15">
-                        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
+                        <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                             <span class="text-xl font-heading italic font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
                         </a>
                         @php
@@ -186,25 +166,8 @@
                             {{ __('profile.nav_people') }}
                         </a>
 
-                        <a href="{{ route('discover') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('discover') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('discover') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>explore</span>
-                            {{ __('discovery.action_discover') }}
-                        </a>
-
-                        {{-- Secondary items --}}
-                        <div class="pt-4 mt-4 border-t border-outline-variant/15">
-                            <span class="px-4 text-xs font-bold text-on-surface-variant/60 uppercase tracking-wide">{{ __('common.action_manage') }}</span>
-                        </div>
-
-                        <a href="{{ route('events.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('events.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('events.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>calendar_month</span>
-                            {{ __('events.content_events') }}
-                        </a>
-
-                        <a href="{{ route('gm.directory') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>school</span>
-                            {{ __('profile.nav_gm_directory') }}
-                        </a>
+                        {{-- Divider before GM / account section --}}
+                        <div class="pt-4 mt-4 border-t border-outline-variant/15"></div>
 
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.workspace') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
@@ -212,11 +175,6 @@
                             {{ __('profile.nav_gm_workspace') }}
                         </a>
                         @endif
-
-                        <a href="{{ route('teams.browse') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('teams.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('teams.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>groups</span>
-                            {{ __('teams.content_teams') }}
-                        </a>
 
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('billing.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
                             <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
