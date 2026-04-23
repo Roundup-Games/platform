@@ -19,14 +19,8 @@ class ManageEvent extends Component
     // ── Tab tracking ──────────────────────────────────
     public string $activeTab = 'details';
 
-    // ── Translation fields ────────────────────────────
+    // ── Content language ──────────────────────────────
     public string $content_language = 'en';
-    public string $activeLocale = 'en';
-    public string $name_de = '';
-    public string $short_description_de = '';
-    public string $description_de = '';
-    public string $rules_de = '';
-    public string $schedule_de = '';
 
     // ── Basic Info ────────────────────────────────────
     public string $name = '';
@@ -107,41 +101,7 @@ class ManageEvent extends Component
             'content_language' => 'required|in:' . implode(',', ContentLanguage::values()),
         ];
 
-        return array_merge($baseRules, $this->validatedTranslationRules());
-    }
-
-    /**
-     * Return translation validation rules based on content_language.
-     */
-    protected function validatedTranslationRules(): array
-    {
-        if ($this->content_language !== 'de') {
-            return [];
-        }
-
-        return [
-            'name_de' => 'required|string|max:255',
-            'short_description_de' => 'nullable|string|max:500',
-            'description_de' => 'nullable|string',
-            'rules_de' => 'nullable|string',
-            'schedule_de' => 'nullable|string',
-        ];
-    }
-
-    /**
-     * Custom validation messages for DE translation fields.
-     */
-    public function translationMessages(): array
-    {
-        if ($this->content_language !== 'de') {
-            return [];
-        }
-
-        return [
-            'name_de.required' => 'The German name is required because this event\'s content language includes German.',
-            'name_de.max' => 'The German name must not exceed 255 characters.',
-            'short_description_de.max' => 'The German short description must not exceed 500 characters.',
-        ];
+        return $baseRules;
     }
 
     public function mount(string $slug): void
@@ -186,17 +146,8 @@ class ManageEvent extends Component
         $this->is_public = $e->is_public;
         $this->is_featured = $e->is_featured;
 
-        // Load translation fields
+        // Content language
         $this->content_language = $e->content_language ?? 'en';
-        $this->name_de = $e->getTranslation('de', 'name') ?? '';
-        $deShortDesc = $e->getTranslation('de', 'short_description');
-        $this->short_description_de = $deShortDesc ?? '';
-        $deDesc = $e->getTranslation('de', 'description');
-        $this->description_de = $deDesc ?? '';
-        $deRules = $e->getTranslation('de', 'rules');
-        $this->rules_de = is_array($deRules) ? implode("\n", $deRules) : ($deRules ?? '');
-        $deSchedule = $e->getTranslation('de', 'schedule');
-        $this->schedule_de = is_array($deSchedule) ? implode("\n", $deSchedule) : ($deSchedule ?? '');
     }
 
     // ── Tab Navigation ────────────────────────────────
@@ -204,11 +155,6 @@ class ManageEvent extends Component
     public function setActiveTab(string $tab): void
     {
         $this->activeTab = $tab;
-    }
-
-    public function setLocaleTab(string $locale): void
-    {
-        $this->activeLocale = $locale;
     }
 
     // ── Division Management ───────────────────────────
@@ -243,7 +189,7 @@ class ManageEvent extends Component
     public function save(): void
     {
         $this->authorize('update', $this->event);
-        $this->validate($this->rules(), $this->translationMessages());
+        $this->validate($this->rules());
 
         // Validate status transition if status changed
         $oldStatus = $this->event->getOriginal('status');
@@ -311,20 +257,6 @@ class ManageEvent extends Component
             'is_public' => $this->is_public,
             'is_featured' => $isFeatured,
         ], fn ($value) => $value !== null));
-
-        // Persist German translations if content_language includes DE
-        if ($this->content_language === 'de') {
-            foreach (['name', 'short_description', 'description', 'rules', 'schedule'] as $field) {
-                $deProperty = $field . '_de';
-                $deValue = $this->$deProperty;
-                if ($deValue !== '' && $deValue !== null) {
-                    if (in_array($field, ['rules', 'schedule'])) {
-                        $deValue = array_filter(array_map('trim', explode("\n", $deValue)));
-                    }
-                    $this->event->setTranslation('de', $field, $deValue);
-                }
-            }
-        }
 
         Log::info('Event updated', [
             'event_id' => $this->event->id,

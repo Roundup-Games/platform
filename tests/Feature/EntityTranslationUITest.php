@@ -345,33 +345,27 @@ describe('ManageEvent Translations', function () {
             'content_language' => 'de',
             'status' => 'draft',
         ]);
-        $this->event->setTranslation('de', 'name', 'Testveranstaltung');
-        $this->event->setTranslation('de', 'short_description', 'Deutsche Kurzbeschreibung');
-        $this->event->setTranslation('de', 'description', 'Deutsche Beschreibung');
     });
 
-    it('loads existing DE translations into form fields', function () {
+    it('loads event content directly without _de properties', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $this->event->slug])
-            ->assertSet('name_de', 'Testveranstaltung')
-            ->assertSet('short_description_de', 'Deutsche Kurzbeschreibung')
-            ->assertSet('description_de', 'Deutsche Beschreibung')
+            ->assertSet('name', 'Test Event')
             ->assertSet('content_language', 'de');
     });
 
-    it('updates DE translations via manage form', function () {
+    it('saves event content directly without translation calls', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $this->event->slug])
-            ->set('name_de', 'Aktualisierte Veranstaltung')
-            ->set('short_description_de', 'Neue Kurzbeschreibung')
+            ->set('name', 'Aktualisierte Veranstaltung')
+            ->set('short_description', 'Neue Kurzbeschreibung')
             ->call('save')
             ->assertSet('saved', true);
 
         $this->event->refresh();
-        expect($this->event->getTranslation('de', 'name'))->toBe('Aktualisierte Veranstaltung')
-            ->and($this->event->getTranslation('de', 'short_description'))->toBe('Neue Kurzbeschreibung');
+        expect($this->event->name)->toBe('Aktualisierte Veranstaltung')
+            ->and($this->event->short_description)->toBe('Neue Kurzbeschreibung');
     });
 
-    it('fails validation when switching content_language to de without DE fields', function () {
-        // Create an event with content_language=en (no DE translations)
+    it('has no _de validation errors since _de fields do not exist', function () {
         $enEvent = Event::factory()->create([
             'organizer_id' => $this->user->id,
             'name' => 'English Only Event',
@@ -382,7 +376,7 @@ describe('ManageEvent Translations', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $enEvent->slug])
             ->set('content_language', 'de')
             ->call('save')
-            ->assertHasErrors(['name_de']);
+            ->assertHasNoErrors();
     });
 });
 
