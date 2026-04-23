@@ -4,7 +4,6 @@ namespace App\Livewire\Discovery;
 
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
-use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\HasGuestLocation;
@@ -41,7 +40,7 @@ class BoardGamesDiscovery extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', for VibePreferencePicker */
     public array $vibePreferences = [];
 
-    #[Url]
+    /** @var array<string> Safety tools — kept empty for trait compatibility; not exposed in board game UI */
     public array $safety_tools = [];
 
     #[Url]
@@ -126,11 +125,6 @@ class BoardGamesDiscovery extends Component
         $this->resetPage();
     }
 
-    public function updatingSafetyTools(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatingLanguage(): void
     {
         $this->resetPage();
@@ -179,18 +173,6 @@ class BoardGamesDiscovery extends Component
         $this->resetPage();
     }
 
-    public function toggleSafetyTool(string $tool): void
-    {
-        $index = array_search($tool, $this->safety_tools, true);
-        if ($index !== false) {
-            unset($this->safety_tools[$index]);
-            $this->safety_tools = array_values($this->safety_tools);
-        } else {
-            $this->safety_tools[] = $tool;
-        }
-        $this->resetPage();
-    }
-
     public function toggleCategory(int $categoryId): void
     {
         $index = array_search($categoryId, $this->category_ids, true);
@@ -219,7 +201,7 @@ class BoardGamesDiscovery extends Component
     {
         $this->reset([
             'search', 'game_system_id', 'experience_level', 'vibe_flags',
-            'safety_tools', 'language', 'price', 'complexity_min', 'complexity_max',
+            'language', 'price', 'complexity_min', 'complexity_max',
             'date', 'category_ids', 'mechanic_ids', 'radius',
         ]);
         $this->usingFallbackRadius = false;
@@ -258,7 +240,6 @@ class BoardGamesDiscovery extends Component
             || $this->game_system_id
             || $this->experience_level
             || !empty($this->vibe_flags)
-            || !empty($this->safety_tools)
             || $this->language
             || $this->price
             || $this->complexity_min
@@ -285,7 +266,6 @@ class BoardGamesDiscovery extends Component
             'results' => $results,
             'recommendations' => $this->getRecommendations('boardgame'),
             'experienceLevels' => ExperienceLevel::cases(),
-            'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
             'curatedCategories' => $this->getCuratedCategories(),
             'curatedMechanics' => $this->getCuratedMechanics(),

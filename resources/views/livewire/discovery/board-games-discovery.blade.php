@@ -183,28 +183,6 @@
                     />
                 </div>
 
-                {{-- Safety tool groups --}}
-                @if($safetyToolGroups)
-                    <div class="space-y-3">
-                        @foreach($safetyToolGroups as $groupKey => $group)
-                            <div>
-                                <p class="text-xs font-medium text-on-surface-variant mb-1.5">{{ $group['label'] }}</p>
-                                <div class="flex flex-wrap gap-1.5">
-                                    @foreach($group['options'] as $toolValue => $toolLabel)
-                                        <button
-                                            wire:click="toggleSafetyTool('{{ $toolValue }}')"
-                                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
-                                                {{ in_array($toolValue, $safety_tools) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
-                                        >
-                                            {{ $toolLabel }}
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
                 {{-- Selects row: Experience Level / Language / Price / Complexity --}}
                 <div class="flex flex-wrap gap-3">
                     <select wire:model.live="experience_level" aria-label="{{ __('discovery.action_filter_by_experience_level') }}"
@@ -306,14 +284,6 @@
                     @if($flagEnum)
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                             {{ $flagEnum->label() }}
-                        </span>
-                    @endif
-                @endforeach
-                @foreach($safety_tools as $tool)
-                    @php($toolEnum = App\Enums\SafetyTool::tryFrom($tool))
-                    @if($toolEnum)
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            {{ $toolEnum->label() }}
                         </span>
                     @endif
                 @endforeach
