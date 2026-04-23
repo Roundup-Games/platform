@@ -76,4 +76,28 @@ return [
     'dashboard_card_my_games_desc' => 'View and manage your scheduled game sessions.',
     'dashboard_card_my_campaigns' => 'My Campaigns',
     'dashboard_card_my_campaigns_desc' => 'View and manage your active campaigns.',
+
+    // GM Proficiency labels
+    'gm_proficiency_creativity' => 'Creative Improviser',
+    'gm_proficiency_inclusive' => 'Inclusive Facilitator',
+    'gm_proficiency_knows_the_rules' => 'Knows the Rules',
+    'gm_proficiency_rule_of_cool' => 'Rule of Cool',
+    'gm_proficiency_sets_the_mood' => 'Sets the Mood',
+    'gm_proficiency_storytelling' => 'Storyteller',
+    'gm_proficiency_teacher' => 'Patient Teacher',
+    'gm_proficiency_visual_aid' => 'Visual Storyteller',
+    'gm_proficiency_voices' => 'Character Voices',
+    'gm_proficiency_world_builder' => 'World Builder',
+
+    // GM Proficiency descriptions
+    'gm_proficiency_creativity_desc' => 'Thrives on the unexpected, weaving player ideas into the narrative on the fly.',
+    'gm_proficiency_inclusive_desc' => 'Ensures every player has a moment to shine and feels welcome at the table.',
+    'gm_proficiency_knows_the_rules_desc' => 'Has a strong grasp of the rules system and can resolve questions quickly.',
+    'gm_proficiency_rule_of_cool_desc' => 'Favors cinematic, memorable moments over strict rules adherence.',
+    'gm_proficiency_sets_the_mood_desc' => 'Uses music, lighting, and pacing to create immersive atmosphere.',
+    'gm_proficiency_storytelling_desc' => 'Crafts compelling narratives with meaningful arcs and consequences.',
+    'gm_proficiency_teacher_desc' => 'Explains rules and mechanics patiently, great for new players.',
+    'gm_proficiency_visual_aid_desc' => 'Uses maps, handouts, tokens, and visual props to bring scenes to life.',
+    'gm_proficiency_voices_desc' => 'Brings NPCs to life with distinct voices, accents, and mannerisms.',
+    'gm_proficiency_world_builder_desc' => 'Creates rich, detailed settings with deep lore and interconnected factions.',
 ];

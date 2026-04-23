@@ -76,4 +76,28 @@ return [
     'dashboard_card_my_games_desc' => 'Verwalte deine geplanten Spielsitzungen.',
     'dashboard_card_my_campaigns' => 'Meine Kampagnen',
     'dashboard_card_my_campaigns_desc' => 'Verwalte deine aktiven Kampagnen.',
+
+    // GM-Proficiency-Labels
+    'gm_proficiency_creativity' => 'Kreativer Improvisator',
+    'gm_proficiency_inclusive' => 'Inklusiver Moderator',
+    'gm_proficiency_knows_the_rules' => 'Kennt die Regeln',
+    'gm_proficiency_rule_of_cool' => 'Rule of Cool',
+    'gm_proficiency_sets_the_mood' => 'Atmosphäre-Schaffer',
+    'gm_proficiency_storytelling' => 'Geschichtenerzähler',
+    'gm_proficiency_teacher' => 'Geduldiger Lehrer',
+    'gm_proficiency_visual_aid' => 'Visueller Erzähler',
+    'gm_proficiency_voices' => 'Charakter-Stimmen',
+    'gm_proficiency_world_builder' => 'Weltenbauer',
+
+    // GM-Proficiency-Beschreibungen
+    'gm_proficiency_creativity_desc' => 'Blüht beim Unerwarteten auf und fädelt Spieler-Ideen spontan in die Erzählung ein.',
+    'gm_proficiency_inclusive_desc' => 'Sorgt dafür, dass jeder Spieler seinen Moment hat und sich willkommen fühlt.',
+    'gm_proficiency_knows_the_rules_desc' => 'Hat ein solides Regelwissen und kann Fragen schnell klären.',
+    'gm_proficiency_rule_of_cool_desc' => 'Bevorzugt kinoreife, denkwürdige Momente gegenüber strikter Regelbefolgung.',
+    'gm_proficiency_sets_the_mood_desc' => 'Nutzt Musik, Beleuchtung und Tempo, um immersive Atmosphäre zu schaffen.',
+    'gm_proficiency_storytelling_desc' => 'Webt fesselnde Erzählungen mit bedeutungsvollen Handlungsbögen und Konsequenzen.',
+    'gm_proficiency_teacher_desc' => 'Erklärt Regeln und Mechaniken geduldig — ideal für neue Spieler.',
+    'gm_proficiency_visual_aid_desc' => 'Nutzt Karten, Handouts, Marker und visuelle Requisiten, um Szenen zum Leben zu erwecken.',
+    'gm_proficiency_voices_desc' => 'Erweckt NSCs mit eigenen Stimmen, Akzenten und Manierismen zum Leben.',
+    'gm_proficiency_world_builder_desc' => 'Erschafft reiche, detaillierte Settings mit tiefer Lore und verbundenen Fraktionen.',
 ];
