@@ -395,36 +395,32 @@ describe('EventAnnouncements Translations', function () {
         ]);
     });
 
-    it('creates announcement with DE translation', function () {
+    it('creates announcement without DE fields', function () {
         Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $this->event->slug])
             ->call('showCreateForm')
-            ->set('title', 'English Announcement')
-            ->set('content', 'English content')
-            ->set('title_de', 'Deutsche Ankündigung')
-            ->set('content_de', 'Deutscher Inhalt')
+            ->set('title', 'Test Announcement')
+            ->set('content', 'Test content')
             ->call('save');
 
         $announcement = EventAnnouncement::where('event_id', $this->event->id)->first();
         expect($announcement)->not->toBeNull()
-            ->and($announcement->getTranslation('de', 'title'))->toBe('Deutsche Ankündigung')
-            ->and($announcement->getTranslation('de', 'content'))->toBe('Deutscher Inhalt');
+            ->and($announcement->title)->toBe('Test Announcement')
+            ->and($announcement->content)->toBe('Test content');
     });
 
-    it('populates DE fields when editing an announcement', function () {
+    it('edits announcement without DE fields', function () {
         $announcement = EventAnnouncement::create([
             'event_id' => $this->event->id,
             'author_id' => $this->user->id,
-            'title' => 'English Title',
-            'content' => 'English content',
+            'title' => 'Original Title',
+            'content' => 'Original content',
             'is_published' => true,
         ]);
-        $announcement->setTranslation('de', 'title', 'Deutscher Titel');
-        $announcement->setTranslation('de', 'content', 'Deutscher Inhalt');
 
         Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $this->event->slug])
             ->call('editAnnouncement', $announcement->id)
-            ->assertSet('title_de', 'Deutscher Titel')
-            ->assertSet('content_de', 'Deutscher Inhalt');
+            ->assertSet('title', 'Original Title')
+            ->assertSet('content', 'Original content');
     });
 });
 

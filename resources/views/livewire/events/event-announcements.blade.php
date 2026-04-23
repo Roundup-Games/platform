@@ -57,64 +57,18 @@
             </h3>
 
             <div class="space-y-4">
-                @php
-                    $showDeTabs = in_array($event->content_language ?? 'en', ['de', 'de+en']);
-                @endphp
-
                 <div>
                     <label for="announcement-title" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_title') }}</label>
-                    @if($showDeTabs)
-                    <div class="mb-2">
-                        <div class="flex gap-1">
-                            <button type="button" wire:click="setLocaleTab('en')"
-                                    class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                                EN
-                            </button>
-                            <button type="button" wire:click="setLocaleTab('de')"
-                                    class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                                DE
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-                    @if(!$showDeTabs || $activeLocale === 'en')
                     <input type="text" id="announcement-title" wire:model="title" placeholder="{{ __('events.content_announcement_title') }}"
                            class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                     @error('title') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    @endif
-                    @if($showDeTabs && $activeLocale === 'de')
-                    <input type="text" wire:model="title_de" placeholder="{{ __('events.placeholder_german_announcement_title') }}"
-                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                    @error('title_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    @endif
                 </div>
 
                 <div>
                     <label for="announcement-content" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_content') }}</label>
-                    @if($showDeTabs)
-                    <div class="mb-2">
-                        <div class="flex gap-1">
-                            <button type="button" wire:click="setLocaleTab('en')"
-                                    class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'en' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                                EN
-                            </button>
-                            <button type="button" wire:click="setLocaleTab('de')"
-                                    class="px-3 py-1 text-xs font-medium border-b-2 transition-colors {{ $activeLocale === 'de' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface' }}">
-                                DE
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-                    @if(!$showDeTabs || $activeLocale === 'en')
                     <textarea id="announcement-content" wire:model="content" rows="5" placeholder="{{ __('events.content_write_your_announcement') }}"
                               class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                     @error('content') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    @endif
-                    @if($showDeTabs && $activeLocale === 'de')
-                    <textarea wire:model="content_de" rows="5" placeholder="{{ __('events.placeholder_write_announcement_german') }}"
-                              class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                    @error('content_de') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    @endif
                 </div>
 
                 <div class="flex items-center gap-6">
