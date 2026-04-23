@@ -86,22 +86,23 @@ class NavigationTest extends TestCase
 
     // ── GM Directory Nav ──────────────────────────────────────────
 
-    public function test_gm_directory_link_appears_in_authenticated_sidebar(): void
+    public function test_gm_directory_link_does_not_appear_in_authenticated_sidebar(): void
     {
         $response = $this->actingAs($this->user)->get('/en/dashboard');
 
         $response->assertStatus(200);
-        $response->assertSee(route('gm.directory'));
-        $response->assertSee(__('profile.nav_gm_directory'));
+        $response->assertDontSee(route('gm.directory'));
     }
 
-    public function test_gm_directory_uses_school_icon(): void
+    public function test_gm_directory_does_not_use_school_icon_in_sidebar(): void
     {
         $response = $this->actingAs($this->user)->get('/en/dashboard');
 
         $response->assertStatus(200);
         $content = $response->getContent();
-        $this->assertStringContainsString('>school</span>', $content);
+        // GM Directory was removed from the authenticated sidebar — school icon should not appear
+        // as a nav link (it may still appear in other contexts like the dashboard card or public layout)
+        $this->assertStringNotContainsString("route('gm.directory')", $content);
     }
 
     public function test_gm_directory_i18n_keys_exist(): void

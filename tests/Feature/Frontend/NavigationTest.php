@@ -236,14 +236,13 @@ describe('App Sidebar Navigation', function () {
         actingAs($this->user)
             ->get(route('dashboard'))
             ->assertOk()
-            // Primary items — reordered: Dashboard, My Games, My Campaigns, People, Discover
+            // Primary items: Dashboard, Notifications, My Games, My Campaigns, People
             ->assertSee('Dashboard')
+            ->assertSee(__('notifications.nav_label'))
             ->assertSee('My Games')
             ->assertSee('My Campaigns')
-            ->assertSee('Discover')
-            // Secondary items
-            ->assertSee('Events')
-            ->assertSee('Teams')
+            ->assertSee(__('profile.nav_people'))
+            // Account items
             ->assertSee('Billing')
             ->assertSee('Profile');
     });
@@ -254,13 +253,11 @@ describe('App Sidebar Navigation', function () {
             ->assertOk()
             // Primary items point to listing/index routes
             ->assertSee(route('dashboard'))
-            ->assertSee(route('discover'))
+            ->assertSee(route('notifications.index'))
             ->assertSee(route('games.index'))
             ->assertSee(route('campaigns.index'))
             ->assertSee(route('people'))
-            // Secondary items
-            ->assertSee(route('events.index'))
-            ->assertSee(route('teams.browse'))
+            // Account items
             ->assertSee(route('billing.portal'))
             ->assertSee(route('profile.show'));
     });
@@ -270,11 +267,10 @@ describe('App Sidebar Navigation', function () {
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Dashboard')
+            ->assertSee(__('notifications.nav_label'))
             ->assertSee('My Games')
             ->assertSee('My Campaigns')
-            ->assertSee('Discover')
-            ->assertSee('Events')
-            ->assertSee('Teams')
+            ->assertSee(__('profile.nav_people'))
             ->assertSee('Billing')
             ->assertSee('Profile')
             ->assertSee('Log Out');
@@ -292,18 +288,35 @@ describe('App Sidebar Navigation', function () {
         $this->assertStringNotContainsString(__('discovery.content_near_me'), $content);
     });
 
-    it('demotes Events to secondary Manage section in sidebar', function () {
+    it('does not include public-browsing links in authenticated sidebar', function () {
         $response = actingAs($this->user)
             ->get(route('dashboard'));
         $response->assertOk();
         $content = $response->getContent();
 
-        // Sidebar should have a "Manage" section label
-        $this->assertStringContainsString('Manage', $content);
+        // Extract the desktop sidebar nav section (between aria-label="Main navigation" and </nav>)
+        preg_match('/aria-label="Main navigation"(.*?)<\/nav>/s', $content, $sidebarMatch);
+        $sidebar = $sidebarMatch[1] ?? '';
 
-        // Events should appear after a border-t separator (secondary section)
-        // Verify Events route is present in sidebar
-        $this->assertStringContainsString(route('events.index'), $content);
+        // Public-browsing links removed from desktop sidebar nav
+        $this->assertStringNotContainsString(route('discover'), $sidebar);
+        $this->assertStringNotContainsString(route('events.index'), $sidebar);
+        $this->assertStringNotContainsString(route('teams.browse'), $sidebar);
+        $this->assertStringNotContainsString(route('gm.directory'), $sidebar);
+    });
+
+    it('logotype links to public homepage, not dashboard', function () {
+        $response = actingAs($this->user)
+            ->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // Logotype should link to route('home'), NOT route('dashboard')
+        $this->assertStringContainsString(route('home'), $content);
+        // Dashboard route should only appear in nav items, not as logotype href
+        // The logotype <a> tags are the first two occurrences of route('home')
+        $homeCount = substr_count($content, route('home'));
+        $this->assertGreaterThanOrEqual(2, $homeCount, 'Logotype should link to homepage (mobile + desktop)');
     });
 
     it('shows My Games before My Campaigns in sidebar', function () {
