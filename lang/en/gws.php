@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'title_gm_workspace' => 'GM Workspace',
+    'description_your_gm_command_center' => 'Your Game Master command center — manage sessions, track reviews, and see your stats.',
+    'heading_upcoming_sessions' => 'Upcoming Sessions',
+    'heading_review_summary' => 'Review Summary',
+    'heading_participant_stats' => 'Participant Stats',
+    'heading_quick_actions' => 'Quick Actions',
+    'content_no_upcoming_sessions' => 'No upcoming sessions this week.',
+    'content_no_reviews_yet' => 'No reviews yet — keep running great games!',
+    'label_average' => 'Average',
+    'label_reviews' => '1 review|:count reviews',
+    'label_unique_players' => 'Unique Players',
+    'label_repeat_players' => 'Repeat Players',
+    'label_total_games' => 'Total Games',
+    'label_active_campaigns' => 'Active Campaigns',
+    'action_create_game' => 'Create Game',
+    'action_create_game_desc' => 'Schedule a new game session.',
+    'action_create_campaign' => 'Create Campaign',
+    'action_create_campaign_desc' => 'Start a new campaign series.',
+    'action_manage_profile' => 'Manage GM Profile',
+    'action_manage_profile_desc' => 'View and update your public GM profile.',
+    'error_access_denied' => 'You need an active GM subscription to access the workspace.',
+];

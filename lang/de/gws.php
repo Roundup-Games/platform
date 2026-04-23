@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'title_gm_workspace' => 'SL-Arbeitsbereich',
+    'description_your_gm_command_center' => 'Dein Spielleiter-Kontrollzentrum — verwalte Sitzungen, verfolge Bewertungen und sieh deine Statistiken.',
+    'heading_upcoming_sessions' => 'Kommende Sitzungen',
+    'heading_review_summary' => 'Bewertungsübersicht',
+    'heading_participant_stats' => 'Teilnehmerstatistiken',
+    'heading_quick_actions' => 'Schnellaktionen',
+    'content_no_upcoming_sessions' => 'Keine kommenden Sitzungen diese Woche.',
+    'content_no_reviews_yet' => 'Noch keine Bewertungen — leite weiterhin großartige Spiele!',
+    'label_average' => 'Durchschnitt',
+    'label_reviews' => '1 Bewertung|:count Bewertungen',
+    'label_unique_players' => 'Einzigartige Spieler',
+    'label_repeat_players' => 'Wiederkehrende Spieler',
+    'label_total_games' => 'Spiele gesamt',
+    'label_active_campaigns' => 'Aktive Kampagnen',
+    'action_create_game' => 'Spiel erstellen',
+    'action_create_game_desc' => 'Plane eine neue Spielsitzung.',
+    'action_create_campaign' => 'Kampagne erstellen',
+    'action_create_campaign_desc' => 'Starte eine neue Kampagnenreihe.',
+    'action_manage_profile' => 'SL-Profil verwalten',
+    'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches SL-Profil.',
+    'error_access_denied' => 'Du benötigst ein aktives SL-Abonnement, um auf den Arbeitsbereich zuzugreifen.',
+];

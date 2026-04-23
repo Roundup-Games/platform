@@ -77,6 +77,9 @@ Route::prefix('{locale}')
         })->middleware(['auth', 'verified', 'profile.complete'])->name('dashboard');
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
+            // GM Workspace (auth + GM role + subscription checked in component mount)
+            Route::get('/gm-workspace', App\Livewire\GM\GmWorkspace::class)->name('gm.workspace');
+
             // Profile page (Livewire — handles all profile management inline)
             Route::get('/profile', App\Livewire\Profile\Show::class)->name('profile.show');
 
