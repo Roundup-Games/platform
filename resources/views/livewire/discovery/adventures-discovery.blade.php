@@ -46,7 +46,7 @@
                 <button wire:click="setSessionType('')"
                         role="radio" aria-checked="{{ !$session_type ? 'true' : 'false' }}"
                         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ !$session_type ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
-                    {{ __('common.content_all') }}
+                    {{ __('discovery.content_all') }}
                 </button>
                 <button wire:click="setSessionType('campaign')"
                         role="radio" aria-checked="{{ $session_type === 'campaign' ? 'true' : 'false' }}"

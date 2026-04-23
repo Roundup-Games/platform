@@ -273,7 +273,7 @@ class BoardGamesDiscovery extends Component
 
     public function render()
     {
-        $results = $this->getGamesResults();
+        $results = $this->getBoardGameResults();
 
         // Cross-track hint: count active public TTRPG campaigns
         $adventureCount = \App\Models\Campaign::where('status', 'active')
@@ -293,5 +293,25 @@ class BoardGamesDiscovery extends Component
             'hasLocation' => $this->hasGuestLocation(),
             'adventureCount' => $adventureCount,
         ]);
+    }
+
+    /**
+     * Build and paginate board-game-scoped results.
+     *
+     * Adds type=boardgame constraint so only board games appear
+     * on the board games discovery page (no TTRPG bleed-through).
+     */
+    protected function getBoardGameResults()
+    {
+        $query = $this->buildGamesQuery()
+            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'));
+
+        $paginator = $query->paginate(12)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
+
+        if ($this->radius > 0 && $this->hasGuestLocation()) {
+            $this->enrichWithDistance($paginator->getCollection(), 'game');
+        }
+
+        return $paginator;
     }
 }
