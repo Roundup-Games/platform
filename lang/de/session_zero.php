@@ -40,4 +40,16 @@ return [
     'action_copied' => 'Kopiert!',
     'action_back_to_workspace' => 'Zurück zum Workspace',
     'action_preview_survey' => 'Vorschau',
+
+    // Ansicht
+    'view_description_by_gm' => 'Session-Zero-Umfrage, geteilt von deinem Spielleiter',
+    'heading_confirmation' => 'Bestätigung',
+    'confirmation_confirmed' => 'Du hast das Lesen dieser Session Zero bestätigt',
+    'confirmation_prompt' => 'Mit deiner Bestätigung bestätigst du, dass du den Inhalt dieser Session-Zero-Umfrage gelesen und verstanden hast.',
+    'confirmation_login_prompt' => 'Melde dich an, um zu bestätigen, dass du diese Session Zero gelesen und verstanden hast.',
+    'action_confirm' => 'Ich habe diese Session Zero gelesen und verstanden',
+    'action_confirming' => 'Bestätige…',
+    'action_login_to_confirm' => 'Anmelden zum Bestätigen',
+    'heading_confirmations' => 'Spielerbestätigungen',
+    'unknown_user' => 'Unbekannter Benutzer',
 ];

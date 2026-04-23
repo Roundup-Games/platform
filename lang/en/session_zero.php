@@ -40,4 +40,16 @@ return [
     'action_copied' => 'Copied!',
     'action_back_to_workspace' => 'Back to Workspace',
     'action_preview_survey' => 'Preview',
+
+    // View
+    'view_description_by_gm' => 'Session Zero survey shared by your Game Master',
+    'heading_confirmation' => 'Confirmation',
+    'confirmation_confirmed' => 'You have confirmed reading this Session Zero',
+    'confirmation_prompt' => 'By confirming, you acknowledge that you have read and understand the contents of this Session Zero survey.',
+    'confirmation_login_prompt' => 'Log in to confirm that you have read and understood this Session Zero.',
+    'action_confirm' => 'I have read and understand this Session Zero',
+    'action_confirming' => 'Confirming…',
+    'action_login_to_confirm' => 'Log in to confirm',
+    'heading_confirmations' => 'Player Confirmations',
+    'unknown_user' => 'Unknown User',
 ];

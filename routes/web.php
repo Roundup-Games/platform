@@ -55,6 +55,11 @@ Route::prefix('{locale}')
         // ── Public Pages ──────────────────────────────
 
         Route::get('/', [PageController::class, 'home'])->name('home');
+
+        // Session Zero public view (UUID-based, no auth required to view)
+        Route::get('/session-zero/{uuid}', App\Livewire\SessionZero\ViewSessionZero::class)
+            ->name('session-zero.view')
+            ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         Route::get('/about', [PageController::class, 'about'])->name('about');
         Route::get('/how-it-works', [PageController::class, 'howItWorks'])->name('how-it-works');
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
