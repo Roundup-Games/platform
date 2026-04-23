@@ -25,7 +25,7 @@ class GMProfileFactory extends Factory
             'user_id' => User::factory(),
             'bio' => fake()->optional()->paragraph(),
             'specializations' => fake()->optional()->randomElements(
-                ['dnd5e', 'pathfinder', 'call-of-cthulhu', 'shadowrun', 'starfinder'],
+                \App\Enums\GmProficiency::values(),
                 fake()->numberBetween(1, 3),
             ),
             'average_rating' => null,

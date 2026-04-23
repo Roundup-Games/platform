@@ -15,6 +15,9 @@
                         <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">
                             {{ $profileUser->name }}
                         </h1>
+                        @if($profileUser->gmProfile)
+                            <x-gm-badge size="sm" />
+                        @endif
                         @if($isFriend)
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                 <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">group</span>
@@ -100,6 +103,58 @@
                 @endunless
             @endauth
         </section>
+
+        {{-- GM Profile Section (always visible when active, regardless of privacy) --}}
+        @php
+            $gmProfile = $profileUser->gmProfile;
+        @endphp
+        @if($gmProfile)
+            <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">school</span>
+                    {{ __('profile.gm_profile_section_title') }}
+                </h2>
+
+                @if($gmProfile->bio)
+                    <div class="mb-4">
+                        <p class="text-sm font-medium text-on-surface mb-1">{{ __('profile.gm_profile_bio') }}</p>
+                        <p class="text-sm text-on-surface-variant whitespace-pre-line">{{ $gmProfile->bio }}</p>
+                    </div>
+                @endif
+
+                @if($gmProfile->specializations && count($gmProfile->specializations))
+                    <div class="mb-4">
+                        <p class="text-sm font-medium text-on-surface mb-2">{{ __('profile.gm_profile_specializations') }}</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($gmProfile->specializations as $spec)
+                                @php
+                                    $enum = App\Enums\GmProficiency::tryFrom($spec);
+                                @endphp
+                                @if($enum)
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary/10 text-primary">
+                                        {{ $enum->label() }}
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($gmProfile->review_count > 0)
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-base text-amber-500" style="font-variation-settings: 'FILL' 1">star</span>
+                            <span class="font-medium text-on-surface">{{ number_format($gmProfile->average_rating, 1) }}</span>
+                        </div>
+                        <span class="text-on-surface-variant">
+                            ({{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }})
+                        </span>
+                    </div>
+                @else
+                    <p class="text-xs text-on-surface-variant italic">{{ __('profile.gm_profile_no_reviews') }}</p>
+                @endif
+            </section>
+        @endif
 
         {{-- If blocked by profile user, show limited info --}}
         @if($isBlockedBy)

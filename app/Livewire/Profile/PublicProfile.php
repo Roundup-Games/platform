@@ -167,6 +167,9 @@ class PublicProfile extends Component
         $games = $this->resolveVisibleGames();
         $campaigns = $this->resolveVisibleCampaigns();
 
+        // Load GM profile (always visible regardless of privacy settings when active)
+        $this->profileUser->load(['gmProfile' => fn ($q) => $q->where('is_active', true)]);
+
         return view('livewire.profile.public', [
             'profileUser' => $this->profileUser,
             'teamMemberships' => $teamMemberships,

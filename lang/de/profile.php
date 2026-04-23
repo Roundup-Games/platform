@@ -100,4 +100,13 @@ return [
     'gm_proficiency_visual_aid_desc' => 'Nutzt Karten, Handouts, Marker und visuelle Requisiten, um Szenen zum Leben zu erwecken.',
     'gm_proficiency_voices_desc' => 'Erweckt NSCs mit eigenen Stimmen, Akzenten und Manierismen zum Leben.',
     'gm_proficiency_world_builder_desc' => 'Erschafft reiche, detaillierte Settings mit tiefer Lore und verbundenen Fraktionen.',
+
+    // GM-Badge & Profilbereich
+    'gm_badge_label' => 'Spielleiter',
+    'gm_profile_section_title' => 'Spielleiter-Profil',
+    'gm_profile_specializations' => 'Spezialisierungen',
+    'gm_profile_bio' => 'Über mich',
+    'gm_profile_rating' => 'Bewertung',
+    'gm_profile_reviews' => ':count Bewertung|:count Bewertungen',
+    'gm_profile_no_reviews' => 'Noch keine Bewertungen',
 ];

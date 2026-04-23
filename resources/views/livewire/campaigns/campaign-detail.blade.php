@@ -266,7 +266,9 @@
             </h2>
             <div class="flex items-center gap-4">
                 <x-user-link :user="$campaign->owner" avatar-size="w-12 h-12" />
+                @if($campaign->owner->isGM())
+                    <x-gm-badge size="sm" />
+                @endif
             </div>
-        </section>
     </div>
 </div>

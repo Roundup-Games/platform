@@ -100,4 +100,13 @@ return [
     'gm_proficiency_visual_aid_desc' => 'Uses maps, handouts, tokens, and visual props to bring scenes to life.',
     'gm_proficiency_voices_desc' => 'Brings NPCs to life with distinct voices, accents, and mannerisms.',
     'gm_proficiency_world_builder_desc' => 'Creates rich, detailed settings with deep lore and interconnected factions.',
+
+    // GM Badge & Profile Section
+    'gm_badge_label' => 'Game Master',
+    'gm_profile_section_title' => 'Game Master Profile',
+    'gm_profile_specializations' => 'Specializations',
+    'gm_profile_bio' => 'About',
+    'gm_profile_rating' => 'Rating',
+    'gm_profile_reviews' => ':count review|:count reviews',
+    'gm_profile_no_reviews' => 'No reviews yet',
 ];

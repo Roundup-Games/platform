@@ -845,3 +845,137 @@ describe('Campaign visibility on profile', function () {
             ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->count() === 1);
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// GM BADGE & PROFILE SECTION
+// ═══════════════════════════════════════════════════════════
+
+describe('GM Badge on public profile', function () {
+    it('shows GM badge next to user name when user has active GM profile', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'is_active' => true,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('Game Master');
+    });
+
+    it('does not show GM badge when user has no GM profile', function () {
+        $user = createProfileUser();
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertDontSee('Game Master');
+    });
+
+    it('does not show GM badge when GM profile is inactive', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'is_active' => false,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertDontSee('Game Master');
+    });
+});
+
+describe('GM Profile section on public profile', function () {
+    it('shows GM profile section with bio', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'bio' => 'I love running epic campaigns!',
+            'is_active' => true,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('Game Master Profile')
+            ->assertSee('I love running epic campaigns!');
+    });
+
+    it('shows GM profile specializations as labels', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'specializations' => ['storytelling', 'world-builder'],
+            'is_active' => true,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('Storyteller')
+            ->assertSee('World Builder');
+    });
+
+    it('shows rating and review count when reviews exist', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'average_rating' => 4.75,
+            'review_count' => 3,
+            'is_active' => true,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('4.8')
+            ->assertSee('3 reviews');
+    });
+
+    it('shows no reviews message when review count is zero', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'review_count' => 0,
+            'is_active' => true,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('No reviews yet');
+    });
+
+    it('does not show GM profile section when GM profile is inactive', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'bio' => 'Hidden bio',
+            'is_active' => false,
+        ]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertDontSee('Game Master Profile')
+            ->assertDontSee('Hidden bio');
+    });
+
+    it('GM profile section is visible even when viewer is blocked by other sections', function () {
+        $viewer = createProfileUser();
+        $profileUser = createProfileUser(['pronouns' => 'they/them']);
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $profileUser->id,
+            'bio' => 'GM Bio Visible',
+            'is_active' => true,
+        ]);
+        UserRelationship::block($profileUser, $viewer);
+
+        // When blocked, the GM section is shown in the header area (before the block check).
+        // The GM badge appears in the profile header which is always shown.
+        Livewire::actingAs($viewer)
+            ->test(PublicProfile::class, ['user' => $profileUser])
+            ->assertSee('Game Master');
+    });
+
+    it('does not show bio line when bio is null', function () {
+        $user = createProfileUser();
+        \App\Models\GMProfile::factory()->create([
+            'user_id' => $user->id,
+            'bio' => null,
+            'is_active' => true,
+        ]);
+
+        $html = Livewire::test(PublicProfile::class, ['user' => $user])
+            ->html();
+
+        // The About label should not appear when there is no bio
+        expect(str_contains($html, '>About<'))->toBeFalse();
+    });
+});
