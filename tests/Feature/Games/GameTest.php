@@ -1165,7 +1165,7 @@ describe('CreateGame — Language Selection', function () {
         ]);
     });
 
-    it('accepts de+en bilingual language', function () {
+    it('rejects de+en bilingual language', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
@@ -1173,12 +1173,8 @@ describe('CreateGame — Language Selection', function () {
             ->set('name', 'Bilingual Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('language', 'de+en')
-            ->call('save');
-
-        assertDatabaseHas('games', [
-            'name' => 'Bilingual Game',
-            'language' => 'de+en',
-        ]);
+            ->call('save')
+            ->assertHasErrors(['language']);
     });
 
     it('rejects invalid language', function () {
