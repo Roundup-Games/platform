@@ -5,10 +5,10 @@ use App\Models\EventAnnouncement;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-// ── EventDetail Translation Display ──────────────────
+// ── EventDetail Display ──────────────────────────────
 
 describe('EventDetail Translations', function () {
-    it('shows German translated name on event detail', function () {
+    it('shows event name directly regardless of locale', function () {
         $event = Event::factory()->create([
             'name' => 'English Tournament',
             'is_public' => true,
@@ -19,10 +19,11 @@ describe('EventDetail Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Deutsches Turnier');
+            ->assertSee('English Tournament')
+            ->assertDontSee('Deutsches Turnier');
     });
 
-    it('shows German translated description and short description', function () {
+    it('shows event description and short description directly regardless of locale', function () {
         $event = Event::factory()->create([
             'name' => 'Bilingual Event',
             'description' => 'English description text',
@@ -36,11 +37,13 @@ describe('EventDetail Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Deutsche Beschreibung')
-            ->assertSee('Deutsche Kurzbeschreibung');
+            ->assertSee('English description text')
+            ->assertSee('English short desc')
+            ->assertDontSee('Deutsche Beschreibung')
+            ->assertDontSee('Deutsche Kurzbeschreibung');
     });
 
-    it('shows German translated schedule items', function () {
+    it('shows schedule items from event attributes directly', function () {
         $event = Event::factory()->create([
             'name' => 'Scheduled Event',
             'schedule' => [
@@ -50,16 +53,17 @@ describe('EventDetail Translations', function () {
             'status' => 'registration_open',
         ]);
         $event->setTranslation('de', 'schedule', [
-            ['date' => 'Tag 1', 'time' => '09:00', 'event' => 'Anmeldung'],
+            ['date' => 'Tag 1', 'time' => '09:00', 'event' => 'Translated Schedule Item'],
         ]);
 
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Anmeldung');
+            ->assertSee('Check-in')
+            ->assertDontSee('Translated Schedule Item');
     });
 
-    it('shows English content with fallback badge when German translation missing', function () {
+    it('does not show fallback badge since content is always in primary language', function () {
         $event = Event::factory()->create([
             'name' => 'English Only Event',
             'short_description' => 'Only in English',
@@ -67,16 +71,15 @@ describe('EventDetail Translations', function () {
             'status' => 'registration_open',
             'content_language' => 'en',
         ]);
-        // No German translation set
 
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertSee('English Only Event')
-            ->assertSee('Verfügbar in:');
+            ->assertDontSee('Verfügbar in:');
     });
 
-    it('does not show fallback badge when translation exists', function () {
+    it('does not show fallback badge even when translation exists', function () {
         $event = Event::factory()->create([
             'name' => 'Bilingual Event',
             'is_public' => true,
@@ -89,11 +92,12 @@ describe('EventDetail Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Zweisprachiges Event')
+            ->assertSee('Bilingual Event')
+            ->assertDontSee('Zweisprachiges Event')
             ->assertDontSee('Verfügbar in:');
     });
 
-    it('translates announcement title and content', function () {
+    it('shows announcement title and content directly without translation', function () {
         $event = Event::factory()->create([
             'is_public' => true,
             'status' => 'registration_open',
@@ -112,11 +116,13 @@ describe('EventDetail Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Willkommen!')
-            ->assertSee('Deutscher Ankündigungsinhalt');
+            ->assertSee('Welcome!')
+            ->assertSee('English announcement content')
+            ->assertDontSee('Willkommen!')
+            ->assertDontSee('Deutscher Ankündigungsinhalt');
     });
 
-    it('eager loads translations to avoid N+1 queries', function () {
+    it('does not eager load translations relation for display', function () {
         $event = Event::factory()->create([
             'name' => 'Test Event',
             'is_public' => true,
@@ -126,18 +132,17 @@ describe('EventDetail Translations', function () {
 
         app()->setLocale('de');
 
-        // Just verify it renders without extra queries causing errors
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug]);
-        $translatedName = $component->viewData('translatedName');
-
-        expect($translatedName)->toBe('Testveranstaltung');
+        // Verify it renders correctly without translations eager loaded
+        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+            ->assertSee('Test Event')
+            ->assertDontSee('Testveranstaltung');
     });
 });
 
-// ── EventListing Translation Display ─────────────────
+// ── EventListing Display ─────────────────────────────
 
 describe('EventListing Translations', function () {
-    it('shows translated event name in listing', function () {
+    it('shows event name directly regardless of locale', function () {
         $event = Event::factory()->create([
             'name' => 'English Tournament',
             'is_public' => true,
@@ -148,10 +153,11 @@ describe('EventListing Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertSee('Deutsches Turnier');
+            ->assertSee('English Tournament')
+            ->assertDontSee('Deutsches Turnier');
     });
 
-    it('shows translated short description in listing', function () {
+    it('shows short description directly regardless of locale', function () {
         $event = Event::factory()->create([
             'name' => 'Test Event',
             'short_description' => 'English short desc',
@@ -163,10 +169,11 @@ describe('EventListing Translations', function () {
         app()->setLocale('de');
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertSee('Deutsche Kurzbeschreibung');
+            ->assertSee('English short desc')
+            ->assertDontSee('Deutsche Kurzbeschreibung');
     });
 
-    it('falls back to entity attribute when no translation in listing', function () {
+    it('shows event attributes directly when no translation exists', function () {
         $event = Event::factory()->create([
             'name' => 'English Only',
             'is_public' => true,
@@ -179,27 +186,27 @@ describe('EventListing Translations', function () {
             ->assertSee('English Only');
     });
 
-    it('eager loads translations for listing query', function () {
+    it('renders listing without requiring translations eager load', function () {
         Event::factory()->count(3)->create([
             'is_public' => true,
             'status' => 'registration_open',
         ]);
 
-        // Verify the listing renders correctly with eager loading
+        // Verify the listing renders correctly without translations eager loading
         $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
         $events = $component->viewData('events');
 
-        // Check that translations relation is loaded on each event
+        // Each event should render its own name directly
         foreach ($events as $event) {
-            expect($event->relationLoaded('translations'))->toBeTrue();
+            expect($event->name)->not->toBeEmpty();
         }
     });
 });
 
-// ── EventCard Component Translations ─────────────────
+// ── EventCard Component Display ──────────────────────
 
 describe('EventCard Translations', function () {
-    it('shows translated name in event card component', function () {
+    it('shows event name directly in event card regardless of locale', function () {
         $event = Event::factory()->create([
             'name' => 'English Tournament',
             'short_description' => 'English desc',
@@ -207,7 +214,6 @@ describe('EventCard Translations', function () {
             'status' => 'registration_open',
         ]);
         $event->setTranslation('de', 'name', 'Deutsches Turnier');
-        $event->load('translations');
 
         app()->setLocale('de');
 
@@ -216,16 +222,16 @@ describe('EventCard Translations', function () {
             ['event' => $event]
         );
 
-        $view->assertSee('Deutsches Turnier');
+        $view->assertSee('English Tournament')
+            ->assertDontSee('Deutsches Turnier');
     });
 
-    it('shows fallback badge when translation not available', function () {
+    it('does not show fallback badge since content is always in primary language', function () {
         $event = Event::factory()->create([
             'name' => 'English Only Event',
             'is_public' => true,
             'status' => 'registration_open',
         ]);
-        $event->load('translations');
 
         app()->setLocale('de');
 
@@ -235,17 +241,16 @@ describe('EventCard Translations', function () {
         );
 
         $view->assertSee('English Only Event')
-            ->assertSee('Verfügbar in:');
+            ->assertDontSee('Verfügbar in:');
     });
 
-    it('does not show fallback badge when translation exists', function () {
+    it('does not show fallback badge even when translation exists', function () {
         $event = Event::factory()->create([
             'name' => 'Bilingual Event',
             'is_public' => true,
             'status' => 'registration_open',
         ]);
         $event->setTranslation('de', 'name', 'Zweisprachiges Event');
-        $event->load('translations');
 
         app()->setLocale('de');
 
@@ -254,7 +259,8 @@ describe('EventCard Translations', function () {
             ['event' => $event]
         );
 
-        $view->assertSee('Zweisprachiges Event')
+        $view->assertSee('Bilingual Event')
+            ->assertDontSee('Zweisprachiges Event')
             ->assertDontSee('Verfügbar in:');
     });
 });

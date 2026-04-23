@@ -36,19 +36,10 @@
                 @endif
             </div>
 
-            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $translatedName }}</h1>
+            <h1 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">{{ $event->name }}</h1>
 
-            @if($isFallback)
-                <div class="mt-2">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true">translate</span>
-                        {{ __('events.content_available_in_locale', ['locale' => $fallbackLocale === 'de' ? 'Deutsch' : 'English']) }}
-                    </span>
-                </div>
-            @endif
-
-            @if($translatedShortDescription)
-                <p class="mt-3 text-lg text-on-primary/80 max-w-3xl">{{ $translatedShortDescription }}</p>
+            @if($event->short_description)
+                <p class="mt-3 text-lg text-on-primary/80 max-w-3xl">{{ $event->short_description }}</p>
             @endif
 
             {{-- Quick info row --}}
@@ -87,11 +78,11 @@
             <div class="lg:col-span-2 space-y-6">
 
                 {{-- Description --}}
-                @if($translatedDescription)
+                @if($event->description)
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('events.content_about_this_event') }}</h2>
                         <div class="prose prose-sm max-w-none text-on-surface-variant">
-                            {{ $translatedDescription }}
+                            {{ $event->description }}
                         </div>
                     </section>
                 @endif
@@ -118,11 +109,11 @@
                 @endif
 
                 {{-- Schedule --}}
-                @if($translatedSchedule && is_array($translatedSchedule) && count($translatedSchedule) > 0)
+                @if($event->schedule && is_array($event->schedule) && count($event->schedule) > 0)
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4">{{ __('campaigns.content_schedule') }}</h2>
                         <div class="space-y-3">
-                            @foreach($translatedSchedule as $item)
+                            @foreach($event->schedule as $item)
                                 <div class="flex items-start gap-3 py-2 {{ !$loop->last ? 'border-b border-outline-variant/50' : '' }}">
                                     <div class="w-2 h-2 mt-2 rounded-full bg-primary shrink-0"></div>
                                     <div>

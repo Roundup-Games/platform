@@ -1,6 +1,3 @@
-@php
-$locale = app()->getLocale();
-@endphp
 <div>
     <x-hero title="Events" :subtitle="__('events.content_discover_tournaments_leagues_camps_and')" />
 
@@ -83,7 +80,7 @@ $locale = app()->getLocale();
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-2">
                                 <h3 class="font-heading font-semibold text-lg text-on-surface tracking-tight group-hover:text-primary transition-colors">
-                                    {{ $event->getTranslation($locale, 'name') ?? $event->name }}
+                                    {{ $event->name }}
                                 </h3>
                                 @if($event->is_featured)
                                     <span class="shrink-0 ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -130,11 +127,8 @@ $locale = app()->getLocale();
                             @endif
 
                             {{-- Short description --}}
-                            @php
-                                $translatedShortDesc = $event->getTranslation($locale, 'short_description') ?? $event->short_description;
-                            @endphp
-                            @if($translatedShortDesc)
-                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $translatedShortDesc }}</p>
+                            @if($event->short_description)
+                                <p class="mt-2 text-sm text-on-surface-variant line-clamp-2">{{ $event->short_description }}</p>
                             @endif
 
                             {{-- Fee info --}}

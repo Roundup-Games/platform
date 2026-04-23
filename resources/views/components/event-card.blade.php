@@ -1,13 +1,4 @@
 @props(['event'])
-@php
-$locale = app()->getLocale();
-$translatedName = $event->getTranslation($locale, 'name') ?? $event->name;
-$translatedShortDescription = $event->getTranslation($locale, 'short_description') ?? $event->short_description;
-// Detect fallback: no translation row for current locale but entity has content
-$hasTranslationRow = $event->relationLoaded('translations')
-    && $event->translations->first(fn ($t) => $t->locale === $locale && $t->field === 'name') !== null;
-$hasFallback = !$hasTranslationRow && $event->name !== null;
-@endphp
 
 <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden hover:shadow-ambient-md transition-shadow duration-200">
     <a href="{{ route('events.detail', $event->slug) }}" wire:navigate class="block">
@@ -30,17 +21,10 @@ $hasFallback = !$hasTranslationRow && $event->name !== null;
 
         {{-- Card Body --}}
         <div class="p-4">
-            <h3 class="font-heading font-semibold text-on-surface text-lg leading-tight line-clamp-2">{{ $translatedName }}</h3>
+            <h3 class="font-heading font-semibold text-on-surface text-lg leading-tight line-clamp-2">{{ $event->name }}</h3>
 
-            @if($hasFallback)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container mt-1">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">translate</span>
-                    {{ __('events.content_available_in_locale', ['locale' => $locale === 'de' ? 'English' : 'Deutsch']) }}
-                </span>
-            @endif
-
-            @if($translatedShortDescription)
-                <p class="mt-1 text-sm text-on-surface-variant line-clamp-2">{{ $translatedShortDescription }}</p>
+            @if($event->short_description)
+                <p class="mt-1 text-sm text-on-surface-variant line-clamp-2">{{ $event->short_description }}</p>
             @endif
 
             <div class="mt-3 space-y-1.5">
