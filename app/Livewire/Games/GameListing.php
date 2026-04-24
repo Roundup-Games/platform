@@ -46,6 +46,16 @@ class GameListing extends Component
     #[Url]
     public ?string $complexity_max = null;
 
+    public function mount(): void
+    {
+        $user = Auth::user();
+        if (!$this->language) {
+            $this->language = ($user && $user->preferred_language)
+                ? $user->preferred_language->value
+                : app()->getLocale();
+        }
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -118,7 +128,7 @@ class GameListing extends Component
             || $this->game_system_id
             || $this->experience_level
             || !empty($this->vibe_flags)
-            || $this->language
+            || ($this->language && $this->language !== app()->getLocale())
             || $this->date
             || $this->price
             || $this->complexity_min

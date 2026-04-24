@@ -105,8 +105,10 @@ class DiscoveryPage extends Component
     public function mount(): void
     {
         $user = Auth::user();
-        if ($user && $user->preferred_language && !$this->language) {
-            $this->language = $user->preferred_language->value;
+        if (!$this->language) {
+            $this->language = ($user && $user->preferred_language)
+                ? $user->preferred_language->value
+                : app()->getLocale();
         }
 
         // Build vibePreferences from URL vibe_flags (all treated as favorites)
@@ -302,7 +304,7 @@ class DiscoveryPage extends Component
             || $this->experience_level
             || !empty($this->vibe_flags)
             || !empty($this->safety_tools)
-            || $this->language
+            || ($this->language && $this->language !== app()->getLocale())
             || $this->price
             || $this->complexity_min
             || $this->complexity_max

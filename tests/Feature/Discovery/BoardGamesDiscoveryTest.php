@@ -528,9 +528,46 @@ describe('BoardGamesDiscovery', function () {
             ->assertSet('language', 'en');
     });
 
-    it('does not set language default for guests', function () {
+    it('defaults language filter to app locale for guests', function () {
         Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSet('language', '');
+            ->assertSet('language', app()->getLocale());
+    });
+
+    it('defaults language filter to German locale when app locale is de', function () {
+        app()->setLocale('de');
+        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+            ->assertSet('language', 'de');
+    });
+
+    it('URL language param overrides app locale default', function () {
+        app()->setLocale('de');
+        Livewire\Livewire::withQueryParams(['language' => 'en'])
+            ->test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+            ->assertSet('language', 'en');
+    });
+
+    it('All languages filter works when language is cleared', function () {
+        Game::factory()->create([
+            'name' => 'English Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'language' => 'en',
+        ]);
+
+        Game::factory()->create([
+            'name' => 'German Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'language' => 'de',
+        ]);
+
+        // Clear filters should show both languages (All languages)
+        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
+            ->call('clearFilters')
+            ->assertSee('English Game')
+            ->assertSee('German Game');
     });
 
     it('recommendations exclude avoided game systems', function () {

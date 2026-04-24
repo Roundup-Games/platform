@@ -737,9 +737,22 @@ describe('DiscoveryPage', function () {
         expect($component->get('language'))->toBe('en');
     });
 
-    it('does not set language default for guests', function () {
+    it('defaults language filter to app locale for guests', function () {
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('language'))->toBe('');
+        expect($component->get('language'))->toBe(app()->getLocale());
+    });
+
+    it('defaults language filter to German locale when app locale is de', function () {
+        app()->setLocale('de');
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->get('language'))->toBe('de');
+    });
+
+    it('URL language param overrides app locale default', function () {
+        app()->setLocale('de');
+        $component = Livewire\Livewire::withQueryParams(['language' => 'en'])
+            ->test(App\Livewire\Discovery\DiscoveryPage::class);
+        expect($component->get('language'))->toBe('en');
     });
 
     it('recommendations exclude avoided game systems', function () {

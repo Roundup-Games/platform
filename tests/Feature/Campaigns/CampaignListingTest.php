@@ -399,4 +399,35 @@ describe('CampaignListing — Eager Loading', function () {
         expect($loaded->relationLoaded('gameSystem'))->toBeTrue();
         expect(isset($loaded->sessions_count))->toBeTrue();
     });
+
+    // ── Language default tests ─────────────────────────
+
+    it('defaults language filter to app locale for guests', function () {
+        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSet('language', app()->getLocale());
+    });
+
+    it('defaults language filter to German locale when app locale is de', function () {
+        app()->setLocale('de');
+        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSet('language', 'de');
+    });
+
+    it('defaults language filter to user preferred language on mount', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'preferred_language' => 'de',
+        ]);
+
+        actingAs($user);
+        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSet('language', 'de');
+    });
+
+    it('URL language param overrides app locale default', function () {
+        app()->setLocale('de');
+        Livewire\Livewire::withQueryParams(['language' => 'en'])
+            ->test(\App\Livewire\Campaigns\CampaignListing::class)
+            ->assertSet('language', 'en');
+    });
 });
