@@ -38,6 +38,22 @@ if (! getenv('DOCKER_HOST')) {
     }
 }
 
+// Cleanup orphaned postgres containers from previous test runs that weren't stopped properly
+// (e.g., paratest child processes, SIGKILL, or register_shutdown_function not firing).
+try {
+    $dockerOutput = shell_exec('docker ps -q --filter ancestor=postgres:16-alpine --filter status=running 2>/dev/null');
+    if ($dockerOutput && trim($dockerOutput) !== '') {
+        $orphanIds = array_filter(array_map('trim', explode("\n", trim($dockerOutput))));
+        if (!empty($orphanIds)) {
+            $ids = implode(' ', $orphanIds);
+            shell_exec("docker rm -f {$ids} 2>/dev/null");
+            fprintf(STDERR, "  Testcontainers: cleaned up %d orphaned postgres container(s)\n", count($orphanIds));
+        }
+    }
+} catch (\Throwable $e) {
+    // Non-blocking — orphan cleanup failure shouldn't prevent tests from running.
+}
+
 // Use the locally available postgres image (avoids pulling from registry)
 $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
 
@@ -47,6 +63,7 @@ $container = new PostgresContainer(
     password: 'test',
     database: 'roundup_games_test',
 );
+$container->withAutoRemove(true);
 $started = $container->start();
 
 // Register teardown: stop and remove the container when the test process exits.
@@ -56,8 +73,7 @@ register_shutdown_function(function () use ($started): void {
         $started->stop();
     } catch (\Throwable $e) {
         // Best-effort cleanup — don't let a teardown failure mask test results.
-        // The container will still be stopped by Docker if autoRemove was set,
-        // or can be cleaned up manually via `docker rm`.
+        // autoRemove=true ensures Docker removes the container even if stop() fails.
         fprintf(STDERR, "  Testcontainers: warning — failed to stop PostgreSQL container: %s\n", $e->getMessage());
     }
 });
