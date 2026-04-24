@@ -175,6 +175,7 @@
                                         {{ $levelEnum?->label() ?? $game->experience_level }}
                                     </span>
                                 @endif
+                                <x-language-chip :language="$game->language" />
                             </div>
 
                             {{-- Campaign link --}}
@@ -196,15 +197,6 @@
                                 <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
                                     {{ $game->expected_duration }}h
-                                </p>
-                            @endif
-
-                            {{-- Language --}}
-                            @php($langEnum = App\Enums\ContentLanguage::tryFrom($game->language))
-                            @if($langEnum)
-                                <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">translate</span>
-                                    {{ $langEnum->label() }}
                                 </p>
                             @endif
 

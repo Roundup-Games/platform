@@ -53,6 +53,11 @@
                         {{ ucfirst($event->type) }}
                     </div>
                 @endif
+
+                {{-- Language --}}
+                <div class="mt-1">
+                    <x-language-chip :language="$event->content_language" />
+                </div>
             </div>
 
             {{-- Fee / Capacity footer — tonal separation, no border --}}

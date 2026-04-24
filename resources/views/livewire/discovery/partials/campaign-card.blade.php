@@ -48,6 +48,7 @@
                     {{ $levelEnum?->label() ?? $campaign->experience_level }}
                 </span>
             @endif
+            <x-language-chip :language="$campaign->language" />
         </div>
 
         {{-- Recurrence & Duration --}}
@@ -61,15 +62,6 @@
             <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
                 {{ $campaign->session_duration }}h {{ __('campaigns.content_per_session') }}
-            </p>
-        @endif
-
-        {{-- Language --}}
-        @php($langEnum = App\Enums\ContentLanguage::tryFrom($campaign->language))
-        @if($langEnum)
-            <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
-                <span class="material-symbols-outlined text-base" aria-hidden="true">translate</span>
-                {{ $langEnum->label() }}
             </p>
         @endif
 
