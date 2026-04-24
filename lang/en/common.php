@@ -113,6 +113,7 @@ return [
     'content_jpg_png_gif_or_webp_max_sizemb' => 'JPG, PNG, GIF, or WebP. Max :sizeMB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG, or GIF. Max 1MB.',
     'content_language' => 'Language',
+    'content_language_mismatch_banner' => 'This content is in :language, which differs from your current language setting.',
     'content_language_required' => 'Language *',
     'content_league' => 'League',
     'content_male' => 'Male',
