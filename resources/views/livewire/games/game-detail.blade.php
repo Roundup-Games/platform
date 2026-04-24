@@ -118,6 +118,9 @@
     {{-- Content --}}
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
+        {{-- Language mismatch banner --}}
+        <x-language-mismatch-banner :entity-language="$game->language" />
+
         {{-- Flash Messages --}}
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"

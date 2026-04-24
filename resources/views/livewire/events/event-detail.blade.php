@@ -72,6 +72,10 @@
 
     {{-- Content --}}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 bg-surface">
+
+        {{-- Language mismatch banner --}}
+        <x-language-mismatch-banner :entity-language="$event->content_language" />
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {{-- Main Content --}}
