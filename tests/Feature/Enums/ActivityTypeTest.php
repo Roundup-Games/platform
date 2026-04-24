@@ -3,8 +3,8 @@
 use App\Enums\ActivityType;
 
 describe('ActivityType', function () {
-    it('has exactly 12 cases', function () {
-        expect(ActivityType::cases())->toHaveCount(12);
+    it('has exactly 14 cases', function () {
+        expect(ActivityType::cases())->toHaveCount(14);
     });
 
     it('returns correct values for all cases', function () {
@@ -21,6 +21,8 @@ describe('ActivityType', function () {
             'invitation_received',
             'invitation_accepted',
             'session_scheduled',
+            'game_updated',
+            'campaign_updated',
         ];
         expect(ActivityType::values())->toBe($expected);
     });

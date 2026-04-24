@@ -158,4 +158,16 @@ return [
 
     'subject_review_reported' => 'Eine Bewertung wurde gemeldet',
     'body_review_reported' => '**:reporter** hat eine Bewertung gemeldet: **:reason**.',
+
+    // Spiel aktualisiert
+    'category_game_updated' => 'Spiel aktualisiert',
+    'subject_game_updated' => ':game wurde aktualisiert',
+    'body_game_updated' => 'Das Spiel **:game** wurde aktualisiert. Änderungen: :fields.',
+    'action_view_game' => 'Spiel anzeigen',
+
+    // Kampagne aktualisiert
+    'category_campaign_updated' => 'Kampagne aktualisiert',
+    'subject_campaign_updated' => ':campaign wurde aktualisiert',
+    'body_campaign_updated' => 'Die Kampagne **:campaign** wurde aktualisiert. Änderungen: :fields.',
+    'action_view_campaign' => 'Kampagne anzeigen',
 ];

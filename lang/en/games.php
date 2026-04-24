@@ -234,4 +234,14 @@ return [
     // Game type labels
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
+
+    // Edit game
+    'action_edit_game' => 'Edit',
+    'heading_edit_game' => 'Edit Game',
+    'field_name' => 'Name',
+    'field_description' => 'Description',
+    'field_duration' => 'Duration (hours)',
+    'field_location' => 'Location',
+    'field_visibility' => 'Visibility',
+    'flash_game_updated' => 'Game updated successfully.',
 ];

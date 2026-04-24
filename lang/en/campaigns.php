@@ -153,4 +153,9 @@ return [
     'activity_completed_campaign' => 'completed a campaign',
     'activity_scheduled_session_for' => 'scheduled a new session for',
     'activity_scheduled_session' => 'scheduled a new session',
+
+    // Edit campaign
+    'action_edit_campaign' => 'Edit',
+    'heading_edit_campaign' => 'Edit Campaign',
+    'flash_campaign_updated' => 'Campaign updated successfully.',
 ];

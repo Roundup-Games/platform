@@ -334,6 +334,8 @@ return [
     'activity_type_invitation_received' => 'Einladung erhalten',
     'activity_type_invitation_accepted' => 'Einladung angenommen',
     'activity_type_session_scheduled' => 'Sitzung geplant',
+    'activity_type_game_updated' => 'Spiel aktualisiert',
+    'activity_type_campaign_updated' => 'Kampagne aktualisiert',
 
     // Dashboard-Aktivitätszeitlinie
     'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',

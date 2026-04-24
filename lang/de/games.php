@@ -234,4 +234,14 @@ return [
     // Spielart-Bezeichnungen
     'type_board_game' => 'Brettspiel',
     'type_ttrpg' => 'TTRPG',
+
+    // Spiel bearbeiten
+    'action_edit_game' => 'Bearbeiten',
+    'heading_edit_game' => 'Spiel bearbeiten',
+    'field_name' => 'Name',
+    'field_description' => 'Beschreibung',
+    'field_duration' => 'Dauer (Stunden)',
+    'field_location' => 'Ort',
+    'field_visibility' => 'Sichtbarkeit',
+    'flash_game_updated' => 'Spiel erfolgreich aktualisiert.',
 ];

@@ -86,6 +86,11 @@
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 shrink-0">
                                 @if($game->status === 'scheduled')
+                                    <button wire:click="editGame('{{ $game->id }}')"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                                        {{ __('games.action_edit_game') }}
+                                    </button>
                                     <button wire:click="cancelGame('{{ $game->id }}')"
                                             wire:confirm="{{ __('games.confirm_cancel_game') }}"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-error hover:bg-error/10 transition-colors">
@@ -232,6 +237,75 @@
         @include('livewire.partials.activity-feed', ['activityFeed' => $activityFeed, 'entityType' => 'game'])
 
         </section>
+
+        {{-- Edit Game Modal --}}
+        @if($editingGameId)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click="cancelEdit">
+                <div class="bg-surface-container-low rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" wire:click.stop>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-lg font-heading font-semibold text-on-surface">{{ __('games.heading_edit_game') }}</h2>
+                            <button wire:click="cancelEdit" class="text-on-surface-variant hover:text-on-surface transition-colors">
+                                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                            </button>
+                        </div>
+
+                        <form wire:submit="saveGameEdit" class="space-y-4">
+                            <div>
+                                <label for="edit-game-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_name') }}</label>
+                                <input type="text" id="edit-game-name" wire:model="edit_name"
+                                       class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                @error('edit_name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label for="edit-game-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_description') }}</label>
+                                <textarea id="edit-game-description" wire:model="edit_description" rows="3"
+                                          class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
+                                @error('edit_description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="edit-game-duration" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_duration') }}</label>
+                                    <input type="number" id="edit-game-duration" wire:model="edit_expected_duration" step="0.5" min="0.5" max="24"
+                                           class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                    @error('edit_expected_duration') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="edit-game-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_visibility') }}</label>
+                                    <select id="edit-game-visibility" wire:model="edit_visibility"
+                                            class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                                        <option value="public">{{ __('common.content_public') }}</option>
+                                        <option value="protected">{{ __('common.content_protected') }}</option>
+                                        <option value="private">{{ __('common.content_private') }}</option>
+                                    </select>
+                                    @error('edit_visibility') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="edit-game-location" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_location') }}</label>
+                                <input type="text" id="edit-game-location" wire:model="edit_location_details"
+                                       class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                @error('edit_location_details') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button type="button" wire:click="cancelEdit"
+                                        class="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                    {{ __('common.action_cancel') }}
+                                </button>
+                                <button type="submit"
+                                        class="px-4 py-2 rounded-lg text-sm font-medium bg-secondary text-on-secondary hover:bg-secondary/90 transition-colors">
+                                    {{ __('common.action_save_changes') }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
     </div>
 </div>

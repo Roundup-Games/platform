@@ -163,4 +163,16 @@ return [
     'body_review_reported' => '**:reporter** reported a review for: **:reason**.',
     'body_review_rating' => 'Review rating: :rating/5',
     'body_review_content' => 'Review content: :body',
+
+    // Game updated
+    'category_game_updated' => 'Game Updated',
+    'subject_game_updated' => ':game has been updated',
+    'body_game_updated' => 'The game **:game** has been updated. Changes: :fields.',
+    'action_view_game' => 'View Game',
+
+    // Campaign updated
+    'category_campaign_updated' => 'Campaign Updated',
+    'subject_campaign_updated' => ':campaign has been updated',
+    'body_campaign_updated' => 'The campaign **:campaign** has been updated. Changes: :fields.',
+    'action_view_campaign' => 'View Campaign',
 ];

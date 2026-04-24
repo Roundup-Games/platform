@@ -5,8 +5,8 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory', function () {
-    it('has exactly 15 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(15);
+    it('has exactly 17 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(18);
     });
 
     it('returns correct values for all cases', function () {
@@ -16,6 +16,8 @@ describe('NotificationCategory', function () {
             'new_application', 'application_approved', 'application_rejected',
             'participant_joined', 'participant_removed', 'team_member_removed',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
+            'game_updated', 'campaign_updated',
+            'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
     });
@@ -62,7 +64,7 @@ describe('NotificationCategory', function () {
         foreach ($grouped as $group) {
             $allValues = array_merge($allValues, array_keys($group['options']));
         }
-        expect($allValues)->toHaveCount(15);
+        expect($allValues)->toHaveCount(18);
         expect($allValues)->toBe(NotificationCategory::values());
     });
 
@@ -81,7 +83,7 @@ describe('NotificationCategory', function () {
         expect($grouped['invitations']['options'])->toHaveCount(4);
         expect($grouped['applications']['options'])->toHaveCount(3);
         expect($grouped['participation']['options'])->toHaveCount(3);
-        expect($grouped['status']['options'])->toHaveCount(4);
+        expect($grouped['status']['options'])->toHaveCount(6);
     });
 
     it('channels() returns database and mail channels', function () {
@@ -93,7 +95,7 @@ describe('NotificationCategory', function () {
 
     it('defaultSettings() returns settings for all 15 categories', function () {
         $settings = NotificationCategory::defaultSettings();
-        expect($settings)->toHaveCount(15);
+        expect($settings)->toHaveCount(18);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
@@ -113,6 +115,7 @@ describe('NotificationCategory', function () {
             'new_application', 'application_approved', 'application_rejected',
             'participant_removed', 'team_member_removed',
             'game_cancelled', 'campaign_cancelled',
+            'game_updated', 'campaign_updated',
         ];
         foreach ($mailOn as $cat) {
             expect($settings[$cat]['mail'])->toBeTrue("{$cat} should default mail=true");
@@ -142,6 +145,9 @@ describe('NotificationCategory', function () {
             'game_completed' => ['database' => true, 'mail' => false],
             'campaign_cancelled' => ['database' => true, 'mail' => true],
             'campaign_completed' => ['database' => true, 'mail' => false],
+            'game_updated' => ['database' => true, 'mail' => true],
+            'campaign_updated' => ['database' => true, 'mail' => true],
+            'review_reported' => ['database' => true, 'mail' => true],
         ];
 
         expect(NotificationCategory::defaultSettings())->toBe($migrationDefault);

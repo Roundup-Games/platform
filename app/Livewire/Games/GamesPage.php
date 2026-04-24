@@ -8,7 +8,9 @@ use App\Models\GameParticipant;
 use App\Notifications\GameCancelled;
 use App\Notifications\GameCompleted;
 use App\Notifications\GameInvitation;
+use App\Notifications\GameUpdated;
 use App\Notifications\ParticipantJoined;
+use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
@@ -22,11 +24,136 @@ class GamesPage extends Component
 {
     use WithPagination;
 
+    // ── Edit Game State ────────────────────────────────
+    public ?string $editingGameId = null;
+    public string $edit_name = '';
+    public string $edit_description = '';
+    public ?string $edit_expected_duration = '';
+    public string $edit_visibility = 'private';
+    public string $edit_location_details = '';
+
     public function mount(): void
     {
         if (Auth::guest()) {
             $this->redirect(route('discover', app()->getLocale()));
         }
+    }
+
+    // ── Edit Game ────────────────────────────────────────
+
+    public function editGame(string $id): void
+    {
+        $game = Game::findOrFail($id);
+        $this->authorize('update', $game);
+
+        $this->editingGameId = $game->id;
+        $this->edit_name = $game->name;
+        $this->edit_description = $game->description ?? '';
+        $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
+        $this->edit_visibility = $game->visibility ?? 'private';
+        $this->edit_location_details = $game->location['details'] ?? '';
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->reset(['editingGameId', 'edit_name', 'edit_description', 'edit_expected_duration', 'edit_visibility', 'edit_location_details']);
+    }
+
+    public function saveGameEdit(): void
+    {
+        if ($this->editingGameId === null) {
+            return;
+        }
+
+        $game = Game::findOrFail($this->editingGameId);
+        $this->authorize('update', $game);
+
+        $this->validate([
+            'edit_name' => 'required|string|max:255',
+            'edit_description' => 'nullable|string|max:5000',
+            'edit_expected_duration' => 'nullable|numeric|min:0.5|max:24',
+            'edit_visibility' => 'required|in:public,protected,private',
+            'edit_location_details' => 'nullable|string|max:1000',
+        ]);
+
+        // Gate public visibility
+        if ($this->edit_visibility === 'public' && ! Auth::user()->can_create_public_entries) {
+            $this->edit_visibility = 'protected';
+        }
+
+        $changes = [];
+        $changedLabels = [];
+
+        if ($game->name !== $this->edit_name) {
+            $changes['name'] = $this->edit_name;
+            $changedLabels[] = __('games.field_name');
+        }
+        if (($game->description ?? '') !== $this->edit_description) {
+            $changes['description'] = $this->edit_description ?: null;
+            $changedLabels[] = __('games.field_description');
+        }
+        $newDuration = $this->edit_expected_duration !== '' ? (float) $this->edit_expected_duration : null;
+        if ($game->expected_duration != $newDuration) {
+            $changes['expected_duration'] = $newDuration ?? 2;
+            $changedLabels[] = __('games.field_duration');
+        }
+        if ($game->visibility !== $this->edit_visibility) {
+            $changes['visibility'] = $this->edit_visibility;
+            $changedLabels[] = __('games.field_visibility');
+        }
+        $oldLocation = $game->location['details'] ?? '';
+        if ($oldLocation !== $this->edit_location_details) {
+            $changes['location'] = ['details' => $this->edit_location_details];
+            $changedLabels[] = __('games.field_location');
+        }
+
+        if (empty($changes)) {
+            $this->cancelEdit();
+            return;
+        }
+
+        $game->fill($changes)->save();
+
+        // Log activity
+        app(ActivityLogService::class)->log(
+            \App\Enums\ActivityType::GameUpdated,
+            Auth::user(),
+            $game,
+            ['changed_fields' => $changedLabels],
+        );
+
+        Log::info('Game updated', [
+            'game_id' => $game->id,
+            'owner_id' => $game->owner_id,
+            'changed_fields' => $changedLabels,
+        ]);
+
+        // Notify participants (excluding owner)
+        if (! empty($changedLabels)) {
+            try {
+                $participants = $game->participants()
+                    ->where('status', 'approved')
+                    ->where('user_id', '!=', $game->owner_id)
+                    ->with('user')
+                    ->get();
+
+                foreach ($participants as $participant) {
+                    app(NotificationService::class)->send(
+                        $participant->user,
+                        new GameUpdated($game, $changedLabels),
+                        NotificationCategory::GameUpdated,
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.game_updated_dispatch_failed', [
+                    'game_id' => $game->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->cancelEdit();
+        session()->flash('success', __('games.flash_game_updated'));
     }
 
     public function render()

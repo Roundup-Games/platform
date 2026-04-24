@@ -69,6 +69,7 @@ class GameResource extends Resource
                 Section::make('Details')
                     ->schema([
                         Textarea::make('description')
+                            ->required()
                             ->rows(3)
                             ->maxLength(2000),
                         Grid::make(3)
@@ -79,13 +80,7 @@ class GameResource extends Resource
                                     ->step(0.01)
                                     ->default(0),
                                 Select::make('language')
-                                    ->options([
-                                        'en' => 'English',
-                                        'sv' => 'Swedish',
-                                        'no' => 'Norwegian',
-                                        'da' => 'Danish',
-                                        'fi' => 'Finnish',
-                                    ])
+                                    ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),
                             ]),
                     ]),
@@ -104,13 +99,11 @@ class GameResource extends Resource
                                     ->required(),
                                 Select::make('status')
                                     ->options([
-                                        'draft' => 'Draft',
                                         'scheduled' => 'Scheduled',
-                                        'in_progress' => 'In Progress',
+                                        'canceled' => 'Canceled',
                                         'completed' => 'Completed',
-                                        'cancelled' => 'Cancelled',
                                     ])
-                                    ->default('draft')
+                                    ->default('scheduled')
                                     ->required(),
                             ]),
                     ]),
@@ -154,9 +147,8 @@ class GameResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'scheduled' => 'info',
-                        'in_progress' => 'warning',
                         'completed' => 'success',
-                        'cancelled' => 'danger',
+                        'canceled' => 'danger',
                         default => 'gray',
                     }),
                 TextColumn::make('participants_count')

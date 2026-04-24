@@ -334,6 +334,8 @@ return [
     'activity_type_invitation_received' => 'Invitation Received',
     'activity_type_invitation_accepted' => 'Invitation Accepted',
     'activity_type_session_scheduled' => 'Session Scheduled',
+    'activity_type_game_updated' => 'Game Updated',
+    'activity_type_campaign_updated' => 'Campaign Updated',
 
     // Dashboard activity timeline
     'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',

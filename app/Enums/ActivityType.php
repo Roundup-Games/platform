@@ -28,6 +28,10 @@ enum ActivityType: string
     // Scheduling
     case SessionScheduled = 'session_scheduled';
 
+    // Updates
+    case GameUpdated = 'game_updated';
+    case CampaignUpdated = 'campaign_updated';
+
     /**
      * @return string[]
      */
@@ -51,6 +55,8 @@ enum ActivityType: string
             self::InvitationReceived => __('common.activity_type_invitation_received'),
             self::InvitationAccepted => __('common.activity_type_invitation_accepted'),
             self::SessionScheduled => __('common.activity_type_session_scheduled'),
+            self::GameUpdated => __('common.activity_type_game_updated'),
+            self::CampaignUpdated => __('common.activity_type_campaign_updated'),
         };
     }
 
@@ -69,6 +75,8 @@ enum ActivityType: string
             self::InvitationReceived => 'mail',
             self::InvitationAccepted => 'how_to_reg',
             self::SessionScheduled => 'event',
+            self::GameUpdated => 'edit',
+            self::CampaignUpdated => 'edit',
         };
     }
 }

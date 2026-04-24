@@ -31,6 +31,8 @@ enum NotificationCategory: string
     case GameCompleted = 'game_completed';
     case CampaignCancelled = 'campaign_cancelled';
     case CampaignCompleted = 'campaign_completed';
+    case GameUpdated = 'game_updated';
+    case CampaignUpdated = 'campaign_updated';
 
     // Moderation
     case ReviewReported = 'review_reported';
@@ -61,6 +63,8 @@ enum NotificationCategory: string
             self::GameCompleted => __('notifications.category_game_completed'),
             self::CampaignCancelled => __('notifications.category_campaign_cancelled'),
             self::CampaignCompleted => __('notifications.category_campaign_completed'),
+            self::GameUpdated => __('notifications.category_game_updated'),
+            self::CampaignUpdated => __('notifications.category_campaign_updated'),
             self::ReviewReported => __('notifications.category_review_reported'),
         };
     }
@@ -72,7 +76,7 @@ enum NotificationCategory: string
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved => 'participation',
-            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted => 'status',
+            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
             self::ReviewReported => 'moderation',
         };
     }
@@ -103,7 +107,7 @@ enum NotificationCategory: string
             ],
             'status' => [
                 'label' => __('notifications.group_status'),
-                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted],
+                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated],
             ],
             'moderation' => [
                 'label' => __('notifications.group_moderation'),
@@ -162,6 +166,8 @@ enum NotificationCategory: string
             self::GameCompleted => false,
             self::CampaignCancelled => true,
             self::CampaignCompleted => false,
+            self::GameUpdated => true,
+            self::CampaignUpdated => true,
             self::ReviewReported => true,
         };
     }

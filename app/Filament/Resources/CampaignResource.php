@@ -53,9 +53,8 @@ class CampaignResource extends Resource
                                 Select::make('recurrence')
                                     ->options([
                                         'weekly' => 'Weekly',
-                                        'biweekly' => 'Bi-weekly',
+                                        'bi-weekly' => 'Bi-weekly',
                                         'monthly' => 'Monthly',
-                                        'custom' => 'Custom',
                                     ]),
                                 TextInput::make('session_duration')
                                     ->label('Session Duration (hours)')
@@ -73,6 +72,7 @@ class CampaignResource extends Resource
                 Section::make('Description')
                     ->schema([
                         Textarea::make('description')
+                            ->required()
                             ->rows(4)
                             ->maxLength(5000),
                     ]),
@@ -116,19 +116,15 @@ class CampaignResource extends Resource
                                     ->required(),
                                 Select::make('status')
                                     ->options([
-                                        'draft' => 'Draft',
-                                        'recruiting' => 'Recruiting',
                                         'active' => 'Active',
-                                        'on_hiatus' => 'On Hiatus',
-                                        'completed' => 'Completed',
                                         'cancelled' => 'Cancelled',
+                                        'completed' => 'Completed',
                                     ])
-                                    ->default('draft')
+                                    ->default('active')
                                     ->required(),
                                 Select::make('language')
                                     ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
-                                    ->default('en'),
-                            ]),
+                                    ->default('en'),                            ]),
                     ]),
             ]);
     }
@@ -168,9 +164,7 @@ class CampaignResource extends Resource
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'recruiting' => 'info',
                         'active' => 'success',
-                        'on_hiatus' => 'warning',
                         'completed' => 'gray',
                         'cancelled' => 'danger',
                         default => 'gray',

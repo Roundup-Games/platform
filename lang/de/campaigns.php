@@ -153,4 +153,9 @@ return [
     'activity_completed_campaign' => 'hat eine Kampagne abgeschlossen',
     'activity_scheduled_session_for' => 'hat eine neue Sitzung geplant für',
     'activity_scheduled_session' => 'hat eine neue Sitzung geplant',
+
+    // Kampagne bearbeiten
+    'action_edit_campaign' => 'Bearbeiten',
+    'heading_edit_campaign' => 'Kampagne bearbeiten',
+    'flash_campaign_updated' => 'Kampagne erfolgreich aktualisiert.',
 ];

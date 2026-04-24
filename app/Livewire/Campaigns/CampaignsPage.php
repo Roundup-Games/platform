@@ -8,7 +8,9 @@ use App\Models\CampaignParticipant;
 use App\Notifications\CampaignCancelled;
 use App\Notifications\CampaignCompleted;
 use App\Notifications\CampaignInvitation;
+use App\Notifications\CampaignUpdated;
 use App\Notifications\ParticipantJoined;
+use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
@@ -22,11 +24,128 @@ class CampaignsPage extends Component
 {
     use WithPagination;
 
+    // ── Edit Campaign State ──────────────────────────────
+    public ?string $editingCampaignId = null;
+    public string $edit_name = '';
+    public string $edit_description = '';
+    public ?string $edit_session_duration = '';
+    public string $edit_visibility = 'private';
+
     public function mount(): void
     {
         if (Auth::guest()) {
             $this->redirect(route('discover', app()->getLocale()));
         }
+    }
+
+    // ── Edit Campaign ──────────────────────────────────────
+
+    public function editCampaign(string $id): void
+    {
+        $campaign = Campaign::findOrFail($id);
+        $this->authorize('update', $campaign);
+
+        $this->editingCampaignId = $campaign->id;
+        $this->edit_name = $campaign->name;
+        $this->edit_description = $campaign->description ?? '';
+        $this->edit_session_duration = $campaign->session_duration ? (string) $campaign->session_duration : '';
+        $this->edit_visibility = $campaign->visibility ?? 'private';
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->reset(['editingCampaignId', 'edit_name', 'edit_description', 'edit_session_duration', 'edit_visibility']);
+    }
+
+    public function saveCampaignEdit(): void
+    {
+        if ($this->editingCampaignId === null) {
+            return;
+        }
+
+        $campaign = Campaign::findOrFail($this->editingCampaignId);
+        $this->authorize('update', $campaign);
+
+        $this->validate([
+            'edit_name' => 'required|string|max:255',
+            'edit_description' => 'nullable|string|max:5000',
+            'edit_session_duration' => 'nullable|numeric|min:0.5|max:24',
+            'edit_visibility' => 'required|in:public,protected,private',
+        ]);
+
+        // Gate public visibility
+        if ($this->edit_visibility === 'public' && ! Auth::user()->can_create_public_entries) {
+            $this->edit_visibility = 'protected';
+        }
+
+        $changes = [];
+        $changedLabels = [];
+
+        if ($campaign->name !== $this->edit_name) {
+            $changes['name'] = $this->edit_name;
+            $changedLabels[] = __('campaigns.field_campaign_name');
+        }
+        if (($campaign->description ?? '') !== $this->edit_description) {
+            $changes['description'] = $this->edit_description ?: null;
+            $changedLabels[] = __('games.field_description');
+        }
+        $newDuration = $this->edit_session_duration !== '' ? (float) $this->edit_session_duration : null;
+        if ($campaign->session_duration != $newDuration) {
+            $changes['session_duration'] = $newDuration ?? 2;
+            $changedLabels[] = __('campaigns.field_duration');
+        }
+        if ($campaign->visibility !== $this->edit_visibility) {
+            $changes['visibility'] = $this->edit_visibility;
+            $changedLabels[] = __('campaigns.field_visibility');
+        }
+
+        if (empty($changes)) {
+            $this->cancelEdit();
+            return;
+        }
+
+        $campaign->fill($changes)->save();
+
+        // Log activity
+        app(ActivityLogService::class)->log(
+            \App\Enums\ActivityType::CampaignUpdated,
+            Auth::user(),
+            $campaign,
+            ['changed_fields' => $changedLabels],
+        );
+
+        Log::info('Campaign updated', [
+            'campaign_id' => $campaign->id,
+            'owner_id' => $campaign->owner_id,
+            'changed_fields' => $changedLabels,
+        ]);
+
+        // Notify participants (excluding owner)
+        if (! empty($changedLabels)) {
+            try {
+                $participants = $campaign->participants()
+                    ->where('status', 'approved')
+                    ->where('user_id', '!=', $campaign->owner_id)
+                    ->with('user')
+                    ->get();
+
+                foreach ($participants as $participant) {
+                    app(NotificationService::class)->send(
+                        $participant->user,
+                        new CampaignUpdated($campaign, $changedLabels),
+                        NotificationCategory::CampaignUpdated,
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.campaign_updated_dispatch_failed', [
+                    'campaign_id' => $campaign->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->cancelEdit();
+        session()->flash('success', __('campaigns.flash_campaign_updated'));
     }
 
     public function render()
