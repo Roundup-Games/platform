@@ -3,7 +3,21 @@
 @endphp
 
 <div
-    x-data="{ open: false }"
+    x-data="{
+        open: false,
+        dropdownStyle: {},
+        updatePosition() {
+            const btn = this.$refs.button;
+            if (!btn) return;
+            const rect = btn.getBoundingClientRect();
+            this.dropdownStyle = {
+                position: 'fixed',
+                top: (rect.bottom + 8) + 'px',
+                left: Math.max(8, rect.left - 40) + 'px',
+                width: '320px',
+            };
+        }
+    }"
     @click.away="open = false"
     @keydown.escape="open = false"
     class="relative"
@@ -11,7 +25,8 @@
 >
     {{-- Bell Button --}}
     <button
-        @click="open = !open"
+        x-ref="button"
+        @click="open = !open; if (open) updatePosition()"
         class="relative flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm transition-all duration-200 text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium"
         aria-label="{{ __('notifications.bell_label', ['count' => $unreadCount]) }}"
         aria-haspopup="true"
@@ -36,7 +51,8 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         x-cloak
-        class="absolute left-full top-0 ml-2 w-80 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/15 z-50 overflow-hidden"
+        :style="dropdownStyle"
+        class="bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/15 z-50 overflow-hidden"
         role="menu"
     >
         {{-- Header --}}
