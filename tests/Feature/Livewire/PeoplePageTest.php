@@ -126,7 +126,7 @@ class PeoplePageTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
             ->call('unfollow', $followed->id)
-            ->assertSee('You unfollowed To Unfollow.');
+            ->assertSee(__('common.flash_unfollowed', ['name' => 'To Unfollow']));
 
         $this->assertFalse($this->user->fresh()->isFollowing($followed));
     }
@@ -216,7 +216,7 @@ class PeoplePageTest extends TestCase
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'followers')
             ->call('followBack', $follower->id)
-            ->assertSee('You are now following To Follow Back.');
+            ->assertSee(__('common.flash_now_following', ['name' => 'To Follow Back']));
 
         $this->assertTrue($this->user->fresh()->isFollowing($follower));
     }
@@ -231,7 +231,7 @@ class PeoplePageTest extends TestCase
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'followers')
             ->call('removeFollower', $follower->id)
-            ->assertSee('You removed To Remove from your followers.');
+            ->assertSee(__('common.flash_follower_removed', ['name' => 'To Remove']));
 
         // The follower's follow to us should be gone
         $this->assertFalse($follower->fresh()->isFollowing($this->user));
@@ -246,7 +246,7 @@ class PeoplePageTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'blocked')
-            ->assertSee("You haven't blocked anyone");
+            ->assertSee(__('people.content_you_haven_t_blocked_anyone'));
     }
 
     public function test_blocked_tab_lists_blocked_users(): void
@@ -272,7 +272,7 @@ class PeoplePageTest extends TestCase
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'blocked')
             ->call('unblock', $blocked->id)
-            ->assertSee('You unblocked To Unblock.');
+            ->assertSee(__('common.flash_user_unblocked', ['name' => 'To Unblock']));
 
         $this->assertFalse($this->user->fresh()->hasBlocked($blocked));
     }

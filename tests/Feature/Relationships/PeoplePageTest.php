@@ -107,7 +107,7 @@ describe('PeoplePage following tab', function () {
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
             ->call('unfollow', $target->id)
-            ->assertSee('You unfollowed To Unfollow.');
+            ->assertSee(__('common.flash_unfollowed', ['name' => 'To Unfollow']));
 
         expect($user->fresh()->isFollowing($target))->toBeFalse();
     });
@@ -192,7 +192,7 @@ describe('PeoplePage followers tab', function () {
             ->test(PeoplePage::class)
             ->set('activeTab', 'followers')
             ->call('followBack', $follower->id)
-            ->assertSee('You are now following Follow Back.');
+            ->assertSee(__('common.flash_now_following', ['name' => 'Follow Back']));
 
         expect($user->fresh()->isFollowing($follower))->toBeTrue();
     });
@@ -207,7 +207,7 @@ describe('PeoplePage followers tab', function () {
             ->test(PeoplePage::class)
             ->set('activeTab', 'followers')
             ->call('removeFollower', $follower->id)
-            ->assertSee('You removed Remove Me from your followers.');
+            ->assertSee(__('common.flash_follower_removed', ['name' => 'Remove Me']));
 
         expect($follower->fresh()->isFollowing($user))->toBeFalse();
         expect($user->fresh()->isFollowing($follower))->toBeTrue();
@@ -225,7 +225,7 @@ describe('PeoplePage blocked tab', function () {
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
             ->set('activeTab', 'blocked')
-            ->assertSee("You haven't blocked anyone");
+            ->assertSee(__('people.content_you_haven_t_blocked_anyone'));
     });
 
     it('lists blocked users with Unblock button', function () {
@@ -249,7 +249,7 @@ describe('PeoplePage blocked tab', function () {
             ->test(PeoplePage::class)
             ->set('activeTab', 'blocked')
             ->call('unblock', $blocked->id)
-            ->assertSee('You unblocked To Unblock.');
+            ->assertSee(__('common.flash_user_unblocked', ['name' => 'To Unblock']));
 
         expect($user->fresh()->hasBlocked($blocked))->toBeFalse();
     });

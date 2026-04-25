@@ -28,6 +28,7 @@ return [
     'action_open_to_all' => 'Offen für alle',
     'action_publish' => 'Veröffentlichen',
     'action_publish_immediately' => 'Sofort veröffentlichen',
+    'action_loading' => 'Laden...',
     'action_reject' => 'Ablehnen',
     'action_remove' => 'Entfernen',
     'action_save_changes' => 'Änderungen speichern',
@@ -291,6 +292,11 @@ return [
     // Shared by ManageParticipants trait (games + campaigns)
     'error_this_user_is_already_a' => 'Dieser Benutzer ist bereits Teilnehmer oder hat eine ausstehende Einladung.',
     'flash_participant_removed' => 'Teilnehmer entfernt.',
+    'flash_now_following' => 'Du folgst jetzt :name.',
+    'flash_unfollowed' => 'Du folgst :name nicht mehr.',
+    'flash_follower_removed' => 'Du hast :name aus deinen Followern entfernt.',
+    'flash_user_blocked' => 'Du hast :name blockiert.',
+    'flash_user_unblocked' => 'Du hast :name entblockiert.',
 
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Teilnehmer',

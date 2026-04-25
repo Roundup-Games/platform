@@ -82,7 +82,7 @@ class PublicProfile extends Component
         $this->isFriend = $viewer->isFollowedBy($this->profileUser);
         $this->followerCount = $this->profileUser->followers()->count();
 
-        session()->flash('success', 'You are now following ' . $this->profileUser->name . '.');
+        session()->flash('success', __('common.flash_now_following', ['name' => $this->profileUser->name]));
     }
 
     public function unfollow(): void
@@ -97,7 +97,7 @@ class PublicProfile extends Component
         $this->isFriend = false;
         $this->followerCount = $this->profileUser->followers()->count();
 
-        session()->flash('success', 'You unfollowed ' . $this->profileUser->name . '.');
+        session()->flash('success', __('common.flash_unfollowed', ['name' => $this->profileUser->name]));
     }
 
     public function block(): void
@@ -115,7 +115,7 @@ class PublicProfile extends Component
         $this->followerCount = $this->profileUser->followers()->count();
         $this->followingCount = $this->profileUser->followings()->count();
 
-        session()->flash('success', 'You blocked ' . $this->profileUser->name . '.');
+        session()->flash('success', __('common.flash_user_blocked', ['name' => $this->profileUser->name]));
     }
 
     public function unblock(): void
@@ -132,7 +132,7 @@ class PublicProfile extends Component
         $this->isFollowedBy = $viewer->isFollowedBy($this->profileUser);
         $this->isFriend = $viewer->isFriend($this->profileUser);
 
-        session()->flash('success', 'You unblocked ' . $this->profileUser->name . '.');
+        session()->flash('success', __('common.flash_user_unblocked', ['name' => $this->profileUser->name]));
     }
 
     public function loadMoreReviews(): void

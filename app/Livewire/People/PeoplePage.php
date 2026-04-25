@@ -162,7 +162,7 @@ class PeoplePage extends Component
         UserRelationship::unfollow($this->authUser, $target);
         unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount);
 
-        session()->flash('success', 'You unfollowed ' . $target->name . '.');
+        session()->flash('success', __('common.flash_unfollowed', ['name' => $target->name]));
     }
 
     public function followBack(int $userId): void
@@ -175,7 +175,7 @@ class PeoplePage extends Component
         UserRelationship::follow($this->authUser, $target);
         unset($this->followingUsers, $this->followerUsers, $this->followingCount, $this->followersCount);
 
-        session()->flash('success', 'You are now following ' . $target->name . '.');
+        session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));
     }
 
     public function removeFollower(int $userId): void
@@ -193,7 +193,7 @@ class PeoplePage extends Component
 
         unset($this->followerUsers, $this->followersCount, $this->followingCount);
 
-        session()->flash('success', 'You removed ' . $target->name . ' from your followers.');
+        session()->flash('success', __('common.flash_follower_removed', ['name' => $target->name]));
     }
 
     public function unblock(int $userId): void
@@ -206,7 +206,7 @@ class PeoplePage extends Component
         UserRelationship::unblock($this->authUser, $target);
         unset($this->blockedUsers, $this->blockedCount);
 
-        session()->flash('success', 'You unblocked ' . $target->name . '.');
+        session()->flash('success', __('common.flash_user_unblocked', ['name' => $target->name]));
     }
 
     public function followFromNearby(int $userId): void
@@ -221,7 +221,7 @@ class PeoplePage extends Component
         // follow() now handles cache invalidation + dispatch internally
         unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
 
-        session()->flash('success', 'You are now following ' . $target->name . '.');
+        session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));
     }
 
     // ── Helpers ──────────────────────────────────────

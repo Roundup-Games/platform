@@ -68,6 +68,7 @@ return [
     'content_start_a_recurring_campaign_sessions' => 'Starte eine wiederkehrende Kampagne — Sitzungen werden aus deinem Zeitplan erstellt.',
     'content_transparent_sessions' => 'Transparente Sessions',
     'content_weekly' => 'Wöchentlich',
+    'content_bi-weekly' => 'Alle 2 Wochen',
     'content_your_session_appears_in_discovery' => 'Deine Session erscheint im Entdecken-Bereich für Spieler in der Nähe, die zu deinem Spiel passen. Sie melden sich an, du bestätigst (oder lässt sie automatisch rein), und alle erscheinen spielbereit.',
     'content_your_sessions_appear_in_discovery' => 'Deine Sessions erscheinen im Entdecken-Feed für Spieler in deiner Nähe, die deine Spiele lieben. Standortbasiertes Matching bedeutet: Die richtigen Leute finden deinen Tisch, ohne dass du einen Finger rühren musst.',
     'field_campaign_name' => 'Kampagnenname *',

@@ -68,6 +68,7 @@ return [
     'content_start_a_recurring_campaign_sessions' => 'Start a recurring campaign — sessions will be created from your schedule.',
     'content_transparent_sessions' => 'Transparent sessions',
     'content_weekly' => 'Weekly',
+    'content_bi-weekly' => 'Bi-weekly',
     'content_your_session_appears_in_discovery' => 'Your session appears in discovery for nearby players who match your game. They sign up, you approve (or let them in automatically), and everyone shows up ready to play.',
     'content_your_sessions_appear_in_discovery' => 'Your sessions appear in discovery feeds for players near you who love the games you run. Location-based matching means the right people find your table without you lifting a finger.',
     'field_campaign_name' => 'Campaign Name *',

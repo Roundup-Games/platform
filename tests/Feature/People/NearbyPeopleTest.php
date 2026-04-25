@@ -166,7 +166,7 @@ class NearbyPeopleTest extends TestCase
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'nearby')
             ->call('followFromNearby', $nearby->id)
-            ->assertSee('You are now following Follow Target.');
+            ->assertSee(__('common.flash_now_following', ['name' => 'Follow Target']));
 
         $this->assertTrue($this->user->fresh()->isFollowing($nearby));
     }

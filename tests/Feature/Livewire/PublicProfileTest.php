@@ -341,7 +341,7 @@ describe('Session flash feedback', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->call('follow')
-            ->assertSee('You are now following Alice');
+            ->assertSee(__('common.flash_now_following', ['name' => 'Alice']));
     });
 
     it('flashes success after unfollow', function () {
@@ -352,7 +352,7 @@ describe('Session flash feedback', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->call('unfollow')
-            ->assertSee('You unfollowed Bob');
+            ->assertSee(__('common.flash_unfollowed', ['name' => 'Bob']));
     });
 
     it('flashes success after block', function () {
@@ -362,7 +362,7 @@ describe('Session flash feedback', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->call('block')
-            ->assertSee('You blocked Charlie');
+            ->assertSee(__('common.flash_user_blocked', ['name' => 'Charlie']));
     });
 
     it('flashes success after unblock', function () {
@@ -373,7 +373,7 @@ describe('Session flash feedback', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->call('unblock')
-            ->assertSee('You unblocked Dana');
+            ->assertSee(__('common.flash_user_unblocked', ['name' => 'Dana']));
     });
 });
 
