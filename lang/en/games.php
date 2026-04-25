@@ -244,4 +244,13 @@ return [
     'field_location' => 'Location',
     'field_visibility' => 'Visibility',
     'flash_game_updated' => 'Game updated successfully.',
+
+    // Game system info card (shared partial)
+    'action_show_game_system_details' => 'Show game system details',
+    'action_view_full_details' => 'View full details',
+    'action_view_full_system_page' => 'Explore :name',
+    'action_watch_tutorial' => 'Watch tutorial',
+    'action_visit' => 'Visit',
+    'field_year' => 'Year',
+    'content_expansions_count' => '{1}One expansion|[2,*]:count expansions',
 ];

@@ -56,7 +56,11 @@ class CampaignDetail extends Component
     {
         $this->campaign->load([
             'owner',
-            'gameSystem',
+            'gameSystem.categories',
+            'gameSystem.mechanics',
+            'gameSystem.publishers',
+            'gameSystem.baseGame',
+            'gameSystem.expansions',
             'participants.user',
             'applications.user',
             'sessions' => fn ($q) => $q->orderBy('date_time')->limit(10),

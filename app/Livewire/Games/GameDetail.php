@@ -57,7 +57,11 @@ class GameDetail extends Component
         $this->game->load([
             'owner',
             'campaign',
-            'gameSystem',
+            'gameSystem.categories',
+            'gameSystem.mechanics',
+            'gameSystem.publishers',
+            'gameSystem.baseGame',
+            'gameSystem.expansions',
             'participants.user',
             'applications.user',
         ]);

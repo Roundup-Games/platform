@@ -244,4 +244,13 @@ return [
     'field_location' => 'Ort',
     'field_visibility' => 'Sichtbarkeit',
     'flash_game_updated' => 'Spiel erfolgreich aktualisiert.',
+
+    // Game-System-Info-Karte (shared partial)
+    'action_show_game_system_details' => 'Game-System-Details anzeigen',
+    'action_view_full_details' => 'Alle Details ansehen',
+    'action_view_full_system_page' => ':name entdecken',
+    'action_watch_tutorial' => 'Tutorial ansehen',
+    'action_visit' => 'Besuchen',
+    'field_year' => 'Jahr',
+    'content_expansions_count' => '{1}Eine Erweiterung|[2,*]:count Erweiterungen',
 ];
