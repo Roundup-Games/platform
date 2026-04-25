@@ -15,7 +15,7 @@ class Campaign extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'owner_id', 'game_system_id', 'name', 'description', 'images',
+        'owner_id', 'game_system_id', 'location_id', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
@@ -55,6 +55,11 @@ class Campaign extends Model
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);
+    }
+
+    public function linkedLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     public function sessions(): HasMany

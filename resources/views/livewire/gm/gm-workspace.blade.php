@@ -25,7 +25,7 @@
         <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">calendar_upcoming</span>
+                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">event_upcoming</span>
                     <h3 class="font-heading font-semibold text-on-surface">{{ __('gws.heading_upcoming_sessions') }}</h3>
                 </div>
                 @if($upcomingSessions->count())

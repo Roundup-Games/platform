@@ -1063,11 +1063,11 @@ describe('Privacy Settings', function () {
             ->test(Show::class)
             ->assertSet('privacySettings', [
                 'location' => 'everyone',
-                'game_systems' => 'everyone',
-                'vibes' => 'everyone',
-                'campaigns' => 'everyone',
-                'teams' => 'everyone',
-                'friends_list' => 'everyone',
+                'game_systems' => 'friends',
+                'vibes' => 'friends',
+                'campaigns' => 'friends',
+                'teams' => 'friends',
+                'friends_list' => 'friends',
             ]);
     });
 
@@ -1107,11 +1107,11 @@ describe('Privacy Settings', function () {
             ->test(Show::class)
             ->assertSet('privacySettings.location', 'nobody')
             ->assertSet('privacySettings.friends_list', 'friends')
-            // Fields not in the stored settings should default to 'everyone'
-            ->assertSet('privacySettings.game_systems', 'everyone')
-            ->assertSet('privacySettings.vibes', 'everyone')
-            ->assertSet('privacySettings.campaigns', 'everyone')
-            ->assertSet('privacySettings.teams', 'everyone');
+            // Fields not in the stored settings should default to 'friends' (location → 'everyone')
+            ->assertSet('privacySettings.game_systems', 'friends')
+            ->assertSet('privacySettings.vibes', 'friends')
+            ->assertSet('privacySettings.campaigns', 'friends')
+            ->assertSet('privacySettings.teams', 'friends');
     });
 
     it('saves privacy settings to user model', function () {

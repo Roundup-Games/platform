@@ -6,6 +6,7 @@ use App\Enums\ContentLanguage;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Services\GeocodingService;
+use App\Services\ProfileVisibilityResolver;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -291,6 +292,10 @@ class CompleteProfile extends Component
             'phone' => $this->phone ?: null,
             'preferred_language' => $preferredLanguage,
             'location_id' => $locationId,
+            'privacy_settings' => collect(ProfileVisibilityResolver::FIELDS)
+                ->mapWithKeys(fn ($field) => [
+                    $field => $field === 'location' ? 'everyone' : 'friends',
+                ])->toArray(),
             'profile_complete' => true,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),

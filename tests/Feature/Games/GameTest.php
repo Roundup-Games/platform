@@ -311,7 +311,6 @@ describe('CreateGame Component', function () {
             ->set('expected_duration', '4')
             ->set('price', '15.00')
             ->set('language', 'en')
-            ->set('location_details', 'Game Store, 456 Oak Ave')
             ->set('visibility', 'protected')
             ->call('save')
             ->assertRedirect();
@@ -426,20 +425,19 @@ describe('CreateGame Component', function () {
             ->assertHasErrors(['description' => 'max']);
     });
 
-    it('stores location as JSON', function () {
+    it('stores location_id from LocationPicker', function () {
         $user = gameTestCreateUserWithPermission();
+        $location = \App\Models\Location::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Location Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('location_details', 'Both online and at the store')
+            ->set('location_id', $location->id)
             ->call('save');
 
         $game = Game::where('name', 'Location Test')->first();
-        expect($game->location)->toBe([
-            'details' => 'Both online and at the store',
-        ]);
+        expect($game->location_id)->toBe($location->id);
     });
 
     it('flashes success message on creation', function () {
@@ -1526,12 +1524,12 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateGame — Visibility Gating', function () {
-    it('defaults visibility to private', function () {
+    it('defaults visibility to protected', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
-            ->assertSet('visibility', 'private');
+            ->assertSet('visibility', 'protected');
     });
 
     it('allows public visibility when user has can_create_public_entries', function () {

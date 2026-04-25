@@ -17,6 +17,7 @@
                 </label>
                 <input type="text" id="lp-address" wire:model="address" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
                        class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
+                <p class="mt-1 text-xs text-on-surface-variant">{{ __('location.hint_address_private') }}</p>
             </div>
 
             <button wire:click="findMyLocation"

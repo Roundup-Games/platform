@@ -99,7 +99,8 @@ class Show extends Component
         // Initialize privacy settings with defaults for unset fields
         $storedSettings = $user->privacy_settings ?? [];
         foreach (ProfileVisibilityResolver::FIELDS as $field) {
-            $this->privacySettings[$field] = $storedSettings[$field] ?? 'everyone';
+            $default = $field === 'location' ? 'everyone' : 'friends';
+            $this->privacySettings[$field] = $storedSettings[$field] ?? $default;
         }
 
         // Initialize notification settings from stored preferences or defaults

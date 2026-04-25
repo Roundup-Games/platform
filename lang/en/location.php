@@ -30,5 +30,6 @@ return [
     'error_please_confirm_your_location_to_continue' => 'Please confirm your location to continue.',
     'placeholder_search_for_a_city_or_address' => 'Search for a city or address...',
     'placeholder_street_address_neighborhood' => 'Street address, neighborhood',
+    'hint_address_private' => 'Only your city is shared with other players. Your address stays private.',
     'content_we_think_you_re_in_city_is_that_right' => 'We think you\'re in :city — is that right?',
 ];

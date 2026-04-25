@@ -239,7 +239,6 @@ describe('CreateGame', function () {
             ->set('expected_duration', '3')
             ->set('price', '5.00')
             ->set('visibility', 'public')
-            ->set('location_details', 'https://roll20.net/join/123')
             ->call('save')
             ->assertRedirect();
 
@@ -327,18 +326,19 @@ describe('CreateGame', function () {
         ]);
     });
 
-    it('stores location as json with type and details', function () {
+    it('stores location_id from LocationPicker', function () {
         $user = gameCrudCreateUserWithPermission();
+        $location = \App\Models\Location::factory()->create();
 
         Livewire\Livewire::actingAs($user)
             ->test(App\Livewire\Games\CreateGame::class)
             ->set('name', 'Located Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
-            ->set('location_details', 'https://example.com/vtt')
+            ->set('location_id', $location->id)
             ->call('save');
 
         $game = Game::where('name', 'Located Game')->first();
-        expect($game->location)->toBe(['details' => 'https://example.com/vtt']);
+        expect($game->location_id)->toBe($location->id);
     });
 
     it('defaults game_type to board_game', function () {

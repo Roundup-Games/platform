@@ -21,6 +21,8 @@ class CreateCampaign extends Component
 
     public ?int $game_system_id = null;
 
+    public ?int $location_id = null;
+
     public string $description = '';
 
     public string $recurrence = 'weekly';
@@ -55,6 +57,7 @@ class CreateCampaign extends Component
         return [
             'name' => 'required|string|max:255',
             'game_system_id' => 'nullable|exists:game_systems,id',
+            'location_id' => 'nullable|integer|exists:locations,id',
             'description' => 'nullable|string|max:10000',
             'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
             'time_of_day' => 'required|date_format:H:i',
@@ -72,6 +75,18 @@ class CreateCampaign extends Component
     }
 
     // ── Event Listeners ──────────────────────────────────
+
+    #[On('location-selected')]
+    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
+    {
+        $this->location_id = $locationId;
+    }
+
+    #[On('location-removed')]
+    public function onLocationRemoved(): void
+    {
+        $this->location_id = null;
+    }
 
     #[On('vibe-preferences-changed')]
     public function onVibePreferencesChanged(array $preferences): void
@@ -171,6 +186,7 @@ class CreateCampaign extends Component
         $campaign = Campaign::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
+            'location_id' => $this->location_id,
             'name' => $validated['name'],
             'description' => $validated['description'],
             'recurrence' => $validated['recurrence'],

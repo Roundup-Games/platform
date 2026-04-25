@@ -31,4 +31,5 @@ return [
     'error_please_confirm_your_location_to_continue' => 'Bitte bestätige deinen Standort, um fortzufahren.',
     'placeholder_search_for_a_city_or_address' => 'Stadt oder Adresse suchen...',
     'placeholder_street_address_neighborhood' => 'Straße, Hausnummer, Stadtteil',
+    'hint_address_private' => 'Nur deine Stadt wird für andere Spieler sichtbar sein. Deine Adresse bleibt privat.',
 ];

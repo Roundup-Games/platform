@@ -34,9 +34,9 @@ class CreateGame extends Component
 
     public string $language = 'en';
 
-    public string $location_details = '';
+    public ?int $location_id = null;
 
-    public string $visibility = 'private';
+    public string $visibility = 'protected';
 
     public array $minimum_requirements = [];
 
@@ -64,7 +64,7 @@ class CreateGame extends Component
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
             'price' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
-            'location_details' => 'nullable|string|max:1000',
+            'location_id' => 'nullable|integer|exists:locations,id',
             'visibility' => 'required|in:public,protected,private',
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
@@ -76,6 +76,18 @@ class CreateGame extends Component
     }
 
     // ── Event Listeners ──────────────────────────────────
+
+    #[On('location-selected')]
+    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
+    {
+        $this->location_id = $locationId;
+    }
+
+    #[On('location-removed')]
+    public function onLocationRemoved(): void
+    {
+        $this->location_id = null;
+    }
 
     #[On('vibe-preferences-changed')]
     public function onVibePreferencesChanged(array $preferences): void
@@ -204,9 +216,8 @@ class CreateGame extends Component
             'expected_duration' => $validated['expected_duration'] ?: 2,
             'price' => $validated['price'] ?: 0,
             'language' => $validated['language'],
-            'location' => [
-                'details' => $validated['location_details'],
-            ],
+            'location_id' => $this->location_id,
+            'location' => ['details' => ''],
             'status' => 'scheduled',
             'visibility' => $validated['visibility'],
             'minimum_requirements' => $validated['minimum_requirements'] ?: null,
