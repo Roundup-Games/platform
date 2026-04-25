@@ -122,7 +122,7 @@ describe('NotificationCategory', function () {
         }
 
         // Mail OFF: informational events
-        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined', 'game_completed', 'campaign_completed'];
+        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined'];
         foreach ($mailOff as $cat) {
             expect($settings[$cat]['mail'])->toBeFalse("{$cat} should default mail=false");
         }
@@ -142,9 +142,9 @@ describe('NotificationCategory', function () {
             'participant_removed' => ['database' => true, 'mail' => true],
             'team_member_removed' => ['database' => true, 'mail' => true],
             'game_cancelled' => ['database' => true, 'mail' => true],
-            'game_completed' => ['database' => true, 'mail' => false],
+            'game_completed' => ['database' => true, 'mail' => true],
             'campaign_cancelled' => ['database' => true, 'mail' => true],
-            'campaign_completed' => ['database' => true, 'mail' => false],
+            'campaign_completed' => ['database' => true, 'mail' => true],
             'game_updated' => ['database' => true, 'mail' => true],
             'campaign_updated' => ['database' => true, 'mail' => true],
             'review_reported' => ['database' => true, 'mail' => true],

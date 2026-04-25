@@ -47,6 +47,12 @@ return [
     'channel_in_app' => 'In-App',
     'channel_email' => 'Email',
 
+    // Trinary state labels
+    'state_off' => 'Off',
+    'state_in_app' => 'In-App',
+    'state_all' => 'All',
+    'hint_preference_states' => 'Choose how you want to be notified for each category. "In-App" shows notifications in the bell icon. "All" also sends email.',
+
     // Common email strings
     'email_brand_name' => 'Roundup Games',
     'email_default_subject' => 'Notification from Roundup Games',

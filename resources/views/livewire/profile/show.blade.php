@@ -458,10 +458,17 @@
                     </div>
                 @endif
 
+                {{-- Legend --}}
+                <div class="bg-primary/5 border border-primary/10 rounded-xl p-4 flex gap-3">
+                    <span class="material-symbols-outlined text-lg text-primary mt-0.5 shrink-0" aria-hidden="true">info</span>
+                    <p class="text-sm text-on-surface-variant">{{ __('notifications.hint_preference_states') }}</p>
+                </div>
+
                 @php
-                    $channelLabels = [
-                        'database' => __('notifications.channel_in_app'),
-                        'mail' => __('notifications.channel_email'),
+                    $states = [
+                        'off'    => ['label' => __('notifications.state_off'),    'icon' => 'notifications_off'],
+                        'inapp'  => ['label' => __('notifications.state_in_app'), 'icon' => 'notifications'],
+                        'all'    => ['label' => __('notifications.state_all'),    'icon' => 'notifications_active'],
                     ];
                 @endphp
 
@@ -472,28 +479,35 @@
                         </h2>
                         <div class="space-y-2">
                             @foreach($group['options'] as $categoryValue => $categoryLabel)
+                                @php
+                                    $db = $notificationSettings[$categoryValue]['database'] ?? true;
+                                    $mail = $notificationSettings[$categoryValue]['mail'] ?? false;
+                                    $currentState = (!$db && !$mail) ? 'off' : ($db && !$mail ? 'inapp' : 'all');
+                                @endphp
                                 <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg gap-3">
-                                    <span class="text-sm font-medium text-on-surface">{{ $categoryLabel }}</span>
-                                    <div class="flex items-center gap-3">
-                                        @foreach(['database', 'mail'] as $channel)
+                                    <span class="text-sm font-medium text-on-surface min-w-0">{{ $categoryLabel }}</span>
+                                    <div class="flex rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
+                                        @foreach($states as $stateKey => $state)
                                             @php
-                                                $isEnabled = $notificationSettings[$categoryValue][$channel] ?? true;
+                                                $isActive = $currentState === $stateKey;
                                             @endphp
                                             <button type="button"
-                                                    wire:click="$toggle('notificationSettings.{{ $categoryValue }}.{{ $channel }}')"
+                                                    @if($stateKey === 'off')
+                                                        wire:click="$set('notificationSettings.{{ $categoryValue }}.database', false); $set('notificationSettings.{{ $categoryValue }}.mail', false)"
+                                                    @elseif($stateKey === 'inapp')
+                                                        wire:click="$set('notificationSettings.{{ $categoryValue }}.database', true); $set('notificationSettings.{{ $categoryValue }}.mail', false)"
+                                                    @else
+                                                        wire:click="$set('notificationSettings.{{ $categoryValue }}.database', true); $set('notificationSettings.{{ $categoryValue }}.mail', true)"
+                                                    @endif
                                                     @class([
-                                                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-secondary/20',
-                                                        'bg-primary' => $isEnabled,
-                                                        'bg-surface-container-high' => !$isEnabled,
+                                                        'px-2 sm:px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1',
+                                                        'bg-primary text-on-primary' => $isActive,
+                                                        'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => !$isActive,
                                                     ])
-                                                    role="switch"
-                                                    aria-checked="{{ $isEnabled ? 'true' : 'false' }}"
-                                                    aria-label="{{ $categoryLabel . ' — ' . $channelLabels[$channel] }}">
-                                                <span @class([
-                                                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                                                    'translate-x-6' => $isEnabled,
-                                                    'translate-x-1' => !$isEnabled,
-                                                ])></span>
+                                                    aria-label="{{ $categoryLabel }} — {{ $state['label'] }}"
+                                                    :aria-pressed="{{ $isActive ? 'true' : 'false' }}">
+                                                <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $state['icon'] }}</span>
+                                                <span class="hidden sm:inline">{{ $state['label'] }}</span>
                                             </button>
                                         @endforeach
                                     </div>

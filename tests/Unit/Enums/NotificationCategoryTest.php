@@ -93,15 +93,16 @@ describe('NotificationCategory Unit Tests', function () {
             'game_invitation', 'campaign_invitation', 'team_invitation',
             'new_application', 'application_approved', 'application_rejected',
             'participant_removed', 'team_member_removed',
-            'game_cancelled', 'campaign_cancelled',
+            'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
+            'review_reported',
         ];
         foreach ($mailOn as $cat) {
             expect($settings[$cat]['mail'])->toBeTrue("{$cat} should default mail=true");
         }
 
         // Informational events: mail OFF
-        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined', 'game_completed', 'campaign_completed'];
+        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined'];
         foreach ($mailOff as $cat) {
             expect($settings[$cat]['mail'])->toBeFalse("{$cat} should default mail=false");
         }
