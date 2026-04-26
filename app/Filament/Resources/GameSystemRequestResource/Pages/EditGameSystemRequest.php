@@ -4,14 +4,17 @@ namespace App\Filament\Resources\GameSystemRequestResource\Pages;
 
 use App\Exceptions\BggApiException;
 use App\Filament\Resources\GameSystemRequestResource;
+use App\Models\GameSystem;
 use App\Services\BggClient;
+use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 
 class EditGameSystemRequest extends EditRecord
@@ -117,6 +120,41 @@ class EditGameSystemRequest extends EditRecord
                         }),
                     $action->getModalCancelAction(),
                 ]),
+
+            // ── Approve Action ─────────────────────────────
+
+            Action::make('approve')
+                ->label('Approve')
+                ->icon(Heroicon::OutlinedCheckCircle)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Approve Game System Request')
+                ->modalDescription(fn () => $this->selectedBggId
+                    ? "This will sync BGG ID {$this->selectedBggId} (\"{$this->selectedBggName}\") and create a GameSystem in the catalog."
+                    : 'This will create a GameSystem from the request data (manual entry).')
+                ->schema(fn () => $this->getApproveSchema())
+                ->modalSubmitActionLabel('Approve')
+                ->action(function (array $data) {
+                    $this->performApproval($data);
+                })
+                ->visible(fn () => $this->record?->status !== 'approved'),
+
+            // ── Sync Base Game Action (for expansions missing base) ──
+
+            Action::make('syncBaseGame')
+                ->label('Sync Base Game')
+                ->icon(Heroicon::OutlinedArrowPath)
+                ->color('warning')
+                ->visible(fn () => $this->shouldShowSyncBaseGame())
+                ->requiresConfirmation()
+                ->modalHeading('Sync Missing Base Game')
+                ->modalDescription(fn () => $this->record?->gameSystem
+                    ? "This expansion's base game (BGG ID: {$this->record->gameSystem->bgg_id}) is not in the catalog. Sync it now?"
+                    : 'Sync the base game for this expansion.')
+                ->modalSubmitActionLabel('Sync Base Game')
+                ->action(function () {
+                    $this->performBaseGameSync();
+                }),
         ];
     }
 
@@ -193,5 +231,216 @@ class EditGameSystemRequest extends EditRecord
             . '</table>'
             . '</div>'
         );
+    }
+
+    // ── Approve Helpers ─────────────────────────────────
+
+    /**
+     * Build the form schema for the approve modal.
+     * For BGG-synced approvals, shows the selected game info and an optional
+     * "sync base game too" checkbox for expansions missing their base game.
+     */
+    protected function getApproveSchema(): array
+    {
+        $schema = [];
+
+        if ($this->selectedBggId) {
+            $schema[] = Placeholder::make('approve_bgg_summary')
+                ->label('BGG Sync Target')
+                ->content(new HtmlString(
+                    '<div class="text-sm">'
+                    . '<strong>' . e($this->selectedBggName) . '</strong>'
+                    . ' <span class="text-gray-500">(BGG ID: ' . $this->selectedBggId . ')</span>'
+                    . '</div>'
+                ));
+        } else {
+            $schema[] = Placeholder::make('approve_manual_summary')
+                ->label('Manual Entry')
+                ->content(new HtmlString(
+                    '<div class="text-sm text-gray-600 dark:text-gray-400">'
+                    . 'No BGG game selected. A GameSystem will be created from the request data: '
+                    . '<strong>' . e($this->record?->name) . '</strong>'
+                    . '</div>'
+                ));
+        }
+
+        return $schema;
+    }
+
+    /**
+     * Execute the approval: sync from BGG or create manually, then update request.
+     */
+    protected function performApproval(array $data): void
+    {
+        $request = $this->record;
+        $gameSystem = null;
+
+        try {
+            if ($this->selectedBggId) {
+                // BGG-synced approval
+                $gameSystem = $this->syncFromBgg($this->selectedBggId);
+            } else {
+                // Manual approval — create GameSystem from request data
+                $gameSystem = $this->createManualGameSystem($request);
+            }
+
+            // Update the request
+            $request->update([
+                'status' => 'approved',
+                'game_system_id' => $gameSystem->id,
+                'reviewed_by' => auth()->id(),
+            ]);
+
+            Log::info('GameSystemRequest approved', [
+                'request_id' => $request->id,
+                'request_name' => $request->name,
+                'game_system_id' => $gameSystem->id,
+                'bgg_id' => $this->selectedBggId,
+                'reviewed_by' => auth()->id(),
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Request approved')
+                ->body("GameSystem \"{$gameSystem->name}\" has been created in the catalog.")
+                ->send();
+
+            $this->refreshForm();
+
+        } catch (\Throwable $e) {
+            Log::error('GameSystemRequest approval failed', [
+                'request_id' => $request->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Approval failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Sync a GameSystem from BGG using BggSyncService.
+     */
+    protected function syncFromBgg(int $bggId): GameSystem
+    {
+        $result = app(BggSyncService::class)->syncGameSystems([$bggId]);
+
+        if ($result['failed'] > 0 && $result['synced'] === 0) {
+            throw new \RuntimeException(
+                'BGG sync failed: ' . implode('; ', $result['errors'])
+            );
+        }
+
+        $gameSystem = GameSystem::where('bgg_id', $bggId)->first();
+
+        if (! $gameSystem) {
+            throw new \RuntimeException("BGG sync completed but GameSystem not found for bgg_id={$bggId}.");
+        }
+
+        return $gameSystem;
+    }
+
+    /**
+     * Create a GameSystem manually from the request data (non-BGG).
+     */
+    protected function createManualGameSystem(GameSystemRequest $request): GameSystem
+    {
+        return GameSystem::create([
+            'name' => $request->name,
+            'slug' => \Illuminate\Support\Str::slug($request->name),
+            'description' => $request->notes ?? '',
+            'type' => $request->type ?? 'boardgame',
+            'year_released' => null,
+            'source' => 'manual',
+        ]);
+    }
+
+    /**
+     * Whether to show the "Sync Base Game" action.
+     * Shown when the request is approved, has a linked GameSystem that is
+     * an expansion (bgg_type=boardgameexpansion) with no base_game_id.
+     */
+    protected function shouldShowSyncBaseGame(): bool
+    {
+        $gs = $this->record?->gameSystem;
+
+        if (! $gs) {
+            return false;
+        }
+
+        return $gs->bgg_type === 'boardgameexpansion'
+            && $gs->base_game_id === null;
+    }
+
+    /**
+     * Sync the base game for an expansion whose base_game_id is null.
+     */
+    protected function performBaseGameSync(): void
+    {
+        $gameSystem = $this->record?->gameSystem;
+
+        if (! $gameSystem || ! $gameSystem->bgg_id) {
+            Notification::make()
+                ->danger()
+                ->title('Cannot sync base game')
+                ->body('No BGG ID found for the linked game system.')
+                ->send();
+
+            return;
+        }
+
+        // Re-sync the expansion — BggSyncService will auto-fetch the base game
+        try {
+            $result = app(BggSyncService::class)->syncGameSystems([$gameSystem->bgg_id]);
+
+            // Refresh the model to pick up the base_game_id
+            $gameSystem->refresh();
+
+            if ($gameSystem->base_game_id) {
+                $baseGame = $gameSystem->baseGame;
+                Log::info('Base game synced for expansion', [
+                    'expansion_id' => $gameSystem->id,
+                    'expansion_name' => $gameSystem->name,
+                    'base_game_id' => $baseGame->id,
+                    'base_game_name' => $baseGame->name,
+                ]);
+
+                Notification::make()
+                    ->success()
+                    ->title('Base game synced')
+                    ->body("Base game \"{$baseGame->name}\" has been added to the catalog.")
+                    ->send();
+
+                $this->refreshForm();
+            } else {
+                Notification::make()
+                    ->warning()
+                    ->title('Base game not found')
+                    ->body('The expansion was re-synced but the base game could not be resolved automatically.')
+                    ->send();
+            }
+        } catch (\Throwable $e) {
+            Log::error('Base game sync failed', [
+                'expansion_bgg_id' => $gameSystem->bgg_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Base game sync failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Refresh the form to reflect updated record state after approval.
+     */
+    protected function refreshForm(): void
+    {
+        $this->fillForm();
     }
 }

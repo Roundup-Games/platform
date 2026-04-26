@@ -262,3 +262,97 @@ describe('GameSystemRequestResource BGG search action', function () {
             ->and($page->selectedBggName)->toBeNull();
     });
 });
+
+// ── GameSystemRequestResource: Approve action ──────────────
+
+describe('GameSystemRequestResource approve action', function () {
+    it('edit page has an Approve header action', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Action::make('approve')")
+            ->toContain("->label('Approve')")
+            ->toContain("->color('success')");
+    });
+
+    it('approve action calls BggSyncService when BGG ID is selected', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain('BggSyncService')
+            ->toContain('syncGameSystems')
+            ->toContain('syncFromBgg');
+    });
+
+    it('approve action creates manual GameSystem when no BGG ID is selected', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain('createManualGameSystem')
+            ->toContain("'source' => 'manual'");
+    });
+
+    it('approve action updates request status, game_system_id, and reviewed_by', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'status' => 'approved'")
+            ->toContain("'game_system_id'")
+            ->toContain("'reviewed_by' => auth()->id()");
+    });
+
+    it('approve action logs the approval transition', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Log::info('GameSystemRequest approved'")
+            ->toContain("'request_id'")
+            ->toContain("'reviewed_by'");
+    });
+
+    it('approve action sends success notification on completion', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'Request approved'")
+            ->toContain("'Approval failed'");
+    });
+
+    it('has syncBaseGame action for expansions missing base game', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Action::make('syncBaseGame')")
+            ->toContain('shouldShowSyncBaseGame')
+            ->toContain('performBaseGameSync');
+    });
+
+    it('syncBaseGame is visible only for approved expansions without base game', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("bgg_type === 'boardgameexpansion'")
+            ->toContain('base_game_id === null');
+    });
+
+    it('approve action is hidden when request is already approved', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain("status !== 'approved'");
+    });
+
+    it('performApproval method exists and is protected', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain('protected function performApproval');
+    });
+
+    it('manual GameSystem creation uses request name, type, and notes', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("\$request->name")
+            ->toContain("\$request->type")
+            ->toContain("\$request->notes");
+    });
+});
