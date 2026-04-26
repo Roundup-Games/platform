@@ -57,6 +57,12 @@
             @if($results->isEmpty())
                 <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
                     {{ __('games.content_no_game_systems_found') }}
+                    @auth
+                        <a href="{{ route('game-systems.request', ['locale' => app()->getLocale(), 'name' => $search]) }}" wire:navigate class="inline-flex items-center gap-1 mt-1 text-secondary hover:text-secondary/80 transition-colors">
+                            <span class="material-symbols-outlined text-sm" aria-hidden="true">add_circle</span>
+                            {{ __('games.request_cta_link') }}
+                        </a>
+                    @endauth
                 </div>
             @else
                 @foreach($results as $index => $system)
