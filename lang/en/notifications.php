@@ -181,6 +181,12 @@ return [
     'subject_game_system_request_approved' => 'Game System Added: :name',
     'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
     'action_create_game' => 'Create a Game',
+    'subject_game_system_request_rejected' => 'Game System Request Update',
+    'body_game_system_request_rejected' => 'Your game system request for **:name** could not be added at this time.',
+    'body_rejection_reason' => 'Reason: :reason',
+    'subject_game_system_request_duplicate' => 'Game System Already Exists',
+    'body_game_system_request_duplicate' => 'The game system **:name** you requested already exists as **:existing**.',
+    'action_view_game_system' => 'View Game System',
 
     // Campaign updated
     'category_campaign_updated' => 'Campaign Updated',

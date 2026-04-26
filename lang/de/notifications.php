@@ -176,6 +176,12 @@ return [
     'subject_game_system_request_approved' => 'Spielsystem hinzugefügt: :name',
     'body_game_system_request_approved' => 'Deine Anfrage für das Spielsystem **:name** wurde angenommen! Es ist jetzt auf der Plattform verfügbar.',
     'action_create_game' => 'Spiel erstellen',
+    'subject_game_system_request_rejected' => 'Aktualisierung zur Spielsystem-Anfrage',
+    'body_game_system_request_rejected' => 'Deine Anfrage für das Spielsystem **:name** konnte derzeit nicht hinzugefügt werden.',
+    'body_rejection_reason' => 'Grund: :reason',
+    'subject_game_system_request_duplicate' => 'Spielsystem existiert bereits',
+    'body_game_system_request_duplicate' => 'Das angefragte Spielsystem **:name** existiert bereits als **:existing**.',
+    'action_view_game_system' => 'Spielsystem ansehen',
 
     // Kampagne aktualisiert
     'category_campaign_updated' => 'Kampagne aktualisiert',
