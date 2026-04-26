@@ -284,4 +284,8 @@ return [
     'request_status_approved' => 'Genehmigt',
     'request_status_rejected' => 'Abgelehnt',
     'request_status_duplicate' => 'Duplikat',
+
+    // Anfrage-CTA (Katalog- und Spielsystemseiten)
+    'request_cta_link' => 'Spielsystem anfragen',
+    'request_cta_catalog_header' => 'Du findest nicht, was du suchst?',
 ];

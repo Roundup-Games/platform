@@ -284,4 +284,8 @@ return [
     'request_status_approved' => 'Approved',
     'request_status_rejected' => 'Rejected',
     'request_status_duplicate' => 'Duplicate',
+
+    // Request CTA (used in catalog and game-systems pages)
+    'request_cta_link' => 'Request a game system',
+    'request_cta_catalog_header' => 'Can\'t find what you\'re looking for?',
 ];
