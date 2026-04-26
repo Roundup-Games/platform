@@ -2,13 +2,18 @@
 
 namespace App\Filament\Resources\GameSystemRequestResource\Pages;
 
+use App\Enums\NotificationCategory;
 use App\Exceptions\BggApiException;
 use App\Filament\Resources\GameSystemRequestResource;
 use App\Models\GameSystem;
 use App\Models\GameSystemRequest;
+use App\Notifications\GameSystemRequestApproved;
+use App\Notifications\GameSystemRequestDuplicate;
+use App\Notifications\GameSystemRequestRejected;
 use App\Services\BggClient;
 use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
+use App\Services\NotificationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -352,6 +357,22 @@ class EditGameSystemRequest extends EditRecord
                 'reviewed_by' => auth()->id(),
             ]);
 
+            // Notify the requester
+            try {
+                if ($request->user) {
+                    app(NotificationService::class)->send(
+                        $request->user,
+                        new GameSystemRequestApproved($request, $gameSystem),
+                        NotificationCategory::GameSystemRequest,
+                    );
+                }
+            } catch (\Throwable $notificationError) {
+                Log::warning('Failed to send GameSystemRequestApproved notification', [
+                    'request_id' => $request->id,
+                    'error' => $notificationError->getMessage(),
+                ]);
+            }
+
             Notification::make()
                 ->success()
                 ->title('Request approved')
@@ -510,6 +531,22 @@ class EditGameSystemRequest extends EditRecord
                 'rejection_reason' => $data['rejection_reason'],
             ]);
 
+            // Notify the requester
+            try {
+                if ($request->user) {
+                    app(NotificationService::class)->send(
+                        $request->user,
+                        new GameSystemRequestRejected($request),
+                        NotificationCategory::GameSystemRequest,
+                    );
+                }
+            } catch (\Throwable $notificationError) {
+                Log::warning('Failed to send GameSystemRequestRejected notification', [
+                    'request_id' => $request->id,
+                    'error' => $notificationError->getMessage(),
+                ]);
+            }
+
             Notification::make()
                 ->success()
                 ->title('Request rejected')
@@ -564,6 +601,22 @@ class EditGameSystemRequest extends EditRecord
                 'game_system_name' => $existingSystem->name,
                 'reviewed_by' => auth()->id(),
             ]);
+
+            // Notify the requester
+            try {
+                if ($request->user) {
+                    app(NotificationService::class)->send(
+                        $request->user,
+                        new GameSystemRequestDuplicate($request, $existingSystem),
+                        NotificationCategory::GameSystemRequest,
+                    );
+                }
+            } catch (\Throwable $notificationError) {
+                Log::warning('Failed to send GameSystemRequestDuplicate notification', [
+                    'request_id' => $request->id,
+                    'error' => $notificationError->getMessage(),
+                ]);
+            }
 
             Notification::make()
                 ->success()
