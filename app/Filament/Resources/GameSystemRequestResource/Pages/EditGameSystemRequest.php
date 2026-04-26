@@ -5,6 +5,7 @@ namespace App\Filament\Resources\GameSystemRequestResource\Pages;
 use App\Exceptions\BggApiException;
 use App\Filament\Resources\GameSystemRequestResource;
 use App\Models\GameSystem;
+use App\Models\GameSystemRequest;
 use App\Services\BggClient;
 use App\Services\BggSyncService;
 use App\Services\BggXmlParser;

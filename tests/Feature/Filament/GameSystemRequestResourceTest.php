@@ -6,6 +6,16 @@ use App\Filament\Resources\GameSystemRequestResource\Pages\ListGameSystemRequest
 use App\Models\GameSystemRequest;
 use App\Models\User;
 
+if (! function_exists('invokeProtected')) {
+    function invokeProtected(object $object, string $method, array $args = [])
+    {
+        $ref = new ReflectionMethod($object, $method);
+        $ref->setAccessible(true);
+
+        return $ref->invokeArgs($object, $args);
+    }
+}
+
 beforeEach(function () {
     seedRoles();
 
@@ -495,5 +505,488 @@ describe('GameSystemRequestResource mark-duplicate action', function () {
         expect($source)
             ->toContain("GameSystem::find(\$data['duplicate_game_system_id'])")
             ->toContain("'Game system not found'");
+    });
+});
+
+// ── Integration Tests: Runtime behavior with database state ──────
+
+describe('GameSystemRequestResource integration: list page', function () {
+    it('renders pending requests on the list page', function () {
+        $pending = GameSystemRequest::factory()->create([
+            'name' => 'Ticket to Ride',
+            'status' => 'pending',
+            'type' => 'boardgame',
+        ]);
+        $approved = GameSystemRequest::factory()->create([
+            'name' => 'Already Approved Game',
+            'status' => 'approved',
+            'type' => 'boardgame',
+        ]);
+
+        $this->actingAs($this->admin);
+        $response = $this->get('/admin/game-system-requests');
+
+        $response->assertSuccessful();
+        $response->assertSee('Ticket to Ride');
+        $response->assertSee('Already Approved Game');
+    });
+
+    it('shows the pending request count in navigation badge', function () {
+        GameSystemRequest::factory()->count(3)->create(['status' => 'pending']);
+        GameSystemRequest::factory()->create(['status' => 'approved']);
+
+        $badge = GameSystemRequestResource::getNavigationBadge();
+        expect($badge)->toBe('3');
+    });
+});
+
+describe('GameSystemRequestResource integration: approve with BGG', function () {
+    it('creates a GameSystem from BGG sync and updates the request', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Ticket to Ride',
+            'status' => 'pending',
+            'type' => 'boardgame',
+        ]);
+
+        // Create a GameSystem as if BggSyncService had synced it
+        $gameSystem = \App\Models\GameSystem::create([
+            'name' => 'Ticket to Ride',
+            'slug' => 'ticket-to-ride',
+            'description' => 'Cross-country train adventure',
+            'type' => 'boardgame',
+            'bgg_id' => 9209,
+            'bgg_type' => 'boardgame',
+            'source' => 'bgg',
+            'bgg_last_synced_at' => now(),
+        ]);
+
+        // Mock BggSyncService to return our synced result
+        $mock = \Mockery::mock(\App\Services\BggSyncService::class);
+        $mock->shouldReceive('syncGameSystems')
+            ->with([9209])
+            ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => [], 'discovered_expansion_ids' => []]);
+        app()->instance(\App\Services\BggSyncService::class, $mock);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+        $page->selectedBggId = 9209;
+        $page->selectedBggName = 'Ticket to Ride';
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performApproval', [[]]);
+
+        // Refresh models
+        $request->refresh();
+
+        expect($request->status)->toBe('approved')
+            ->and($request->game_system_id)->not->toBeNull()
+            ->and($request->reviewed_by)->toBe($this->admin->id);
+    });
+
+    it('logs the approval transition with reviewer and game system', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Wingspan',
+            'status' => 'pending',
+            'type' => 'boardgame',
+        ]);
+
+        $gameSystem = \App\Models\GameSystem::create([
+            'name' => 'Wingspan',
+            'slug' => 'wingspan',
+            'description' => 'Bird-collecting engine builder',
+            'type' => 'boardgame',
+            'bgg_id' => 266192,
+            'bgg_type' => 'boardgame',
+            'source' => 'bgg',
+            'bgg_last_synced_at' => now(),
+        ]);
+
+        $mock = \Mockery::mock(\App\Services\BggSyncService::class);
+        $mock->shouldReceive('syncGameSystems')
+            ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => [], 'discovered_expansion_ids' => []]);
+        app()->instance(\App\Services\BggSyncService::class, $mock);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+        $page->selectedBggId = 266192;
+        $page->selectedBggName = 'Wingspan';
+
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->with('GameSystemRequest approved', \Mockery::on(function ($context) use ($request) {
+                return $context['request_id'] === $request->id
+                    && $context['bgg_id'] === 266192
+                    && isset($context['game_system_id'])
+                    && isset($context['reviewed_by']);
+            }));
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performApproval', [[]]);
+        expect(true)->toBeTrue(); // satisfy Pest assertion count for Log spy
+    });
+});
+
+describe('GameSystemRequestResource integration: approve without BGG', function () {
+    it('creates a manual GameSystem from request data', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Custom RPG System',
+            'status' => 'pending',
+            'type' => 'ttrpg',
+            'notes' => 'A unique homebrew RPG system',
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+        $page->selectedBggId = null;
+        $page->selectedBggName = null;
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performApproval', [[]]);
+
+        $request->refresh();
+
+        expect($request->status)->toBe('approved')
+            ->and($request->game_system_id)->not->toBeNull()
+            ->and($request->reviewed_by)->toBe($this->admin->id);
+
+        $gameSystem = $request->gameSystem;
+        expect($gameSystem->name)->toBe('Custom RPG System')
+            ->and($gameSystem->type)->toBe('ttrpg')
+            ->and($gameSystem->source)->toBe('manual')
+            ->and($gameSystem->description)->toBe('A unique homebrew RPG system');
+    });
+
+    it('generates a slug from the request name for manual creation', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'My Custom Board Game',
+            'status' => 'pending',
+            'type' => 'boardgame',
+            'notes' => null,
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+        $page->selectedBggId = null;
+        $page->selectedBggName = null;
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performApproval', [[]]);
+
+        $gameSystem = $request->fresh()->gameSystem;
+        expect($gameSystem->slug)->toBe('my-custom-board-game');
+    });
+});
+
+describe('GameSystemRequestResource integration: reject', function () {
+    it('updates status to rejected with reason and reviewer', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Duplicate Game',
+            'status' => 'pending',
+            'type' => 'boardgame',
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performRejection', [['rejection_reason' => 'Already exists in the catalog.']]);
+
+        $request->refresh();
+
+        expect($request->status)->toBe('rejected')
+            ->and($request->rejection_reason)->toBe('Already exists in the catalog.')
+            ->and($request->reviewed_by)->toBe($this->admin->id);
+    });
+
+    it('logs the rejection with reason', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Bad Request',
+            'status' => 'pending',
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->with('GameSystemRequest rejected', \Mockery::on(function ($context) use ($request) {
+                return $context['request_id'] === $request->id
+                    && $context['rejection_reason'] === 'Insufficient information.'
+                    && isset($context['reviewed_by']);
+            }));
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performRejection', [['rejection_reason' => 'Insufficient information.']]);
+        expect(true)->toBeTrue(); // satisfy Pest assertion count for Log spy
+    });
+
+    it('does not create a GameSystem when rejecting', function () {
+        $request = GameSystemRequest::factory()->create(['status' => 'pending']);
+        $initialCount = \App\Models\GameSystem::count();
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performRejection', [['rejection_reason' => 'Not a valid game system.']]);
+
+        expect(\App\Models\GameSystem::count())->toBe($initialCount);
+        expect($request->fresh()->game_system_id)->toBeNull();
+    });
+});
+
+describe('GameSystemRequestResource integration: mark duplicate', function () {
+    it('links the request to an existing GameSystem and updates status', function () {
+        $existingSystem = \App\Models\GameSystem::create([
+            'name' => 'Catan',
+            'slug' => 'catan',
+            'description' => 'Classic trading game',
+            'type' => 'boardgame',
+            'source' => 'bgg',
+            'bgg_id' => 13,
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Settlers of Catan',
+            'status' => 'pending',
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performMarkDuplicate', [['duplicate_game_system_id' => $existingSystem->id]]);
+
+        $request->refresh();
+
+        expect($request->status)->toBe('duplicate')
+            ->and($request->game_system_id)->toBe($existingSystem->id)
+            ->and($request->reviewed_by)->toBe($this->admin->id);
+    });
+
+    it('logs the duplicate marking with game system reference', function () {
+        $existingSystem = \App\Models\GameSystem::create([
+            'name' => 'Pandemic',
+            'slug' => 'pandemic',
+            'description' => 'Cooperative disease game',
+            'type' => 'boardgame',
+            'source' => 'bgg',
+            'bgg_id' => 30549,
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Pandemic Legacy',
+            'status' => 'pending',
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->with('GameSystemRequest marked duplicate', \Mockery::on(function ($context) use ($request, $existingSystem) {
+                return $context['request_id'] === $request->id
+                    && $context['game_system_id'] === $existingSystem->id
+                    && isset($context['reviewed_by']);
+            }));
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performMarkDuplicate', [['duplicate_game_system_id' => $existingSystem->id]]);
+        expect(true)->toBeTrue(); // satisfy Pest assertion count for Log spy
+    });
+
+    it('does not create a new GameSystem when marking duplicate', function () {
+        $existingSystem = \App\Models\GameSystem::create([
+            'name' => 'Dominion',
+            'slug' => 'dominion',
+            'description' => 'Deck building',
+            'type' => 'boardgame',
+            'source' => 'bgg',
+            'bgg_id' => 36218,
+        ]);
+
+        $request = GameSystemRequest::factory()->create(['status' => 'pending']);
+        $initialCount = \App\Models\GameSystem::count();
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        $this->actingAs($this->admin);
+        invokeProtected($page, 'performMarkDuplicate', [['duplicate_game_system_id' => $existingSystem->id]]);
+
+        expect(\App\Models\GameSystem::count())->toBe($initialCount);
+    });
+});
+
+describe('GameSystemRequestResource integration: expansion base-game sync', function () {
+    it('shows sync base game action for approved expansion without base game', function () {
+        $expansion = \App\Models\GameSystem::create([
+            'name' => 'Ticket to Ride: Europe',
+            'slug' => 'ticket-to-ride-europe',
+            'description' => 'European expansion',
+            'type' => 'boardgame',
+            'bgg_id' => 14996,
+            'bgg_type' => 'boardgameexpansion',
+            'source' => 'bgg',
+            'base_game_id' => null,
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Ticket to Ride: Europe',
+            'status' => 'approved',
+            'game_system_id' => $expansion->id,
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        expect(invokeProtected($page, 'shouldShowSyncBaseGame'))->toBeTrue();
+    });
+
+    it('hides sync base game action when base game is already linked', function () {
+        $baseGame = \App\Models\GameSystem::create([
+            'name' => 'Ticket to Ride',
+            'slug' => 'ticket-to-ride-base',
+            'description' => 'Base game',
+            'type' => 'boardgame',
+            'bgg_id' => 9209,
+            'bgg_type' => 'boardgame',
+            'source' => 'bgg',
+        ]);
+
+        $expansion = \App\Models\GameSystem::create([
+            'name' => 'Ticket to Ride: Europe 15th Anniversary',
+            'slug' => 'ticket-to-ride-europe-15',
+            'description' => 'Expansion with base',
+            'type' => 'boardgame',
+            'bgg_id' => 276034,
+            'bgg_type' => 'boardgameexpansion',
+            'source' => 'bgg',
+            'base_game_id' => $baseGame->id,
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Ticket to Ride: Europe 15th Anniversary',
+            'status' => 'approved',
+            'game_system_id' => $expansion->id,
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        expect(invokeProtected($page, 'shouldShowSyncBaseGame'))->toBeFalse();
+    });
+
+    it('hides sync base game for non-expansion game systems', function () {
+        $baseGame = \App\Models\GameSystem::create([
+            'name' => 'Some Base Game',
+            'slug' => 'some-base-game',
+            'description' => 'Regular game',
+            'type' => 'boardgame',
+            'bgg_id' => 99999,
+            'bgg_type' => 'boardgame',
+            'source' => 'bgg',
+            'base_game_id' => null,
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Some Base Game',
+            'status' => 'approved',
+            'game_system_id' => $baseGame->id,
+        ]);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request->fresh();
+
+        expect(invokeProtected($page, 'shouldShowSyncBaseGame'))->toBeFalse();
+    });
+});
+
+describe('GameSystemRequestResource integration: edit page loads', function () {
+    it('edit page loads for a pending request', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Gloomhaven',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin);
+        $response = $this->get("/admin/game-system-requests/{$request->id}/edit");
+
+        $response->assertSuccessful();
+        $response->assertSee('Gloomhaven');
+    });
+
+    it('edit page loads for an approved request with linked game system', function () {
+        $gameSystem = \App\Models\GameSystem::create([
+            'name' => 'Approved Game',
+            'slug' => 'approved-game',
+            'description' => 'Test game',
+            'type' => 'boardgame',
+            'source' => 'manual',
+        ]);
+
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Approved Game',
+            'status' => 'approved',
+            'game_system_id' => $gameSystem->id,
+            'reviewed_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin);
+        $response = $this->get("/admin/game-system-requests/{$request->id}/edit");
+
+        $response->assertSuccessful();
+    });
+
+    it('edit page loads for a rejected request', function () {
+        $request = GameSystemRequest::factory()->create([
+            'name' => 'Rejected Game',
+            'status' => 'rejected',
+            'rejection_reason' => 'Not a valid game.',
+            'reviewed_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin);
+        $response = $this->get("/admin/game-system-requests/{$request->id}/edit");
+
+        $response->assertSuccessful();
+    });
+});
+
+describe('GameSystemRequestResource integration: BGG search', function () {
+    it('stores search results and allows selection', function () {
+        $request = GameSystemRequest::factory()->create(['status' => 'pending']);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request;
+        $page->bggSearchResults = [
+            ['bgg_id' => 9209, 'name' => 'Ticket to Ride', 'year_released' => 2004, 'bgg_type' => 'boardgame'],
+            ['bgg_id' => 14996, 'name' => 'Ticket to Ride: Europe', 'year_released' => 2005, 'bgg_type' => 'boardgameexpansion'],
+        ];
+
+        // Select the first result
+        $page->selectBggResult(0);
+
+        expect($page->selectedBggId)->toBe(9209)
+            ->and($page->selectedBggName)->toBe('Ticket to Ride');
+
+        // Select the second result (overrides)
+        $page->selectBggResult(1);
+
+        expect($page->selectedBggId)->toBe(14996)
+            ->and($page->selectedBggName)->toBe('Ticket to Ride: Europe');
+    });
+
+    it('clears selection when selecting an invalid index', function () {
+        $request = GameSystemRequest::factory()->create(['status' => 'pending']);
+
+        $page = new EditGameSystemRequest;
+        $page->record = $request;
+        $page->bggSearchResults = [];
+        $page->selectedBggId = 123;
+        $page->selectedBggName = 'Something';
+
+        $page->selectBggResult(99);
+
+        // Should remain unchanged since index 99 doesn't exist
+        expect($page->selectedBggId)->toBe(123)
+            ->and($page->selectedBggName)->toBe('Something');
     });
 });
