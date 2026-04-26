@@ -488,6 +488,48 @@ describe('Mount', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// REQUEST LINK (EMPTY STATE)
+// ═══════════════════════════════════════════════════════════
+
+describe('Request Link', function () {
+    it('shows request link in empty state when authenticated and search returns no results', function () {
+        $user = prefCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class)
+            ->set('search', 'Nonexistent')
+            ->assertSeeHtml('game-systems/request')
+            ->assertSeeHtml('name=Nonexistent')
+            ->assertSee(__('games.request_cta_link'));
+    });
+
+    it('request link href contains search term as name query param without type', function () {
+        $user = prefCreateUser();
+
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class)
+            ->set('search', 'My Custom Game');
+
+        $html = $component->html();
+        expect($html)->toContain('name=My%20Custom%20Game');
+        // Preference picker does NOT pass type param
+        $requestLinkMatches = [];
+        preg_match('/game-systems\/request[^"]*name=My%20Custom%20Game[^"]*/', $html, $requestLinkMatches);
+        expect($requestLinkMatches)->toHaveCount(1);
+        expect($requestLinkMatches[0])->not->toContain('type=');
+    });
+
+    it('hides request link for guest users', function () {
+        $component = Livewire::test(GameSystemPreferencePicker::class)
+            ->set('search', 'Nonexistent');
+
+        $html = $component->html();
+        expect($html)->toContain(__('games.content_no_game_systems_found'));
+        expect($html)->not->toContain('game-systems/request');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // INTEGRATION — PROFILE SAVE
 // ═══════════════════════════════════════════════════════════
 

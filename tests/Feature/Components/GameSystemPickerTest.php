@@ -398,6 +398,44 @@ describe('Mount', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// REQUEST LINK (EMPTY STATE)
+// ═══════════════════════════════════════════════════════════
+
+describe('Request Link', function () {
+    it('shows request link in empty state when authenticated and search returns no results', function () {
+        $user = pickerCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPicker::class)
+            ->set('search', 'Nonexistent')
+            ->assertSeeHtml('game-systems/request')
+            ->assertSeeHtml('name=Nonexistent')
+            ->assertSeeHtml('type=boardgame')
+            ->assertSee(__('games.request_cta_link'));
+    });
+
+    it('request link href contains search term as name query param', function () {
+        $user = pickerCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPicker::class)
+            ->set('search', 'My Custom Game')
+            ->assertSeeHtml('name=My%20Custom%20Game')
+            ->assertSeeHtml('type=boardgame');
+    });
+
+    it('hides request link for guest users', function () {
+        $component = Livewire::test(GameSystemPicker::class)
+            ->set('search', 'Nonexistent');
+
+        // Guest should see the "no results" text but NOT the request link
+        $html = $component->html();
+        expect($html)->toContain(__('games.content_no_game_systems_found'));
+        expect($html)->not->toContain('game-systems/request');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // INTEGRATION — WIRED MODEL SYNC
 // ═══════════════════════════════════════════════════════════
 
