@@ -172,6 +172,20 @@ class BggSyncService
             $baseGame = GameSystem::where('bgg_id', $data['base_game_bgg_id'])->first();
             if ($baseGame) {
                 $gameSystem->update(['base_game_id' => $baseGame->id]);
+            } else {
+                Log::info('BGG sync: base game not in catalog, auto-fetching', [
+                    'base_game_bgg_id' => $data['base_game_bgg_id'],
+                    'expansion_bgg_id' => $data['bgg_id'],
+                ]);
+                $baseGame = $this->fetchAndUpsertBaseGame($data['base_game_bgg_id']);
+                if ($baseGame) {
+                    $gameSystem->update(['base_game_id' => $baseGame->id]);
+                    Log::info('BGG sync: auto-fetched missing base game for expansion', [
+                        'base_game_bgg_id' => $data['base_game_bgg_id'],
+                        'base_game_name' => $baseGame->name,
+                        'expansion_bgg_id' => $data['bgg_id'],
+                    ]);
+                }
             }
         }
 
@@ -209,6 +223,41 @@ class BggSyncService
 
         // Collision — append bgg_id to disambiguate
         return $baseSlug . '-' . $bggId;
+    }
+
+    /**
+     * Fetch a missing base game from BGG and upsert it into the catalog.
+     *
+     * Used when an expansion references a base game that hasn't been synced yet.
+     * Returns the created/updated GameSystem, or null if the fetch fails.
+     */
+    private function fetchAndUpsertBaseGame(int $bggId): ?GameSystem
+    {
+        try {
+            Log::info('BGG sync: fetching missing base game from BGG', [
+                'base_game_bgg_id' => $bggId,
+            ]);
+
+            $xml = $this->client->fetchThing([$bggId]);
+            $items = $this->parser->parseItems($xml->asXML());
+
+            if (empty($items)) {
+                Log::warning('BGG sync: base game not found on BGG', [
+                    'base_game_bgg_id' => $bggId,
+                ]);
+
+                return null;
+            }
+
+            return $this->upsertGameSystem($items[0]);
+        } catch (\Throwable $e) {
+            Log::error('BGG sync: failed to auto-fetch base game', [
+                'base_game_bgg_id' => $bggId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

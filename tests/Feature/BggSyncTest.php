@@ -377,6 +377,102 @@ it('resolves base_game_id for expansion items', function () {
     expect($linkedBaseGame->bgg_id)->toBe(174430);
 });
 
+it('auto-fetches missing base game when syncing an expansion', function () {
+    $expansionXml = <<<XML
+    <?xml version="1.0" encoding="UTF-8"?>
+    <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+      <item type="boardgameexpansion" id="246900">
+        <name type="primary" value="Gloomhaven: Forgotten Circles"/>
+        <description>An expansion for Gloomhaven.</description>
+        <yearpublished value="2019"/>
+        <minplayers value="1"/>
+        <maxplayers value="4"/>
+        <maxplaytime value="120"/>
+        <minage value="14"/>
+        <link type="boardgameexpansion" id="174430" value="Gloomhaven" inbound="true"/>
+        <statistics><ratings>
+          <average value="7.80"/>
+          <bayesaverage value="7.50"/>
+          <usersrated value="8000"/>
+          <averageweight value="3.90"/>
+          <ranks><rank type="subtype" id="1" name="boardgame" value="250"/></ranks>
+        </ratings></statistics>
+      </item>
+    </items>
+    XML;
+
+    // First call returns the expansion, second returns the base game (auto-fetch)
+    Http::fake([
+        'boardgamegeek.com/*' => Http::sequence()
+            ->push($expansionXml, 200, ['Content-Type' => 'application/xml'])
+            ->push($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    // Only sync the expansion — base game is NOT pre-existing
+    $service = createService();
+    $result = $service->syncGameSystems([246900]);
+
+    expect($result['synced'])->toBe(1);
+    expect($result['failed'])->toBe(0);
+
+    // Both records created
+    expect(GameSystem::where('bgg_id', 246900)->exists())->toBeTrue();
+    expect(GameSystem::where('bgg_id', 174430)->exists())->toBeTrue();
+
+    // Expansion correctly linked to auto-fetched base game
+    $expansion = GameSystem::where('bgg_id', 246900)->first();
+    expect($expansion->base_game_id)->not->toBeNull();
+
+    $baseGame = $expansion->baseGame;
+    expect($baseGame)->not->toBeNull();
+    expect($baseGame->bgg_id)->toBe(174430);
+    expect($baseGame->name)->toBe('Gloomhaven');
+});
+
+it('continues when auto-fetch of base game fails', function () {
+    $expansionXml = <<<XML
+    <?xml version="1.0" encoding="UTF-8"?>
+    <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+      <item type="boardgameexpansion" id="246900">
+        <name type="primary" value="Gloomhaven: Forgotten Circles"/>
+        <description>An expansion for Gloomhaven.</description>
+        <yearpublished value="2019"/>
+        <minplayers value="1"/>
+        <maxplayers value="4"/>
+        <maxplaytime value="120"/>
+        <minage value="14"/>
+        <link type="boardgameexpansion" id="174430" value="Gloomhaven" inbound="true"/>
+        <statistics><ratings>
+          <average value="7.80"/>
+          <bayesaverage value="7.50"/>
+          <usersrated value="8000"/>
+          <averageweight value="3.90"/>
+          <ranks><rank type="subtype" id="1" name="boardgame" value="250"/></ranks>
+        </ratings></statistics>
+      </item>
+    </items>
+    XML;
+
+    // First call returns the expansion, second returns 500 (base game fetch fails)
+    Http::fake([
+        'boardgamegeek.com/*' => Http::sequence()
+            ->push($expansionXml, 200, ['Content-Type' => 'application/xml'])
+            ->push('Server Error', 500),
+    ]);
+
+    $service = createService();
+    $result = $service->syncGameSystems([246900]);
+
+    // Expansion was synced (not failed), even though base game fetch errored
+    expect($result['synced'])->toBe(1);
+    expect($result['failed'])->toBe(0);
+
+    // Expansion exists but has no base_game_id (base game couldn't be fetched)
+    $expansion = GameSystem::where('bgg_id', 246900)->first();
+    expect($expansion)->not->toBeNull();
+    expect($expansion->base_game_id)->toBeNull();
+});
+
 it('returns discovered expansion IDs from sync', function () {
     Http::fake([
         'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
