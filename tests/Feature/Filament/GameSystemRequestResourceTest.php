@@ -356,3 +356,144 @@ describe('GameSystemRequestResource approve action', function () {
             ->toContain("\$request->notes");
     });
 });
+
+// ── GameSystemRequestResource: Reject action ───────────────
+
+describe('GameSystemRequestResource reject action', function () {
+    it('edit page has a Reject header action', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Action::make('reject')")
+            ->toContain("->label('Reject')")
+            ->toContain("->color('danger')");
+    });
+
+    it('reject action has a required rejection_reason textarea', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Textarea::make('rejection_reason')")
+            ->toContain("->label('Rejection Reason')")
+            ->toContain('->required()')
+            ->toContain('->maxLength(1000)');
+    });
+
+    it('reject action updates status to rejected with reason and reviewer', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'status' => 'rejected'")
+            ->toContain("'reviewed_by' => auth()->id()")
+            ->toContain("'rejection_reason' => \$data['rejection_reason']");
+    });
+
+    it('reject action logs the rejection transition', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Log::info('GameSystemRequest rejected'")
+            ->toContain("'request_id'")
+            ->toContain("'reviewed_by'")
+            ->toContain("'rejection_reason'");
+    });
+
+    it('reject action sends success and error notifications', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'Request rejected'")
+            ->toContain("'Rejection failed'");
+    });
+
+    it('reject action is only visible for pending requests', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'pending'")
+            ->toContain("->visible(fn () => in_array(\$this->record?->status, ['pending']))");
+    });
+
+    it('performRejection method exists and is protected', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain('protected function performRejection');
+    });
+});
+
+// ── GameSystemRequestResource: Mark Duplicate action ────────
+
+describe('GameSystemRequestResource mark-duplicate action', function () {
+    it('edit page has a Mark Duplicate header action', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Action::make('markDuplicate')")
+            ->toContain("->label('Mark Duplicate')")
+            ->toContain("->color('gray')");
+    });
+
+    it('mark-duplicate action has a searchable GameSystem select', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Select::make('duplicate_game_system_id')")
+            ->toContain("->label('Existing Game System')")
+            ->toContain('->required()')
+            ->toContain('->searchable()')
+            ->toContain('getSearchResultsUsing');
+    });
+
+    it('mark-duplicate select searches GameSystem by name', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain("GameSystem::where('name', 'ilike'");
+    });
+
+    it('mark-duplicate action updates status to duplicate with game_system_id and reviewer', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'status' => 'duplicate'")
+            ->toContain("'game_system_id' => \$existingSystem->id")
+            ->toContain("'reviewed_by' => auth()->id()");
+    });
+
+    it('mark-duplicate action logs the transition', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("Log::info('GameSystemRequest marked duplicate'")
+            ->toContain("'request_id'")
+            ->toContain("'game_system_id'")
+            ->toContain("'reviewed_by'");
+    });
+
+    it('mark-duplicate action sends notifications', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("'Marked as duplicate'")
+            ->toContain("'Mark duplicate failed'");
+    });
+
+    it('mark-duplicate action is only visible for pending requests', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain("in_array(\$this->record?->status, ['pending'])");
+    });
+
+    it('performMarkDuplicate method exists and is protected', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)->toContain('protected function performMarkDuplicate');
+    });
+
+    it('performMarkDuplicate validates the GameSystem exists before linking', function () {
+        $source = file_get_contents(base_path('app/Filament/Resources/GameSystemRequestResource/Pages/EditGameSystemRequest.php'));
+
+        expect($source)
+            ->toContain("GameSystem::find(\$data['duplicate_game_system_id'])")
+            ->toContain("'Game system not found'");
+    });
+});

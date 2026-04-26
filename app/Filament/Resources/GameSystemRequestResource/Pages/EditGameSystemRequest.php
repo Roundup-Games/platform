@@ -10,7 +10,9 @@ use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
@@ -155,6 +157,56 @@ class EditGameSystemRequest extends EditRecord
                 ->action(function () {
                     $this->performBaseGameSync();
                 }),
+
+            // ── Reject Action ─────────────────────────────
+
+            Action::make('reject')
+                ->label('Reject')
+                ->icon(Heroicon::OutlinedXCircle)
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Reject Game System Request')
+                ->modalDescription('Provide a reason for rejecting this request. The requester will see this reason.')
+                ->modalSubmitActionLabel('Reject Request')
+                ->schema([
+                    Textarea::make('rejection_reason')
+                        ->label('Rejection Reason')
+                        ->placeholder('e.g. Already exists in the catalog, insufficient information, not a game system…')
+                        ->required()
+                        ->maxLength(1000)
+                        ->rows(3),
+                ])
+                ->action(function (array $data) {
+                    $this->performRejection($data);
+                })
+                ->visible(fn () => in_array($this->record?->status, ['pending'])),
+
+            // ── Mark Duplicate Action ─────────────────────
+
+            Action::make('markDuplicate')
+                ->label('Mark Duplicate')
+                ->icon(Heroicon::OutlinedDocumentDuplicate)
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Mark as Duplicate')
+                ->modalDescription('Link this request to an existing game system in the catalog.')
+                ->modalSubmitActionLabel('Mark Duplicate')
+                ->schema([
+                    Select::make('duplicate_game_system_id')
+                        ->label('Existing Game System')
+                        ->placeholder('Search for an existing game system…')
+                        ->required()
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search): array => GameSystem::where('name', 'ilike', "%{$search}%")
+                            ->limit(20)
+                            ->pluck('name', 'id')
+                            ->toArray())
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => GameSystem::find($value)?->name),
+                ])
+                ->action(function (array $data) {
+                    $this->performMarkDuplicate($data);
+                })
+                ->visible(fn () => in_array($this->record?->status, ['pending'])),
         ];
     }
 
@@ -431,6 +483,104 @@ class EditGameSystemRequest extends EditRecord
             Notification::make()
                 ->danger()
                 ->title('Base game sync failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Execute the rejection: update status, set reason and reviewer.
+     */
+    protected function performRejection(array $data): void
+    {
+        $request = $this->record;
+
+        try {
+            $request->update([
+                'status' => 'rejected',
+                'reviewed_by' => auth()->id(),
+                'rejection_reason' => $data['rejection_reason'],
+            ]);
+
+            Log::info('GameSystemRequest rejected', [
+                'request_id' => $request->id,
+                'request_name' => $request->name,
+                'reviewed_by' => auth()->id(),
+                'rejection_reason' => $data['rejection_reason'],
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Request rejected')
+                ->body("Request for \"{$request->name}\" has been rejected.")
+                ->send();
+
+            $this->refreshForm();
+
+        } catch (\Throwable $e) {
+            Log::error('GameSystemRequest rejection failed', [
+                'request_id' => $request->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Rejection failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Mark the request as a duplicate of an existing GameSystem.
+     */
+    protected function performMarkDuplicate(array $data): void
+    {
+        $request = $this->record;
+        $existingSystem = GameSystem::find($data['duplicate_game_system_id']);
+
+        if (! $existingSystem) {
+            Notification::make()
+                ->danger()
+                ->title('Game system not found')
+                ->body('The selected game system could not be found.')
+                ->send();
+
+            return;
+        }
+
+        try {
+            $request->update([
+                'status' => 'duplicate',
+                'game_system_id' => $existingSystem->id,
+                'reviewed_by' => auth()->id(),
+            ]);
+
+            Log::info('GameSystemRequest marked duplicate', [
+                'request_id' => $request->id,
+                'request_name' => $request->name,
+                'game_system_id' => $existingSystem->id,
+                'game_system_name' => $existingSystem->name,
+                'reviewed_by' => auth()->id(),
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Marked as duplicate')
+                ->body("Request for \"{$request->name}\" linked to \"{$existingSystem->name}\".")
+                ->send();
+
+            $this->refreshForm();
+
+        } catch (\Throwable $e) {
+            Log::error('GameSystemRequest mark-duplicate failed', [
+                'request_id' => $request->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Mark duplicate failed')
                 ->body($e->getMessage())
                 ->send();
         }
