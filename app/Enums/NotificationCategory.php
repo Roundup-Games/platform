@@ -34,6 +34,9 @@ enum NotificationCategory: string
     case GameUpdated = 'game_updated';
     case CampaignUpdated = 'campaign_updated';
 
+    // Content
+    case GameSystemRequest = 'game_system_request';
+
     // Moderation
     case ReviewReported = 'review_reported';
 
@@ -65,6 +68,7 @@ enum NotificationCategory: string
             self::CampaignCompleted => __('notifications.category_campaign_completed'),
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
+            self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::ReviewReported => __('notifications.category_review_reported'),
         };
     }
@@ -77,6 +81,7 @@ enum NotificationCategory: string
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
+            self::GameSystemRequest => 'content',
             self::ReviewReported => 'moderation',
         };
     }
@@ -108,6 +113,10 @@ enum NotificationCategory: string
             'status' => [
                 'label' => __('notifications.group_status'),
                 'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated],
+            ],
+            'content' => [
+                'label' => __('notifications.group_content'),
+                'categories' => [self::GameSystemRequest],
             ],
             'moderation' => [
                 'label' => __('notifications.group_moderation'),
@@ -168,6 +177,7 @@ enum NotificationCategory: string
             self::CampaignCompleted => true,
             self::GameUpdated => true,
             self::CampaignUpdated => true,
+            self::GameSystemRequest => true,
             self::ReviewReported => true,
         };
     }

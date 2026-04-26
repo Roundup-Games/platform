@@ -36,6 +36,7 @@ return [
     'group_applications' => 'Bewerbungen',
     'group_participation' => 'Teilnahme',
     'group_status' => 'Status',
+    'group_content' => 'Inhalte',
 
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',

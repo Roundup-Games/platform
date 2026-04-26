@@ -5,11 +5,11 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory Unit Tests', function () {
-    it('has exactly 17 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(18);
+    it('has exactly 19 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(19);
     });
 
-    it('values() returns all 17 string values in declaration order', function () {
+    it('values() returns all 19 string values in declaration order', function () {
         $expected = [
             'new_follower',
             'game_invitation', 'campaign_invitation', 'team_invitation', 'session_added_to_campaign',
@@ -17,6 +17,7 @@ describe('NotificationCategory Unit Tests', function () {
             'participant_joined', 'participant_removed', 'team_member_removed',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
+            'game_system_request',
             'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
@@ -40,7 +41,7 @@ describe('NotificationCategory Unit Tests', function () {
     });
 
     it('group() returns a valid group for every case', function () {
-        $validGroups = ['social', 'invitations', 'applications', 'participation', 'status', 'moderation'];        foreach (NotificationCategory::cases() as $case) {
+        $validGroups = ['social', 'invitations', 'applications', 'participation', 'status', 'content', 'moderation'];        foreach (NotificationCategory::cases() as $case) {
             expect($case->group())->toBeIn($validGroups, "{$case->value} group should be valid");
         }
     });
@@ -63,6 +64,8 @@ describe('NotificationCategory Unit Tests', function () {
         foreach ([NotificationCategory::GameCancelled, NotificationCategory::GameCompleted, NotificationCategory::CampaignCancelled, NotificationCategory::CampaignCompleted, NotificationCategory::GameUpdated, NotificationCategory::CampaignUpdated] as $case) {
             expect($case->group())->toBe('status');
         }
+
+        expect(NotificationCategory::GameSystemRequest->group())->toBe('content');
     });
 
     it('channels() returns database and mail channel classes', function () {
@@ -70,10 +73,10 @@ describe('NotificationCategory Unit Tests', function () {
         expect($channels)->toBe([DatabaseChannel::class, MailChannel::class]);
     });
 
-    it('defaultSettings() returns array keyed by all 17 category values', function () {
+    it('defaultSettings() returns array keyed by all 19 category values', function () {
         $settings = NotificationCategory::defaultSettings();
 
-        expect($settings)->toHaveCount(18);
+        expect($settings)->toHaveCount(19);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
@@ -95,6 +98,7 @@ describe('NotificationCategory Unit Tests', function () {
             'participant_removed', 'team_member_removed',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
+            'game_system_request',
             'review_reported',
         ];
         foreach ($mailOn as $cat) {

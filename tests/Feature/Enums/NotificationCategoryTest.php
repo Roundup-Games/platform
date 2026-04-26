@@ -5,8 +5,8 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory', function () {
-    it('has exactly 17 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(18);
+    it('has exactly 19 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(19);
     });
 
     it('returns correct values for all cases', function () {
@@ -17,6 +17,7 @@ describe('NotificationCategory', function () {
             'participant_joined', 'participant_removed', 'team_member_removed',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
+            'game_system_request',
             'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
@@ -51,20 +52,22 @@ describe('NotificationCategory', function () {
         expect(NotificationCategory::GameCompleted->group())->toBe('status');
         expect(NotificationCategory::CampaignCancelled->group())->toBe('status');
         expect(NotificationCategory::CampaignCompleted->group())->toBe('status');
+
+        expect(NotificationCategory::GameSystemRequest->group())->toBe('content');
     });
 
-    it('grouped() returns all 5 groups', function () {
+    it('grouped() returns all 7 groups', function () {
         $grouped = NotificationCategory::grouped();
-        expect($grouped)->toHaveKeys(['social', 'invitations', 'applications', 'participation', 'status']);
+        expect($grouped)->toHaveKeys(['social', 'invitations', 'applications', 'participation', 'status', 'content', 'moderation']);
     });
 
-    it('grouped() contains all 15 categories across groups', function () {
+    it('grouped() contains all 19 categories across groups', function () {
         $grouped = NotificationCategory::grouped();
         $allValues = [];
         foreach ($grouped as $group) {
             $allValues = array_merge($allValues, array_keys($group['options']));
         }
-        expect($allValues)->toHaveCount(18);
+        expect($allValues)->toHaveCount(19);
         expect($allValues)->toBe(NotificationCategory::values());
     });
 
@@ -75,6 +78,8 @@ describe('NotificationCategory', function () {
         expect($grouped['applications']['label'])->not->toBeEmpty();
         expect($grouped['participation']['label'])->not->toBeEmpty();
         expect($grouped['status']['label'])->not->toBeEmpty();
+        expect($grouped['content']['label'])->not->toBeEmpty();
+        expect($grouped['moderation']['label'])->not->toBeEmpty();
     });
 
     it('grouped() distributes categories correctly', function () {
@@ -84,6 +89,8 @@ describe('NotificationCategory', function () {
         expect($grouped['applications']['options'])->toHaveCount(3);
         expect($grouped['participation']['options'])->toHaveCount(3);
         expect($grouped['status']['options'])->toHaveCount(6);
+        expect($grouped['content']['options'])->toHaveCount(1);
+        expect($grouped['moderation']['options'])->toHaveCount(1);
     });
 
     it('channels() returns database and mail channels', function () {
@@ -93,9 +100,9 @@ describe('NotificationCategory', function () {
         expect($channels)->toHaveCount(2);
     });
 
-    it('defaultSettings() returns settings for all 15 categories', function () {
+    it('defaultSettings() returns settings for all 19 categories', function () {
         $settings = NotificationCategory::defaultSettings();
-        expect($settings)->toHaveCount(18);
+        expect($settings)->toHaveCount(19);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
@@ -147,6 +154,7 @@ describe('NotificationCategory', function () {
             'campaign_completed' => ['database' => true, 'mail' => true],
             'game_updated' => ['database' => true, 'mail' => true],
             'campaign_updated' => ['database' => true, 'mail' => true],
+            'game_system_request' => ['database' => true, 'mail' => true],
             'review_reported' => ['database' => true, 'mail' => true],
         ];
 

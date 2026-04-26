@@ -39,6 +39,7 @@ return [
     'group_applications' => 'Applications',
     'group_participation' => 'Participation',
     'group_status' => 'Status',
+    'group_content' => 'Content',
 
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Preferences',
