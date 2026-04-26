@@ -17,16 +17,13 @@ class GameSystemRequestFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'name' => fake()->unique()->words(3, true),
-            'type' => 'boardgame',
+            'name' => fake()->unique()->words(2, true),
+            'type' => fake()->randomElement(['boardgame', 'ttrpg', 'other']),
             'bgg_url' => null,
             'publisher' => fake()->optional()->company(),
             'designer' => fake()->optional()->name(),
             'notes' => fake()->optional()->sentence(),
             'status' => 'pending',
-            'game_system_id' => null,
-            'reviewed_by' => null,
-            'rejection_reason' => null,
         ];
     }
 }
