@@ -176,6 +176,12 @@ return [
     'body_game_updated' => 'The game **:game** has been updated. Changes: :fields.',
     'action_view_game' => 'View Game',
 
+    // Game system request
+    'category_game_system_request' => 'Game System Request',
+    'subject_game_system_request_approved' => 'Game System Added: :name',
+    'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
+    'action_create_game' => 'Create a Game',
+
     // Campaign updated
     'category_campaign_updated' => 'Campaign Updated',
     'subject_campaign_updated' => ':campaign has been updated',

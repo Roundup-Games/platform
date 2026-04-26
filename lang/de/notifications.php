@@ -171,6 +171,12 @@ return [
     'body_game_updated' => 'Das Spiel **:game** wurde aktualisiert. Änderungen: :fields.',
     'action_view_game' => 'Spiel anzeigen',
 
+    // Spielsystem-Anfrage
+    'category_game_system_request' => 'Spielsystem-Anfrage',
+    'subject_game_system_request_approved' => 'Spielsystem hinzugefügt: :name',
+    'body_game_system_request_approved' => 'Deine Anfrage für das Spielsystem **:name** wurde angenommen! Es ist jetzt auf der Plattform verfügbar.',
+    'action_create_game' => 'Spiel erstellen',
+
     // Kampagne aktualisiert
     'category_campaign_updated' => 'Kampagne aktualisiert',
     'subject_campaign_updated' => ':campaign wurde aktualisiert',
