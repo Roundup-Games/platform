@@ -147,6 +147,20 @@ describe('GameSystemsPage', function () {
             ->assertSee(route('game-systems.show', $system->slug), false);
     });
 
+    it('shows request game system CTA link in page header', function () {
+        get(route('game-systems'))
+            ->assertOk()
+            ->assertSee(route('game-systems.request'), false)
+            ->assertSee(__('games.request_cta_link'));
+    });
+
+    it('request CTA link uses wire:navigate', function () {
+        $template = file_get_contents(resource_path('views/livewire/game-systems/game-systems-page.blade.php'));
+
+        expect($template)->toContain("route('game-systems.request')");
+        expect($template)->toContain('wire:navigate');
+    });
+
     it('paginates at 24 per page', function () {
         GameSystem::factory()->count(25)->create();
 

@@ -15,6 +15,14 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
+        {{-- ── Request CTA ─────────────────────────────────────────────────── --}}
+        <div class="text-center mb-4">
+            <a href="{{ route('game-systems.request') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">add_circle_outline</span>
+                {{ __('games.request_cta_catalog_header') }} {{ __('games.request_cta_link') }}
+            </a>
+        </div>
+
         {{-- ── Search Bar ──────────────────────────────────────────────────── --}}
         <div class="max-w-2xl mx-auto mb-6">
             <div class="relative">
