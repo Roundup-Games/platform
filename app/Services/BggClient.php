@@ -102,4 +102,74 @@ class BggClient
             }
         }
     }
+
+    /**
+     * Search the BGG XML API2 for board games matching a query.
+     *
+     * Calls /xmlapi2/search?query={query}&type=boardgame,boardgameexpansion.
+     * Returns lightweight results without statistics. Handles 202 cache-miss
+     * with automatic retry using the same pattern as fetchThing().
+     *
+     * @param  string  $query  The search query (e.g. "Catan")
+     * @return SimpleXMLElement The parsed XML response containing <items> with <item> children
+     *
+     * @throws BggApiException on non-recoverable HTTP errors
+     */
+    public function search(string $query): SimpleXMLElement
+    {
+        $url = "{$this->baseUrl}/search?query=" . urlencode($query) . '&type=boardgame,boardgameexpansion';
+
+        $attempt = 0;
+        $lastSleepUntil = null;
+
+        while (true) {
+            $attempt++;
+
+            // Respect rate limiting between requests
+            if ($lastSleepUntil !== null) {
+                $wait = $lastSleepUntil - microtime(true);
+                if ($wait > 0) {
+                    usleep((int) ($wait * 1_000_000));
+                }
+            }
+
+            try {
+                $request = Http::timeout(30);
+
+                if ($this->token) {
+                    $request = $request->withToken($this->token);
+                }
+
+                $response = $request->get($url);
+            } catch (ConnectionException $e) {
+                throw BggApiException::timeout($url);
+            }
+
+            $lastSleepUntil = microtime(true) + $this->rateLimitSeconds;
+
+            if ($response->status() === 202) {
+                // BGG cache miss — retry after delay
+                if ($attempt >= $this->maxRetries) {
+                    throw BggApiException::requestFailed(202, $url);
+                }
+
+                sleep($this->retrySleepSeconds);
+                continue;
+            }
+
+            if ($response->status() === 401 || $response->status() === 403) {
+                throw BggApiException::notAuthenticated();
+            }
+
+            if ($response->failed()) {
+                throw BggApiException::requestFailed($response->status(), $url);
+            }
+
+            try {
+                return new SimpleXMLElement($response->body());
+            } catch (\Throwable $e) {
+                throw BggParseException::fromXmlError($e);
+            }
+        }
+    }
 }
