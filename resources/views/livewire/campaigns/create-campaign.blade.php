@@ -15,10 +15,7 @@
 
             {{-- Section 1: Campaign Details --}}
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                <div class="flex items-center gap-2.5 mb-5">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-on-primary text-xs font-bold">1</span>
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('campaigns.content_campaign_details') }}</h2>
-                </div>
+                <x-form-section-header :number="1" :icon="'edit_note'" :title="__('campaigns.content_campaign_details')" />
 
                 <div class="space-y-4">
                     <div>
@@ -48,10 +45,7 @@
 
             {{-- Section 2: Schedule --}}
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                <div class="flex items-center gap-2.5 mb-5">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-on-primary text-xs font-bold">2</span>
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('campaigns.content_schedule') }}</h2>
-                </div>
+                <x-form-section-header :number="2" :icon="'schedule'" :title="__('campaigns.content_schedule')" />
 
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -96,10 +90,7 @@
 
             {{-- Section 3: Players & Location --}}
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                <div class="flex items-center gap-2.5 mb-5">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-on-primary text-xs font-bold">3</span>
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('location.field_players_capacity') }} & {{ __('location.content_location') }}</h2>
-                </div>
+                <x-form-section-header :number="3" :icon="'group'" :title="__('location.field_players_capacity') . ' & ' . __('location.content_location')" />
 
                 <div class="space-y-5">
                     <div class="grid grid-cols-2 gap-4">
@@ -127,10 +118,7 @@
 
             {{-- Section 4: Session Meta --}}
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                <div class="flex items-center gap-2.5 mb-5">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-on-primary text-xs font-bold">4</span>
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('campaigns.content_discovery_session_meta') }}</h2>
-                </div>
+                <x-form-section-header :number="4" :icon="'tune'" :title="__('campaigns.content_discovery_session_meta')" />
 
                 <div class="space-y-5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -168,10 +156,7 @@
 
             {{-- Section 5: Visibility --}}
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
-                <div class="flex items-center gap-2.5 mb-5">
-                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-on-primary text-xs font-bold">5</span>
-                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface">{{ __('common.content_visibility') }}</h2>
-                </div>
+                <x-form-section-header :number="5" :icon="'visibility'" :title="__('common.content_visibility')" />
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>

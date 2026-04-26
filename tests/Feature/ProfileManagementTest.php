@@ -102,12 +102,11 @@ it('sets userHasPassword based on password_set_at', function () {
 
 // ── Profile Information Save ──────────────────────────
 
-it('can save profile information with game preferences', function () {
+it('can save profile information', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
         'email_verified_at' => now(),
     ]);
-    $gs = GameSystem::factory()->create();
 
     Livewire::actingAs($user)
         ->test(Show::class)
@@ -116,7 +115,6 @@ it('can save profile information with game preferences', function () {
         ->set('gender', 'non-binary')
         ->set('pronouns', 'they/them')
         ->set('phone', '+15559876543')
-        ->set('favoriteGameSystemIds', [$gs->id])
         ->call('saveProfile')
         ->assertSet('saved', true);
 
@@ -127,8 +125,21 @@ it('can save profile information with game preferences', function () {
         ->gender->toBe('non-binary')
         ->pronouns->toBe('they/them')
         ->phone->toBe('+15559876543');
+});
 
-    expect($fresh->gameSystemPreferences()->pluck('game_systems.id')->toArray())->toContain($gs->id);
+it('can save game preferences independently', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+    ]);
+    $gs = GameSystem::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('favoriteGameSystemIds', [$gs->id])
+        ->call('savePreferences')
+        ->assertSet('preferencesSaved', true);
+
+    expect($user->fresh()->gameSystemPreferences()->pluck('game_systems.id')->toArray())->toContain($gs->id);
 });
 
 it('increments profile version on save', function () {
@@ -182,7 +193,7 @@ it('syncs game system preferences idempotently', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->set('favoriteGameSystemIds', [$gs1->id])
-        ->call('saveProfile');
+        ->call('savePreferences');
 
     expect($user->fresh()->gameSystemPreferences()->pluck('game_systems.id')->toArray())->toContain($gs1->id);
 
@@ -190,7 +201,7 @@ it('syncs game system preferences idempotently', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->set('favoriteGameSystemIds', [$gs2->id])
-        ->call('saveProfile');
+        ->call('savePreferences');
 
     $prefs = $user->fresh()->gameSystemPreferences()->pluck('game_systems.id')->toArray();
     expect($prefs)->toContain($gs2->id);
@@ -227,13 +238,12 @@ it('validates unique email', function () {
 it('validates game system IDs exist', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
-        'email_verified_at' => now(),
     ]);
 
     Livewire::actingAs($user)
         ->test(Show::class)
         ->set('favoriteGameSystemIds', [999999])
-        ->call('saveProfile')
+        ->call('savePreferences')
         ->assertHasErrors(['favoriteGameSystemIds.0']);
 });
 

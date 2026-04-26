@@ -198,7 +198,7 @@ class DiscoveryCacheTriggersTest extends TestCase
         \Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Profile\Show::class)
             ->set('vibePreferences', [VibeFlag::Atmospheric->value => 'favorite'])
-            ->call('saveProfile');
+            ->call('savePreferences');
 
         Queue::assertPushedOn('discovery', UpdateUserDiscoveryCache::class, function ($job) use ($user) {
             return $job->userId === $user->id && $job->triggerType === 'vibe_change';
@@ -219,7 +219,7 @@ class DiscoveryCacheTriggersTest extends TestCase
         \Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Profile\Show::class)
             ->set('favoriteGameSystemIds', [$gameSystem->id])
-            ->call('saveProfile');
+            ->call('savePreferences');
 
         Queue::assertPushedOn('discovery', UpdateUserDiscoveryCache::class, function ($job) use ($user) {
             return $job->userId === $user->id && $job->triggerType === 'game_system_change';
@@ -238,7 +238,7 @@ class DiscoveryCacheTriggersTest extends TestCase
         \Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Profile\Show::class)
             ->set('favoriteGameSystemIds', [$gameSystem->id])
-            ->call('saveProfile');
+            ->call('savePreferences');
 
         Queue::assertNotPushed(function (UpdateUserDiscoveryCache $job) {
             return $job->triggerType === 'game_system_change';
@@ -261,7 +261,7 @@ class DiscoveryCacheTriggersTest extends TestCase
         \Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Profile\Show::class)
             ->set('vibePreferences', $initialVibes)
-            ->call('saveProfile');
+            ->call('savePreferences');
 
         Queue::fake(); // Reset after first save
 
@@ -269,7 +269,7 @@ class DiscoveryCacheTriggersTest extends TestCase
         \Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Profile\Show::class)
             // Don't set vibePreferences — it's already loaded from DB by mount()
-            ->call('saveProfile');
+            ->call('savePreferences');
 
         Queue::assertNotPushed(function (UpdateUserDiscoveryCache $job) {
             return $job->triggerType === 'vibe_change';

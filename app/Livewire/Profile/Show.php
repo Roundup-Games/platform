@@ -68,6 +68,7 @@ class Show extends Component
     public array $notificationSettings = [];
 
     public bool $saved = false;
+    public bool $preferencesSaved = false;
     public bool $privacySaved = false;
     public bool $notificationSaved = false;
 
@@ -165,30 +166,13 @@ class Show extends Component
             'gender' => ['nullable', 'string', 'max:50'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'favoriteGameSystemIds' => ['array'],
-            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
-            'avoidedGameSystemIds' => ['array'],
-            'avoidedGameSystemIds.*' => ['exists:game_systems,id'],
-            'vibePreferences' => ['array'],
-            'vibePreferences.*' => ['nullable', 'in:favorite,avoid'],
             'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
 
-        // Capture pre-update values for discovery cache change detection
+        // Capture pre-update location for discovery cache change detection
         $oldLocationId = $user->location_id;
-        $oldVibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
-            return [$pref->vibe_preference_value->value => $pref->preference_type];
-        })->toArray();
-        $oldFavoriteIds = $user->gameSystemPreferences()
-            ->wherePivot('preference_type', 'favorite')
-            ->pluck('game_systems.id')
-            ->sort()->values()->toArray();
-        $oldAvoidedIds = $user->gameSystemPreferences()
-            ->wherePivot('preference_type', 'avoid')
-            ->pluck('game_systems.id')
-            ->sort()->values()->toArray();
 
         $user->update([
             'name' => $validated['name'],
@@ -209,6 +193,58 @@ class Show extends Component
                 'new_email' => $validated['email'],
             ]);
         }
+
+        if ($this->avatar) {
+            $user->clearMediaCollection('avatar');
+            $filename = $this->avatar->getClientOriginalName()
+                ?? ('avatar.' . ($this->avatar->extension() ?: 'jpg'));
+            $user->addMedia($this->avatar->getRealPath())
+                ->usingName($user->name . ' avatar')
+                ->usingFileName($filename)
+                ->toMediaCollection('avatar');
+
+            Log::info('Avatar uploaded', ['user_id' => $user->id]);
+        }
+
+        Log::info('Profile updated', [
+            'user_id' => $user->id,
+            'fields_updated' => array_keys($validated),
+            'profile_version' => $user->profile_version,
+        ]);
+
+        // Dispatch discovery cache refresh if location changed
+        if ($user->location_id !== ($oldLocationId ?? null)) {
+            UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
+        }
+
+        $this->saved = true;
+    }
+
+    public function savePreferences(): void
+    {
+        $user = Auth::user();
+
+        $validated = $this->validate([
+            'favoriteGameSystemIds' => ['array'],
+            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+            'avoidedGameSystemIds' => ['array'],
+            'avoidedGameSystemIds.*' => ['exists:game_systems,id'],
+            'vibePreferences' => ['array'],
+            'vibePreferences.*' => ['nullable', 'in:favorite,avoid'],
+        ]);
+
+        // Capture pre-update values for change detection BEFORE any writes
+        $oldVibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
+            return [$pref->vibe_preference_value->value => $pref->preference_type];
+        })->toArray();
+        $oldFavoriteIds = $user->gameSystemPreferences()
+            ->wherePivot('preference_type', 'favorite')
+            ->pluck('game_systems.id')
+            ->sort()->values()->toArray();
+        $oldAvoidedIds = $user->gameSystemPreferences()
+            ->wherePivot('preference_type', 'avoid')
+            ->pluck('game_systems.id')
+            ->sort()->values()->toArray();
 
         // Sync game system preferences (favorites AND avoids)
         $favoriteSync = collect($validated['favoriteGameSystemIds'])->mapWithKeys(fn ($id) => [
@@ -242,21 +278,13 @@ class Show extends Component
         $newAvoidedIds = collect($validated['avoidedGameSystemIds'])->map('intval')->sort()->values()->toArray();
         $gameSystemsChanged = $oldFavoriteIds !== $newFavoriteIds || $oldAvoidedIds !== $newAvoidedIds;
 
-        if ($this->avatar) {
-            $user->clearMediaCollection('avatar');
-            $filename = $this->avatar->getClientOriginalName()
-                ?? ('avatar.' . ($this->avatar->extension() ?: 'jpg'));
-            $user->addMedia($this->avatar->getRealPath())
-                ->usingName($user->name . ' avatar')
-                ->usingFileName($filename)
-                ->toMediaCollection('avatar');
+        $user->update([
+            'profile_version' => ($user->profile_version ?? 0) + 1,
+            'profile_updated_at' => now(),
+        ]);
 
-            Log::info('Avatar uploaded', ['user_id' => $user->id]);
-        }
-
-        Log::info('Profile updated', [
+        Log::info('Preferences updated', [
             'user_id' => $user->id,
-            'fields_updated' => array_keys($validated),
             'favorite_game_systems_count' => count($validated['favoriteGameSystemIds']),
             'avoided_game_systems_count' => count($validated['avoidedGameSystemIds']),
             'vibe_favorites_count' => count(array_filter($this->vibePreferences, fn ($v) => $v === 'favorite')),
@@ -264,10 +292,6 @@ class Show extends Component
             'profile_version' => $user->profile_version,
         ]);
 
-        // Dispatch discovery cache refresh if location, vibes, or game systems changed
-        if ($user->location_id !== ($oldLocationId ?? null)) {
-            UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
-        }
         if ($vibesChanged) {
             UpdateUserDiscoveryCache::dispatch($user->id, 'vibe_change');
         }
@@ -275,7 +299,7 @@ class Show extends Component
             UpdateUserDiscoveryCache::dispatch($user->id, 'game_system_change');
         }
 
-        $this->saved = true;
+        $this->preferencesSaved = true;
     }
 
     public function savePrivacySettings(): void

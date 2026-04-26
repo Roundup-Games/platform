@@ -125,7 +125,7 @@ describe('Load existing preferences', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Save preferences round-trip', function () {
-    it('saves vibe preferences to database via saveProfile', function () {
+    it('saves vibe preferences to database via savePreferences', function () {
         $user = createVibeUser();
 
         Livewire::actingAs($user)
@@ -136,7 +136,7 @@ describe('Save preferences round-trip', function () {
                 'competitive' => 'avoid',
                 'exploration' => 'favorite',
             ])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         assertVibePreferenceInDb($user, 'atmospheric', 'favorite');
@@ -154,7 +154,7 @@ describe('Save preferences round-trip', function () {
                 'atmospheric' => 'favorite',
                 'horror' => 'avoid',
             ])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         assertVibePreferenceInDb($user, 'atmospheric', 'favorite');
@@ -167,7 +167,7 @@ describe('Save preferences round-trip', function () {
                 'exploration' => 'favorite',
                 'tactical' => 'avoid',
             ])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Old rows should be gone
@@ -192,7 +192,7 @@ describe('Save preferences round-trip', function () {
         Livewire::actingAs($user)
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Only atmospheric should be in DB
@@ -222,7 +222,7 @@ describe('Mutual exclusivity on save', function () {
         Livewire::actingAs($user)
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Both the favorite AND the auto-avoided partner should be persisted
@@ -268,7 +268,7 @@ describe('Mutual exclusivity on save', function () {
         Livewire::actingAs($user)
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         assertVibePreferenceInDb($user, 'horror', 'favorite');
@@ -295,7 +295,7 @@ describe('Validation', function () {
         Livewire::actingAs($user)
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Only atmospheric should be persisted; the invalid flag should be filtered out
@@ -303,11 +303,11 @@ describe('Validation', function () {
         assertVibePreferenceNotInDb($user, 'nonexistent-flag');
     });
 
-    it('saveProfile only persists favorite and avoid types, filtering nulls', function () {
+    it('savePreferences only persists favorite and avoid types, filtering nulls', function () {
         $user = createVibeUser();
 
         // The vibePreferencesChanged handler receives the full preferences map
-        // including null values. saveProfile must only insert rows for non-null,
+        // including null values. savePreferences must only insert rows for non-null,
         // valid types (favorite/avoid).
         $prefs = [];
         foreach (VibeFlag::cases() as $flag) {
@@ -320,7 +320,7 @@ describe('Validation', function () {
         Livewire::actingAs($user)
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Only 2 rows should exist (the non-null ones)
@@ -334,7 +334,7 @@ describe('Validation', function () {
         assertVibePreferenceNotInDb($user, 'exploration');
     });
 
-    it('saveProfile rejects invalid preference values in the array', function () {
+    it('savePreferences rejects invalid preference values in the array', function () {
         $user = createVibeUser();
 
         // Build preferences with an invalid value — Livewire validates before saving
@@ -348,7 +348,7 @@ describe('Validation', function () {
             ->test(Show::class)
             ->dispatch('vibe-preferences-changed', preferences: $prefs)
             ->set('vibePreferences.atmospheric', 'invalid-type')
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasErrors('vibePreferences.atmospheric');
     });
 });
@@ -380,7 +380,7 @@ describe('Event handling', function () {
                 'atmospheric' => 'favorite',
             ]);
 
-        // Should NOT be in DB yet — only after saveProfile()
+        // Should NOT be in DB yet — only after savePreferences()
         assertVibePreferenceNotInDb($user, 'atmospheric');
     });
 });

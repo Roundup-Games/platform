@@ -227,7 +227,7 @@
              x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
              role="tabpanel" id="panel-preferences" aria-labelledby="tab-preferences">
 
-            @if($saved)
+            @if($preferencesSaved)
                 <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
                      class="rounded-lg bg-secondary-container p-4 mb-6" role="status" aria-live="polite">
                     <p class="text-sm text-on-secondary-container flex items-center gap-2">
@@ -237,7 +237,7 @@
                 </div>
             @endif
 
-            <form wire:submit="saveProfile" class="space-y-6">
+            <form wire:submit="savePreferences" class="space-y-6">
                 {{-- Game Preferences --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-1 flex items-center gap-2">
