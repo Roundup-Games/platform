@@ -70,6 +70,9 @@ Route::prefix('{locale}')
         Route::get('/game-systems/request', App\Livewire\GameSystems\RequestGameSystemPage::class)
             ->middleware(['auth', 'profile.complete'])
             ->name('game-systems.request');
+        Route::get('/game-systems/requests/mine', App\Livewire\GameSystems\MyRequestsPage::class)
+            ->middleware(['auth', 'profile.complete'])
+            ->name('game-systems.requests.mine');
         Route::get('/game-systems/{slug}', App\Livewire\GameSystems\GameSystemDetail::class)->name('game-systems.show')->where('slug', '[a-zA-Z0-9\-]+');
         Route::post('/contact', [PageController::class, 'submitContact'])
             ->middleware('throttle:5,1')

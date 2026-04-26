@@ -273,4 +273,15 @@ return [
     'request_success' => 'Deine Anfrage wurde eingereicht! Wir werden sie prüfen und das Spielsystem bald hinzufügen.',
     'request_error_duplicate' => 'Du hast bereits eine ausstehende Anfrage für dieses Spielsystem.',
     'request_error_rate_limit' => 'Du hast das tägliche Limit von 3 Anfragen erreicht. Bitte versuche es in :hours Stunden erneut.',
+
+    // Meine Anfragen-Seite
+    'heading_my_requests' => 'Meine Anfragen',
+    'content_my_requests_subtitle' => 'Verfolge den Status deiner Spielsystem-Anfragen.',
+    'content_no_requests_yet' => 'Du hast noch keine Anfragen eingereicht.',
+    'action_submit_first_request' => 'Erste Anfrage einreichen',
+    'request_status_pending' => 'Ausstehend',
+    'request_status_in_review' => 'In Prüfung',
+    'request_status_approved' => 'Genehmigt',
+    'request_status_rejected' => 'Abgelehnt',
+    'request_status_duplicate' => 'Duplikat',
 ];

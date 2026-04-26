@@ -273,4 +273,15 @@ return [
     'request_success' => 'Your request has been submitted! We\'ll review it and add the game system soon.',
     'request_error_duplicate' => 'You already have a pending request for this game system.',
     'request_error_rate_limit' => 'You\'ve reached the daily limit of 3 requests. Please try again in :hours hours.',
+
+    // My Requests page
+    'heading_my_requests' => 'My Requests',
+    'content_my_requests_subtitle' => 'Track the status of your game system requests.',
+    'content_no_requests_yet' => 'You haven\'t submitted any requests yet.',
+    'action_submit_first_request' => 'Submit your first request',
+    'request_status_pending' => 'Pending',
+    'request_status_in_review' => 'In Review',
+    'request_status_approved' => 'Approved',
+    'request_status_rejected' => 'Rejected',
+    'request_status_duplicate' => 'Duplicate',
 ];
