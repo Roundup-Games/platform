@@ -8,6 +8,63 @@ use SimpleXMLElement;
 class BggXmlParser
 {
     /**
+     * Parse a BGG search results XML document into a lightweight array of results.
+     *
+     * Each result contains: bgg_id (int), name (string), year_released (int|null), bgg_type (string).
+     *
+     * @return array<int, array{bgg_id: int, name: string, year_released: int|null, bgg_type: string}>
+     *
+     * @throws BggParseException
+     */
+    public function parseSearchResults(string $xmlString): array
+    {
+        $prevInternalErrors = libxml_use_internal_errors(true);
+
+        try {
+            $items = new SimpleXMLElement($xmlString);
+            libxml_clear_errors();
+        } catch (\Throwable $e) {
+            throw BggParseException::fromXmlError($e);
+        } finally {
+            libxml_use_internal_errors($prevInternalErrors);
+        }
+
+        $result = [];
+        foreach ($items->item as $item) {
+            $result[] = [
+                'bgg_id' => (int) $item['id'],
+                'name' => $this->extractSearchName($item),
+                'year_released' => $this->nullableInt($item->yearpublished['value'] ?? null),
+                'bgg_type' => (string) $item['type'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Extract the primary name from a search result item element.
+     */
+    private function extractSearchName(SimpleXMLElement $item): string
+    {
+        foreach ($item->name as $name) {
+            if ((string) $name['type'] === 'primary') {
+                $value = (string) $name['value'];
+
+                return $value !== '' ? $value : 'Unknown';
+            }
+        }
+
+        if ($item->name instanceof SimpleXMLElement) {
+            $value = (string) $item->name['value'];
+
+            return $value !== '' ? $value : 'Unknown';
+        }
+
+        return 'Unknown';
+    }
+
+    /**
      * Parse a full `<items>` XML document into an array of parsed item arrays.
      *
      * @return array<int, array>

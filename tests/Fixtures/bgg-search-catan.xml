@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<items total="5" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+  <item type="boardgame" id="13">
+    <name type="primary" value="Catan"/>
+    <name type="alternate" value="The Settlers of Catan"/>
+    <name type="alternate" value="Die Siedler von Catan"/>
+    <yearpublished value="1995"/>
+  </item>
+  <item type="boardgameexpansion" id="277">
+    <name type="primary" value="Catan: Seafarers"/>
+    <name type="alternate" value="Seafarers of Catan"/>
+    <yearpublished value="1996"/>
+  </item>
+  <item type="boardgameexpansion" id="280">
+    <name type="primary" value="Catan: Cities &amp; Knights"/>
+    <yearpublished value="1998"/>
+  </item>
+  <item type="boardgameexpansion" id="38791">
+    <name type="primary" value="Catan: Traders &amp; Barbarians"/>
+    <yearpublished value="2007"/>
+  </item>
+  <item type="boardgame" id="258477">
+    <name type="primary" value="Catan: Starfarers"/>
+    <yearpublished value="2021"/>
+  </item>
+</items>
