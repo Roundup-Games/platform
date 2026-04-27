@@ -48,10 +48,8 @@ describe('Offline Indicator Layout Integration', function () {
 
         $response->assertOk();
 
-        // The component uses {{ __('common.offline_you_re_offline') }} which HTML-escapes.
-        // assertSee with escaped=true (default) handles HTML entity matching.
-        $response->assertSee(__('common.offline_you_re_offline'));
-        $response->assertSee(__('common.offline_back_online'));
+        $response->assertSee(__('pwa.offline_indicator'));
+        $response->assertSee(__('pwa.back_online'));
     });
 
     it('component contains pre-Alpine CSS fallback for offline state', function () {

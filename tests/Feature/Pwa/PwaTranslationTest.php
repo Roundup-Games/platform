@@ -133,9 +133,9 @@ describe('PWA Translation Completeness', function () {
         $response = actingAs($user)->get(route('dashboard'));
         $response->assertOk();
 
-        // Verify the localized text from common.php is present (HTML-escaped via {{ }})
-        $response->assertSee(__('common.offline_you_re_offline'));
-        $response->assertSee(__('common.offline_back_online'));
+        // Verify the localized text from pwa.php is present (HTML-escaped via {{ }})
+        $response->assertSee(__('pwa.offline_indicator'));
+        $response->assertSee(__('pwa.back_online'));
     });
 
     it('manifest-related meta tags present in authenticated layout', function () {

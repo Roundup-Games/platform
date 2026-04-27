@@ -105,7 +105,7 @@ describe('notification preferences section', function () {
 
         Livewire::test(Show::class)
             ->assertSet('pushSubscriptionCount', 1)
-            ->assertSee(__('notifications.push_enabled_on_devices', ['count' => 1]));
+            ->assertSee(__('pwa.push_enabled_on_devices', ['count' => 1]));
     });
 
     it('push subscription count is zero by default', function () {

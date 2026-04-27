@@ -346,8 +346,4 @@ return [
     // Dashboard-Aktivitätszeitlinie
     'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',
     'activity_no_results' => 'Noch keine Aktivität',
-
-    // Offline-Indikator
-    'offline_you_re_offline' => 'Du bist offline — einige Funktionen sind möglicherweise nicht verfügbar',
-    'offline_back_online' => 'Wieder online',
 ];

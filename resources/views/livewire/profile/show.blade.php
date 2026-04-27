@@ -582,7 +582,7 @@
                             <div class="flex items-center gap-3">
                                 <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">notifications_active</span>
                                 <p class="text-sm text-on-surface">
-                                    {{ __('notifications.push_enabled_on_devices', ['count' => $pushSubscriptionCount]) }}
+                                    {{ __('pwa.push_enabled_on_devices', ['count' => $pushSubscriptionCount]) }}
                                 </p>
                             </div>
                             <button type="button" data-push="unsubscribe"
@@ -597,7 +597,7 @@
                     <div data-push-ui="denied" class="hidden">
                         <div class="flex items-center gap-3 p-4 bg-error-container/30 rounded-lg">
                             <span class="material-symbols-outlined text-error" aria-hidden="true">notifications_paused</span>
-                            <p class="text-sm text-on-surface">{{ __('notifications.push_denied_hint') }}</p>
+                            <p class="text-sm text-on-surface">{{ __('pwa.push_denied_hint') }}</p>
                         </div>
                     </div>
                 </section>

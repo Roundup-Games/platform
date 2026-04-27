@@ -59,8 +59,6 @@ return [
     'push_enable_description' => 'Aktiviere Push-Benachrichtigungen, um auf diesem Gerät Benachrichtigungen zu erhalten.',
     'push_enable_button' => 'Push aktivieren',
     'push_disable_button' => 'Deaktivieren',
-    'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',
-    'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',
 
     // Gemeinsame E-Mail-Texte
     'email_brand_name' => 'Roundup Games',

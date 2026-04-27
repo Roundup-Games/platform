@@ -35,7 +35,7 @@
         class="bg-surface-container-highest border-t border-outline-variant/20 px-4 py-2.5 flex items-center justify-center gap-2 pointer-events-auto"
     >
         <span class="material-symbols-outlined text-lg text-on-surface-variant" aria-hidden="true">cloud_off</span>
-        <span class="text-sm text-on-surface-variant">{{ __('common.offline_you_re_offline') }}</span>
+        <span class="text-sm text-on-surface-variant">{{ __('pwa.offline_indicator') }}</span>
     </div>
 
     {{-- Back-online flash --}}
@@ -51,7 +51,7 @@
         class="bg-primary/10 border-t border-primary/20 px-4 py-2.5 flex items-center justify-center gap-2 pointer-events-auto"
     >
         <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">cloud_done</span>
-        <span class="text-sm font-medium text-primary">{{ __('common.offline_back_online') }}</span>
+        <span class="text-sm font-medium text-primary">{{ __('pwa.back_online') }}</span>
     </div>
 </div>
 

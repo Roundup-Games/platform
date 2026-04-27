@@ -24,21 +24,11 @@ return [
     'offline_message' => 'Check your connection and try again. Some previously-visited pages may still be available.',
     'offline_try_again' => 'Try again',
 
-    // Offline indicator (lives in common.php as common.offline_*)
-    // Keys listed here for cross-reference only:
-    // 'offline_indicator' => 'You\'re offline — some features may be unavailable',
-    // 'back_online' => 'Back online',
+    // Offline indicator
+    'offline_indicator' => 'You\'re offline — some features may be unavailable',
+    'back_online' => 'Back online',
 
-    // Push notification UI (lives in notifications.php as notifications.push_*)
-    // Keys listed here for cross-reference only:
-    // 'push_subscribe' => 'Enable push notifications',
-    // 'push_unsubscribe' => 'Disable push notifications',
-    // 'push_enabled' => 'Push notifications enabled on :count device(s)',
-    // 'push_unavailable' => 'Push notifications are not supported in this browser',
-    // 'push_preferences_label' => 'Push',
-
-    // Push notification payload (lives in notifications.php as notifications.push_*_session_reminder)
-    // Keys listed here for cross-reference only:
-    // 'reminder_title' => 'Game Reminder',
-    // 'reminder_body' => ':game starts at :time today',
+    // Push notification UI
+    'push_enabled_on_devices' => 'Push notifications enabled on :count device(s).',
+    'push_denied_hint' => 'Push notifications are blocked in your browser settings. To re-enable, update the notification permissions in your browser.',
 ];

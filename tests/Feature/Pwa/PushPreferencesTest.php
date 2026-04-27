@@ -155,7 +155,7 @@ describe('push unavailable state', function () {
 
         Livewire::test(Show::class)
             ->assertSet('pushSubscriptionCount', 3)
-            ->assertSee(__('notifications.push_enabled_on_devices', ['count' => 3]));
+            ->assertSee(__('pwa.push_enabled_on_devices', ['count' => 3]));
     });
 
     it('renders channel push label in preferences table', function () {

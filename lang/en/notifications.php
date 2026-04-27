@@ -62,8 +62,6 @@ return [
     'push_enable_description' => 'Enable push notifications to receive alerts on this device.',
     'push_enable_button' => 'Enable Push',
     'push_disable_button' => 'Disable',
-    'push_enabled_on_devices' => 'Push notifications enabled on :count device(s).',
-    'push_denied_hint' => 'Push notifications are blocked in your browser settings. To re-enable, update the notification permissions in your browser.',
 
     // Common email strings
     'email_brand_name' => 'Roundup Games',
