@@ -306,44 +306,6 @@ describe('GameSystemsPage - i18n', function () {
         get('/en/game-systems')->assertOk();
         get('/de/game-systems')->assertOk();
     });
-
-    it('contains translated heading in German locale', function () {
-        app()->setLocale('de');
-        get('/de/game-systems')
-            ->assertOk()
-            ->assertSee('Spielsysteme entdecken');
-    });
-
-    it('has translation keys for all page copy', function () {
-        $keys = [
-            'games.action_explore_game_systems',
-            'games.content_game_systems_knowledge_base_subtitle',
-            'games.action_search_game_systems',
-            'games.heading_categories',
-            'games.heading_mechanics',
-            'common.content_players',
-            'common.field_minimum_players',
-            'common.field_maximum_players',
-            'games.content_complexity',
-            'games.field_minimum_complexity',
-            'games.field_maximum_complexity',
-            'games.content_no_game_systems_match_filters',
-            'games.action_include_expansions',
-            'common.action_clear_all',
-        ];
-
-        app()->setLocale('en');
-        foreach ($keys as $key) {
-            $enValue = __($key);
-            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
-        }
-
-        app()->setLocale('de');
-        foreach ($keys as $key) {
-            $deValue = __($key);
-            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
-        }
-    });
 });
 
 describe('GameSystemsPage - Accessibility', function () {

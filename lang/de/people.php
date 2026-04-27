@@ -3,7 +3,6 @@
 return [
     'action_discover_people' => 'Leute entdecken',
     'action_follow_back' => 'Zurück folgen',
-    'action_manage_following_followers_blocked' => 'Follower, Gefolgte & Blockierte verwalten',
     'action_search_friends' => 'Freunde nach Name oder E-Mail suchen',
     'content_followers' => 'Follower',
     'content_following' => 'Ich folge',

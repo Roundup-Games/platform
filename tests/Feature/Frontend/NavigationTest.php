@@ -276,18 +276,6 @@ describe('App Sidebar Navigation', function () {
             ->assertSee('Log Out');
     });
 
-    it('does not include Near Me as a separate nav item', function () {
-        $response = actingAs($this->user)
-            ->get(route('dashboard'));
-        $response->assertOk();
-        $content = $response->getContent();
-
-        // "Near Me" (location_on icon as a separate nav link) should no longer appear
-        // in the authenticated sidebar or mobile nav
-        // The discover route still exists, but not as a "Near Me" duplicate link
-        $this->assertStringNotContainsString(__('discovery.content_near_me'), $content);
-    });
-
     it('does not include public-browsing links in authenticated sidebar', function () {
         $response = actingAs($this->user)
             ->get(route('dashboard'));

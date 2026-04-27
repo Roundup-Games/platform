@@ -1,8 +1,6 @@
 <?php
 
 return [
-    'action_select_the_safety_tools_you' => 'Select the safety tools you plan to use for this campaign.',
-    'action_select_safety_tools_session' => 'Select the safety tools you plan to use for this session.',
     'content_clear_safety_tools_session_zero' => 'Clear safety tools, session zero support, and community guidelines keep the focus on fun for everyone.',
     'content_custom_safety_note' => 'Custom Safety Note',
     'content_everyone_deserves_to_feel_safe' => 'Everyone deserves to feel safe and comfortable at the table. Safety tools are simple practices that help groups communicate boundaries and keep the focus on fun.',

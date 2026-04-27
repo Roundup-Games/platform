@@ -3,7 +3,6 @@
 return [
     'action_discover_people' => 'Discover people',
     'action_follow_back' => 'Follow back',
-    'action_manage_following_followers_blocked' => 'Manage following, followers & blocked',
     'action_search_friends' => 'Search friends by name or email',
     'content_followers' => 'Followers',
     'content_following' => 'Following',

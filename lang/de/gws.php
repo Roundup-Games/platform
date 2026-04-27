@@ -23,8 +23,6 @@ return [
     'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches GM-Profil.',
     'action_create_session_zero' => 'Session Zero erstellen',
     'action_create_session_zero_desc' => 'Erstelle einen Fragebogen vor dem Spiel, um Erwartungen und Safety-Tools zu klären.',
-    'error_access_denied' => 'Du benötigst ein aktives GM-Abonnement, um auf den Arbeitsbereich zuzugreifen.',
-
     // Session-Zero-Umfragen
     'heading_session_zero_surveys' => 'Session-Zero-Umfragen',
     'content_no_session_zero_surveys' => 'Noch keine Session-Zero-Umfragen. Erstelle eine, um deine Gruppe vor der ersten Sitzung abzustimmen.',

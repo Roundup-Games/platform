@@ -6,12 +6,9 @@ return [
     'action_create_account' => 'Create Account',
     'action_create_free_account' => 'Create Free Account',
     'action_delete_account' => 'Delete Account',
-    'action_edit_profile' => 'Edit Profile',
     'action_go_to_your_dashboard' => 'Go to Your Dashboard',
     'action_manage_your_account_information_preferences' => 'Manage your account information, preferences, and security.',
     'action_set_your_preferences' => 'Set your preferences',
-    'action_update_your_profile_information_and' => 'Update your profile information and game preferences.',
-    'action_view_and_edit_your_profile' => 'View and edit your profile',
     'content_account' => 'Account',
     'content_actions' => 'Actions',
     'content_basic_info' => 'Basic Info',
@@ -36,9 +33,7 @@ return [
     'field_linked_accounts' => 'Linked Accounts',
     'field_update_settings_for_name' => 'Update settings for :name',
     'flash_profile_updated_successfully' => 'Profile updated successfully.',
-    'action_help_us_find_games_and_events_near_you' => 'Help us find games and events near you',
     'action_select_the_games_you_enjoy_and_those' => 'Select the games you enjoy and those you\'d prefer to avoid — we\'ll use this to recommend sessions and events.',
-    'action_set_your_preferred_language_and_location' => 'Set your preferred language and location to help us find sessions near you.',
     'action_tell_us_which_play_styles_you_enjoy' => 'Tell us which play styles you enjoy and which you\'d rather avoid.',
     'content_avoid_preferences_take_priority_over_favorites' => 'Avoid preferences take priority over favorites when there\'s a conflict.',
     'content_language_location' => 'Language & Location',
@@ -47,8 +42,6 @@ return [
     'content_vibe_preferences' => 'Vibe Preferences',
     'content_favorites_favorite_avoids_avoided' => ':favorites favorite, :avoids avoided',
     'nav_people' => 'People',
-    'content_people' => 'People',
-
     // Privacy settings
     'content_privacy_settings' => 'Privacy Settings',
     'action_control_who_sees_your_profile_information' => 'Control who can see your profile information on your public profile.',
@@ -74,7 +67,6 @@ return [
     'action_avoid' => 'avoid',
 
     // Guest nudge keys
-    'guest_nudge_follow' => 'Sign up to follow :name and join game sessions!',
     'guest_nudge_profile' => 'Create a free account to connect with tabletop gamers.',
 
     // Dashboard cards
@@ -112,7 +104,6 @@ return [
     'gm_profile_section_title' => 'Game Master Profile',
     'gm_profile_specializations' => 'Specializations',
     'gm_profile_bio' => 'About',
-    'gm_profile_rating' => 'Rating',
     'gm_profile_reviews' => ':count review|:count reviews',
     'gm_profile_no_reviews' => 'No reviews yet',
 

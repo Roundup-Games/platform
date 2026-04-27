@@ -8,7 +8,6 @@ return [
     'action_discover_sessions_near_you' => 'Entdecke Sessions in deiner Nähe',
     'action_filter_by_recurrence' => 'Nach Wiederholung filtern',
     'action_find_sessions_near_me' => 'Sitzungen in meiner Nähe finden',
-    'action_find_sessions_near_you' => 'Finde Spiele in deiner Nähe',
     'action_find_tabletop_sessions_one_shots' => 'Finde Tabletop-Sitzungen, One-Shots und Kampagnen zum Mitmachen.',
     'action_join_this_session' => 'An dieser Sitzung teilnehmen',
     'action_search_campaigns' => 'Kampagnen suchen',

@@ -23,8 +23,6 @@ return [
     'action_manage_profile_desc' => 'View and update your public GM profile.',
     'action_create_session_zero' => 'Create Session Zero',
     'action_create_session_zero_desc' => 'Build a pre-game questionnaire to set expectations and safety tools.',
-    'error_access_denied' => 'You need an active GM subscription to access the workspace.',
-
     // Session Zero Surveys section
     'heading_session_zero_surveys' => 'Session Zero Surveys',
     'content_no_session_zero_surveys' => 'No Session Zero surveys yet. Create one to align your group before the first session.',

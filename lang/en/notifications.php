@@ -43,7 +43,6 @@ return [
 
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Preferences',
-    'action_control_which_notifications_you_receive' => 'Control which notifications you receive and how they are delivered.',
     'flash_notification_preferences_saved' => 'Notification preferences saved.',
     'channel_in_app' => 'In-App',
     'channel_email' => 'Email',

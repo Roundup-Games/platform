@@ -6,12 +6,9 @@ return [
     'action_create_account' => 'Konto erstellen',
     'action_create_free_account' => 'Kostenloses Konto erstellen',
     'action_delete_account' => 'Konto löschen',
-    'action_edit_profile' => 'Profil bearbeiten',
     'action_go_to_your_dashboard' => 'Zu deinem Dashboard',
     'action_manage_your_account_information_preferences' => 'Verwalte deine Kontoinformationen, Präferenzen und Sicherheit.',
     'action_set_your_preferences' => 'Setze deine Präferenzen',
-    'action_update_your_profile_information_and' => 'Aktualisiere deine Profilinformationen und Spielpräferenzen.',
-    'action_view_and_edit_your_profile' => 'Profil ansehen und bearbeiten',
     'content_account' => 'Konto',
     'content_actions' => 'Aktionen',
     'content_basic_info' => 'Grundinformationen',
@@ -36,9 +33,7 @@ return [
     'field_linked_accounts' => 'Verknüpfte Konten',
     'field_update_settings_for_name' => 'Einstellungen für :name aktualisieren',
     'flash_profile_updated_successfully' => 'Profil erfolgreich aktualisiert.',
-    'action_help_us_find_games_and_events_near_you' => 'Hilf uns, Spiele und Events in deiner Nähe zu finden',
     'action_select_the_games_you_enjoy_and_those' => 'Wähle die Spiele, die du magst, und die, die du lieber meidest — wir nutzen das, um dir Sessions und Events zu empfehlen.',
-    'action_set_your_preferred_language_and_location' => 'Lege deine bevorzugte Sprache und deinen Standort fest, damit wir Sessions in deiner Nähe finden können.',
     'action_tell_us_which_play_styles_you_enjoy' => 'Erzähl uns, welche Spielstile du magst und welche du lieber meidest.',
     'content_avoid_preferences_take_priority_over_favorites' => 'Meide-Einstellungen haben Vorrang vor Favoriten bei Konflikten.',
     'content_favorites_favorite_avoids_avoided' => ':favorites Favoriten, :avoids gemieden',
@@ -47,8 +42,6 @@ return [
     'content_this_helps_us_find_games_and_events_near_you' => 'Das hilft uns, Spiele und Events in deiner Nähe zu finden.',
     'content_vibe_preferences' => 'Stimmungs-Präferenzen',
     'nav_people' => 'Leute',
-    'content_people' => 'Leute',
-
     // Privacy settings
     'content_privacy_settings' => 'Privatsphäre-Einstellungen',
     'action_control_who_sees_your_profile_information' => 'Kontrolliere, wer deine Profilinformationen auf deinem öffentlichen Profil sehen kann.',
@@ -74,7 +67,6 @@ return [
     'action_avoid' => 'vermeiden',
 
     // Gast-Nudge-Schlüssel
-    'guest_nudge_follow' => 'Melde dich an, um :name zu folgen und an Spielsitzungen teilzunehmen!',
     'guest_nudge_profile' => 'Erstelle ein kostenloses Konto, um dich mit Brettspielern zu verbinden.',
 
     // Dashboard-Karten
@@ -112,7 +104,6 @@ return [
     'gm_profile_section_title' => 'Game Master Profil',
     'gm_profile_specializations' => 'Spezialisierungen',
     'gm_profile_bio' => 'Über mich',
-    'gm_profile_rating' => 'Bewertung',
     'gm_profile_reviews' => ':count Bewertung|:count Bewertungen',
     'gm_profile_no_reviews' => 'Noch keine Bewertungen',
 

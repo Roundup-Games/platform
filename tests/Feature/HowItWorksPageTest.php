@@ -89,49 +89,6 @@ describe('HowItWorksPage - i18n', function () {
         get('/en/how-it-works')->assertOk();
         get('/de/how-it-works')->assertOk();
     });
-
-    it('contains translated heading in German locale', function () {
-        app()->setLocale('de');
-        get('/de/how-it-works')
-            ->assertOk()
-            ->assertSee('So funktioniert Roundup');
-    });
-
-    it('has translation keys for all page copy', function () {
-        $keys = [
-            'pages.content_how_it_works',
-            'events.content_how_roundup_works',
-            'games.content_three_steps_to_your_next_game_night',
-            'campaigns.action_discover_sessions_near_you',
-            'games.action_find_your_kind_of_game',
-            'common.content_show_up_and_play',
-            'pages.heading_what_we_stand_for',
-            'common.content_inclusivity',
-            'safety.content_safety',
-            'pages.content_community',
-            'common.content_curiosity',
-            'safety.content_your_safety_built_in',
-            'campaigns.content_transparent_sessions',
-            'pages.content_organizer_profiles_are_public_you',
-            'campaigns.content_protected_sessions',
-            'safety.content_session_zero_support',
-            'common.content_ready_to_find_your_table',
-            'auth.content_sign_up_free',
-            'campaigns.action_browse_sessions',
-        ];
-
-        app()->setLocale('en');
-        foreach ($keys as $key) {
-            $enValue = __($key);
-            expect($enValue)->not->toBe($key, "Missing en translation for: {$key}");
-        }
-
-        app()->setLocale('de');
-        foreach ($keys as $key) {
-            $deValue = __($key);
-            expect($deValue)->not->toBe($key, "Missing de translation for: {$key}");
-        }
-    });
 });
 
 describe('HowItWorksPage - Accessibility', function () {

@@ -8,7 +8,6 @@ return [
     'action_discover_sessions_near_you' => 'Discover sessions near you',
     'action_filter_by_recurrence' => 'Filter by recurrence',
     'action_find_sessions_near_me' => 'Find sessions near me',
-    'action_find_sessions_near_you' => 'Find Sessions Near You',
     'action_find_tabletop_sessions_one_shots' => 'Find tabletop sessions, one-shots, and campaigns to join.',
     'action_join_this_session' => 'Join this Session',
     'action_search_campaigns' => 'Search campaigns',
