@@ -1,0 +1,174 @@
+/**
+ * RoundupGames Service Worker
+ *
+ * Caching strategies:
+ *  - Static assets (hashed JS/CSS, icons, manifest): cache-first
+ *  - HTML/page requests: network-first (3 s timeout)
+ *  - API requests (/api/*): network-only
+ *  - Cross-origin requests: bypass
+ */
+
+const CACHE_NAME = 'roundup-v1';
+
+/** Paths to pre-cache on install. Vite assets are read from the manifest. */
+const PRE_CACHE_URLS = [
+    '/manifest.json',
+    '/icons/pwa-192x192.png',
+    '/icons/pwa-512x512.png',
+    '/offline.html',
+];
+
+/**
+ * Build the full pre-cache list by merging static paths with Vite-hashed assets.
+ * Runs at install time so it always reflects the latest build.
+ */
+async function buildPreCacheList() {
+    const urls = [...PRE_CACHE_URLS];
+
+    try {
+        const resp = await fetch('/build/manifest.json', { cache: 'no-store' });
+        if (resp.ok) {
+            const manifest = await resp.json();
+            for (const entry of Object.values(manifest)) {
+                if (entry.file) {
+                    urls.push('/build/' + entry.file);
+                }
+                // Include CSS/JS imports if present
+                if (entry.css) {
+                    for (const css of entry.css) {
+                        urls.push('/build/' + css);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[SW] Could not fetch Vite manifest for pre-caching:', e);
+    }
+
+    return urls;
+}
+
+// ── Install ──────────────────────────────────────────────────────────────────
+self.addEventListener('install', (event) => {
+    console.log('[SW] Install');
+    event.waitUntil(
+        buildPreCacheList().then((urls) =>
+            caches.open(CACHE_NAME).then((cache) => {
+                console.log('[SW] Pre-caching', urls.length, 'URLs');
+                return cache.addAll(urls);
+            })
+        ).then(() => self.skipWaiting())
+    );
+});
+
+// ── Activate ─────────────────────────────────────────────────────────────────
+self.addEventListener('activate', (event) => {
+    console.log('[SW] Activate');
+    event.waitUntil(
+        caches.keys().then((names) =>
+            Promise.all(
+                names
+                    .filter((name) => name !== CACHE_NAME)
+                    .map((name) => {
+                        console.log('[SW] Removing old cache:', name);
+                        return caches.delete(name);
+                    })
+            )
+        ).then(() => self.clients.claim())
+    );
+});
+
+// ── Fetch ────────────────────────────────────────────────────────────────────
+const HASHED_ASSET_RE = /-[a-zA-Z0-9]{6,}\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|svg|gif|webp|ico)$/;
+const STATIC_EXT_RE = /\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|svg|gif|webp|ico|json)$/;
+
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Skip cross-origin
+    if (url.origin !== self.location.origin) return;
+
+    // API requests — network only (never cache authenticated responses)
+    if (url.pathname.startsWith('/api/')) return;
+
+    // Non-GET requests — network only
+    if (request.method !== 'GET') return;
+
+    // Static hashed assets → cache-first
+    if (HASHED_ASSET_RE.test(url.pathname) || url.pathname.startsWith('/icons/')) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // Other static extensions (manifest, favicon, non-hashed assets) → cache-first
+    if (STATIC_EXT_RE.test(url.pathname)) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // HTML / page requests → network-first with 3 s timeout
+    if (request.headers.get('accept')?.includes('text/html')) {
+        event.respondWith(networkFirst(request, 3000));
+        return;
+    }
+
+    // Everything else — network with cache fallback
+    event.respondWith(networkFirst(request, 3000));
+});
+
+// ── Strategies ───────────────────────────────────────────────────────────────
+
+async function cacheFirst(request) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (err) {
+        console.warn('[SW] cache-first fetch failed:', request.url, err);
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    }
+}
+
+async function networkFirst(request, timeoutMs) {
+    const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Network timeout')), timeoutMs)
+    );
+
+    try {
+        const response = await Promise.race([fetch(request), timeoutPromise]);
+        if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (err) {
+        const cached = await caches.match(request);
+        if (cached) {
+            console.log('[SW] Serving from cache (network failed):', request.url);
+            return cached;
+        }
+
+        // For HTML requests, try serving the offline page
+        if (request.headers.get('accept')?.includes('text/html')) {
+            const offlinePage = await caches.match('/offline.html');
+            if (offlinePage) return offlinePage;
+        }
+
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    }
+}
+
+// ── Message handler ─────────────────────────────────────────────────────────
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') {
+        console.log('[SW] Received SKIP_WAITING — activating new worker');
+        self.skipWaiting();
+    }
+});

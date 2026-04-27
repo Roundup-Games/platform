@@ -20,3 +20,34 @@ document.addEventListener('alpine:init', () => {
         }
     }));
 });
+
+// ── Service Worker Registration ───────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((registration) => {
+                console.log('[SW] Registered:', registration.scope);
+
+                // Detect updates and notify the user
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New version available — auto-activate it
+                            console.log('[SW] New version available — activating');
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    });
+                });
+
+                // When a new controller takes over, reload for fresh content
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('[SW] Controller changed — reloading');
+                    window.location.reload();
+                });
+            })
+            .catch((err) => {
+                console.warn('[SW] Registration failed:', err);
+            });
+    });
+}
