@@ -135,7 +135,7 @@ describe('NotificationCategory', function () {
         }
     });
 
-    it('defaultSettings() matches migration defaults', function () {
+    it('defaultSettings() database and mail match migration defaults', function () {
         $migrationDefault = [
             'new_follower' => ['database' => true, 'mail' => false],
             'game_invitation' => ['database' => true, 'mail' => true],
@@ -158,7 +158,16 @@ describe('NotificationCategory', function () {
             'review_reported' => ['database' => true, 'mail' => true],
         ];
 
-        expect(NotificationCategory::defaultSettings())->toBe($migrationDefault);
+        $settings = NotificationCategory::defaultSettings();
+
+        // Verify database and mail channels match the migration DB-level default
+        foreach ($migrationDefault as $category => $channels) {
+            expect($settings[$category]['database'])->toBe($channels['database'], "{$category} database should match migration");
+            expect($settings[$category]['mail'])->toBe($channels['mail'], "{$category} mail should match migration");
+        }
+
+        // Verify all migration categories are present in defaults
+        expect(array_keys($migrationDefault))->toBe(array_intersect(array_keys($migrationDefault), array_keys($settings)));
     });
 
     it('values() returns flat string array', function () {

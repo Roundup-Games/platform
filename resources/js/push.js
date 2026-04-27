@@ -257,12 +257,21 @@ export function initPushSubscriptions() {
 
 /**
  * Update data attributes on the body to reflect push subscription state.
- * UI components can use CSS attribute selectors to show/hide elements.
+ * Also toggle visibility of push subscription UI elements in profile settings.
  *
  * States: 'default' | 'subscribed' | 'denied' | 'unsupported'
  */
 function updateUIState(state) {
     document.body.dataset.pushState = state;
+
+    // Toggle push subscription management UI in profile settings
+    document.querySelectorAll('[data-push-ui]').forEach((el) => {
+        if (el.dataset.pushUi === state) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
 }
 
 /**

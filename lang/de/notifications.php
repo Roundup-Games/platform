@@ -50,6 +50,17 @@ return [
     'state_in_app' => 'In-App',
     'state_all' => 'Alle',
     'hint_preference_states' => 'Wähle, wie du für jede Kategorie benachrichtigt werden möchtest. „In-App" zeigt Benachrichtigungen im Glocken-Symbol an. „Alle" sendet zusätzlich eine E-Mail.',
+    'hint_preference_channels' => 'Schalte jeden Kanal pro Benachrichtigungskategorie ein oder aus. Push-Benachrichtigungen müssen unten im Gerätebereich aktiviert werden.',
+    'channel_push' => 'Push',
+
+    // Push-Geräteverwaltung
+    'push_devices_heading' => 'Push-Geräte',
+    'push_not_supported' => 'Push-Benachrichtigungen werden in diesem Browser nicht unterstützt.',
+    'push_enable_description' => 'Aktiviere Push-Benachrichtigungen, um auf diesem Gerät Benachrichtigungen zu erhalten.',
+    'push_enable_button' => 'Push aktivieren',
+    'push_disable_button' => 'Deaktivieren',
+    'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',
+    'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',
 
     // Gemeinsame E-Mail-Texte
     'email_brand_name' => 'Roundup Games',

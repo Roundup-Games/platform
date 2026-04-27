@@ -120,12 +120,43 @@ describe('NotificationCategory Unit Tests', function () {
         }
     });
 
-    it('defaultSettings() each entry has exactly database and mail keys', function () {
+    it('defaultPushEnabled() is consistent with defaultSettings() push values', function () {
+        $settings = NotificationCategory::defaultSettings();
+        foreach (NotificationCategory::cases() as $case) {
+            $expected = $settings[$case->value]['push'];
+            expect($case->defaultPushEnabled())->toBe($expected, "{$case->value}::defaultPushEnabled() should match defaultSettings() push value");
+        }
+    });
+
+    it('defaultSettings() has push=true for high-priority categories and push=false for informational', function () {
+        $settings = NotificationCategory::defaultSettings();
+
+        $pushOn = [
+            'game_invitation', 'campaign_invitation', 'team_invitation',
+            'new_application', 'application_approved', 'application_rejected',
+            'participant_removed', 'team_member_removed',
+            'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
+            'game_updated', 'campaign_updated',
+            'game_system_request',
+            'review_reported',
+        ];
+        foreach ($pushOn as $cat) {
+            expect($settings[$cat]['push'])->toBeTrue("{$cat} should default push=true");
+        }
+
+        $pushOff = ['new_follower', 'session_added_to_campaign', 'participant_joined'];
+        foreach ($pushOff as $cat) {
+            expect($settings[$cat]['push'])->toBeFalse("{$cat} should default push=false");
+        }
+    });
+
+    it('defaultSettings() each entry has exactly database, mail, and push keys', function () {
         $settings = NotificationCategory::defaultSettings();
         foreach ($settings as $category => $channels) {
-            expect(array_keys($channels))->toBe(['database', 'mail'], "{$category} should have exactly database and mail keys");
+            expect(array_keys($channels))->toBe(['database', 'mail', 'push'], "{$category} should have exactly database, mail, and push keys");
             expect($channels['database'])->toBeBool();
             expect($channels['mail'])->toBeBool();
+            expect($channels['push'])->toBeBool();
         }
     });
 

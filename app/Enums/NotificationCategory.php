@@ -183,10 +183,19 @@ enum NotificationCategory: string
     }
 
     /**
+     * Whether push is enabled by default for this category.
+     * Push follows the same rule as mail — enabled for high-priority actionable events.
+     */
+    public function defaultPushEnabled(): bool
+    {
+        return $this->defaultMailEnabled();
+    }
+
+    /**
      * Build the default notification preference matrix.
-     * Each category maps to database (in-app) and mail channel booleans.
+     * Each category maps to database (in-app), mail, and push channel booleans.
      *
-     * @return array<string, array{database: bool, mail: bool}>
+     * @return array<string, array{database: bool, mail: bool, push: bool}>
      */
     public static function defaultSettings(): array
     {
@@ -195,6 +204,7 @@ enum NotificationCategory: string
             $settings[$category->value] = [
                 'database' => true,
                 'mail' => $category->defaultMailEnabled(),
+                'push' => $category->defaultPushEnabled(),
             ];
         }
 

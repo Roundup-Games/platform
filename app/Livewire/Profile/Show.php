@@ -64,13 +64,15 @@ class Show extends Component
     /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
     public array $privacySettings = [];
 
-    /** @var array<string, array{database: bool, mail: bool}> Per-category notification channel preferences */
+    /** @var array<string, array{database: bool, mail: bool, push: bool}> Per-category notification channel preferences */
     public array $notificationSettings = [];
 
     public bool $saved = false;
     public bool $preferencesSaved = false;
     public bool $privacySaved = false;
     public bool $notificationSaved = false;
+
+    public int $pushSubscriptionCount = 0;
 
     public function mount(): void
     {
@@ -112,8 +114,12 @@ class Show extends Component
             $this->notificationSettings[$key] = [
                 'database' => $storedNotifications[$key]['database'] ?? $defaults[$key]['database'],
                 'mail' => $storedNotifications[$key]['mail'] ?? $defaults[$key]['mail'],
+                'push' => $storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false),
             ];
         }
+
+        // Count existing push subscriptions for the subscribe/unsubscribe UI
+        $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -336,20 +342,25 @@ class Show extends Component
             'notificationSettings.*' => ['required', 'array'],
             'notificationSettings.*.database' => ['required', 'boolean'],
             'notificationSettings.*.mail' => ['required', 'boolean'],
+            'notificationSettings.*.push' => ['nullable', 'boolean'],
         ]);
 
-        // Ensure every known category is present and at least one channel is enabled
+        // Ensure every known category is present with all three channels
         $settings = [];
         $allValues = NotificationCategory::values();
         foreach ($allValues as $categoryValue) {
-            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false];
+            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false];
             $settings[$categoryValue] = [
                 'database' => (bool) ($entry['database'] ?? true),
                 'mail' => (bool) ($entry['mail'] ?? false),
+                'push' => (bool) ($entry['push'] ?? false),
             ];
         }
 
         $user->update(['notification_settings' => $settings]);
+
+        // Refresh push subscription count
+        $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
 
         Log::info('Notification settings updated', [
             'user_id' => $user->id,

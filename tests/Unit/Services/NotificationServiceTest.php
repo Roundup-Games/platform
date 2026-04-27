@@ -84,19 +84,20 @@ describe('NotificationService Unit Tests', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // GameInvitation default: database=true, mail=true
-            expect($channels)->toHaveCount(2);
+            // GameInvitation default: database=true, mail=true, push=true
+            expect($channels)->toHaveCount(3);
             expect($channels)->toHaveKey('database');
             expect($channels)->toHaveKey('mail');
+            expect($channels)->toHaveKey('push');
         });
 
-        it('falls back to defaults for categories where mail defaults to false', function () {
+        it('falls back to defaults for categories where mail and push default to false', function () {
             $user = Mockery::mock(User::class);
             $user->shouldReceive('getAttribute')->with('notification_settings')->andReturn(null);
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::NewFollower);
 
-            // NewFollower default: database=true, mail=false
+            // NewFollower default: database=true, mail=false, push=false
             expect($channels)->toBe(['database' => DatabaseChannel::class]);
         });
 
@@ -109,9 +110,11 @@ describe('NotificationService Unit Tests', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            expect($channels)->toHaveCount(2);
+            // GameInvitation default includes push=true
+            expect($channels)->toHaveCount(3);
             expect($channels)->toHaveKey('database');
             expect($channels)->toHaveKey('mail');
+            expect($channels)->toHaveKey('push');
         });
 
         it('falls back to defaults when category value is malformed and logs warning', function () {
@@ -129,8 +132,8 @@ describe('NotificationService Unit Tests', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // Falls back to GameInvitation defaults: database=true, mail=true
-            expect($channels)->toHaveCount(2);
+            // Falls back to GameInvitation defaults: database=true, mail=true, push=true
+            expect($channels)->toHaveCount(3);
         });
 
         it('falls back to defaults when category value is an integer', function () {
