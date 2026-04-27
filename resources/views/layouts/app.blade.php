@@ -251,5 +251,12 @@
                 </div>
             </div>
         </div>
+        {{-- PWA Install Prompt (only for authenticated + eligible users) --}}
+        @auth
+            @php
+                $pwaEligible = app(App\Services\PwaEligibilityService::class)->isEligible(Auth::user())->eligible;
+            @endphp
+            <x-pwa-install-prompt :eligible="$pwaEligible" />
+        @endauth
     </body>
 </html>

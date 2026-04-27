@@ -1,0 +1,166 @@
+@props([
+    'eligible' => false,
+])
+
+@if($eligible)
+<div
+    x-data="pwaInstallPrompt()"
+    x-init="init()"
+    x-show="shouldShow() && visible"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 translate-y-4"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 translate-y-4"
+    x-cloak
+    class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-96 z-50"
+    role="dialog"
+    aria-label="Install app prompt"
+>
+    {{-- Chrome / Android mode --}}
+    <template x-if="isChrome">
+        <div class="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/15 p-4">
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">install_mobile</span>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">Install Roundup Games</h3>
+                    <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Add to your home screen for a faster, app-like experience.</p>
+                    <div class="flex items-center gap-2 mt-3">
+                        <button
+                            type="button"
+                            x-on:click="installChrome()"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                        >
+                            <span class="material-symbols-outlined text-sm" aria-hidden="true">download</span>
+                            Install
+                        </button>
+                        <button
+                            type="button"
+                            x-on:click="dismiss()"
+                            class="px-3 py-2 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-on-surface/5"
+                        >
+                            Not now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- iOS Safari mode --}}
+    <template x-if="!isChrome">
+        <div class="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/15 p-4">
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">ios_share</span>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">Add to Home Screen</h3>
+                    <ol class="text-xs text-on-surface-variant mt-2 space-y-1.5 leading-relaxed list-decimal list-inside">
+                        <li class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">share</span>
+                            Tap the <strong class="text-on-surface font-medium">Share</strong> button below
+                        </li>
+                        <li>Scroll down and tap <strong class="text-on-surface font-medium">Add to Home Screen</strong></li>
+                        <li>Tap <strong class="text-on-surface font-medium">Add</strong> to confirm</li>
+                    </ol>
+                    <div class="flex items-center gap-2 mt-3">
+                        <button
+                            type="button"
+                            x-on:click="dismiss()"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+
+<script>
+function pwaInstallPrompt() {
+    return {
+        visible: true,
+        isChrome: false,
+        deferredPrompt: null,
+
+        init() {
+            // Detect browser mode
+            const ua = navigator.userAgent;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+
+            // If already installed as PWA, never show
+            if (isStandalone) {
+                this.visible = false;
+                return;
+            }
+
+            this.isChrome = !isSafari;
+
+            // Chrome: intercept beforeinstallprompt
+            if (this.isChrome) {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+
+                    // Structured log
+                    console.log('[pwa-prompt] beforeinstallprompt captured');
+                });
+            }
+        },
+
+        shouldShow() {
+            // Check dismissal persistence (7-day cooldown)
+            try {
+                const stored = localStorage.getItem('pwa_prompt_dismissed');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (data.date) {
+                        const dismissedAt = new Date(data.date);
+                        const daysSince = (Date.now() - dismissedAt.getTime()) / (1000 * 60 * 60 * 24);
+                        if (daysSince < 7) {
+                            return false;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Corrupted data — show prompt
+            }
+
+            return true;
+        },
+
+        dismiss() {
+            this.visible = false;
+            localStorage.setItem('pwa_prompt_dismissed', JSON.stringify({ date: new Date().toISOString() }));
+
+            console.log('[pwa-prompt] dismissed');
+        },
+
+        installChrome() {
+            if (!this.deferredPrompt) {
+                // No prompt available yet (browser hasn't fired beforeinstallprompt)
+                console.log('[pwa-prompt] no deferred prompt available');
+                return;
+            }
+
+            this.deferredPrompt.prompt();
+
+            this.deferredPrompt.userChoice.then((result) => {
+                console.log('[pwa-prompt] install result:', result.outcome);
+
+                if (result.outcome === 'accepted') {
+                    console.log('[pwa-prompt] install confirmed');
+                }
+
+                this.deferredPrompt = null;
+                this.visible = false;
+            });
+        },
+    };
+}
+</script>
+@endif
