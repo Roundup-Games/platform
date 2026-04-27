@@ -60,7 +60,7 @@ class I18nDeadStringsCommand extends Command
 
         // Filter out keys that are known to be used dynamically
         // (constructed via __($variable) patterns the static scanner can't follow)
-        $deadKeys = $this->filterDynamicKnownKeys($deadKeys);
+        $deadKeys = $this->filterDynamicKnownKeys($deadKeys, $usage);
 
         // Report unverifiable dynamic calls
         if ($usage['dynamicCount'] > 0) {
@@ -118,7 +118,7 @@ class I18nDeadStringsCommand extends Command
      *
      * @return array Filtered dead keys
      */
-    private function filterDynamicKnownKeys(array $deadKeys): array
+    private function filterDynamicKnownKeys(array $deadKeys, array $usage): array
     {
         // Key prefixes used via dynamic __() construction
         $dynamicPrefixes = [
@@ -155,7 +155,7 @@ class I18nDeadStringsCommand extends Command
             'discovery' => ['cat_', 'mech_', 'play_style_'],
         ];
 
-        return array_values(array_filter($deadKeys, function ($dead) use ($dynamicPrefixes, $staticFileKeys, $dynamicDomainPrefixes) {
+        return array_values(array_filter($deadKeys, function ($dead) use ($dynamicPrefixes, $staticFileKeys, $dynamicDomainPrefixes, $usage) {
             $dotted = $dead['dotted'];
 
             // Check static file usage
@@ -169,6 +169,18 @@ class I18nDeadStringsCommand extends Command
 
             if (isset($dynamicDomainPrefixes[$domain])) {
                 foreach ($dynamicDomainPrefixes[$domain] as $prefix) {
+                    if (str_starts_with($key, $prefix)) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check Blade dynamic prefix patterns detected by the scanner
+            // e.g. __('games.status_' . $var) registers '__dynamic_prefix__:status_'
+            $domainKeys = $usage['keys'][$domain] ?? [];
+            foreach ($domainKeys as $usedKey => $files) {
+                if (str_starts_with($usedKey, '__dynamic_prefix__:')) {
+                    $prefix = substr($usedKey, strlen('__dynamic_prefix__:'));
                     if (str_starts_with($key, $prefix)) {
                         return false;
                     }

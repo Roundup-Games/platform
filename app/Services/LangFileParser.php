@@ -226,6 +226,28 @@ class LangFileParser
                     $dynamicCount += count($matches[0]);
                     $dynamicFiles[] = $relativePath;
                 }
+
+                // Blade dynamic key construction: __('domain.prefix_' . $variable)
+                // Extracts the partial prefix so dead-string detection can match keys starting with it.
+                // e.g. __('games.status_' . $game->status) → registers 'games.status_' as dynamic prefix
+                // Also handles: __("domain.prefix_" . $var)
+                if (preg_match_all("/__\(\s*'([a-z_]+\.[a-z0-9_-]*_)'\\s*\\.\\s*\\\$/", $content, $matches)) {
+                    foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
+                if (preg_match_all('/__\(\s*"([a-z_]+\.[a-z0-9_-]*_)"\s*\.\s*\$/', $content, $matches)) {
+                    foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
             }
         }
 
