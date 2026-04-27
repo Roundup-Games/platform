@@ -112,3 +112,8 @@ Schedule::command('discovery:sweep-active --window=60')
     ->everyTenMinutes()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+Schedule::command('pwa:send-session-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();

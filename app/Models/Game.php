@@ -20,6 +20,7 @@ class Game extends Model
         'description', 'expected_duration', 'price', 'language', 'location', 'location_id',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
+        'reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class Game extends Model
             'complexity' => 'decimal:2',
             'vibe_flags' => 'array',
             'game_type' => GameType::class,
+            'reminder_sent_at' => 'datetime',
         ];
     }
 

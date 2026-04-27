@@ -206,4 +206,6 @@ return [
     'push_body_game_cancelled' => ':game has been cancelled',
     'push_title_campaign_cancelled' => 'Campaign Cancelled',
     'push_body_campaign_cancelled' => ':campaign has been cancelled',
+    'push_title_session_reminder' => 'Game Reminder',
+    'push_body_session_reminder' => ':game starts at :time today',
 ];
