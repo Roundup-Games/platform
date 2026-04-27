@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        $middleware->validateCsrfTokens(except: [
+            'api/push/*',
+        ]);
+
         $middleware->append(\App\Http\Middleware\EnsureUserNotDisabled::class);
         $middleware->append(\App\Http\Middleware\EnsureLocaleDefaults::class);
         $middleware->append(\App\Http\Middleware\TrackAppVisit::class);
