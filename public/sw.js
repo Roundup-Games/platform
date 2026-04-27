@@ -92,7 +92,20 @@ self.addEventListener('fetch', (event) => {
     // API requests — network only (never cache authenticated responses)
     if (url.pathname.startsWith('/api/')) return;
 
-    // Non-GET requests — network only
+    // Livewire endpoints — network only (covers /livewire/* and /livewire-<hash>/*)
+    // POST Livewire requests are already excluded by the non-GET check below,
+    // but we also exclude GET requests to Livewire internals (preview-file, etc.)
+    // to prevent caching dynamic or session-bound responses.
+    if (/^\/livewire(-[a-z0-9]+)?\//.test(url.pathname)) return;
+
+    // Requests with Livewire headers — network only
+    if (
+        request.headers.has('X-Livewire') ||
+        request.headers.has('X-Livewire-Navigate') ||
+        request.headers.has('X-Livewire-Stream')
+    ) return;
+
+    // Non-GET requests — network only (POST, PUT, PATCH, DELETE)
     if (request.method !== 'GET') return;
 
     // Static hashed assets → cache-first
