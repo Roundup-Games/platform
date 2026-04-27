@@ -436,3 +436,46 @@ describe('Edge cases', function () {
         expect($result->reason)->not->toBe('trypass_game_upcoming');
     });
 });
+
+// ── Logging Observability ───────────────────────────────
+
+describe('Logging observability', function () {
+    it('logs evaluated on first call and cache_hit on subsequent calls', function () {
+        Log::shouldReceive('channel')->with('daily')->andReturnSelf();
+
+        // First call → evaluated log
+        Log::shouldReceive('info')
+            ->once()
+            ->with('pwa.eligibility.evaluated', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $this->user->id));
+
+        $this->service->isEligible($this->user);
+
+        // Second call → cache_hit log
+        Log::shouldReceive('channel')->with('daily')->andReturnSelf();
+        Log::shouldReceive('info')
+            ->once()
+            ->with('pwa.eligibility.cache_hit', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $this->user->id));
+
+        $this->service->isEligible($this->user);
+    });
+
+    it('logs cache_hit includes eligibility result', function () {
+        // First call populates cache
+        Log::shouldReceive('channel')->with('daily')->andReturnSelf();
+        Log::shouldReceive('info')->once();
+        $this->service->isEligible($this->user);
+
+        // Second call — verify cache_hit log carries the eligibility fields
+        Log::shouldReceive('channel')->with('daily')->andReturnSelf();
+        Log::shouldReceive('info')
+            ->once()
+            ->with('pwa.eligibility.cache_hit', \Mockery::on(function ($ctx) {
+                return $ctx['user_id'] === $this->user->id
+                    && array_key_exists('eligible', $ctx)
+                    && array_key_exists('reason', $ctx)
+                    && array_key_exists('source', $ctx);
+            }));
+
+        $this->service->isEligible($this->user);
+    });
+});

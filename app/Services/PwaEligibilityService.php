@@ -203,6 +203,13 @@ class PwaEligibilityService
             return null;
         }
 
+        Log::channel('daily')->info('pwa.eligibility.cache_hit', [
+            'user_id' => $user->id,
+            'eligible' => $cached['eligible'],
+            'reason' => $cached['reason'],
+            'source' => $cached['source'],
+        ]);
+
         return new PwaEligibilityResult(
             eligible: $cached['eligible'],
             reason: $cached['reason'],
