@@ -178,6 +178,50 @@ async function networkFirst(request, timeoutMs) {
     }
 }
 
+// ── Push ────────────────────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+    let data = {};
+    try {
+        data = event.data ? event.data.json() : {};
+    } catch (err) {
+        console.warn('[SW] Failed to parse push data:', err);
+    }
+
+    const title = data.title || 'Roundup Games';
+    const options = {
+        body: data.body || '',
+        icon: data.icon || '/icons/pwa-192x192.png',
+        badge: '/icons/pwa-192x192.png',
+        data: { url: data.url || '/' },
+        tag: data.tag || 'default',
+    };
+
+    console.log('[SW] Push notification:', title, options.body);
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Notification Click ──────────────────────────────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const url = event.notification.data?.url || '/';
+    console.log('[SW] Notification click, target URL:', url);
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // Focus an existing window showing the target URL
+                for (const client of windowClients) {
+                    if (client.url.includes(url) && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                // No matching window — open a new one
+                return clients.openWindow(url);
+            })
+    );
+});
+
 // ── Message handler ─────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'SKIP_WAITING') {
