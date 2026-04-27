@@ -21,14 +21,141 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 class EditGameSystemRequest extends EditRecord
 {
     protected static string $resource = GameSystemRequestResource::class;
+
+    /**
+     * Override form to inject BGG preview section with page-level state access.
+     */
+    public function form(Schema $schema): Schema
+    {
+        $parentForm = parent::form($schema);
+
+        if ($this->bggPreviewData !== null && $this->record?->status === 'pending') {
+            $parentForm->components([
+                ...$parentForm->getComponents(),
+                $this->buildBggPreviewSection(),
+            ]);
+        }
+
+        return $parentForm;
+    }
+
+    /**
+     * Build the BGG data preview section shown after selecting a game.
+     */
+    protected function buildBggPreviewSection(): Section
+    {
+        $d = $this->bggPreviewData;
+        $players = $this->formatRange($d['min_players'] ?? null, $d['max_players'] ?? null);
+        $playTime = $d['average_play_time'] ? $d['average_play_time'] . ' min' : '—';
+        $year = $d['year_released'] ?? '—';
+        $age = $d['age_rating'] ? $d['age_rating'] . '+' : '—';
+        $rating = $d['bgg_average_rating'] ? number_format($d['bgg_average_rating'], 2) : '—';
+        $rank = $d['bgg_rank'] ? '#' . $d['bgg_rank'] : 'Unranked';
+        $weight = $d['bgg_average_weight'] ? number_format($d['bgg_average_weight'], 2) . ' / 5' : '—';
+        $usersRated = $d['bgg_users_rated'] ? number_format($d['bgg_users_rated']) : '—';
+        $designers = ! empty($d['designers']) ? implode(', ', array_column($d['designers'], 'name')) : '—';
+        $publishers = ! empty($d['publishers']) ? implode(', ', array_column($d['publishers'], 'name')) : '—';
+        $categories = ! empty($d['categories']) ? implode(', ', array_column($d['categories'], 'name')) : '—';
+        $mechanics = ! empty($d['mechanics']) ? implode(', ', array_column($d['mechanics'], 'name')) : '—';
+
+        $description = $d['description'] ?? '';
+        // Strip HTML from BGG description for display
+        $description = strip_tags(html_entity_decode($description));
+        $description = Str::limit($description, 500);
+
+        $typeLabel = match ($d['bgg_type'] ?? '') {
+            'boardgame' => 'Board Game',
+            'boardgameexpansion' => 'Expansion',
+            'boardgameaccessory' => 'Accessory',
+            default => $d['bgg_type'] ?? 'Unknown',
+        };
+
+        $thumbnailHtml = '';
+        if (! empty($d['thumbnail_url'])) {
+            $thumbnailHtml = '<div class="mb-3"><img src="' . e($d['thumbnail_url']) . '" alt="' . e($d['name']) . '" class="h-24 w-24 rounded-lg object-cover shadow-sm" loading="lazy"></div>';
+        }
+
+        return Section::make('BGG Data Preview')
+            ->description('This data will be imported when you approve the request.')
+            ->icon(Heroicon::OutlinedInformationCircle)
+            ->schema([
+                Placeholder::make('bgg_preview_header')
+                    ->label('')
+                    ->content(new HtmlString(
+                        $thumbnailHtml
+                        . '<div class="text-lg font-semibold">' . e($d['name']) . '</div>'
+                        . '<div class="text-sm text-gray-500 mt-1">'
+                        . '<span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium mr-2">' . e($typeLabel) . '</span>'
+                        . '<span class="text-gray-400">BGG ID: ' . $d['bgg_id'] . '</span>'
+                        . '</div>'
+                    )),
+                Placeholder::make('bgg_preview_players')
+                    ->label('Players')
+                    ->content($players),
+                Placeholder::make('bgg_preview_playtime')
+                    ->label('Play Time')
+                    ->content($playTime),
+                Placeholder::make('bgg_preview_year')
+                    ->label('Year')
+                    ->content((string) $year),
+                Placeholder::make('bgg_preview_age')
+                    ->label('Age')
+                    ->content($age),
+                Placeholder::make('bgg_preview_rating')
+                    ->label('BGG Rating')
+                    ->content($rating . ' / 10 (' . $usersRated . ' ratings)'),
+                Placeholder::make('bgg_preview_rank')
+                    ->label('BGG Rank')
+                    ->content($rank),
+                Placeholder::make('bgg_preview_weight')
+                    ->label('Complexity')
+                    ->content($weight),
+                Placeholder::make('bgg_preview_designers')
+                    ->label('Designers')
+                    ->content(new HtmlString(e($designers))),
+                Placeholder::make('bgg_preview_publishers')
+                    ->label('Publishers')
+                    ->content(new HtmlString(e($publishers))),
+                Placeholder::make('bgg_preview_categories')
+                    ->label('Categories')
+                    ->content(new HtmlString(e($categories))),
+                Placeholder::make('bgg_preview_mechanics')
+                    ->label('Mechanics')
+                    ->content(new HtmlString(e($mechanics))),
+                Placeholder::make('bgg_preview_description')
+                    ->label('Description')
+                    ->content(new HtmlString('<div class="text-sm text-gray-600 dark:text-gray-400 max-h-40 overflow-y-auto">' . e($description) . '</div>'))
+                    ->columnSpanFull(),
+            ])
+            ->columns(3)
+            ->collapsible();
+    }
+
+    /**
+     * Format a min/max range for display.
+     */
+    protected function formatRange(?int $min, ?int $max): string
+    {
+        if ($min === null && $max === null) {
+            return '—';
+        }
+        if ($min === $max) {
+            return (string) $min;
+        }
+
+        return "{$min}–{$max}";
+    }
 
     /**
      * BGG search results stored in component state.
@@ -45,6 +172,12 @@ class EditGameSystemRequest extends EditRecord
      * The selected BGG item name (for display).
      */
     public ?string $selectedBggName = null;
+
+    /**
+     * Full BGG thing data for the selected game, fetched for preview.
+     * @var array|null
+     */
+    public ?array $bggPreviewData = null;
 
     protected function getHeaderActions(): array
     {
@@ -126,6 +259,7 @@ class EditGameSystemRequest extends EditRecord
                         ->action(function () {
                             $this->selectedBggId = null;
                             $this->selectedBggName = null;
+                            $this->bggPreviewData = null;
                         }),
                     $action->getModalCancelAction(),
                 ]),
@@ -232,11 +366,39 @@ class EditGameSystemRequest extends EditRecord
         $this->selectedBggId = $result['bgg_id'];
         $this->selectedBggName = $result['name'];
 
+        // Fetch full thing data for preview
+        $this->fetchBggPreview($result['bgg_id']);
+
         Notification::make()
             ->success()
             ->title('BGG game selected')
             ->body("Selected: {$this->selectedBggName} (ID: {$this->selectedBggId})")
             ->send();
+    }
+
+    /**
+     * Fetch full BGG thing data and store it for preview display.
+     */
+    protected function fetchBggPreview(int $bggId): void
+    {
+        try {
+            $xml = app(BggClient::class)->fetchThing([$bggId]);
+            $items = app(BggXmlParser::class)->parseItems($xml->asXML());
+
+            $this->bggPreviewData = $items[0] ?? null;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to fetch BGG preview data', [
+                'bgg_id' => $bggId,
+                'error' => $e->getMessage(),
+            ]);
+            $this->bggPreviewData = null;
+
+            Notification::make()
+                ->warning()
+                ->title('Preview unavailable')
+                ->body('Could not fetch full BGG data for preview. You can still approve the request.')
+                ->send();
+        }
     }
 
     /**
