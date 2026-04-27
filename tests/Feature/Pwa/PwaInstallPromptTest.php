@@ -21,7 +21,7 @@ describe('Visibility gating', function () {
 
         $response->assertOk();
         $response->assertDontSee('pwaInstallPrompt()', false);
-        $response->assertDontSee('Install app prompt', false);
+        $response->assertDontSee('Install Roundup Games', false);
     });
 
     it('authenticated user with profile + location but 0/3 score sees no prompt', function () {
@@ -35,7 +35,7 @@ describe('Visibility gating', function () {
 
         $response->assertOk();
         $response->assertDontSee('pwaInstallPrompt()', false);
-        $response->assertDontSee('Install app prompt', false);
+        $response->assertDontSee('Install Roundup Games', false);
     });
 
     it('authenticated user with 2/3 score sees the install prompt', function () {
@@ -74,7 +74,7 @@ describe('Visibility gating', function () {
 
         $response->assertOk();
         $response->assertSee('pwaInstallPrompt()', false);
-        $response->assertSee('Install app prompt', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 
     it('authenticated user with trypass (upcoming game) sees the install prompt', function () {
@@ -95,7 +95,7 @@ describe('Visibility gating', function () {
 
         $response->assertOk();
         $response->assertSee('pwaInstallPrompt()', false);
-        $response->assertSee('Install app prompt', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 
     it('authenticated user without location does not see prompt', function () {
@@ -121,7 +121,7 @@ describe('Visibility gating', function () {
 
         $response->assertOk();
         $response->assertDontSee('pwaInstallPrompt()', false);
-        $response->assertDontSee('Install app prompt', false);
+        $response->assertDontSee('Install Roundup Games', false);
     });
 });
 
@@ -295,7 +295,7 @@ describe('Layout integration', function () {
 
         $response->assertDontSee('x-data="pwaInstallPrompt()"', false);
         $response->assertDontSee('pwaInstallPrompt()', false);
-        $response->assertDontSee('Install app prompt', false);
+        $response->assertDontSee('Install Roundup Games', false);
     });
 
     it('guest page renders without any PWA prompt markers', function () {

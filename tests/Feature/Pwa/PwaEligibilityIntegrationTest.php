@@ -80,7 +80,7 @@ describe('Full eligibility flow', function () {
         $response = actingAs($user)->get(route('dashboard'));
         $response->assertOk();
         $response->assertSee('pwaInstallPrompt()', false);
-        $response->assertSee('Install app prompt', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 
     it('trypass shortcuts eligibility without needing score gate', function () {
