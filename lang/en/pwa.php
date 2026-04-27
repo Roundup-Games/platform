@@ -37,7 +37,8 @@ return [
     // 'push_unavailable' => 'Push notifications are not supported in this browser',
     // 'push_preferences_label' => 'Push',
 
-    // Push notification payload (reminder)
-    'reminder_title' => 'Game Reminder',
-    'reminder_body' => ':game starts at :time today',
+    // Push notification payload (lives in notifications.php as notifications.push_*_session_reminder)
+    // Keys listed here for cross-reference only:
+    // 'reminder_title' => 'Game Reminder',
+    // 'reminder_body' => ':game starts at :time today',
 ];
