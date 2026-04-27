@@ -251,6 +251,9 @@
                 </div>
             </div>
         </div>
+        {{-- Offline indicator (no server round-trips) --}}
+        <x-offline-indicator />
+
         {{-- PWA Install Prompt (only for authenticated + eligible users) --}}
         @auth
             @php

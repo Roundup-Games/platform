@@ -2,6 +2,22 @@ import './bootstrap';
 import './guest-location';
 import './push';
 
+// ── Offline indicator immediate bridge ────────────────────────────────────────
+// Ensures the offline indicator is visible before Alpine bootstraps.
+// The Alpine component (offlineIndicator) takes over once initialized.
+document.addEventListener('DOMContentLoaded', () => {
+    const indicator = document.querySelector('[x-data="offlineIndicator()"]');
+    if (!indicator) return;
+
+    function applyState() {
+        indicator.setAttribute('data-network', navigator.onLine ? 'online' : 'offline');
+    }
+
+    applyState();
+    window.addEventListener('offline', applyState);
+    window.addEventListener('online', applyState);
+});
+
 // Alpine is provided by Livewire v3 (livewire/livewire) — no separate import needed.
 // If you need to register Alpine components or stores, use:
 //   document.addEventListener('alpine:init', () => { Alpine.data(...) })

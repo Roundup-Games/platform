@@ -346,4 +346,8 @@ return [
     // Dashboard activity timeline
     'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',
     'activity_no_results' => 'No activity yet',
+
+    // Offline indicator
+    'offline_you_re_offline' => 'You\'re offline — some features may be unavailable',
+    'offline_back_online' => 'Back online',
 ];
