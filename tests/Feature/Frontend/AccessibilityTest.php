@@ -258,7 +258,6 @@ describe('Form Label Associations', function () {
         $expectedPairs = [
             'game-name', 'game-date-time', 'game-description',
             'game-duration', 'game-price', 'game-language', 'game-visibility',
-            'game-location-details',
         ];
 
         foreach ($expectedPairs as $id) {

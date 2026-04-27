@@ -544,7 +544,7 @@ describe('Profile Integration', function () {
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$fav1->id])
             ->set('avoidedGameSystemIds', [$avoid1->id])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Reload and verify both are persisted
@@ -572,7 +572,7 @@ describe('Profile Integration', function () {
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$fav1->id])
             ->set('avoidedGameSystemIds', [$avoid1->id])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Second save: only update favorites (avoids not changed)
@@ -581,7 +581,7 @@ describe('Profile Integration', function () {
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$fav1->id, $fav2->id])
             ->set('avoidedGameSystemIds', [$avoid1->id])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Verify avoids are still present
@@ -603,7 +603,7 @@ describe('Profile Integration', function () {
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$base->id])
             ->set('avoidedGameSystemIds', [$base->id])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         // Only one row in DB (avoid overwrites favorite for same game_system_id)
@@ -897,7 +897,7 @@ describe('Resolution — Per-Expansion Granularity', function () {
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$base->id])
             ->set('avoidedGameSystemIds', [$exp1->id])
-            ->call('saveProfile')
+            ->call('savePreferences')
             ->assertHasNoErrors();
 
         $user->refresh();

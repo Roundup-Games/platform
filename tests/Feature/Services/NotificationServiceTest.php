@@ -78,10 +78,11 @@ describe('NotificationService', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // GameInvitation defaults: database=true, mail=true
-            expect($channels)->toHaveCount(2);
+            // GameInvitation defaults: database=true, mail=true, push=true
+            expect($channels)->toHaveCount(3);
             expect($channels)->toHaveKey('database');
             expect($channels)->toHaveKey('mail');
+            expect($channels)->toHaveKey('push');
         });
 
         it('falls back to defaults when category key is missing from settings', function () {
@@ -94,8 +95,9 @@ describe('NotificationService', function () {
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            // Falls back to GameInvitation defaults: database=true, mail=true
-            expect($channels)->toHaveCount(2);
+            // Falls back to GameInvitation defaults: database=true, mail=true, push=true
+            expect($channels)->toHaveCount(3);
+            expect($channels)->toHaveKey('push');
         });
 
         it('falls back to defaults when category value is malformed', function () {
@@ -110,7 +112,8 @@ describe('NotificationService', function () {
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
             // Should fall back to defaults and log a warning
-            expect($channels)->toHaveCount(2);
+            expect($channels)->toHaveCount(3);
+            expect($channels)->toHaveKey('push');
         });
 
         it('uses correct defaults for categories where mail defaults to false', function () {

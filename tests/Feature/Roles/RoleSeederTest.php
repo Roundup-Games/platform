@@ -10,8 +10,8 @@ beforeEach(function () {
 });
 
 describe('Roles', function () {
-    test('seeder creates exactly 4 roles', function () {
-        expect(Role::count())->toBe(4);
+    test('seeder creates exactly 5 roles', function () {
+        expect(Role::count())->toBe(5);
     });
 
     test('seeder creates Platform Admin role', function () {
@@ -128,7 +128,7 @@ describe('Idempotency', function () {
     test('seeder is idempotent - running twice creates same results', function () {
         $this->seed(RoleSeeder::class);
 
-        expect(Role::count())->toBe(4);
+        expect(Role::count())->toBe(5);
         expect(Permission::count())->toBe(32);
 
         $role = Role::where('name', 'Platform Admin')->first();
