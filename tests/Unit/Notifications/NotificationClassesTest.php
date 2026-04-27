@@ -58,6 +58,20 @@ describe('NewFollower', function () {
         $follower = User::factory()->create();
         expect((new NewFollower($follower))->getActor())->toBe($follower);
     });
+
+    it('returns correct push payload', function () {
+        $follower = User::factory()->create(['name' => 'Alice']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new NewFollower($follower))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('New Follower')
+            ->and($payload->body)->toBe('Alice started following you')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/u/')
+            ->and($payload->tag)->toBe("new-follower-{$follower->id}");
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -155,6 +169,21 @@ describe('GameInvitation', function () {
         $inviter = User::factory()->create();
         expect((new GameInvitation($game, $inviter))->getActor())->toBe($inviter);
     });
+
+    it('returns correct push payload', function () {
+        $game = Game::factory()->create(['name' => 'Epic Quest']);
+        $inviter = User::factory()->create(['name' => 'Host']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Game Invitation')
+            ->and($payload->body)->toBe('Host invited you to Epic Quest')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toBe("game-invitation-{$game->id}");
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -190,6 +219,21 @@ describe('CampaignInvitation', function () {
         $campaign = Campaign::factory()->create();
         $inviter = User::factory()->create();
         expect((new CampaignInvitation($campaign, $inviter))->getActor())->toBe($inviter);
+    });
+
+    it('returns correct push payload', function () {
+        $campaign = Campaign::factory()->create(['name' => 'Long Campaign']);
+        $inviter = User::factory()->create(['name' => 'DM']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new CampaignInvitation($campaign, $inviter))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Campaign Invitation')
+            ->and($payload->body)->toBe('DM invited you to Long Campaign')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/campaigns/')
+            ->and($payload->tag)->toBe("campaign-invitation-{$campaign->id}");
     });
 });
 
@@ -402,6 +446,20 @@ describe('GameCancelled', function () {
         $game = Game::factory()->create();
         expect((new GameCancelled($game))->getActor())->toBe($game->owner);
     });
+
+    it('returns correct push payload', function () {
+        $game = Game::factory()->create(['name' => 'Cancelled Game']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new GameCancelled($game))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Game Cancelled')
+            ->and($payload->body)->toBe('Cancelled Game has been cancelled')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toBe("game-cancelled-{$game->id}");
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -466,6 +524,20 @@ describe('CampaignCancelled', function () {
     it('returns campaign owner as actor', function () {
         $campaign = Campaign::factory()->create();
         expect((new CampaignCancelled($campaign))->getActor())->toBe($campaign->owner);
+    });
+
+    it('returns correct push payload', function () {
+        $campaign = Campaign::factory()->create(['name' => 'Cancelled Camp']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new CampaignCancelled($campaign))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Campaign Cancelled')
+            ->and($payload->body)->toBe('Cancelled Camp has been cancelled')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/campaigns/')
+            ->and($payload->tag)->toBe("campaign-cancelled-{$campaign->id}");
     });
 });
 
@@ -569,6 +641,35 @@ describe('via() channel resolution', function () {
         foreach ($notifications as $notification) {
             $channels = $notification->via($user);
             expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
+        }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Non-push notifications return null from toPush()
+// ---------------------------------------------------------------------------
+describe('toPush() returns null for non-push notification types', function () {
+    it('returns null for notifications not requiring push', function () {
+        $user = User::factory()->create();
+        $game = Game::factory()->create();
+        $campaign = Campaign::factory()->create();
+        $team = Team::factory()->create();
+
+        $notifications = [
+            new ParticipantJoined($user, $game, 'game'),
+            new ParticipantRemoved($user, $game, 'game'),
+            new TeamInvitation($team, $user),
+            new SessionAddedToCampaign($game, $campaign),
+            new NewApplication($user, $game, 'game'),
+            new ApplicationApproved($game, 'game', $user),
+            new ApplicationRejected($game, 'game', $user),
+            new GameCompleted($game),
+            new CampaignCompleted($campaign),
+            new TeamMemberRemoved($team, $user),
+        ];
+
+        foreach ($notifications as $notification) {
+            expect($notification->toPush($user))->toBeNull();
         }
     });
 });

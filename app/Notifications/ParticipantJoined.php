@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -105,5 +106,14 @@ class ParticipantJoined extends Notification
             'team' => __('notifications.entity_type_team'),
             default => __('notifications.entity_type_game'),
         };
+    }
+
+    /**
+     * Get the push notification representation.
+     * Not applicable for this notification type.
+     */
+    public function toPush(object $notifiable): ?PushPayload
+    {
+        return null;
     }
 }

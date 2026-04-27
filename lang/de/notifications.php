@@ -189,4 +189,16 @@ return [
     'subject_campaign_updated' => ':campaign wurde aktualisiert',
     'body_campaign_updated' => 'Die Kampagne **:campaign** wurde aktualisiert. Änderungen: :fields.',
     'action_view_campaign' => 'Kampagne anzeigen',
+
+    // Push-Benachrichtigungen Titel & Text
+    'push_title_game_invitation' => 'Spieleinladung',
+    'push_body_game_invitation' => ':inviter hat dich zu :game eingeladen',
+    'push_title_campaign_invitation' => 'Kampagneneinladung',
+    'push_body_campaign_invitation' => ':inviter hat dich zu :campaign eingeladen',
+    'push_title_new_follower' => 'Neuer Follower',
+    'push_body_new_follower' => ':follower folgt dir jetzt',
+    'push_title_game_cancelled' => 'Spiel abgesagt',
+    'push_body_game_cancelled' => ':game wurde abgesagt',
+    'push_title_campaign_cancelled' => 'Kampagne abgesagt',
+    'push_body_campaign_cancelled' => ':campaign wurde abgesagt',
 ];

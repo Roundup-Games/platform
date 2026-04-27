@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
+
 use App\Models\GameSystemRequest;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -86,6 +88,15 @@ class GameSystemRequestRejected extends Notification
      * Returns null since this is a system notification, not triggered by a user.
      */
     public function getActor(): ?User
+    {
+        return null;
+    }
+
+    /**
+     * Get the push notification representation.
+     * Not applicable for this notification type.
+     */
+    public function toPush(object $notifiable): ?PushPayload
     {
         return null;
     }

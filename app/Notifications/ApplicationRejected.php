@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -76,5 +77,14 @@ class ApplicationRejected extends Notification
     public function getActor(): User
     {
         return $this->rejector;
+    }
+
+    /**
+     * Get the push notification representation.
+     * Not applicable for this notification type.
+     */
+    public function toPush(object $notifiable): ?PushPayload
+    {
+        return null;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -77,5 +78,22 @@ class GameInvitation extends Notification
     public function getActor(): User
     {
         return $this->inviter;
+    }
+
+    /**
+     * Get the push notification representation.
+     */
+    public function toPush(object $notifiable): PushPayload
+    {
+        return new PushPayload(
+            title: __('notifications.push_title_game_invitation'),
+            body: __('notifications.push_body_game_invitation', [
+                'inviter' => $this->inviter->name,
+                'game' => $this->game->name,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('games.detail', $this->game->id),
+            tag: "game-invitation-{$this->game->id}",
+        );
     }
 }

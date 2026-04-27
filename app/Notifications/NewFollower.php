@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -64,5 +65,21 @@ class NewFollower extends Notification
     public function getActor(): User
     {
         return $this->follower;
+    }
+
+    /**
+     * Get the push notification representation.
+     */
+    public function toPush(object $notifiable): PushPayload
+    {
+        return new PushPayload(
+            title: __('notifications.push_title_new_follower'),
+            body: __('notifications.push_body_new_follower', [
+                'follower' => $this->follower->name,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]),
+            tag: "new-follower-{$this->follower->id}",
+        );
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -77,5 +78,22 @@ class CampaignInvitation extends Notification
     public function getActor(): User
     {
         return $this->inviter;
+    }
+
+    /**
+     * Get the push notification representation.
+     */
+    public function toPush(object $notifiable): PushPayload
+    {
+        return new PushPayload(
+            title: __('notifications.push_title_campaign_invitation'),
+            body: __('notifications.push_body_campaign_invitation', [
+                'inviter' => $this->inviter->name,
+                'campaign' => $this->campaign->name,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('campaigns.detail', $this->campaign->id),
+            tag: "campaign-invitation-{$this->campaign->id}",
+        );
     }
 }

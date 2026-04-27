@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -72,5 +73,21 @@ class CampaignCancelled extends Notification
     public function getActor(): ?User
     {
         return $this->campaign->owner;
+    }
+
+    /**
+     * Get the push notification representation.
+     */
+    public function toPush(object $notifiable): PushPayload
+    {
+        return new PushPayload(
+            title: __('notifications.push_title_campaign_cancelled'),
+            body: __('notifications.push_body_campaign_cancelled', [
+                'campaign' => $this->campaign->name,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('campaigns.detail', $this->campaign->id),
+            tag: "campaign-cancelled-{$this->campaign->id}",
+        );
     }
 }

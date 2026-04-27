@@ -194,4 +194,16 @@ return [
     'subject_campaign_updated' => ':campaign has been updated',
     'body_campaign_updated' => 'The campaign **:campaign** has been updated. Changes: :fields.',
     'action_view_campaign' => 'View Campaign',
+
+    // Push notification titles & bodies
+    'push_title_game_invitation' => 'Game Invitation',
+    'push_body_game_invitation' => ':inviter invited you to :game',
+    'push_title_campaign_invitation' => 'Campaign Invitation',
+    'push_body_campaign_invitation' => ':inviter invited you to :campaign',
+    'push_title_new_follower' => 'New Follower',
+    'push_body_new_follower' => ':follower started following you',
+    'push_title_game_cancelled' => 'Game Cancelled',
+    'push_body_game_cancelled' => ':game has been cancelled',
+    'push_title_campaign_cancelled' => 'Campaign Cancelled',
+    'push_body_campaign_cancelled' => ':campaign has been cancelled',
 ];

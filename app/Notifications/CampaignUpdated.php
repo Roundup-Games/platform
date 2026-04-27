@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\Campaign;
 use App\Models\User;
+use App\Dto\PushPayload;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -77,5 +78,14 @@ class CampaignUpdated extends Notification
     public function getActor(): ?User
     {
         return $this->campaign->owner;
+    }
+
+    /**
+     * Get the push notification representation.
+     * Not applicable for this notification type.
+     */
+    public function toPush(object $notifiable): ?PushPayload
+    {
+        return null;
     }
 }
