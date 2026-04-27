@@ -53,3 +53,4 @@ tmp/
 
 # ── GSD baseline (auto-generated) ──
 .mcp.json
+storage/logs/i18n-missing.jsonl

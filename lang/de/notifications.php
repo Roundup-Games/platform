@@ -33,6 +33,8 @@ return [
     // Group labels
     'group_social' => 'Soziales',
     'group_invitations' => 'Einladungen',
+
+    'group_moderation' => 'Moderation',
     'group_applications' => 'Bewerbungen',
     'group_participation' => 'Teilnahme',
     'group_status' => 'Status',
@@ -174,6 +176,9 @@ return [
 
     'subject_review_reported' => 'Eine Bewertung wurde gemeldet',
     'body_review_reported' => '**:reporter** hat eine Bewertung gemeldet: **:reason**.',
+
+    'body_review_content' => 'Bewertungsinhalt: :body',
+    'body_review_rating' => 'Bewertung: :rating/5',
 
     // Spiel aktualisiert
     'category_game_updated' => 'Spiel aktualisiert',
