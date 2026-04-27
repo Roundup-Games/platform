@@ -16,7 +16,7 @@
     x-cloak
     class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-96 z-50"
     role="dialog"
-    aria-label="Install app prompt"
+    aria-label="{{ __('pwa.install_title') }}"
 >
     {{-- Chrome / Android mode --}}
     <template x-if="isChrome">
@@ -24,8 +24,8 @@
             <div class="flex items-start gap-3">
                 <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">install_mobile</span>
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-heading text-sm font-semibold text-on-surface">Install Roundup Games</h3>
-                    <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Add to your home screen for a faster, app-like experience.</p>
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('pwa.install_title') }}</h3>
+                    <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">{{ __('pwa.install_description') }}</p>
                     <div class="flex items-center gap-2 mt-3">
                         <button
                             type="button"
@@ -33,14 +33,14 @@
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
                             <span class="material-symbols-outlined text-sm" aria-hidden="true">download</span>
-                            Install
+                            {{ __('pwa.install_button') }}
                         </button>
                         <button
                             type="button"
                             x-on:click="dismiss()"
                             class="px-3 py-2 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-on-surface/5"
                         >
-                            Not now
+                            {{ __('pwa.install_dismiss') }}
                         </button>
                     </div>
                 </div>
@@ -54,14 +54,14 @@
             <div class="flex items-start gap-3">
                 <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">ios_share</span>
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-heading text-sm font-semibold text-on-surface">Add to Home Screen</h3>
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('pwa.ios_install_title') }}</h3>
                     <ol class="text-xs text-on-surface-variant mt-2 space-y-1.5 leading-relaxed list-decimal list-inside">
                         <li class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">share</span>
-                            Tap the <strong class="text-on-surface font-medium">Share</strong> button below
+                            {{ __('pwa.ios_install_step_1') }}
                         </li>
-                        <li>Scroll down and tap <strong class="text-on-surface font-medium">Add to Home Screen</strong></li>
-                        <li>Tap <strong class="text-on-surface font-medium">Add</strong> to confirm</li>
+                        <li>{{ __('pwa.ios_install_step_2') }}</li>
+                        <li>{{ __('pwa.ios_install_step_3') }}</li>
                     </ol>
                     <div class="flex items-center gap-2 mt-3">
                         <button
@@ -69,7 +69,7 @@
                             x-on:click="dismiss()"
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
                         >
-                            Got it
+                            {{ __('pwa.ios_install_dismiss') }}
                         </button>
                     </div>
                 </div>
