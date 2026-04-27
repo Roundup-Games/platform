@@ -6,7 +6,7 @@ use App\Filament\Resources\GameSystemRequestResource\Pages;
 use App\Models\GameSystemRequest;
 use BackedEnum;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Placeholder;
+use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
