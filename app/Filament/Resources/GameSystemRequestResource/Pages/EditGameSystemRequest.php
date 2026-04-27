@@ -16,7 +16,7 @@ use App\Services\BggXmlParser;
 use App\Services\NotificationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
-use Filament\Schemas\Components\Select;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
