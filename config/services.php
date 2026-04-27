@@ -47,4 +47,10 @@ return [
         'rate_limit_seconds' => env('BGG_RATE_LIMIT_SECONDS', 2),
     ],
 
+    'vapid' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('APP_URL'),
+    ],
+
 ];
