@@ -1,0 +1,26 @@
+{
+    "name": "Roundup Games",
+    "short_name": "Roundup",
+    "description": "The digital parlor for tabletop enthusiasts — discover games, find GMs, and join sessions.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "theme_color": "#835500",
+    "background_color": "#fbf9f1",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icons/pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["games", "entertainment", "social"]
+}
