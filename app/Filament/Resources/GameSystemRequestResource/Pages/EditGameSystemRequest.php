@@ -15,8 +15,8 @@ use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use App\Services\NotificationService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Placeholder;
+use Filament\Schemas\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -24,6 +24,7 @@ use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\On;
 
 class EditGameSystemRequest extends EditRecord
 {
@@ -77,8 +78,8 @@ class EditGameSystemRequest extends EditRecord
                         )),
                     Placeholder::make('bgg_no_results_display')
                         ->label('No results found')
-                        ->hidden(fn () => empty($this->bggSearchResults) || $this->selectedBggId !== null)
-                        ->content(new HtmlString('<p class="text-gray-500">No results yet. Enter a query and click Search.</p>')),
+                        ->hidden(fn () => ! empty($this->bggSearchResults) || $this->selectedBggId !== null)
+                        ->content(new HtmlString('<p class="text-gray-500">Enter a query and click Search.</p>')),
                 ])
                 ->action(function (array $data) {
                     $query = $data['bgg_search_query'] ?? '';
@@ -218,8 +219,9 @@ class EditGameSystemRequest extends EditRecord
 
     /**
      * Select a BGG search result by index.
-     * Called from the rendered results table via wire:click.
+     * Called from the rendered results table via Livewire.dispatch.
      */
+    #[On('selectBggResult')]
     public function selectBggResult(int $index): void
     {
         if (! isset($this->bggSearchResults[$index])) {
