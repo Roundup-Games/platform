@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\NotificationCategory;
 use App\Models\User;
+use App\Notifications\Channels\PushChannel;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Notification;
@@ -196,6 +197,7 @@ class NotificationService
         $channelMap = [
             'database' => DatabaseChannel::class,
             'mail' => MailChannel::class,
+            'push' => PushChannel::class,
         ];
 
         $resolved = [];

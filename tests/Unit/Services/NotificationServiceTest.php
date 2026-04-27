@@ -162,6 +162,31 @@ describe('NotificationService Unit Tests', function () {
                 expect($channels)->toHaveCount($expectedCount, "{$category->value} should resolve {$expectedCount} channels");
             }
         });
+
+        it('includes push channel when push is enabled in settings', function () {
+            $user = Mockery::mock(User::class);
+            $user->shouldReceive('getAttribute')->with('notification_settings')->andReturn([
+                'game_invitation' => ['database' => true, 'mail' => true, 'push' => true],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
+
+            expect($channels)->toHaveCount(3);
+            expect($channels)->toHaveKey('push');
+            expect($channels['push'])->toBe(\App\Notifications\Channels\PushChannel::class);
+        });
+
+        it('excludes push channel when push is disabled', function () {
+            $user = Mockery::mock(User::class);
+            $user->shouldReceive('getAttribute')->with('notification_settings')->andReturn([
+                'game_invitation' => ['database' => true, 'mail' => true, 'push' => false],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
+
+            expect($channels)->toHaveCount(2);
+            expect($channels)->not->toHaveKey('push');
+        });
     });
 
     // ── send ─────────────────────────────────────────────────────

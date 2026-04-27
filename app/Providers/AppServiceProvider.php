@@ -11,10 +11,13 @@ use App\Models\GameSystem;
 use App\Models\Review;
 use App\Models\Team;
 use App\Models\UserRelationship;
+use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
+use Minishlink\WebPush\WebPush;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +27,17 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         Cashier::ignoreRoutes();
+
+        // Web Push client singleton — configured from VAPID env vars
+        $this->app->singleton(WebPush::class, function ($app) {
+            return new WebPush([
+                'VAPID' => [
+                    'subject' => config('services.vapid.subject'),
+                    'publicKey' => config('services.vapid.public_key'),
+                    'privateKey' => config('services.vapid.private_key'),
+                ],
+            ]);
+        });
     }
 
     /**
@@ -31,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register custom notification channels
+        Notification::extend('push', function ($app) {
+            return $app->make(PushChannel::class);
+        });
+
         Relation::morphMap([
             'event' => Event::class,
             'event_announcement' => EventAnnouncement::class,

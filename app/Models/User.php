@@ -213,6 +213,11 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             ->where('preference_type', 'avoid');
     }
 
+    public function pushSubscriptions()
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     // ── Preference Resolution ─────────────────────────
 
     /**
