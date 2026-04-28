@@ -266,4 +266,21 @@ return [
     // Request CTA (used in catalog and game-systems pages)
     'request_cta_link' => 'Request a game system',
     'request_cta_catalog_header' => 'Can\'t find what you\'re looking for?',
+
+    // Waitlist
+    'action_join_waitlist' => 'Join Waitlist',
+    'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
+    'content_waitlist_position' => 'You are #:position on the waitlist.',
+    'content_spot_opened_confirm' => 'A spot opened up! Confirm your participation before :deadline.',
+    'action_confirm_spot' => 'Confirm Spot',
+    'action_decline_spot' => 'Decline Spot',
+    'action_manual_promote' => 'Promote',
+    'content_waitlist_management' => 'Waitlist',
+    'content_no_waitlisted_players' => 'No players on the waitlist.',
+    'content_waitlist_spot_confirmed' => 'You have confirmed your spot!',
+    'content_waitlist_spot_declined' => 'You have declined the spot.',
+    'content_added_to_waitlist' => 'You have been added to the waitlist.',
+    'content_late_cancel_warning' => 'You are cancelling within 24 hours of the game. This will be recorded as a late cancellation.',
+    'content_below_min_players_warning' => 'This game now has fewer than the minimum required players.',
+    'flash_manual_promote_success' => 'Player has been promoted from the waitlist.',
 ];

@@ -169,7 +169,46 @@
             </section>
         @endif
 
-        {{-- ── Game System Info Card ─────────────────────────── --}}
+        {{-- Waitlist Position Banner --}}
+        @if($userWaitlistParticipant && $waitlistPosition)
+            <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">playlist_add</span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.action_join_waitlist') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        {{-- Waitlist Confirmation Banner --}}
+        @if($userPendingParticipant && $userPendingParticipant->confirmation_expires_at)
+            <section class="bg-secondary-container/50 border border-secondary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-2xl text-on-secondary-container mt-0.5" aria-hidden="true">event_available</span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.action_confirm_spot') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">
+                            {{ __('games.content_spot_opened_confirm', ['deadline' => $userPendingParticipant->confirmation_expires_at->isoFormat('LLL')]) }}
+                        </p>
+                        <div class="mt-4 flex gap-3">
+                            <button wire:click="confirmWaitlistSpot('{{ $userPendingParticipant->id }}')"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
+                                {{ __('games.action_confirm_spot') }}
+                            </button>
+                            <button wire:click="declineWaitlistSpot('{{ $userPendingParticipant->id }}')"
+                                wire:confirm="{{ __('people.flash_confirm_decline_invitation') }}"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+                                {{ __('games.action_decline_spot') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        @endif
         @if($game->gameSystem)
             @include('livewire.partials.game-system-info', ['entity' => $game])
         @endif
@@ -196,8 +235,8 @@
                                         {{ strtoupper($participant->role) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $participant->status === 'confirmed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                        {{ __(ucfirst($participant->status)) }}
+                                        {{ $participant->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === 'waitlisted' ? 'bg-tertiary/10 text-tertiary' : ($participant->status === 'pending' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container')) }}">
+                                        {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __(ucfirst($participant->status)) }}
                                     </span>
                                 </div>
                             @endforeach
@@ -347,6 +386,19 @@
                             <p class="text-on-surface font-medium">{{ __('games.content_application_pending') }}</p>
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('games.content_waiting_for_host_approval') }}</p>
                         </div>
+                    @elseif($canJoinWaitlist)
+                        <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                            <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
+                                <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">playlist_add</span>
+                                {{ __('games.action_join_waitlist') }}
+                            </h3>
+                            <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_game_full_join_waitlist') }}</p>
+                            <button wire:click="joinWaitlist"
+                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
+                                {{ __('games.action_join_waitlist') }}
+                            </button>
+                        </div>
                     @endif
                 @else
                     <x-registration-cta :message="__('games.guest_nudge_join_game')" />
@@ -391,6 +443,33 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- Waitlist Management (owner only, standalone games) --}}
+                @if($isOwner && $waitlistedPlayers->count())
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">playlist_add</span>
+                            {{ __('games.content_waitlist_management') }}
+                        </h3>
+                        <div class="divide-y divide-outline-variant/30">
+                            @foreach($waitlistedPlayers as $waitlisted)
+                                <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                    <div class="flex-1 min-w-0">
+                                        <x-user-link :user="$waitlisted->user" avatar-size="w-9 h-9" :truncate="true" />
+                                        <p class="text-xs text-on-surface-variant ml-11">
+                                            {{ __('games.content_waitlist_position', ['position' => $loop->iteration]) }}
+                                        </p>
+                                    </div>
+                                    <button wire:click="manualPromote('{{ $waitlisted->id }}')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
+                                        {{ __('games.action_manual_promote') }}
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </aside>
         </div>
     </div>
@@ -410,6 +489,14 @@
                         {{ __('games.action_apply_to_join') }}
                     @endif
                 </a>
+            </div>
+        @elseif($canJoinWaitlist)
+            <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
+                <button wire:click="joinWaitlist"
+                   class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">playlist_add</span>
+                    {{ __('games.action_join_waitlist') }}
+                </button>
             </div>
         @endif
     @endauth

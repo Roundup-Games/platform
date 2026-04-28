@@ -2,9 +2,17 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\AttendanceStatus;
+use App\Enums\NotificationCategory;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
+use App\Models\GameParticipant;
+use App\Notifications\BelowMinPlayersWarning;
+use App\Services\NotificationService;
+use App\Services\WaitlistService;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class GameDetail extends Component
@@ -52,6 +60,260 @@ class GameDetail extends Component
         return route('games.detail', $this->game->id);
     }
 
+    // ── Waitlist Actions ───────────────────────────────
+
+    /**
+     * Join the waitlist for a full standalone game.
+     */
+    public function joinWaitlist(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer) {
+            return;
+        }
+
+        try {
+            app(WaitlistService::class)->addToWaitlist($this->game, $viewer);
+            session()->flash('success', __('games.content_added_to_waitlist'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Confirm a waitlist promotion spot.
+     */
+    public function confirmWaitlistSpot(string $participantId): void
+    {
+        $participant = $this->findParticipantOrFail($participantId);
+        $viewer = Auth::user();
+
+        if ($participant->user_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        if ($participant->status !== ParticipantStatus::Pending) {
+            session()->flash('error', __('games.content_invitation_no_longer_valid'));
+
+            return;
+        }
+
+        try {
+            app(WaitlistService::class)->confirmPromotion($participant);
+            session()->flash('success', __('games.content_waitlist_spot_confirmed'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Decline a waitlist promotion spot.
+     */
+    public function declineWaitlistSpot(string $participantId): void
+    {
+        $participant = $this->findParticipantOrFail($participantId);
+        $viewer = Auth::user();
+
+        if ($participant->user_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        if ($participant->status !== ParticipantStatus::Pending) {
+            session()->flash('error', __('games.content_invitation_no_longer_valid'));
+
+            return;
+        }
+
+        app(WaitlistService::class)->declinePromotion($participant);
+        session()->flash('success', __('games.content_waitlist_spot_declined'));
+    }
+
+    /**
+     * Host manually promotes a waitlisted player (skips FIFO).
+     */
+    public function manualPromote(string $participantId): void
+    {
+        $viewer = Auth::user();
+
+        if ($this->game->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        $participant = $this->findParticipantOrFail($participantId);
+
+        if ($participant->status !== ParticipantStatus::Waitlisted) {
+            session()->flash('error', __('games.content_invitation_no_longer_valid'));
+
+            return;
+        }
+
+        app(WaitlistService::class)->manuallyPromote($participant);
+        session()->flash('success', __('games.flash_manual_promote_success'));
+    }
+
+    /**
+     * Cancel a participant's own attendance with late-cancellation detection.
+     *
+     * Overrides the trait's removeParticipant for self-cancellation flow.
+     */
+    public function cancelOwnParticipation(string $participantId): void
+    {
+        $participant = $this->findParticipantOrFail($participantId);
+        $viewer = Auth::user();
+
+        if ($participant->user_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        // Late cancellation detection: if game is within 24h, record late_cancel
+        if ($this->game->date_time && $this->game->date_time->isFuture()
+            && now()->diffInHours($this->game->date_time, false) < 24) {
+            $participant->update([
+                'attendance_status' => AttendanceStatus::LateCancel,
+            ]);
+
+            Log::info('Game participant late cancellation', [
+                'game_id' => $this->game->id,
+                'user_id' => $viewer->id,
+                'hours_until_game' => now()->diffInHours($this->game->date_time, false),
+            ]);
+        }
+
+        // Remove the participant
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Game participant self-cancelled', [
+            'game_id' => $this->game->id,
+            'user_id' => $viewer->id,
+        ]);
+
+        // Promote from waitlist if applicable
+        if ($this->game->campaign_id === null) {
+            app(WaitlistService::class)->promoteAllOnCancel($this->game);
+        }
+
+        // Check below-min-players
+        $this->checkBelowMinPlayersAndNotify();
+
+        session()->flash('success', __('common.flash_participant_removed'));
+    }
+
+    /**
+     * Override removeParticipant to integrate waitlist promotion on host-initiated removal.
+     */
+    public function removeParticipant(string $participantId): void
+    {
+        $participant = $this->findParticipantOrFail($participantId);
+        $entity = $this->game;
+
+        if ($participant->role === 'owner') {
+            session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
+
+            return;
+        }
+
+        // Late cancel detection for the removed participant
+        if ($entity->date_time && $entity->date_time->isFuture()
+            && now()->diffInHours($entity->date_time, false) < 24) {
+            $participant->update([
+                'attendance_status' => AttendanceStatus::LateCancel,
+            ]);
+        }
+
+        $removedUser = $participant->user;
+
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Game participant removed', [
+            'game_id' => $entity->id,
+            'user_id' => $participant->user_id,
+            'removed_by' => Auth::id(),
+        ]);
+
+        // Notify removed user
+        try {
+            if ($removedUser) {
+                app(NotificationService::class)->send(
+                    $removedUser,
+                    new \App\Notifications\ParticipantRemoved($removedUser, $entity, 'game'),
+                    NotificationCategory::ParticipantRemoved
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('notification.participant_removed_dispatch_failed', [
+                'game_id' => $entity->id,
+                'removed_user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Promote from waitlist if standalone game
+        if ($entity->campaign_id === null) {
+            app(WaitlistService::class)->promoteAllOnCancel($entity);
+        }
+
+        // Check below-min-players
+        $this->checkBelowMinPlayersAndNotify();
+
+        session()->flash('success', __('common.flash_participant_removed'));
+    }
+
+    // ── Helpers ────────────────────────────────────────
+
+    private function findParticipantOrFail(string $participantId): GameParticipant
+    {
+        return GameParticipant::where('id', $participantId)
+            ->where('game_id', $this->game->id)
+            ->firstOrFail();
+    }
+
+    /**
+     * Check if roster is below min_players and notify the host.
+     */
+    private function checkBelowMinPlayersAndNotify(): void
+    {
+        if (! $this->game->min_players) {
+            return;
+        }
+
+        $approvedCount = $this->game->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->count();
+
+        if ($approvedCount < $this->game->min_players) {
+            Log::warning('waitlist.below_min_players', [
+                'game_id' => $this->game->id,
+                'current_roster' => $approvedCount,
+                'min_players' => $this->game->min_players,
+            ]);
+
+            try {
+                $owner = $this->game->owner;
+                if ($owner) {
+                    app(NotificationService::class)->send(
+                        $owner,
+                        new BelowMinPlayersWarning($this->game, $approvedCount, $this->game->min_players),
+                        NotificationCategory::BelowMinPlayers
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('notification.below_min_players_dispatch_failed', [
+                    'game_id' => $this->game->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
     public function render()
     {
         $this->game->load([
@@ -69,10 +331,19 @@ class GameDetail extends Component
         $viewer = Auth::user();
         $isOwner = $viewer && $this->game->owner_id === $viewer->id;
         $isParticipant = $viewer && $this->game->participants
-            ->contains(fn ($p) => $p->user_id === $viewer->id);
+            ->contains(fn ($p) => $p->user_id === $viewer->id
+                && in_array($p->status->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
+                ]));
 
         $userInvitation = null;
         $hasExistingApplication = false;
+        $userWaitlistParticipant = null;
+        $userPendingParticipant = null;
+        $waitlistPosition = null;
+
         if ($viewer) {
             $userInvitation = $this->game->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
@@ -82,13 +353,50 @@ class GameDetail extends Component
             $hasExistingApplication = $this->game->applications()
                 ->where('user_id', $viewer->id)
                 ->exists();
+
+            // Waitlisted state
+            $userWaitlistParticipant = $this->game->participants
+                ->first(fn ($p) => $p->user_id === $viewer->id
+                    && $p->status === ParticipantStatus::Waitlisted);
+
+            if ($userWaitlistParticipant) {
+                $waitlistPosition = app(WaitlistService::class)->getWaitlistPosition($userWaitlistParticipant);
+            }
+
+            // Pending confirmation state (promoted from waitlist)
+            $userPendingParticipant = $this->game->participants
+                ->first(fn ($p) => $p->user_id === $viewer->id
+                    && $p->status === ParticipantStatus::Pending
+                    && $p->confirmation_expires_at !== null);
         }
+
+        $isGameFull = $this->game->max_players !== null
+            && $this->game->participants
+                ->where('status', ParticipantStatus::Approved->value)
+                ->count() >= $this->game->max_players;
 
         $canApply = $viewer
             && ! $isOwner
             && ! $isParticipant
             && ! $hasExistingApplication
+            && $this->game->visibility !== 'private'
+            && ! $isGameFull;
+
+        $canJoinWaitlist = $viewer
+            && ! $isOwner
+            && ! $isParticipant
+            && ! $hasExistingApplication
+            && $this->game->campaign_id === null
+            && $isGameFull
             && $this->game->visibility !== 'private';
+
+        // Waitlist data for host view
+        $waitlistedPlayers = collect();
+        if ($isOwner && $this->game->campaign_id === null) {
+            $waitlistedPlayers = $this->game->participants
+                ->where('status', ParticipantStatus::Waitlisted->value)
+                ->sortBy('waitlisted_at');
+        }
 
         $canReview = false;
         $reviews = collect();
@@ -127,6 +435,12 @@ class GameDetail extends Component
             'canReview' => $canReview,
             'activeSessionZero' => $activeSessionZero,
             'isSessionZeroConfirmed' => $isSessionZeroConfirmed,
+            'isGameFull' => $isGameFull,
+            'canJoinWaitlist' => $canJoinWaitlist,
+            'userWaitlistParticipant' => $userWaitlistParticipant,
+            'userPendingParticipant' => $userPendingParticipant,
+            'waitlistPosition' => $waitlistPosition,
+            'waitlistedPlayers' => $waitlistedPlayers,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

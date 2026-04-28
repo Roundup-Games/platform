@@ -40,6 +40,7 @@ return [
     'group_participation' => 'Participation',
     'group_status' => 'Status',
     'group_content' => 'Content',
+    'group_scheduling' => 'Scheduling',
 
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Preferences',
@@ -187,6 +188,8 @@ return [
 
     // Game system request
     'category_game_system_request' => 'Game System Request',
+    'category_below_min_players' => 'Below Min Players',
+    'category_confirmation_expired' => 'Confirmation Expired',
     'subject_game_system_request_approved' => 'Game System Added: :name',
     'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
     'action_create_game' => 'Create a Game',
@@ -216,4 +219,13 @@ return [
     'push_body_campaign_cancelled' => ':campaign has been cancelled',
     'push_title_session_reminder' => 'Game Reminder',
     'push_body_session_reminder' => ':game starts at :time today',
+
+    // Waitlist
+    'subject_waitlist_promoted' => 'A spot opened in :game!',
+    'body_waitlist_promoted' => 'A spot opened up in **:game**! You have until :deadline to confirm your participation.',
+    'action_waitlist_promoted' => 'Confirm Your Spot',
+    'subject_confirmation_expired' => 'Waitlist confirmation expired for :game',
+    'body_confirmation_expired' => 'Your confirmation window for **:game** has expired. You have been moved to the back of the waitlist.',
+    'subject_below_min_players' => ':game needs more players',
+    'body_below_min_players' => '**:game** currently has :current players but requires a minimum of :min. Consider inviting more players.',
 ];

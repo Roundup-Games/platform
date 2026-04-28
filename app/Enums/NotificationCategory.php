@@ -37,6 +37,10 @@ enum NotificationCategory: string
     // Content
     case GameSystemRequest = 'game_system_request';
 
+    // Scheduling
+    case BelowMinPlayers = 'below_min_players';
+    case ConfirmationExpired = 'confirmation_expired';
+
     // Moderation
     case ReviewReported = 'review_reported';
 
@@ -69,6 +73,8 @@ enum NotificationCategory: string
             self::GameUpdated => __('notifications.category_game_updated'),
             self::CampaignUpdated => __('notifications.category_campaign_updated'),
             self::GameSystemRequest => __('notifications.category_game_system_request'),
+            self::BelowMinPlayers => __('notifications.category_below_min_players'),
+            self::ConfirmationExpired => __('notifications.category_confirmation_expired'),
             self::ReviewReported => __('notifications.category_review_reported'),
         };
     }
@@ -82,6 +88,7 @@ enum NotificationCategory: string
             self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
             self::GameSystemRequest => 'content',
+            self::BelowMinPlayers, self::ConfirmationExpired => 'scheduling',
             self::ReviewReported => 'moderation',
         };
     }
@@ -117,6 +124,10 @@ enum NotificationCategory: string
             'content' => [
                 'label' => __('notifications.group_content'),
                 'categories' => [self::GameSystemRequest],
+            ],
+            'scheduling' => [
+                'label' => __('notifications.group_scheduling'),
+                'categories' => [self::BelowMinPlayers, self::ConfirmationExpired],
             ],
             'moderation' => [
                 'label' => __('notifications.group_moderation'),
@@ -178,6 +189,8 @@ enum NotificationCategory: string
             self::GameUpdated => true,
             self::CampaignUpdated => true,
             self::GameSystemRequest => true,
+            self::BelowMinPlayers => true,
+            self::ConfirmationExpired => false,
             self::ReviewReported => true,
         };
     }

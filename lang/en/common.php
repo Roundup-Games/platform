@@ -212,6 +212,7 @@ return [
     'content_you' => '(you)',
     'content_your_favorites' => 'Your Favorites',
     'error_cannot_remove_the_entity_owner' => 'Cannot remove the :entity owner.',
+    'error_not_authorized' => 'You are not authorized to perform this action.',
     'error_you_cannot_invite_yourself' => 'You cannot invite yourself.',
     'field_access_until_date' => 'access until :date',
     'field_additional_notes' => 'Additional Notes',
