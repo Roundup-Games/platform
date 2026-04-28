@@ -1,6 +1,8 @@
 import './bootstrap';
 import './guest-location';
+import './offline-queue';
 import { initPushSubscriptions } from './push';
+import { showOfflineToast as showOfflineActionToast } from './offline-queue';
 
 // ── Offline indicator immediate bridge ────────────────────────────────────────
 // Ensures the offline indicator is visible before Alpine bootstraps.
@@ -41,29 +43,38 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
+// ── Offline Action Interception ─────────────────────────────────────────────
+// When a Livewire request fails because the user is offline, show a clear message
+// instead of a raw error.
+document.addEventListener('livewire:init', () => {
+    Livewire.hook('request', ({ fail }) => {
+        fail(({ error }) => {
+            if (!navigator.onLine) {
+                showOfflineActionToast();
+            }
+        });
+    });
+});
+
 // ── Service Worker Registration ───────────────────────────────────────────────
+let swRegistration = null;
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then((registration) => {
                 console.log('[SW] Registered:', registration.scope);
+                swRegistration = registration;
 
-                // Detect updates and notify the user
+                // Detect updates — show toast FIRST, let user decide when to activate
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New version available — auto-activate it
-                            console.log('[SW] New version available — activating');
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            console.log('[SW] New version downloaded — showing update prompt');
+                            showUpdateToast(newWorker);
                         }
                     });
-                });
-
-                // When a new controller takes over, show an update toast
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('[SW] Controller changed — showing update toast');
-                    showUpdateToast();
                 });
             })
             .catch((err) => {
@@ -73,10 +84,11 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── SW Update Toast ───────────────────────────────────────────────────────────
-// Shown when a new service worker takes control (deploy-time update).
+// Shown when a new service worker has finished installing.
+// The user must explicitly click "Update" — we do NOT auto-send SKIP_WAITING.
 // Reads localized strings from window.__pwaUpdateToast injected by Blade,
 // falling back to English defaults when rendered outside a Blade template.
-function showUpdateToast() {
+function showUpdateToast(waitingWorker) {
     // Prevent duplicate toasts
     if (document.getElementById('sw-update-toast')) return;
 
@@ -99,9 +111,14 @@ function showUpdateToast() {
 
     document.body.appendChild(toast);
 
-    // Reload on action
+    // Send SKIP_WAITING on user action, then reload on controllerchange
     document.getElementById('sw-update-action').addEventListener('click', () => {
-        window.location.reload();
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
+        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        document.getElementById('sw-update-action').disabled = true;
+        document.getElementById('sw-update-action').textContent = '…';
     });
 
     // Dismiss

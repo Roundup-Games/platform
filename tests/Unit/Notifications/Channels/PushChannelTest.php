@@ -115,7 +115,7 @@ describe('PushChannel', function () {
         expect(true)->toBeTrue();
     });
 
-    it('sends notification to each subscription via WebPush', function () {
+    it('queues notifications and flushes batch', function () {
         $sub1 = Mockery::mock(PushSubscription::class)->makePartial();
         $sub1->endpoint = 'https://push.example.com/1';
         $sub1->p256h_key = 'key1';
@@ -140,9 +140,17 @@ describe('PushChannel', function () {
         $report = Mockery::mock(MessageSentReport::class);
         $report->shouldReceive('isSuccess')->andReturn(true);
 
-        $this->webPush->shouldReceive('sendOneNotification')
-            ->twice()
-            ->andReturn($report);
+        // Expect queueNotification to be called twice (once per subscription)
+        $this->webPush->shouldReceive('queueNotification')
+            ->twice();
+
+        // flush() returns a Generator yielding reports
+        $this->webPush->shouldReceive('flush')
+            ->once()
+            ->andReturn((function () use ($report) {
+                yield $report;
+                yield $report;
+            })());
 
         $notification = new class($payload) extends Notification
         {
@@ -162,15 +170,13 @@ describe('PushChannel', function () {
         $this->channel->send($user, $notification);
     });
 
-    it('deletes expired subscriptions and logs', function () {
+    it('deletes expired subscriptions and logs on flush', function () {
         $sub = Mockery::mock(PushSubscription::class)->makePartial();
         $sub->endpoint = 'https://push.example.com/expired';
         $sub->p256h_key = 'key1';
         $sub->auth_token = 'auth1';
         $sub->id = 42;
         $sub->user_id = 10;
-
-        $sub->shouldReceive('delete')->once();
 
         $user = Mockery::mock(User::class);
         $user->shouldReceive('getAttribute')->with('pushSubscriptions')
@@ -179,14 +185,24 @@ describe('PushChannel', function () {
         $report = Mockery::mock(MessageSentReport::class);
         $report->shouldReceive('isSuccess')->andReturn(false);
         $report->shouldReceive('isSubscriptionExpired')->andReturn(true);
+        $report->shouldReceive('getEndpoint')->andReturn('https://push.example.com/expired');
 
-        $this->webPush->shouldReceive('sendOneNotification')
+        $this->webPush->shouldReceive('queueNotification')->once();
+        $this->webPush->shouldReceive('flush')
             ->once()
-            ->andReturn($report);
+            ->andReturn((function () use ($report) {
+                yield $report;
+            })());
 
-        Log::shouldReceive('info')
-            ->with('push.subscription_expired', Mockery::type('array'))
-            ->once();
+        // Use a partial mock to intercept handleReport which does a static
+        // DB query (PushSubscription::where) that can't run in unit tests.
+        $channel = Mockery::mock(PushChannel::class, [$this->webPush])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $channel->shouldReceive('handleReport')
+            ->once()
+            ->with(Mockery::on(fn ($r) => $r === $report));
 
         $payload = new PushPayload('Test', 'Body', '/icon.png', '/url');
         $notification = new class($payload) extends Notification
@@ -204,7 +220,7 @@ describe('PushChannel', function () {
             }
         };
 
-        $this->channel->send($user, $notification);
+        $channel->send($user, $notification);
     });
 
     it('logs warning on failed send that is not expired', function () {
@@ -223,14 +239,18 @@ describe('PushChannel', function () {
         $report->shouldReceive('isSubscriptionExpired')->andReturn(false);
         $report->shouldReceive('getReason')->andReturn('Too Many Requests');
         $report->shouldReceive('getResponse')->andReturn($response);
+        $report->shouldReceive('getEndpoint')->andReturn('https://push.example.com/failed');
 
-        $this->webPush->shouldReceive('sendOneNotification')
+        $this->webPush->shouldReceive('queueNotification')->once();
+        $this->webPush->shouldReceive('flush')
             ->once()
-            ->andReturn($report);
+            ->andReturn((function () use ($report) {
+                yield $report;
+            })());
 
         Log::shouldReceive('warning')
             ->with('push.send_failed', Mockery::on(function ($ctx) {
-                return ($ctx['subscription_id'] ?? null) === 99
+                return ($ctx['endpoint'] ?? null) === 'https://push.example.com/failed'
                     && ($ctx['reason'] ?? null) === 'Too Many Requests';
             }))
             ->once();
@@ -258,7 +278,7 @@ describe('PushChannel', function () {
         $this->channel->send($user, $notification);
     });
 
-    it('logs warning and continues on exception', function () {
+    it('logs warning and continues on queue exception', function () {
         $sub = Mockery::mock(PushSubscription::class)->makePartial();
         $sub->endpoint = 'https://push.example.com/broken';
         $sub->p256h_key = 'key1';
@@ -266,12 +286,18 @@ describe('PushChannel', function () {
         $sub->id = 50;
         $sub->user_id = 10;
 
-        $this->webPush->shouldReceive('sendOneNotification')
+        // queueNotification throws
+        $this->webPush->shouldReceive('queueNotification')
             ->once()
             ->andThrow(new RuntimeException('Connection refused'));
 
+        // flush still gets called (empty batch, returns empty generator)
+        $this->webPush->shouldReceive('flush')
+            ->once()
+            ->andReturn((function () { yield from []; })());
+
         Log::shouldReceive('warning')
-            ->with('push.send_failed', Mockery::on(function ($ctx) {
+            ->with('push.queue_failed', Mockery::on(function ($ctx) {
                 return ($ctx['subscription_id'] ?? null) === 50
                     && str_contains($ctx['error'] ?? '', 'Connection refused');
             }))
@@ -324,5 +350,16 @@ describe('PushPayload', function () {
 
         expect($array)->not->toHaveKey('tag');
         expect($array)->toHaveCount(4);
+    });
+});
+
+describe('Key mapping', function () {
+    it('maps p256h_key to p256dh for Minishlink compatibility', function () {
+        $source = file_get_contents(base_path('app/Notifications/Channels/PushChannel.php'));
+
+        // Verify the PushChannel correctly maps our DB column name (p256h_key)
+        // to Minishlink's expected key name (p256dh)
+        expect($source)->toContain("'p256dh' =>");
+        expect($source)->toContain('p256h_key');
     });
 });

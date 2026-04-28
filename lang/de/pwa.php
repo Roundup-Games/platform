@@ -41,4 +41,8 @@ return [
     // Push notification UI
     'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',
     'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',
+
+    // Offline action toasts (Background Sync)
+    'offline_action_queued' => 'Aktion in Warteschlange — wird ausgeführt, wenn die Verbindung wiederhergestellt ist',
+    'offline_action_offline' => 'Du bist offline — verbinde dich, um die Aktion abzuschließen',
 ];

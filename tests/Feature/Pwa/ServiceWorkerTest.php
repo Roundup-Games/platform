@@ -59,4 +59,45 @@ describe('Service Worker', function () {
 
         expect($content)->toContain('/offline.html');
     });
+
+    it('registers push event handler', function () {
+        $content = file_get_contents(public_path('sw.js'));
+
+        expect($content)->toContain("self.addEventListener('push'");
+    });
+
+    it('registers notificationclick event handler', function () {
+        $content = file_get_contents(public_path('sw.js'));
+
+        expect($content)->toContain("self.addEventListener('notificationclick'");
+    });
+
+    it('has offline action queue IndexedDB helpers', function () {
+        $content = file_get_contents(public_path('sw.js'));
+
+        expect($content)->toContain('OFFLINE_DB');
+        expect($content)->toContain('openQueueDB');
+    });
+
+    it('uses stale-while-revalidate for geocode API', function () {
+        $content = file_get_contents(public_path('sw.js'));
+
+        expect($content)->toContain('/api/geocode');
+        expect($content)->toContain('staleWhileRevalidate');
+    });
+
+    it('cleans up old caches on activate', function () {
+        $content = file_get_contents(public_path('sw.js'));
+
+        expect($content)->toContain('caches.keys()');
+        expect($content)->toContain("self.addEventListener('activate'");
+
+        // Verify that old caches are deleted (not just listed)
+        $activatePos = strpos($content, "self.addEventListener('activate'");
+        $this->assertGreaterThan(0, $activatePos);
+
+        // Find the activate handler block — should contain cache deletion
+        $afterActivate = substr($content, $activatePos, 500);
+        expect($afterActivate)->toContain('caches.delete');
+    });
 });

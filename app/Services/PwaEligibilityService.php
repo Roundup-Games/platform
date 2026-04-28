@@ -130,12 +130,9 @@ class PwaEligibilityService
             }
         }
 
-        // 2c. Most recent GameParticipant approval within last 5 minutes
-        //     (GameParticipant has no timestamps, so check via the parent Game.created_at)
-        $recentlyJoinedGame = Game::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
+        // 2c. Recently approved as participant (within last 5 minutes)
+        $recentlyJoinedGame = GameParticipant::where('user_id', $user->id)
             ->where('status', 'approved')
-        )
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
@@ -143,13 +140,10 @@ class PwaEligibilityService
             return PwaEligibilityResult::eligibleViaTrypass('trypass_game_joined');
         }
 
-        // 2d. Recently received first game/campaign invitation (GameParticipant with status 'pending')
+        // 2d. Recently received first game/campaign invitation (pending status, within 5 minutes)
         //     Only triggers for the user's first-ever invitation to preserve the "special moment" intent.
-        //     GameParticipant has no timestamps, so we check via the parent Game.created_at
-        $recentlyInvited = Game::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
+        $recentlyInvited = GameParticipant::where('user_id', $user->id)
             ->where('status', 'pending')
-        )
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 

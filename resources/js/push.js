@@ -132,6 +132,9 @@ async function syncSubscription(subscription) {
             body: JSON.stringify({
                 endpoint: payload.endpoint,
                 keys: {
+                    // Project uses 'p256h' as a short name for the DB column and API
+                    // payload. The server's PushChannel maps this to 'p256dh' when
+                    // constructing Minishlink Subscription objects (the Web Push standard).
                     p256h: payload.keys?.p256dh || '',
                     auth: payload.keys?.auth || '',
                 },

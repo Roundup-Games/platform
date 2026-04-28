@@ -12,6 +12,7 @@ use App\Notifications\GameCancelled;
 use App\Notifications\GameInvitation;
 use App\Notifications\NewFollower;
 use App\Notifications\ParticipantJoined;
+use App\Notifications\PlayerBenched;
 use App\Notifications\SessionReminder;
 use Illuminate\Support\Facades\URL;
 
@@ -213,6 +214,63 @@ describe('SessionReminder push payload', function () {
         $payload = (new SessionReminder($game))->toPush($notifiable);
 
         expect($payload->body)->toContain('8:00 PM CET');
+    });
+});
+
+describe('PlayerBenched push payload', function () {
+    it('returns PushPayload with correct fields for game entity', function () {
+        $game = Game::factory()->create(['name' => 'Full Table']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(PushPayload::class)
+            ->and($payload->title)->toBe("You're on the Bench")
+            ->and($payload->body)->toContain('Full Table')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toBe("player-benched-game-{$game->id}");
+    });
+
+    it('returns PushPayload with correct fields for campaign entity', function () {
+        $campaign = Campaign::factory()->create(['name' => 'Long Campaign']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(PushPayload::class)
+            ->and($payload->title)->toBe("You're on the Bench")
+            ->and($payload->body)->toContain('Long Campaign')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/campaigns/')
+            ->and($payload->tag)->toBe("player-benched-campaign-{$campaign->id}");
+    });
+
+    it('URL resolves to game detail page for game entity', function () {
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        expect($payload->url)->toBe(route('games.detail', $game->id));
+    });
+
+    it('URL resolves to campaign detail page for campaign entity', function () {
+        $campaign = Campaign::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
+
+        expect($payload->url)->toBe(route('campaigns.detail', $campaign->id));
+    });
+
+    it('body contains entity name', function () {
+        $game = Game::factory()->create(['name' => 'Catan Night']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        expect($payload->body)->toContain('Catan Night');
     });
 });
 

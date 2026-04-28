@@ -119,92 +119,103 @@ class SendSessionReminders extends Command
         $webPush = null;
 
         foreach ($games as $game) {
-            // Get approved participants (excluding owner)
-            $approvedParticipants = $game->participants
-                ->where('status', 'approved')
-                ->filter(fn ($p) => $p->user_id !== $game->owner_id);
+            try {
+                // Get approved participants (excluding owner)
+                $approvedParticipants = $game->participants
+                    ->where('status', 'approved')
+                    ->filter(fn ($p) => $p->user_id !== $game->owner_id);
 
-            foreach ($approvedParticipants as $participant) {
-                $participantCount++;
-                $user = $participant->user;
+                foreach ($approvedParticipants as $participant) {
+                    $participantCount++;
+                    $user = $participant->user;
 
-                if (! $user) {
-                    continue;
-                }
-
-                // Check if user has push subscriptions
-                if ($user->pushSubscriptions->isEmpty()) {
-                    continue;
-                }
-
-                // Check push preference for session reminder category
-                $channels = $notificationService->resolveChannels(
-                    $user,
-                    NotificationCategory::SessionReminder,
-                );
-
-                if (! in_array(PushChannel::class, $channels)) {
-                    continue;
-                }
-
-                // Build the push payload
-                $notification = new SessionReminder($game, $window);
-                $payload = $notification->toPush($user);
-
-                if ($payload === null) {
-                    continue;
-                }
-
-                // Send to each subscription
-                foreach ($user->pushSubscriptions as $subscription) {
-                    if ($dryRun) {
-                        $this->line("  [{$windowLabel}] Would send to user {$user->id} (subscription {$subscription->id}) for game {$game->name}");
-                        $pushCount++;
-
+                    if (! $user) {
                         continue;
                     }
 
-                    // Lazily resolve WebPush only when we actually need to send.
-                    $webPush ??= app(WebPush::class);
-
-                    if ($webPush === null) {
-                        Log::info('session_reminders.vapid_not_configured', [
-                            'user_id' => $user->id,
-                            'game_id' => $game->id,
-                        ]);
-
+                    // Check if user has push subscriptions
+                    if ($user->pushSubscriptions->isEmpty()) {
                         continue;
                     }
 
-                    if ($this->sendPush($webPush, $subscription, $payload)) {
-                        $pushCount++;
-                    } else {
-                        $errorCount++;
+                    // Check push preference for session reminder category
+                    $channels = $notificationService->resolveChannels(
+                        $user,
+                        NotificationCategory::SessionReminder,
+                    );
+
+                    if (! in_array(PushChannel::class, $channels)) {
+                        continue;
+                    }
+
+                    // Build the push payload
+                    $notification = new SessionReminder($game, $window);
+                    $payload = $notification->toPush($user);
+
+                    if ($payload === null) {
+                        continue;
+                    }
+
+                    // Send to each subscription
+                    foreach ($user->pushSubscriptions as $subscription) {
+                        if ($dryRun) {
+                            $this->line("  [{$windowLabel}] Would send to user {$user->id} (subscription {$subscription->id}) for game {$game->name}");
+                            $pushCount++;
+
+                            continue;
+                        }
+
+                        // Lazily resolve WebPush only when we actually need to send.
+                        $webPush ??= app(WebPush::class);
+
+                        if ($webPush === null) {
+                            Log::info('session_reminders.vapid_not_configured', [
+                                'user_id' => $user->id,
+                                'game_id' => $game->id,
+                            ]);
+
+                            continue;
+                        }
+
+                        if ($this->sendPush($webPush, $subscription, $payload)) {
+                            $pushCount++;
+                        } else {
+                            $errorCount++;
+                        }
+                    }
+
+                    // Also send via NotificationService for database channel delivery
+                    if (! $dryRun) {
+                        try {
+                            $notificationService->send(
+                                $user,
+                                $notification,
+                                NotificationCategory::SessionReminder,
+                            );
+                        } catch (\Throwable $e) {
+                            Log::warning('session_reminders.notification_service_failed', [
+                                'user_id' => $user->id,
+                                'game_id' => $game->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                            $errorCount++;
+                        }
                     }
                 }
-
-                // Also send via NotificationService for database channel delivery
+            } catch (\Throwable $e) {
+                Log::error('session_reminders.game_failed', [
+                    'game_id' => $game->id,
+                    'window' => $window,
+                    'error' => $e->getMessage(),
+                ]);
+                $errorCount++;
+            } finally {
+                // Always mark reminder as sent, even on failure.
+                // Without this, a crash mid-game causes duplicate reminders
+                // on the next run for participants already notified.
                 if (! $dryRun) {
-                    try {
-                        $notificationService->send(
-                            $user,
-                            $notification,
-                            NotificationCategory::SessionReminder,
-                        );
-                    } catch (\Throwable $e) {
-                        Log::warning('session_reminders.notification_service_failed', [
-                            'user_id' => $user->id,
-                            'game_id' => $game->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                        $errorCount++;
-                    }
+                    $game->update([$sentAtColumn => now()]);
                 }
-            }
-
-            // Mark reminder as sent for this game
-            if (! $dryRun) {
-                $game->update([$sentAtColumn => now()]);
             }
         }
 
@@ -227,10 +238,12 @@ class SendSessionReminders extends Command
     private function sendPush(WebPush $webPush, PushSubscription $subscription, PushPayload $payload): bool
     {
         try {
+            // DB column is p256h_key (project convention), but Minishlink expects
+            // the standard Web Push key name 'p256dh'. Mapping happens here at the boundary.
             $webPushSubscription = Subscription::create([
                 'endpoint' => $subscription->endpoint,
                 'keys' => [
-                    'p256h' => $subscription->p256h_key,
+                    'p256dh' => $subscription->p256h_key,
                     'auth' => $subscription->auth_token,
                 ],
             ]);

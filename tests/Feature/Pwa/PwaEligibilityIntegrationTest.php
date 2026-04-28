@@ -68,6 +68,7 @@ describe('Full eligibility flow', function () {
             'user_id' => $user->id,
             'role' => 'player',
             'status' => 'approved',
+            'created_at' => now()->subDay(), // old — avoids trypass_game_joined
         ]);
         session()->flush();
 

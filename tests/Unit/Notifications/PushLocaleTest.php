@@ -10,6 +10,7 @@ use App\Notifications\CampaignInvitation;
 use App\Notifications\GameCancelled;
 use App\Notifications\GameInvitation;
 use App\Notifications\NewFollower;
+use App\Notifications\PlayerBenched;
 use App\Notifications\SessionReminder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase;
@@ -124,6 +125,39 @@ class PushLocaleTest extends TestCase
         $notifiable = User::factory()->create();
 
         $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $payload->url);
+    }
+
+    // -- PlayerBenched locale -----------------------------------------------
+
+    public function test_player_benched_game_url_contains_locale(): void
+    {
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/games/', $payload->url);
+    }
+
+    public function test_player_benched_campaign_url_contains_locale(): void
+    {
+        $campaign = Campaign::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/campaigns/', $payload->url);
+    }
+
+    public function test_player_benched_url_respects_german_locale(): void
+    {
+        app()->setLocale('de');
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
 
         $this->assertStringContainsString('/de/games/', $payload->url);
     }

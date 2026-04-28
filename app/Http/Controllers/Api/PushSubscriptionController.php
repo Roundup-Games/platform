@@ -36,12 +36,16 @@ class PushSubscriptionController extends Controller
 
         RateLimiter::hit($rateKey, 60);
 
+        // Scope by endpoint + user_id so that different users on the same
+        // device/browser each get their own subscription row. Without user_id
+        // in the match conditions, a second user would silently steal the first
+        // user's subscription via updateOrCreate.
         $subscription = PushSubscription::updateOrCreate(
             [
                 'endpoint' => $request->input('endpoint'),
+                'user_id' => $request->user()->id,
             ],
             [
-                'user_id' => $request->user()->id,
                 'p256h_key' => $request->input('keys.p256h'),
                 'auth_token' => $request->input('keys.auth'),
                 'user_agent' => $request->userAgent(),

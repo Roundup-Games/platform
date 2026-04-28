@@ -204,6 +204,7 @@ describe('Trypass events', function () {
             'user_id' => $this->user->id,
             'role' => 'player',
             'status' => 'pending',
+            'created_at' => now()->subMinutes(10), // old — matches game age, avoids trypass
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -224,6 +225,7 @@ describe('Trypass events', function () {
             'user_id' => $this->user->id,
             'role' => 'player',
             'status' => 'pending',
+            'created_at' => now()->subDay(), // old — first invitation
         ]);
         // Second invitation (recent)
         $game2 = Game::factory()->create([
@@ -362,6 +364,7 @@ describe('Score gate combinations', function () {
                     'user_id' => $this->user->id,
                     'role' => 'player',
                     'status' => 'approved',
+                    'created_at' => now()->subDay(), // old — avoids trypass_game_joined
                 ]);
             }
 
@@ -535,6 +538,29 @@ describe('Edge cases', function () {
         $result = $this->service->isEligible($this->user);
         // Pending participant should not trigger trypass_game_upcoming
         expect($result->reason)->not->toBe('trypass_game_upcoming');
+    });
+
+    it('trypass game_joined uses participant created_at, not game created_at', function () {
+        // Create an OLD game (created days ago)
+        $oldGame = Game::factory()->create([
+            'owner_id' => User::factory()->create()->id,
+            'created_at' => now()->subDays(7),
+        ]);
+
+        // Participant was just approved (created_at = now, auto-set by model)
+        GameParticipant::create([
+            'user_id' => $this->user->id,
+            'game_id' => $oldGame->id,
+            'status' => 'approved',
+            'role' => 'player',
+        ]);
+
+        $result = $this->service->isEligible($this->user);
+
+        // SHOULD trigger trypass_game_joined because the participant's created_at
+        // is within the 5-minute window, even though the game itself is old
+        expect($result->eligible)->toBeTrue();
+        expect($result->reason)->toBe('trypass_game_joined');
     });
 });
 

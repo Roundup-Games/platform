@@ -284,10 +284,139 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
+// ── Background Sync: Offline Action Queue ──────────────────────────────────
+// Queues form submissions and actions made while offline, then replays them
+// when connectivity is restored via the Background Sync API.
+// Falls back to a "reconnect to complete" toast when Background Sync is unavailable.
+
+const OFFLINE_DB = 'roundup-offline-queue';
+const OFFLINE_STORE = 'actions';
+const OFFLINE_DB_VERSION = 1;
+
+function openQueueDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(OFFLINE_DB, OFFLINE_DB_VERSION);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
+                db.createObjectStore(OFFLINE_STORE, { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function queueOfflineAction(action) {
+    const db = await openQueueDB();
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    const store = tx.objectStore(OFFLINE_STORE);
+    store.add({
+        url: action.url,
+        method: action.method || 'POST',
+        body: action.body,
+        headers: action.headers || {},
+        timestamp: Date.now(),
+    });
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function getQueuedActions() {
+    const db = await openQueueDB();
+    const tx = db.transaction(OFFLINE_STORE, 'readonly');
+    const store = tx.objectStore(OFFLINE_STORE);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function removeQueuedAction(id) {
+    const db = await openQueueDB();
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    const store = tx.objectStore(OFFLINE_STORE);
+    store.delete(id);
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function clearQueue() {
+    const db = await openQueueDB();
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    const store = tx.objectStore(OFFLINE_STORE);
+    store.clear();
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// Handle sync event — replay queued actions when back online
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'roundup-offline-actions') {
+        event.waitUntil(replayQueuedActions());
+    }
+});
+
+async function replayQueuedActions() {
+    const actions = await getQueuedActions();
+    if (actions.length === 0) return;
+
+    console.log(`[SW] Replaying ${actions.length} offline action(s)`);
+
+    for (const action of actions) {
+        try {
+            const response = await fetch(action.url, {
+                method: action.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Offline-Replay': 'true',
+                    ...action.headers,
+                },
+                body: action.body,
+                credentials: 'same-origin',
+            });
+
+            if (response.ok) {
+                await removeQueuedAction(action.id);
+                console.log(`[SW] Replayed action: ${action.method} ${action.url}`);
+            } else {
+                console.warn(`[SW] Replay failed (${response.status}): ${action.method} ${action.url}`);
+                // Don't remove — will retry on next sync
+                break; // Stop on first failure to preserve order
+            }
+        } catch (error) {
+            console.warn(`[SW] Replay error: ${error.message}`);
+            break; // Network issue — stop and retry later
+        }
+    }
+}
+
 // ── Message handler ─────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'SKIP_WAITING') {
         console.log('[SW] Received SKIP_WAITING — activating new worker');
         self.skipWaiting();
+        return;
+    }
+
+    if (event.data?.type === 'QUEUE_OFFLINE_ACTION') {
+        event.waitUntil(
+            queueOfflineAction(event.data.payload).then(() => {
+                const client = event.source;
+                if (client) {
+                    client.postMessage({
+                        type: 'OFFLINE_ACTION_QUEUED',
+                        payload: event.data.payload,
+                    });
+                }
+            })
+        );
     }
 });

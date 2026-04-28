@@ -41,4 +41,8 @@ return [
     // Push notification UI
     'push_enabled_on_devices' => 'Push notifications enabled on :count device(s).',
     'push_denied_hint' => 'Push notifications are blocked in your browser settings. To re-enable, update the notification permissions in your browser.',
+
+    // Offline action toasts (Background Sync)
+    'offline_action_queued' => 'Action queued — will complete when you reconnect',
+    'offline_action_offline' => 'You\'re offline — connect to complete this action',
 ];

@@ -15,6 +15,9 @@ use Minishlink\WebPush\WebPush;
  * Sends push notifications to a user's registered browser subscriptions
  * via the Web Push protocol (RFC 8291 / RFC 8292) with VAPID authentication.
  *
+ * Uses Minishlink's batch sending (queueNotification + flush) for parallel
+ * delivery instead of sequential sendOneNotification calls.
+ *
  * Usage: Add PushChannel::class to the via() array of a notification,
  * then implement toPush($notifiable): PushPayload on the notification class.
  */
@@ -52,57 +55,74 @@ class PushChannel
             return;
         }
 
-        // 3. Send to each subscription
+        $payloadJson = json_encode($payload->toArray());
+
+        // 3. Queue all subscriptions for batch sending
         foreach ($subscriptions as $subscription) {
-            $this->sendToSubscription($subscription, $payload);
+            try {
+                // DB column is p256h_key (project convention), but Minishlink expects
+                // the standard Web Push key name 'p256dh'. Mapping happens here at the boundary.
+                $webPushSubscription = Subscription::create([
+                    'endpoint' => $subscription->endpoint,
+                    'keys' => [
+                        'p256dh' => $subscription->p256h_key,
+                        'auth' => $subscription->auth_token,
+                    ],
+                ]);
+
+                $this->webPush->queueNotification(
+                    $webPushSubscription,
+                    $payloadJson,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('push.queue_failed', [
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $subscription->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // 4. Flush batch and process results
+        try {
+            foreach ($this->webPush->flush() as $report) {
+                $this->handleReport($report);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('push.flush_failed', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
     /**
-     * Send a push payload to a single subscription endpoint.
-     *
-     * Handles expired subscriptions by deleting them from the database.
-     * Logs failures for observability but never throws.
+     * Handle a push delivery report — clean up expired subscriptions.
      */
-    private function sendToSubscription(PushSubscription $subscription, PushPayload $payload): void
+    protected function handleReport($report): void
     {
-        try {
-            $webPushSubscription = Subscription::create([
-                'endpoint' => $subscription->endpoint,
-                'keys' => [
-                    'p256h' => $subscription->p256h_key,
-                    'auth' => $subscription->auth_token,
-                ],
-            ]);
+        if ($report->isSuccess()) {
+            return;
+        }
 
-            $report = $this->webPush->sendOneNotification(
-                $webPushSubscription,
-                json_encode($payload->toArray()),
-            );
+        $endpoint = $report->getEndpoint();
 
-            if (! $report->isSuccess()) {
-                if ($report->isSubscriptionExpired()) {
-                    $subscription->delete();
+        if ($report->isSubscriptionExpired()) {
+            $subscription = PushSubscription::where('endpoint', $endpoint)->first();
 
-                    Log::info('push.subscription_expired', [
-                        'subscription_id' => $subscription->id,
-                        'user_id' => $subscription->user_id,
-                        'endpoint' => $subscription->endpoint,
-                    ]);
-                } else {
-                    Log::warning('push.send_failed', [
-                        'subscription_id' => $subscription->id,
-                        'user_id' => $subscription->user_id,
-                        'reason' => $report->getReason(),
-                        'status_code' => $report->getResponse()?->getStatusCode(),
-                    ]);
-                }
+            if ($subscription) {
+                $subscription->delete();
+
+                Log::info('push.subscription_expired', [
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $subscription->user_id,
+                    'endpoint' => $endpoint,
+                ]);
             }
-        } catch (\Throwable $e) {
+        } else {
             Log::warning('push.send_failed', [
-                'subscription_id' => $subscription->id,
-                'user_id' => $subscription->user_id,
-                'error' => $e->getMessage(),
+                'endpoint' => $endpoint,
+                'reason' => $report->getReason(),
+                'status_code' => $report->getResponse()?->getStatusCode(),
             ]);
         }
     }
