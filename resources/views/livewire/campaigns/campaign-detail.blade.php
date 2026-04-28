@@ -138,6 +138,19 @@
             </section>
         @endif
 
+        {{-- Benched Banner --}}
+        @if($userBenchParticipant)
+            <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">event_seat</span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('campaigns.content_you_are_on_the_bench') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('campaigns.content_you_have_been_placed_on_the_bench') }}</p>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         {{-- ── Game System Info Card ─────────────────────────── --}}
         @if($campaign->gameSystem)
             @include('livewire.partials.game-system-info', ['entity' => $campaign])
@@ -202,8 +215,8 @@
                                         {{ strtoupper($participant->role) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $participant->status === 'confirmed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                        {{ __(ucfirst($participant->status)) }}
+                                        {{ $participant->status === \App\Enums\ParticipantStatus::Approved ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === \App\Enums\ParticipantStatus::Benched ? 'bg-tertiary/10 text-tertiary' : 'bg-tertiary/10 text-tertiary') }}">
+                                        {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __(ucfirst($participant->status)) }}
                                     </span>
                                 </div>
                             @endforeach
@@ -303,6 +316,31 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Bench Management (owner only) --}}
+                @if($isOwner && $benchedPlayers->count())
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">event_seat</span>
+                            {{ __('campaigns.content_bench') }}
+                        </h3>
+                        <p class="text-xs text-on-surface-variant mb-3">{{ __('campaigns.content_bench_description') }}</p>
+                        <div class="divide-y divide-outline-variant/30">
+                            @foreach($benchedPlayers as $benched)
+                                <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                    <div class="flex-1 min-w-0">
+                                        <x-user-link :user="$benched->user" avatar-size="w-9 h-9" :truncate="true" />
+                                    </div>
+                                    <button wire:click="promoteFromBench('{{ $benched->id }}')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
+                                        {{ __('campaigns.action_promote_from_bench') }}
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </aside>
         </div>
     </div>

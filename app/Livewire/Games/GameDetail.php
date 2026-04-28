@@ -8,6 +8,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Notifications\BelowMinPlayersWarning;
+use App\Services\BenchService;
 use App\Services\NotificationService;
 use App\Services\WaitlistService;
 use App\Traits\ManagesParticipants;
@@ -156,6 +157,33 @@ class GameDetail extends Component
 
         app(WaitlistService::class)->manuallyPromote($participant);
         session()->flash('success', __('games.flash_manual_promote_success'));
+    }
+
+    /**
+     * Host promotes a benched player to approved (campaign sessions only).
+     */
+    public function promoteFromBench(string $participantId): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->game->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        if ($this->game->campaign_id === null) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        try {
+            app(BenchService::class)->promoteFromBench($participantId, 'game');
+            session()->flash('success', __('games.flash_promote_from_bench_success'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
     }
 
     /**
@@ -343,6 +371,7 @@ class GameDetail extends Component
         $userWaitlistParticipant = null;
         $userPendingParticipant = null;
         $waitlistPosition = null;
+        $userBenchParticipant = null;
 
         if ($viewer) {
             $userInvitation = $this->game->participants
@@ -368,6 +397,11 @@ class GameDetail extends Component
                 ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->status === ParticipantStatus::Pending
                     && $p->confirmation_expires_at !== null);
+
+            // Benched state (campaign sessions)
+            $userBenchParticipant = $this->game->participants
+                ->first(fn ($p) => $p->user_id === $viewer->id
+                    && $p->status === ParticipantStatus::Benched);
         }
 
         $isGameFull = $this->game->max_players !== null
@@ -397,6 +431,13 @@ class GameDetail extends Component
             $waitlistedPlayers = $this->game->participants
                 ->where('status', ParticipantStatus::Waitlisted->value)
                 ->sortBy('waitlisted_at');
+        }
+
+        // Bench data for host view (campaign sessions only)
+        $benchedPlayers = collect();
+        if ($isOwner && $this->game->campaign_id !== null) {
+            $benchedPlayers = $this->game->participants
+                ->filter(fn ($p) => $p->status === ParticipantStatus::Benched);
         }
 
         $canReview = false;
@@ -442,6 +483,8 @@ class GameDetail extends Component
             'userPendingParticipant' => $userPendingParticipant,
             'waitlistPosition' => $waitlistPosition,
             'waitlistedPlayers' => $waitlistedPlayers,
+            'benchedPlayers' => $benchedPlayers,
+            'userBenchParticipant' => $userBenchParticipant,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

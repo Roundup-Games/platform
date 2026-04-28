@@ -209,6 +209,19 @@
                 </div>
             </section>
         @endif
+
+        {{-- Benched Banner (campaign sessions) --}}
+        @if($userBenchParticipant)
+            <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-2xl text-tertiary mt-0.5" aria-hidden="true">event_seat</span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.content_you_are_on_the_bench') }}</h2>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_you_have_been_placed_on_the_bench') }}</p>
+                    </div>
+                </div>
+            </section>
+        @endif
         @if($game->gameSystem)
             @include('livewire.partials.game-system-info', ['entity' => $game])
         @endif
@@ -464,6 +477,31 @@
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
                                         {{ __('games.action_manual_promote') }}
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Bench Management (owner only, campaign sessions) --}}
+                @if($isOwner && $benchedPlayers->count())
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">event_seat</span>
+                            {{ __('games.content_bench') }}
+                        </h3>
+                        <p class="text-xs text-on-surface-variant mb-3">{{ __('games.content_bench_description') }}</p>
+                        <div class="divide-y divide-outline-variant/30">
+                            @foreach($benchedPlayers as $benched)
+                                <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                    <div class="flex-1 min-w-0">
+                                        <x-user-link :user="$benched->user" avatar-size="w-9 h-9" :truncate="true" />
+                                    </div>
+                                    <button wire:click="promoteFromBench('{{ $benched->id }}')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
+                                        {{ __('games.action_promote_from_bench') }}
                                     </button>
                                 </div>
                             @endforeach

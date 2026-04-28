@@ -228,4 +228,11 @@ return [
     'body_confirmation_expired' => 'Your confirmation window for **:game** has expired. You have been moved to the back of the waitlist.',
     'subject_below_min_players' => ':game needs more players',
     'body_below_min_players' => '**:game** currently has :current players but requires a minimum of :min. Consider inviting more players.',
+
+    // Player benched
+    'subject_player_benched' => 'You\'ve been placed on the bench for :entity',
+    'body_player_benched' => 'The roster for **:entity** is currently full, so you\'ve been placed on the bench. If a spot opens up, the host can promote you.',
+    'action_player_benched' => 'View :entity_type',
+    'push_title_player_benched' => 'You\'re on the Bench',
+    'push_body_player_benched' => 'You\'ve been placed on the bench for :entity',
 ];

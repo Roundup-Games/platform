@@ -3,6 +3,7 @@
 namespace App\Livewire\Campaigns;
 
 use App\Models\Campaign;
+use App\Services\BenchService;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -52,6 +53,29 @@ class CampaignDetail extends Component
         return route('campaigns.detail', $this->campaign->id);
     }
 
+    // ── Bench Actions ──────────────────────────────────
+
+    /**
+     * Promote a benched player to approved status.
+     */
+    public function promoteFromBench(string $participantId): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        try {
+            app(BenchService::class)->promoteFromBench($participantId, 'campaign');
+            session()->flash('success', __('campaigns.flash_promote_from_bench_success'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+    }
+
     public function render()
     {
         $this->campaign->load([
@@ -73,6 +97,7 @@ class CampaignDetail extends Component
 
         $userInvitation = null;
         $hasExistingApplication = false;
+        $userBenchParticipant = null;
         if ($viewer) {
             $userInvitation = $this->campaign->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
@@ -82,6 +107,11 @@ class CampaignDetail extends Component
             $hasExistingApplication = $this->campaign->applications()
                 ->where('user_id', $viewer->id)
                 ->exists();
+
+            // Check if the viewer is on the bench
+            $userBenchParticipant = $this->campaign->participants
+                ->first(fn ($p) => $p->user_id === $viewer->id
+                    && $p->status === \App\Enums\ParticipantStatus::Benched);
         }
 
         $canApply = $viewer
@@ -90,6 +120,13 @@ class CampaignDetail extends Component
             && ! $hasExistingApplication
             && $this->campaign->visibility !== 'private';
         // Note: campaigns allow applying even when full (applicant gets benched)
+
+        // Bench data for host view
+        $benchedPlayers = collect();
+        if ($isOwner) {
+            $benchedPlayers = $this->campaign->participants
+                ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Benched);
+        }
 
         $canReview = false;
 
@@ -116,6 +153,8 @@ class CampaignDetail extends Component
             'isGuest' => Auth::guest(),
             'reviews' => $reviews,
             'canReview' => $canReview,
+            'benchedPlayers' => $benchedPlayers,
+            'userBenchParticipant' => $userBenchParticipant,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

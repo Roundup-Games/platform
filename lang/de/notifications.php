@@ -216,4 +216,11 @@ return [
     'push_body_campaign_cancelled' => ':campaign wurde abgesagt',
     'push_title_session_reminder' => 'Spielerinnerung',
     'push_body_session_reminder' => ':game beginnt heute um :time',
+
+    // Spieler auf die Bank gesetzt
+    'subject_player_benched' => 'Du wurdest für :entity auf die Bank gesetzt',
+    'body_player_benched' => 'Der Kader für **:entity** ist derzeit voll, daher wurdest du auf die Bank gesetzt. Wenn ein Platz frei wird, kann dich der Host befördern.',
+    'action_player_benched' => ':entity_type anzeigen',
+    'push_title_player_benched' => 'Du sitzt auf der Bank',
+    'push_body_player_benched' => 'Du wurdest für :entity auf die Bank gesetzt',
 ];
