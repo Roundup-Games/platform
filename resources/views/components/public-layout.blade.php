@@ -29,6 +29,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
+    {{-- PWA update toast translations (read by app.js) --}}
+    <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.update_available')) }}',action:'{{ addslashes(__('pwa.update_action')) }}'};</script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     {{-- SEO hreflang alternate tags --}}

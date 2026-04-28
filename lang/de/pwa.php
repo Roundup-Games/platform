@@ -34,6 +34,10 @@ return [
     'offline_indicator' => 'Du bist offline — einige Funktionen sind möglicherweise nicht verfügbar',
     'back_online' => 'Wieder online',
 
+    // SW update toast
+    'update_available' => 'Eine neue Version ist verfügbar',
+    'update_action' => 'Aktualisieren',
+
     // Push notification UI
     'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',
     'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',

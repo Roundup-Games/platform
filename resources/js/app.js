@@ -57,14 +57,57 @@ if ('serviceWorker' in navigator) {
                     });
                 });
 
-                // When a new controller takes over, reload for fresh content
+                // When a new controller takes over, show an update toast
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('[SW] Controller changed — reloading');
-                    window.location.reload();
+                    console.log('[SW] Controller changed — showing update toast');
+                    showUpdateToast();
                 });
             })
             .catch((err) => {
                 console.warn('[SW] Registration failed:', err);
             });
     });
+}
+
+// ── SW Update Toast ───────────────────────────────────────────────────────────
+// Shown when a new service worker takes control (deploy-time update).
+// Reads localized strings from window.__pwaUpdateToast injected by Blade,
+// falling back to English defaults when rendered outside a Blade template.
+function showUpdateToast() {
+    // Prevent duplicate toasts
+    if (document.getElementById('sw-update-toast')) return;
+
+    const i18n = window.__pwaUpdateToast || {};
+    const message = i18n.message || 'A new version is available';
+    const action = i18n.action || 'Update';
+    const icon = 'system_update';
+
+    const toast = document.createElement('div');
+    toast.id = 'sw-update-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.className = 'fixed bottom-4 right-4 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg bg-primary text-on-primary pointer-events-auto';
+
+    toast.innerHTML =
+        '<span class="material-symbols-outlined text-lg" aria-hidden="true">' + icon + '</span>' +
+        '<span class="text-sm font-medium">' + message + '</span>' +
+        '<button id="sw-update-action" class="underline font-semibold text-sm hover:opacity-80 transition-opacity">' + action + '</button>' +
+        '<button id="sw-update-dismiss" class="ml-1 text-lg leading-none hover:opacity-80 transition-opacity" aria-label="Dismiss">&times;</button>';
+
+    document.body.appendChild(toast);
+
+    // Reload on action
+    document.getElementById('sw-update-action').addEventListener('click', () => {
+        window.location.reload();
+    });
+
+    // Dismiss
+    document.getElementById('sw-update-dismiss').addEventListener('click', () => {
+        toast.remove();
+    });
+
+    // Auto-dismiss after 30 seconds
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 30000);
 }

@@ -34,6 +34,10 @@ return [
     'offline_indicator' => 'You\'re offline — some features may be unavailable',
     'back_online' => 'Back online',
 
+    // SW update toast
+    'update_available' => 'A new version is available',
+    'update_action' => 'Update',
+
     // Push notification UI
     'push_enabled_on_devices' => 'Push notifications enabled on :count device(s).',
     'push_denied_hint' => 'Push notifications are blocked in your browser settings. To re-enable, update the notification permissions in your browser.',
