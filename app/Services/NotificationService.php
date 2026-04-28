@@ -103,6 +103,16 @@ class NotificationService
 
             if ($entityId !== null) {
                 $key = $dataKey ?? 'entity_id';
+                // Whitelist: only allow known JSON data keys to prevent injection
+                $allowedKeys = ['entity_id', 'game_id', 'campaign_id', 'team_id', 'participant_id', 'type'];
+                if (! in_array($key, $allowedKeys, true)) {
+                    Log::warning('notification.mark_read_invalid_key', [
+                        'key' => $key,
+                        'user_id' => $user->id,
+                    ]);
+
+                    return;
+                }
                 $driver = $query->getQuery()->getConnection()->getDriverName();
                 if ($driver === 'pgsql') {
                     $query->whereRaw("CAST(data AS json)->>'{$key}' = CAST(? AS text)", [$entityId]);

@@ -5,11 +5,11 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory Unit Tests', function () {
-    it('has exactly 23 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(23);
+    it('has exactly 24 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(24);
     });
 
-    it('values() returns all 23 string values in declaration order', function () {
+    it('values() returns all 24 string values in declaration order', function () {
         $expected = [
             'new_follower',
             'game_invitation', 'campaign_invitation', 'team_invitation', 'session_added_to_campaign',
@@ -19,7 +19,7 @@ describe('NotificationCategory Unit Tests', function () {
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',
-            'below_min_players', 'confirmation_expired',
+            'below_min_players', 'confirmation_expired', 'session_reminder',
             'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
@@ -78,7 +78,7 @@ describe('NotificationCategory Unit Tests', function () {
     it('defaultSettings() returns array keyed by all 23 category values', function () {
         $settings = NotificationCategory::defaultSettings();
 
-        expect($settings)->toHaveCount(23);
+        expect($settings)->toHaveCount(24);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
@@ -102,6 +102,8 @@ describe('NotificationCategory Unit Tests', function () {
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',
+            'below_min_players',
+            'session_reminder',
             'review_reported',
         ];
         foreach ($mailOn as $cat) {
@@ -109,7 +111,7 @@ describe('NotificationCategory Unit Tests', function () {
         }
 
         // Informational events: mail OFF
-        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined'];
+        $mailOff = ['new_follower', 'session_added_to_campaign', 'participant_joined', 'confirmation_expired'];
         foreach ($mailOff as $cat) {
             expect($settings[$cat]['mail'])->toBeFalse("{$cat} should default mail=false");
         }

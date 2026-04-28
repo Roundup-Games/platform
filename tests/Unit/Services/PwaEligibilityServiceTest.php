@@ -211,6 +211,38 @@ describe('Trypass events', function () {
         expect($result->reason)->not->toBe('trypass_invitation_received');
     });
 
+    it('does not trypass for second invitation (not first-ever)', function () {
+        $host = User::factory()->create();
+        // First invitation (old)
+        $game1 = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subDay(),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game1->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
+        ]);
+        // Second invitation (recent)
+        $game2 = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game2->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
+        ]);
+
+        $result = $this->service->isEligible($this->user);
+
+        expect($result->reason)->not->toBe('trypass_invitation_received');
+    });
+
     it('passes for first campaign created within last 5 minutes', function () {
         Campaign::factory()->create([
             'owner_id' => $this->user->id,

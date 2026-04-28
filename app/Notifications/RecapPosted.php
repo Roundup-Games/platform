@@ -89,7 +89,7 @@ class RecapPosted extends Notification
             ]),
             icon: '/icons/pwa-192x192.png',
             url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
-            tag: "recap_{$this->game->id}",
+            tag: "recap-{$this->game->id}",
         );
     }
 }

@@ -190,6 +190,7 @@ return [
     'category_game_system_request' => 'Game System Request',
     'category_below_min_players' => 'Below Min Players',
     'category_confirmation_expired' => 'Confirmation Expired',
+    'category_session_reminder' => 'Session Reminder',
     'subject_game_system_request_approved' => 'Game System Added: :name',
     'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
     'action_create_game' => 'Create a Game',

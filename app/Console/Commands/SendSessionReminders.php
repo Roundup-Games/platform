@@ -137,10 +137,10 @@ class SendSessionReminders extends Command
                     continue;
                 }
 
-                // Check push preference for participation category
+                // Check push preference for session reminder category
                 $channels = $notificationService->resolveChannels(
                     $user,
-                    NotificationCategory::ParticipantJoined, // participation group proxy
+                    NotificationCategory::SessionReminder,
                 );
 
                 if (! in_array(PushChannel::class, $channels)) {
@@ -189,7 +189,7 @@ class SendSessionReminders extends Command
                         $notificationService->send(
                             $user,
                             $notification,
-                            NotificationCategory::ParticipantJoined,
+                            NotificationCategory::SessionReminder,
                         );
                     } catch (\Throwable $e) {
                         Log::warning('session_reminders.notification_service_failed', [

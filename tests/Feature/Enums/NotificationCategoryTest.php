@@ -5,8 +5,8 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory', function () {
-    it('has exactly 23 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(23);
+    it('has exactly 24 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(24);
     });
 
     it('returns correct values for all cases', function () {
@@ -19,7 +19,7 @@ describe('NotificationCategory', function () {
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',
-            'below_min_players', 'confirmation_expired',
+            'below_min_players', 'confirmation_expired', 'session_reminder',
             'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
@@ -65,13 +65,13 @@ describe('NotificationCategory', function () {
         expect($grouped)->toHaveKeys(['social', 'invitations', 'applications', 'participation', 'status', 'content', 'scheduling', 'moderation']);
     });
 
-    it('grouped() contains all 23 categories across groups', function () {
+    it('grouped() contains all 24 categories across groups', function () {
         $grouped = NotificationCategory::grouped();
         $allValues = [];
         foreach ($grouped as $group) {
             $allValues = array_merge($allValues, array_keys($group['options']));
         }
-        expect($allValues)->toHaveCount(23);
+        expect($allValues)->toHaveCount(24);
         expect($allValues)->toBe(NotificationCategory::values());
     });
 
@@ -107,7 +107,7 @@ describe('NotificationCategory', function () {
 
     it('defaultSettings() returns settings for all 23 categories', function () {
         $settings = NotificationCategory::defaultSettings();
-        expect($settings)->toHaveCount(23);
+        expect($settings)->toHaveCount(24);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 

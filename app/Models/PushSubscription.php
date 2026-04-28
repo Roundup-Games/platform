@@ -50,16 +50,6 @@ class PushSubscription extends Model
         return $query->where('user_id', $userId);
     }
 
-    /**
-     * Scope to subscriptions whose push service endpoint has expired (responded 410/404).
-     *
-     * Usage: Call scopeExpired on a chunked query to avoid flooding push services.
-     */
-    public function scopeExpired($query)
-    {
-        return $query->where('expired_at', '!=', null);
-    }
-
     /*
     |--------------------------------------------------------------------------
     | Helpers

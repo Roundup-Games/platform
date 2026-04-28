@@ -20,6 +20,7 @@ return [
     'category_review_reported' => 'Bewertung gemeldet',
     'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
     'category_confirmation_expired' => 'Bestätigung abgelaufen',
+    'category_session_reminder' => 'Sitzungserinnerung',
 
     // UI — Benachrichtigungsglocke
     'bell_label' => 'Benachrichtigungen (:count ungelesen)',

@@ -44,6 +44,7 @@ enum NotificationCategory: string
     // Scheduling
     case BelowMinPlayers = 'below_min_players';
     case ConfirmationExpired = 'confirmation_expired';
+    case SessionReminder = 'session_reminder';
 
     // Moderation
     case ReviewReported = 'review_reported';
@@ -81,6 +82,7 @@ enum NotificationCategory: string
             self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::BelowMinPlayers => __('notifications.category_below_min_players'),
             self::ConfirmationExpired => __('notifications.category_confirmation_expired'),
+            self::SessionReminder => __('notifications.category_session_reminder'),
             self::ReviewReported => __('notifications.category_review_reported'),
         };
     }
@@ -94,7 +96,7 @@ enum NotificationCategory: string
             self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
             self::GameSystemRequest => 'content',
-            self::BelowMinPlayers, self::ConfirmationExpired => 'scheduling',
+            self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
             self::ReviewReported => 'moderation',
         };
     }
@@ -133,7 +135,7 @@ enum NotificationCategory: string
             ],
             'scheduling' => [
                 'label' => __('notifications.group_scheduling'),
-                'categories' => [self::BelowMinPlayers, self::ConfirmationExpired],
+                'categories' => [self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder],
             ],
             'moderation' => [
                 'label' => __('notifications.group_moderation'),
@@ -199,6 +201,7 @@ enum NotificationCategory: string
             self::GameSystemRequest => true,
             self::BelowMinPlayers => true,
             self::ConfirmationExpired => false,
+            self::SessionReminder => true,
             self::ReviewReported => true,
         };
     }

@@ -607,6 +607,6 @@ describe('DebriefingAvailable notification', function () {
         $push = $notification->toPush($this->participant);
 
         expect($push)->not->toBeNull();
-        expect($push->tag)->toBe("debriefing_{$game->id}");
+        expect($push->tag)->toBe("debriefing-{$game->id}");
     });
 });

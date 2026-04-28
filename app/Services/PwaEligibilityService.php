@@ -143,7 +143,8 @@ class PwaEligibilityService
             return PwaEligibilityResult::eligibleViaTrypass('trypass_game_joined');
         }
 
-        // 2d. Recently received game/campaign invitation (GameParticipant with status 'pending')
+        // 2d. Recently received first game/campaign invitation (GameParticipant with status 'pending')
+        //     Only triggers for the user's first-ever invitation to preserve the "special moment" intent.
         //     GameParticipant has no timestamps, so we check via the parent Game.created_at
         $recentlyInvited = Game::whereHas('participants', fn ($q) => $q
             ->where('user_id', $user->id)
@@ -153,7 +154,13 @@ class PwaEligibilityService
             ->exists();
 
         if ($recentlyInvited) {
-            return PwaEligibilityResult::eligibleViaTrypass('trypass_invitation_received');
+            $totalInvitations = GameParticipant::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->count();
+
+            if ($totalInvitations <= 1) {
+                return PwaEligibilityResult::eligibleViaTrypass('trypass_invitation_received');
+            }
         }
 
         // 2e. First campaign creation within last 5 minutes
