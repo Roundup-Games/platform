@@ -16,11 +16,11 @@ describe('Offline Indicator Layout Integration', function () {
         $response->assertSee('offlineIndicator()', false);
     });
 
-    it('public layout does not contain offline-indicator', function () {
+    it('public layout contains offline-indicator component', function () {
         $response = get(route('home'));
 
         $response->assertOk();
-        $response->assertDontSee('offlineIndicator()', false);
+        $response->assertSee('offlineIndicator()', false);
     });
 
     it('component contains Alpine x-data for online/offline detection', function () {

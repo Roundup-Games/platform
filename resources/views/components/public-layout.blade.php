@@ -215,6 +215,9 @@
             <div class="w-full h-1 bg-primary"></div>
         </footer>
     </div>
+
+    {{-- Offline indicator (no server round-trips) --}}
+    <x-offline-indicator />
 </body>
 </html>
 ml>
