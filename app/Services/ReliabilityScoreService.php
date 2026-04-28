@@ -25,6 +25,19 @@ class ReliabilityScoreService
     ];
 
     /**
+     * Host-specific penalty weights.
+     * Hosts who cancel games late or no-show their own games face
+     * steeper penalties than regular players because they affect
+     * all participants, not just themselves.
+     */
+    public const HOST_WEIGHTS = [
+        // Host cancels their own game <24h before start
+        'host_cancel_late' => -1.2,
+        // Host no-shows their own game
+        'host_no_show' => -1.5,
+    ];
+
+    /**
      * Minimum number of games required to be classified as Reliable or Active.
      */
     public const MIN_GAMES = 5;
@@ -57,7 +70,7 @@ class ReliabilityScoreService
             /** @var AttendanceStatus $status */
             $status = $participant->attendance_status;
             $key = $status->value;
-            $weight = self::WEIGHTS[$key] ?? 0.0;
+            $weight = $this->resolveWeight($participant, $status);
             $weightedSum += $weight;
 
             if (! isset($weightsApplied[$key])) {
@@ -121,6 +134,31 @@ class ReliabilityScoreService
             'game_count' => $result['game_count'],
             'tier' => $result['tier'],
         ]);
+    }
+
+    /**
+     * Resolve the weight for a participant's attendance status.
+     *
+     * Uses host-specific weights when the participant was the game owner
+     * and committed a no-show or late cancellation, since hosts affect
+     * all participants not just themselves.
+     */
+    public function resolveWeight(GameParticipant $participant, AttendanceStatus $status): float
+    {
+        $key = $status->value;
+        $baseWeight = self::WEIGHTS[$key] ?? 0.0;
+
+        // Only apply host weights for penalty statuses when participant is the game owner
+        if ($participant->game && $participant->game->owner_id === $participant->user_id) {
+            if ($status === AttendanceStatus::NoShow) {
+                return self::HOST_WEIGHTS['host_no_show'];
+            }
+            if ($status === AttendanceStatus::LateCancel) {
+                return self::HOST_WEIGHTS['host_cancel_late'];
+            }
+        }
+
+        return $baseWeight;
     }
 
     /**

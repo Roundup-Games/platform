@@ -180,6 +180,98 @@ class ReliabilityScoreServiceTest extends TestCase
         }
     }
 
+    public function test_host_weight_constants_exist(): void
+    {
+        $this->assertEquals(-1.5, ReliabilityScoreService::HOST_WEIGHTS['host_no_show']);
+        $this->assertEquals(-1.2, ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late']);
+    }
+
+    public function test_resolve_weight_uses_host_no_show_when_owner(): void
+    {
+        $host = User::factory()->create();
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        $participant = GameParticipant::factory()->create([
+            'user_id' => $host->id,
+            'game_id' => $game->id,
+            'attendance_status' => AttendanceStatus::NoShow,
+        ]);
+
+        $weight = $this->service->resolveWeight($participant, AttendanceStatus::NoShow);
+        $this->assertEquals(-1.5, $weight);
+    }
+
+    public function test_resolve_weight_uses_host_cancel_late_when_owner(): void
+    {
+        $host = User::factory()->create();
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        $participant = GameParticipant::factory()->create([
+            'user_id' => $host->id,
+            'game_id' => $game->id,
+            'attendance_status' => AttendanceStatus::LateCancel,
+        ]);
+
+        $weight = $this->service->resolveWeight($participant, AttendanceStatus::LateCancel);
+        $this->assertEquals(-1.2, $weight);
+    }
+
+    public function test_resolve_weight_uses_generic_weight_for_non_host(): void
+    {
+        $player = User::factory()->create();
+        $host = User::factory()->create();
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        $participant = GameParticipant::factory()->create([
+            'user_id' => $player->id,
+            'game_id' => $game->id,
+            'attendance_status' => AttendanceStatus::NoShow,
+        ]);
+
+        $weight = $this->service->resolveWeight($participant, AttendanceStatus::NoShow);
+        $this->assertEquals(-1.0, $weight); // Generic weight, not host weight
+    }
+
+    public function test_resolve_weight_uses_generic_weight_for_host_attended(): void
+    {
+        $host = User::factory()->create();
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        $participant = GameParticipant::factory()->create([
+            'user_id' => $host->id,
+            'game_id' => $game->id,
+            'attendance_status' => AttendanceStatus::Attended,
+        ]);
+
+        $weight = $this->service->resolveWeight($participant, AttendanceStatus::Attended);
+        $this->assertEquals(1.0, $weight); // Host attended gets normal positive weight
+    }
+
+    public function test_host_no_show_penalties_heavier_than_player(): void
+    {
+        $host = User::factory()->create();
+        $player = User::factory()->create();
+
+        // Host with 5 attended + 1 no-show as host
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        $this->createParticipationRecords($host, AttendanceStatus::Attended, 5);
+        GameParticipant::factory()->create([
+            'user_id' => $host->id,
+            'game_id' => $game->id,
+            'attendance_status' => AttendanceStatus::NoShow,
+        ]);
+
+        // Player with 5 attended + 1 no-show as regular player
+        $this->createParticipationRecords($player, AttendanceStatus::Attended, 5);
+        $this->createParticipationRecords($player, AttendanceStatus::NoShow, 1);
+
+        $hostResult = $this->service->computeScore($host);
+        $playerResult = $this->service->computeScore($player);
+
+        // Host score: (5*1.0 + 1*(-1.5)) / 6 * 100 = 3.5/6*100 = 58.33
+        $this->assertEquals(58.33, $hostResult['score']);
+        // Player score: (5*1.0 + 1*(-1.0)) / 6 * 100 = 4.0/6*100 = 66.67
+        $this->assertEquals(66.67, $playerResult['score']);
+        // Host has lower score than player for same offense
+        $this->assertLessThan($playerResult['score'], $hostResult['score']);
+    }
+
     public function test_min_games_constant(): void
     {
         $this->assertEquals(5, ReliabilityScoreService::MIN_GAMES);

@@ -344,7 +344,7 @@ class AttendanceService
         $hostParticipant->forceFill([
             'attendance_status' => AttendanceStatus::LateCancel->value,
             'attendance_reported_at' => now(),
-            'attendance_weight' => 1.0,
+            'attendance_weight' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
         ])->save();
 
         // Create report record
@@ -353,7 +353,7 @@ class AttendanceService
             'reporter_id' => $game->owner_id,
             'reported_id' => $game->owner_id,
             'status' => AttendanceStatus::LateCancel->value,
-            'weight_applied' => -0.3, // Late cancel penalty weight
+            'weight_applied' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
             'is_corroborated' => true,
             'quarantined' => false,
         ]);

@@ -506,15 +506,15 @@ class GameDetail extends Component
         $hostDebriefings = collect();
         $debriefingSummary = null;
 
-        if ($hasDebriefingTools && $game->status === 'completed' && $viewer) {
-            $userDebriefing = SessionDebriefing::where('game_id', $game->id)
+        if ($hasDebriefingTools && $this->game->status === 'completed' && $viewer) {
+            $userDebriefing = SessionDebriefing::where('game_id', $this->game->id)
                 ->where('user_id', $viewer->id)
                 ->first();
 
             if ($isOwner) {
-                $hostDebriefings = app(DebriefingService::class)->getHostDebriefings($game);
+                $hostDebriefings = app(DebriefingService::class)->getHostDebriefings($this->game);
             } elseif ($isParticipant && $userDebriefing) {
-                $debriefingSummary = app(DebriefingService::class)->getAnonymizedSummary($game);
+                $debriefingSummary = app(DebriefingService::class)->getAnonymizedSummary($this->game);
             }
         }
 

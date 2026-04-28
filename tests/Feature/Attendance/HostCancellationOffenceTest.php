@@ -62,7 +62,7 @@ class HostCancellationOffenceTest extends TestCase
         $report = AttendanceReport::where('game_id', $game->id)
             ->where('reported_id', $host->id)
             ->first();
-        $this->assertEquals(-0.3, $report->weight_applied);
+        $this->assertEquals(-1.2, $report->weight_applied);
 
         // Host reliability should have been recomputed
         $host->refresh();
