@@ -76,4 +76,14 @@ class Campaign extends Model
     {
         return $this->hasMany(CampaignApplication::class);
     }
+
+    // ── Bench ──────────────────────────────────────────
+
+    /**
+     * Campaigns always support bench mode.
+     */
+    public function isBenchMode(): bool
+    {
+        return true;
+    }
 }

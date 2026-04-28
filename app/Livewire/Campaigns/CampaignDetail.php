@@ -89,6 +89,7 @@ class CampaignDetail extends Component
             && ! $isParticipant
             && ! $hasExistingApplication
             && $this->campaign->visibility !== 'private';
+        // Note: campaigns allow applying even when full (applicant gets benched)
 
         $canReview = false;
 

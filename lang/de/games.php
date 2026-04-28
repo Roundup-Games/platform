@@ -65,6 +65,7 @@ return [
     'content_we_re_gamers_ourselves_that' => 'Wir sind selbst Spieler. Diese Leidenschaft treibt uns an, die bestmögliche Plattform für die Community zu bauen, die wir lieben.',
     'content_you_have_already_applied_to_this_game' => 'Du hast dich bereits für dieses Spiel beworben.',
     'content_you_have_joined_the_game' => 'Du bist dem Spiel beigetreten!',
+    'content_you_have_been_placed_on_the_bench' => 'Die Sitzung ist voll — du wurdest auf die Bank gesetzt.',
     'content_application_pending' => 'Bewerbung ausstehend',
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
     'content_you_ve_got_the_game' => 'Du hast das Spiel. Wir helfen dir, die richtigen Spieler zu finden — und kümmern uns um die Logistik, damit du dich auf das konzentrieren kannst, was du am besten kannst: unvergessliche Sessions ausrichten.',

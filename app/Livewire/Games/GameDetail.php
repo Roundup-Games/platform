@@ -380,7 +380,8 @@ class GameDetail extends Component
             && ! $isParticipant
             && ! $hasExistingApplication
             && $this->game->visibility !== 'private'
-            && ! $isGameFull;
+            && (! $isGameFull || $this->game->campaign_id !== null);
+        // Campaign sessions allow applying when full (applicant gets benched)
 
         $canJoinWaitlist = $viewer
             && ! $isOwner

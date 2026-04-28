@@ -98,6 +98,7 @@ return [
     'content_you_are_already_a_participant_of_this_campaign' => 'Du bist bereits Teilnehmer dieser Kampagne.',
     'content_you_have_already_applied_to_this_campaign' => 'Du hast dich bereits für diese Kampagne beworben.',
     'content_you_have_joined_the_campaign' => 'Du bist der Kampagne beigetreten!',
+    'content_you_have_been_placed_on_the_bench' => 'Die Kampagne ist voll — du wurdest auf die Bank gesetzt.',
     'content_application_submitted_the_campaign_owner' => 'Bewerbung eingereicht! Der Kampagnenbesitzer wird sie prüfen.',
     'content_application_pending' => 'Bewerbung ausstehend',
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',

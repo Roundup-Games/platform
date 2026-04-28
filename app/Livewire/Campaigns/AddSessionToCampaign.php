@@ -77,19 +77,38 @@ class AddSessionToCampaign extends Component
 
             // Auto-invite approved campaign participants as invited to this session
             $autoInvitedCount = 0;
+            $benchedCount = 0;
             $approvedParticipants = $campaign->participants()
                 ->where('status', 'approved')
                 ->where('user_id', '!=', $ownerId)
                 ->get();
 
             foreach ($approvedParticipants as $campaignParticipant) {
-                GameParticipant::create([
-                    'game_id' => $game->id,
-                    'user_id' => $campaignParticipant->user_id,
-                    'role' => 'invited',
-                    'status' => 'pending',
-                ]);
-                $autoInvitedCount++;
+                // Check if game is full
+                $currentApproved = GameParticipant::where('game_id', $game->id)
+                    ->where('status', 'approved')
+                    ->count();
+                $isFull = $game->max_players !== null && $currentApproved >= $game->max_players;
+
+                if ($isFull) {
+                    // Place on bench instead of inviting
+                    GameParticipant::create([
+                        'game_id' => $game->id,
+                        'user_id' => $campaignParticipant->user_id,
+                        'role' => 'player',
+                        'status' => 'benched',
+                        'benched_at' => now(),
+                    ]);
+                    $benchedCount++;
+                } else {
+                    GameParticipant::create([
+                        'game_id' => $game->id,
+                        'user_id' => $campaignParticipant->user_id,
+                        'role' => 'invited',
+                        'status' => 'pending',
+                    ]);
+                    $autoInvitedCount++;
+                }
             }
 
             Log::info('Game session added to campaign', [
@@ -97,6 +116,7 @@ class AddSessionToCampaign extends Component
                 'campaign_id' => $campaign->id,
                 'owner_id' => $ownerId,
                 'auto_invited_count' => $autoInvitedCount,
+                'benched_count' => $benchedCount,
             ]);
 
             return $game;

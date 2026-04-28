@@ -98,6 +98,7 @@ return [
     'content_you_are_already_a_participant_of_this_campaign' => 'You are already a participant of this campaign.',
     'content_you_have_already_applied_to_this_campaign' => 'You have already applied to this campaign.',
     'content_you_have_joined_the_campaign' => 'You have joined the campaign!',
+    'content_you_have_been_placed_on_the_bench' => 'The campaign is full — you\'ve been placed on the bench.',
     'content_application_submitted_the_campaign_owner' => 'Application submitted! The campaign owner will review it.',
     'content_application_pending' => 'Application Pending',
     'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',

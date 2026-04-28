@@ -61,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(\App\Services\WaitlistService::class);
 
+        $this->app->singleton(\App\Services\BenchService::class);
+
         $this->app->extend('translator', function ($translator, $app) {
             if (! $app->environment('local')) {
                 return $translator;

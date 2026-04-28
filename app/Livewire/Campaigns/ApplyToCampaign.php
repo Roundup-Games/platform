@@ -90,18 +90,43 @@ class ApplyToCampaign extends Component
 
                 $isPublic = Campaign::find($campaignId)->visibility === 'public';
 
+                // Check if campaign is full for bench logic
+                $campaign = Campaign::find($campaignId);
+                $approvedCount = CampaignParticipant::where('campaign_id', $campaignId)
+                    ->where('status', 'approved')
+                    ->count();
+                $isFull = $campaign->max_players !== null && $approvedCount >= $campaign->max_players;
+
+                // Determine participant status
+                $participantStatus = 'pending';
+                $participantRole = 'applicant';
+                $benchedAt = null;
+
+                if ($isPublic) {
+                    if ($isFull) {
+                        // Public campaign is full → bench the applicant
+                        $participantStatus = 'benched';
+                        $participantRole = 'player';
+                        $benchedAt = now();
+                    } else {
+                        $participantStatus = 'approved';
+                        $participantRole = 'player';
+                    }
+                }
+
                 CampaignApplication::create([
                     'campaign_id' => $campaignId,
                     'user_id' => $userId,
-                    'status' => $isPublic ? 'approved' : 'pending',
+                    'status' => $isPublic && ! $isFull ? 'approved' : ($isPublic && $isFull ? 'benched' : 'pending'),
                     'message' => $message ?: null,
                 ]);
 
                 CampaignParticipant::create([
                     'campaign_id' => $campaignId,
                     'user_id' => $userId,
-                    'role' => $isPublic ? 'player' : 'applicant',
-                    'status' => $isPublic ? 'approved' : 'pending',
+                    'role' => $participantRole,
+                    'status' => $participantStatus,
+                    'benched_at' => $benchedAt,
                 ]);
             });
         } catch (\Illuminate\Database\QueryException $e) {
@@ -121,11 +146,16 @@ class ApplyToCampaign extends Component
         }
 
         $isPublic = $this->campaign->visibility === 'public';
+        $approvedCount = CampaignParticipant::where('campaign_id', $this->campaign->id)
+            ->where('status', 'approved')
+            ->count();
+        $isFull = $this->campaign->max_players !== null && $approvedCount >= $this->campaign->max_players;
 
         Log::info('Campaign application submitted', [
             'campaign_id' => $this->campaign->id,
             'user_id' => Auth::id(),
-            'auto_approved' => $isPublic,
+            'auto_approved' => $isPublic && ! $isFull,
+            'benched' => $isPublic && $isFull,
         ]);
 
         // Notify campaign owner of new application (protected campaigns only)
@@ -148,7 +178,9 @@ class ApplyToCampaign extends Component
             }
         }
 
-        if ($isPublic) {
+        if ($isPublic && $isFull) {
+            session()->flash('success', __('campaigns.content_you_have_been_placed_on_the_bench'));
+        } elseif ($isPublic) {
             session()->flash('success', __('campaigns.content_you_have_joined_the_campaign'));
         } else {
             session()->flash('success', __('campaigns.content_application_submitted_the_campaign_owner'));

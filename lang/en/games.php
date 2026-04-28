@@ -65,6 +65,7 @@ return [
     'content_we_re_gamers_ourselves_that' => 'We\'re gamers ourselves. That passion drives us to build the best possible platform for the community we love.',
     'content_you_have_already_applied_to_this_game' => 'You have already applied to this game.',
     'content_you_have_joined_the_game' => 'You have joined the game!',
+    'content_you_have_been_placed_on_the_bench' => 'The session is full — you\'ve been placed on the bench.',
     'content_application_pending' => 'Application Pending',
     'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',
     'content_you_ve_got_the_game' => 'You\'ve got the game. We\'ll help you find the right players — and handle the logistics so you can focus on what you do best: hosting unforgettable sessions.',

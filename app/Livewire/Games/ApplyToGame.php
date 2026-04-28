@@ -97,12 +97,40 @@ class ApplyToGame extends Component
 
                 // For public games, auto-approve; for protected games, require approval
                 $isPublic = Game::find($gameId)->visibility === 'public';
+                $isCampaignSession = Game::find($gameId)->campaign_id !== null;
+
+                // Check if game is full for bench logic (campaign sessions only)
+                $isFull = false;
+                if ($isCampaignSession) {
+                    $approvedCount = GameParticipant::where('game_id', $gameId)
+                        ->where('status', 'approved')
+                        ->count();
+                    $game = Game::find($gameId);
+                    $isFull = $game->max_players !== null && $approvedCount >= $game->max_players;
+                }
+
+                // Determine participant status
+                $participantStatus = 'pending';
+                $participantRole = 'applicant';
+                $benchedAt = null;
+
+                if ($isPublic) {
+                    if ($isCampaignSession && $isFull) {
+                        // Campaign session is full → bench the applicant
+                        $participantStatus = 'benched';
+                        $participantRole = 'player';
+                        $benchedAt = now();
+                    } else {
+                        $participantStatus = 'approved';
+                        $participantRole = 'player';
+                    }
+                }
 
                 // Create application record (always)
                 GameApplication::create([
                     'game_id' => $gameId,
                     'user_id' => $userId,
-                    'status' => $isPublic ? 'approved' : 'pending',
+                    'status' => $isPublic && ! ($isCampaignSession && $isFull) ? 'approved' : ($isPublic && $isFull ? 'benched' : 'pending'),
                     'message' => $message ?: null,
                 ]);
 
@@ -110,8 +138,9 @@ class ApplyToGame extends Component
                 GameParticipant::create([
                     'game_id' => $gameId,
                     'user_id' => $userId,
-                    'role' => $isPublic ? 'player' : 'applicant',
-                    'status' => $isPublic ? 'approved' : 'pending',
+                    'role' => $participantRole,
+                    'status' => $participantStatus,
+                    'benched_at' => $benchedAt,
                 ]);
             });
         } catch (\Illuminate\Database\QueryException $e) {
@@ -132,11 +161,20 @@ class ApplyToGame extends Component
         }
 
         $isPublic = $this->game->visibility === 'public';
+        $isCampaignSession = $this->game->campaign_id !== null;
+        $isFull = false;
+        if ($isCampaignSession) {
+            $approvedCount = GameParticipant::where('game_id', $this->game->id)
+                ->where('status', 'approved')
+                ->count();
+            $isFull = $this->game->max_players !== null && $approvedCount >= $this->game->max_players;
+        }
 
         Log::info('Game application submitted', [
             'game_id' => $this->game->id,
             'user_id' => Auth::id(),
-            'auto_approved' => $isPublic,
+            'auto_approved' => $isPublic && ! ($isCampaignSession && $isFull),
+            'benched' => $isPublic && $isCampaignSession && $isFull,
         ]);
 
         // Notify game owner of new application (protected games only)
@@ -159,7 +197,9 @@ class ApplyToGame extends Component
             }
         }
 
-        if ($isPublic) {
+        if ($isPublic && $isCampaignSession && $isFull) {
+            session()->flash('success', __('games.content_you_have_been_placed_on_the_bench'));
+        } elseif ($isPublic) {
             session()->flash('success', __('games.content_you_have_joined_the_game'));
         } else {
             session()->flash('success', __('games.content_application_submitted_the_game_owner'));

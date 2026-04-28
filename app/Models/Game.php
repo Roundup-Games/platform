@@ -109,4 +109,15 @@ class Game extends Model
     {
         return $query->where('date_time', '>', now())->orderBy('date_time');
     }
+
+    // ── Bench ──────────────────────────────────────────
+
+    /**
+     * Campaign sessions support bench mode.
+     * Standalone games use waitlist instead.
+     */
+    public function isBenchMode(): bool
+    {
+        return $this->campaign_id !== null;
+    }
 }
