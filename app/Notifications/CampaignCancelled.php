@@ -86,7 +86,7 @@ class CampaignCancelled extends Notification
                 'campaign' => $this->campaign->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('campaigns.detail', $this->campaign->id),
+            url: route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $this->campaign->id]),
             tag: "campaign-cancelled-{$this->campaign->id}",
         );
     }

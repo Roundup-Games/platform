@@ -66,7 +66,7 @@ class SessionReminder extends Notification
                 'time' => $time,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', $this->game->id),
+            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
             tag: "game-reminder-{$this->game->id}",
         );
     }
