@@ -274,6 +274,65 @@ describe('PlayerBenched push payload', function () {
     });
 });
 
+describe('AttendanceReported push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Board Game Night']);
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $report = \App\Models\AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $reporter->id,
+            'reported_id' => $reported->id,
+            'status' => \App\Enums\AttendanceStatus::Attended,
+        ]);
+
+        $payload = (new \App\Notifications\AttendanceReported($game, $report))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(PushPayload::class)
+            ->and($payload->title)->toBe('Attendance Report')
+            ->and($payload->body)->toContain('Board Game Night')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('attendance-reported-');
+    });
+});
+
+describe('DebriefingAvailable push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Epic Quest']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new \App\Notifications\DebriefingAvailable($game))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(PushPayload::class)
+            ->and($payload->title)->toBe('Session Debriefing Available')
+            ->and($payload->body)->toContain('Epic Quest')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('debriefing-');
+    });
+});
+
+describe('RecapPosted push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Session Recap']);
+        $author = User::factory()->create(['name' => 'GameMaster']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new \App\Notifications\RecapPosted($game, $author))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(PushPayload::class)
+            ->and($payload->title)->toBe('Session Recap Posted')
+            ->and($payload->body)->toContain('GameMaster')
+            ->and($payload->body)->toContain('Session Recap')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('recap-');
+    });
+});
+
 // ---------------------------------------------------------------------------
 // Non-push notifications return null
 // ---------------------------------------------------------------------------

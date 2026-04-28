@@ -99,6 +99,7 @@
         (function() {
             var lang = (navigator.language || 'en').substring(0, 2);
             if (lang === 'de') {
+                document.documentElement.lang = 'de';
                 document.querySelector('h1').textContent = 'Du bist offline';
                 document.querySelector('p').textContent = 'Überprüfe deine Verbindung und versuche es erneut. Einige zuvor besuchte Seiten sind möglicherweise noch verfügbar.';
                 document.querySelector('button').textContent = 'Erneut versuchen';

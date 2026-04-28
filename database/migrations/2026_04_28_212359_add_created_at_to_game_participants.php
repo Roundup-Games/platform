@@ -13,11 +13,16 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable()->after('status');
         });
 
-        // Backfill existing rows — they should NOT trigger trypass.
+        // Backfill existing rows in chunks — they should NOT trigger trypass.
         // Setting to a date far in the past ensures they won't match `>= now()-5min`.
-        DB::table('game_participants')->whereNull('created_at')->update([
-            'created_at' => now()->subYear(),
-        ]);
+        // chunkById avoids full-table locks on large datasets.
+        DB::table('game_participants')
+            ->whereNull('created_at')
+            ->chunkById(500, function ($participants) {
+                DB::table('game_participants')
+                    ->whereIn('id', $participants->pluck('id'))
+                    ->update(['created_at' => now()->subYear()]);
+            });
     }
 
     public function down(): void

@@ -63,7 +63,7 @@ it('scopes queries to a specific user via forUser', function () {
         ->and($results->pluck('user_id')->unique()->first())->toBe($this->user->id);
 });
 
-it('enforces unique constraint on endpoint', function () {
+it('enforces unique constraint per endpoint+user combination', function () {
     $endpoint = 'https://fcm.googleapis.com/fcm/send/unique-test-endpoint';
 
     PushSubscription::factory()->create([
@@ -71,10 +71,17 @@ it('enforces unique constraint on endpoint', function () {
         'endpoint' => $endpoint,
     ]);
 
+    // Same endpoint + different user = allowed (shared device)
+    PushSubscription::factory()->create([
+        'user_id' => User::factory()->create()->id,
+        'endpoint' => $endpoint,
+    ]);
+
+    // Same endpoint + same user = constraint violation
     $this->expectException(\Illuminate\Database\QueryException::class);
 
     PushSubscription::factory()->create([
-        'user_id' => User::factory()->create()->id,
+        'user_id' => $this->user->id,
         'endpoint' => $endpoint,
     ]);
 });

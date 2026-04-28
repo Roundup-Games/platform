@@ -100,4 +100,17 @@ describe('Service Worker', function () {
         $afterActivate = substr($content, $activatePos, 500);
         expect($afterActivate)->toContain('caches.delete');
     });
+
+    it('enforces maximum queue size for offline actions', function () {
+        $source = file_get_contents(public_path('sw.js'));
+
+        expect($source)->toContain('MAX_QUEUE_SIZE');
+    });
+
+    it('removes permanent failures from queue during replay', function () {
+        $source = file_get_contents(public_path('sw.js'));
+
+        expect($source)->toContain('status >= 400');
+        expect($source)->toContain('removeQueuedAction');
+    });
 });

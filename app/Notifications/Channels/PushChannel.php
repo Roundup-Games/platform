@@ -6,7 +6,6 @@ use App\Dto\PushPayload;
 use App\Models\PushSubscription;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
-use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 
 /**
@@ -60,18 +59,8 @@ class PushChannel
         // 3. Queue all subscriptions for batch sending
         foreach ($subscriptions as $subscription) {
             try {
-                // DB column is p256h_key (project convention), but Minishlink expects
-                // the standard Web Push key name 'p256dh'. Mapping happens here at the boundary.
-                $webPushSubscription = Subscription::create([
-                    'endpoint' => $subscription->endpoint,
-                    'keys' => [
-                        'p256dh' => $subscription->p256h_key,
-                        'auth' => $subscription->auth_token,
-                    ],
-                ]);
-
                 $this->webPush->queueNotification(
-                    $webPushSubscription,
+                    $subscription->toWebPushSubscription(),
                     $payloadJson,
                 );
             } catch (\Throwable $e) {

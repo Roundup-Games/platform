@@ -108,7 +108,7 @@ describe('POST /api/push/subscribe', function () {
         ]);
     });
 
-    it('does not steal another users subscription on shared device', function () {
+    it('allows multiple users on the same device (shared endpoint)', function () {
         $userA = User::factory()->create();
         $userB = User::factory()->create();
 
@@ -122,20 +122,18 @@ describe('POST /api/push/subscribe', function () {
             ])
             ->assertCreated();
 
-        // User B tries the same endpoint — blocked by unique constraint on endpoint.
-        // The controller scopes updateOrCreate by (endpoint, user_id), but the DB
-        // unique constraint is on endpoint alone, so a second user cannot subscribe
-        // with the same endpoint. This is a known limitation for shared devices.
+        // User B subscribes with the same endpoint (same device)
         $this->actingAs($userB)
             ->postJson('/api/push/subscribe', [
                 'endpoint' => $endpoint,
                 'keys' => ['p256h' => 'key-b', 'auth' => 'auth-b'],
             ])
-            ->assertStatus(500);
+            ->assertCreated();
 
-        // Only user A's subscription exists
-        expect(PushSubscription::where('endpoint', $endpoint)->count())->toBe(1);
+        // Both subscriptions exist independently
+        expect(PushSubscription::where('endpoint', $endpoint)->count())->toBe(2);
         expect(PushSubscription::where('user_id', $userA->id)->where('endpoint', $endpoint)->exists())->toBeTrue();
+        expect(PushSubscription::where('user_id', $userB->id)->where('endpoint', $endpoint)->exists())->toBeTrue();
     });
 });
 

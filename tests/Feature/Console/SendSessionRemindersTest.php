@@ -203,7 +203,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders --dry-run')
             ->assertSuccessful()
-            ->expectsOutputToContain('Would send');
+            ->expectsOutputToContain('Would notify');
 
         // Should NOT be marked in dry-run
         expect($game->fresh()->reminder_sent_at)->toBeNull();
@@ -354,7 +354,7 @@ describe('SendSessionReminders command', function () {
         Log::shouldHaveReceived('info')
             ->withArgs(function (string $message, array $context) {
                 return $message === 'session_reminders.completed'
-                    && isset($context['push_count'])
+                    && isset($context['notified_count'])
                     && isset($context['error_count'])
                     && isset($context['duration_ms']);
             });

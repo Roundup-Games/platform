@@ -111,11 +111,16 @@ function showUpdateToast(waitingWorker) {
 
     document.body.appendChild(toast);
 
+    // Reload flag prevents duplicate controllerchange listeners
+    let reloadPending = false;
+
     // Send SKIP_WAITING on user action, then reload on controllerchange
     document.getElementById('sw-update-action').addEventListener('click', () => {
+        if (reloadPending) return;
+        reloadPending = true;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            window.location.reload();
-        });
+            if (reloadPending) window.location.reload();
+        }, { once: true });
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
         document.getElementById('sw-update-action').disabled = true;
         document.getElementById('sw-update-action').textContent = '…';

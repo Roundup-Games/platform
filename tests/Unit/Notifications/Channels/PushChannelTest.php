@@ -355,11 +355,19 @@ describe('PushPayload', function () {
 
 describe('Key mapping', function () {
     it('maps p256h_key to p256dh for Minishlink compatibility', function () {
-        $source = file_get_contents(base_path('app/Notifications/Channels/PushChannel.php'));
+        $source = file_get_contents(base_path('app/Models/PushSubscription.php'));
 
-        // Verify the PushChannel correctly maps our DB column name (p256h_key)
-        // to Minishlink's expected key name (p256dh)
+        // Verify the model's toWebPushSubscription() correctly maps our DB
+        // column name (p256h_key) to Minishlink's expected key name (p256dh)
         expect($source)->toContain("'p256dh' =>");
         expect($source)->toContain('p256h_key');
+        expect($source)->toContain('toWebPushSubscription');
+    });
+
+    it('PushChannel uses toWebPushSubscription from model', function () {
+        $source = file_get_contents(base_path('app/Notifications/Channels/PushChannel.php'));
+
+        expect($source)->toContain('toWebPushSubscription()');
+        expect($source)->not->toContain("'p256dh' =>");  // mapping no longer in PushChannel
     });
 });

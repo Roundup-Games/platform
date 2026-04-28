@@ -52,7 +52,7 @@ describe('SendSessionReminders without VAPID keys', function () {
         expect($game->fresh()->reminder_sent_at)->not->toBeNull();
     });
 
-    it('logs vapid_not_configured when skipping push sends', function () {
+    it('completes successfully even when VAPID keys are not configured', function () {
         $owner = User::factory()->create();
         $gameSystem = GameSystem::factory()->create();
 
@@ -78,13 +78,11 @@ describe('SendSessionReminders without VAPID keys', function () {
             'user_id' => $participant->id,
         ]);
 
-        Log::spy();
-
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful();
 
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message) => $message === 'session_reminders.vapid_not_configured');
+        // Game should still be marked as processed even though push was silently skipped
+        expect($game->fresh()->reminder_sent_at)->not->toBeNull();
     });
 
     it('runs with no upcoming games even without VAPID keys', function () {

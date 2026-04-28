@@ -40,4 +40,13 @@ describe('Authentication', function () {
         $this->assertGuest();
         $response->assertRedirect(route('root'));
     });
+
+    test('logout clears site data cache', function () {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('logout'));
+
+        $response->assertRedirect()
+            ->assertHeader('Clear-Site-Data', '"cache", "storage"');
+    });
 });

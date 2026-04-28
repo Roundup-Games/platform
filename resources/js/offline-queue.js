@@ -24,13 +24,35 @@ export async function queueAction(action) {
     try {
         const registration = await navigator.serviceWorker.ready;
 
-        // Send the action to the SW for IndexedDB storage
-        registration.active.postMessage({
-            type: 'QUEUE_OFFLINE_ACTION',
-            payload: action,
+        if (!registration.active) {
+            showOfflineToast();
+            return false;
+        }
+
+        // Send action to SW and wait for confirmation before registering sync
+        await new Promise((resolve, reject) => {
+            const messageChannel = new MessageChannel();
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data && event.data.type === 'OFFLINE_ACTION_QUEUED') {
+                    resolve();
+                } else {
+                    reject(new Error('Unexpected response from service worker'));
+                }
+            };
+            messageChannel.port1.onmessageerror = () => {
+                reject(new Error('Message port error'));
+            };
+
+            registration.active.postMessage(
+                { type: 'QUEUE_OFFLINE_ACTION', payload: action },
+                [messageChannel.port2]
+            );
+
+            // Timeout after 3 seconds — SW might not respond
+            setTimeout(() => reject(new Error('SW response timeout')), 3000);
         });
 
-        // Try Background Sync API (Chrome/Edge only)
+        // Action is stored in IndexedDB — now register Background Sync
         if ('SyncManager' in registration) {
             await registration.sync.register(SYNC_TAG);
             showQueuedToast();

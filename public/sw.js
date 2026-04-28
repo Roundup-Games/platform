@@ -311,6 +311,26 @@ async function queueOfflineAction(action) {
     const db = await openQueueDB();
     const tx = db.transaction(OFFLINE_STORE, 'readwrite');
     const store = tx.objectStore(OFFLINE_STORE);
+
+    // Enforce max queue size (50 actions). Drop oldest if full.
+    const MAX_QUEUE_SIZE = 50;
+    const countRequest = store.count();
+    const currentCount = await new Promise((resolve, reject) => {
+        countRequest.onsuccess = () => resolve(countRequest.result);
+        countRequest.onerror = () => reject(countRequest.error);
+    });
+    if (currentCount >= MAX_QUEUE_SIZE) {
+        // Delete the oldest action
+        const firstKey = store.getAllKeys();
+        const oldestId = await new Promise((resolve, reject) => {
+            firstKey.onsuccess = () => resolve(firstKey.result[0]);
+            firstKey.onerror = () => reject(firstKey.error);
+        });
+        if (oldestId !== undefined) {
+            store.delete(oldestId);
+        }
+    }
+
     store.add({
         url: action.url,
         method: action.method || 'POST',
@@ -386,10 +406,16 @@ async function replayQueuedActions() {
             if (response.ok) {
                 await removeQueuedAction(action.id);
                 console.log(`[SW] Replayed action: ${action.method} ${action.url}`);
+            } else if (response.status >= 400 && response.status < 500) {
+                // Permanent client error — this action will never succeed.
+                // Remove it and continue processing the rest of the queue.
+                console.warn(`[SW] Permanent replay failure (${response.status}): ${action.method} ${action.url} — removing from queue`);
+                await removeQueuedAction(action.id);
+                // Continue to next action
             } else {
-                console.warn(`[SW] Replay failed (${response.status}): ${action.method} ${action.url}`);
-                // Don't remove — will retry on next sync
-                break; // Stop on first failure to preserve order
+                // Server error (5xx) — transient, stop and retry later
+                console.warn(`[SW] Server error (${response.status}): ${action.method} ${action.url} — stopping replay`);
+                break;
             }
         } catch (error) {
             console.warn(`[SW] Replay error: ${error.message}`);
@@ -409,12 +435,9 @@ self.addEventListener('message', (event) => {
     if (event.data?.type === 'QUEUE_OFFLINE_ACTION') {
         event.waitUntil(
             queueOfflineAction(event.data.payload).then(() => {
-                const client = event.source;
-                if (client) {
-                    client.postMessage({
-                        type: 'OFFLINE_ACTION_QUEUED',
-                        payload: event.data.payload,
-                    });
+                // Respond via the provided message port
+                if (event.ports && event.ports[0]) {
+                    event.ports[0].postMessage({ type: 'OFFLINE_ACTION_QUEUED' });
                 }
             })
         );

@@ -5,8 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Minishlink\WebPush\Subscription;
 
 class PushSubscription extends Model
 {
@@ -57,25 +56,19 @@ class PushSubscription extends Model
     */
 
     /**
-     * Check whether the push service endpoint is still valid by sending a HEAD request.
-     * Returns true if the endpoint responded with 410 Gone or 404 Not Found.
+     * Convert to a Minishlink WebPush Subscription instance.
+     *
+     * Maps the project convention 'p256h_key' DB column to the
+     * standard Web Push 'p256dh' key name expected by the library.
      */
-    public function isExpired(): bool
+    public function toWebPushSubscription(): Subscription
     {
-        try {
-            $response = Http::timeout(5)->head($this->endpoint);
-
-            if ($response->status() === 410 || $response->status() === 404) {
-                return true;
-            }
-        } catch (\Exception $e) {
-            Log::warning('Push subscription expiry check failed', [
-                'subscription_id' => $this->id,
-                'endpoint' => $this->endpoint,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return false;
+        return Subscription::create([
+            'endpoint' => $this->endpoint,
+            'keys' => [
+                'p256dh' => $this->p256h_key,
+                'auth' => $this->auth_token,
+            ],
+        ]);
     }
 }

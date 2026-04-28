@@ -223,4 +223,96 @@ class PushLocaleTest extends TestCase
 
         $this->assertStringContainsString('/de/games/', $data['action_url']);
     }
+
+    // -- AttendanceReported -----------------------------------------------
+
+    public function test_attendance_reported_push_url_contains_locale(): void
+    {
+        $game = Game::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $report = \App\Models\AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $reporter->id,
+            'reported_id' => $reported->id,
+            'status' => \App\Enums\AttendanceStatus::Attended,
+        ]);
+
+        $payload = (new \App\Notifications\AttendanceReported($game, $report))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/games/', $payload->url);
+    }
+
+    public function test_attendance_reported_push_url_contains_german_locale(): void
+    {
+        $game = Game::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+        $notifiable = User::factory()->create([
+            'preferred_language' => \App\Enums\ContentLanguage::De,
+        ]);
+
+        $report = \App\Models\AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $reporter->id,
+            'reported_id' => $reported->id,
+            'status' => \App\Enums\AttendanceStatus::Attended,
+        ]);
+
+        $payload = (new \App\Notifications\AttendanceReported($game, $report))->toPush($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $payload->url);
+    }
+
+    // -- DebriefingAvailable -----------------------------------------------
+
+    public function test_debriefing_available_push_url_contains_locale(): void
+    {
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new \App\Notifications\DebriefingAvailable($game))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/games/', $payload->url);
+    }
+
+    public function test_debriefing_available_push_url_contains_german_locale(): void
+    {
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create([
+            'preferred_language' => \App\Enums\ContentLanguage::De,
+        ]);
+
+        $payload = (new \App\Notifications\DebriefingAvailable($game))->toPush($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $payload->url);
+    }
+
+    // -- RecapPosted -------------------------------------------------------
+
+    public function test_recap_posted_push_url_contains_locale(): void
+    {
+        $game = Game::factory()->create();
+        $author = User::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new \App\Notifications\RecapPosted($game, $author))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/games/', $payload->url);
+    }
+
+    public function test_recap_posted_push_url_contains_german_locale(): void
+    {
+        $game = Game::factory()->create();
+        $author = User::factory()->create();
+        $notifiable = User::factory()->create([
+            'preferred_language' => \App\Enums\ContentLanguage::De,
+        ]);
+
+        $payload = (new \App\Notifications\RecapPosted($game, $author))->toPush($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $payload->url);
+    }
 }
