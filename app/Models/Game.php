@@ -98,6 +98,80 @@ class Game extends Model
         return $this->sessionZeroSurveys()->active()->first();
     }
 
+    // ── Debriefing Helpers ─────────────────────────────
+
+    /**
+     * Check if this game has debriefing-capable safety tools selected.
+     */
+    public function hasDebriefingTools(): bool
+    {
+        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+            return false;
+        }
+
+        return in_array('debriefing', $this->safety_rules)
+            || in_array('stars-and-wishes', $this->safety_rules);
+    }
+
+    /**
+     * Get the structured debriefing prompts based on selected safety tools.
+     *
+     * @return array<string, array{prompt: string, confidential?: bool}>
+     */
+    public function getDebriefingPrompts(): array
+    {
+        $prompts = [];
+
+        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+            return $prompts;
+        }
+
+        if (in_array('debriefing', $this->safety_rules)) {
+            $prompts['what_went_well'] = [
+                'prompt' => __('games.debriefing_prompt_what_went_well'),
+            ];
+            $prompts['what_to_change'] = [
+                'prompt' => __('games.debriefing_prompt_what_to_change'),
+            ];
+            $prompts['safety_concerns'] = [
+                'prompt' => __('games.debriefing_prompt_safety_concerns'),
+                'confidential' => true,
+            ];
+        }
+
+        if (in_array('stars-and-wishes', $this->safety_rules)) {
+            $prompts['star'] = [
+                'prompt' => __('games.debriefing_prompt_star'),
+            ];
+            $prompts['wish'] = [
+                'prompt' => __('games.debriefing_prompt_wish'),
+            ];
+        }
+
+        return $prompts;
+    }
+
+    /**
+     * Determine the primary debriefing tool type for this game.
+     * Prefers 'debriefing' over 'stars-and-wishes' when both are present.
+     */
+    public function getDebriefingToolType(): ?string
+    {
+        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+            return null;
+        }
+
+        if (in_array('debriefing', $this->safety_rules)) {
+            return 'debriefing';
+        }
+
+        if (in_array('stars-and-wishes', $this->safety_rules)) {
+            return 'stars-and-wishes';
+        }
+
+        return null;
+    }
+
     // ── Scopes ─────────────────────────────────────────
 
     public function scopePublic($query)

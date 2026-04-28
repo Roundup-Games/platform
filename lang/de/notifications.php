@@ -249,4 +249,11 @@ return [
     'action_view_recap' => 'Nachbericht anzeigen',
     'push_title_recap_posted' => 'Sitzungsnachbericht',
     'push_body_recap_posted' => ':host hat einen Nachbericht für :game geschrieben',
+
+    // Debriefing verfügbar
+    'subject_debriefing_available' => 'Teile deine Gedanken zu :game',
+    'body_debriefing_available' => '**:game** wurde mit Debriefing-Tools abgeschlossen. Nimm dir einen Moment Zeit, um über die Sitzung nachzudenken und dein Feedback zu teilen.',
+    'action_submit_debriefing' => 'Debriefing absenden',
+    'push_title_debriefing_available' => 'Sitzungs-Debriefing verfügbar',
+    'push_body_debriefing_available' => 'Teile deine Gedanken zu :game',
 ];

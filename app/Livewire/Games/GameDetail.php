@@ -7,8 +7,10 @@ use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\SessionDebriefing;
 use App\Notifications\BelowMinPlayersWarning;
 use App\Services\BenchService;
+use App\Services\DebriefingService;
 use App\Services\NotificationService;
 use App\Services\WaitlistService;
 use App\Traits\ManagesParticipants;
@@ -295,6 +297,38 @@ class GameDetail extends Component
         session()->flash('success', __('common.flash_participant_removed'));
     }
 
+    // ── Debriefing Properties ──────────────────────────
+
+    /** @var array<string, string> Debriefing form responses keyed by prompt key */
+    public array $debriefingResponses = [];
+
+    // ── Debriefing Actions ─────────────────────────────
+
+    /**
+     * Submit a debriefing response for the current game.
+     */
+    public function submitDebriefing(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer) {
+            return;
+        }
+
+        try {
+            app(DebriefingService::class)->submitDebriefing(
+                $this->game,
+                $viewer,
+                $this->debriefingResponses,
+            );
+
+            $this->debriefingResponses = [];
+            session()->flash('success', __('games.flash_debriefing_submitted'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     private function findParticipantOrFail(string $participantId): GameParticipant
@@ -465,6 +499,25 @@ class GameDetail extends Component
                 ->exists();
         }
 
+        // ── Debriefing state ──
+        $hasDebriefingTools = $this->game->hasDebriefingTools();
+        $debriefingPrompts = $hasDebriefingTools ? $this->game->getDebriefingPrompts() : [];
+        $userDebriefing = null;
+        $hostDebriefings = collect();
+        $debriefingSummary = null;
+
+        if ($hasDebriefingTools && $game->status === 'completed' && $viewer) {
+            $userDebriefing = SessionDebriefing::where('game_id', $game->id)
+                ->where('user_id', $viewer->id)
+                ->first();
+
+            if ($isOwner) {
+                $hostDebriefings = app(DebriefingService::class)->getHostDebriefings($game);
+            } elseif ($isParticipant && $userDebriefing) {
+                $debriefingSummary = app(DebriefingService::class)->getAnonymizedSummary($game);
+            }
+        }
+
         return view('livewire.games.game-detail', [
             'game' => $this->game,
             'isOwner' => $isOwner,
@@ -485,6 +538,11 @@ class GameDetail extends Component
             'waitlistedPlayers' => $waitlistedPlayers,
             'benchedPlayers' => $benchedPlayers,
             'userBenchParticipant' => $userBenchParticipant,
+            'hasDebriefingTools' => $hasDebriefingTools,
+            'debriefingPrompts' => $debriefingPrompts,
+            'userDebriefing' => $userDebriefing,
+            'hostDebriefings' => $hostDebriefings,
+            'debriefingSummary' => $debriefingSummary,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

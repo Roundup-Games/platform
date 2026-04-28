@@ -378,6 +378,117 @@
                         @endif
                     </section>
                 @endif
+
+                {{-- Debriefing Section (completed games with debriefing tools) --}}
+                @if($game->status === 'completed' && $hasDebriefingTools)
+                    {{-- Host: aggregated debriefing dashboard --}}
+                    @if($isOwner && $hostDebriefings->count() > 0)
+                        <section class="bg-secondary-container/30 border-l-4 border-secondary rounded-xl shadow-ambient p-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="material-symbols-outlined text-xl text-on-secondary-container" aria-hidden="true">psychology</span>
+                                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_debriefing_responses') }}</h2>
+                                <span class="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
+                                    {{ $hostDebriefings->count() }}
+                                </span>
+                            </div>
+                            @foreach($hostDebriefings as $debriefing)
+                                <div class="mb-4 last:mb-0 bg-surface-container-low rounded-lg p-4">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <x-user-link :user="$debriefing->user" avatar-size="w-7 h-7" :truncate="true" />
+                                        <span class="text-xs text-on-surface-variant">{{ $debriefing->submitted_at?->isoFormat('LLL') }}</span>
+                                    </div>
+                                    @foreach($debriefing->responses as $key => $response)
+                                        @php($promptLabel = $debriefingPrompts[$key]['prompt'] ?? $key)
+                                        <div class="mb-2 last:mb-0">
+                                            <p class="text-xs font-medium text-on-surface-variant">{{ $promptLabel }}</p>
+                                            <p class="text-sm text-on-surface">{{ $response }}</p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </section>
+                    @elseif($isOwner)
+                        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6 text-center">
+                            <span class="material-symbols-outlined text-3xl text-on-surface-variant mb-2" aria-hidden="true">psychology</span>
+                            <p class="text-on-surface font-medium">{{ __('games.title_debriefing_responses') }}</p>
+                            <p class="text-sm text-on-surface-variant mt-1">{{ __('games.content_debriefing_waiting_for_responses') }}</p>
+                        </section>
+                    @endif
+
+                    {{-- Participant: submit debriefing form --}}
+                    @auth
+                        @if(!$isOwner && $isParticipant && !$userDebriefing)
+                            <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">psychology</span>
+                                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_debriefing_submit') }}</h2>
+                                </div>
+                                <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_debriefing_description') }}</p>
+                                <form wire:submit="submitDebriefing">
+                                    @foreach($debriefingPrompts as $key => $promptData)
+                                        <div class="mb-4">
+                                            <label for="debriefing_{{ $key }}" class="block text-sm font-medium text-on-surface mb-1">
+                                                {{ $promptData['prompt'] }}
+                                                @if(!empty($promptData['confidential']))
+                                                    <span class="text-xs text-on-surface-variant ml-1">({{ __('games.content_confidential') }})</span>
+                                                @endif
+                                            </label>
+                                            <textarea
+                                                id="debriefing_{{ $key }}"
+                                                wire:model="debriefingResponses.{{ $key }}"
+                                                rows="3"
+                                                class="w-full rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                                                placeholder="{{ $promptData['prompt'] }}"
+                                            ></textarea>
+                                        </div>
+                                    @endforeach
+                                    <button type="submit"
+                                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                                        {{ __('games.action_submit_debriefing') }}
+                                    </button>
+                                </form>
+                            </section>
+                        @elseif(!$isOwner && $isParticipant && $userDebriefing)
+                            {{-- Already submitted --}}
+                            <section class="bg-secondary-container/30 border-l-4 border-secondary rounded-xl shadow-ambient p-6">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-xl text-on-secondary-container" aria-hidden="true">check_circle</span>
+                                    <div>
+                                        <p class="font-medium text-on-surface">{{ __('games.content_debriefing_submitted') }}</p>
+                                        @if($userDebriefing->submitted_at)
+                                            <p class="text-xs text-on-surface-variant">{{ $userDebriefing->submitted_at->isoFormat('LLL') }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </section>
+
+                            {{-- Anonymized summary (available after submitting) --}}
+                            @if($debriefingSummary && $debriefingSummary['total_submissions'] > 0)
+                                <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">groups</span>
+                                        <h2 class="text-lg font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_debriefing_summary') }}</h2>
+                                        <span class="ml-auto text-xs text-on-surface-variant">
+                                            {{ trans_choice('games.content_debriefing_response_count', $debriefingSummary['total_submissions']) }}
+                                        </span>
+                                    </div>
+                                    @foreach($debriefingSummary['prompts'] as $key => $responses)
+                                        @php($promptLabel = $debriefingPrompts[$key]['prompt'] ?? $key)
+                                        <div class="mb-4 last:mb-0">
+                                            <p class="text-xs font-medium text-on-surface-variant mb-2">{{ $promptLabel }}</p>
+                                            <div class="space-y-1">
+                                                @foreach($responses as $response)
+                                                    <p class="text-sm text-on-surface bg-surface-container-high rounded px-3 py-2">{{ $response }}</p>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </section>
+                            @endif
+                        @endif
+                    @endauth
+                @endif
             </div>
 
             {{-- Sidebar --}}

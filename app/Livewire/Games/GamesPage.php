@@ -289,6 +289,18 @@ class GamesPage extends Component
             ]);
         }
 
+        // Send debriefing notifications if game has debriefing tools
+        if ($game->hasDebriefingTools()) {
+            try {
+                app(\App\Services\DebriefingService::class)->notifyParticipants($game);
+            } catch (\Throwable $e) {
+                Log::error('notification.debriefing_available_dispatch_failed', [
+                    'game_id' => $game->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         session()->flash('success', __('games.flash_game_completed'));
     }
 

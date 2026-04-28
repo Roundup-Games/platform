@@ -261,4 +261,11 @@ return [
     'action_view_recap' => 'View Recap',
     'push_title_recap_posted' => 'Session Recap Posted',
     'push_body_recap_posted' => ':host wrote a recap for :game',
+
+    // Debriefing available
+    'subject_debriefing_available' => 'Share your thoughts on :game',
+    'body_debriefing_available' => '**:game** has been completed with debriefing tools. Take a moment to reflect on the session and share your feedback.',
+    'action_submit_debriefing' => 'Submit Debriefing',
+    'push_title_debriefing_available' => 'Session Debriefing Available',
+    'push_body_debriefing_available' => 'Share your thoughts on :game',
 ];
