@@ -19,6 +19,12 @@ return [
     'ios_install_step_3' => 'Tap \'Add\' to confirm',
     'ios_install_dismiss' => 'Got it',
 
+    // Install prompt — Firefox Android
+    'firefox_install_title' => 'Install Roundup Games',
+    'firefox_install_step_1' => 'Tap the menu (⋮) in the address bar',
+    'firefox_install_step_2' => 'Tap \'Install\' to add to your home screen',
+    'firefox_install_dismiss' => 'Got it',
+
     // Offline fallback page (public/offline.html — static, keys for reference only)
     'offline_title' => 'You\'re offline',
     'offline_message' => 'Check your connection and try again. Some previously-visited pages may still be available.',

@@ -19,6 +19,12 @@ return [
     'ios_install_step_3' => 'Tippe auf „Hinzufügen" zum Bestätigen',
     'ios_install_dismiss' => 'Verstanden',
 
+    // Install prompt — Firefox Android
+    'firefox_install_title' => 'Roundup Games installieren',
+    'firefox_install_step_1' => 'Tippe auf das Menü (⋮) in der Adressleiste',
+    'firefox_install_step_2' => 'Tippe auf „Installieren", um die App zum Startbildschirm hinzuzufügen',
+    'firefox_install_dismiss' => 'Verstanden',
+
     // Offline fallback page (public/offline.html — static, keys for reference only)
     'offline_title' => 'Du bist offline',
     'offline_message' => 'Überprüfe deine Verbindung und versuche es erneut. Einige zuvor besuchte Seiten sind möglicherweise noch verfügbar.',

@@ -67,6 +67,10 @@ describe('PWA Translation Completeness', function () {
             'pwa.ios_install_step_2',
             'pwa.ios_install_step_3',
             'pwa.ios_install_dismiss',
+            'pwa.firefox_install_title',
+            'pwa.firefox_install_step_1',
+            'pwa.firefox_install_step_2',
+            'pwa.firefox_install_dismiss',
         ];
 
         foreach ($pwaKeys as $key) {
@@ -88,6 +92,10 @@ describe('PWA Translation Completeness', function () {
             'pwa.ios_install_step_2',
             'pwa.ios_install_step_3',
             'pwa.ios_install_dismiss',
+            'pwa.firefox_install_title',
+            'pwa.firefox_install_step_1',
+            'pwa.firefox_install_step_2',
+            'pwa.firefox_install_dismiss',
         ];
 
         foreach ($pwaKeys as $key) {

@@ -343,7 +343,40 @@ describe('Layout integration', function () {
 // ── Chrome vs iOS Rendering ───────────────────────────
 
 describe('Browser-specific HTML', function () {
-    it('eligible response includes both Chrome and iOS template blocks', function () {
+    it('eligible response includes all three browser template blocks', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $this->location->id,
+            'email_verified_at' => now(),
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'date_time' => now()->addDays(3),
+        ]);
+
+        session()->flush();
+
+        $response = actingAs($user)->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // Chrome mode
+        $response->assertSee('install_mobile', false);
+        $response->assertSee('Install Roundup Games', false);
+        $response->assertSee('Install', false);
+
+        // Firefox Android mode — check for the x-if directive and icon
+        $this->assertStringContainsString('x-if="isFirefox"', $content);
+        $response->assertSee('more_vert', false);
+
+        // iOS Safari mode
+        $response->assertSee('Add to Home Screen', false);
+        $response->assertSee('ios_share', false);
+        $response->assertSee('Got it', false);
+    });
+
+    it('Firefox Android template renders with correct structure', function () {
         $user = User::factory()->create([
             'profile_complete' => true,
             'location_id' => $this->location->id,
@@ -360,15 +393,70 @@ describe('Browser-specific HTML', function () {
         $response = actingAs($user)->get(route('dashboard'));
         $response->assertOk();
 
-        // Chrome mode
-        $response->assertSee('install_mobile', false);
-        $response->assertSee('Install Roundup Games', false);
-        $response->assertSee('Install', false);
+        $content = $response->getContent();
 
-        // iOS Safari mode
-        $response->assertSee('Add to Home Screen', false);
-        $response->assertSee('ios_share', false);
-        $response->assertSee('Got it', false);
+        // Firefox template block must be present
+        $this->assertStringContainsString('x-if="isFirefox"', $content);
+
+        // Firefox should show install_mobile icon and menu icon
+        $this->assertStringContainsString('more_vert', $content);
+
+        // Firefox-specific translated text must be present (HTML-escaped by Blade {{ }})
+        app()->setLocale('en');
+        $this->assertStringContainsString(e(__('pwa.firefox_install_title')), $content);
+        $this->assertStringContainsString(e(__('pwa.firefox_install_step_1')), $content);
+        $this->assertStringContainsString(e(__('pwa.firefox_install_step_2')), $content);
+        $this->assertStringContainsString(e(__('pwa.firefox_install_dismiss')), $content);
+    });
+
+    it('Firefox detection logic excludes desktop Firefox', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $this->location->id,
+            'email_verified_at' => now(),
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'date_time' => now()->addDays(3),
+        ]);
+
+        session()->flush();
+
+        $response = actingAs($user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+
+        // Detection logic must require Android for Firefox mode
+        $this->assertStringContainsString('isFirefox && isAndroid', $content);
+        $this->assertStringContainsString('/Firefox\\//i.test(ua)', $content);
+        $this->assertStringContainsString('!/Seamonkey/i.test(ua)', $content);
+    });
+
+    it('Chrome detection uses API support check not just UA', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $this->location->id,
+            'email_verified_at' => now(),
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'date_time' => now()->addDays(3),
+        ]);
+
+        session()->flush();
+
+        $response = actingAs($user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+
+        // Chrome detection must use BeforeInstallPromptEvent API check
+        $this->assertStringContainsString("'BeforeInstallPromptEvent' in window", $content);
+        // Must exclude Firefox to avoid false positive
+        $this->assertStringContainsString('!this.isFirefox', $content);
     });
 
     it('eligible response includes structured console logging for observability', function () {

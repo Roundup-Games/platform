@@ -59,8 +59,36 @@ window.addEventListener('beforeinstallprompt', function(e) {
         </div>
     </template>
 
+    {{-- Firefox Android mode --}}
+    <template x-if="isFirefox">
+        <div class="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/15 p-4">
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">install_mobile</span>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('pwa.firefox_install_title') }}</h3>
+                    <ol class="text-xs text-on-surface-variant mt-2 space-y-1.5 leading-relaxed list-decimal list-inside">
+                        <li class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-primary" aria-hidden="true">more_vert</span>
+                            {{ __('pwa.firefox_install_step_1') }}
+                        </li>
+                        <li>{{ __('pwa.firefox_install_step_2') }}</li>
+                    </ol>
+                    <div class="flex items-center gap-2 mt-3">
+                        <button
+                            type="button"
+                            x-on:click="dismiss()"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                        >
+                            {{ __('pwa.firefox_install_dismiss') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- iOS Safari mode --}}
-    <template x-if="!isChrome">
+    <template x-if="!isChrome && !isFirefox">
         <div class="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant/15 p-4">
             <div class="flex items-start gap-3">
                 <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5" aria-hidden="true">ios_share</span>
@@ -94,12 +122,15 @@ function pwaInstallPrompt() {
     return {
         visible: true,
         isChrome: false,
+        isFirefox: false,
         deferredPrompt: null,
 
         init() {
             // Detect browser mode
             const ua = navigator.userAgent;
             const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+            const isFirefox = /Firefox\//i.test(ua) && !/Seamonkey/i.test(ua);
+            const isAndroid = /Android/i.test(ua);
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
 
@@ -109,7 +140,14 @@ function pwaInstallPrompt() {
                 return;
             }
 
-            this.isChrome = !isSafari;
+            // Firefox on Android supports PWA via menu → Install (no beforeinstallprompt)
+            // Firefox on desktop does NOT support PWA installation — show nothing
+            this.isFirefox = isFirefox && isAndroid;
+
+            // Chrome: detect by API support (BeforeInstallPromptEvent) or UA fallback.
+            // Using API support instead of pure UA to avoid false positives on Edge/Firefox.
+            this.isChrome = !isSafari && !this.isFirefox
+                && ('BeforeInstallPromptEvent' in window || /Chrome\//i.test(ua));
 
             // Chrome: use early-captured prompt or listen for the event
             if (this.isChrome) {
