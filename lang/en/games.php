@@ -289,4 +289,9 @@ return [
     'content_late_cancel_warning' => 'You are cancelling within 24 hours of the game. This will be recorded as a late cancellation.',
     'content_below_min_players_warning' => 'This game now has fewer than the minimum required players.',
     'flash_manual_promote_success' => 'Player has been promoted from the waitlist.',
+
+    // Reliability preference
+    'field_reliability_preference' => 'Attendance Preference',
+    'hint_reliability_preference' => 'Optionally prefer players with a minimum attendance rate (%). This is a soft preference, not a hard filter.',
+    'content_host_prefers_attendance' => 'Host prefers ≥:percent% attendance',
 ];

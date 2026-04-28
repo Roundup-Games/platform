@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\ReliabilityScoreService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -185,6 +186,13 @@ class PublicProfile extends Component
                 ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
         }
 
+        // Reliability data: tier is always visible, detailed stats respect 'stats' privacy
+        $reliabilityData = $this->profileUser->reliability_score ?? [];
+        $reliabilityTier = $reliabilityData['tier'] ?? 'newcomer';
+        $reliabilityScore = $reliabilityData['score'] ?? 0;
+        $reliabilityGameCount = $reliabilityData['game_count'] ?? 0;
+        $showReliabilityDetails = in_array('stats', $this->visibleFields);
+
         return view('livewire.profile.public', [
             'profileUser' => $this->profileUser,
             'teamMemberships' => $teamMemberships,
@@ -193,6 +201,10 @@ class PublicProfile extends Component
             'campaigns' => $campaigns,
             'isGuest' => $isGuest,
             'gmReviews' => $gmReviews,
+            'reliabilityTier' => $reliabilityTier,
+            'reliabilityScore' => $reliabilityScore,
+            'reliabilityGameCount' => $reliabilityGameCount,
+            'showReliabilityDetails' => $showReliabilityDetails,
         ])->layout($layout);
     }
 

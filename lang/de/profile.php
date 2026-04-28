@@ -128,4 +128,13 @@ return [
     'dashboard_stats_gm_upcoming' => 'Kommende GM-Sitzungen',
     'dashboard_recent_activity' => 'Letzte Aktivität',
     'dashboard_gm_overview' => 'GM Übersicht',
+
+    // Zuverlässigkeitsstufen
+    'reliability_tier_reliable' => 'Zuverlässig',
+    'reliability_tier_active' => 'Aktiv',
+    'reliability_tier_newcomer' => 'Neu',
+    'reliability_attendance_rate' => 'Anwesenheit',
+    'reliability_games_played' => 'Spiele',
+    'content_reliability_stats' => 'Zuverlässigkeitsstatistiken',
+    'content_who_can_see_your_reliability_stats' => 'Wer deine detaillierte Anwesenheitsrate und Spielanzahl sehen kann',
 ];

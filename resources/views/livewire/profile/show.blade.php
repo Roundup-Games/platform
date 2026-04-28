@@ -368,6 +368,7 @@
                                 'campaigns' => __('profile.content_campaigns'),
                                 'teams' => __('profile.content_teams'),
                                 'friends_list' => __('profile.content_friends_list'),
+                                'stats' => __('profile.content_reliability_stats'),
                             ];
                             $fieldIcons = [
                                 'location' => 'location_on',
@@ -376,6 +377,7 @@
                                 'campaigns' => 'auto_stories',
                                 'teams' => 'groups',
                                 'friends_list' => 'group',
+                                'stats' => 'verified',
                             ];
                             $fieldDescriptions = [
                                 'location' => __('profile.content_who_can_see_your_location'),
@@ -384,6 +386,7 @@
                                 'campaigns' => __('profile.content_who_can_see_your_campaigns'),
                                 'teams' => __('profile.content_who_can_see_your_teams'),
                                 'friends_list' => __('profile.content_who_can_see_your_friends_list'),
+                                'stats' => __('profile.content_who_can_see_your_reliability_stats'),
                             ];
                         @endphp
 

@@ -273,4 +273,9 @@ return [
     // Anfrage-CTA (Katalog- und Spielsystemseiten)
     'request_cta_link' => 'Spielsystem anfragen',
     'request_cta_catalog_header' => 'Du findest nicht, was du suchst?',
+
+    // Zuverlässigkeitspräferenz
+    'field_reliability_preference' => 'Anwesenheitspräferenz',
+    'hint_reliability_preference' => 'Optional: Bevorzuge Spieler mit einer Mindest-Anwesenheitsrate (%). Dies ist eine weiche Präferenz, kein harter Filter.',
+    'content_host_prefers_attendance' => 'Host bevorzugt ≥:percent% Anwesenheit',
 ];

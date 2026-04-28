@@ -104,6 +104,14 @@
             </div>
         @endif
 
+        {{-- Reliability preference --}}
+        @if($entity->min_reliability_preference)
+            <div class="flex items-center gap-1.5 text-sm text-on-surface-variant mb-2">
+                <span class="material-symbols-outlined text-sm" aria-hidden="true">verified</span>
+                {{ __('games.content_host_prefers_attendance', ['percent' => round($entity->min_reliability_preference)]) }}
+            </div>
+        @endif
+
         {{-- Vibe flags --}}
         @if(!empty($vibeFlags))
             <div class="flex flex-wrap gap-1.5 mb-3">

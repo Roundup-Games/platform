@@ -11,6 +11,7 @@ use App\Notifications\GameInvitation;
 use App\Notifications\GameUpdated;
 use App\Notifications\ParticipantJoined;
 use App\Services\ActivityLogService;
+use App\Services\AttendanceService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
@@ -210,6 +211,16 @@ class GamesPage extends Component
             'previous_status' => 'scheduled',
             'new_status' => 'canceled',
         ]);
+
+        // Track host cancellation offence (late cancel <24h with roster)
+        try {
+            app(AttendanceService::class)->recordHostCancellationOffence($game);
+        } catch (\Throwable $e) {
+            Log::error('attendance.host_cancellation_offence_failed', [
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Notify all approved participants (excluding owner) that the game was cancelled
         try {

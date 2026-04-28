@@ -18,6 +18,12 @@
                         @if($profileUser->gmProfile)
                             <x-gm-badge size="sm" />
                         @endif
+                        <x-profile.reliability-badge
+                            :tier="$reliabilityTier"
+                            :score="$reliabilityScore"
+                            :game-count="$reliabilityGameCount"
+                            :show-details="$showReliabilityDetails"
+                        />
                         @if($isFriend)
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                 <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">group</span>

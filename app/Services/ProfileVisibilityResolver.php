@@ -30,6 +30,7 @@ class ProfileVisibilityResolver
         'campaigns',
         'teams',
         'friends_list',
+        'stats',
     ];
 
     /**

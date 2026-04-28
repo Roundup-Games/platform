@@ -147,6 +147,14 @@
                         <label class="block text-sm font-medium text-on-surface mb-2">{{ __('safety.content_safety_tools') }}</label>
                         <livewire:components.safety-tool-picker mode="selection" wire:key="game-safety-picker" />
                     </div>
+
+                    <div>
+                        <label for="game-reliability" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_reliability_preference') }}</label>
+                        <input type="number" id="game-reliability" wire:model="min_reliability_preference" min="0" max="100" step="5" placeholder=""
+                               class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                        <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_reliability_preference') }}</p>
+                        @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                    </div>
                 </div>
             </section>
 

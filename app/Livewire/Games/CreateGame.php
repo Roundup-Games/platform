@@ -53,6 +53,8 @@ class CreateGame extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
     public array $vibePreferences = [];
 
+    public ?string $min_reliability_preference = null;
+
     public function rules(): array
     {
         return [
@@ -72,6 +74,7 @@ class CreateGame extends Component
             'max_players' => 'required|integer|min:2|max:30',
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
+            'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
         ];
     }
 
@@ -227,6 +230,7 @@ class CreateGame extends Component
             'experience_level' => $validated['experience_level'],
             'complexity' => $validated['complexity'] ?: null,
             'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
+            'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
         ]);
 
         Log::info('Game created', [
