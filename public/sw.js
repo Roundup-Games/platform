@@ -8,7 +8,14 @@
  *  - Cross-origin requests: bypass
  */
 
-const CACHE_NAME = 'roundup-v1';
+/**
+ * Dynamic cache name derived from the Vite manifest content hash.
+ * Changes automatically when a new build is deployed, so old cached assets
+ * are evicted on activate instead of accumulating indefinitely.
+ *
+ * Fallback 'roundup-static' is used when the manifest is unreachable (e.g. dev).
+ */
+let CACHE_NAME = 'roundup-static';
 
 /** Paths to pre-cache on install. Vite assets are read from the manifest. */
 const PRE_CACHE_URLS = [
@@ -20,6 +27,7 @@ const PRE_CACHE_URLS = [
 
 /**
  * Build the full pre-cache list by merging static paths with Vite-hashed assets.
+ * Also computes CACHE_NAME from the manifest content so it changes per-build.
  * Runs at install time so it always reflects the latest build.
  */
 async function buildPreCacheList() {
@@ -28,7 +36,17 @@ async function buildPreCacheList() {
     try {
         const resp = await fetch('/build/manifest.json', { cache: 'no-store' });
         if (resp.ok) {
-            const manifest = await resp.json();
+            const text = await resp.text();
+
+            // Derive cache name from manifest content hash (djb2 variant)
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                hash |= 0; // 32-bit integer
+            }
+            CACHE_NAME = 'roundup-' + Math.abs(hash).toString(36);
+
+            const manifest = JSON.parse(text);
             for (const entry of Object.values(manifest)) {
                 if (entry.file) {
                     urls.push('/build/' + entry.file);

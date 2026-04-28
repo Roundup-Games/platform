@@ -8,10 +8,11 @@ describe('Service Worker', function () {
         expect(mime_content_type($path))->toContain('text');
     });
 
-    it('defines CACHE_NAME constant', function () {
+    it('defines dynamic CACHE_NAME derived from manifest hash', function () {
         $content = file_get_contents(public_path('sw.js'));
 
-        expect($content)->toContain("const CACHE_NAME = 'roundup-v1'");
+        expect($content)->toContain("let CACHE_NAME = 'roundup-static'");
+        expect($content)->toContain('CACHE_NAME = \'roundup-\' + Math.abs(hash).toString(36)');
     });
 
     it('registers install event handler', function () {
