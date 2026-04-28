@@ -223,4 +223,23 @@ return [
     'action_player_benched' => ':entity_type anzeigen',
     'push_title_player_benched' => 'Du sitzt auf der Bank',
     'push_body_player_benched' => 'Du wurdest für :entity auf die Bank gesetzt',
+
+    // Anwesenheit
+    'category_attendance_reported' => 'Anwesenheit gemeldet',
+    'category_dispute_resolved' => 'Einspruch geklärt',
+    'subject_attendance_reported' => 'Anwesenheitsmeldung für :game',
+    'body_attendance_reported' => 'Deine Anwesenheit für **:game** am :date wurde als **:status** erfasst. Wenn du nicht einverstanden bist, kannst du Einspruch erheben.',
+    'action_dispute_attendance' => 'Einspruch erheben',
+    'push_title_attendance_reported' => 'Anwesenheitsmeldung',
+    'push_body_attendance_reported' => 'Deine Anwesenheit für :game wurde als :status gemeldet',
+
+    // Einspruchsklärung
+    'subject_dispute_resolved_favor' => 'Einspruch geklärt — Anwesenheit für :game aktualisiert',
+    'body_dispute_resolved_favor' => 'Dein Einspruch für **:game** am :date wurde zu deinen Gunsten geklärt. Die Nicht-Erscheinen-Meldung wurde entfernt und deine Anwesenheit aktualisiert.',
+    'subject_dispute_upheld' => 'Einspruch geprüft — Meldung für :game beibehalten',
+    'body_dispute_upheld' => 'Dein Einspruch für **:game** am :date wurde geprüft. Die Anwesenheitsmeldung wurde beibehalten, ihre Auswirkung auf deine Zuverlässigkeitsbewertung wurde jedoch reduziert.',
+    'push_title_dispute_resolved_favor' => 'Einspruch geklärt',
+    'push_body_dispute_resolved_favor' => 'Dein Einspruch für :game wurde zu deinen Gunsten geklärt',
+    'push_title_dispute_upheld' => 'Einspruch geprüft',
+    'push_body_dispute_upheld' => 'Die Anwesenheitsmeldung für :game wurde beibehalten',
 ];

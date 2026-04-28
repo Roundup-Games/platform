@@ -16,7 +16,7 @@ class GameParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['game_id', 'user_id', 'role', 'status', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'confirmation_expires_at', 'waitlisted_at', 'benched_at'];
+    protected $fillable = ['game_id', 'user_id', 'role', 'status', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'benched_at'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,

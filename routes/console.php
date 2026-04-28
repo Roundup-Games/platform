@@ -122,3 +122,8 @@ Schedule::command('waitlist:sweep-expired-confirmations')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+Schedule::command('attendance:sweep-auto-attend')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();

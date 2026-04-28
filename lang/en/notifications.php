@@ -235,4 +235,23 @@ return [
     'action_player_benched' => 'View :entity_type',
     'push_title_player_benched' => 'You\'re on the Bench',
     'push_body_player_benched' => 'You\'ve been placed on the bench for :entity',
+
+    // Attendance
+    'category_attendance_reported' => 'Attendance Reported',
+    'category_dispute_resolved' => 'Dispute Resolved',
+    'subject_attendance_reported' => 'Attendance report for :game',
+    'body_attendance_reported' => 'Your attendance for **:game** on :date was recorded as **:status**. If you disagree, you can dispute this report.',
+    'action_dispute_attendance' => 'Dispute Report',
+    'push_title_attendance_reported' => 'Attendance Report',
+    'push_body_attendance_reported' => 'Your attendance for :game was reported as :status',
+
+    // Dispute resolution
+    'subject_dispute_resolved_favor' => 'Dispute resolved — attendance cleared for :game',
+    'body_dispute_resolved_favor' => 'Your dispute for **:game** on :date has been resolved in your favor. The no-show report has been cleared and your attendance updated.',
+    'subject_dispute_upheld' => 'Dispute reviewed — report upheld for :game',
+    'body_dispute_upheld' => 'Your dispute for **:game** on :date was reviewed. The attendance report has been upheld, though its impact on your reliability has been reduced.',
+    'push_title_dispute_resolved_favor' => 'Dispute Resolved',
+    'push_body_dispute_resolved_favor' => 'Your dispute for :game was resolved in your favor',
+    'push_title_dispute_upheld' => 'Dispute Reviewed',
+    'push_body_dispute_upheld' => 'The attendance report for :game was upheld',
 ];

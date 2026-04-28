@@ -23,6 +23,10 @@ class AttendanceReport extends Model
         'weight_applied',
         'is_corroborated',
         'quarantined',
+        'dispute_reason',
+        'disputed_at',
+        'dispute_resolution',
+        'dispute_resolved_at',
     ];
 
     protected $casts = [
@@ -30,6 +34,8 @@ class AttendanceReport extends Model
         'weight_applied' => 'float',
         'is_corroborated' => 'boolean',
         'quarantined' => 'boolean',
+        'disputed_at' => 'datetime',
+        'dispute_resolved_at' => 'datetime',
     ];
 
     protected static function booted(): void

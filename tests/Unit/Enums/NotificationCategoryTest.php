@@ -5,19 +5,21 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory Unit Tests', function () {
-    it('has exactly 19 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(19);
+    it('has exactly 23 cases', function () {
+        expect(NotificationCategory::cases())->toHaveCount(23);
     });
 
-    it('values() returns all 19 string values in declaration order', function () {
+    it('values() returns all 23 string values in declaration order', function () {
         $expected = [
             'new_follower',
             'game_invitation', 'campaign_invitation', 'team_invitation', 'session_added_to_campaign',
             'new_application', 'application_approved', 'application_rejected',
             'participant_joined', 'participant_removed', 'team_member_removed',
+            'attendance_reported', 'dispute_resolved',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',
+            'below_min_players', 'confirmation_expired',
             'review_reported',
         ];
         expect(NotificationCategory::values())->toBe($expected);
@@ -41,7 +43,7 @@ describe('NotificationCategory Unit Tests', function () {
     });
 
     it('group() returns a valid group for every case', function () {
-        $validGroups = ['social', 'invitations', 'applications', 'participation', 'status', 'content', 'moderation'];        foreach (NotificationCategory::cases() as $case) {
+        $validGroups = ['social', 'invitations', 'applications', 'participation', 'status', 'content', 'scheduling', 'moderation'];        foreach (NotificationCategory::cases() as $case) {
             expect($case->group())->toBeIn($validGroups, "{$case->value} group should be valid");
         }
     });
@@ -73,10 +75,10 @@ describe('NotificationCategory Unit Tests', function () {
         expect($channels)->toBe([DatabaseChannel::class, MailChannel::class]);
     });
 
-    it('defaultSettings() returns array keyed by all 19 category values', function () {
+    it('defaultSettings() returns array keyed by all 23 category values', function () {
         $settings = NotificationCategory::defaultSettings();
 
-        expect($settings)->toHaveCount(19);
+        expect($settings)->toHaveCount(23);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
@@ -96,6 +98,7 @@ describe('NotificationCategory Unit Tests', function () {
             'game_invitation', 'campaign_invitation', 'team_invitation',
             'new_application', 'application_approved', 'application_rejected',
             'participant_removed', 'team_member_removed',
+            'attendance_reported', 'dispute_resolved',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',
@@ -135,6 +138,7 @@ describe('NotificationCategory Unit Tests', function () {
             'game_invitation', 'campaign_invitation', 'team_invitation',
             'new_application', 'application_approved', 'application_rejected',
             'participant_removed', 'team_member_removed',
+            'attendance_reported', 'dispute_resolved',
             'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
             'game_updated', 'campaign_updated',
             'game_system_request',

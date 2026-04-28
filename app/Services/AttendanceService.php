@@ -387,6 +387,147 @@ class AttendanceService
     }
 
     /**
+     * Dispute an attendance report filed against a participant.
+     *
+     * The disputing user must own the participant record (i.e., they are the
+     * one who was reported). Sets the dispute reason on the participant and
+     * on the relevant attendance reports for this game/user.
+     *
+     * @return array{success: bool, reason: string}
+     */
+    public function disputeAttendanceReport(string $participantId, string $reason): array
+    {
+        $participant = GameParticipant::find($participantId);
+
+        if ($participant === null) {
+            return ['success' => false, 'reason' => 'Participant not found'];
+        }
+
+        if ($participant->attendance_status === null) {
+            return ['success' => false, 'reason' => 'No attendance report to dispute'];
+        }
+
+        if ($participant->attendance_dispute_reason !== null) {
+            return ['success' => false, 'reason' => 'Attendance already disputed'];
+        }
+
+        // Set dispute reason on participant
+        $participant->forceFill([
+            'attendance_dispute_reason' => $reason,
+        ])->save();
+
+        // Mark all attendance reports for this game+reported user as disputed
+        AttendanceReport::where('game_id', $participant->game_id)
+            ->where('reported_id', $participant->user_id)
+            ->whereNull('dispute_reason')
+            ->update([
+                'dispute_reason' => $reason,
+                'disputed_at' => now(),
+            ]);
+
+        Log::info('Attendance report disputed', [
+            'participant_id' => $participant->id,
+            'game_id' => $participant->game_id,
+            'user_id' => $participant->user_id,
+            'attendance_status' => $participant->attendance_status?->value,
+            'reason' => $reason,
+        ]);
+
+        return ['success' => true, 'reason' => 'Dispute filed'];
+    }
+
+    /**
+     * Resolve a dispute by cross-referencing other participants' reports.
+     *
+     * If 2+ other reports say 'attended' for the same user in the same game,
+     * auto-resolve in the player's favor (clear no_show, set attended).
+     * Otherwise, the report stands with reduced weight.
+     *
+     * @return string The resolution outcome: 'resolved_favor' or 'upheld'
+     */
+    public function resolveDispute(GameParticipant $participant): string
+    {
+        $game = $participant->game;
+        $user = $participant->user;
+
+        // Get corroborating reports (other reporters saying 'attended')
+        $corroboratingReports = $this->getCorroboratingReports($game, $user);
+
+        if ($corroboratingReports->count() >= 2) {
+            // Auto-resolve in player's favor
+            $participant->forceFill([
+                'attendance_status' => AttendanceStatus::Attended,
+                'attendance_weight' => 1.0,
+            ])->save();
+
+            // Update all disputed reports for this participant
+            AttendanceReport::where('game_id', $game->id)
+                ->where('reported_id', $user->id)
+                ->whereNotNull('dispute_reason')
+                ->update([
+                    'dispute_resolution' => 'resolved_favor',
+                    'dispute_resolved_at' => now(),
+                ]);
+
+            // Recompute reliability (the no-show penalty is removed)
+            $this->reliabilityService->recomputeAfterAttendance($participant);
+
+            Log::info('Dispute resolved in player favor', [
+                'participant_id' => $participant->id,
+                'game_id' => $game->id,
+                'user_id' => $user->id,
+                'corroborating_count' => $corroboratingReports->count(),
+            ]);
+
+            return 'resolved_favor';
+        }
+
+        // Report stands — reduce weight but don't clear
+        $participant->forceFill([
+            'attendance_weight' => max(0.3, ($participant->attendance_weight ?? 1.0) * 0.5),
+        ])->save();
+
+        // Mark reports as upheld
+        AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $user->id)
+            ->whereNotNull('dispute_reason')
+            ->update([
+                'dispute_resolution' => 'upheld',
+                'dispute_resolved_at' => now(),
+            ]);
+
+        // Recompute reliability with reduced weight
+        $this->reliabilityService->recomputeAfterAttendance($participant);
+
+        Log::info('Dispute upheld — report stands with reduced weight', [
+            'participant_id' => $participant->id,
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+            'corroborating_count' => $corroboratingReports->count(),
+            'reduced_weight' => $participant->attendance_weight,
+        ]);
+
+        return 'upheld';
+    }
+
+    /**
+     * Get corroborating reports from other participants for a reported user.
+     *
+     * Returns attendance reports from other reporters in the same game
+     * where they reported the user as 'attended'.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getCorroboratingReports(Game $game, User $reported): \Illuminate\Database\Eloquent\Collection
+    {
+        return AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $reported->id)
+            ->where('reporter_id', '!=', $reported->id) // Exclude self-reports
+            ->where('status', AttendanceStatus::Attended->value)
+            ->get();
+    }
+
+    /**
      * Check if a report is corroborated by another reporter for the same user/status.
      *
      * When two independent reporters report the same status for the same user
