@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -19,6 +21,8 @@ class Dashboard extends Component
 {
     public function render()
     {
+        $gamesThisWeek = $this->gamesThisWeek();
+
         return view('livewire.dashboard', [
             'upcomingSessionsCount' => $this->upcomingSessionsCount(),
             'activeGamesCount' => $this->activeGamesCount(),
@@ -31,6 +35,10 @@ class Dashboard extends Component
             'gmReviewCount' => $this->gmReviewCount(),
             'gmUpcomingSessionsCount' => $this->gmUpcomingSessionsCount(),
             'recentActivity' => $this->recentActivity(),
+            'gamesThisWeek' => $gamesThisWeek,
+            'gamesThisWeekCount' => $gamesThisWeek->count(),
+            'gamesThisWeekSummary' => $this->gamesThisWeekSummary($gamesThisWeek),
+            'newRecaps' => $this->newRecaps(),
         ]);
     }
 
@@ -149,5 +157,95 @@ class Dashboard extends Component
     {
         return app(ActivityLogService::class)
             ->getRecentForUser(Auth::user(), 20);
+    }
+
+    /**
+     * Get games occurring this week where the user is an owner or approved participant.
+     * "This week" = start of Monday through end of Sunday in the app's timezone.
+     */
+    public function gamesThisWeek()
+    {
+        $user = Auth::user();
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+
+        // Games user owns this week
+        $ownedGameIds = Game::where('owner_id', $user->id)
+            ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
+            ->pluck('id');
+
+        // Games user is an approved participant in this week
+        $participantGameIds = GameParticipant::where('user_id', $user->id)
+            ->where('status', ParticipantStatus::Approved)
+            ->whereHas('game', fn ($q) => $q
+                ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
+            )
+            ->pluck('game_id');
+
+        $gameIds = $ownedGameIds->merge($participantGameIds)->unique();
+
+        return Game::whereIn('id', $gameIds)
+            ->with(['participants' => fn ($q) => $q->where('user_id', $user->id)])
+            ->orderBy('date_time')
+            ->get();
+    }
+
+    /**
+     * Build attendance summary for the week's games.
+     *
+     * @return array{attended: int, pending: int, total: int}
+     */
+    public function gamesThisWeekSummary($gamesThisWeek): array
+    {
+        $user = Auth::user();
+        $attended = 0;
+        $pending = 0;
+
+        foreach ($gamesThisWeek as $game) {
+            // Owner games are implicitly attended
+            if ($game->owner_id === $user->id) {
+                $attended++;
+                continue;
+            }
+
+            $participant = $game->participants->first();
+            if ($participant && $participant->attendance_status !== null) {
+                if ($participant->attendance_status === AttendanceStatus::Attended) {
+                    $attended++;
+                }
+                // no-show, late_cancel, excused are not "attended"
+            } else {
+                // Game hasn't happened yet or attendance not reported
+                $pending++;
+            }
+        }
+
+        return [
+            'attended' => $attended,
+            'pending' => $pending,
+            'total' => $gamesThisWeek->count(),
+        ];
+    }
+
+    /**
+     * Get games the user participated in (not owned) that have new recaps.
+     */
+    public function newRecaps()
+    {
+        $user = Auth::user();
+
+        return Game::whereHas('participants', fn ($q) => $q
+            ->where('user_id', $user->id)
+            ->where('status', ParticipantStatus::Approved)
+        )
+            ->where('owner_id', '!=', $user->id)
+            ->whereNotNull('recap')
+            ->where('recap', '!=', '')
+            ->where('status', 'completed')
+            ->where('updated_at', '>', now()->subDays(7))
+            ->with('owner')
+            ->orderByDesc('updated_at')
+            ->limit(3)
+            ->get();
     }
 }

@@ -120,6 +120,94 @@
             </a>
         </div>
 
+        {{-- Games This Week Engagement Card --}}
+        <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-heading text-lg font-semibold text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">event_note</span>
+                    {{ __('attendance.dashboard_games_this_week') }}
+                </h3>
+                @if($gamesThisWeekCount > 0)
+                    <span class="text-2xl font-heading font-bold text-primary">{{ $gamesThisWeekCount }}</span>
+                @endif
+            </div>
+
+            @if($gamesThisWeekCount > 0)
+                <div class="space-y-3">
+                    {{-- Summary stats --}}
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                            {{ $gamesThisWeekSummary['attended'] }} {{ __('attendance.dashboard_attended') }}
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            {{ $gamesThisWeekSummary['pending'] }} {{ __('attendance.dashboard_pending') }}
+                        </span>
+                        <span class="text-on-surface-variant">
+                            {{ $gamesThisWeekSummary['total'] }} {{ __('attendance.dashboard_total') }}
+                        </span>
+                    </div>
+
+                    {{-- Game list --}}
+                    <div class="space-y-2">
+                        @foreach($gamesThisWeek as $game)
+                            <a href="{{ route('games.detail', $game->id) }}" wire:navigate
+                               class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-low transition-colors group">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate">
+                                        {{ $game->name }}
+                                    </p>
+                                    <p class="text-xs text-on-surface-variant">
+                                        {{ $game->date_time->format('D, M j · g:i A') }}
+                                    </p>
+                                </div>
+                                @if($game->owner_id === Auth::id())
+                                    <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{{ __('attendance.dashboard_hosting') }}</span>
+                                @endif
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="text-center py-6">
+                    <span class="material-symbols-outlined text-on-surface-variant text-4xl mb-2" style="font-variation-settings: 'FILL' 0">event_available</span>
+                    <p class="text-on-surface-variant text-sm mb-3">{{ __('attendance.dashboard_no_games_this_week') }}</p>
+                    <a href="{{ route('discover') }}" wire:navigate
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">explore</span>
+                        {{ __('attendance.dashboard_find_next_game') }}
+                    </a>
+                </div>
+            @endif
+        </div>
+
+        {{-- New Recaps Card --}}
+        @if($newRecaps->count() > 0)
+            <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                <h3 class="font-heading text-lg font-semibold text-on-surface flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">auto_stories</span>
+                    {{ __('attendance.dashboard_new_recaps') }}
+                </h3>
+                <div class="space-y-2">
+                    @foreach($newRecaps as $game)
+                        <a href="{{ route('games.detail', $game->id) }}" wire:navigate
+                           class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-low transition-colors group">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate">
+                                    {{ $game->name }}
+                                </p>
+                                <p class="text-xs text-on-surface-variant">
+                                    {{ __('attendance.dashboard_recap_by') }} {{ $game->owner?->name }}
+                                </p>
+                            </div>
+                            <span class="material-symbols-outlined text-primary text-lg ml-2" style="font-variation-settings: 'FILL' 1">arrow_forward</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- GM Stats Section --}}
         @if(Auth::user()?->isGM() && $gmAverageRating !== null)
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
