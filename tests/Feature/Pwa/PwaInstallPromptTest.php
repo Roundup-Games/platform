@@ -304,7 +304,39 @@ describe('Layout integration', function () {
 
         $response->assertDontSee('beforeinstallprompt', false);
         $response->assertDontSee('pwa_prompt_dismissed', false);
+        $response->assertDontSee('__pwaDeferredPrompt', false);
         $response->assertDontSee('install result:', false);
+    });
+
+    it('eligible response includes early-capture script before Alpine component', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $this->location->id,
+            'email_verified_at' => now(),
+        ]);
+
+        Game::factory()->create([
+            'owner_id' => $user->id,
+            'date_time' => now()->addDays(3),
+        ]);
+
+        session()->flush();
+
+        $response = actingAs($user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+
+        // Early capture script must exist
+        $this->assertStringContainsString('window.__pwaDeferredPrompt', $content);
+        $this->assertStringContainsString('[pwa-prompt] beforeinstallprompt captured (early)', $content);
+
+        // Early script must come BEFORE the Alpine x-data declaration
+        $earlyScriptPos = strpos($content, 'window.__pwaDeferredPrompt');
+        $alpineInitPos = strpos($content, 'x-data="pwaInstallPrompt()"');
+        $this->assertNotFalse($earlyScriptPos, 'Early capture script not found in response');
+        $this->assertNotFalse($alpineInitPos, 'Alpine x-data not found in response');
+        $this->assertLessThan($alpineInitPos, $earlyScriptPos, 'Early capture script must come before Alpine component');
     });
 });
 
@@ -356,8 +388,9 @@ describe('Browser-specific HTML', function () {
         $response = actingAs($user)->get(route('dashboard'));
         $response->assertOk();
 
-        // Structured log markers
+        // Structured log markers — early capture and Alpine capture paths
         $response->assertSee('[pwa-prompt] beforeinstallprompt captured', false);
+        $response->assertSee('__pwaDeferredPrompt', false);
         $response->assertSee('[pwa-prompt] dismissed', false);
         $response->assertSee('[pwa-prompt] install confirmed', false);
     });

@@ -3,6 +3,17 @@
 ])
 
 @if($eligible)
+{{-- Early capture: grab beforeinstallprompt BEFORE Alpine initializes.
+     On slow devices, the browser may fire this event before Alpine bootstraps,
+     so we store it on window for the Alpine component to pick up later. --}}
+<script>
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window.__pwaDeferredPrompt = e;
+    console.log('[pwa-prompt] beforeinstallprompt captured (early)');
+});
+</script>
+
 <div
     x-data="pwaInstallPrompt()"
     x-init="init()"
@@ -100,11 +111,17 @@ function pwaInstallPrompt() {
 
             this.isChrome = !isSafari;
 
-            // Chrome: intercept beforeinstallprompt
+            // Chrome: use early-captured prompt or listen for the event
             if (this.isChrome) {
+                if (window.__pwaDeferredPrompt) {
+                    this.deferredPrompt = window.__pwaDeferredPrompt;
+                    console.log('[pwa-prompt] beforeinstallprompt captured (from early cache)');
+                }
+
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     this.deferredPrompt = e;
+                    window.__pwaDeferredPrompt = e;
 
                     // Structured log
                     console.log('[pwa-prompt] beforeinstallprompt captured');
