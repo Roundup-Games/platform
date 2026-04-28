@@ -22,8 +22,10 @@ trait HasUnsubscribeLink
      */
     protected function unsubscribeUrl(object $notifiable, string $category): string
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return URL::signedRoute('notifications.unsubscribe', [
-            'locale' => app()->getLocale(),
+            'locale' => $locale,
             'user' => $notifiable->id,
             'category' => $category,
         ]);

@@ -41,6 +41,7 @@ class ParticipantRemoved extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
@@ -51,7 +52,7 @@ class ParticipantRemoved extends Notification
             ->line(__('notifications.body_participant_removed', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_participant_removed'), route('games.index'))
+            ->action(__('notifications.action_participant_removed'), route('games.index', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'participant_removed'));
     }
 
@@ -62,6 +63,8 @@ class ParticipantRemoved extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'participant_removed',
             'removed_user_id' => $this->removedUser->id,
@@ -69,7 +72,7 @@ class ParticipantRemoved extends Notification
             'entity_type' => $this->entityType,
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
-            'action_url' => route('games.index'),
+            'action_url' => route('games.index', ['locale' => $locale]),
         ];
     }
 

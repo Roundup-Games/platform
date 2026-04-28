@@ -29,6 +29,8 @@ class WaitlistPromoted extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_waitlist_promoted', [
                 'game' => $this->game->name,
@@ -38,7 +40,7 @@ class WaitlistPromoted extends Notification
                 'game' => $this->game->name,
                 'deadline' => $this->confirmationDeadline,
             ]))
-            ->action(__('notifications.action_waitlist_promoted'), route('games.detail', $this->game->id))
+            ->action(__('notifications.action_waitlist_promoted'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'waitlist_promoted'));
     }
 
@@ -47,13 +49,15 @@ class WaitlistPromoted extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'waitlist_promoted',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'confirmation_deadline' => $this->confirmationDeadline,
-            'action_url' => route('games.detail', $this->game->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 

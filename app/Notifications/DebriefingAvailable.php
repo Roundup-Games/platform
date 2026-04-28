@@ -36,6 +36,8 @@ class DebriefingAvailable extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
@@ -44,7 +46,7 @@ class DebriefingAvailable extends Notification
             ->line(__('notifications.body_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_submit_debriefing'), route('games.detail', $this->game->id))
+            ->action(__('notifications.action_submit_debriefing'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'debriefing_available'));
     }
 
@@ -55,12 +57,14 @@ class DebriefingAvailable extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'debriefing_available',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
-            'action_url' => route('games.detail', $this->game->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -78,13 +82,15 @@ class DebriefingAvailable extends Notification
      */
     public function toPush(object $notifiable): ?PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_debriefing_available'),
             body: __('notifications.push_body_debriefing_available', [
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "debriefing-{$this->game->id}",
         );
     }

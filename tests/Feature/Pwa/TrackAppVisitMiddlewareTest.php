@@ -77,4 +77,56 @@ describe('TrackAppVisit Middleware', function () {
         // Should now have 2 records: yesterday + today
         expect(UserAppVisit::where('user_id', $this->user->id)->count())->toBe(2);
     });
+
+    // ── Request filtering ──────────────────────────
+
+    it('skips POST requests', function () {
+        $countBefore = UserAppVisit::count();
+
+        // Use a POST to a known route — the response code doesn't matter,
+        // we just need to verify no visit record was created
+        actingAs($this->user)
+            ->post('/en/logout');
+
+        // POST should not create a visit record
+        expect(UserAppVisit::count())->toBe($countBefore);
+    });
+
+    it('skips requests to api paths', function () {
+        $countBefore = UserAppVisit::count();
+
+        actingAs($this->user)
+            ->getJson('/api/geocode?q=Berlin');
+
+        expect(UserAppVisit::count())->toBe($countBefore);
+    });
+
+    it('skips Livewire component update requests', function () {
+        $countBefore = UserAppVisit::count();
+
+        actingAs($this->user)
+            ->withHeaders(['X-Livewire' => 'true'])
+            ->get(route('dashboard'));
+
+        expect(UserAppVisit::count())->toBe($countBefore);
+    });
+
+    it('tracks normal GET requests to pages', function () {
+        actingAs($this->user)
+            ->get(route('dashboard'))
+            ->assertOk();
+
+        expect(UserAppVisit::where('user_id', $this->user->id)->count())->toBe(1);
+    });
+
+    it('logs at debug level not info', function () {
+        // Verify the source code uses debug, not info, for visit tracking.
+        // This is a static analysis test since Log::channel('daily') is hard
+        // to mock cleanly without breaking other parts of the request lifecycle.
+        $source = file_get_contents(app_path('Http/Middleware/TrackAppVisit.php'));
+
+        expect($source)->toContain("Log::channel('daily')->debug('pwa.visit.tracked'")
+            ->and($source)->not->toContain("Log::channel('daily')->info('pwa.visit.tracked'")
+            ->and($source)->not->toContain("Log::info('pwa.visit.tracked'");
+    });
 });

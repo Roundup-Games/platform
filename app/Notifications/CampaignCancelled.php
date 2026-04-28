@@ -38,6 +38,8 @@ class CampaignCancelled extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_campaign_cancelled', [
                 'campaign' => $this->campaign->name,
@@ -46,7 +48,7 @@ class CampaignCancelled extends Notification
             ->line(__('notifications.body_campaign_cancelled', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_campaign_cancelled'), route('campaigns.index'))
+            ->action(__('notifications.action_campaign_cancelled'), route('campaigns.index', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'campaign_cancelled'));
     }
 
@@ -57,12 +59,14 @@ class CampaignCancelled extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'campaign_cancelled',
             'entity_type' => 'campaign',
             'entity_id' => $this->campaign->id,
             'entity_name' => $this->campaign->name,
-            'action_url' => route('campaigns.index'),
+            'action_url' => route('campaigns.index', ['locale' => $locale]),
         ];
     }
 
@@ -80,13 +84,15 @@ class CampaignCancelled extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_campaign_cancelled'),
             body: __('notifications.push_body_campaign_cancelled', [
                 'campaign' => $this->campaign->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $this->campaign->id]),
+            url: route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
             tag: "campaign-cancelled-{$this->campaign->id}",
         );
     }

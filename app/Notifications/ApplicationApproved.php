@@ -41,7 +41,8 @@ class ApplicationApproved extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = $this->resolveEntityUrl();
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
@@ -63,6 +64,8 @@ class ApplicationApproved extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'application_approved',
             'entity_type' => $this->entityType,
@@ -70,7 +73,7 @@ class ApplicationApproved extends Notification
             'entity_name' => $this->entity->name,
             'approver_id' => $this->approver->id,
             'approver_name' => $this->approver->name,
-            'action_url' => $this->resolveEntityUrl(),
+            'action_url' => $this->resolveEntityUrl($locale),
         ];
     }
 
@@ -85,11 +88,11 @@ class ApplicationApproved extends Notification
     /**
      * Resolve the entity detail URL from the entity type and ID.
      */
-    protected function resolveEntityUrl(): string
+    protected function resolveEntityUrl(string $locale): string
     {
         return match ($this->entityType) {
-            'campaign' => route('campaigns.detail', $this->entity->id),
-            default => route('games.detail', $this->entity->id),
+            'campaign' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]),
+            default => route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]),
         };
     }
 

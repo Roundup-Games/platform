@@ -38,6 +38,7 @@ class GameCancelled extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
 
         return (new MailMessage)
@@ -49,7 +50,7 @@ class GameCancelled extends Notification
                 'game' => $this->game->name,
                 'date' => $date,
             ]))
-            ->action(__('notifications.action_game_cancelled'), route('games.index'))
+            ->action(__('notifications.action_game_cancelled'), route('games.index', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'game_cancelled'));
     }
 
@@ -60,13 +61,15 @@ class GameCancelled extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'game_cancelled',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'date_time' => $this->game->date_time?->toIso8601String(),
-            'action_url' => route('games.index'),
+            'action_url' => route('games.index', ['locale' => $locale]),
         ];
     }
 
@@ -84,13 +87,15 @@ class GameCancelled extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_game_cancelled'),
             body: __('notifications.push_body_game_cancelled', [
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "game-cancelled-{$this->game->id}",
         );
     }

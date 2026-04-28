@@ -39,7 +39,8 @@ class PlayerBenched extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = $this->resolveEntityUrl();
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
@@ -61,12 +62,14 @@ class PlayerBenched extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'player_benched',
             'entity_type' => $this->entityType,
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
-            'action_url' => $this->resolveEntityUrl(),
+            'action_url' => $this->resolveEntityUrl($locale),
         ];
     }
 
@@ -84,13 +87,15 @@ class PlayerBenched extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_player_benched'),
             body: __('notifications.push_body_player_benched', [
                 'entity' => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: $this->resolveEntityUrl(),
+            url: $this->resolveEntityUrl($locale),
             tag: "player-benched-{$this->entityType}-{$this->entity->id}",
         );
     }
@@ -98,10 +103,8 @@ class PlayerBenched extends Notification
     /**
      * Resolve the entity detail URL from the entity type and ID.
      */
-    protected function resolveEntityUrl(): string
+    protected function resolveEntityUrl(string $locale): string
     {
-        $locale = app()->getLocale();
-
         return match ($this->entityType) {
             'campaign' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]),
             default => route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]),

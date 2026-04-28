@@ -39,6 +39,7 @@ class AttendanceReported extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
         $status = $this->report->status->label();
 
@@ -54,7 +55,7 @@ class AttendanceReported extends Notification
                 'status' => $status,
             ]))
             ->action(__('notifications.action_dispute_attendance'), route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]))
             ->line($this->unsubscribeLine($notifiable, 'attendance_reported'));
@@ -67,6 +68,8 @@ class AttendanceReported extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'attendance_reported',
             'entity_type' => 'game',
@@ -76,7 +79,7 @@ class AttendanceReported extends Notification
             'attendance_status' => $this->report->status->value,
             'date_time' => $this->game->date_time?->toIso8601String(),
             'action_url' => route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]),
         ];
@@ -96,6 +99,7 @@ class AttendanceReported extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $status = $this->report->status->label();
 
         return new PushPayload(
@@ -106,7 +110,7 @@ class AttendanceReported extends Notification
             ]),
             icon: '/icons/pwa-192x192.png',
             url: route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]),
             tag: "attendance-reported-{$this->report->id}",

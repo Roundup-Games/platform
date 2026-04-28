@@ -38,6 +38,8 @@ class RecapPosted extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_recap_posted', [
                 'game' => $this->game->name,
@@ -47,7 +49,7 @@ class RecapPosted extends Notification
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_view_recap'), route('games.detail', $this->game->id))
+            ->action(__('notifications.action_view_recap'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'recap_posted'));
     }
 
@@ -58,13 +60,15 @@ class RecapPosted extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'recap_posted',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'actor_id' => $this->author->id,
-            'action_url' => route('games.detail', $this->game->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -81,6 +85,8 @@ class RecapPosted extends Notification
      */
     public function toPush(object $notifiable): ?PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_recap_posted'),
             body: __('notifications.push_body_recap_posted', [
@@ -88,7 +94,7 @@ class RecapPosted extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "recap-{$this->game->id}",
         );
     }

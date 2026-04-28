@@ -41,6 +41,8 @@ class ApplicationRejected extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_application_rejected', [
                 'entity' => $this->entity->name,
@@ -49,7 +51,7 @@ class ApplicationRejected extends Notification
             ->line(__('notifications.body_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_application_rejected'), route('games.index'))
+            ->action(__('notifications.action_application_rejected'), route('games.index', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'application_rejected'));
     }
 
@@ -60,6 +62,8 @@ class ApplicationRejected extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'application_rejected',
             'entity_type' => $this->entityType,
@@ -67,7 +71,7 @@ class ApplicationRejected extends Notification
             'entity_name' => $this->entity->name,
             'rejector_id' => $this->rejector->id,
             'rejector_name' => $this->rejector->name,
-            'action_url' => route('games.index'),
+            'action_url' => route('games.index', ['locale' => $locale]),
         ];
     }
 

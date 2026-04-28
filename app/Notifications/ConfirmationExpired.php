@@ -27,6 +27,8 @@ class ConfirmationExpired extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_confirmation_expired', [
                 'game' => $this->game->name,
@@ -35,7 +37,7 @@ class ConfirmationExpired extends Notification
             ->line(__('notifications.body_confirmation_expired', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]))
+            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'confirmation_expired'));
     }
 
@@ -44,12 +46,14 @@ class ConfirmationExpired extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'confirmation_expired',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
-            'action_url' => route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 

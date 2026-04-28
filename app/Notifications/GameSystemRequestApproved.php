@@ -42,8 +42,9 @@ class GameSystemRequestApproved extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $gameSystemUrl = route('game-systems.show', $this->gameSystem->slug);
-        $createGameUrl = route('games.create') . '?game_system_id=' . $this->gameSystem->id;
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $gameSystemUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->gameSystem->slug]);
+        $createGameUrl = route('games.create', ['locale' => $locale]) . '?game_system_id=' . $this->gameSystem->id;
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_approved', [
@@ -64,6 +65,8 @@ class GameSystemRequestApproved extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'game_system_request_approved',
             'request_id' => $this->request->id,
@@ -73,7 +76,7 @@ class GameSystemRequestApproved extends Notification
             'message' => __('notifications.body_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]),
-            'action_url' => route('game-systems.show', $this->gameSystem->slug),
+            'action_url' => route('game-systems.show', ['locale' => $locale, 'slug' => $this->gameSystem->slug]),
         ];
     }
 

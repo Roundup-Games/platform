@@ -44,13 +44,15 @@ class SessionReminder extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'session_reminder',
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'date_time' => $this->game->date_time?->toIso8601String(),
-            'action_url' => route('games.detail', $this->game->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -63,6 +65,7 @@ class SessionReminder extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $timezone = $notifiable->timezone ?? 'Europe/Berlin';
 
         $time = $this->game->date_time
@@ -84,7 +87,7 @@ class SessionReminder extends Notification
                 'time' => $time,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "game-reminder-{$this->window}-{$this->game->id}",
         );
     }

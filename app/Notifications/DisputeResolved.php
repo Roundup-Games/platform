@@ -38,6 +38,7 @@ class DisputeResolved extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
         $resolved = $this->resolution === 'resolved_favor';
 
@@ -54,7 +55,7 @@ class DisputeResolved extends Notification
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line($body)
             ->action(__('notifications.action_view_game'), route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]))
             ->line($this->unsubscribeLine($notifiable, 'dispute_resolved'));
@@ -67,6 +68,8 @@ class DisputeResolved extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'dispute_resolved',
             'entity_type' => 'game',
@@ -75,7 +78,7 @@ class DisputeResolved extends Notification
             'resolution' => $this->resolution,
             'date_time' => $this->game->date_time?->toIso8601String(),
             'action_url' => route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]),
         ];
@@ -95,6 +98,7 @@ class DisputeResolved extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $resolved = $this->resolution === 'resolved_favor';
 
         $title = $resolved
@@ -110,7 +114,7 @@ class DisputeResolved extends Notification
             body: $body,
             icon: '/icons/pwa-192x192.png',
             url: route('games.detail', [
-                'locale' => app()->getLocale(),
+                'locale' => $locale,
                 'id' => $this->game->id,
             ]),
             tag: "dispute-resolved-{$this->game->id}",

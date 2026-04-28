@@ -41,6 +41,8 @@ class TeamMemberRemoved extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_team_member_removed', [
                 'team' => $this->team->name,
@@ -49,7 +51,7 @@ class TeamMemberRemoved extends Notification
             ->line(__('notifications.body_team_member_removed', [
                 'team' => $this->team->name,
             ]))
-            ->action(__('notifications.action_team_member_removed'), route('teams.browse'))
+            ->action(__('notifications.action_team_member_removed'), route('teams.browse', ['locale' => $locale]))
             ->line($this->unsubscribeLine($notifiable, 'team_member_removed'));
     }
 
@@ -60,6 +62,8 @@ class TeamMemberRemoved extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'team_member_removed',
             'entity_type' => 'team',
@@ -67,7 +71,7 @@ class TeamMemberRemoved extends Notification
             'entity_name' => $this->team->name,
             'remover_id' => $this->remover->id,
             'remover_name' => $this->remover->name,
-            'action_url' => route('teams.browse'),
+            'action_url' => route('teams.browse', ['locale' => $locale]),
         ];
     }
 

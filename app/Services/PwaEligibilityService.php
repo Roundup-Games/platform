@@ -231,7 +231,7 @@ class PwaEligibilityService
             return null;
         }
 
-        Log::channel('daily')->info('pwa.eligibility.cache_hit', [
+        Log::channel('daily')->debug('pwa.eligibility.cache_hit', [
             'user_id' => $user->id,
             'eligible' => $cached['eligible'],
             'reason' => $cached['reason'],

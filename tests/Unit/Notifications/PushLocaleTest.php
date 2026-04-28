@@ -127,4 +127,66 @@ class PushLocaleTest extends TestCase
 
         $this->assertStringContainsString('/de/games/', $payload->url);
     }
+
+    // ── preferred_language on notifiable ────────────────
+
+    public function test_game_invitation_to_mail_uses_notifiable_preferred_language(): void
+    {
+        app()->setLocale('en');
+        $game = Game::factory()->create();
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+
+        $mail = (new GameInvitation($game, $inviter))->toMail($notifiable);
+
+        // The action URL in the mail should use the notifiable's preferred language
+        $this->assertStringContainsString('/de/games/', $mail->actionUrl);
+    }
+
+    public function test_game_invitation_to_database_uses_notifiable_preferred_language(): void
+    {
+        app()->setLocale('en');
+        $game = Game::factory()->create();
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+
+        $data = (new GameInvitation($game, $inviter))->toDatabase($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $data['action_url']);
+    }
+
+    public function test_game_invitation_falls_back_to_app_locale_when_preferred_language_null(): void
+    {
+        app()->setLocale('en');
+        $game = Game::factory()->create();
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => null]);
+
+        $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
+
+        $this->assertStringContainsString('/en/games/', $payload->url);
+    }
+
+    public function test_campaign_invitation_to_database_uses_notifiable_preferred_language(): void
+    {
+        app()->setLocale('en');
+        $campaign = Campaign::factory()->create();
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+
+        $data = (new CampaignInvitation($campaign, $inviter))->toDatabase($notifiable);
+
+        $this->assertStringContainsString('/de/campaigns/', $data['action_url']);
+    }
+
+    public function test_session_reminder_to_database_uses_notifiable_preferred_language(): void
+    {
+        app()->setLocale('en');
+        $game = Game::factory()->create(['date_time' => now()->addHour()]);
+        $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
+
+        $data = (new SessionReminder($game))->toDatabase($notifiable);
+
+        $this->assertStringContainsString('/de/games/', $data['action_url']);
+    }
 }

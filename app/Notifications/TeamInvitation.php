@@ -40,7 +40,8 @@ class TeamInvitation extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('teams.detail', $this->team->slug);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = route('teams.detail', ['locale' => $locale, 'slug' => $this->team->slug]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_team_invitation', [
@@ -63,6 +64,8 @@ class TeamInvitation extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'team_invitation',
             'team_id' => $this->team->id,
@@ -70,7 +73,7 @@ class TeamInvitation extends Notification
             'team_slug' => $this->team->slug,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route('teams.detail', $this->team->slug),
+            'action_url' => route('teams.detail', ['locale' => $locale, 'slug' => $this->team->slug]),
         ];
     }
 

@@ -40,7 +40,8 @@ class GameInvitation extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('games.detail', $this->game->id);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = route('games.detail', ['locale' => $locale, 'id' => $this->game->id]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_invitation', [
@@ -62,13 +63,15 @@ class GameInvitation extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'game_invitation',
             'game_id' => $this->game->id,
             'game_name' => $this->game->name,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route('games.detail', $this->game->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -85,6 +88,8 @@ class GameInvitation extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_game_invitation'),
             body: __('notifications.push_body_game_invitation', [
@@ -92,7 +97,7 @@ class GameInvitation extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "game-invitation-{$this->game->id}",
         );
     }

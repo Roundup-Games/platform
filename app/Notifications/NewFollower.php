@@ -34,7 +34,8 @@ class NewFollower extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = route('profile.public', ['locale' => $locale, 'user' => $this->follower]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
@@ -51,11 +52,13 @@ class NewFollower extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'new_follower',
             'follower_id' => $this->follower->id,
             'follower_name' => $this->follower->name,
-            'action_url' => route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]),
+            'action_url' => route('profile.public', ['locale' => $locale, 'user' => $this->follower]),
         ];
     }
 
@@ -72,13 +75,15 @@ class NewFollower extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_new_follower'),
             body: __('notifications.push_body_new_follower', [
                 'follower' => $this->follower->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('profile.public', ['locale' => app()->getLocale(), 'user' => $this->follower]),
+            url: route('profile.public', ['locale' => $locale, 'user' => $this->follower]),
             tag: "new-follower-{$this->follower->id}",
         );
     }

@@ -41,7 +41,8 @@ class ParticipantJoined extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = $this->resolveEntityUrl();
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
         return (new MailMessage)
@@ -66,6 +67,8 @@ class ParticipantJoined extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'participant_joined',
             'participant_id' => $this->participant->id,
@@ -73,7 +76,7 @@ class ParticipantJoined extends Notification
             'entity_type' => $this->entityType,
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
-            'action_url' => $this->resolveEntityUrl(),
+            'action_url' => $this->resolveEntityUrl($locale),
         ];
     }
 
@@ -88,11 +91,11 @@ class ParticipantJoined extends Notification
     /**
      * Resolve the entity detail URL from the entity type and ID.
      */
-    protected function resolveEntityUrl(): string
+    protected function resolveEntityUrl(string $locale): string
     {
         return match ($this->entityType) {
-            'campaign' => route('campaigns.detail', $this->entity->id),
-            default => route('games.detail', $this->entity->id),
+            'campaign' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]),
+            default => route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]),
         };
     }
 

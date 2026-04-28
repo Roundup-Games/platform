@@ -4,7 +4,7 @@
  * Caching strategies:
  *  - Static assets (hashed JS/CSS, icons, manifest): cache-first
  *  - HTML/page requests: network-first (3 s timeout)
- *  - Public API (/api/geocode, /api/session-counts): stale-while-revalidate
+ *  - Public API (/api/geocode): stale-while-revalidate
  *  - Other API requests (/api/*): network-only
  *  - Cross-origin requests: bypass
  */
@@ -112,7 +112,7 @@ self.addEventListener('fetch', (event) => {
     if (url.pathname.startsWith('/api/')) {
         // Exception: geocode and session-count are unauthenticated public endpoints.
         // Stale-while-revalidate: serve cached response immediately, update cache in background.
-        if (url.pathname === '/api/geocode' || url.pathname === '/api/session-counts') {
+        if (url.pathname === '/api/geocode') {
             event.respondWith(staleWhileRevalidate(request));
             return;
         }
@@ -269,8 +269,13 @@ self.addEventListener('notificationclick', (event) => {
             .then((windowClients) => {
                 // Focus an existing window showing the target URL
                 for (const client of windowClients) {
-                    if (client.url.includes(url) && 'focus' in client) {
-                        return client.focus();
+                    try {
+                        const clientPath = new URL(client.url).pathname;
+                        if ((clientPath === url || clientPath.startsWith(url + '?')) && 'focus' in client) {
+                            return client.focus();
+                        }
+                    } catch (e) {
+                        // Invalid URL, skip
                     }
                 }
                 // No matching window — open a new one
@@ -279,105 +284,10 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// ── Background Sync ──────────────────────────────────────────────────────────
-// Queues failed form submissions when offline and retries when connectivity
-// returns. Only works in Chromium browsers (Chrome, Edge). Other browsers
-// get the graceful failure path (action completes on next online request).
-
-self.addEventListener('sync', (event) => {
-    if (event.tag.startsWith('offline-action-')) {
-        console.log('[SW] Background sync triggered for:', event.tag);
-        event.waitUntil(retryOfflineAction(event.tag));
-    }
-});
-
-/**
- * Retrieve a queued offline action from IndexedDB and replay it.
- */
-async function retryOfflineAction(tag) {
-    const db = await openOfflineQueueDB();
-    const tx = db.transaction('offline-actions', 'readonly');
-    const store = tx.objectStore('offline-actions');
-    const action = await store.get(tag);
-
-    if (!action) {
-        console.warn('[SW] No queued action found for tag:', tag);
-        return;
-    }
-
-    try {
-        const response = await fetch(action.url, {
-            method: action.method,
-            headers: action.headers,
-            body: action.body,
-            credentials: 'same-origin',
-        });
-
-        if (response.ok) {
-            // Success — remove from queue
-            const deleteTx = db.transaction('offline-actions', 'readwrite');
-            deleteTx.objectStore('offline-actions').delete(tag);
-            console.log('[SW] Offline action succeeded:', tag);
-
-            // Notify all clients that the action completed
-            const clients = await self.clients.matchAll({ type: 'window' });
-            clients.forEach((client) => {
-                client.postMessage({
-                    type: 'offline-action-completed',
-                    tag,
-                    success: true,
-                });
-            });
-        } else {
-            console.warn('[SW] Offline action returned', response.status, 'for tag:', tag);
-        }
-    } catch (err) {
-        console.warn('[SW] Offline action retry failed:', tag, err);
-        // The sync manager will retry automatically
-        throw err;
-    }
-}
-
-/**
- * Open (or create) the IndexedDB database for offline action queue.
- */
-function openOfflineQueueDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open('roundup-offline-queue', 1);
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains('offline-actions')) {
-                db.createObjectStore('offline-actions', { keyPath: 'tag' });
-            }
-        };
-        request.onsuccess = (event) => resolve(event.target.result);
-        request.onerror = (event) => reject(event.target.error);
-    });
-}
-
 // ── Message handler ─────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
     if (event.data?.type === 'SKIP_WAITING') {
         console.log('[SW] Received SKIP_WAITING — activating new worker');
         self.skipWaiting();
-    }
-
-    if (event.data?.type === 'QUEUE_OFFLINE_ACTION') {
-        const { tag, url, method, headers, body } = event.data;
-        console.log('[SW] Queuing offline action:', tag);
-
-        event.waitUntil(
-            openOfflineQueueDB().then((db) => {
-                const tx = db.transaction('offline-actions', 'readwrite');
-                tx.objectStore('offline-actions').put({ tag, url, method, headers, body });
-
-                // Register a background sync if supported
-                if ('sync' in self.registration) {
-                    return self.registration.sync.register(tag);
-                }
-            }).catch((err) => {
-                console.warn('[SW] Failed to queue offline action:', err);
-            })
-        );
     }
 });

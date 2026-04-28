@@ -40,7 +40,8 @@ class CampaignInvitation extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('campaigns.detail', $this->campaign->id);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_campaign_invitation', [
@@ -62,13 +63,15 @@ class CampaignInvitation extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'campaign_invitation',
             'campaign_id' => $this->campaign->id,
             'campaign_name' => $this->campaign->name,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route('campaigns.detail', $this->campaign->id),
+            'action_url' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
         ];
     }
 
@@ -85,6 +88,8 @@ class CampaignInvitation extends Notification
      */
     public function toPush(object $notifiable): PushPayload
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return new PushPayload(
             title: __('notifications.push_title_campaign_invitation'),
             body: __('notifications.push_body_campaign_invitation', [
@@ -92,7 +97,7 @@ class CampaignInvitation extends Notification
                 'campaign' => $this->campaign->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $this->campaign->id]),
+            url: route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
             tag: "campaign-invitation-{$this->campaign->id}",
         );
     }

@@ -42,7 +42,8 @@ class GameSystemRequestDuplicate extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $existingUrl = route('game-systems.show', $this->existingSystem->slug);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $existingUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_duplicate'))
@@ -62,6 +63,8 @@ class GameSystemRequestDuplicate extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'game_system_request_duplicate',
             'request_id' => $this->request->id,
@@ -72,7 +75,7 @@ class GameSystemRequestDuplicate extends Notification
                 'name' => $this->request->name,
                 'existing' => $this->existingSystem->name,
             ]),
-            'action_url' => route('game-systems.show', $this->existingSystem->slug),
+            'action_url' => route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]),
         ];
     }
 

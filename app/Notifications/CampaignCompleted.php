@@ -38,6 +38,8 @@ class CampaignCompleted extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return (new MailMessage)
             ->subject(__('notifications.subject_campaign_completed', [
                 'campaign' => $this->campaign->name,
@@ -46,7 +48,7 @@ class CampaignCompleted extends Notification
             ->line(__('notifications.body_campaign_completed', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_campaign_completed'), route('campaigns.detail', $this->campaign->id))
+            ->action(__('notifications.action_campaign_completed'), route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]))
             ->line($this->unsubscribeLine($notifiable, 'campaign_completed'));
     }
 
@@ -57,12 +59,14 @@ class CampaignCompleted extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'campaign_completed',
             'entity_type' => 'campaign',
             'entity_id' => $this->campaign->id,
             'entity_name' => $this->campaign->name,
-            'action_url' => route('campaigns.detail', $this->campaign->id),
+            'action_url' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
         ];
     }
 

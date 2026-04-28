@@ -1,6 +1,6 @@
 import './bootstrap';
 import './guest-location';
-import './push';
+import { initPushSubscriptions } from './push';
 
 // ── Offline indicator immediate bridge ────────────────────────────────────────
 // Ensures the offline indicator is visible before Alpine bootstraps.
@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     applyState();
     window.addEventListener('offline', applyState);
     window.addEventListener('online', applyState);
+
+    // Initialize push subscription UI bindings
+    initPushSubscriptions();
 });
 
 // Alpine is provided by Livewire v3 (livewire/livewire) — no separate import needed.

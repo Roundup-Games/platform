@@ -42,7 +42,8 @@ class SessionAddedToCampaign extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $actionUrl = route('games.detail', $this->session->id);
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $actionUrl = route('games.detail', ['locale' => $locale, 'id' => $this->session->id]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_session_added_to_campaign', [
@@ -63,13 +64,15 @@ class SessionAddedToCampaign extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'session_added_to_campaign',
             'session_id' => $this->session->id,
             'session_name' => $this->session->name,
             'campaign_id' => $this->campaign->id,
             'campaign_name' => $this->campaign->name,
-            'action_url' => route('games.detail', $this->session->id),
+            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->session->id]),
         ];
     }
 

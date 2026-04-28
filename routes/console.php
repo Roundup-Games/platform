@@ -127,3 +127,7 @@ Schedule::command('attendance:sweep-auto-attend')
     ->everyThirtyMinutes()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+// Prune stale PWA data
+Schedule::command('pwa:prune-stale-subscriptions')->weekly()->sundays()->at('03:00')->onOneServer();
+Schedule::command('pwa:prune-visits')->monthly()->onOneServer();

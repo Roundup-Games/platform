@@ -40,6 +40,7 @@ class CampaignUpdated extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $fields = implode(', ', $this->changedFields);
 
         return (new MailMessage)
@@ -51,7 +52,7 @@ class CampaignUpdated extends Notification
                 'campaign' => $this->campaign->name,
                 'fields' => $fields,
             ]))
-            ->action(__('notifications.action_view_campaign'), route('campaigns.detail', $this->campaign->id))
+            ->action(__('notifications.action_view_campaign'), route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]))
             ->line($this->unsubscribeLine($notifiable, 'campaign_updated'));
     }
 
@@ -62,13 +63,15 @@ class CampaignUpdated extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
         return [
             'type' => 'campaign_updated',
             'entity_type' => 'campaign',
             'entity_id' => $this->campaign->id,
             'entity_name' => $this->campaign->name,
             'changed_fields' => $this->changedFields,
-            'action_url' => route('campaigns.detail', $this->campaign->id),
+            'action_url' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
         ];
     }
 

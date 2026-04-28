@@ -149,6 +149,11 @@ function pwaInstallPrompt() {
             this.isChrome = !isSafari && !this.isFirefox
                 && ('BeforeInstallPromptEvent' in window || /Chrome\//i.test(ua));
 
+            // Firefox desktop: no PWA install support — never show the prompt
+            if (isFirefox && !isAndroid) {
+                this.visible = false;
+            }
+
             // Chrome: use early-captured prompt or listen for the event
             if (this.isChrome) {
                 if (window.__pwaDeferredPrompt) {
