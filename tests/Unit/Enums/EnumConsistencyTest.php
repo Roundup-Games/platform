@@ -37,7 +37,7 @@ describe('Enum Consistency', function () {
     });
 
     it('ParticipantStatus has all expected cases matching codebase usage', function () {
-        $expected = ['approved', 'rejected', 'pending'];
+        $expected = ['approved', 'rejected', 'pending', 'waitlisted', 'benched'];
 
         expect(ParticipantStatus::values())->toBe($expected);
     });

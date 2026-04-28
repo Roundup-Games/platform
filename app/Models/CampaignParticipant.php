@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ParticipantStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -12,6 +13,10 @@ class CampaignParticipant extends Model
     public $incrementing = false;
 
     protected $fillable = ['campaign_id', 'user_id', 'role', 'status'];
+
+    protected $casts = [
+        'status' => ParticipantStatus::class,
+    ];
 
     public $timestamps = false;
 
