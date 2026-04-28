@@ -189,16 +189,30 @@ describe('SessionReminder push payload', function () {
             ->and($payload->tag)->toBe("game-reminder-{$game->id}");
     });
 
-    it('body contains formatted time', function () {
+    it('body contains timezone-aware formatted time', function () {
+        // 2026-04-27 19:00:00 UTC → 21:00:00 CEST (Europe/Berlin, DST active)
         $game = Game::factory()->create([
             'name' => 'Evening Game',
-            'date_time' => Carbon\Carbon::parse('2026-04-27 19:00:00'),
+            'date_time' => Carbon\Carbon::parse('2026-04-27 19:00:00', 'UTC'),
         ]);
         $notifiable = User::factory()->create();
 
         $payload = (new SessionReminder($game))->toPush($notifiable);
 
-        expect($payload->body)->toContain('7:00 PM');
+        expect($payload->body)->toContain('9:00 PM CEST');
+    });
+
+    it('handles CET winter time correctly', function () {
+        // 2026-01-15 19:00:00 UTC → 20:00:00 CET (Europe/Berlin, no DST)
+        $game = Game::factory()->create([
+            'name' => 'Winter Game',
+            'date_time' => Carbon\Carbon::parse('2026-01-15 19:00:00', 'UTC'),
+        ]);
+        $notifiable = User::factory()->create();
+
+        $payload = (new SessionReminder($game))->toPush($notifiable);
+
+        expect($payload->body)->toContain('8:00 PM CET');
     });
 });
 

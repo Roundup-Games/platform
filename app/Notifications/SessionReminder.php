@@ -54,10 +54,18 @@ class SessionReminder extends Notification
 
     /**
      * Get the push notification representation.
+     *
+     * Times are converted from UTC (app timezone) to Europe/Berlin (DACH
+     * target audience) and include the timezone abbreviation for clarity,
+     * e.g. "3:00 PM CEST".
      */
     public function toPush(object $notifiable): PushPayload
     {
-        $time = $this->game->date_time?->format('g:i A') ?? '';
+        $timezone = $notifiable->timezone ?? 'Europe/Berlin';
+
+        $time = $this->game->date_time
+            ? $this->game->date_time->setTimezone($timezone)->format('g:i A T')
+            : '';
 
         return new PushPayload(
             title: __('notifications.push_title_session_reminder'),
