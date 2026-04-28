@@ -12,10 +12,11 @@ class CampaignParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['campaign_id', 'user_id', 'role', 'status'];
+    protected $fillable = ['campaign_id', 'user_id', 'role', 'status', 'benched_at'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,
+        'benched_at' => 'datetime',
     ];
 
     public $timestamps = false;

@@ -312,6 +312,7 @@ describe('CreateGame Component', function () {
             ->set('price', '15.00')
             ->set('language', 'en')
             ->set('visibility', 'protected')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
@@ -331,6 +332,7 @@ describe('CreateGame Component', function () {
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Quick Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
@@ -434,6 +436,7 @@ describe('CreateGame Component', function () {
             ->set('name', 'Location Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('location_id', $location->id)
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'Location Test')->first();
@@ -447,6 +450,7 @@ describe('CreateGame Component', function () {
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Flash Test Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save')
             ->assertSessionHas('success', 'Game "Flash Test Game" created successfully!');
     });
@@ -1155,6 +1159,7 @@ describe('CreateGame — Language Selection', function () {
             ->set('name', 'German Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('language', 'de')
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -1196,6 +1201,7 @@ describe('CreateGame — Duration', function () {
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'No Duration')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -1250,6 +1256,7 @@ describe('CreateGame — Duration', function () {
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('game_system_id', $system->id)
             ->assertSet('expected_duration', '2')
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -1299,18 +1306,19 @@ describe('CreateGame — Player Counts', function () {
         ]);
     });
 
-    it('allows nullable player counts', function () {
+    it('applies default min_players when not provided', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'No Limits Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'No Limits Game')->first();
-        expect($game->min_players)->toBeNull()
-            ->and($game->max_players)->toBeNull();
+        expect($game->min_players)->toBe(2)
+            ->and($game->max_players)->toBe(6);
     });
 
     it('rejects min_players exceeding max_players', function () {
@@ -1376,6 +1384,7 @@ describe('CreateGame — Experience Level', function () {
             ->set('name', 'Pro Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('experience_level', 'advanced')
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -1406,6 +1415,7 @@ describe('CreateGame — Complexity', function () {
             ->set('name', 'Complex Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('complexity', '3.5')
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'Complex Game')->first();
@@ -1449,6 +1459,7 @@ describe('CreateGame — Vibe Flags', function () {
                 'horror' => 'favorite',
                 'cooperative' => 'avoid',
             ])
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'Vibey Game')->first();
@@ -1463,6 +1474,7 @@ describe('CreateGame — Vibe Flags', function () {
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('name', 'Plain Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'Plain Game')->first();
@@ -1480,6 +1492,7 @@ describe('CreateGame — Vibe Flags', function () {
                 'atmospheric' => 'favorite',
                 'not-a-real-flag' => 'favorite',
             ])
+            ->set('max_players', 6)
             ->call('save');
 
         // Invalid flag silently filtered; valid one stored
@@ -1540,6 +1553,7 @@ describe('CreateGame — Visibility Gating', function () {
             ->set('name', 'Public Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
@@ -1557,6 +1571,7 @@ describe('CreateGame — Visibility Gating', function () {
             ->set('name', 'Attempted Public')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
@@ -1574,6 +1589,7 @@ describe('CreateGame — Visibility Gating', function () {
             ->set('name', 'Protected Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'protected')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 

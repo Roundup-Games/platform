@@ -238,6 +238,7 @@ describe('CreateGame', function () {
             ->set('description', 'A fun dungeon crawl')
             ->set('expected_duration', '3')
             ->set('price', '5.00')
+            ->set('max_players', 6)
             ->set('visibility', 'public')
             ->call('save')
             ->assertRedirect();
@@ -259,7 +260,7 @@ describe('CreateGame', function () {
             ->set('name', '')
             ->set('date_time', '')
             ->call('save')
-            ->assertHasErrors(['name', 'date_time']);
+            ->assertHasErrors(['name', 'date_time', 'max_players']);
     });
 
     it('validates name max length', function () {
@@ -303,6 +304,7 @@ describe('CreateGame', function () {
             ->test(App\Livewire\Games\CreateGame::class)
             ->set('name', 'Owned Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -318,6 +320,7 @@ describe('CreateGame', function () {
             ->test(App\Livewire\Games\CreateGame::class)
             ->set('name', 'Scheduled Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
             ->call('save');
 
         assertDatabaseHas('games', [
@@ -335,6 +338,7 @@ describe('CreateGame', function () {
             ->set('name', 'Located Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
             ->set('location_id', $location->id)
+            ->set('max_players', 6)
             ->call('save');
 
         $game = Game::where('name', 'Located Game')->first();
@@ -357,6 +361,7 @@ describe('CreateGame', function () {
             ->set('name', 'Board Game Night')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
             ->set('game_type', 'board_game')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
@@ -374,6 +379,7 @@ describe('CreateGame', function () {
             ->set('name', 'TTRPG Session')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
             ->set('game_type', 'ttrpg')
+            ->set('max_players', 6)
             ->call('save')
             ->assertRedirect();
 
