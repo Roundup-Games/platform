@@ -117,3 +117,8 @@ Schedule::command('pwa:send-session-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)
     ->onOneServer();
+
+Schedule::command('waitlist:sweep-expired-confirmations')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();

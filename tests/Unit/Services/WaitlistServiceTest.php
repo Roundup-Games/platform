@@ -451,6 +451,8 @@ describe('structured logging', function () {
         Log::shouldReceive('info')->with('waitlist.promoted', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['confirmation_hours'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->promoteNext($game);
     });

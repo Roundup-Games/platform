@@ -6,6 +6,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Jobs\HandleExpiredConfirmation;
 use App\Notifications\WaitlistPromoted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -113,6 +114,9 @@ class WaitlistService
 
             // Dispatch notification via NotificationService
             $this->notifyPromotion($next, $lockedGame, $expiresAt);
+
+            // Dispatch delayed job to auto-handle expiration if no response
+            HandleExpiredConfirmation::dispatch($next->id)->delay($expiresAt);
 
             return $next->fresh();
         });
@@ -310,7 +314,21 @@ class WaitlistService
 
         $this->notifyPromotion($next, $game, $expiresAt);
 
+        // Dispatch delayed job to auto-handle expiration if no response
+        HandleExpiredConfirmation::dispatch($next->id)->delay($expiresAt);
+
         return $next->fresh();
+    }
+
+    /**
+     * Compute the absolute confirmation deadline (Carbon) for a promoted participant.
+     * Returns now() + urgency-scaled window based on time until game start.
+     */
+    public function computeConfirmationDeadline(Game $game): \Carbon\Carbon
+    {
+        $hours = $this->computeConfirmationWindow($game);
+
+        return now()->addHours($hours);
     }
 
     /**
