@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
+use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -55,6 +56,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Missing translation tracking — only in local env
         $this->app->singleton(MissingTranslationCollector::class);
+
+        $this->app->singleton(ReliabilityScoreService::class);
 
         $this->app->extend('translator', function ($translator, $app) {
             if (! $app->environment('local')) {

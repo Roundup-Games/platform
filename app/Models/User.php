@@ -33,6 +33,8 @@ use App\Traits\StringMorphMediaKey;
     'phone',
     'privacy_settings',
     'notification_settings',
+    'reliability_score',
+    'reliability_computed_at',
     'profile_version',
     'profile_updated_at',
     'password_set_at',
@@ -70,6 +72,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'can_create_public_entries' => 'boolean',
             'preferred_language' => ContentLanguage::class,
             'location' => 'array',
+            'reliability_score' => 'array',
+            'reliability_computed_at' => 'datetime',
         ];
     }
 
