@@ -34,11 +34,12 @@ class GameActivityFeedService
             );
         }
 
-        // Union of three activity types, sorted by created_at desc
+        // Union of activity types, sorted by created_at desc
         $activities = collect()
             ->merge($this->getGamesCreated($socialCircleIds))
             ->merge($this->getPlayersJoined($socialCircleIds, $viewer))
             ->merge($this->getGamesCompleted($socialCircleIds))
+            ->merge($this->getSessionRecaps($socialCircleIds))
             ->sortByDesc('created_at')
             ->values();
 
@@ -191,6 +192,30 @@ class GameActivityFeedService
             ->map(fn (Game $game) => (object) [
                 'id' => "game_completed_{$game->id}",
                 'type' => 'game_completed',
+                'entity' => $game,
+                'entity_type' => 'game',
+                'user' => $game->owner,
+                'created_at' => $game->updated_at,
+            ]);
+    }
+
+    /**
+     * Games where social circle members wrote a post-session recap.
+     */
+    protected function getSessionRecaps(array $socialCircleIds): Collection
+    {
+        return Game::whereIn('owner_id', $socialCircleIds)
+            ->where('status', 'completed')
+            ->whereNotNull('recap')
+            ->where('recap', '!=', '')
+            ->with(['owner', 'gameSystem'])
+            ->withCount('participants')
+            ->orderBy('updated_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(fn (Game $game) => (object) [
+                'id' => "session_recapped_{$game->id}",
+                'type' => 'session_recapped',
                 'entity' => $game,
                 'entity_type' => 'game',
                 'user' => $game->owner,

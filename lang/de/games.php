@@ -278,4 +278,13 @@ return [
     'field_reliability_preference' => 'Anwesenheitspräferenz',
     'hint_reliability_preference' => 'Optional: Bevorzuge Spieler mit einer Mindest-Anwesenheitsrate (%). Dies ist eine weiche Präferenz, kein harter Filter.',
     'content_host_prefers_attendance' => 'Host bevorzugt ≥:percent% Anwesenheit',
+
+    // Nachbericht
+    'title_host_recap' => 'Host-Nachbericht',
+    'content_recap_by' => 'Geschrieben von :host',
+    'activity_recapped_game' => 'schrieb einen Nachbericht für',
+    'recap_error_game_not_completed' => 'Ein Nachbericht kann nur für abgeschlossene Spiele verfasst werden.',
+    'recap_error_not_host' => 'Nur der Host kann einen Nachbericht verfassen.',
+    'recap_error_too_long' => 'Der Nachbericht darf 2000 Zeichen nicht überschreiten.',
+    'recap_error_empty' => 'Der Nachbericht darf nicht leer sein.',
 ];

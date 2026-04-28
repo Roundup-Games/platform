@@ -326,6 +326,7 @@ return [
     'activity_type_session_scheduled' => 'Sitzung geplant',
     'activity_type_game_updated' => 'Spiel aktualisiert',
     'activity_type_campaign_updated' => 'Kampagne aktualisiert',
+    'activity_type_session_recapped' => 'Sitzungsnachbericht',
 
     // Dashboard-Aktivitätszeitlinie
     'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',

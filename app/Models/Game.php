@@ -88,6 +88,11 @@ class Game extends Model
         return $this->hasMany(SessionZeroSurvey::class);
     }
 
+    public function sessionDebriefings(): HasMany
+    {
+        return $this->hasMany(SessionDebriefing::class);
+    }
+
     public function activeSessionZeroSurvey(): ?SessionZeroSurvey
     {
         return $this->sessionZeroSurveys()->active()->first();

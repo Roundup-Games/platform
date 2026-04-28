@@ -32,6 +32,9 @@ enum ActivityType: string
     case GameUpdated = 'game_updated';
     case CampaignUpdated = 'campaign_updated';
 
+    // Post-session engagement
+    case SessionRecapped = 'session_recapped';
+
     /**
      * @return string[]
      */
@@ -57,6 +60,7 @@ enum ActivityType: string
             self::SessionScheduled => __('common.activity_type_session_scheduled'),
             self::GameUpdated => __('common.activity_type_game_updated'),
             self::CampaignUpdated => __('common.activity_type_campaign_updated'),
+            self::SessionRecapped => __('common.activity_type_session_recapped'),
         };
     }
 
@@ -77,6 +81,7 @@ enum ActivityType: string
             self::SessionScheduled => 'event',
             self::GameUpdated => 'edit',
             self::CampaignUpdated => 'edit',
+            self::SessionRecapped => 'auto_stories',
         };
     }
 }

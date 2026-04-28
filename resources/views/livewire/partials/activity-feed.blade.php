@@ -22,6 +22,7 @@
                         'player_joined' => 'person_add',
                         'game_completed', 'campaign_completed' => 'check_circle',
                         'session_scheduled' => 'event_add',
+                        'session_recapped' => 'auto_stories',
                         default => 'notifications',
                     };
                 @endphp
@@ -29,9 +30,9 @@
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start gap-3">
                     {{-- Activity Icon --}}
                     <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center
-                        {{ $activity->type === 'game_completed' || $activity->type === 'campaign_completed' ? 'bg-secondary-container' : 'bg-primary/10' }}">
+                        {{ $activity->type === 'game_completed' || $activity->type === 'campaign_completed' ? 'bg-secondary-container' : ($activity->type === 'session_recapped' ? 'bg-tertiary/15' : 'bg-primary/10') }}">
                         <span class="material-symbols-outlined text-lg
-                            {{ $activity->type === 'game_completed' || $activity->type === 'campaign_completed' ? 'text-on-secondary-container' : 'text-primary' }}"
+                            {{ $activity->type === 'game_completed' || $activity->type === 'campaign_completed' ? 'text-on-secondary-container' : ($activity->type === 'session_recapped' ? 'text-tertiary' : 'text-primary') }}"
                             aria-hidden="true">{{ $icon }}</span>
                     </div>
 
@@ -65,6 +66,9 @@
                                     @break
                                 @case('game_completed')
                                     <span class="text-sm text-on-surface-variant">{{ __('games.activity_completed_game') }}</span>
+                                    @break
+                                @case('session_recapped')
+                                    <span class="text-sm text-on-surface-variant">{{ __('games.activity_recapped_game') }}</span>
                                     @break
                                 @case('campaign_completed')
                                     <span class="text-sm text-on-surface-variant">{{ __('campaigns.activity_completed_campaign') }}</span>

@@ -359,6 +359,25 @@
                         <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
                     @endif
                 </section>
+
+                {{-- Host Recap (only on completed games with recap content) --}}
+                @if($game->status === 'completed' && $game->recap)
+                    <section class="bg-tertiary/5 border-l-4 border-tertiary rounded-xl shadow-ambient p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">auto_stories</span>
+                            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_host_recap') }}</h2>
+                        </div>
+                        <div class="prose prose-sm max-w-none text-on-surface">
+                            {!! nl2br(e($game->recap)) !!}
+                        </div>
+                        @if($game->owner)
+                            <div class="mt-4 flex items-center gap-2 text-sm text-on-surface-variant">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">person</span>
+                                {{ __('games.content_recap_by', ['host' => $game->owner->name]) }}
+                            </div>
+                        @endif
+                    </section>
+                @endif
             </div>
 
             {{-- Sidebar --}}

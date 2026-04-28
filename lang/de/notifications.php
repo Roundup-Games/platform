@@ -242,4 +242,11 @@ return [
     'push_body_dispute_resolved_favor' => 'Dein Einspruch für :game wurde zu deinen Gunsten geklärt',
     'push_title_dispute_upheld' => 'Einspruch geprüft',
     'push_body_dispute_upheld' => 'Die Anwesenheitsmeldung für :game wurde beibehalten',
+
+    // Nachbericht veröffentlicht
+    'subject_recap_posted' => ':host hat einen Nachbericht für :game geschrieben',
+    'body_recap_posted' => '**:host** hat einen Nachbericht für **:game** verfasst. Schau ihn dir an!',
+    'action_view_recap' => 'Nachbericht anzeigen',
+    'push_title_recap_posted' => 'Sitzungsnachbericht',
+    'push_body_recap_posted' => ':host hat einen Nachbericht für :game geschrieben',
 ];

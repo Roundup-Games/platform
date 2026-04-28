@@ -254,4 +254,11 @@ return [
     'push_body_dispute_resolved_favor' => 'Your dispute for :game was resolved in your favor',
     'push_title_dispute_upheld' => 'Dispute Reviewed',
     'push_body_dispute_upheld' => 'The attendance report for :game was upheld',
+
+    // Recap posted
+    'subject_recap_posted' => ':host wrote a recap for :game',
+    'body_recap_posted' => '**:host** wrote a post-session recap for **:game**. Check it out!',
+    'action_view_recap' => 'View Recap',
+    'push_title_recap_posted' => 'Session Recap Posted',
+    'push_body_recap_posted' => ':host wrote a recap for :game',
 ];

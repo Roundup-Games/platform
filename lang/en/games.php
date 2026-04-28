@@ -294,4 +294,13 @@ return [
     'field_reliability_preference' => 'Attendance Preference',
     'hint_reliability_preference' => 'Optionally prefer players with a minimum attendance rate (%). This is a soft preference, not a hard filter.',
     'content_host_prefers_attendance' => 'Host prefers ≥:percent% attendance',
+
+    // Recap
+    'title_host_recap' => 'Host Recap',
+    'content_recap_by' => 'Written by :host',
+    'activity_recapped_game' => 'wrote a recap for',
+    'recap_error_game_not_completed' => 'Cannot write a recap for a game that is not completed.',
+    'recap_error_not_host' => 'Only the host can write a recap.',
+    'recap_error_too_long' => 'Recap must not exceed 2000 characters.',
+    'recap_error_empty' => 'Recap content cannot be empty.',
 ];
