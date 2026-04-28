@@ -165,6 +165,31 @@ test('host does not see bench section on standalone game', function () {
         ->assertDontSee(__('games.content_bench_description'));
 });
 
+test('non-host cannot see bench management on campaign', function () {
+    $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
+    $this->addBenchUser($campaign);
+    $otherUser = User::factory()->create();
+
+    // Non-host should NOT see bench management section or promote buttons
+    Livewire::actingAs($otherUser)
+        ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+        ->assertDontSeeHtml('promoteFromBench')
+        ->assertDontSee(__('campaigns.action_promote_from_bench'));
+});
+
+test('non-host cannot see bench management on campaign session', function () {
+    $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
+    $game = $this->createFullBenchSession($campaign, maxPlayers: 2);
+    $this->addBenchUser($game);
+    $otherUser = User::factory()->create();
+
+    // Non-host should NOT see bench management section or promote buttons
+    Livewire::actingAs($otherUser)
+        ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        ->assertDontSeeHtml('promoteFromBench')
+        ->assertDontSee(__('games.action_promote_from_bench'));
+});
+
 // ── Promotion edge cases ─────────────────────────────────
 
 test('promote from bench fails when campaign is still full', function () {

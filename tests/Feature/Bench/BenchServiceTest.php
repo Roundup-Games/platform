@@ -277,6 +277,24 @@ test('bench list is empty when no benched participants', function () {
     expect($bench)->toHaveCount(0);
 });
 
+test('bench list is unordered — returns all benched regardless of order', function () {
+    $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
+    $users = collect()->push(User::factory()->create(), User::factory()->create());
+
+    // Add two users to bench
+    foreach ($users as $user) {
+        $this->service->addToBench($campaign, $user);
+    }
+
+    $bench = $this->service->getBenchList($campaign);
+
+    // We just care that both are present; order is not guaranteed
+    expect($bench)->toHaveCount(2);
+    $benchUserIds = $bench->pluck('user_id')->toArray();
+    expect($benchUserIds)->toContain($users[0]->id);
+    expect($benchUserIds)->toContain($users[1]->id);
+});
+
 // ── isBenchMode ──────────────────────────────────────────
 
 test('game isBenchMode returns true when it has campaign_id', function () {
