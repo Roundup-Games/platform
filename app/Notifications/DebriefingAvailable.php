@@ -83,8 +83,8 @@ class DebriefingAvailable extends Notification
             body: __('notifications.push_body_debriefing_available', [
                 'game' => $this->game->name,
             ]),
-            icon: asset('images/logo.png'),
-            url: route('games.detail', $this->game->id),
+            icon: '/icons/pwa-192x192.png',
+            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
             tag: "debriefing_{$this->game->id}",
         );
     }

@@ -18,6 +18,8 @@ return [
     'category_campaign_cancelled' => 'Kampagne abgesagt',
     'category_campaign_completed' => 'Kampagne abgeschlossen',
     'category_review_reported' => 'Bewertung gemeldet',
+    'category_below_min_players' => 'Mindestspielerzahl nicht erreicht',
+    'category_confirmation_expired' => 'Bestätigung abgelaufen',
 
     // UI — Benachrichtigungsglocke
     'bell_label' => 'Benachrichtigungen (:count ungelesen)',
@@ -39,6 +41,7 @@ return [
     'group_participation' => 'Teilnahme',
     'group_status' => 'Status',
     'group_content' => 'Inhalte',
+    'group_scheduling' => 'Planung',
 
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',
@@ -256,4 +259,21 @@ return [
     'action_submit_debriefing' => 'Debriefing absenden',
     'push_title_debriefing_available' => 'Sitzungs-Debriefing verfügbar',
     'push_body_debriefing_available' => 'Teile deine Gedanken zu :game',
+
+    // Wartelisten-Beförderung
+    'subject_waitlist_promoted' => 'Ein Platz ist frei in :game!',
+    'body_waitlist_promoted' => 'Ein Platz in **:game** ist frei geworden! Du hast bis :deadline Zeit, deine Teilnahme zu bestätigen.',
+    'action_waitlist_promoted' => 'Platz bestätigen',
+
+    // Bestätigung abgelaufen
+    'subject_confirmation_expired' => 'Bestätigungsfrist abgelaufen für :game',
+    'body_confirmation_expired' => 'Deine Bestätigungsfrist für **:game** ist abgelaufen. Du wurdest ans Ende der Warteliste verschoben.',
+
+    // Mindestspielerzahl nicht erreicht
+    'subject_below_min_players' => ':game braucht mehr Spieler',
+    'body_below_min_players' => '**:game** hat aktuell :current Spieler, benötigt aber mindestens :min. Lade mehr Spieler ein.',
+
+    // 24-Stunden-Sitzungserinnerung
+    'push_title_session_reminder_24h' => 'Sitzung morgen',
+    'push_body_session_reminder_24h' => ':game startet morgen um :time',
 ];

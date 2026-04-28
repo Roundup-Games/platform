@@ -178,12 +178,14 @@ describe('Trypass events via HTTP', function () {
         $response->assertSee('pwaInstallPrompt()', false);
     });
 
-    it('user who just received a follow sees prompt via trypass', function () {
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+    it('user who just received a game invitation sees prompt via trypass', function () {
+        $host = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create(['owner_id' => $host->id]);
+        GameParticipant::create([
+            'user_id' => $this->user->id,
+            'game_id' => $game->id,
+            'status' => 'pending',
+            'role' => 'player',
         ]);
 
         session()->flush();

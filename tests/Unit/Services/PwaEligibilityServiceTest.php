@@ -2,6 +2,7 @@
 
 use App\Dto\PwaEligibilityResult;
 use App\Enums\RelationshipType;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Location;
@@ -118,7 +119,7 @@ describe('Trypass events', function () {
         expect($result->source)->not->toBe('trypass');
     });
 
-    it('passes for game created within last 5 minutes (owner)', function () {
+    it('passes for first game created within last 5 minutes (owner)', function () {
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'date_time' => now()->addDays(30), // far future — not the 7-day check
@@ -129,19 +130,26 @@ describe('Trypass events', function () {
 
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
-            ->and($result->reason)->toBe('trypass_game_created');
+            ->and($result->reason)->toBe('trypass_first_game_created');
     });
 
-    it('does not trypass for game created more than 5 minutes ago', function () {
+    it('does not trypass for second game created within 5 minutes', function () {
+        // First game (old) — already exists
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'date_time' => now()->addDays(30),
-            'created_at' => now()->subMinutes(10),
+            'created_at' => now()->subDay(),
+        ]);
+        // Second game (recent) — should NOT trigger first-game trypass
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
         ]);
 
         $result = $this->service->isEligible($this->user);
 
-        expect($result->reason)->not->toBe('trypass_game_created');
+        expect($result->reason)->not->toBe('trypass_first_game_created');
     });
 
     it('passes for game joined (approved participant on recently created game) within 5 minutes', function () {
@@ -163,45 +171,88 @@ describe('Trypass events', function () {
             ->and($result->reason)->toBe('trypass_game_joined');
     });
 
-    it('passes for follow relationship received within last 5 minutes', function () {
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+    it('passes for game invitation received within last 5 minutes', function () {
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
         ]);
 
         $result = $this->service->isEligible($this->user);
 
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
-            ->and($result->reason)->toBe('trypass_follow_received');
+            ->and($result->reason)->toBe('trypass_invitation_received');
     });
 
-    it('does not trypass for follow received more than 5 minutes ago', function () {
-        $follower = User::factory()->create();
-        $rel = UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+    it('does not trypass for invitation on old game (more than 5 minutes ago)', function () {
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(10),
         ]);
-        // Bypass mass-assignment protection via direct query
-        \DB::table('user_relationships')
-            ->where('id', $rel->id)
-            ->update(['created_at' => now()->subMinutes(10)]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
+        ]);
 
         $result = $this->service->isEligible($this->user);
 
-        expect($result->reason)->not->toBe('trypass_follow_received');
+        expect($result->reason)->not->toBe('trypass_invitation_received');
+    });
+
+    it('passes for first campaign created within last 5 minutes', function () {
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'created_at' => now()->subMinutes(2),
+        ]);
+
+        $result = $this->service->isEligible($this->user);
+
+        expect($result->eligible)->toBeTrue()
+            ->and($result->source)->toBe('trypass')
+            ->and($result->reason)->toBe('trypass_first_campaign_created');
+    });
+
+    it('does not trypass for second campaign created within 5 minutes', function () {
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'created_at' => now()->subDay(),
+        ]);
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'created_at' => now()->subMinutes(2),
+        ]);
+
+        $result = $this->service->isEligible($this->user);
+
+        expect($result->reason)->not->toBe('trypass_first_campaign_created');
     });
 
     it('trypass overrides even when score gate would fail', function () {
         // No visit days, no game participation, no social investment — score gate would fail
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+        // But a recently-created game with the user as pending participant triggers invitation trypass
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -213,11 +264,17 @@ describe('Trypass events', function () {
     it('trypass is blocked when baseline fails', function () {
         $this->user->update(['profile_complete' => false]);
 
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -266,7 +323,7 @@ describe('Score gate combinations', function () {
             if ($games) {
                 $game = Game::factory()->create([
                     'date_time' => now()->subDay(), // past — avoids trypass_game_upcoming
-                    'created_at' => now()->subDay(), // old — avoids trypass_game_created/joined
+                    'created_at' => now()->subDay(), // old — avoids trypass_first_game_created/joined
                 ]);
                 GameParticipant::create([
                     'game_id' => $game->id,
@@ -283,7 +340,7 @@ describe('Score gate combinations', function () {
                     'related_user_id' => $otherUser->id,
                     'type' => RelationshipType::Follow,
                 ]);
-                // Make the follow old to avoid trypass_follow_received
+                // Make the follow old to avoid any follow-based trypass
                 \DB::table('user_relationships')
                     ->where('id', $rel->id)
                     ->update(['created_at' => now()->subDay()]);
@@ -343,12 +400,18 @@ describe('Session caching', function () {
         // First call — cached
         $this->service->isEligible($this->user);
 
-        // Add a qualifying signal
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+        // Add a qualifying signal (game invitation)
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
         ]);
 
         // Reevaluate should detect the trypass
@@ -367,12 +430,18 @@ describe('Session caching', function () {
         $cached['expires'] = now()->subMinute()->timestamp;
         session([$cacheKey => $cached]);
 
-        // Add a qualifying signal
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
+        // Add a qualifying signal (game invitation)
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->addDays(30),
+            'created_at' => now()->subMinutes(2),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'pending',
         ]);
 
         // Should re-evaluate (cache expired)

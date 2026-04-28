@@ -19,9 +19,11 @@ class SessionReminder extends Notification
 {
     /**
      * @param  Game  $game  The game that is starting soon
+     * @param  string  $window  '24h' or '1h' — controls the notification message
      */
     public function __construct(
         public Game $game,
+        public string $window = '1h',
     ) {}
 
     /**
@@ -67,15 +69,23 @@ class SessionReminder extends Notification
             ? $this->game->date_time->setTimezone($timezone)->format('g:i A T')
             : '';
 
+        $titleKey = $this->window === '24h'
+            ? 'notifications.push_title_session_reminder_24h'
+            : 'notifications.push_title_session_reminder';
+
+        $bodyKey = $this->window === '24h'
+            ? 'notifications.push_body_session_reminder_24h'
+            : 'notifications.push_body_session_reminder';
+
         return new PushPayload(
-            title: __('notifications.push_title_session_reminder'),
-            body: __('notifications.push_body_session_reminder', [
+            title: __($titleKey),
+            body: __($bodyKey, [
                 'game' => $this->game->name,
                 'time' => $time,
             ]),
             icon: '/icons/pwa-192x192.png',
             url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
-            tag: "game-reminder-{$this->game->id}",
+            tag: "game-reminder-{$this->window}-{$this->game->id}",
         );
     }
 

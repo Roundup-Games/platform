@@ -116,13 +116,18 @@ class PwaEligibilityService
             return PwaEligibilityResult::eligibleViaTrypass('trypass_game_upcoming');
         }
 
-        // 2b. Most recent Game creation (as owner) within last 5 minutes
+        // 2b. First game creation (as owner) within last 5 minutes
         $recentlyCreatedGame = Game::where('owner_id', $user->id)
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
         if ($recentlyCreatedGame) {
-            return PwaEligibilityResult::eligibleViaTrypass('trypass_game_created');
+            // Only trigger for the user's first-ever game creation
+            $totalOwnedGames = Game::where('owner_id', $user->id)->count();
+
+            if ($totalOwnedGames <= 1) {
+                return PwaEligibilityResult::eligibleViaTrypass('trypass_first_game_created');
+            }
         }
 
         // 2c. Most recent GameParticipant approval within last 5 minutes
@@ -138,14 +143,30 @@ class PwaEligibilityService
             return PwaEligibilityResult::eligibleViaTrypass('trypass_game_joined');
         }
 
-        // 2d. Most recent follow relationship received within last 5 minutes
-        $recentlyReceivedFollow = UserRelationship::where('related_user_id', $user->id)
-            ->where('type', RelationshipType::Follow)
+        // 2d. Recently received game/campaign invitation (GameParticipant with status 'pending')
+        //     GameParticipant has no timestamps, so we check via the parent Game.created_at
+        $recentlyInvited = Game::whereHas('participants', fn ($q) => $q
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+        )
             ->where('created_at', '>=', now()->subMinutes(5))
             ->exists();
 
-        if ($recentlyReceivedFollow) {
-            return PwaEligibilityResult::eligibleViaTrypass('trypass_follow_received');
+        if ($recentlyInvited) {
+            return PwaEligibilityResult::eligibleViaTrypass('trypass_invitation_received');
+        }
+
+        // 2e. First campaign creation within last 5 minutes
+        $recentlyCreatedCampaign = \App\Models\Campaign::where('owner_id', $user->id)
+            ->where('created_at', '>=', now()->subMinutes(5))
+            ->exists();
+
+        if ($recentlyCreatedCampaign) {
+            $totalOwnedCampaigns = \App\Models\Campaign::where('owner_id', $user->id)->count();
+
+            if ($totalOwnedCampaigns <= 1) {
+                return PwaEligibilityResult::eligibleViaTrypass('trypass_first_campaign_created');
+            }
         }
 
         return null;

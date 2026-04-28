@@ -186,7 +186,7 @@ describe('SessionReminder push payload', function () {
             ->and($payload->body)->toContain('Weekly Session')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
-            ->and($payload->tag)->toBe("game-reminder-{$game->id}");
+            ->and($payload->tag)->toBe("game-reminder-1h-{$game->id}");
     });
 
     it('body contains timezone-aware formatted time', function () {

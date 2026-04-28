@@ -268,4 +268,8 @@ return [
     'action_submit_debriefing' => 'Submit Debriefing',
     'push_title_debriefing_available' => 'Session Debriefing Available',
     'push_body_debriefing_available' => 'Share your thoughts on :game',
+
+    // 24-hour session reminder
+    'push_title_session_reminder_24h' => 'Session Tomorrow',
+    'push_body_session_reminder_24h' => ':game starts tomorrow at :time',
 ];

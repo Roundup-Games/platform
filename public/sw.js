@@ -4,7 +4,8 @@
  * Caching strategies:
  *  - Static assets (hashed JS/CSS, icons, manifest): cache-first
  *  - HTML/page requests: network-first (3 s timeout)
- *  - API requests (/api/*): network-only
+ *  - Public API (/api/geocode, /api/session-counts): stale-while-revalidate
+ *  - Other API requests (/api/*): network-only
  *  - Cross-origin requests: bypass
  */
 
@@ -108,7 +109,15 @@ self.addEventListener('fetch', (event) => {
     if (url.origin !== self.location.origin) return;
 
     // API requests — network only (never cache authenticated responses)
-    if (url.pathname.startsWith('/api/')) return;
+    if (url.pathname.startsWith('/api/')) {
+        // Exception: geocode and session-count are unauthenticated public endpoints.
+        // Stale-while-revalidate: serve cached response immediately, update cache in background.
+        if (url.pathname === '/api/geocode' || url.pathname === '/api/session-counts') {
+            event.respondWith(staleWhileRevalidate(request));
+            return;
+        }
+        return;
+    }
 
     // Livewire endpoints — network only (covers /livewire/* and /livewire-<hash>/*)
     // POST Livewire requests are already excluded by the non-GET check below,
@@ -194,6 +203,36 @@ async function networkFirst(request, timeoutMs) {
 
         return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
     }
+}
+
+/**
+ * Stale-while-revalidate: serve cached response immediately if available,
+ * then fetch a fresh copy in the background to update the cache.
+ * Falls back to network-only when no cache entry exists.
+ */
+async function staleWhileRevalidate(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+
+    // Fetch fresh copy in background to update cache
+    const fetchPromise = fetch(request).then((response) => {
+        if (response.ok) {
+            cache.put(request, response.clone());
+        }
+        return response;
+    }).catch(() => {
+        // Network failed — that's fine, we may have a cached version
+    });
+
+    // Return cached immediately if available, otherwise wait for network
+    if (cached) {
+        return cached;
+    }
+
+    return fetchPromise.then((response) => {
+        if (response) return response;
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    });
 }
 
 // ── Push ────────────────────────────────────────────────────────────────────

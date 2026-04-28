@@ -103,7 +103,7 @@ describe('Full eligibility flow', function () {
         $result = $this->service->isEligible($user);
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
-            ->and($result->reason)->toBe('trypass_game_created');
+            ->and($result->reason)->toBe('trypass_first_game_created');
 
         // Verify prompt appears in HTTP response
         $response = actingAs($user)->get(route('dashboard'));

@@ -11,7 +11,7 @@ describe('SendSessionReminders command', function () {
     it('runs successfully with no upcoming games', function () {
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 
     it('skips games with reminder already sent', function () {
@@ -27,7 +27,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 
     it('skips cancelled and completed games', function () {
@@ -50,7 +50,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 
     it('skips games starting beyond 1 hour', function () {
@@ -66,7 +66,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 
     it('skips games starting in the past', function () {
@@ -82,7 +82,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 
     it('finds games starting within 1 hour and marks reminder_sent_at', function () {
@@ -107,7 +107,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutputToContain('Found 1 upcoming game(s)');
+            ->expectsOutputToContain('Found 1 game(s)');
 
         // Verify reminder_sent_at was set
         expect($game->fresh()->reminder_sent_at)->not->toBeNull();
@@ -328,7 +328,7 @@ describe('SendSessionReminders command', function () {
 
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutputToContain('Found 2 upcoming game(s)');
+            ->expectsOutputToContain('Found 2 game(s)');
 
         // Both games should be marked
         expect($game1->fresh()->reminder_sent_at)->not->toBeNull()
@@ -354,7 +354,6 @@ describe('SendSessionReminders command', function () {
         Log::shouldHaveReceived('info')
             ->withArgs(function (string $message, array $context) {
                 return $message === 'session_reminders.completed'
-                    && isset($context['game_count'])
                     && isset($context['push_count'])
                     && isset($context['error_count'])
                     && isset($context['duration_ms']);

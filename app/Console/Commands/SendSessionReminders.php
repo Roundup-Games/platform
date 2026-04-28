@@ -45,28 +45,72 @@ class SendSessionReminders extends Command
             'dry_run' => $dryRun,
         ]);
 
-        // ── Find upcoming games ──
+        $totalPushCount = 0;
+        $totalErrorCount = 0;
+
+        // ── 24-hour window ──
+        [$pushCount24h, $errorCount24h] = $this->sendRemindersForWindow(
+            $notificationService,
+            $dryRun,
+            $now,
+            '24h',
+            now()->copy()->addHours(24),
+            'reminder_24h_sent_at',
+        );
+        $totalPushCount += $pushCount24h;
+        $totalErrorCount += $errorCount24h;
+
+        // ── 1-hour window ──
+        [$pushCount1h, $errorCount1h] = $this->sendRemindersForWindow(
+            $notificationService,
+            $dryRun,
+            $now,
+            '1h',
+            now()->copy()->addHour(),
+            'reminder_sent_at',
+        );
+        $totalPushCount += $pushCount1h;
+        $totalErrorCount += $errorCount1h;
+
+        $durationMs = $startedAt->diffInMilliseconds(now());
+
+        $this->info("Completed: {$totalPushCount} pushes sent, {$totalErrorCount} errors");
+        Log::info('session_reminders.completed', [
+            'push_count' => $totalPushCount,
+            'error_count' => $totalErrorCount,
+            'duration_ms' => $durationMs,
+        ]);
+
+        return $totalErrorCount > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * Send reminders for a specific time window (24h or 1h).
+     *
+     * @return array{int, int} [pushCount, errorCount]
+     */
+    private function sendRemindersForWindow(
+        NotificationService $notificationService,
+        bool $dryRun,
+        $now,
+        string $window,
+        $windowEnd,
+        string $sentAtColumn,
+    ): array {
         $games = Game::query()
             ->where('status', 'scheduled')
             ->where('date_time', '>', $now)
-            ->where('date_time', '<=', $now->copy()->addHour())
-            ->whereNull('reminder_sent_at')
+            ->where('date_time', '<=', $windowEnd)
+            ->whereNull($sentAtColumn)
             ->with(['participants.user.pushSubscriptions', 'owner'])
             ->get();
 
         $gameCount = $games->count();
-        $this->info("Found {$gameCount} upcoming game(s) needing reminders.");
+        $windowLabel = $window === '24h' ? '24-hour' : '1-hour';
+        $this->info("[{$windowLabel}] Found {$gameCount} game(s) needing reminders.");
 
         if ($gameCount === 0) {
-            Log::info('session_reminders.completed', [
-                'game_count' => 0,
-                'participant_count' => 0,
-                'push_count' => 0,
-                'error_count' => 0,
-                'duration_ms' => $startedAt->diffInMilliseconds(now()),
-            ]);
-
-            return self::SUCCESS;
+            return [0, 0];
         }
 
         $participantCount = 0;
@@ -104,7 +148,7 @@ class SendSessionReminders extends Command
                 }
 
                 // Build the push payload
-                $notification = new SessionReminder($game);
+                $notification = new SessionReminder($game, $window);
                 $payload = $notification->toPush($user);
 
                 if ($payload === null) {
@@ -114,15 +158,13 @@ class SendSessionReminders extends Command
                 // Send to each subscription
                 foreach ($user->pushSubscriptions as $subscription) {
                     if ($dryRun) {
-                        $this->line("  Would send to user {$user->id} (subscription {$subscription->id}) for game {$game->name}");
+                        $this->line("  [{$windowLabel}] Would send to user {$user->id} (subscription {$subscription->id}) for game {$game->name}");
                         $pushCount++;
 
                         continue;
                     }
 
                     // Lazily resolve WebPush only when we actually need to send.
-                    // May be null if VAPID keys are not configured — skip push
-                    // but still deliver database notifications below.
                     $webPush ??= app(WebPush::class);
 
                     if ($webPush === null) {
@@ -162,22 +204,19 @@ class SendSessionReminders extends Command
 
             // Mark reminder as sent for this game
             if (! $dryRun) {
-                $game->update(['reminder_sent_at' => now()]);
+                $game->update([$sentAtColumn => now()]);
             }
         }
 
-        $durationMs = $startedAt->diffInMilliseconds(now());
-
-        $this->info("Completed: {$gameCount} games, {$participantCount} participants, {$pushCount} pushes sent, {$errorCount} errors");
-        Log::info('session_reminders.completed', [
+        Log::info("session_reminders.window_{$window}_completed", [
+            'window' => $window,
             'game_count' => $gameCount,
             'participant_count' => $participantCount,
             'push_count' => $pushCount,
             'error_count' => $errorCount,
-            'duration_ms' => $durationMs,
         ]);
 
-        return $errorCount > 0 ? self::FAILURE : self::SUCCESS;
+        return [$pushCount, $errorCount];
     }
 
     /**

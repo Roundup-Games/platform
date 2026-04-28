@@ -90,6 +90,6 @@ describe('SendSessionReminders without VAPID keys', function () {
     it('runs with no upcoming games even without VAPID keys', function () {
         $this->artisan('pwa:send-session-reminders')
             ->assertSuccessful()
-            ->expectsOutput('Found 0 upcoming game(s) needing reminders.');
+            ->expectsOutputToContain('Found 0 game(s)');
     });
 });

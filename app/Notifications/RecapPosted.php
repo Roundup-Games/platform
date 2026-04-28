@@ -87,8 +87,8 @@ class RecapPosted extends Notification
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),
-            icon: asset('images/logo.png'),
-            url: route('games.detail', $this->game->id),
+            icon: '/icons/pwa-192x192.png',
+            url: route('games.detail', ['locale' => app()->getLocale(), 'id' => $this->game->id]),
             tag: "recap_{$this->game->id}",
         );
     }
