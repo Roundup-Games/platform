@@ -21,7 +21,7 @@ use Minishlink\WebPush\WebPush;
 class PushChannel
 {
     public function __construct(
-        private WebPush $webPush,
+        private ?WebPush $webPush,
     ) {}
 
     /**
@@ -29,6 +29,11 @@ class PushChannel
      */
     public function send($notifiable, Notification $notification): void
     {
+        // 0. Graceful degradation when VAPID keys are not configured
+        if ($this->webPush === null) {
+            return;
+        }
+
         // 1. Get push payload from notification
         if (! method_exists($notification, 'toPush')) {
             return;

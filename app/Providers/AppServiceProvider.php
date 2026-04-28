@@ -16,6 +16,7 @@ use App\Observers\ActivityLogObserver;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
@@ -30,13 +31,24 @@ class AppServiceProvider extends ServiceProvider
     {
         Cashier::ignoreRoutes();
 
-        // Web Push client singleton — configured from VAPID env vars
+        // Web Push client singleton — configured from VAPID env vars.
+        // Returns null when keys are missing so push code paths degrade
+        // gracefully instead of crashing with an ErrorException.
         $this->app->singleton(WebPush::class, function ($app) {
+            $publicKey = config('services.vapid.public_key');
+            $privateKey = config('services.vapid.private_key');
+
+            if (! $publicKey || ! $privateKey) {
+                Log::warning('VAPID keys not configured, push notifications disabled');
+
+                return null;
+            }
+
             return new WebPush([
                 'VAPID' => [
                     'subject' => config('services.vapid.subject'),
-                    'publicKey' => config('services.vapid.public_key'),
-                    'privateKey' => config('services.vapid.private_key'),
+                    'publicKey' => $publicKey,
+                    'privateKey' => $privateKey,
                 ],
             ]);
         });

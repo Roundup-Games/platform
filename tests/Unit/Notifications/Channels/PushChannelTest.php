@@ -22,6 +22,38 @@ describe('PushChannel', function () {
         Mockery::close();
     });
 
+    it('returns early when WebPush is null (VAPID keys missing)', function () {
+        $channel = new PushChannel(null);
+
+        $sub = Mockery::mock(PushSubscription::class)->makePartial();
+        $sub->endpoint = 'https://push.example.com/1';
+        $sub->p256h_key = 'key1';
+        $sub->auth_token = 'auth1';
+
+        $user = Mockery::mock(User::class);
+        $user->shouldNotReceive('getAttribute');
+
+        $payload = new PushPayload('Title', 'Body', '/icon.png', '/url');
+        $notification = new class($payload) extends Notification
+        {
+            public function __construct(private PushPayload $payload) {}
+
+            public function via(object $notifiable): array
+            {
+                return [];
+            }
+
+            public function toPush(object $notifiable): PushPayload
+            {
+                return $this->payload;
+            }
+        };
+
+        // Should not throw or attempt to access subscriptions
+        $channel->send($user, $notification);
+        expect(true)->toBeTrue();
+    });
+
     it('does nothing when notification has no toPush method', function () {
         $user = Mockery::mock(User::class);
         $notification = new class extends Notification

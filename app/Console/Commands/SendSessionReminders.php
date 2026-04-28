@@ -120,8 +120,19 @@ class SendSessionReminders extends Command
                         continue;
                     }
 
-                    // Lazily resolve WebPush only when we actually need to send
+                    // Lazily resolve WebPush only when we actually need to send.
+                    // May be null if VAPID keys are not configured — skip push
+                    // but still deliver database notifications below.
                     $webPush ??= app(WebPush::class);
+
+                    if ($webPush === null) {
+                        Log::info('session_reminders.vapid_not_configured', [
+                            'user_id' => $user->id,
+                            'game_id' => $game->id,
+                        ]);
+
+                        continue;
+                    }
 
                     if ($this->sendPush($webPush, $subscription, $payload)) {
                         $pushCount++;
