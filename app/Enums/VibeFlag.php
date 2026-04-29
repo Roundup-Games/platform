@@ -111,6 +111,66 @@ enum VibeFlag: string
     }
 
     /**
+     * Returns VibeFlag cases relevant to a game type.
+     *
+     * - 'board_game' → shared flags (tone, content subset, playstyle subset, social)
+     * - 'ttrpg'      → all 30 cases (no filtering)
+     * - unknown      → all cases (safe fallback)
+     *
+     * @return VibeFlag[]
+     */
+    public static function forGameType(string $gameType): array
+    {
+        if ($gameType === 'board_game') {
+            return [
+                // Tone
+                self::Atmospheric, self::Lighthearted, self::Serious, self::Horror, self::Humorous,
+                // Content
+                self::FamilyFriendly, self::MatureThemes,
+                // Playstyle
+                self::RulesLight, self::RulesHeavy, self::Tactical, self::PuzzleSolving,
+                // Social
+                self::Competitive, self::Cooperative, self::NewPlayerFriendly, self::DropInFriendly,
+            ];
+        }
+
+        // ttrpg and unknown → all cases
+        return self::cases();
+    }
+
+    /**
+     * Grouped options for UI display, filtered by game type.
+     *
+     * Same structure as grouped() but only includes flags from forGameType().
+     * Empty groups are omitted.
+     *
+     * @return array<string, array{label: string, options: array<string, string>}>
+     */
+    public static function groupedForGameType(string $gameType): array
+    {
+        $allowed = collect(self::forGameType($gameType))->keyBy(fn (VibeFlag $f) => $f->value);
+        $allGrouped = self::grouped();
+
+        $result = [];
+        foreach ($allGrouped as $groupKey => $group) {
+            $filteredOptions = [];
+            foreach ($group['options'] as $value => $label) {
+                if ($allowed->has($value)) {
+                    $filteredOptions[$value] = $label;
+                }
+            }
+            if (! empty($filteredOptions)) {
+                $result[$groupKey] = [
+                    'label' => $group['label'],
+                    'options' => $filteredOptions,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Grouped options for UI display.
      *
      * @return array<string, array{label: string, options: array<string, string>}>
