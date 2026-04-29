@@ -461,3 +461,150 @@ describe('Parent Sync', function () {
             ->assertDispatched('value-updated', value: null);
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// GAME TYPE PARAMETER
+// ═══════════════════════════════════════════════════════════
+
+describe('Game Type Parameter', function () {
+    it('defaults to boardgame game type', function () {
+        $component = Livewire::test(GameSystemPicker::class);
+        $component->assertSet('gameType', 'boardgame');
+    });
+
+    it('accepts ttrpg game type via mount', function () {
+        $component = Livewire::test(GameSystemPicker::class, [
+            'gameType' => 'ttrpg',
+        ]);
+        $component->assertSet('gameType', 'ttrpg');
+    });
+
+    it('filters search results to ttrpg type', function () {
+        $user = pickerCreateUser();
+        GameSystem::factory()->create([
+            'name' => 'Dungeons & Dragons',
+            'type' => 'ttrpg',
+            'base_game_id' => null,
+        ]);
+        GameSystem::factory()->create([
+            'name' => 'Wingspan',
+            'type' => 'boardgame',
+            'base_game_id' => null,
+        ]);
+
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg'])
+            ->set('search', 'Dragons');
+
+        $results = $component->instance()->searchResults;
+        expect($results)->toHaveCount(1);
+        expect($results->first()->name)->toBe('Dungeons & Dragons');
+    });
+
+    it('excludes board games from ttrpg search results', function () {
+        $user = pickerCreateUser();
+        GameSystem::factory()->create([
+            'name' => 'Wingspan',
+            'type' => 'boardgame',
+            'base_game_id' => null,
+        ]);
+        GameSystem::factory()->create([
+            'name' => 'Call of Cthulhu RPG',
+            'type' => 'ttrpg',
+            'base_game_id' => null,
+        ]);
+
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg'])
+            ->set('search', 'Cthulhu');
+
+        $results = $component->instance()->searchResults;
+        expect($results)->toHaveCount(1);
+        expect($results->first()->name)->toBe('Call of Cthulhu RPG');
+    });
+
+    it('filters favorites to ttrpg type', function () {
+        $user = pickerCreateUser();
+        $ttrpg = GameSystem::factory()->create([
+            'name' => 'Pathfinder',
+            'type' => 'ttrpg',
+            'base_game_id' => null,
+        ]);
+        $boardGame = pickerCreateBaseGame(['name' => 'Chess']);
+
+        $user->favoriteGameSystems()->attach($ttrpg->id, ['preference_type' => 'favorite']);
+        $user->favoriteGameSystems()->attach($boardGame->id, ['preference_type' => 'favorite']);
+
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg']);
+
+        $favorites = $component->instance()->favoriteSystems;
+        expect($favorites)->toHaveCount(1);
+        expect($favorites->first()->name)->toBe('Pathfinder');
+    });
+
+    it('skips expansion picker for ttrpg even when game has expansions', function () {
+        $user = pickerCreateUser();
+        $base = GameSystem::factory()->create([
+            'name' => 'D&D 5e',
+            'type' => 'ttrpg',
+            'base_game_id' => null,
+        ]);
+        GameSystem::factory()->create([
+            'name' => 'D&D Player\'s Handbook',
+            'type' => 'ttrpg',
+            'base_game_id' => $base->id,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg'])
+            ->call('pickFromSearch', $base->id)
+            ->assertSet('value', $base->id)
+            ->assertSet('showExpansionPicker', false)
+            ->assertSet('search', 'D&D 5e');
+    });
+
+    it('does not search expansions by name in ttrpg mode', function () {
+        $user = pickerCreateUser();
+        $base = GameSystem::factory()->create([
+            'name' => 'D&D 5e',
+            'type' => 'ttrpg',
+            'base_game_id' => null,
+        ]);
+        GameSystem::factory()->create([
+            'name' => 'D&D Monster Manual',
+            'type' => 'ttrpg',
+            'base_game_id' => $base->id,
+        ]);
+
+        // Searching for "Monster" should NOT find the base D&D 5e via expansion name
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg'])
+            ->set('search', 'Monster');
+
+        $results = $component->instance()->searchResults;
+        expect($results)->toHaveCount(0);
+    });
+
+    it('uses ttrpg type in request link for empty state', function () {
+        $user = pickerCreateUser();
+
+        Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, ['gameType' => 'ttrpg'])
+            ->set('search', 'Nonexistent')
+            ->assertSeeHtml('type=ttrpg');
+    });
+
+    it('boardgame mode remains backward compatible', function () {
+        $user = pickerCreateUser();
+        $base = pickerCreateBaseGame(['name' => 'Chess']);
+
+        $component = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class)
+            ->set('search', 'Chess');
+
+        $results = $component->instance()->searchResults;
+        expect($results)->toHaveCount(1);
+        expect($results->first()->name)->toBe('Chess');
+    });
+});

@@ -37,6 +37,9 @@ class GameSystemPicker extends Component
     #[Locked]
     public string $label;
 
+    #[Locked]
+    public string $gameType = 'boardgame';
+
     public ?int $value = null;
 
     public string $error = '';
@@ -55,11 +58,13 @@ class GameSystemPicker extends Component
         string $label = '',
         ?int $value = null,
         string $error = '',
+        ?string $gameType = null,
     ): void {
         $this->fieldId = $fieldId;
         $this->label = $label ?: __('games.content_game_system');
         $this->value = $value;
         $this->error = $error;
+        $this->gameType = $gameType ?? 'boardgame';
 
         // Pre-populate search text if editing an existing selection
         if ($value) {
@@ -85,10 +90,8 @@ class GameSystemPicker extends Component
         }
 
         return $user->favoriteGameSystems()
-            ->where(function ($q) {
-                $q->where('bgg_type', 'boardgame')
-                    ->orWhereNull('bgg_type');
-            })
+            ->where('type', $this->gameType)
+            ->whereNull('base_game_id')
             ->orderBy('name')
             ->get();
     }
@@ -103,21 +106,29 @@ class GameSystemPicker extends Component
         $term = trim($this->search);
         $driver = GameSystem::query()->getQuery()->getConnection()->getDriverName();
 
-        // Only search base games (boardgame or null bgg_type)
-        $query = GameSystem::where(function ($q) {
-            $q->where('bgg_type', 'boardgame')
-                ->orWhereNull('bgg_type');
-        });
+        // Filter by type column (boardgame / ttrpg)
+        $query = GameSystem::where('type', $this->gameType);
+
+        // Only show base games (not expansions/sub-items)
+        if ($this->gameType === 'boardgame') {
+            $query->whereNull('base_game_id')
+                ->where('bgg_type', '!=', 'boardgameexpansion');
+        } else {
+            $query->whereNull('base_game_id');
+        }
 
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $escapedTerm = $this->escapeLikeWildcards($term);
 
         // Match on name directly, or match expansions whose name contains the term
+        // (expansion search only for board games)
         $query->where(function ($q) use ($likeOperator, $escapedTerm) {
-            $q->where('name', $likeOperator, "%{$escapedTerm}%")
-                ->orWhereHas('expansions', function ($q) use ($likeOperator, $escapedTerm) {
+            $q->where('name', $likeOperator, "%{$escapedTerm}%");
+            if ($this->gameType === 'boardgame') {
+                $q->orWhereHas('expansions', function ($q) use ($likeOperator, $escapedTerm) {
                     $q->where('name', $likeOperator, "%{$escapedTerm}%");
                 });
+            }
         });
 
         // Sort: prefix matches first, then by BGG rank, then by rating
@@ -127,13 +138,18 @@ class GameSystemPicker extends Component
             $query->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', ["{$escapedTerm}%"]);
         }
 
-        return $query
-            ->withCount('expansions')
-            ->orderBy('bgg_rank', 'asc')         // popularity: lower rank = more popular
+        $query = $query
+            ->orderBy('bgg_rank', 'asc')
             ->orderBy('bgg_average_rating', 'desc')
             ->orderBy('name')
-            ->limit(20)
-            ->get();
+            ->limit(20);
+
+        // Only load expansion count for board games
+        if ($this->gameType === 'boardgame') {
+            $query->withCount('expansions');
+        }
+
+        return $query->get();
     }
 
     #[Computed]
@@ -225,24 +241,34 @@ class GameSystemPicker extends Component
      */
     public function pickFromSearch(int $id): void
     {
-        $system = GameSystem::withCount('expansions')->find($id);
+        $system = GameSystem::find($id);
         if (! $system) {
             return;
         }
 
-        $expansionCount = $system->expansions_count ?? $system->expansions()->count();
+        // Skip expansion picker for non-boardgame types
+        if ($this->gameType === 'boardgame') {
+            $system = GameSystem::withCount('expansions')->find($id);
+            if (! $system) {
+                return;
+            }
 
-        if ($expansionCount > 0) {
-            // Show expansion sub-picker
-            $this->selectedBaseId = $id;
-            $this->showExpansionPicker = true;
-            $this->isOpen = false;
+            $expansionCount = $system->expansions_count ?? $system->expansions()->count();
 
-            // Pre-select the base game
-            $this->selectSystem($id);
-        } else {
-            $this->selectSystem($id);
+            if ($expansionCount > 0) {
+                // Show expansion sub-picker
+                $this->selectedBaseId = $id;
+                $this->showExpansionPicker = true;
+                $this->isOpen = false;
+
+                // Pre-select the base game
+                $this->selectSystem($id);
+
+                return;
+            }
         }
+
+        $this->selectSystem($id);
     }
 
     /**
