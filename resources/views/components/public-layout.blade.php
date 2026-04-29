@@ -30,7 +30,7 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
     {{-- PWA update toast translations (read by app.js) --}}
-    <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.update_available')) }}',action:'{{ addslashes(__('pwa.update_action')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
+    <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.content_update_available')) }}',action:'{{ addslashes(__('pwa.action_update')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

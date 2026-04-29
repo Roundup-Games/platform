@@ -7,34 +7,34 @@ describe('Attendance Translation Completeness', function () {
 
         $requiredKeys = [
             // Tiers
-            'tier_reliable', 'tier_active', 'tier_newcomer',
-            'tier_description_reliable', 'tier_description_active', 'tier_description_newcomer',
+            'label_tier_reliable', 'label_tier_active', 'label_tier_newcomer',
+            'content_tier_description_reliable', 'content_tier_description_active', 'content_tier_description_newcomer',
             // Stats
-            'stat_games_played', 'stat_attendance_rate', 'stat_no_show_count',
-            'stat_attended_count', 'stat_late_cancel_count', 'stat_excused_count',
+            'label_stat_games_played', 'label_stat_attendance_rate', 'label_stat_no_show_count',
+            'label_stat_attended_count', 'label_stat_late_cancel_count', 'label_stat_excused_count',
             // Waitlist
-            'waitlist_position', 'waitlist_spot_opened', 'waitlist_confirm',
-            'waitlist_decline', 'waitlist_expired', 'waitlist_join', 'waitlist_full',
-            'waitlist_confirmed', 'waitlist_declined', 'waitlist_added',
-            'waitlist_deadline', 'waitlist_management', 'waitlist_no_players',
+            'content_waitlist_position', 'content_waitlist_spot_opened', 'action_waitlist_confirm',
+            'action_waitlist_decline', 'content_waitlist_expired', 'action_waitlist_join', 'content_waitlist_full',
+            'content_waitlist_confirmed', 'content_waitlist_declined', 'content_waitlist_added',
+            'content_waitlist_deadline', 'label_waitlist_management', 'content_waitlist_no_players',
             // Bench
-            'bench_on_the_bench', 'bench_description', 'bench_promoted',
-            'bench_promote', 'bench_placed', 'bench_you_are_on',
+            'label_bench_on_the_bench', 'content_bench_description', 'flash_bench_promoted',
+            'action_bench_promote', 'content_bench_placed', 'content_bench_you_are_on',
             // Attendance actions
             'action_report_attendance', 'action_dispute_report',
             'status_attended', 'status_no_show', 'status_late_cancel',
             'status_excused', 'status_pending', 'status_not_reported',
             // Debriefing
-            'debriefing_title', 'debriefing_summary_title', 'debriefing_description',
-            'debriefing_submit', 'debriefing_submitted', 'debriefing_waiting',
-            'debriefing_responses', 'debriefing_confidential',
-            'debriefing_prompt_what_went_well', 'debriefing_prompt_what_to_change',
-            'debriefing_prompt_safety_concerns', 'debriefing_prompt_star',
-            'debriefing_prompt_wish', 'debriefing_tool_debriefing',
-            'debriefing_tool_stars_and_wishes',
+            'heading_debriefing_title', 'heading_debriefing_summary_title', 'content_debriefing_description',
+            'action_debriefing_submit', 'content_debriefing_submitted', 'content_debriefing_waiting',
+            'label_debriefing_responses', 'content_debriefing_confidential',
+            'content_debriefing_prompt_what_went_well', 'content_debriefing_prompt_what_to_change',
+            'content_debriefing_prompt_safety_concerns', 'content_debriefing_prompt_star',
+            'content_debriefing_prompt_wish', 'label_debriefing_tool_debriefing',
+            'label_debriefing_tool_stars_and_wishes',
             // Recap
-            'recap_title', 'recap_by', 'recap_write', 'recap_posted',
-            'recap_activity', 'recap_none',
+            'heading_recap_title', 'content_recap_by', 'action_recap_write', 'content_recap_posted',
+            'content_recap_activity', 'content_recap_none',
             // Dashboard engagement
             'dashboard_games_this_week', 'dashboard_attended', 'dashboard_pending',
             'dashboard_total', 'dashboard_hosting', 'dashboard_no_games_this_week',
@@ -52,10 +52,10 @@ describe('Attendance Translation Completeness', function () {
         $keys = trans('attendance');
 
         $requiredKeys = [
-            'tier_reliable', 'tier_active', 'tier_newcomer',
-            'debriefing_title', 'debriefing_submit', 'debriefing_submitted',
-            'debriefing_prompt_what_went_well', 'debriefing_prompt_star',
-            'recap_title', 'recap_by', 'recap_write', 'recap_posted',
+            'label_tier_reliable', 'label_tier_active', 'label_tier_newcomer',
+            'heading_debriefing_title', 'action_debriefing_submit', 'content_debriefing_submitted',
+            'content_debriefing_prompt_what_went_well', 'content_debriefing_prompt_star',
+            'heading_recap_title', 'content_recap_by', 'action_recap_write', 'content_recap_posted',
             'dashboard_games_this_week', 'dashboard_no_games_this_week',
             'dashboard_find_next_game', 'dashboard_new_recaps',
         ];
@@ -82,15 +82,15 @@ describe('Attendance Translation Completeness', function () {
         $de = trans('attendance');
 
         $germanChecks = [
-            'tier_reliable' => 'Zuverlässig',
-            'tier_active' => 'Aktiv',
-            'tier_newcomer' => 'Neuling',
-            'debriefing_title' => 'Sitzungs-Debriefing',
-            'recap_title' => 'Host-Nachbericht',
+            'label_tier_reliable' => 'Zuverlässig',
+            'label_tier_active' => 'Aktiv',
+            'label_tier_newcomer' => 'Neuling',
+            'heading_debriefing_title' => 'Sitzungs-Debriefing',
+            'heading_recap_title' => 'Host-Nachbericht',
             'dashboard_games_this_week' => 'Spiele diese Woche',
             'dashboard_find_next_game' => 'Nächstes Spiel finden',
             'status_attended' => 'Teilgenommen',
-            'waitlist_join' => 'Warteliste beitreten',
+            'action_waitlist_join' => 'Warteliste beitreten',
         ];
 
         foreach ($germanChecks as $key => $expected) {
@@ -100,16 +100,16 @@ describe('Attendance Translation Completeness', function () {
 
     it('has debriefing and recap error keys in both EN and DE games translations', function () {
         $requiredGamesKeys = [
-            'recap_error_game_not_completed',
-            'recap_error_not_host',
-            'recap_error_too_long',
-            'recap_error_empty',
-            'debriefing_error_game_not_completed',
-            'debriefing_error_no_debriefing_tools',
-            'debriefing_error_not_participant',
-            'debriefing_error_host_cannot_submit',
-            'debriefing_error_already_submitted',
-            'debriefing_error_empty_responses',
+            'error_recap_game_not_completed',
+            'error_recap_not_host',
+            'error_recap_too_long',
+            'error_recap_empty',
+            'error_debriefing_game_not_completed',
+            'error_debriefing_no_debriefing_tools',
+            'error_debriefing_not_participant',
+            'error_debriefing_host_cannot_submit',
+            'error_debriefing_already_submitted',
+            'error_debriefing_empty_responses',
         ];
 
         app()->setLocale('en');

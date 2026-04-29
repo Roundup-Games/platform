@@ -282,6 +282,28 @@ class ReliabilityScoreServiceTest extends TestCase
         $this->assertEquals(95.0, ReliabilityScoreService::RELIABLE_THRESHOLD);
     }
 
+    public function test_compute_score_clamps_negative_scores_to_zero(): void
+    {
+        $user = User::factory()->create();
+        // Create enough records to pass MIN_GAMES threshold
+        // 5 host no-shows: each is -1.5 weight → sum = -7.5 / 5 * 100 = -150
+        // Without clamping, this would be -150.0
+        for ($i = 0; $i < 5; $i++) {
+            $game = Game::factory()->create(['owner_id' => $user->id]);
+            GameParticipant::factory()->create([
+                'user_id' => $user->id,
+                'game_id' => $game->id,
+                'attendance_status' => AttendanceStatus::NoShow,
+            ]);
+        }
+
+        $result = $this->service->computeScore($user);
+
+        // Score must be clamped to 0, not negative
+        $this->assertEquals(0.0, $result['score']);
+        $this->assertEquals('active', $result['tier']);
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     private function createParticipationRecords(User $user, AttendanceStatus $status, int $count)

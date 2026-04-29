@@ -69,8 +69,20 @@ class BelowMinPlayersWarning extends Notification
         return $this->game->owner;
     }
 
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(object $notifiable): PushPayload
     {
-        return null;
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
+        return new PushPayload(
+            title: __('notifications.push_title_below_min_players'),
+            body: __('notifications.push_body_below_min_players', [
+                'game' => $this->game->name,
+                'current' => $this->currentCount,
+                'min' => $this->minPlayers,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            tag: "below-min-players-{$this->game->id}",
+        );
     }
 }

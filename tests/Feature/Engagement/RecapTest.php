@@ -143,4 +143,16 @@ describe('Recap Service', function () {
 
         expect($this->host->notifications()->count())->toBe(0);
     });
+
+    it('prevents overwriting an existing recap', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->host->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'recap' => 'Original recap content',
+        ]);
+
+        expect(fn () => $this->service->writeRecap($game, $this->host, 'New recap content'))
+            ->toThrow(\LogicException::class);
+    });
 });

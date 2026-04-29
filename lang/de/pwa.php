@@ -20,10 +20,10 @@ return [
     'ios_install_dismiss' => 'Verstanden',
 
     // Install prompt — Firefox Android
-    'firefox_install_title' => 'Roundup Games installieren',
-    'firefox_install_step_1' => 'Tippe auf das Menü (⋮) in der Adressleiste',
-    'firefox_install_step_2' => 'Tippe auf „Installieren", um die App zum Startbildschirm hinzuzufügen',
-    'firefox_install_dismiss' => 'Verstanden',
+    'heading_firefox_install_title' => 'Roundup Games installieren',
+    'content_firefox_install_step_1' => 'Tippe auf das Menü (⋮) in der Adressleiste',
+    'content_firefox_install_step_2' => 'Tippe auf „Installieren", um die App zum Startbildschirm hinzuzufügen',
+    'action_firefox_install_dismiss' => 'Verstanden',
 
     // Offline fallback page (public/offline.html — static, keys for reference only)
     'offline_title' => 'Du bist offline',
@@ -35,8 +35,8 @@ return [
     'back_online' => 'Wieder online',
 
     // SW update toast
-    'update_available' => 'Eine neue Version ist verfügbar',
-    'update_action' => 'Aktualisieren',
+    'content_update_available' => 'Eine neue Version ist verfügbar',
+    'action_update' => 'Aktualisieren',
 
     // Push notification UI
     'push_enabled_on_devices' => 'Push-Benachrichtigungen auf :count Gerät(en) aktiviert.',

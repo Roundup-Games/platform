@@ -11,19 +11,19 @@
             'icon' => 'verified',
             'color' => 'text-primary',
             'bg' => 'bg-primary/10',
-            'label' => __('profile.reliability_tier_reliable'),
+            'label' => __('profile.label_reliability_tier_reliable'),
         ],
         'active' => [
             'icon' => 'bolt',
             'color' => 'text-tertiary',
             'bg' => 'bg-tertiary/10',
-            'label' => __('profile.reliability_tier_active'),
+            'label' => __('profile.label_reliability_tier_active'),
         ],
         'newcomer' => [
             'icon' => 'person',
             'color' => 'text-on-surface-variant',
             'bg' => 'bg-surface-container-high',
-            'label' => __('profile.reliability_tier_newcomer'),
+            'label' => __('profile.label_reliability_tier_newcomer'),
         ],
     ];
 
@@ -40,10 +40,10 @@
     {{-- Detailed stats (only when showDetails and enough games) --}}
     @if($showDetails && $gameCount >= 5 && $score !== null)
         <span class="text-xs text-on-surface-variant">
-            {{ $score }}% {{ __('profile.reliability_attendance_rate') }}
+            {{ $score }}% {{ __('profile.label_reliability_attendance_rate') }}
         </span>
         <span class="text-xs text-on-surface-variant/60">
-            &middot; {{ $gameCount }} {{ __('profile.reliability_games_played') }}
+            &middot; {{ $gameCount }} {{ __('profile.label_reliability_games_played') }}
         </span>
     @endif
 </div>

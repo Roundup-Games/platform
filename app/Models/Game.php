@@ -129,23 +129,23 @@ class Game extends Model
 
         if (in_array('debriefing', $this->safety_rules)) {
             $prompts['what_went_well'] = [
-                'prompt' => __('games.debriefing_prompt_what_went_well'),
+                'prompt' => __('games.content_debriefing_prompt_what_went_well'),
             ];
             $prompts['what_to_change'] = [
-                'prompt' => __('games.debriefing_prompt_what_to_change'),
+                'prompt' => __('games.content_debriefing_prompt_what_to_change'),
             ];
             $prompts['safety_concerns'] = [
-                'prompt' => __('games.debriefing_prompt_safety_concerns'),
+                'prompt' => __('games.content_debriefing_prompt_safety_concerns'),
                 'confidential' => true,
             ];
         }
 
         if (in_array('stars-and-wishes', $this->safety_rules)) {
             $prompts['star'] = [
-                'prompt' => __('games.debriefing_prompt_star'),
+                'prompt' => __('games.content_debriefing_prompt_star'),
             ];
             $prompts['wish'] = [
-                'prompt' => __('games.debriefing_prompt_wish'),
+                'prompt' => __('games.content_debriefing_prompt_wish'),
             ];
         }
 

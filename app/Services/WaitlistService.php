@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Jobs\HandleExpiredConfirmation;
+use App\Notifications\ConfirmationExpired;
 use App\Notifications\WaitlistPromoted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,16 +18,16 @@ class WaitlistService
      * Urgency-scaled confirmation windows (hours).
      *
      * Time until game  →  hours to confirm
-     *   > 7 days           24
-     *   2–7 days           12
-     *   0–2 days            4
-     *   past / today        1
+     *   > 48h              12
+     *   24–48h              6
+     *   4–24h               2
+     *   < 4h               0.5
      */
     private const CONFIRMATION_WINDOWS = [
-        'far'      => 24,   // > 7 days
-        'medium'   => 12,   // 2–7 days
-        'near'     => 4,    // 0–2 days
-        'imminent' => 1,    // today or past
+        'far'      => 12,   // > 48h before game
+        'medium'   => 6,    // 24-48h before game
+        'near'     => 2,    // 4-24h before game
+        'imminent' => 0.5,  // < 4h before game (30 minutes)
     ];
 
     /**
@@ -97,7 +98,7 @@ class WaitlistService
             }
 
             $confirmationHours = $this->computeConfirmationWindow($lockedGame);
-            $expiresAt = now()->addHours($confirmationHours);
+            $expiresAt = now()->addMinutes((int) round($confirmationHours * 60));
 
             $next->update([
                 'status'                 => ParticipantStatus::Pending->value,
@@ -180,9 +181,9 @@ class WaitlistService
      */
     public function handleExpiredConfirmation(GameParticipant $participant): void
     {
-        DB::transaction(function () use ($participant) {
-            $gameId = $participant->game_id;
+        $gameId = $participant->game_id;
 
+        DB::transaction(function () use ($participant, $gameId) {
             Log::warning('waitlist.confirmation_expired', [
                 'game_id'        => $gameId,
                 'participant_id' => $participant->id,
@@ -200,6 +201,24 @@ class WaitlistService
             // Promote the next in line using game ID to avoid stale model
             $this->promoteNextFromGameId($gameId, $participant->id);
         });
+
+        // Notify the expired player (outside transaction so it only sends on successful DB update)
+        try {
+            $notificationService = app(NotificationService::class);
+            $user = $participant->user;
+            $notificationService->send(
+                $user,
+                new ConfirmationExpired($participant->game),
+                \App\Enums\NotificationCategory::ConfirmationExpired
+            );
+        } catch (\Throwable $e) {
+            Log::error('waitlist.confirmation_expired_notification_failed', [
+                'game_id'        => $gameId,
+                'participant_id' => $participant->id,
+                'user_id'        => $participant->user_id,
+                'error'          => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -297,7 +316,7 @@ class WaitlistService
 
         $game = Game::find($gameId);
         $confirmationHours = $this->computeConfirmationWindow($game);
-        $expiresAt = now()->addHours($confirmationHours);
+        $expiresAt = now()->addMinutes((int) round($confirmationHours * 60));
 
         $next->update([
             'status'                 => ParticipantStatus::Pending->value,
@@ -328,13 +347,13 @@ class WaitlistService
     {
         $hours = $this->computeConfirmationWindow($game);
 
-        return now()->addHours($hours);
+        return now()->addMinutes((int) round($hours * 60));
     }
 
     /**
      * Compute urgency-scaled confirmation window in hours based on time until game.
      */
-    private function computeConfirmationWindow(Game $game): int
+    private function computeConfirmationWindow(Game $game): float
     {
         $dateTime = $game->date_time;
 
@@ -345,9 +364,9 @@ class WaitlistService
         $hoursUntil = now()->diffInHours($dateTime, false);
 
         return match (true) {
-            $hoursUntil <= 0   => self::CONFIRMATION_WINDOWS['imminent'],
-            $hoursUntil <= 48  => self::CONFIRMATION_WINDOWS['near'],
-            $hoursUntil <= 168 => self::CONFIRMATION_WINDOWS['medium'],
+            $hoursUntil <= 4   => self::CONFIRMATION_WINDOWS['imminent'],
+            $hoursUntil <= 24  => self::CONFIRMATION_WINDOWS['near'],
+            $hoursUntil <= 48  => self::CONFIRMATION_WINDOWS['medium'],
             default            => self::CONFIRMATION_WINDOWS['far'],
         };
     }

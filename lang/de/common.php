@@ -213,6 +213,7 @@ return [
     'content_your_favorites' => 'Deine Favoriten',
     'error_cannot_remove_the_entity_owner' => 'Der :entity-Besitzer kann nicht entfernt werden.',
     'error_you_cannot_invite_yourself' => 'Du kannst dich nicht selbst einladen.',
+    'error_not_authorized' => 'Du bist nicht berechtigt, diese Aktion auszuführen.',
     'field_access_until_date' => 'Zugang bis :date',
     'field_additional_notes' => 'Zusätzliche Hinweise',
     'field_by_author_date' => 'Von :author · :date',
@@ -327,6 +328,7 @@ return [
     'activity_type_game_updated' => 'Spiel aktualisiert',
     'activity_type_campaign_updated' => 'Kampagne aktualisiert',
     'activity_type_session_recapped' => 'Sitzungsnachbericht',
+    'activity_type_debriefing_submitted' => 'Hat ein Sitzungs-Feedback eingereicht',
 
     // Dashboard-Aktivitätszeitlinie
     'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',

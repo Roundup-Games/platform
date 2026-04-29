@@ -8,6 +8,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BenchService
@@ -32,40 +33,45 @@ class BenchService
             throw new \LogicException('Bench is only available for campaigns and campaign sessions.');
         }
 
-        // Check entity is full
-        $approvedCount = $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+        // Wrap in transaction with lock for concurrency safety
+        return DB::transaction(function () use ($entity, $user, $entityType, $isCampaign) {
+            // Lock entity row to serialize concurrent bench adds
+            $entityClass = $isCampaign ? Campaign::class : Game::class;
+            $lockedEntity = $entityClass::lockForUpdate()->findOrFail($entity->id);
 
-        if ($approvedCount < $entity->max_players) {
-            throw new \LogicException('Cannot add to bench: entity is not full.');
-        }
+            $approvedCount = $lockedEntity->participants()
+                ->where('status', ParticipantStatus::Approved->value)
+                ->count();
 
-        // Check user is not already a participant
-        $existing = $entity->participants()->where('user_id', $user->id)->first();
-        if ($existing !== null) {
-            throw new \LogicException('User is already a participant.');
-        }
+            if ($approvedCount < $lockedEntity->max_players) {
+                throw new \LogicException('Cannot add to bench: entity is not full.');
+            }
 
-        $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
-        $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
+            $existing = $lockedEntity->participants()->where('user_id', $user->id)->first();
+            if ($existing !== null) {
+                throw new \LogicException('User is already a participant.');
+            }
 
-        $participant = $participantClass::create([
-            $foreignKey => $entity->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Benched->value,
-            'benched_at' => now(),
-        ]);
+            $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
+            $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
 
-        Log::info('bench.placed', [
-            'entity_type' => $entityType,
-            $foreignKey => $entity->id,
-            'user_id' => $user->id,
-            'participant_id' => $participant->id,
-        ]);
+            $participant = $participantClass::create([
+                $foreignKey => $lockedEntity->id,
+                'user_id' => $user->id,
+                'role' => 'player',
+                'status' => ParticipantStatus::Benched->value,
+                'benched_at' => now(),
+            ]);
 
-        return $participant;
+            Log::info('bench.placed', [
+                'entity_type' => $entityType,
+                $foreignKey => $lockedEntity->id,
+                'user_id' => $user->id,
+                'participant_id' => $participant->id,
+            ]);
+
+            return $participant;
+        });
     }
 
     /**
@@ -75,40 +81,41 @@ class BenchService
      */
     public function promoteFromBench(string $participantId, string $entityType): void
     {
-        $isCampaign = $entityType === 'campaign';
+        DB::transaction(function () use ($participantId, $entityType) {
+            $isCampaign = $entityType === 'campaign';
 
-        $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
-        $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
+            $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
+            $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
 
-        $participant = $participantClass::where('id', $participantId)->firstOrFail();
+            $participant = $participantClass::lockForUpdate()->where('id', $participantId)->firstOrFail();
 
-        if ($participant->status !== ParticipantStatus::Benched) {
-            throw new \LogicException('Participant is not on the bench.');
-        }
+            if ($participant->status !== ParticipantStatus::Benched) {
+                throw new \LogicException('Participant is not on the bench.');
+            }
 
-        // Load entity and check capacity
-        $entityClass = $isCampaign ? Campaign::class : Game::class;
-        $entity = $entityClass::findOrFail($participant->$foreignKey);
+            $entityClass = $isCampaign ? Campaign::class : Game::class;
+            $lockedEntity = $entityClass::lockForUpdate()->findOrFail($participant->$foreignKey);
 
-        $approvedCount = $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+            $approvedCount = $lockedEntity->participants()
+                ->where('status', ParticipantStatus::Approved->value)
+                ->count();
 
-        if ($approvedCount >= $entity->max_players) {
-            throw new \LogicException('Cannot promote: entity is full.');
-        }
+            if ($approvedCount >= $lockedEntity->max_players) {
+                throw new \LogicException('Cannot promote: entity is full.');
+            }
 
-        $participant->update([
-            'status' => ParticipantStatus::Approved->value,
-            'benched_at' => null,
-        ]);
+            $participant->update([
+                'status' => ParticipantStatus::Approved->value,
+                'benched_at' => null,
+            ]);
 
-        Log::info('bench.promoted', [
-            'entity_type' => $entityType,
-            $foreignKey => $entity->id,
-            'user_id' => $participant->user_id,
-            'promoted_by' => auth()->id(),
-        ]);
+            Log::info('bench.promoted', [
+                'entity_type' => $entityType,
+                $foreignKey => $lockedEntity->id,
+                'user_id' => $participant->user_id,
+                'promoted_by' => auth()->id(),
+            ]);
+        });
     }
 
     /**

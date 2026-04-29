@@ -57,8 +57,18 @@ class ConfirmationExpired extends Notification
         ];
     }
 
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(object $notifiable): PushPayload
     {
-        return null;
+        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+
+        return new PushPayload(
+            title: __('notifications.push_title_confirmation_expired'),
+            body: __('notifications.push_body_confirmation_expired', [
+                'game' => $this->game->name,
+            ]),
+            icon: '/icons/pwa-192x192.png',
+            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            tag: "confirmation-expired-{$this->game->id}",
+        );
     }
 }

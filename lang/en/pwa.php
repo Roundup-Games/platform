@@ -20,10 +20,10 @@ return [
     'ios_install_dismiss' => 'Got it',
 
     // Install prompt — Firefox Android
-    'firefox_install_title' => 'Install Roundup Games',
-    'firefox_install_step_1' => 'Tap the menu (⋮) in the address bar',
-    'firefox_install_step_2' => 'Tap \'Install\' to add to your home screen',
-    'firefox_install_dismiss' => 'Got it',
+    'heading_firefox_install_title' => 'Install Roundup Games',
+    'content_firefox_install_step_1' => 'Tap the menu (⋮) in the address bar',
+    'content_firefox_install_step_2' => 'Tap \'Install\' to add to your home screen',
+    'action_firefox_install_dismiss' => 'Got it',
 
     // Offline fallback page (public/offline.html — static, keys for reference only)
     'offline_title' => 'You\'re offline',
@@ -35,8 +35,8 @@ return [
     'back_online' => 'Back online',
 
     // SW update toast
-    'update_available' => 'A new version is available',
-    'update_action' => 'Update',
+    'content_update_available' => 'A new version is available',
+    'action_update' => 'Update',
 
     // Push notification UI
     'push_enabled_on_devices' => 'Push notifications enabled on :count device(s).',

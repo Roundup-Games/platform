@@ -405,10 +405,10 @@ describe('Browser-specific HTML', function () {
 
         // Firefox-specific translated text must be present (HTML-escaped by Blade {{ }})
         app()->setLocale('en');
-        $this->assertStringContainsString(e(__('pwa.firefox_install_title')), $content);
-        $this->assertStringContainsString(e(__('pwa.firefox_install_step_1')), $content);
-        $this->assertStringContainsString(e(__('pwa.firefox_install_step_2')), $content);
-        $this->assertStringContainsString(e(__('pwa.firefox_install_dismiss')), $content);
+        $this->assertStringContainsString(e(__('pwa.heading_firefox_install_title')), $content);
+        $this->assertStringContainsString(e(__('pwa.content_firefox_install_step_1')), $content);
+        $this->assertStringContainsString(e(__('pwa.content_firefox_install_step_2')), $content);
+        $this->assertStringContainsString(e(__('pwa.action_firefox_install_dismiss')), $content);
     });
 
     it('Firefox detection logic excludes desktop Firefox', function () {

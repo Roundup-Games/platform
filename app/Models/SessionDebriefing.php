@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DebriefingToolType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,7 @@ class SessionDebriefing extends Model
     protected function casts(): array
     {
         return [
+            'tool_type' => DebriefingToolType::class,
             'responses' => 'array',
             'submitted_at' => 'datetime',
         ];

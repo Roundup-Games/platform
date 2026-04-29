@@ -409,7 +409,7 @@ class LangFileParser
             'Forum', 'Chat', 'Logo', 'Google', 'Admin', 'Horror', 'Draft',
             'Online', 'Offline', 'Pro', 'Max', 'Min', 'Camp', 'Format',
             'Sandbox', 'Fantasy', 'Humor', 'Division', 'Status', 'Position',
-            'Support', 'System', 'Neutral', 'Push', 'Name',
+            'Support', 'System', 'Neutral', 'Push', 'Name', 'Debriefing',
             // Game industry terms
             'TTRPG', 'OSR', 'Storytelling', 'Gameplay',
             'Rule of Cool', 'West Marches', 'Play-by-Post', 'Session Zero',

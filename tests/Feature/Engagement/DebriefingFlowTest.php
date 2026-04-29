@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\DebriefingToolType;
 use App\Enums\ParticipantStatus;
 use App\Models\ActivityLog;
 use App\Models\Game;
@@ -119,7 +120,7 @@ describe('Debriefing Flow', function () {
         expect($debriefing)->toBeInstanceOf(SessionDebriefing::class)
             ->and($debriefing->game_id)->toBe($game->id)
             ->and($debriefing->user_id)->toBe($this->participant->id)
-            ->and($debriefing->tool_type)->toBe('debriefing')
+            ->and($debriefing->tool_type)->toBe(DebriefingToolType::Debriefing)
             ->and($debriefing->responses)->toHaveKeys(['what_went_well', 'what_to_change'])
             ->and($debriefing->submitted_at)->not->toBeNull();
     });
@@ -132,7 +133,7 @@ describe('Debriefing Flow', function () {
             'wish' => 'More exploration next time',
         ]);
 
-        expect($debriefing->tool_type)->toBe('stars-and-wishes')
+        expect($debriefing->tool_type)->toBe(DebriefingToolType::StarsAndWishes)
             ->and($debriefing->responses)->toHaveKeys(['star', 'wish']);
     });
 
@@ -218,7 +219,7 @@ describe('Debriefing Flow', function () {
         $log = ActivityLog::where('user_id', $this->participant->id)
             ->where('subject_type', Game::class)
             ->where('subject_id', $game->id)
-            ->where('event_type', ActivityType::SessionRecapped)
+            ->where('event_type', ActivityType::DebriefingSubmitted)
             ->first();
 
         expect($log)->not->toBeNull()
@@ -269,7 +270,7 @@ describe('Debriefing Flow', function () {
         $summary = $this->service->getAnonymizedSummary($game);
 
         expect($summary['total_submissions'])->toBe(2)
-            ->and($summary['tool_type'])->toBe('debriefing')
+            ->and($summary['tool_type'])->toBe(DebriefingToolType::Debriefing)
             ->and($summary['prompts']['what_went_well'])->toHaveCount(2);
     });
 

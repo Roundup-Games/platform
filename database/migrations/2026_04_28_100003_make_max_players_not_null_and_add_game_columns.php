@@ -25,6 +25,9 @@ return new class extends Migration
     {
         Schema::table('games', function (Blueprint $table) {
             $table->dropColumn(['recap', 'min_reliability_preference']);
+        });
+
+        Schema::table('games', function (Blueprint $table) {
             $table->unsignedSmallInteger('max_players')->nullable()->default(null)->change();
             $table->unsignedSmallInteger('min_players')->nullable()->default(null)->change();
         });

@@ -85,6 +85,9 @@ class ReliabilityScoreService
             ? round(($weightedSum / ($gameCount * 1.0)) * 100, 2)
             : 0.0;
 
+        // Clamp to 0-100 range — negative scores don't make sense as percentages
+        $score = max(0.0, min(100.0, $score));
+
         $tier = $this->getTier($score, $gameCount);
 
         Log::info('Reliability score computed', [

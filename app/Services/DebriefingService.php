@@ -25,11 +25,11 @@ class DebriefingService
     public function submitDebriefing(Game $game, User $user, array $responses): SessionDebriefing
     {
         if ($game->status !== 'completed') {
-            throw new \LogicException(__('games.debriefing_error_game_not_completed'));
+            throw new \LogicException(__('games.error_debriefing_game_not_completed'));
         }
 
         if (! $game->hasDebriefingTools()) {
-            throw new \LogicException(__('games.debriefing_error_no_debriefing_tools'));
+            throw new \LogicException(__('games.error_debriefing_no_debriefing_tools'));
         }
 
         $isParticipant = $game->participants()
@@ -38,11 +38,11 @@ class DebriefingService
             ->exists();
 
         if (! $isParticipant) {
-            throw new \LogicException(__('games.debriefing_error_not_participant'));
+            throw new \LogicException(__('games.error_debriefing_not_participant'));
         }
 
         if ($game->owner_id === $user->id) {
-            throw new \LogicException(__('games.debriefing_error_host_cannot_submit'));
+            throw new \LogicException(__('games.error_debriefing_host_cannot_submit'));
         }
 
         $existing = SessionDebriefing::where('game_id', $game->id)
@@ -50,7 +50,7 @@ class DebriefingService
             ->exists();
 
         if ($existing) {
-            throw new \LogicException(__('games.debriefing_error_already_submitted'));
+            throw new \LogicException(__('games.error_debriefing_already_submitted'));
         }
 
         $prompts = $game->getDebriefingPrompts();
@@ -62,7 +62,7 @@ class DebriefingService
         }
 
         if (empty($filteredResponses)) {
-            throw new \LogicException(__('games.debriefing_error_empty_responses'));
+            throw new \LogicException(__('games.error_debriefing_empty_responses'));
         }
 
         $debriefing = SessionDebriefing::create([
@@ -81,7 +81,7 @@ class DebriefingService
         ]);
 
         $this->activityLogService->log(
-            ActivityType::SessionRecapped,
+            ActivityType::DebriefingSubmitted,
             $user,
             $game,
             [

@@ -130,11 +130,11 @@ return [
     'dashboard_gm_overview' => 'GM Übersicht',
 
     // Zuverlässigkeitsstufen
-    'reliability_tier_reliable' => 'Zuverlässig',
-    'reliability_tier_active' => 'Aktiv',
-    'reliability_tier_newcomer' => 'Neu',
-    'reliability_attendance_rate' => 'Anwesenheit',
-    'reliability_games_played' => 'Spiele',
+    'label_reliability_tier_reliable' => 'Zuverlässig',
+    'label_reliability_tier_active' => 'Aktiv',
+    'label_reliability_tier_newcomer' => 'Neu',
+    'label_reliability_attendance_rate' => 'Anwesenheit',
+    'label_reliability_games_played' => 'Spiele',
     'content_reliability_stats' => 'Zuverlässigkeitsstatistiken',
     'content_who_can_see_your_reliability_stats' => 'Wer deine detaillierte Anwesenheitsrate und Spielanzahl sehen kann',
 ];

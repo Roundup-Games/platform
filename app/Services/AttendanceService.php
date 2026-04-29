@@ -8,6 +8,8 @@ use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Notifications\AttendanceReported;
+use App\Notifications\DisputeResolved;
 use Illuminate\Support\Facades\Log;
 
 class AttendanceService
@@ -82,6 +84,11 @@ class AttendanceService
             return ['success' => false, 'reason' => 'Cannot report attendance for a future game'];
         }
 
+        // Game must not be cancelled
+        if ($game->status === 'canceled') {
+            return ['success' => false, 'reason' => 'Cannot report attendance for a cancelled game'];
+        }
+
         // Reporter must be a participant (approved or host)
         $reporterParticipant = $game->participants()
             ->where('user_id', $reporter->id)
@@ -152,6 +159,30 @@ class AttendanceService
             'weight' => $weight,
             'quarantined' => $griefCheck['quarantined'],
         ]);
+
+        // Notify the reported user
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $report = AttendanceReport::where('game_id', $game->id)
+                ->where('reported_id', $reported->id)
+                ->where('reporter_id', $reporter->id)
+                ->orderByDesc('created_at')
+                ->first();
+            if ($report) {
+                $notificationService->send(
+                    $reported,
+                    new AttendanceReported($game, $report),
+                    \App\Enums\NotificationCategory::AttendanceReported
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send attendance reported notification', [
+                'game_id' => $game->id,
+                'reporter_id' => $reporter->id,
+                'reported_id' => $reported->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ['success' => true, 'reason' => 'Attendance recorded'];
     }
@@ -261,42 +292,37 @@ class AttendanceService
     public function autoAttendAfter48Hours(): int
     {
         $cutoff = now()->subHours(self::AUTO_ATTEND_HOURS);
-
-        // Find completed games older than 48h
-        $games = Game::where('status', 'completed')
-            ->where('date_time', '<=', $cutoff)
-            ->get();
-
         $count = 0;
 
-        foreach ($games as $game) {
-            // Find approved participants with no attendance status yet
-            $unreportedParticipants = $game->participants()
-                ->where('status', ParticipantStatus::Approved->value)
-                ->whereNull('attendance_status')
-                ->get();
+        Game::where('status', 'completed')
+            ->where('date_time', '<=', $cutoff)
+            ->chunkById(100, function ($games) use (&$count) {
+                foreach ($games as $game) {
+                    $unreportedParticipants = $game->participants()
+                        ->where('status', ParticipantStatus::Approved->value)
+                        ->whereNull('attendance_status')
+                        ->get();
 
-            foreach ($unreportedParticipants as $participant) {
-                $this->recordAttendance($participant, AttendanceStatus::Attended->value);
+                    foreach ($unreportedParticipants as $participant) {
+                        $this->recordAttendance($participant, AttendanceStatus::Attended->value);
 
-                // Create an attendance report record (system-reported)
-                AttendanceReport::create([
-                    'game_id' => $game->id,
-                    'reporter_id' => $participant->user_id, // self-reported by system
-                    'reported_id' => $participant->user_id,
-                    'status' => AttendanceStatus::Attended->value,
-                    'weight_applied' => 1.0,
-                    'is_corroborated' => true, // System reports are auto-corroborated
-                    'quarantined' => false,
-                ]);
+                        AttendanceReport::create([
+                            'game_id' => $game->id,
+                            'reporter_id' => $participant->user_id,
+                            'reported_id' => $participant->user_id,
+                            'status' => AttendanceStatus::Attended->value,
+                            'weight_applied' => 1.0,
+                            'is_corroborated' => true,
+                            'quarantined' => false,
+                        ]);
 
-                $count++;
-            }
-        }
+                        $count++;
+                    }
+                }
+            });
 
         if ($count > 0) {
             Log::info('Auto-attend processed', [
-                'games_checked' => $games->count(),
                 'participants_auto_attended' => $count,
             ]);
         }
@@ -479,35 +505,54 @@ class AttendanceService
                 'corroborating_count' => $corroboratingReports->count(),
             ]);
 
-            return 'resolved_favor';
-        }
+            $outcome = 'resolved_favor';
+        } else {
+            // Report stands — reduce weight but don't clear
+            $participant->forceFill([
+                'attendance_weight' => max(0.3, ($participant->attendance_weight ?? 1.0) * 0.5),
+            ])->save();
 
-        // Report stands — reduce weight but don't clear
-        $participant->forceFill([
-            'attendance_weight' => max(0.3, ($participant->attendance_weight ?? 1.0) * 0.5),
-        ])->save();
+            // Mark reports as upheld
+            AttendanceReport::where('game_id', $game->id)
+                ->where('reported_id', $user->id)
+                ->whereNotNull('dispute_reason')
+                ->update([
+                    'dispute_resolution' => 'upheld',
+                    'dispute_resolved_at' => now(),
+                ]);
 
-        // Mark reports as upheld
-        AttendanceReport::where('game_id', $game->id)
-            ->where('reported_id', $user->id)
-            ->whereNotNull('dispute_reason')
-            ->update([
-                'dispute_resolution' => 'upheld',
-                'dispute_resolved_at' => now(),
+            // Recompute reliability with reduced weight
+            $this->reliabilityService->recomputeAfterAttendance($participant);
+
+            Log::info('Dispute upheld — report stands with reduced weight', [
+                'participant_id' => $participant->id,
+                'game_id' => $game->id,
+                'user_id' => $user->id,
+                'corroborating_count' => $corroboratingReports->count(),
+                'reduced_weight' => $participant->attendance_weight,
             ]);
 
-        // Recompute reliability with reduced weight
-        $this->reliabilityService->recomputeAfterAttendance($participant);
+            $outcome = 'upheld';
+        }
 
-        Log::info('Dispute upheld — report stands with reduced weight', [
-            'participant_id' => $participant->id,
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'corroborating_count' => $corroboratingReports->count(),
-            'reduced_weight' => $participant->attendance_weight,
-        ]);
+        // Notify the disputing user
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $notificationService->send(
+                $user,
+                new DisputeResolved($game, $outcome),
+                \App\Enums\NotificationCategory::DisputeResolved
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send dispute resolved notification', [
+                'game_id' => $game->id,
+                'user_id' => $user->id,
+                'resolution' => $outcome,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
-        return 'upheld';
+        return $outcome;
     }
 
     /**

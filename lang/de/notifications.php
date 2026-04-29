@@ -277,4 +277,12 @@ return [
     // 24-Stunden-Sitzungserinnerung
     'push_title_session_reminder_24h' => 'Sitzung morgen',
     'push_body_session_reminder_24h' => ':game startet morgen um :time',
+
+    // Wartelisten-Push
+    'push_title_waitlist_promoted' => 'Platz frei!',
+    'push_body_waitlist_promoted' => 'Ein Platz in :game ist frei. Bestätige bis :deadline.',
+    'push_title_confirmation_expired' => 'Bestätigung abgelaufen',
+    'push_body_confirmation_expired' => 'Dein Bestätigungszeitfenster für :game ist abgelaufen.',
+    'push_title_below_min_players' => 'Wenige Spieler',
+    'push_body_below_min_players' => ':game hat nur :current/:min Spieler.',
 ];

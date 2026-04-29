@@ -328,6 +328,7 @@ return [
     'activity_type_game_updated' => 'Game Updated',
     'activity_type_campaign_updated' => 'Campaign Updated',
     'activity_type_session_recapped' => 'Session Recapped',
+    'activity_type_debriefing_submitted' => 'Submitted a session debriefing',
 
     // Dashboard activity timeline
     'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',

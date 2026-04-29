@@ -25,19 +25,23 @@ class RecapService
     public function writeRecap(Game $game, User $author, string $content): void
     {
         if ($game->status !== 'completed') {
-            throw new \LogicException(__('games.recap_error_game_not_completed'));
+            throw new \LogicException(__('games.error_recap_game_not_completed'));
+        }
+
+        if (! empty($game->recap)) {
+            throw new \LogicException(__('games.error_recap_already_written'));
         }
 
         if ($game->owner_id !== $author->id) {
-            throw new \LogicException(__('games.recap_error_not_host'));
+            throw new \LogicException(__('games.error_recap_not_host'));
         }
 
         if (mb_strlen($content) > 2000) {
-            throw new \LogicException(__('games.recap_error_too_long'));
+            throw new \LogicException(__('games.error_recap_too_long'));
         }
 
         if (empty(trim($content))) {
-            throw new \LogicException(__('games.recap_error_empty'));
+            throw new \LogicException(__('games.error_recap_empty'));
         }
 
         $game->update(['recap' => $content]);

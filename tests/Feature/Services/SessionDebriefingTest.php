@@ -51,7 +51,7 @@ describe('SessionDebriefing model', function () {
         expect($debriefing->id)->not->toBeNull();
         expect($debriefing->game_id)->toBe($this->game->id);
         expect($debriefing->user_id)->toBe($this->participant->id);
-        expect($debriefing->tool_type)->toBe('debriefing');
+        expect($debriefing->tool_type)->toBe(\App\Enums\DebriefingToolType::Debriefing);
         expect($debriefing->responses)->toBe(['q1' => 'Great session', 'q2' => 'Loved the story']);
     });
 
@@ -342,7 +342,7 @@ describe('DebriefingService — submit debriefing', function () {
         expect($debriefing)->toBeInstanceOf(\App\Models\SessionDebriefing::class);
         expect($debriefing->game_id)->toBe($this->debrieferGame->id);
         expect($debriefing->user_id)->toBe($this->debriefer->id);
-        expect($debriefing->tool_type)->toBe('debriefing');
+        expect($debriefing->tool_type)->toBe(\App\Enums\DebriefingToolType::Debriefing);
         expect($debriefing->submitted_at)->not->toBeNull();
         expect($debriefing->responses)->toHaveCount(3);
     });
@@ -445,7 +445,7 @@ describe('DebriefingService — submit debriefing', function () {
             'what_went_well' => 'Great session!',
         ]);
 
-        $log = ActivityLog::where('event_type', ActivityType::SessionRecapped)
+        $log = ActivityLog::where('event_type', ActivityType::DebriefingSubmitted)
             ->where('user_id', $this->debriefer->id)
             ->where('subject_id', $this->debrieferGame->id)
             ->first();
@@ -520,7 +520,7 @@ describe('DebriefingService — anonymized summary', function () {
         $summary = $service->getAnonymizedSummary($game);
 
         expect($summary['total_submissions'])->toBe(2);
-        expect($summary['tool_type'])->toBe('stars-and-wishes');
+        expect($summary['tool_type'])->toBe(\App\Enums\DebriefingToolType::StarsAndWishes);
         expect($summary['prompts']['star'])->toHaveCount(2);
         expect($summary['prompts']['wish'])->toHaveCount(2);
     });

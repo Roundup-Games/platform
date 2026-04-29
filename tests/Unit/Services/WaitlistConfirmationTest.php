@@ -37,50 +37,50 @@ describe('computeConfirmationDeadline', function () {
         expect($deadline->isFuture())->toBeTrue();
     });
 
-    it('uses far window (>7 days = 24h) for distant games', function () {
+    it('uses far window (>48h = 12h) for distant games', function () {
         $game = createGameWithDateTime(now()->addDays(14)->startOfSecond());
 
         $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = (int) round(now()->diffInHours($deadline, false));
+        $hoursUntilDeadline = round(now()->diffInMinutes($deadline, false) / 60, 1);
 
-        expect($hoursUntilDeadline)->toBe(24);
+        expect($hoursUntilDeadline)->toBe(12.0);
     });
 
-    it('uses medium window (2-7 days = 12h) for games within a week', function () {
-        $game = createGameWithDateTime(now()->addDays(3)->startOfSecond());
-
-        $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = (int) round(now()->diffInHours($deadline, false));
-
-        expect($hoursUntilDeadline)->toBe(12);
-    });
-
-    it('uses near window (0-2 days = 4h) for games within 2 days', function () {
+    it('uses medium window (24-48h = 6h) for games within 2 days', function () {
         $game = createGameWithDateTime(now()->addHours(36)->startOfSecond());
 
         $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = (int) round(now()->diffInHours($deadline, false));
+        $hoursUntilDeadline = round(now()->diffInMinutes($deadline, false) / 60, 1);
 
-        expect($hoursUntilDeadline)->toBe(4);
+        expect($hoursUntilDeadline)->toBe(6.0);
     });
 
-    it('uses imminent window (= 1h) for games that are past or today', function () {
-        $game = createGameWithDateTime(now()->subHour()->startOfSecond());
+    it('uses near window (4-24h = 2h) for games within a day', function () {
+        $game = createGameWithDateTime(now()->addHours(12)->startOfSecond());
 
         $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = (int) round(now()->diffInHours($deadline, false));
+        $hoursUntilDeadline = round(now()->diffInMinutes($deadline, false) / 60, 1);
 
-        expect($hoursUntilDeadline)->toBe(1);
+        expect($hoursUntilDeadline)->toBe(2.0);
+    });
+
+    it('uses imminent window (<4h = 30min) for games that are imminent', function () {
+        $game = createGameWithDateTime(now()->addHours(2)->startOfSecond());
+
+        $deadline = $this->service->computeConfirmationDeadline($game);
+        $minutesUntilDeadline = (int) round(now()->diffInMinutes($deadline, false));
+
+        expect($minutesUntilDeadline)->toBe(30);
     });
 
     it('uses far window as default when computeConfirmationWindow falls through', function () {
-        // The far window (24h) is returned as the default/match-all case
+        // The far window (12h) is returned as the default/match-all case
         $game = createGameWithDateTime(now()->addDays(30)->startOfSecond());
 
         $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = (int) round(now()->diffInHours($deadline, false));
+        $hoursUntilDeadline = round(now()->diffInMinutes($deadline, false) / 60, 1);
 
-        expect($hoursUntilDeadline)->toBe(24);
+        expect($hoursUntilDeadline)->toBe(12.0);
     });
 });
 

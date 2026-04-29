@@ -50,4 +50,9 @@ class GameParticipant extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function reportedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'attendance_reported_by');
+    }
 }

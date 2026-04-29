@@ -130,11 +130,11 @@ return [
     'dashboard_gm_overview' => 'GM Overview',
 
     // Reliability tier labels
-    'reliability_tier_reliable' => 'Reliable',
-    'reliability_tier_active' => 'Active',
-    'reliability_tier_newcomer' => 'Newcomer',
-    'reliability_attendance_rate' => 'attendance',
-    'reliability_games_played' => 'games',
+    'label_reliability_tier_reliable' => 'Reliable',
+    'label_reliability_tier_active' => 'Active',
+    'label_reliability_tier_newcomer' => 'Newcomer',
+    'label_reliability_attendance_rate' => 'attendance',
+    'label_reliability_games_played' => 'games',
     'content_reliability_stats' => 'Reliability Stats',
     'content_who_can_see_your_reliability_stats' => 'Who can see your detailed attendance rate and game count',
 ];

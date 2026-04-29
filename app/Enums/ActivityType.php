@@ -34,6 +34,7 @@ enum ActivityType: string
 
     // Post-session engagement
     case SessionRecapped = 'session_recapped';
+    case DebriefingSubmitted = 'debriefing_submitted';
 
     /**
      * @return string[]
@@ -61,6 +62,7 @@ enum ActivityType: string
             self::GameUpdated => __('common.activity_type_game_updated'),
             self::CampaignUpdated => __('common.activity_type_campaign_updated'),
             self::SessionRecapped => __('common.activity_type_session_recapped'),
+            self::DebriefingSubmitted => __('common.activity_type_debriefing_submitted'),
         };
     }
 
@@ -82,6 +84,7 @@ enum ActivityType: string
             self::GameUpdated => 'edit',
             self::CampaignUpdated => 'edit',
             self::SessionRecapped => 'auto_stories',
+            self::DebriefingSubmitted => 'forum',
         };
     }
 }

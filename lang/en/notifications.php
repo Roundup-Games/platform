@@ -273,4 +273,12 @@ return [
     // 24-hour session reminder
     'push_title_session_reminder_24h' => 'Session Tomorrow',
     'push_body_session_reminder_24h' => ':game starts tomorrow at :time',
+
+    // Waitlist push
+    'push_title_waitlist_promoted' => 'Spot Available!',
+    'push_body_waitlist_promoted' => 'A spot opened up in :game. Confirm by :deadline.',
+    'push_title_confirmation_expired' => 'Confirmation Expired',
+    'push_body_confirmation_expired' => 'Your confirmation window for :game has expired.',
+    'push_title_below_min_players' => 'Low Roster Warning',
+    'push_body_below_min_players' => ':game has only :current/:min players.',
 ];
