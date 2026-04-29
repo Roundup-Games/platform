@@ -1248,7 +1248,8 @@ describe('AddSessionToCampaign — Creation', function () {
             ->and($game->max_players)->toBe(6)
             ->and($game->experience_level)->toBe('intermediate')
             ->and($game->expected_duration)->toBe(4.0)
-            ->and($game->price)->toBe(15.0);
+            ->and($game->price)->toBe(15.0)
+            ->and($game->game_type->value)->toBe('ttrpg');
 
         // Check JSON-cast fields separately
         assertDatabaseHas('games', [
@@ -1267,6 +1268,50 @@ describe('AddSessionToCampaign — Creation', function () {
             ->set('date_time', '')
             ->call('save')
             ->assertHasErrors(['name', 'date_time']);
+    });
+
+    it('creates game with ttrpg game type', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'TTRPG Session')
+            ->set('date_time', '2026-08-01 19:00')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::where('campaign_id', $campaign->id)->first();
+        expect($game)->not->toBeNull()
+            ->and($game->game_type)->toBeInstanceOf(\App\Enums\GameType::class)
+            ->and($game->game_type)->toBe(\App\Enums\GameType::Ttrpg);
+    });
+
+    it('logs warning when campaign game system is not ttrpg', function () {
+        $owner = campaignTestCreateOwnerWithGamePermission();
+        $system = GameSystem::factory()->create(['type' => 'boardgame']);
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $system->id,
+        ]);
+
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('add_session_to_campaign.non_ttrpg_system', \Mockery::on(function ($context) use ($campaign, $system) {
+                return $context['campaign_id'] === $campaign->id
+                    && $context['game_system_id'] === $system->id
+                    && $context['game_system_type'] === 'boardgame';
+            }));
+
+        Log::shouldReceive('info')->byDefault();
+        Log::shouldReceive('error')->byDefault();
+        Log::shouldReceive('debug')->byDefault();
+
+        Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->set('name', 'Boardgame System Session')
+            ->set('date_time', '2026-08-01 19:00')
+            ->call('save');
     });
 });
 

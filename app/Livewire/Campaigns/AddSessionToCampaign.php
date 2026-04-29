@@ -52,6 +52,15 @@ class AddSessionToCampaign extends Component
         $campaign = $this->campaign;
         $ownerId = Auth::id();
 
+        // Defensive check: warn if campaign's game system is not TTRPG
+        if ($campaign->gameSystem && $campaign->gameSystem->type !== 'ttrpg') {
+            Log::warning('add_session_to_campaign.non_ttrpg_system', [
+                'campaign_id' => $campaign->id,
+                'game_system_id' => $campaign->game_system_id,
+                'game_system_type' => $campaign->gameSystem->type,
+            ]);
+        }
+
         $game = DB::transaction(function () use ($validated, $campaign, $ownerId) {
             $game = Game::create([
                 'owner_id' => $ownerId,
@@ -66,6 +75,7 @@ class AddSessionToCampaign extends Component
                 'location' => [
                     'details' => $validated['location_details'],
                 ],
+                'game_type' => 'ttrpg',
                 'status' => 'scheduled',
                 'visibility' => $campaign->visibility,
                 'min_players' => $campaign->min_players,
