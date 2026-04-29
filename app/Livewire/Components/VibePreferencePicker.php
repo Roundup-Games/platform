@@ -36,13 +36,31 @@ class VibePreferencePicker extends Component
     #[Locked]
     public string $mode = 'preference';
 
-    public function mount(array $preferences = [], string $mode = 'preference'): void
+    #[Locked]
+    public ?string $gameType = null;
+
+    public function mount(array $preferences = [], string $mode = 'preference', ?string $gameType = null): void
     {
         $this->mode = $mode;
+        $this->gameType = $gameType;
 
-        // Initialize all flags to neutral (null)
-        foreach (VibeFlag::cases() as $flag) {
+        // Determine the relevant flags for this game type
+        $relevantFlags = $gameType !== null
+            ? VibeFlag::forGameType($gameType)
+            : VibeFlag::cases();
+
+        $relevantValues = array_map(fn (VibeFlag $f) => $f->value, $relevantFlags);
+
+        // Initialize relevant flags to neutral (null) with provided preferences
+        foreach ($relevantFlags as $flag) {
             $this->preferences[$flag->value] = $preferences[$flag->value] ?? null;
+        }
+
+        // Clear preferences for flags not relevant to this game type
+        foreach ($preferences as $flagValue => $value) {
+            if ($value !== null && ! in_array($flagValue, $relevantValues)) {
+                $this->preferences[$flagValue] = null;
+            }
         }
     }
 
@@ -93,9 +111,19 @@ class VibePreferencePicker extends Component
     #[Computed]
     public function getPairedFlags(): array
     {
+        $allowedValues = $this->gameType !== null
+            ? collect(VibeFlag::forGameType($this->gameType))->map(fn (VibeFlag $f) => $f->value)->flip()
+            : null;
+
         $pairs = [];
 
         foreach (VibeFlag::mutuallyExclusivePairs() as $pair) {
+            // Skip pairs where either flag is not in the allowed set
+            if ($allowedValues !== null
+                && (! $allowedValues->has($pair[0]->value) || ! $allowedValues->has($pair[1]->value))) {
+                continue;
+            }
+
             $pairs[] = [
                 'flagA' => $pair[0]->value,
                 'labelA' => $pair[0]->label(),
@@ -117,6 +145,10 @@ class VibePreferencePicker extends Component
     #[Computed]
     public function getStandaloneFlags(): array
     {
+        $allowedValues = $this->gameType !== null
+            ? collect(VibeFlag::forGameType($this->gameType))->map(fn (VibeFlag $f) => $f->value)->flip()
+            : null;
+
         $pairedValues = [];
         foreach (VibeFlag::mutuallyExclusivePairs() as $pair) {
             $pairedValues[$pair[0]->value] = true;
@@ -128,6 +160,11 @@ class VibePreferencePicker extends Component
 
         foreach ($grouped as $groupKey => $group) {
             foreach ($group['options'] as $flagValue => $flagLabel) {
+                // Skip flags not in the allowed set for this game type
+                if ($allowedValues !== null && ! $allowedValues->has($flagValue)) {
+                    continue;
+                }
+
                 if (! isset($pairedValues[$flagValue])) {
                     $standalone[] = [
                         'flag' => $flagValue,
