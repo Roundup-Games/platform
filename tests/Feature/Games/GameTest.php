@@ -304,6 +304,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Epic One-Shot Adventure')
             ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDays(3)->format('Y-m-d\TH:i'))
@@ -330,6 +331,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Quick Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
@@ -343,7 +345,7 @@ describe('CreateGame Component', function () {
         ]);
 
         $game = Game::where('name', 'Quick Game')->first();
-        expect($game->expected_duration)->toBe(2.0) // default
+        expect($game->expected_duration)->toBe(1.5) // board game type default
             ->and($game->price)->toBe(0.0); // default
     });
 
@@ -352,6 +354,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', '')
             ->call('save')
             ->assertHasErrors(['name' => 'required']);
@@ -362,6 +365,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', str_repeat('X', 256))
             ->call('save')
             ->assertHasErrors(['name' => 'max']);
@@ -372,6 +376,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('date_time', '')
             ->call('save')
             ->assertHasErrors(['date_time' => 'required']);
@@ -382,6 +387,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('date_time', 'not-a-date')
             ->call('save')
             ->assertHasErrors(['date_time']);
@@ -392,6 +398,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('visibility', 'top-secret')
             ->call('save')
             ->assertHasErrors(['visibility' => 'in']);
@@ -402,6 +409,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('game_system_id', '99999')
             ->call('save')
             ->assertHasErrors(['game_system_id' => 'exists']);
@@ -412,6 +420,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('price', '-5')
             ->call('save')
             ->assertHasErrors(['price' => 'min']);
@@ -422,6 +431,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('description', str_repeat('A', 5001))
             ->call('save')
             ->assertHasErrors(['description' => 'max']);
@@ -433,6 +443,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Location Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('location_id', $location->id)
@@ -448,6 +459,7 @@ describe('CreateGame Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Flash Test Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
@@ -1156,6 +1168,7 @@ describe('CreateGame — Language Selection', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'German Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('language', 'de')
@@ -1173,6 +1186,7 @@ describe('CreateGame — Language Selection', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Bilingual Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('language', 'de+en')
@@ -1185,6 +1199,7 @@ describe('CreateGame — Language Selection', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('language', 'fr')
@@ -1194,11 +1209,12 @@ describe('CreateGame — Language Selection', function () {
 });
 
 describe('CreateGame — Duration', function () {
-    it('defaults to 2 hours when empty', function () {
+    it('defaults to 1.5 hours for board games', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'No Duration')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
@@ -1206,7 +1222,7 @@ describe('CreateGame — Duration', function () {
 
         assertDatabaseHas('games', [
             'name' => 'No Duration',
-            'expected_duration' => 2,
+            'expected_duration' => 1.5,
         ]);
     });
 
@@ -1215,6 +1231,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('expected_duration', '2.3')
             ->assertSet('expected_duration', '2.5');
     });
@@ -1224,6 +1241,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('expected_duration', '1.7')
             ->assertSet('expected_duration', '1.5');
     });
@@ -1233,6 +1251,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('expected_duration', '2.8')
             ->assertSet('expected_duration', '3');
     });
@@ -1242,6 +1261,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('expected_duration', '0.2')
             ->assertSet('expected_duration', '0.5');
     });
@@ -1252,6 +1272,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Auto Duration')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('game_system_id', $system->id)
@@ -1271,6 +1292,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('game_system_id', $system->id)
             ->assertSet('expected_duration', '1.5');
     });
@@ -1281,6 +1303,7 @@ describe('CreateGame — Duration', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('expected_duration', '4')
             ->set('game_system_id', $system->id)
             ->assertSet('expected_duration', '4'); // stays 4, not overridden
@@ -1293,6 +1316,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Player Count Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('min_players', 3)
@@ -1311,6 +1335,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'No Limits Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
@@ -1326,6 +1351,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Bad Range')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('min_players', 5)
@@ -1343,6 +1369,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('game_system_id', $system->id)
             ->assertSet('min_players', 2)
             ->assertSet('max_players', 5);
@@ -1357,6 +1384,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('min_players', 4)
             ->set('game_system_id', $system->id)
             ->assertSet('min_players', 4); // stays 4
@@ -1367,6 +1395,7 @@ describe('CreateGame — Player Counts', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('min_players', 0)
@@ -1381,6 +1410,7 @@ describe('CreateGame — Experience Level', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Pro Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('experience_level', 'advanced')
@@ -1398,6 +1428,7 @@ describe('CreateGame — Experience Level', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('experience_level', 'god-tier')
@@ -1407,14 +1438,16 @@ describe('CreateGame — Experience Level', function () {
 });
 
 describe('CreateGame — Complexity', function () {
-    it('stores complexity as decimal', function () {
+    it('stores complexity as decimal from autofill', function () {
         $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['bgg_average_weight' => 3.5]);
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Complex Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('complexity', '3.5')
+            ->set('game_system_id', $system->id)
             ->set('max_players', 6)
             ->call('save');
 
@@ -1428,20 +1461,9 @@ describe('CreateGame — Complexity', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('game_system_id', $system->id)
             ->assertSet('complexity', '3.75');
-    });
-
-    it('rejects complexity above 5', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('name', 'Test')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('complexity', '6')
-            ->call('save')
-            ->assertHasErrors(['complexity']);
     });
 });
 
@@ -1451,6 +1473,7 @@ describe('CreateGame — Vibe Flags', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Vibey Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->call('onVibePreferencesChanged', [
@@ -1472,6 +1495,7 @@ describe('CreateGame — Vibe Flags', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Plain Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('max_players', 6)
@@ -1486,6 +1510,7 @@ describe('CreateGame — Vibe Flags', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->call('onVibePreferencesChanged', [
@@ -1514,6 +1539,7 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Full Auto Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('game_system_id', $system->id)
@@ -1550,6 +1576,7 @@ describe('CreateGame — Visibility Gating', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Public Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
@@ -1568,6 +1595,7 @@ describe('CreateGame — Visibility Gating', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Attempted Public')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'public')
@@ -1586,6 +1614,7 @@ describe('CreateGame — Visibility Gating', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'board_game')
             ->set('name', 'Protected Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
             ->set('visibility', 'protected')
@@ -1678,5 +1707,140 @@ describe('GameDetail Component — Campaign Context', function () {
 
         Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
             ->assertDontSee('Part of Campaign');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GAME TYPE SELECTION FLOW
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Type Selection', function () {
+    it('starts with null game type and step type', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->assertSet('game_type', null)
+            ->assertSet('step', 'type');
+    });
+
+    it('selectType sets game_type and advances to form step', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->assertSet('game_type', 'board_game')
+            ->assertSet('step', 'form');
+    });
+
+    it('selectType rejects invalid game type', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'invalid-type')
+            ->assertSet('game_type', null)
+            ->assertSet('step', 'type');
+    });
+
+    it('applies board game duration default on type selection', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->assertSet('expected_duration', '1.5');
+    });
+
+    it('applies TTRPG duration default on type selection', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'ttrpg')
+            ->assertSet('expected_duration', '3');
+    });
+
+    it('changeType resets type-specific fields', function () {
+        $user = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->set('game_system_id', $system->id)
+            ->set('experience_level', 'advanced')
+            ->set('comfort_notes', 'Be gentle please')
+            ->call('onVibePreferencesChanged', ['atmospheric' => 'favorite'])
+            ->call('changeType', 'ttrpg')
+            ->assertSet('game_type', 'ttrpg')
+            ->assertSet('game_system_id', null)
+            ->assertSet('experience_level', null)
+            ->assertSet('comfort_notes', '')
+            ->assertSet('vibePreferences', [])
+            ->assertSet('expected_duration', '3');
+    });
+
+    it('save requires game_type to be set', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->set('name', 'No Type Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
+            ->call('save')
+            ->assertHasErrors(['game_type']);
+    });
+
+    it('stores comfort_notes for board games', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->set('name', 'Cozy Board Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
+            ->set('comfort_notes', 'No politics please')
+            ->call('save');
+
+        $game = Game::where('name', 'Cozy Board Game')->first();
+        expect($game->safety_rules)->toBe(['comfort_notes' => 'No politics please']);
+    });
+
+    it('creates TTRPG game with full form', function () {
+        $user = gameTestCreateUserWithPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'ttrpg')
+            ->set('name', 'Epic Campaign')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
+            ->set('experience_level', 'intermediate')
+            ->call('save');
+
+        assertDatabaseHas('games', [
+            'name' => 'Epic Campaign',
+            'game_type' => 'ttrpg',
+            'experience_level' => 'intermediate',
+        ]);
+    });
+
+    it('logs game_type with game creation event', function () {
+        $user = gameTestCreateUserWithPermission();
+        Log::shouldReceive('info')->once()->with('Game created', \Mockery::on(function ($context) {
+            return isset($context['game_type']) && $context['game_type'] === 'ttrpg';
+        }));
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\CreateGame::class)
+            ->call('selectType', 'ttrpg')
+            ->set('name', 'Logged Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 6)
+            ->call('save');
     });
 });

@@ -20,7 +20,9 @@ class CreateGame extends Component
 {
     public string $name = '';
 
-    public string $game_type = 'board_game';
+    public ?string $game_type = null;
+
+    public string $step = 'type';
 
     public ?int $game_system_id = null;
 
@@ -53,6 +55,8 @@ class CreateGame extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
     public array $vibePreferences = [];
 
+    public string $comfort_notes = '';
+
     public ?string $min_reliability_preference = null;
 
     public function rules(): array
@@ -73,7 +77,7 @@ class CreateGame extends Component
             'min_players' => 'nullable|integer|min:1|max:99',
             'max_players' => 'required|integer|min:2|max:30',
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
-            'complexity' => 'nullable|numeric|min:1|max:5',
+            'comfort_notes' => 'nullable|string|max:1000',
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
         ];
     }
@@ -112,6 +116,36 @@ class CreateGame extends Component
         $this->autofillFromGameSystem($id);
     }
 
+    // ── Type Selection Actions ───────────────────────────
+
+    public function selectType(string $type): void
+    {
+        if (! in_array($type, GameType::values())) {
+            return;
+        }
+
+        $this->game_type = $type;
+        $this->step = 'form';
+        $this->applyTypeDefaults($type);
+    }
+
+    public function changeType(string $type): void
+    {
+        if (! in_array($type, GameType::values())) {
+            return;
+        }
+
+        $this->game_type = $type;
+        // Reset type-specific fields when type changes
+        $this->game_system_id = null;
+        $this->vibePreferences = [];
+        $this->safety_rules = [];
+        $this->comfort_notes = '';
+        $this->experience_level = null;
+        $this->complexity = null;
+        $this->applyTypeDefaults($type);
+    }
+
     // ── Lifecycle Hooks ──────────────────────────────────
 
     public function updatedGameSystemId(?int $id): void
@@ -138,6 +172,23 @@ class CreateGame extends Component
     public function updatedMaxPlayers(): void
     {
         $this->validatePlayerCounts();
+    }
+
+    public function updatedGameType(): void
+    {
+        if ($this->game_type === null) {
+            return;
+        }
+
+        // Reset type-specific fields when type changes
+        $this->game_system_id = null;
+        $this->vibePreferences = [];
+        $this->safety_rules = [];
+        $this->comfort_notes = '';
+        $this->experience_level = null;
+        $this->complexity = null;
+
+        $this->applyTypeDefaults($this->game_type);
     }
 
     // ── Computed ─────────────────────────────────────────
@@ -189,6 +240,12 @@ class CreateGame extends Component
     {
         $this->authorize('create', Game::class);
 
+        if ($this->game_type === null) {
+            $this->addError('game_type', __('games.error_select_game_type'));
+
+            return;
+        }
+
         // Gate public visibility
         if ($this->visibility === 'public' && ! $this->canCreatePublic) {
             $this->visibility = 'private';
@@ -209,6 +266,12 @@ class CreateGame extends Component
         // Extract favorite vibe flags for storage
         $vibeFlags = $this->selectedVibeFlags();
 
+        // Handle safety data based on game type
+        $safetyRules = $validated['safety_rules'] ?: null;
+        if ($this->game_type === 'board_game' && ! empty($this->comfort_notes)) {
+            $safetyRules = ['comfort_notes' => $this->comfort_notes];
+        }
+
         $game = Game::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
@@ -224,11 +287,11 @@ class CreateGame extends Component
             'status' => 'scheduled',
             'visibility' => $validated['visibility'],
             'minimum_requirements' => $validated['minimum_requirements'] ?: null,
-            'safety_rules' => $validated['safety_rules'] ?: null,
+            'safety_rules' => $safetyRules,
             'min_players' => $validated['min_players'] ?? 2,
             'max_players' => $validated['max_players'] ?? 6,
             'experience_level' => $validated['experience_level'],
-            'complexity' => $validated['complexity'] ?: null,
+            'complexity' => $this->complexity ?: null,
             'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
             'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
         ]);
@@ -236,6 +299,7 @@ class CreateGame extends Component
         Log::info('Game created', [
             'game_id' => $game->id,
             'name' => $game->name,
+            'game_type' => $game->game_type?->value,
             'owner_id' => Auth::id(),
         ]);
 
@@ -251,6 +315,15 @@ class CreateGame extends Component
 
     // ── Private Helpers ──────────────────────────────────
 
+    protected function applyTypeDefaults(string $type): void
+    {
+        $this->expected_duration = match ($type) {
+            'board_game' => '1.5',
+            'ttrpg' => '3',
+            default => '2',
+        };
+    }
+
     protected function autofillFromGameSystem(?int $id): void
     {
         if ($id === null) {
@@ -262,7 +335,14 @@ class CreateGame extends Component
             return;
         }
 
-        if ($system->average_play_time && $this->expected_duration === '') {
+        // Allow autofill to override type-default durations but not manual input
+        $typeDefault = match ($this->game_type) {
+            'board_game' => '1.5',
+            'ttrpg' => '3',
+            default => '',
+        };
+
+        if ($system->average_play_time && ($this->expected_duration === '' || $this->expected_duration === $typeDefault)) {
             $hours = $system->average_play_time / 60;
             $rounded = round($hours * 2) / 2;
             $this->expected_duration = (string) max($rounded, 0.5);
