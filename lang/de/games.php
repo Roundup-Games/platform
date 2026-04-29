@@ -42,7 +42,7 @@ return [
     'content_game_preferences' => 'Spielpräferenzen',
     'heading_game_preferences' => 'Spielpräferenzen',
     'content_game_system' => 'Spielsystem',
-    'content_game_systems_will_appear_here_once_they_are_added' => 'Spielsysteme werden hier angezeigt, sobald sie hinzugefpgt werden.',
+    'content_game_systems_will_appear_here_once_they_are_added' => 'Spielsysteme werden hier angezeigt, sobald sie hinzugefügt werden.',
     'content_games' => 'Spiele',
     'content_love_epic_rpg_campaigns_quick' => 'Liebst du epische RPG-Kampagnen? Schnelle Brettspielabende? Wettbewerbsorientierte Kartenspiele? Setze deine Präferenzen und wir zeigen dir die Spiele, die du wirklich spielen möchtest.',
     'content_mechanics' => 'Mechaniken',
@@ -77,6 +77,7 @@ return [
     'content_you_ve_got_the_game' => 'Du hast das Spiel. Wir helfen dir, die richtigen Spieler zu finden — und kümmern uns um die Logistik, damit du dich auf das konzentrieren kannst, was du am besten kannst: unvergessliche Sessions ausrichten.',
     'error_min_players_cannot_exceed_max_players' => 'Min. Spieler können max. Spieler nicht überschreiten.',
     'error_clone_own_only' => 'Du kannst nur deine eigenen Spielsitzungen klonen.',
+    'error_select_game_type' => 'Bitte wähle eine Spielart bevor du erstellst.',
     'error_you_cannot_apply_to_your_own_game' => 'Du kannst dich nicht auf dein eigenes Spiel bewerben.',
     'field_game_type' => 'Spielart',
     'field_max_players' => 'Max. Spieler',
@@ -228,7 +229,7 @@ return [
     'action_switch_type' => 'Wechseln',
     'field_comfort_notes' => 'Komforthinweise',
     'placeholder_game_description' => 'Beschreibe die Sitzung...',
-    'placeholder_game_name' => 'z.B. Brettspielabend',
+    'placeholder_game_name' => 'z.B. Spieleabend',
     'placeholder_comfort_notes' => 'Komforthinweise für Spieler?',
 
     // Spiel bearbeiten

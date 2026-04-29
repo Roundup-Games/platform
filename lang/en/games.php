@@ -77,6 +77,7 @@ return [
     'content_you_ve_got_the_game' => 'You\'ve got the game. We\'ll help you find the right players — and handle the logistics so you can focus on what you do best: hosting unforgettable sessions.',
     'error_min_players_cannot_exceed_max_players' => 'Min players cannot exceed max players.',
     'error_clone_own_only' => 'You can only clone your own game sessions.',
+    'error_select_game_type' => 'Please select a game type before creating.',
     'error_you_cannot_apply_to_your_own_game' => 'You cannot apply to your own game.',
     'field_game_type' => 'Game Type',
     'field_max_players' => 'Max Players',

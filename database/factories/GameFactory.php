@@ -21,6 +21,7 @@ class GameFactory extends Factory
     {
         return [
             'owner_id' => User::factory(),
+            'game_type' => 'board_game',
             'game_system_id' => GameSystem::factory(),
             'name' => fake()->words(3, true),
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),

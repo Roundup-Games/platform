@@ -60,3 +60,14 @@ describe('clone link visibility', function () {
             ->assertDontSee('content_copy');
     });
 });
+
+describe('clone link URL format', function () {
+    it('generates correct clone URL with game ID', function () {
+        $expectedUrl = route('games.create', ['locale' => app()->getLocale()]) . '?clone=' . $this->game->id;
+
+        Livewire::actingAs($this->owner)
+            ->test('games.game-detail', ['id' => $this->game->id])
+            ->assertSeeHtml('href="' . $expectedUrl . '"')
+            ->assertSeeHtml('wire:navigate');
+    });
+});

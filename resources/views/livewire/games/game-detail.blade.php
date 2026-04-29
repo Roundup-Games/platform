@@ -38,6 +38,12 @@
                         {{ __('games.action_create_similar_session') }}
                     </a>
                 @endif
+                @if($game->game_type)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">{{ $game->game_type->value === 'board_game' ? 'casino' : 'auto_stories' }}</span>
+                        {{ __('games.type_' . $game->game_type->value) }}
+                    </span>
+                @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                     {{ $game->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
                     {{ __('games.visibility_' . $game->visibility) }}
@@ -344,7 +350,7 @@
                 @endif
 
                 {{-- Safety Tools --}}
-                @if($game->safety_rules)
+                @if($game->safety_rules && $game->game_type?->value !== 'board_game')
                     @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $game->safety_rules])
                 @endif
 

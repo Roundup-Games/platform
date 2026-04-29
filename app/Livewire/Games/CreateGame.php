@@ -141,8 +141,11 @@ class CreateGame extends Component
             abort(403, __('games.error_clone_own_only'));
         }
 
+        // Verify the user can still create games (permission may have been revoked)
+        $this->authorize('create', Game::class);
+
         // Set game type and apply defaults first
-        $this->game_type = $source->game_type->value;
+        $this->game_type = $source->game_type?->value ?? 'board_game';
         $this->step = 'form';
         $this->applyTypeDefaults($this->game_type);
 
@@ -172,7 +175,7 @@ class CreateGame extends Component
 
         // Load safety_rules based on game type
         if ($source->safety_rules && is_array($source->safety_rules)) {
-            if ($source->game_type->value === 'board_game') {
+            if (($source->game_type?->value ?? 'board_game') === 'board_game') {
                 // Board games store comfort_notes in safety_rules JSON
                 $this->comfort_notes = $source->safety_rules['comfort_notes'] ?? '';
             } else {
@@ -322,8 +325,8 @@ class CreateGame extends Component
 
         // Handle safety data based on game type
         $safetyRules = $validated['safety_rules'] ?? null;
-        if ($this->game_type === 'board_game' && ! empty($this->comfort_notes)) {
-            $safetyRules = ['comfort_notes' => $this->comfort_notes];
+        if ($this->game_type === 'board_game') {
+            $safetyRules = ! empty($this->comfort_notes) ? ['comfort_notes' => $this->comfort_notes] : null;
         }
 
         $game = Game::create([

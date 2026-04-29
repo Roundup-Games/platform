@@ -89,6 +89,7 @@
                                 :gameType="$game_type"
                                 :value="$game_system_id"
                                 wire:model.live="game_system_id"
+                                wire:key="game-system-picker-{{ $game_type ?? 'default' }}"
                             />
                         </div>
 
@@ -238,7 +239,7 @@
 
                 {{-- Actions --}}
                 <div class="flex items-center gap-4 pt-2">
-                    <button wire:click="save" wire:loading.attr="disabled" wire:loading.attr="aria-busy=true"
+                    <button type="submit" wire:loading.attr="disabled" wire:loading.attr="aria-busy=true"
                             class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient">
                         <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">add_circle</span>
                         <span wire:loading.remove>{{ __('games.action_create_game') }}</span>

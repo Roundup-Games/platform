@@ -56,6 +56,14 @@ class GameResource extends Resource
                                     ->relationship('campaign', 'name')
                                     ->searchable()
                                     ->preload(),
+                                Select::make('game_type')
+                                    ->label('Game Type')
+                                    ->options([
+                                        'board_game' => 'Board Game',
+                                        'ttrpg' => 'TTRPG',
+                                    ])
+                                    ->default('board_game')
+                                    ->required(),
                                 DateTimePicker::make('date_time')
                                     ->label('Date & Time')
                                     ->required(),
@@ -127,6 +135,16 @@ class GameResource extends Resource
                     ->label('Game Master')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('game_type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'board_game' => 'info',
+                        'ttrpg' => 'warning',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => $state === 'board_game' ? 'Board Game' : 'TTRPG')
+                    ->toggleable(),
                 TextColumn::make('gameSystem.name')
                     ->label('System')
                     ->searchable()
