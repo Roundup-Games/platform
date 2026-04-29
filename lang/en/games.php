@@ -218,6 +218,12 @@ return [
     // Game type labels
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
+    'content_what_are_you_playing' => 'What are you playing?',
+    'content_type_board_game_examples' => 'Catan, Azul, Wingspan…',
+    'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu…',
+    'action_switch_type' => 'Switch',
+    'field_comfort_notes' => 'Comfort Notes',
+    'placeholder_comfort_notes' => 'Any comfort notes for players?',
 
     // Edit game
     'action_edit_game' => 'Edit',
