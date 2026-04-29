@@ -360,12 +360,18 @@ class CreateGame extends Component
             'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
         ]);
 
-        Log::info('Game created', [
+        $logContext = [
             'game_id' => $game->id,
             'name' => $game->name,
             'game_type' => $game->game_type?->value,
             'owner_id' => Auth::id(),
-        ]);
+        ];
+
+        if ($this->clone !== null && $this->clone !== '') {
+            $logContext['source_game_id'] = $this->clone;
+        }
+
+        Log::info('Game created', $logContext);
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
