@@ -5,6 +5,7 @@ return [
     'action_choose_specific_game_or_expansion' => 'Spiel oder Erweiterung auswählen',
     'action_create_game' => 'Spiel erstellen',
     'action_create_game_session' => 'Spielsitzung erstellen',
+    'action_create_similar_session' => 'Ähnliche Sitzung erstellen',
     'action_discover_adventures' => 'Abenteuer entdecken',
     'action_discover_board_games' => 'Brettspiele entdecken',
     'action_discover_games_campaigns' => 'Spiele & Kampagnen entdecken',

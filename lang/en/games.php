@@ -5,6 +5,7 @@ return [
     'action_choose_specific_game_or_expansion' => 'Choose specific game or expansion',
     'action_create_game' => 'Create Game',
     'action_create_game_session' => 'Create Game Session',
+    'action_create_similar_session' => 'Create Similar Session',
     'action_discover_adventures' => 'Discover Adventures',
     'action_discover_board_games' => 'Discover Board Games',
     'action_discover_games_campaigns' => 'Discover Games & Campaigns',
