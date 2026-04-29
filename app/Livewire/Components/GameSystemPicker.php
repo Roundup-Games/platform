@@ -66,6 +66,12 @@ class GameSystemPicker extends Component
         $this->error = $error;
         $this->gameType = $gameType ?? 'boardgame';
 
+        // Map GameType enum values to BGG database convention
+        $this->gameType = match ($this->gameType) {
+            'board_game' => 'boardgame',
+            default => $this->gameType, // 'ttrpg' and others pass through
+        };
+
         // Pre-populate search text if editing an existing selection
         if ($value) {
             $system = GameSystem::find($value);

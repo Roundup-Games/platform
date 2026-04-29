@@ -79,11 +79,16 @@ class CreateGame extends Component
             'visibility' => 'required|in:public,protected,private',
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
+            'safety_rules.tools' => 'nullable|array',
+            'safety_rules.tools.*' => 'nullable|string',
+            'safety_rules.lines_and_veils_text' => 'nullable|string|max:2000',
+            'safety_rules.custom_note' => 'nullable|string|max:1000',
             'min_players' => 'nullable|integer|min:1|max:99',
             'max_players' => 'required|integer|min:2|max:30',
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'comfort_notes' => 'nullable|string|max:1000',
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
+            'complexity' => 'nullable|numeric|min:0|max:5',
         ];
     }
 
@@ -133,7 +138,7 @@ class CreateGame extends Component
 
         // Only the owner can clone their own game
         if ($source->owner_id !== Auth::id()) {
-            abort(403, 'You can only clone your own game sessions.');
+            abort(403, __('games.error_clone_own_only'));
         }
 
         // Set game type and apply defaults first
@@ -240,23 +245,6 @@ class CreateGame extends Component
         $this->validatePlayerCounts();
     }
 
-    public function updatedGameType(): void
-    {
-        if ($this->game_type === null) {
-            return;
-        }
-
-        // Reset type-specific fields when type changes
-        $this->game_system_id = null;
-        $this->vibePreferences = [];
-        $this->safety_rules = [];
-        $this->comfort_notes = '';
-        $this->experience_level = null;
-        $this->complexity = null;
-
-        $this->applyTypeDefaults($this->game_type);
-    }
-
     // ── Computed ─────────────────────────────────────────
 
     #[Computed]
@@ -333,7 +321,7 @@ class CreateGame extends Component
         $vibeFlags = $this->selectedVibeFlags();
 
         // Handle safety data based on game type
-        $safetyRules = $validated['safety_rules'] ?: null;
+        $safetyRules = $validated['safety_rules'] ?? null;
         if ($this->game_type === 'board_game' && ! empty($this->comfort_notes)) {
             $safetyRules = ['comfort_notes' => $this->comfort_notes];
         }

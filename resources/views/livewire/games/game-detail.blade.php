@@ -40,7 +40,7 @@
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                     {{ $game->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ __(ucfirst($game->visibility)) }}
+                    {{ __('games.visibility_' . $game->visibility) }}
                 </span>
             </div>
 
@@ -249,11 +249,11 @@
                                     <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                        {{ strtoupper($participant->role) }}
+                                        {{ __('games.field_role_' . $participant->role) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                         {{ $participant->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === 'waitlisted' ? 'bg-tertiary/10 text-tertiary' : ($participant->status === 'pending' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container')) }}">
-                                        {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __(ucfirst($participant->status)) }}
+                                        {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __('games.status_' . $participant->status) }}
                                     </span>
                                 </div>
                             @endforeach
@@ -328,6 +328,18 @@
                                 </div>
                             </div>
                         @endif
+                    </section>
+                @endif
+
+                {{-- Comfort Notes (board games) --}}
+                @php($comfortNotes = $game->game_type?->value === 'board_game' && isset($game->safety_rules['comfort_notes']) ? $game->safety_rules['comfort_notes'] : null)
+                @if($comfortNotes)
+                    <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-xl" aria-hidden="true">notes</span>
+                            {{ __('games.label_comfort_notes') }}
+                        </h2>
+                        <p class="text-sm text-on-surface whitespace-pre-line">{{ $comfortNotes }}</p>
                     </section>
                 @endif
 
@@ -622,7 +634,7 @@
                                     </div>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
                                         {{ $application->status === 'pending' ? 'bg-tertiary/10 text-tertiary' : ($application->status === 'accepted' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                                        {{ __(ucfirst($application->status)) }}
+                                        {{ __('games.status_' . $application->status) }}
                                     </span>
                                 </div>
                             @endforeach

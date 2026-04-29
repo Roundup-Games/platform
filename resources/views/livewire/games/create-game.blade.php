@@ -60,7 +60,7 @@
                 @error('game_type') <p class="ml-2 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
-            <form wire:submit="save" class="space-y-6">
+            <form wire:submit="save" class="space-y-6" id="game-form" tabindex="-1">
 
                 {{-- Section 1: Game Details --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
@@ -69,7 +69,7 @@
                     <div class="space-y-4">
                         <div>
                             <label for="game-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }} <span class="text-error">*</span></label>
-                            <input type="text" id="game-name" wire:model="name" placeholder="e.g. Dungeon Crawl Night"
+                            <input type="text" id="game-name" wire:model="name" placeholder="{{ __('games.placeholder_game_name') }}"
                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                             @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
@@ -94,7 +94,7 @@
 
                         <div>
                             <label for="game-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                            <textarea id="game-description" wire:model="description" rows="3" placeholder="Describe the session..."
+                            <textarea id="game-description" wire:model="description" rows="3" placeholder="{{ __('games.placeholder_game_description') }}"
                                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
                             @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
@@ -238,7 +238,7 @@
 
                 {{-- Actions --}}
                 <div class="flex items-center gap-4 pt-2">
-                    <button wire:click="save" wire:loading.attr="disabled"
+                    <button wire:click="save" wire:loading.attr="disabled" wire:loading.attr="aria-busy=true"
                             class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium shadow-ambient">
                         <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">add_circle</span>
                         <span wire:loading.remove>{{ __('games.action_create_game') }}</span>

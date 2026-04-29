@@ -76,6 +76,7 @@ return [
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
     'content_you_ve_got_the_game' => 'Du hast das Spiel. Wir helfen dir, die richtigen Spieler zu finden — und kümmern uns um die Logistik, damit du dich auf das konzentrieren kannst, was du am besten kannst: unvergessliche Sessions ausrichten.',
     'error_min_players_cannot_exceed_max_players' => 'Min. Spieler können max. Spieler nicht überschreiten.',
+    'error_clone_own_only' => 'Du kannst nur deine eigenen Spielsitzungen klonen.',
     'error_you_cannot_apply_to_your_own_game' => 'Du kannst dich nicht auf dein eigenes Spiel bewerben.',
     'field_game_type' => 'Spielart',
     'field_max_players' => 'Max. Spieler',
@@ -99,6 +100,7 @@ return [
     'content_blocks_all_expansions' => 'blockiert alle Erweiterungen',
     'content_favorite_games' => 'Lieblingsspiele',
     'content_game_systems' => 'Spielsysteme',
+    'label_comfort_notes' => 'Wohlfühl-Notizen',
     'label_game_systems' => 'Spielesysteme',
     'content_upcoming_game_sessions' => 'Anstehende Spielsitzungen',
     'content_games_to_avoid' => 'Spiele, die du meidest',
@@ -222,9 +224,11 @@ return [
     'type_ttrpg' => 'TTRPG',
     'content_what_are_you_playing' => 'Was spielt ihr?',
     'content_type_board_game_examples' => 'Catan, Azul, Zug um Zug…',
-    'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu…',
+    'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu, Das Schwarze Auge…',
     'action_switch_type' => 'Wechseln',
     'field_comfort_notes' => 'Komforthinweise',
+    'placeholder_game_description' => 'Beschreibe die Sitzung...',
+    'placeholder_game_name' => 'z.B. Brettspielabend',
     'placeholder_comfort_notes' => 'Komforthinweise für Spieler?',
 
     // Spiel bearbeiten
@@ -329,7 +333,8 @@ return [
     'action_join_waitlist' => 'Warteliste beitreten',
     'content_game_full_join_waitlist' => 'Dieses Spiel ist voll. Tritt der Warteliste bei, um benachrichtigt zu werden, wenn ein Platz frei wird.',
     'content_waitlist_position' => 'Du bist #:position auf der Warteliste.',
-    'content_spot_opened_confirm' => 'Ein Platz ist frei! Bitte bestätige innerhalb der Frist.',
+    'content_comfort_notes' => 'Wohlfühl-Notizen',
+    'content_spot_opened_confirm' => 'Ein Platz ist frei! Bitte bestätige innerhalb von :deadline.',
     'action_confirm_spot' => 'Platz bestätigen',
     'action_decline_spot' => 'Platz ablehnen',
     'action_manual_promote' => 'Befördern',
@@ -341,4 +346,23 @@ return [
     'content_late_cancel_warning' => 'Achtung: Du stornierst weniger als 24 Stunden vor Spielbeginn. Dies wird als späte Stornierung erfasst.',
     'content_below_min_players_warning' => 'Achtung: Die Spielerzahl ist unter das Minimum gefallen.',
     'flash_manual_promote_success' => 'Spieler wurde von der Warteliste befördert.',
+
+    // Sichtbarkeitsbezeichnungen
+    'visibility_public' => 'Öffentlich',
+    'visibility_protected' => 'Geschützt',
+    'visibility_private' => 'Privat',
+
+    // Teilnehmerrollenbezeichnungen
+    'field_role_owner' => 'Besitzer',
+    'field_role_player' => 'Spieler',
+    'field_role_invited' => 'Eingeladen',
+    'field_role_applicant' => 'Bewerber',
+    'field_role_gm' => 'SL',
+
+    // Teilnehmerstatusbezeichnungen
+    'status_approved' => 'Bestätigt',
+    'status_pending' => 'Ausstehend',
+    'status_rejected' => 'Abgelehnt',
+    'status_waitlisted' => 'Warteliste',
+    'status_accepted' => 'Angenommen',
 ];
