@@ -219,6 +219,12 @@ return [
     // Spielart-Bezeichnungen
     'type_board_game' => 'Brettspiel',
     'type_ttrpg' => 'TTRPG',
+    'content_what_are_you_playing' => 'Was spielt ihr?',
+    'content_type_board_game_examples' => 'Catan, Azul, Zug um Zug…',
+    'content_type_ttrpg_examples' => 'D&D, Pathfinder, Call of Cthulhu…',
+    'action_switch_type' => 'Wechseln',
+    'field_comfort_notes' => 'Komforthinweise',
+    'placeholder_comfort_notes' => 'Komforthinweise für Spieler?',
 
     // Spiel bearbeiten
     'action_edit_game' => 'Bearbeiten',
