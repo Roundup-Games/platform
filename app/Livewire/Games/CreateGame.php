@@ -13,12 +13,14 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
     /** Optional query parameter: game ID to clone from */
+    #[Url]
     public ?string $clone = null;
 
     public string $name = '';

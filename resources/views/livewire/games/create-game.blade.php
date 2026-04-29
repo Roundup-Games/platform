@@ -87,6 +87,7 @@
                                 :label="__('games.content_game_system')"
                                 :error="$errors->first('game_system_id')"
                                 :gameType="$game_type"
+                                :value="$game_system_id"
                                 wire:model.live="game_system_id"
                             />
                         </div>
@@ -169,18 +170,18 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
-                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'ttrpg'" wire:key="game-vibe-picker-ttrpg" />
+                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'ttrpg'" :preferences="$vibePreferences" wire:key="game-vibe-picker-ttrpg" />
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-on-surface mb-2">{{ __('safety.content_safety_tools') }}</label>
-                                <livewire:components.safety-tool-picker mode="selection" wire:key="game-safety-picker-ttrpg" />
+                                <livewire:components.safety-tool-picker mode="selection" :selected="isset($safety_rules['tools']) ? $safety_rules['tools'] : []" :linesAndVeilsText="$safety_rules['lines_and_veils_text'] ?? ''" :customNote="$safety_rules['custom_note'] ?? ''" wire:key="game-safety-picker-ttrpg" />
                             </div>
                         @else
                             {{-- Board Game: Simplified form --}}
                             <div>
                                 <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
-                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'board_game'" wire:key="game-vibe-picker-board-game" />
+                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'board_game'" :preferences="$vibePreferences" wire:key="game-vibe-picker-board-game" />
                             </div>
 
                             <div>
