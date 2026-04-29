@@ -18,6 +18,9 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
+    /** Optional query parameter: game ID to clone from */
+    public ?string $clone = null;
+
     public string $name = '';
 
     public ?string $game_type = null;
@@ -114,6 +117,67 @@ class CreateGame extends Component
         $id = is_numeric($value) ? (int) $value : null;
         $this->game_system_id = $id;
         $this->autofillFromGameSystem($id);
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────
+
+    public function mount(): void
+    {
+        if ($this->clone === null || $this->clone === '') {
+            return;
+        }
+
+        $source = Game::findOrFail($this->clone);
+
+        // Only the owner can clone their own game
+        if ($source->owner_id !== Auth::id()) {
+            abort(403, 'You can only clone your own game sessions.');
+        }
+
+        // Set game type and apply defaults first
+        $this->game_type = $source->game_type->value;
+        $this->step = 'form';
+        $this->applyTypeDefaults($this->game_type);
+
+        // Pre-fill all shared fields (NOT date_time — leave empty for user)
+        $this->name = $source->name;
+        $this->description = $source->description ?? '';
+        $this->game_system_id = $source->game_system_id;
+        $this->location_id = $source->location_id;
+        $this->price = $source->price !== null ? (string) $source->price : '';
+        $this->language = $source->language ?? 'en';
+        $this->visibility = $source->visibility ?? 'protected';
+        $this->min_players = $source->min_players;
+        $this->max_players = $source->max_players;
+        $this->experience_level = $source->experience_level;
+        $this->complexity = $source->complexity !== null ? (string) $source->complexity : null;
+        $this->expected_duration = $source->expected_duration !== null ? (string) $source->expected_duration : '';
+        $this->min_reliability_preference = $source->min_reliability_preference !== null
+            ? (string) $source->min_reliability_preference
+            : null;
+
+        // Load vibe_flags into vibePreferences array (flat DB array → favorite map)
+        if ($source->vibe_flags && is_array($source->vibe_flags)) {
+            foreach ($source->vibe_flags as $flag) {
+                $this->vibePreferences[$flag] = 'favorite';
+            }
+        }
+
+        // Load safety_rules based on game type
+        if ($source->safety_rules && is_array($source->safety_rules)) {
+            if ($source->game_type->value === 'board_game') {
+                // Board games store comfort_notes in safety_rules JSON
+                $this->comfort_notes = $source->safety_rules['comfort_notes'] ?? '';
+            } else {
+                // TTRPG uses safety_rules directly
+                $this->safety_rules = $source->safety_rules;
+            }
+        }
+
+        Log::info('Game clone initiated', [
+            'source_game_id' => $source->id,
+            'user_id' => Auth::id(),
+        ]);
     }
 
     // ── Type Selection Actions ───────────────────────────

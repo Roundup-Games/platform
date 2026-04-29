@@ -342,3 +342,163 @@ describe('CreateGame — Analytics', function () {
             ->call('save');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// CLONE FROM EXISTING GAME
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Clone Source', function () {
+    it('pre-fills fields from a TTRPG clone source', function () {
+        $user = createGameTestUser();
+        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
+
+        $source = Game::factory()->create([
+            'owner_id' => $user->id,
+            'game_type' => 'ttrpg',
+            'name' => 'Epic Campaign',
+            'description' => 'An epic adventure awaits',
+            'game_system_id' => $system->id,
+            'price' => 5.00,
+            'language' => 'en',
+            'visibility' => 'protected',
+            'min_players' => 3,
+            'max_players' => 6,
+            'experience_level' => 'intermediate',
+            'expected_duration' => 4.0,
+            'vibe_flags' => ['roleplay-heavy', 'story-rich'],
+            'safety_rules' => ['tools' => ['x-card'], 'custom_note' => 'No gore'],
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => $source->id])
+            ->assertSet('step', 'form')
+            ->assertSet('game_type', 'ttrpg')
+            ->assertSet('name', 'Epic Campaign')
+            ->assertSet('description', 'An epic adventure awaits')
+            ->assertSet('game_system_id', $system->id)
+            ->assertSet('price', '5')
+            ->assertSet('language', 'en')
+            ->assertSet('visibility', 'protected')
+            ->assertSet('min_players', 3)
+            ->assertSet('max_players', 6)
+            ->assertSet('experience_level', 'intermediate')
+            ->assertSet('expected_duration', '4')
+            ->assertSet('date_time', '')
+            ->assertSet('vibePreferences', ['roleplay-heavy' => 'favorite', 'story-rich' => 'favorite'])
+            ->assertSet('safety_rules', ['tools' => ['x-card'], 'custom_note' => 'No gore']);
+    });
+
+    it('pre-fills fields from a board game clone source with comfort notes', function () {
+        $user = createGameTestUser();
+        $system = GameSystem::factory()->create(['name' => 'Catan']);
+
+        $source = Game::factory()->create([
+            'owner_id' => $user->id,
+            'game_type' => 'board_game',
+            'name' => 'Board Night',
+            'game_system_id' => $system->id,
+            'expected_duration' => 1.5,
+            'safety_rules' => ['comfort_notes' => 'Keep it light'],
+            'vibe_flags' => ['cooperative', 'new-player-friendly'],
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => $source->id])
+            ->assertSet('step', 'form')
+            ->assertSet('game_type', 'board_game')
+            ->assertSet('name', 'Board Night')
+            ->assertSet('comfort_notes', 'Keep it light')
+            ->assertSet('expected_duration', '1.5')
+            ->assertSet('vibePreferences', ['cooperative' => 'favorite', 'new-player-friendly' => 'favorite'])
+            ->assertSet('date_time', '');
+    });
+
+    it('does not pre-fill date_time from source game', function () {
+        $user = createGameTestUser();
+
+        $source = Game::factory()->create([
+            'owner_id' => $user->id,
+            'game_type' => 'ttrpg',
+            'date_time' => now()->addDays(7),
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => $source->id])
+            ->assertSet('date_time', '');
+    });
+
+    it('aborts 403 when cloning someone elses game', function () {
+        $owner = createGameTestUser();
+        $otherUser = createGameTestUser();
+
+        $source = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
+        ]);
+
+        Livewire\Livewire::actingAs($otherUser)
+            ->test(CreateGame::class, ['clone' => $source->id])
+            ->assertStatus(403);
+    });
+
+    it('throws ModelNotFoundException when clone source does not exist', function () {
+        $user = createGameTestUser();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => '00000000-0000-0000-0000-000000000000']);
+    })->throws(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    it('logs clone initiation event', function () {
+        $user = createGameTestUser();
+
+        $source = Game::factory()->create([
+            'owner_id' => $user->id,
+            'game_type' => 'board_game',
+        ]);
+
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->once()
+            ->with('Game clone initiated', \Mockery::on(function ($context) use ($source) {
+                return isset($context['source_game_id']) && $context['source_game_id'] === $source->id;
+            }));
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => $source->id]);
+    });
+
+    it('shows type selector when no clone parameter is provided', function () {
+        $user = createGameTestUser();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class)
+            ->assertSet('step', 'type')
+            ->assertSet('game_type', null);
+    });
+
+    it('can save a cloned game with new date_time', function () {
+        $user = createGameTestUser();
+
+        $source = Game::factory()->create([
+            'owner_id' => $user->id,
+            'game_type' => 'ttrpg',
+            'name' => 'Repeat Session',
+            'max_players' => 5,
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class, ['clone' => $source->id])
+            ->set('date_time', now()->addWeek()->format('Y-m-d\TH:i'))
+            ->call('save')
+            ->assertRedirect();
+
+        assertDatabaseHas('games', [
+            'name' => 'Repeat Session',
+            'owner_id' => $user->id,
+            'game_type' => 'ttrpg',
+        ]);
+
+        // Ensure the clone created a new game, not updated the source
+        $games = Game::where('name', 'Repeat Session')->get();
+        expect($games)->toHaveCount(2);
+    });
+});
