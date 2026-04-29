@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Log;
 class WaitlistService
 {
     /**
+     * Maximum number of times a player's confirmation can expire
+     * before they are permanently rejected from this game's waitlist.
+     */
+    public const MAX_CONFIRMATION_EXPIRATIONS = 2;
+
+    /**
      * Urgency-scaled confirmation windows (hours).
      *
      * Time until game  →  hours to confirm
@@ -103,6 +109,7 @@ class WaitlistService
             $next->update([
                 'status'                 => ParticipantStatus::Pending->value,
                 'confirmation_expires_at' => $expiresAt,
+                'confirmation_attempts'  => ($next->confirmation_attempts ?? 0) + 1,
             ]);
 
             Log::info('waitlist.promoted', [
@@ -184,6 +191,18 @@ class WaitlistService
         $gameId = $participant->game_id;
 
         DB::transaction(function () use ($participant, $gameId) {
+            // Lock the game row to serialize concurrent expired-confirmation
+            // handlers for the same game (e.g., two participants expire simultaneously).
+            Game::lockForUpdate()->findOrFail($gameId);
+
+            // Refresh participant within the locked transaction
+            $participant->refresh();
+
+            // Guard: if another handler already resolved this participant, bail out
+            if ($participant->status->value !== 'pending') {
+                return;
+            }
+
             Log::warning('waitlist.confirmation_expired', [
                 'game_id'        => $gameId,
                 'participant_id' => $participant->id,
@@ -191,26 +210,58 @@ class WaitlistService
                 'expired_at'     => $participant->confirmation_expires_at?->toIso8601String(),
             ]);
 
-            // Move to back of queue first, then promote next
-            $participant->update([
-                'status'                 => ParticipantStatus::Waitlisted->value,
-                'waitlisted_at'          => now(),
-                'confirmation_expires_at' => null,
-            ]);
+            $confirmationAttempts = $participant->confirmation_attempts ?? 0;
+
+            if ($confirmationAttempts >= self::MAX_CONFIRMATION_EXPIRATIONS) {
+                // Max expirations exceeded — reject permanently
+                $participant->update([
+                    'status'                 => ParticipantStatus::Rejected->value,
+                    'confirmation_expires_at' => null,
+                ]);
+
+                Log::info('waitlist.rejected_max_expirations', [
+                    'game_id'               => $gameId,
+                    'participant_id'        => $participant->id,
+                    'user_id'               => $participant->user_id,
+                    'confirmation_attempts' => $confirmationAttempts,
+                ]);
+
+                // Notify the rejected player (outside transaction)
+                // We dispatch the notification after the transaction commits
+                // by capturing the data and sending after the closure.
+            } else {
+                // Move to back of queue
+                $participant->update([
+                    'status'                 => ParticipantStatus::Waitlisted->value,
+                    'waitlisted_at'          => now(),
+                    'confirmation_expires_at' => null,
+                ]);
+            }
 
             // Promote the next in line using game ID to avoid stale model
             $this->promoteNextFromGameId($gameId, $participant->id);
         });
 
-        // Notify the expired player (outside transaction so it only sends on successful DB update)
+        // Send notification outside the transaction
+        $participant->refresh();
+
         try {
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
-            $notificationService->send(
-                $user,
-                new ConfirmationExpired($participant->game),
-                \App\Enums\NotificationCategory::ConfirmationExpired
-            );
+
+            if ($participant->status === ParticipantStatus::Rejected) {
+                $notificationService->send(
+                    $user,
+                    new \App\Notifications\WaitlistExpiredRejected($participant->game, $participant->confirmation_attempts),
+                    \App\Enums\NotificationCategory::ConfirmationExpired
+                );
+            } else {
+                $notificationService->send(
+                    $user,
+                    new ConfirmationExpired($participant->game),
+                    \App\Enums\NotificationCategory::ConfirmationExpired
+                );
+            }
         } catch (\Throwable $e) {
             Log::error('waitlist.confirmation_expired_notification_failed', [
                 'game_id'        => $gameId,
@@ -321,6 +372,7 @@ class WaitlistService
         $next->update([
             'status'                 => ParticipantStatus::Pending->value,
             'confirmation_expires_at' => $expiresAt,
+            'confirmation_attempts'  => ($next->confirmation_attempts ?? 0) + 1,
         ]);
 
         Log::info('waitlist.promoted', [

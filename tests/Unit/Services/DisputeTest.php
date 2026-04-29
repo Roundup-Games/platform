@@ -65,7 +65,7 @@ describe('disputeAttendanceReport', function () {
             ->where('user_id', $reported->id)
             ->first();
 
-        $result = $this->service->disputeAttendanceReport($participant->id, 'I was there but arrived late');
+        $result = $this->service->disputeAttendanceReport($participant->id, 'I was there but arrived late', $reported);
 
         expect($result['success'])->toBeTrue();
         expect($result['reason'])->toBe('Dispute filed');
@@ -84,7 +84,8 @@ describe('disputeAttendanceReport', function () {
     });
 
     it('rejects dispute for non-existent participant', function () {
-        $result = $this->service->disputeAttendanceReport((string) \Illuminate\Support\Str::uuid(), 'reason');
+        $caller = User::factory()->create();
+        $result = $this->service->disputeAttendanceReport((string) \Illuminate\Support\Str::uuid(), 'reason', $caller);
 
         expect($result['success'])->toBeFalse();
         expect($result['reason'])->toContain('not found');
@@ -97,7 +98,7 @@ describe('disputeAttendanceReport', function () {
             ->where('user_id', $participants[1]->id)
             ->first();
 
-        $result = $this->service->disputeAttendanceReport($participant->id, 'reason');
+        $result = $this->service->disputeAttendanceReport($participant->id, 'reason', $participants[1]);
 
         expect($result['success'])->toBeFalse();
         expect($result['reason'])->toContain('No attendance report');
@@ -114,8 +115,8 @@ describe('disputeAttendanceReport', function () {
             ->where('user_id', $reported->id)
             ->first();
 
-        $this->service->disputeAttendanceReport($participant->id, 'First dispute');
-        $result = $this->service->disputeAttendanceReport($participant->id, 'Second dispute');
+        $this->service->disputeAttendanceReport($participant->id, 'First dispute', $reported);
+        $result = $this->service->disputeAttendanceReport($participant->id, 'Second dispute', $reported);
 
         expect($result['success'])->toBeFalse();
         expect($result['reason'])->toContain('already disputed');
@@ -340,7 +341,7 @@ describe('full dispute flow', function () {
             ->first();
 
         // 3. Dispute
-        $disputeResult = $this->service->disputeAttendanceReport($participant->id, 'I was definitely there');
+        $disputeResult = $this->service->disputeAttendanceReport($participant->id, 'I was definitely there', $reported);
         expect($disputeResult['success'])->toBeTrue();
 
         // 4. Resolve
@@ -354,5 +355,87 @@ describe('full dispute flow', function () {
         // 6. Verify reliability recomputed
         $reported->refresh();
         expect($reported->reliability_score['score'])->toBeGreaterThanOrEqual(80.0);
+    });
+});
+
+// ── Dispute Authorization ───────────────────────────────
+
+describe('dispute authorization', function () {
+    it('allows reported user to dispute', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        $reporter = $participants[1];
+        $reported = $participants[2];
+
+        $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $reported->id)
+            ->first();
+
+        $result = $this->service->disputeAttendanceReport($participant->id, 'I was there', $reported);
+
+        expect($result['success'])->toBeTrue();
+    });
+
+    it('allows game host to dispute', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        $reporter = $participants[1];
+        $reported = $participants[2];
+
+        $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $reported->id)
+            ->first();
+
+        // Owner (host) files the dispute on behalf of the reported user
+        $result = $this->service->disputeAttendanceReport($participant->id, 'I saw them there', $owner);
+
+        expect($result['success'])->toBeTrue();
+    });
+
+    it('allows global admin to dispute', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        $reporter = $participants[1];
+        $reported = $participants[2];
+
+        $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        // Create admin user with role seeded
+        \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => 'Platform Admin',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $reported->id)
+            ->first();
+
+        $result = $this->service->disputeAttendanceReport($participant->id, 'Admin review', $admin);
+
+        expect($result['success'])->toBeTrue();
+    });
+
+    it('rejects unauthorized user from disputing', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        $reporter = $participants[1];
+        $reported = $participants[2];
+
+        $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        // Random unrelated user
+        $stranger = User::factory()->create();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $reported->id)
+            ->first();
+
+        $result = $this->service->disputeAttendanceReport($participant->id, 'Unrelated user', $stranger);
+
+        expect($result['success'])->toBeFalse()
+            ->and($result['reason'])->toBe(__('attendance.error_dispute_unauthorized'));
     });
 });

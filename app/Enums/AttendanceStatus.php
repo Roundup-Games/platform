@@ -8,6 +8,7 @@ enum AttendanceStatus: string
     case NoShow = 'no_show';
     case LateCancel = 'late_cancel';
     case Excused = 'excused';
+    case CancelledEarly = 'cancelled_early';
 
     /**
      * @return string[]
@@ -24,6 +25,7 @@ enum AttendanceStatus: string
             self::NoShow => 'No Show',
             self::LateCancel => 'Late Cancel',
             self::Excused => 'Excused',
+            self::CancelledEarly => 'Cancelled Early',
         };
     }
 }

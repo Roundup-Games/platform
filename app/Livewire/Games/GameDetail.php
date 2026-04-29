@@ -12,6 +12,7 @@ use App\Notifications\BelowMinPlayersWarning;
 use App\Services\BenchService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
+use App\Services\RecapService;
 use App\Services\WaitlistService;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
@@ -204,18 +205,33 @@ class GameDetail extends Component
             return;
         }
 
-        // Late cancellation detection: if game is within 24h, record late_cancel
-        if ($this->game->date_time && $this->game->date_time->isFuture()
-            && now()->diffInHours($this->game->date_time, false) < 24) {
-            $participant->update([
-                'attendance_status' => AttendanceStatus::LateCancel,
-            ]);
+        // Attendance status based on cancellation timing
+        if ($this->game->date_time && $this->game->date_time->isFuture()) {
+            $hoursUntilGame = now()->diffInHours($this->game->date_time, false);
 
-            Log::info('Game participant late cancellation', [
-                'game_id' => $this->game->id,
-                'user_id' => $viewer->id,
-                'hours_until_game' => now()->diffInHours($this->game->date_time, false),
-            ]);
+            if ($hoursUntilGame < 24) {
+                // Late cancellation: within 24h of game time
+                $participant->update([
+                    'attendance_status' => AttendanceStatus::LateCancel,
+                ]);
+
+                Log::info('Game participant late cancellation', [
+                    'game_id' => $this->game->id,
+                    'user_id' => $viewer->id,
+                    'hours_until_game' => $hoursUntilGame,
+                ]);
+            } else {
+                // Early cancellation: >24h before game time — neutral
+                $participant->update([
+                    'attendance_status' => AttendanceStatus::CancelledEarly,
+                ]);
+
+                Log::info('Game participant early cancellation', [
+                    'game_id' => $this->game->id,
+                    'user_id' => $viewer->id,
+                    'hours_until_game' => $hoursUntilGame,
+                ]);
+            }
         }
 
         // Remove the participant
@@ -251,12 +267,19 @@ class GameDetail extends Component
             return;
         }
 
-        // Late cancel detection for the removed participant
-        if ($entity->date_time && $entity->date_time->isFuture()
-            && now()->diffInHours($entity->date_time, false) < 24) {
-            $participant->update([
-                'attendance_status' => AttendanceStatus::LateCancel,
-            ]);
+        // Attendance status based on removal timing
+        if ($entity->date_time && $entity->date_time->isFuture()) {
+            $hoursUntilGame = now()->diffInHours($entity->date_time, false);
+
+            if ($hoursUntilGame < 24) {
+                $participant->update([
+                    'attendance_status' => AttendanceStatus::LateCancel,
+                ]);
+            } else {
+                $participant->update([
+                    'attendance_status' => AttendanceStatus::CancelledEarly,
+                ]);
+            }
         }
 
         $removedUser = $participant->user;
@@ -302,6 +325,9 @@ class GameDetail extends Component
     /** @var array<string, string> Debriefing form responses keyed by prompt key */
     public array $debriefingResponses = [];
 
+    /** @var string|null Recap content for host write-recap form */
+    public ?string $recapContent = null;
+
     // ── Debriefing Actions ─────────────────────────────
 
     /**
@@ -324,6 +350,38 @@ class GameDetail extends Component
 
             $this->debriefingResponses = [];
             session()->flash('success', __('games.flash_debriefing_submitted'));
+        } catch (\LogicException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+    }
+
+    // ── Recap Action ───────────────────────────────────
+
+    /**
+     * Write a recap for the completed game (host only).
+     */
+    public function writeRecap(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer) {
+            return;
+        }
+
+        $this->validate([
+            'recapContent' => ['required', 'string', 'max:2000', 'min:1'],
+        ]);
+
+        try {
+            app(RecapService::class)->writeRecap(
+                $this->game,
+                $viewer,
+                $this->recapContent,
+            );
+
+            $this->recapContent = null;
+            $this->game->refresh();
+            session()->flash('success', __('games.flash_recap_written'));
         } catch (\LogicException $e) {
             session()->flash('error', $e->getMessage());
         }

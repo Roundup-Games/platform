@@ -3,8 +3,8 @@
 use App\Enums\AttendanceStatus;
 
 describe('AttendanceStatus enum', function () {
-    it('has exactly 4 cases', function () {
-        expect(AttendanceStatus::cases())->toHaveCount(4);
+    it('has exactly 5 cases', function () {
+        expect(AttendanceStatus::cases())->toHaveCount(5);
     });
 
     it('returns correct values', function () {
@@ -13,6 +13,7 @@ describe('AttendanceStatus enum', function () {
             'no_show',
             'late_cancel',
             'excused',
+            'cancelled_early',
         ]);
     });
 
@@ -21,6 +22,16 @@ describe('AttendanceStatus enum', function () {
         expect(AttendanceStatus::NoShow->label())->toBe('No Show');
         expect(AttendanceStatus::LateCancel->label())->toBe('Late Cancel');
         expect(AttendanceStatus::Excused->label())->toBe('Excused');
+        expect(AttendanceStatus::CancelledEarly->label())->toBe('Cancelled Early');
+    });
+
+    it('includes cancelled_early in values', function () {
+        expect(AttendanceStatus::values())->toContain('cancelled_early');
+    });
+
+    it('has label for cancelled_early', function () {
+        expect(AttendanceStatus::CancelledEarly->label())->not->toBeEmpty()
+            ->and(AttendanceStatus::CancelledEarly->label())->toBe('Cancelled Early');
     });
 
     it('is backed by string type', function () {
@@ -33,6 +44,7 @@ describe('AttendanceStatus enum', function () {
         expect(AttendanceStatus::from('no_show'))->toBe(AttendanceStatus::NoShow);
         expect(AttendanceStatus::from('late_cancel'))->toBe(AttendanceStatus::LateCancel);
         expect(AttendanceStatus::from('excused'))->toBe(AttendanceStatus::Excused);
+        expect(AttendanceStatus::from('cancelled_early'))->toBe(AttendanceStatus::CancelledEarly);
     });
 
     it('rejects invalid values', function () {

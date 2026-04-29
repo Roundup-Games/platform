@@ -288,6 +288,12 @@ return [
     'error_recap_not_host' => 'Nur der Host kann einen Nachbericht verfassen.',
     'error_recap_too_long' => 'Der Nachbericht darf 2000 Zeichen nicht überschreiten.',
     'error_recap_empty' => 'Der Nachbericht darf nicht leer sein.',
+    'flash_recap_written' => 'Nachbericht erfolgreich veröffentlicht!',
+    'title_write_recap' => 'Nachbericht verfassen',
+    'content_write_recap_description' => 'Teile mit, was in dieser Sitzung passiert ist.',
+    'label_recap_placeholder' => 'Teile mit, was in dieser Sitzung passiert ist…',
+    'label_recap_char_limit' => 'Max. 2.000 Zeichen',
+    'action_recap_submit' => 'Nachbericht veröffentlichen',
 
     // Debriefing
     'title_debriefing_responses' => 'Debriefing-Antworten',

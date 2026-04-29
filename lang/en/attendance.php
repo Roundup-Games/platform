@@ -16,6 +16,7 @@ return [
     'label_stat_attended_count' => 'Attended',
     'label_stat_late_cancel_count' => 'Late Cancels',
     'label_stat_excused_count' => 'Excused',
+    'label_stat_cancelled_early_count' => 'Early Cancels',
     'label_stat_value_percent' => ':value%',
     'label_stat_value_count' => ':count',
 
@@ -49,6 +50,7 @@ return [
     'status_no_show' => 'No Show',
     'status_late_cancel' => 'Late Cancel',
     'status_excused' => 'Excused',
+    'status_cancelled_early' => 'Cancelled Early',
     'status_pending' => 'Pending',
     'status_not_reported' => 'Not yet reported',
     'label_attendance' => 'Attendance',
@@ -65,23 +67,6 @@ return [
     'content_dispute_description' => 'If you believe this attendance report is incorrect, you can submit a dispute with your reason.',
     'placeholder_dispute_reason' => 'Explain why you disagree with this report...',
     'action_dispute_submit' => 'Submit Dispute',
-
-    // Debriefing
-    'heading_debriefing_title' => 'Session Debriefing',
-    'heading_debriefing_summary_title' => 'Group Debriefing',
-    'content_debriefing_description' => 'Take a moment to reflect on this session. Your responses help everyone improve the experience.',
-    'action_debriefing_submit' => 'Submit Debriefing',
-    'content_debriefing_submitted' => 'Your debriefing has been submitted. Thank you for reflecting!',
-    'content_debriefing_waiting' => 'Waiting for participants to submit their debriefing responses.',
-    'label_debriefing_responses' => '{1}1 response|[2,*]:count responses',
-    'content_debriefing_confidential' => 'confidential — only visible to host',
-    'content_debriefing_prompt_what_went_well' => 'What went well?',
-    'content_debriefing_prompt_what_to_change' => 'Anything to change next time?',
-    'content_debriefing_prompt_safety_concerns' => 'Any safety concerns?',
-    'content_debriefing_prompt_star' => 'Give a star — something positive about the session',
-    'content_debriefing_prompt_wish' => 'A wish — something for next time',
-    'label_debriefing_tool_debriefing' => 'Debriefing',
-    'label_debriefing_tool_stars_and_wishes' => 'Stars & Wishes',
 
     // Recap
     'heading_recap_title' => 'Host Recap',
@@ -111,4 +96,7 @@ return [
     'field_reliability_preference' => 'Attendance Preference',
     'hint_reliability_preference' => 'Optionally prefer players with a minimum attendance rate (%). This is a soft preference, not a hard filter.',
     'content_host_prefers_attendance' => 'Host prefers ≥:percent% attendance',
+
+    // Authorization errors
+    'error_dispute_unauthorized' => 'You are not authorized to dispute this attendance report.',
 ];

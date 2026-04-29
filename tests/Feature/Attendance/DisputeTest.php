@@ -31,7 +31,7 @@ class DisputeTest extends TestCase
         $service->reportAttendance($game, $reporter, $reported, 'no_show');
 
         // Now dispute
-        $result = $service->disputeAttendanceReport($participant->id, 'I was there the whole time');
+        $result = $service->disputeAttendanceReport($participant->id, 'I was there the whole time', $reported);
 
         $this->assertTrue($result['success']);
         $this->assertEquals('Dispute filed', $result['reason']);
@@ -69,7 +69,7 @@ class DisputeTest extends TestCase
         $service->reportAttendance($game, $host, $disputed, 'attended');
 
         // Now dispute
-        $service->disputeAttendanceReport($participant->id, 'Wrongful no_show');
+        $service->disputeAttendanceReport($participant->id, 'Wrongful no_show', $disputed);
 
         // Resolve
         $outcome = $service->resolveDispute($participant);
@@ -96,7 +96,7 @@ class DisputeTest extends TestCase
         $service->reportAttendance($game, $reporter, $disputed, 'no_show');
 
         // Dispute
-        $service->disputeAttendanceReport($participant->id, 'I attended');
+        $service->disputeAttendanceReport($participant->id, 'I attended', $disputed);
 
         // Resolve — only 0 corroborating attended reports
         $outcome = $service->resolveDispute($participant);
@@ -124,7 +124,7 @@ class DisputeTest extends TestCase
         $service->reportAttendance($game, $reporter, $reported, 'no_show');
 
         // File dispute
-        $result = $service->disputeAttendanceReport($participant->id, 'Unfair report');
+        $result = $service->disputeAttendanceReport($participant->id, 'Unfair report', $reported);
 
         $this->assertTrue($result['success']);
 
@@ -139,6 +139,96 @@ class DisputeTest extends TestCase
             ->count();
 
         $this->assertGreaterThanOrEqual(1, $disputedReports);
+    }
+
+    // ── Dispute Authorization ──────────────────────────
+
+    #[Test]
+    public function test_reported_user_can_dispute(): void
+    {
+        $host = User::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+
+        $game = $this->createPastGame($host, [$reporter, $reported]);
+        $participant = $game->participants()->where('user_id', $reported->id)->first();
+
+        $service = app(\App\Services\AttendanceService::class);
+        $service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        $result = $service->disputeAttendanceReport($participant->id, 'I was there', $reported);
+
+        $this->assertTrue($result['success']);
+    }
+
+    #[Test]
+    public function test_game_host_can_dispute(): void
+    {
+        $host = User::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+
+        $game = $this->createPastGame($host, [$reporter, $reported]);
+        $participant = $game->participants()->where('user_id', $reported->id)->first();
+
+        $service = app(\App\Services\AttendanceService::class);
+        $service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        // Host disputes on behalf of reported user
+        $result = $service->disputeAttendanceReport($participant->id, 'I saw them there', $host);
+
+        $this->assertTrue($result['success']);
+    }
+
+    #[Test]
+    public function test_global_admin_can_dispute(): void
+    {
+        // Ensure the Platform Admin role exists
+        \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => 'Platform Admin',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
+
+        $host = User::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+
+        $game = $this->createPastGame($host, [$reporter, $reported]);
+        $participant = $game->participants()->where('user_id', $reported->id)->first();
+
+        $service = app(\App\Services\AttendanceService::class);
+        $service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        // Create global admin
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+
+        $result = $service->disputeAttendanceReport($participant->id, 'Admin review', $admin);
+
+        $this->assertTrue($result['success']);
+    }
+
+    #[Test]
+    public function test_unauthorized_user_cannot_dispute(): void
+    {
+        $host = User::factory()->create();
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+
+        $game = $this->createPastGame($host, [$reporter, $reported]);
+        $participant = $game->participants()->where('user_id', $reported->id)->first();
+
+        $service = app(\App\Services\AttendanceService::class);
+        $service->reportAttendance($game, $reporter, $reported, 'no_show');
+
+        // Random unrelated user
+        $stranger = User::factory()->create();
+
+        $result = $service->disputeAttendanceReport($participant->id, 'Unrelated', $stranger);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals(__('attendance.error_dispute_unauthorized'), $result['reason']);
     }
 
     private function createPastGame(User $host, array $players): Game

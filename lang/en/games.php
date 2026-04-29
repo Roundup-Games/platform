@@ -304,6 +304,12 @@ return [
     'error_recap_not_host' => 'Only the host can write a recap.',
     'error_recap_too_long' => 'Recap must not exceed 2000 characters.',
     'error_recap_empty' => 'Recap content cannot be empty.',
+    'flash_recap_written' => 'Recap published successfully!',
+    'title_write_recap' => 'Write a Recap',
+    'content_write_recap_description' => 'Share what happened in this session with your players.',
+    'label_recap_placeholder' => 'Share what happened in this session…',
+    'label_recap_char_limit' => 'Max 2,000 characters',
+    'action_recap_submit' => 'Publish Recap',
 
     // Debriefing
     'title_debriefing_responses' => 'Debriefing Responses',

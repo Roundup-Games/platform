@@ -419,14 +419,35 @@ class AttendanceService
      * one who was reported). Sets the dispute reason on the participant and
      * on the relevant attendance reports for this game/user.
      *
+     * Authorization: the caller must be the reported participant's user,
+     * the game host/owner, or a global admin.
+     *
      * @return array{success: bool, reason: string}
      */
-    public function disputeAttendanceReport(string $participantId, string $reason): array
+    public function disputeAttendanceReport(string $participantId, string $reason, User $caller): array
     {
         $participant = GameParticipant::find($participantId);
 
         if ($participant === null) {
             return ['success' => false, 'reason' => 'Participant not found'];
+        }
+
+        // Authorization check: caller must be the reported user, the game host, or a global admin
+        $game = $participant->game;
+        $isReportedUser = $participant->user_id === $caller->id;
+        $isHost = $game && $game->owner_id === $caller->id;
+        $isAdmin = app(ScopedRoleService::class)->isGlobalAdmin($caller);
+
+        if (! $isReportedUser && ! $isHost && ! $isAdmin) {
+            Log::warning('Dispute authorization denied', [
+                'participant_id' => $participantId,
+                'caller_id' => $caller->id,
+                'reported_user_id' => $participant->user_id,
+                'game_id' => $game?->id,
+                'game_owner_id' => $game?->owner_id,
+            ]);
+
+            return ['success' => false, 'reason' => __('attendance.error_dispute_unauthorized')];
         }
 
         if ($participant->attendance_status === null) {

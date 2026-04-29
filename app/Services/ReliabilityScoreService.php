@@ -22,6 +22,8 @@ class ReliabilityScoreService
         'no_show' => -1.0,
         // Excused = neutral (legitimate reason, cancelled well ahead)
         'excused' => 0.0,
+        // Cancelled early = neutral (cancelled >24h before game)
+        'cancelled_early' => 0.0,
     ];
 
     /**
@@ -145,13 +147,19 @@ class ReliabilityScoreService
      * Uses host-specific weights when the participant was the game owner
      * and committed a no-show or late cancellation, since hosts affect
      * all participants not just themselves.
+     *
+     * For peer-reported attendance, the grief-resistance-adjusted
+     * attendance_weight on the participant record is applied as a
+     * multiplier to the base weight. System-generated records (auto-attend,
+     * host cancellation offence) use weight 1.0 — their attendance_weight
+     * column stores the raw host penalty, not a grief multiplier.
      */
     public function resolveWeight(GameParticipant $participant, AttendanceStatus $status): float
     {
         $key = $status->value;
         $baseWeight = self::WEIGHTS[$key] ?? 0.0;
 
-        // Only apply host weights for penalty statuses when participant is the game owner
+        // Host-specific penalty weights — use the raw constant, not grief multiplier
         if ($participant->game && $participant->game->owner_id === $participant->user_id) {
             if ($status === AttendanceStatus::NoShow) {
                 return self::HOST_WEIGHTS['host_no_show'];
@@ -161,7 +169,21 @@ class ReliabilityScoreService
             }
         }
 
-        return $baseWeight;
+        // Determine whether this is a peer-reported record (grief-adjusted)
+        // or a system-generated record (auto-attend, self-reported).
+        // System records have attendance_reported_by === null OR
+        // reporter === reported (self-report/auto-attend).
+        $isSystemGenerated = $participant->attendance_reported_by === null
+            || $participant->attendance_reported_by === $participant->user_id;
+
+        if ($isSystemGenerated) {
+            return $baseWeight;
+        }
+
+        // Peer-reported: apply grief-resistance-adjusted attendance_weight as multiplier
+        $attendanceWeight = $participant->attendance_weight ?? 1.0;
+
+        return round($baseWeight * $attendanceWeight, 4);
     }
 
     /**

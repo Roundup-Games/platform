@@ -646,3 +646,100 @@ describe('corroboration', function () {
         }
     });
 });
+
+// ── cancelled_early attendance status ────────────────────
+
+describe('cancelled_early status', function () {
+    it('sets cancelled_early when cancelling >24h before game', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $player = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'status' => 'scheduled',
+            'date_time' => now()->addHours(48),
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        // Simulate cancellation via Livewire component (cancelOwnParticipation)
+        $component = Livewire::actingAs($player)
+            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
+
+        $component->call('cancelOwnParticipation', $participant->id);
+
+        $participant->refresh();
+        expect($participant->attendance_status)->toBe(AttendanceStatus::CancelledEarly);
+    });
+
+    it('sets late_cancel when cancelling <24h before game', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $player = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'status' => 'scheduled',
+            'date_time' => now()->addHours(12),
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        $component = Livewire::actingAs($player)
+            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
+
+        $component->call('cancelOwnParticipation', $participant->id);
+
+        $participant->refresh();
+        expect($participant->attendance_status)->toBe(AttendanceStatus::LateCancel);
+    });
+
+    it('counts cancelled_early toward min games threshold', function () {
+        $user = User::factory()->create();
+
+        // 4 attended records
+        for ($i = 0; $i < 4; $i++) {
+            GameParticipant::factory()->create([
+                'user_id' => $user->id,
+                'attendance_status' => AttendanceStatus::Attended,
+            ]);
+        }
+
+        // 1 cancelled_early (neutral weight 0.0)
+        GameParticipant::factory()->create([
+            'user_id' => $user->id,
+            'attendance_status' => AttendanceStatus::CancelledEarly,
+        ]);
+
+        $reliabilityService = app(\App\Services\ReliabilityScoreService::class);
+        $result = $reliabilityService->computeScore($user);
+
+        // game_count = 5 (passes MIN_GAMES threshold of 5)
+        // weighted sum = 4*1.0 + 1*0.0 = 4.0
+        // score = 4.0 / 5.0 * 100 = 80.0
+        expect($result['game_count'])->toBe(5);
+        expect($result['tier'])->not->toBe('newcomer');
+        expect($result['score'])->toBe(80.0);
+    });
+});

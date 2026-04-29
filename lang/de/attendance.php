@@ -16,6 +16,7 @@ return [
     'label_stat_attended_count' => 'Teilgenommen',
     'label_stat_late_cancel_count' => 'Späte Absagen',
     'label_stat_excused_count' => 'Entschuldigt',
+    'label_stat_cancelled_early_count' => 'Frühzeitig abgesagt',
     'label_stat_value_percent' => ':value %',
     'label_stat_value_count' => ':count',
 
@@ -49,6 +50,7 @@ return [
     'status_no_show' => 'Nicht erschienen',
     'status_late_cancel' => 'Späte Absage',
     'status_excused' => 'Entschuldigt',
+    'status_cancelled_early' => 'Frühzeitig abgesagt',
     'status_pending' => 'Ausstehend',
     'status_not_reported' => 'Noch nicht gemeldet',
     'label_attendance' => 'Anwesenheit',
@@ -65,23 +67,6 @@ return [
     'content_dispute_description' => 'Wenn du glaubst, dass diese Anwesenheitsmeldung falsch ist, kannst du einen Einspruch mit deiner Begründung einreichen.',
     'placeholder_dispute_reason' => 'Erkläre, warum du dieser Meldung widersprichst...',
     'action_dispute_submit' => 'Einspruch einreichen',
-
-    // Debriefing
-    'heading_debriefing_title' => 'Sitzungs-Debriefing',
-    'heading_debriefing_summary_title' => 'Gruppen-Debriefing',
-    'content_debriefing_description' => 'Nimm dir einen Moment Zeit, um über diese Sitzung nachzudenken. Deine Antworten helfen allen, das Erlebnis zu verbessern.',
-    'action_debriefing_submit' => 'Debriefing absenden',
-    'content_debriefing_submitted' => 'Dein Debriefing wurde eingereicht. Danke für deine Reflexion!',
-    'content_debriefing_waiting' => 'Warte auf die Debriefing-Antworten der Teilnehmer.',
-    'label_debriefing_responses' => '{1}1 Antwort|[2,*]:count Antworten',
-    'content_debriefing_confidential' => 'vertraulich — nur für den Host sichtbar',
-    'content_debriefing_prompt_what_went_well' => 'Was lief gut?',
-    'content_debriefing_prompt_what_to_change' => 'Etwas für das nächste Mal ändern?',
-    'content_debriefing_prompt_safety_concerns' => 'Sicherheitsbedenken?',
-    'content_debriefing_prompt_star' => 'Vergib einen Stern — etwas Positives über die Sitzung',
-    'content_debriefing_prompt_wish' => 'Ein Wunsch — etwas für das nächste Mal',
-    'label_debriefing_tool_debriefing' => 'Debriefing',
-    'label_debriefing_tool_stars_and_wishes' => 'Sterne & Wünsche',
 
     // Nachbericht
     'heading_recap_title' => 'Host-Nachbericht',
@@ -111,4 +96,7 @@ return [
     'field_reliability_preference' => 'Anwesenheitspräferenz',
     'hint_reliability_preference' => 'Optional: Bevorzuge Spieler mit einer Mindest-Anwesenheitsrate (%). Dies ist eine weiche Präferenz, kein harter Filter.',
     'content_host_prefers_attendance' => 'Host bevorzugt ≥:percent% Anwesenheit',
+
+    // Autorisierungsfehler
+    'error_dispute_unauthorized' => 'Du bist nicht berechtigt, diesen Anwesenheitsbericht anzufechten.',
 ];

@@ -1,8 +1,10 @@
 <?php
 
+use App\Livewire\Games\ApplyToGame;
 use App\Livewire\Campaigns\ApplyToCampaign;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
@@ -150,7 +152,7 @@ describe('ApplyToCampaign', function () {
             ->assertRedirect();
 
         expect(CampaignApplication::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status)->toBe('approved');
-        expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status)->toBe('approved');
+        expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status->value)->toBe('approved');
     });
 
     it('sets pending for protected campaign applications', function () {
@@ -171,7 +173,7 @@ describe('ApplyToCampaign', function () {
             ->assertRedirect();
 
         expect(CampaignApplication::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status)->toBe('pending');
-        expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status)->toBe('pending');
+        expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status->value)->toBe('pending');
     });
 
     it('blocks application to own campaign', function () {
@@ -322,5 +324,126 @@ describe('Campaign Detail apply CTA', function () {
             ->assertViewHas('canApply', false)
             ->assertViewHas('hasExistingApplication', true)
             ->assertSee(__('campaigns.content_application_pending'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// APPLY TO GAME — CAPACITY GUARD (AUTO-WAITLIST)
+// ═══════════════════════════════════════════════════════════
+
+describe('ApplyToGame capacity guard', function () {
+    it('auto-waitlists applicant when standalone public game is full', function () {
+        $owner = createUser();
+        $viewer = createUser();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 2,
+        ]);
+
+        // Fill the game
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => createUser()->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->call('submitApplication')
+            ->assertRedirect();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first();
+
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Waitlisted);
+
+        $application = GameApplication::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first();
+
+        expect($application)->not->toBeNull()
+            ->and($application->status)->toBe('pending');
+    });
+
+    it('auto-approves when standalone public game has capacity', function () {
+        $owner = createUser();
+        $viewer = createUser();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 5,
+        ]);
+
+        // Only the owner as participant
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->call('submitApplication')
+            ->assertRedirect();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first();
+
+        expect($participant)->not->toBeNull()
+            ->and($participant->status)->toBe(ParticipantStatus::Approved);
+    });
+
+    it('sets waitlisted_at when auto-waitlisting', function () {
+        $owner = createUser();
+        $viewer = createUser();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'max_players' => 1,
+        ]);
+
+        // Fill with owner
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(ApplyToGame::class, ['id' => $game->id])
+            ->call('submitApplication')
+            ->assertRedirect();
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $viewer->id)
+            ->first();
+
+        expect($participant)->not->toBeNull()
+            ->and($participant->waitlisted_at)->not->toBeNull();
     });
 });

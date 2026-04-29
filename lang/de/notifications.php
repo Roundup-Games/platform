@@ -283,6 +283,13 @@ return [
     'push_body_waitlist_promoted' => 'Ein Platz in :game ist frei. Bestätige bis :deadline.',
     'push_title_confirmation_expired' => 'Bestätigung abgelaufen',
     'push_body_confirmation_expired' => 'Dein Bestätigungszeitfenster für :game ist abgelaufen.',
+
+    'subject_waitlist_expired_rejected' => 'Von der Warteliste für :game entfernt',
+    'body_waitlist_expired_rejected' => 'Du wurdest von der Warteliste für **:game** entfernt, da du nach :attempts Einladungen deinen Platz nicht bestätigt hast. Du kannst jederzeit der Warteliste für andere Spiele beitreten.',
+    'push_title_waitlist_expired_rejected' => 'Von Warteliste entfernt',
+    'push_body_waitlist_expired_rejected' => 'Du wurdest wegen fehlender Bestätigungen von der Warteliste für :game entfernt.',
+    'action_browse_games' => 'Spiele durchsuchen',
+
     'push_title_below_min_players' => 'Wenige Spieler',
     'push_body_below_min_players' => ':game hat nur :current/:min Spieler.',
 ];

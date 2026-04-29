@@ -279,6 +279,13 @@ return [
     'push_body_waitlist_promoted' => 'A spot opened up in :game. Confirm by :deadline.',
     'push_title_confirmation_expired' => 'Confirmation Expired',
     'push_body_confirmation_expired' => 'Your confirmation window for :game has expired.',
+
+    'subject_waitlist_expired_rejected' => 'Removed from waitlist for :game',
+    'body_waitlist_expired_rejected' => 'You have been removed from the waitlist for **:game** because you did not confirm your spot after :attempts promotions. You can join the waitlist for other games at any time.',
+    'push_title_waitlist_expired_rejected' => 'Removed from Waitlist',
+    'push_body_waitlist_expired_rejected' => 'You were removed from the waitlist for :game due to missed confirmations.',
+    'action_browse_games' => 'Browse Games',
+
     'push_title_below_min_players' => 'Low Roster Warning',
     'push_body_below_min_players' => ':game has only :current/:min players.',
 ];
