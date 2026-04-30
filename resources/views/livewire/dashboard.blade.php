@@ -160,6 +160,12 @@
                                     </p>
                                     <p class="text-xs text-on-surface-variant">
                                         {{ $game->date_time->format('D, M j · g:i A') }}
+                                        @if($game->campaign)
+                                            <span class="inline-flex items-center gap-0.5 ml-1 text-primary/70">
+                                                <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
+                                                {{ $game->campaign->name }}
+                                            </span>
+                                        @endif
                                     </p>
                                 </div>
                                 @if($game->owner_id === Auth::id())

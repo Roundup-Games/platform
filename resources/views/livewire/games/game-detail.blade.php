@@ -33,10 +33,6 @@
             <div class="flex flex-wrap items-center gap-2 mb-4">
                 @if($isOwner)
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">{{ __('common.content_owner') }}</span>
-                    <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary hover:bg-on-primary/30 transition-colors">
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
-                        {{ __('games.action_create_similar_session') }}
-                    </a>
                 @endif
                 @if($game->game_type)
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">

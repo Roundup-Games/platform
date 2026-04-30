@@ -68,6 +68,12 @@
                                             {{ $game->gameSystem->name }}
                                         </span>
                                     @endif
+                                    @if($game->campaign)
+                                        <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
+                                            {{ $game->campaign->name }}
+                                        </a>
+                                    @endif
                                 </div>
                                 <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
                                     @if($game->date_time)
@@ -84,13 +90,18 @@
                             </div>
 
                             {{-- Actions --}}
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
                                 @if($game->status === 'scheduled')
                                     <button wire:click="editGame('{{ $game->id }}')"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
                                         {{ __('games.action_edit_game') }}
                                     </button>
+                                    <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+                                        {{ __('games.action_create_similar_session') }}
+                                    </a>
                                     <button wire:click="cancelGame('{{ $game->id }}')"
                                             wire:confirm="{{ __('games.confirm_cancel_game') }}"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-error hover:bg-error/10 transition-colors">
@@ -102,6 +113,12 @@
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
                                         {{ __('games.action_complete_game') }}
                                     </button>
+                                @else
+                                    <a href="{{ route('games.create') }}?clone={{ $game->id }}" wire:navigate
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
+                                        {{ __('games.action_create_similar_session') }}
+                                    </a>
                                 @endif
                                 <a href="{{ route('games.detail', $game->id) }}" wire:navigate
                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
@@ -140,6 +157,12 @@
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
                                             {{ $game->gameSystem->name }}
                                         </span>
+                                    @endif
+                                    @if($game->campaign)
+                                        <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
+                                            {{ $game->campaign->name }}
+                                        </a>
                                     @endif
                                 </div>
                                 <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">

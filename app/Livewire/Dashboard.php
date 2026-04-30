@@ -169,15 +169,17 @@ class Dashboard extends Component
         $startOfWeek = now()->startOfWeek();
         $endOfWeek = now()->endOfWeek();
 
-        // Games user owns this week
+        // Games user owns this week (only active/scheduled)
         $ownedGameIds = Game::where('owner_id', $user->id)
+            ->where('status', 'scheduled')
             ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
             ->pluck('id');
 
-        // Games user is an approved participant in this week
+        // Games user is an approved participant in this week (only active/scheduled)
         $participantGameIds = GameParticipant::where('user_id', $user->id)
             ->where('status', ParticipantStatus::Approved)
             ->whereHas('game', fn ($q) => $q
+                ->where('status', 'scheduled')
                 ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
             )
             ->pluck('game_id');
@@ -185,7 +187,7 @@ class Dashboard extends Component
         $gameIds = $ownedGameIds->merge($participantGameIds)->unique();
 
         return Game::whereIn('id', $gameIds)
-            ->with(['participants' => fn ($q) => $q->where('user_id', $user->id)])
+            ->with(['participants' => fn ($q) => $q->where('user_id', $user->id), 'campaign'])
             ->orderBy('date_time')
             ->get();
     }

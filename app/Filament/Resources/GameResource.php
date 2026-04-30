@@ -138,12 +138,12 @@ class GameResource extends Resource
                 TextColumn::make('game_type')
                     ->label('Type')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn ($state): string => match ((string) $state) {
                         'board_game' => 'info',
                         'ttrpg' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => $state === 'board_game' ? 'Board Game' : 'TTRPG')
+                    ->formatStateUsing(fn ($state): string => (string) $state === 'board_game' ? 'Board Game' : 'TTRPG')
                     ->toggleable(),
                 TextColumn::make('gameSystem.name')
                     ->label('System')
