@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Services\BenchService;
 use App\Traits\ManagesParticipants;
@@ -118,7 +119,7 @@ class CampaignDetail extends Component
             && ! $isOwner
             && ! $isParticipant
             && ! $hasExistingApplication
-            && $this->campaign->visibility !== 'private';
+            && $this->campaign->visibility !== Visibility::Private;
         // Note: campaigns allow applying even when full (applicant gets benched)
 
         // Bench data for host view

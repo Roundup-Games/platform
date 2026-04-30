@@ -3,6 +3,7 @@
 namespace App\Livewire\Campaigns;
 
 use App\Enums\NotificationCategory;
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
@@ -37,7 +38,7 @@ class ApplyToCampaign extends Component
         $this->authorize('view', $campaign);
         $this->campaign = $campaign;
 
-        if ($campaign->visibility === 'private') {
+        if ($campaign->visibility === Visibility::Private) {
             abort(403, __('campaigns.error_this_campaign_does_not_accept_applications'));
         }
 
@@ -88,7 +89,7 @@ class ApplyToCampaign extends Component
                     throw new \RuntimeException(__('campaigns.content_you_have_already_applied_to_this_campaign'));
                 }
 
-                $isPublic = Campaign::find($campaignId)->visibility === 'public';
+                $isPublic = Campaign::find($campaignId)->visibility === Visibility::Public;
 
                 // Check if campaign is full for bench logic
                 $campaign = Campaign::find($campaignId);
@@ -145,7 +146,7 @@ class ApplyToCampaign extends Component
             return;
         }
 
-        $isPublic = $this->campaign->visibility === 'public';
+        $isPublic = $this->campaign->visibility === Visibility::Public;
         $approvedCount = CampaignParticipant::where('campaign_id', $this->campaign->id)
             ->where('status', 'approved')
             ->count();

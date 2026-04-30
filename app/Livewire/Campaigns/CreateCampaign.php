@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\CampaignStatus;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
@@ -132,7 +134,7 @@ class CreateCampaign extends Component
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = __('common.label_language_' . $case->value);
         }
 
         return $options;
@@ -143,7 +145,7 @@ class CreateCampaign extends Component
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = __('games.content_experience_' . $case->value);
         }
 
         return $options;
@@ -194,7 +196,7 @@ class CreateCampaign extends Component
             'session_duration' => $validated['session_duration'] ?: null,
             'price_per_session' => $validated['price_per_session'] ?: 0,
             'language' => $validated['language'],
-            'status' => 'active',
+            'status' => CampaignStatus::Active,
             'visibility' => $validated['visibility'],
             'minimum_requirements' => $validated['minimum_requirements'] ?: null,
             'safety_rules' => $validated['safety_rules'] ?: null,

@@ -41,7 +41,7 @@ class AttendanceReported extends Notification
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $date = $this->game->date_time?->format('M j, Y') ?? '';
-        $status = $this->report->status->label();
+        $status = __('attendance.status_' . $this->report->status->value);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_attendance_reported', [
@@ -100,7 +100,7 @@ class AttendanceReported extends Notification
     public function toPush(object $notifiable): PushPayload
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
-        $status = $this->report->status->label();
+        $status = __('attendance.status_' . $this->report->status->value);
 
         return new PushPayload(
             title: __('notifications.push_title_attendance_reported'),

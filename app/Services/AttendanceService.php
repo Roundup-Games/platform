@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
@@ -85,7 +86,7 @@ class AttendanceService
         }
 
         // Game must not be cancelled
-        if ($game->status === 'canceled') {
+        if ($game->status === GameStatus::Canceled) {
             return ['success' => false, 'reason' => 'Cannot report attendance for a cancelled game'];
         }
 
@@ -338,7 +339,7 @@ class AttendanceService
     public function recordHostCancellationOffence(Game $game): void
     {
         // Only applies to cancelled games
-        if ($game->status !== 'canceled') {
+        if ($game->status !== GameStatus::Canceled) {
             return;
         }
 

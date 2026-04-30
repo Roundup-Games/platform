@@ -333,4 +333,8 @@ return [
     // Dashboard-Aktivitätszeitlinie
     'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',
     'activity_no_results' => 'Noch keine Aktivität',
+
+    // Sprachen
+    'label_language_en' => 'Englisch',
+    'label_language_de' => 'Deutsch',
 ];

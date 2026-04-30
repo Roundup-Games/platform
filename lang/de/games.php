@@ -366,4 +366,10 @@ return [
     'status_rejected' => 'Abgelehnt',
     'status_waitlisted' => 'Warteliste',
     'status_accepted' => 'Angenommen',
+
+    // Erfahrungsniveau
+    'content_experience_beginner' => 'Anfänger',
+    'content_experience_intermediate' => 'Fortgeschritten',
+    'content_experience_advanced' => 'Experte',
+    'content_experience_all' => 'Alle Niveaus',
 ];

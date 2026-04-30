@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CampaignResource\Pages;
 use App\Filament\Resources\CampaignResource\RelationManagers\ParticipantsRelationManager;
+use App\Enums\CampaignStatus;
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -155,20 +157,20 @@ class CampaignResource extends Resource
                     ->toggleable(),
                 TextColumn::make('visibility')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'public' => 'success',
-                        'protected' => 'warning',
-                        'private' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color(fn (Visibility $state): string => match ($state) {
+                        Visibility::Public => 'success',
+                        Visibility::Protected => 'warning',
+                        Visibility::Private => 'danger',
+                    })
+                    ->formatStateUsing(fn (Visibility $state): string => ucfirst($state->value)),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'active' => 'success',
-                        'completed' => 'gray',
-                        'cancelled' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color(fn (CampaignStatus $state): string => match ($state) {
+                        CampaignStatus::Active => 'success',
+                        CampaignStatus::Completed => 'gray',
+                        CampaignStatus::Cancelled => 'danger',
+                    })
+                    ->formatStateUsing(fn (CampaignStatus $state): string => $state->label()),
                 TextColumn::make('participants_count')
                     ->label('Players')
                     ->counts('participants')

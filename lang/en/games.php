@@ -365,4 +365,10 @@ return [
     'status_rejected' => 'Rejected',
     'status_waitlisted' => 'Waitlisted',
     'status_accepted' => 'Accepted',
+
+    // Experience levels
+    'content_experience_beginner' => 'Beginner',
+    'content_experience_intermediate' => 'Intermediate',
+    'content_experience_advanced' => 'Advanced',
+    'content_experience_all' => 'All Levels',
 ];

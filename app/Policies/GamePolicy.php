@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
@@ -35,11 +36,11 @@ class GamePolicy
      */
     public function view(?User $user, Game $game): bool
     {
-        if ($game->visibility === 'public') {
+        if ($game->visibility === Visibility::Public) {
             return true;
         }
 
-        if ($game->visibility === 'protected') {
+        if ($game->visibility === Visibility::Protected) {
             return $user !== null
                 && ($game->owner_id === $user->id
                     || $user->isFriendOrTeammate($game->owner)

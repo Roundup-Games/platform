@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ActivityType;
+use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\RecapPosted;
@@ -24,7 +25,7 @@ class RecapService
      */
     public function writeRecap(Game $game, User $author, string $content): void
     {
-        if ($game->status !== 'completed') {
+        if ($game->status !== GameStatus::Completed) {
             throw new \LogicException(__('games.error_recap_game_not_completed'));
         }
 

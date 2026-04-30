@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ActivityType;
+use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\SessionDebriefing;
@@ -24,7 +25,7 @@ class DebriefingService
      */
     public function submitDebriefing(Game $game, User $user, array $responses): SessionDebriefing
     {
-        if ($game->status !== 'completed') {
+        if ($game->status !== GameStatus::Completed) {
             throw new \LogicException(__('games.error_debriefing_game_not_completed'));
         }
 

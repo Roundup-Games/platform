@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Enums\ActivityType;
+use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
@@ -62,10 +63,10 @@ class ActivityLogObserver
     {
         $status = $game->status;
 
-        if ($status === 'completed') {
+        if ($status === GameStatus::Completed) {
             $this->service->log(ActivityType::GameCompleted, $game->owner, $game);
             $this->service->logForParticipants(ActivityType::GameCompleted, $game);
-        } elseif ($status === 'canceled') {
+        } elseif ($status === GameStatus::Canceled) {
             $this->service->log(ActivityType::GameCanceled, $game->owner, $game);
             $this->service->logForParticipants(ActivityType::GameCanceled, $game);
         }

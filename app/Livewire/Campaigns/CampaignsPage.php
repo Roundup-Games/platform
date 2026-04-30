@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Notifications\CampaignCancelled;
@@ -49,7 +51,7 @@ class CampaignsPage extends Component
         $this->edit_name = $campaign->name;
         $this->edit_description = $campaign->description ?? '';
         $this->edit_session_duration = $campaign->session_duration ? (string) $campaign->session_duration : '';
-        $this->edit_visibility = $campaign->visibility ?? 'private';
+        $this->edit_visibility = $campaign->visibility?->value ?? 'private';
     }
 
     public function cancelEdit(): void
@@ -191,19 +193,19 @@ class CampaignsPage extends Component
         $campaign = Campaign::findOrFail($id);
         $this->authorize('update', $campaign);
 
-        if ($campaign->status !== 'active') {
+        if ($campaign->status !== CampaignStatus::Active) {
             session()->flash('error', __('campaigns.error_campaign_not_active'));
             return;
         }
 
         $previousStatus = $campaign->status;
-        $campaign->status = 'cancelled';
+        $campaign->status = CampaignStatus::Cancelled;
         $campaign->save();
 
         Log::info('Campaign canceled', [
             'entity_id' => $campaign->id,
             'owner_id' => $campaign->owner_id,
-            'previous_status' => $previousStatus,
+            'previous_status' => $previousStatus?->value,
             'new_status' => 'cancelled',
         ]);
 
@@ -237,19 +239,19 @@ class CampaignsPage extends Component
         $campaign = Campaign::findOrFail($id);
         $this->authorize('update', $campaign);
 
-        if ($campaign->status !== 'active') {
+        if ($campaign->status !== CampaignStatus::Active) {
             session()->flash('error', __('campaigns.error_campaign_not_active'));
             return;
         }
 
         $previousStatus = $campaign->status;
-        $campaign->status = 'completed';
+        $campaign->status = CampaignStatus::Completed;
         $campaign->save();
 
         Log::info('Campaign completed', [
             'entity_id' => $campaign->id,
             'owner_id' => $campaign->owner_id,
-            'previous_status' => $previousStatus,
+            'previous_status' => $previousStatus?->value,
             'new_status' => 'completed',
         ]);
 
@@ -317,7 +319,7 @@ class CampaignsPage extends Component
             'user_id' => $participant->user_id,
             'previous_role' => $previousRole,
             'new_role' => 'player',
-            'previous_status' => $previousStatus,
+            'previous_status' => $previousStatus?->value,
             'new_status' => 'approved',
         ]);
 
@@ -381,7 +383,7 @@ class CampaignsPage extends Component
             'entity_id' => $participant->campaign_id,
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
-            'previous_status' => $previousStatus,
+            'previous_status' => $previousStatus?->value,
             'new_status' => 'rejected',
         ]);
 

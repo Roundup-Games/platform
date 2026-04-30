@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\GameStatus;
 use App\Enums\GameType;
+use App\Enums\Visibility;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +39,8 @@ class Game extends Model
             'complexity' => 'decimal:2',
             'vibe_flags' => 'array',
             'game_type' => GameType::class,
+            'visibility' => Visibility::class,
+            'status' => GameStatus::class,
             'reminder_sent_at' => 'datetime',
             'reminder_24h_sent_at' => 'datetime',
             'min_reliability_preference' => 'decimal:2',

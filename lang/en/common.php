@@ -333,4 +333,8 @@ return [
     // Dashboard activity timeline
     'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',
     'activity_no_results' => 'No activity yet',
+
+    // Languages
+    'label_language_en' => 'English',
+    'label_language_de' => 'German',
 ];

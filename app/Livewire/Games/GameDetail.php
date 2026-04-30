@@ -3,8 +3,10 @@
 namespace App\Livewire\Games;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\SessionDebriefing;
@@ -505,7 +507,7 @@ class GameDetail extends Component
             && ! $isOwner
             && ! $isParticipant
             && ! $hasExistingApplication
-            && $this->game->visibility !== 'private'
+            && $this->game->visibility !== Visibility::Private
             && (! $isGameFull || $this->game->campaign_id !== null);
         // Campaign sessions allow applying when full (applicant gets benched)
 
@@ -515,7 +517,7 @@ class GameDetail extends Component
             && ! $hasExistingApplication
             && $this->game->campaign_id === null
             && $isGameFull
-            && $this->game->visibility !== 'private';
+            && $this->game->visibility !== Visibility::Private;
 
         // Waitlist data for host view
         $waitlistedPlayers = collect();
@@ -564,7 +566,7 @@ class GameDetail extends Component
         $hostDebriefings = collect();
         $debriefingSummary = null;
 
-        if ($hasDebriefingTools && $this->game->status === 'completed' && $viewer) {
+        if ($hasDebriefingTools && $this->game->status === GameStatus::Completed && $viewer) {
             $userDebriefing = SessionDebriefing::where('game_id', $this->game->id)
                 ->where('user_id', $viewer->id)
                 ->first();

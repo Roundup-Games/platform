@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Components;
 
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Services\ProximityQuery;
@@ -167,7 +168,7 @@ class NearbySessions extends Component
         );
 
         // Filter to public games only
-        $gameResults = $gameResults->filter(fn ($r) => $r->entity->visibility === 'public');
+        $gameResults = $gameResults->filter(fn ($r) => $r->entity->visibility === Visibility::Public);
 
         // Query campaigns via their sessions if enabled
         $campaignResults = collect();
@@ -218,7 +219,7 @@ class NearbySessions extends Component
                 ['limit' => $this->limit, 'status_filter' => true],
             );
 
-            $fallbackResults = $fallbackResults->filter(fn ($r) => $r->entity->visibility === 'public');
+            $fallbackResults = $fallbackResults->filter(fn ($r) => $r->entity->visibility === Visibility::Public);
 
             $sorted = $fallbackResults->map(function ($result) {
                 $game = $result->entity;
@@ -275,7 +276,7 @@ class NearbySessions extends Component
 
         // Group by campaign_id to deduplicate
         $campaignIds = $gameResults
-            ->filter(fn ($r) => $r->entity->campaign_id !== null && $r->entity->visibility === 'public')
+            ->filter(fn ($r) => $r->entity->campaign_id !== null && $r->entity->visibility === Visibility::Public)
             ->groupBy('entity.campaign_id')
             ->map(fn ($group) => $group->sortBy('distance_km')->first());
 

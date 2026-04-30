@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\CampaignStatus;
+use App\Enums\Visibility;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +35,8 @@ class Campaign extends Model
             'max_players' => 'integer',
             'complexity' => 'decimal:2',
             'vibe_flags' => 'array',
+            'visibility' => Visibility::class,
+            'status' => CampaignStatus::class,
         ];
     }
 

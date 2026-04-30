@@ -12,6 +12,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use BackedEnum;
+use App\Enums\GameStatus;
+use App\Enums\GameType;
+use App\Enums\Visibility;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -138,12 +141,11 @@ class GameResource extends Resource
                 TextColumn::make('game_type')
                     ->label('Type')
                     ->badge()
-                    ->color(fn ($state): string => match ((string) $state) {
-                        'board_game' => 'info',
-                        'ttrpg' => 'warning',
-                        default => 'gray',
+                    ->color(fn (GameType $state): string => match ($state) {
+                        GameType::BoardGame => 'info',
+                        GameType::Ttrpg => 'warning',
                     })
-                    ->formatStateUsing(fn ($state): string => (string) $state === 'board_game' ? 'Board Game' : 'TTRPG')
+                    ->formatStateUsing(fn (GameType $state): string => $state->label())
                     ->toggleable(),
                 TextColumn::make('gameSystem.name')
                     ->label('System')
@@ -155,20 +157,20 @@ class GameResource extends Resource
                     ->sortable(),
                 TextColumn::make('visibility')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'public' => 'success',
-                        'protected' => 'warning',
-                        'private' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color(fn (Visibility $state): string => match ($state) {
+                        Visibility::Public => 'success',
+                        Visibility::Protected => 'warning',
+                        Visibility::Private => 'danger',
+                    })
+                    ->formatStateUsing(fn (Visibility $state): string => ucfirst($state->value)),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'scheduled' => 'info',
-                        'completed' => 'success',
-                        'canceled' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color(fn (GameStatus $state): string => match ($state) {
+                        GameStatus::Scheduled => 'info',
+                        GameStatus::Completed => 'success',
+                        GameStatus::Canceled => 'danger',
+                    })
+                    ->formatStateUsing(fn (GameStatus $state): string => $state->label()),
                 TextColumn::make('participants_count')
                     ->label('Players')
                     ->counts('participants')

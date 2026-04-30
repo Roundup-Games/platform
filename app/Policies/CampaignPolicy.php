@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Services\ScopedRoleService;
@@ -35,11 +36,11 @@ class CampaignPolicy
      */
     public function view(?User $user, Campaign $campaign): bool
     {
-        if ($campaign->visibility === 'public') {
+        if ($campaign->visibility === Visibility::Public) {
             return true;
         }
 
-        if ($campaign->visibility === 'protected') {
+        if ($campaign->visibility === Visibility::Protected) {
             return $user !== null
                 && ($campaign->owner_id === $user->id
                     || $user->isFriendOrTeammate($campaign->owner)

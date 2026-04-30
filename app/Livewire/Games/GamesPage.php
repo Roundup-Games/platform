@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Notifications\GameCancelled;
@@ -51,7 +53,7 @@ class GamesPage extends Component
         $this->edit_name = $game->name;
         $this->edit_description = $game->description ?? '';
         $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
-        $this->edit_visibility = $game->visibility ?? 'private';
+        $this->edit_visibility = $game->visibility?->value ?? 'private';
         $this->edit_location_details = $game->location['details'] ?? '';
     }
 
@@ -197,12 +199,12 @@ class GamesPage extends Component
         $game = Game::findOrFail($id);
         $this->authorize('update', $game);
 
-        if ($game->status !== 'scheduled') {
+        if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
             return;
         }
 
-        $game->status = 'canceled';
+        $game->status = GameStatus::Canceled;
         $game->save();
 
         Log::info('Game canceled', [
@@ -252,12 +254,12 @@ class GamesPage extends Component
         $game = Game::findOrFail($id);
         $this->authorize('update', $game);
 
-        if ($game->status !== 'scheduled') {
+        if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
             return;
         }
 
-        $game->status = 'completed';
+        $game->status = GameStatus::Completed;
         $game->save();
 
         Log::info('Game completed', [

@@ -4,7 +4,9 @@ namespace App\Livewire\Games;
 
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
+use App\Enums\GameStatus;
 use App\Enums\GameType;
+use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -156,7 +158,7 @@ class CreateGame extends Component
         $this->location_id = $source->location_id;
         $this->price = $source->price !== null ? (string) $source->price : '';
         $this->language = $source->language ?? 'en';
-        $this->visibility = $source->visibility ?? 'protected';
+        $this->visibility = $source->visibility?->value ?? 'protected';
         $this->min_players = $source->min_players;
         $this->max_players = $source->max_players;
         $this->experience_level = $source->experience_level;
@@ -255,7 +257,7 @@ class CreateGame extends Component
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = __('common.label_language_' . $case->value);
         }
 
         return $options;
@@ -277,7 +279,7 @@ class CreateGame extends Component
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = __('games.content_experience_' . $case->value);
         }
 
         return $options;
@@ -341,7 +343,7 @@ class CreateGame extends Component
             'language' => $validated['language'],
             'location_id' => $this->location_id,
             'location' => ['details' => ''],
-            'status' => 'scheduled',
+            'status' => GameStatus::Scheduled,
             'visibility' => $validated['visibility'],
             'minimum_requirements' => $validated['minimum_requirements'] ?: null,
             'safety_rules' => $safetyRules,

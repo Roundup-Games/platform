@@ -3,6 +3,7 @@
 namespace App\Livewire\Games;
 
 use App\Enums\NotificationCategory;
+use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
@@ -39,7 +40,7 @@ class ApplyToGame extends Component
         $this->game = $game;
 
         // Only public and protected games accept applications
-        if ($game->visibility === 'private') {
+        if ($game->visibility === Visibility::Private) {
             abort(403, 'This game does not accept applications.');
         }
 
@@ -97,7 +98,7 @@ class ApplyToGame extends Component
 
                 // For public games, auto-approve; for protected games, require approval
                 $game = Game::find($gameId);
-                $isPublic = $game->visibility === 'public';
+                $isPublic = $game->visibility === Visibility::Public;
                 $isCampaignSession = $game->campaign_id !== null;
 
                 // Check if game is full (applies to both standalone and campaign sessions)
@@ -166,7 +167,7 @@ class ApplyToGame extends Component
             return;
         }
 
-        $isPublic = $this->game->visibility === 'public';
+        $isPublic = $this->game->visibility === Visibility::Public;
         $isCampaignSession = $this->game->campaign_id !== null;
         $approvedCount = GameParticipant::where('game_id', $this->game->id)
             ->where('status', 'approved')
