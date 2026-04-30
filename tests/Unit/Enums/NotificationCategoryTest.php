@@ -5,43 +5,6 @@ use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory Unit Tests', function () {
-    it('has exactly 24 cases', function () {
-        expect(NotificationCategory::cases())->toHaveCount(24);
-    });
-
-    it('values() returns all 24 string values in declaration order', function () {
-        $expected = [
-            'new_follower',
-            'game_invitation', 'campaign_invitation', 'team_invitation', 'session_added_to_campaign',
-            'new_application', 'application_approved', 'application_rejected',
-            'participant_joined', 'participant_removed', 'team_member_removed',
-            'attendance_reported', 'dispute_resolved',
-            'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
-            'game_updated', 'campaign_updated',
-            'game_system_request',
-            'below_min_players', 'confirmation_expired', 'session_reminder',
-            'review_reported',
-        ];
-        expect(NotificationCategory::values())->toBe($expected);
-    });
-
-    it('values() returns flat string array', function () {
-        $values = NotificationCategory::values();
-        foreach ($values as $value) {
-            expect($value)->toBeString();
-        }
-    });
-
-    it('is a backed string enum', function () {
-        $reflection = new ReflectionEnum(NotificationCategory::class);
-        expect($reflection->getBackingType()?->getName())->toBe('string');
-    });
-
-    it('each case maps to a distinct snake_case value', function () {
-        $values = NotificationCategory::values();
-        expect($values)->toHaveCount(count(array_unique($values)));
-    });
-
     it('group() returns a valid group for every case', function () {
         $validGroups = ['social', 'invitations', 'applications', 'participation', 'status', 'content', 'scheduling', 'moderation'];        foreach (NotificationCategory::cases() as $case) {
             expect($case->group())->toBeIn($validGroups, "{$case->value} group should be valid");

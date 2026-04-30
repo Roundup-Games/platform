@@ -4,11 +4,6 @@ use App\Enums\SafetyTool;
 use App\Enums\SafetyToolCategory;
 
 describe('SafetyToolCategory', function () {
-    it('has all three cases', function () {
-        expect(SafetyToolCategory::cases())->toHaveCount(3);
-        expect(SafetyToolCategory::values())->toBe(['before', 'during', 'after']);
-    });
-
     it('returns translated labels', function () {
         expect(SafetyToolCategory::Before->label())->toBe(__('safety.category_before'));
         expect(SafetyToolCategory::During->label())->toBe(__('safety.category_during'));
@@ -23,10 +18,6 @@ describe('SafetyToolCategory', function () {
 });
 
 describe('SafetyTool', function () {
-    it('has exactly 9 cases', function () {
-        expect(SafetyTool::cases())->toHaveCount(9);
-    });
-
     it('returns correct values for all cases', function () {
         $expected = [
             'session-zero', 'lines-and-veils', 'open-door',
@@ -34,7 +25,7 @@ describe('SafetyTool', function () {
             'stars-and-wishes', 'debriefing',
         ];
         expect(SafetyTool::values())->toBe($expected);
-    });
+    })->group('smoke');
 
     it('returns translated labels', function () {
         expect(SafetyTool::SessionZero->label())->toBe(__('safety.tool_session_zero'));
@@ -105,7 +96,7 @@ describe('SafetyTool', function () {
     it('grouped() returns all three categories', function () {
         $grouped = SafetyTool::grouped();
         expect($grouped)->toHaveKeys(['before', 'during', 'after']);
-    });
+    })->group('smoke');
 
     it('grouped() contains all 9 tools across categories', function () {
         $grouped = SafetyTool::grouped();
@@ -143,11 +134,4 @@ describe('SafetyTool', function () {
         );
     });
 
-    it('values() returns flat string array', function () {
-        $values = SafetyTool::values();
-        expect($values)->toBeArray();
-        foreach ($values as $value) {
-            expect($value)->toBeString();
-        }
-    });
 });

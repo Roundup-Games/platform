@@ -250,7 +250,7 @@ describe('CreateGame', function () {
             'visibility' => 'public',
             'status' => 'scheduled',
         ]);
-    });
+    })->group('smoke');
 
     it('validates required fields', function () {
         $user = gameCrudCreateUserWithPermission();

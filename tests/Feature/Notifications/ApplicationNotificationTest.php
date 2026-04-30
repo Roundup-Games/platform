@@ -61,7 +61,7 @@ describe('Apply to protected game → NewApplication', function () {
             ->and($data['entity_id'])->toBe($game->id)
             ->and($data['applicant_id'])->toBe($applicant->id)
             ->and($data)->toHaveKey('action_url');
-    });
+    })->group('smoke');
 
     it('does not dispatch NewApplication for public (auto-approved) games', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -222,7 +222,7 @@ describe('Approve application → ApplicationApproved', function () {
             ->and($data['entity_id'])->toBe($game->id)
             ->and($data['approver_id'])->toBe($owner->id)
             ->and($data)->toHaveKey('action_url');
-    });
+    })->group('smoke');
 
     it('does not dispatch when preferences are off', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -330,7 +330,7 @@ describe('Reject application → ApplicationRejected', function () {
             ->and($data['entity_id'])->toBe($game->id)
             ->and($data['rejector_id'])->toBe($owner->id)
             ->and($data)->toHaveKey('action_url');
-    });
+    })->group('smoke');
 
     it('does not dispatch when preferences are off', function () {
         $owner = User::factory()->create(['profile_complete' => true]);

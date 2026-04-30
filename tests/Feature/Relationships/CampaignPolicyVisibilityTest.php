@@ -9,8 +9,13 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    seedPermissions();
+    seedRoles();
+
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
 });
@@ -444,6 +449,80 @@ describe('Campaign listing query visibility', function () {
         expect($visible)->toContain($this->protectedCampaign->id);
         // Private campaigns are excluded from listing — only policy-level view is allowed for owner
         expect($visible)->not->toContain($this->privateCampaign->id);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CRUD POLICY — ADMIN BYPASS, UPDATE, DELETE
+// (Consolidated from CampaignPolicyTest)
+// ═══════════════════════════════════════════════════════════
+
+describe('Campaign CRUD policy — admin bypass', function () {
+    test('Platform Admin can update any campaign', function () {
+        setPermissionsTeamId(1);
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+        $admin->unsetRelations();
+        setPermissionsTeamId(1);
+
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($admin);
+        expect(Gate::allows('update', $campaign))->toBeTrue();
+    });
+});
+
+describe('Campaign CRUD policy — update', function () {
+    test('owner can update their campaign', function () {
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($this->owner);
+        expect(Gate::allows('update', $campaign))->toBeTrue();
+    });
+
+    test('regular user cannot update campaign', function () {
+        $user = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($user);
+        expect(Gate::allows('update', $campaign))->toBeFalse();
+    });
+});
+
+describe('Campaign CRUD policy — delete', function () {
+    test('owner can delete their campaign', function () {
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($this->owner);
+        expect(Gate::allows('delete', $campaign))->toBeTrue();
+    });
+
+    test('regular user cannot delete campaign', function () {
+        $user = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($user);
+        expect(Gate::allows('delete', $campaign))->toBeFalse();
     });
 });
 

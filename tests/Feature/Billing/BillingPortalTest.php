@@ -106,7 +106,7 @@ describe('Billing Portal Display', function () {
             ->get(route('billing.portal'))
             ->assertOk()
             ->assertSeeLivewire('billing.billing-portal');
-    });
+    })->group('smoke');
 
     it('shows no subscription when user has none', function () {
         $user = portalCreateUser();
@@ -137,7 +137,7 @@ describe('Billing Portal Display', function () {
             ->assertOk()
             ->assertSee('Active')
             ->assertSee('Current Plan');
-    });
+    })->group('smoke');
 
     it('hides available plans when subscription is active', function () {
         $user = portalCreateUser();
@@ -302,7 +302,7 @@ describe('Checkout Route', function () {
             ->assertOk()
             ->assertSeeLivewire('billing.checkout')
             ->assertSee('Gold Plan');
-    });
+    })->group('smoke');
 
     it('returns 404 for inactive plan', function () {
         $user = portalCreateUser();

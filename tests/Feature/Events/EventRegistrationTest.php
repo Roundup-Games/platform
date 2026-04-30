@@ -202,7 +202,7 @@ describe('RegisterForEvent', function () {
             'status' => 'confirmed',
             'payment_status' => 'not_required',
         ]);
-    });
+    })->group('smoke');
 
     it('registers with a division', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -249,7 +249,7 @@ describe('RegisterForEvent', function () {
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    });
+    })->group('smoke');
 
     it('prevents registration when event is full', function () {
         $user = User::factory()->create(['profile_complete' => true]);

@@ -21,5 +21,5 @@ describe('Registration', function () {
             'profile_complete' => false,
         ]);
         $response->assertRedirect(route('onboarding.index'));
-    });
+    })->group('smoke');
 });

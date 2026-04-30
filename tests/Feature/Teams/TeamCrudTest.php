@@ -81,7 +81,7 @@ describe('CreateTeam', function () {
             'role' => 'captain',
             'status' => 'active',
         ]);
-    });
+    })->group('smoke');
 
     it('validates required fields', function () {
         $user = teamCrudCreateUserWithTeamPermission();
@@ -207,7 +207,7 @@ describe('BrowseTeams', function () {
         Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
             ->assertOk()
             ->assertSee('Browse Teams');
-    });
+    })->group('smoke');
 
     it('lists active teams', function () {
         $team = Team::factory()->create(['name' => 'Visible FC', 'is_active' => true]);

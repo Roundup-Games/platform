@@ -5,6 +5,7 @@ namespace Tests\Feature\Services;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\Channels\PushChannel;
 use App\Services\NotificationService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -125,6 +126,59 @@ describe('NotificationService', function () {
             expect($channels)->toHaveCount(1);
             expect($channels)->toHaveKey('database');
         });
+
+        it('falls back to defaults when category value is an integer', function () {
+            Log::shouldReceive('warning')->once();
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'new_follower' => 42,
+                ],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::NewFollower);
+
+            expect($channels)->toHaveCount(1);
+            expect($channels)->toHaveKey('database');
+        });
+
+        it('returns correct channels for all categories with null settings', function () {
+            $defaults = NotificationCategory::defaultSettings();
+
+            foreach (NotificationCategory::cases() as $category) {
+                $user = User::factory()->create(['notification_settings' => null]);
+                $channels = $this->service->resolveChannels($user, $category);
+                $expectedCount = count(array_filter($defaults[$category->value], fn ($v) => $v));
+                expect($channels)->toHaveCount($expectedCount, "{$category->value} should resolve {$expectedCount} channels");
+            }
+        });
+
+        it('includes push channel when push is enabled in settings', function () {
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => true],
+                ],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
+
+            expect($channels)->toHaveCount(3);
+            expect($channels)->toHaveKey('push');
+            expect($channels['push'])->toBe(PushChannel::class);
+        });
+
+        it('excludes push channel when push is disabled', function () {
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => false],
+                ],
+            ]);
+
+            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
+
+            expect($channels)->toHaveCount(2);
+            expect($channels)->not->toHaveKey('push');
+        });
     });
 
     // ── send ─────────────────────────────────────────────────────
@@ -233,6 +287,38 @@ describe('NotificationService', function () {
 
             // Should NOT throw
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+        });
+
+        it('dispatches when actor exists but is not blocked', function () {
+            $actor = User::factory()->create();
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => true, 'mail' => true],
+                ],
+            ]);
+
+            $notification = new TestNotificationWithActor(['game_id' => 1], $actor);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            expect($user->notifications)->toHaveCount(1);
+        });
+
+        it('skipped log includes reason, notifiable_id, and notification_type', function () {
+            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::capture($capturedContext));
+
+            $user = User::factory()->create([
+                'notification_settings' => [
+                    'game_invitation' => ['database' => false, 'mail' => false],
+                ],
+            ]);
+
+            $notification = new TestNotification(['game_id' => 1]);
+            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
+
+            expect($capturedContext['reason'])->toBe('all_channels_disabled');
+            expect($capturedContext['notifiable_id'])->toBe($user->id);
+            expect($capturedContext['category'])->toBe('game_invitation');
+            expect($capturedContext['notification_type'])->toBeString();
         });
     });
 

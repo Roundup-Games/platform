@@ -168,7 +168,7 @@ describe('PushChannel', function () {
         };
 
         $this->channel->send($user, $notification);
-    });
+    })->group('smoke');
 
     it('deletes expired subscriptions and logs on flush', function () {
         $sub = Mockery::mock(PushSubscription::class)->makePartial();

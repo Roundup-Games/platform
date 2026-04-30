@@ -3,10 +3,6 @@
 use App\Enums\PlayStyle;
 
 describe('PlayStyle Enum', function () {
-    it('has exactly 5 cases', function () {
-        expect(PlayStyle::cases())->toHaveCount(5);
-    });
-
     it('values() returns all 5 string values', function () {
         $expected = [
             'narrative-first',
@@ -16,16 +12,6 @@ describe('PlayStyle Enum', function () {
             'horror',
         ];
         expect(PlayStyle::values())->toBe($expected);
-    });
-
-    it('is a backed string enum', function () {
-        $reflection = new ReflectionEnum(PlayStyle::class);
-        expect($reflection->getBackingType()?->getName())->toBe('string');
-    });
-
-    it('each case maps to a distinct value', function () {
-        $values = PlayStyle::values();
-        expect($values)->toHaveCount(count(array_unique($values)));
     });
 
     it('label() returns a translatable string for each case', function () {

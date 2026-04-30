@@ -58,7 +58,7 @@ describe('ManageRoster Authorization', function () {
             ->assertOk()
             ->assertSee('Manage Roster')
             ->assertSee('Roster Test');
-    });
+    })->group('smoke');
 
     it('denies non-member stranger access to roster', function () {
         ['captain' => $captain, 'team' => $team] = rosterCreateTeamWithCaptain();
@@ -116,7 +116,7 @@ describe('ManageRoster Invite', function () {
             'status' => 'pending',
             'invited_by' => $captain->id,
         ]);
-    });
+    })->group('smoke');
 
     it('invites with a specific role', function () {
         ['captain' => $captain, 'team' => $team] = rosterCreateTeamWithCaptain();

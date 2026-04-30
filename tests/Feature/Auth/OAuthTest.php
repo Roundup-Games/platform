@@ -65,7 +65,7 @@ it('creates a new user and linked account from Google OAuth', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('onboarding.index'));
-});
+})->group('smoke');
 
 it('marks email as verified for OAuth registered users', function () {
     $socialiteUser = Mockery::mock();
@@ -123,7 +123,7 @@ it('logs in existing user via linked account', function () {
     ]);
 
     $response->assertRedirect(route('dashboard', absolute: false));
-});
+})->group('smoke');
 
 it('creates linked account when logging in existing user by email match', function () {
     $user = User::factory()->create([

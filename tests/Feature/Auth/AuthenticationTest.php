@@ -19,7 +19,7 @@ describe('Authentication', function () {
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
-    });
+    })->group('smoke');
 
     test('users can not authenticate with invalid password', function () {
         $user = User::factory()->create();
@@ -30,7 +30,7 @@ describe('Authentication', function () {
         ]);
 
         $this->assertGuest();
-    });
+    })->group('smoke');
 
     test('users can logout', function () {
         $user = User::factory()->create();
@@ -39,7 +39,7 @@ describe('Authentication', function () {
 
         $this->assertGuest();
         $response->assertRedirect(route('root'));
-    });
+    })->group('smoke');
 
     test('logout clears site data cache', function () {
         $user = User::factory()->create();

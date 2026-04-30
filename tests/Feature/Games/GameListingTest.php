@@ -25,7 +25,7 @@ describe('GameListing', function () {
 
         Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
             ->assertSee('Epic Adventure');
-    });
+    })->group('smoke');
 
     it('hides private games from guests', function () {
         Game::factory()->create([
@@ -37,7 +37,7 @@ describe('GameListing', function () {
 
         Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
             ->assertDontSee('Secret Session');
-    });
+    })->group('smoke');
 
     it('hides private games even from authed users', function () {
         $user = User::factory()->create(['profile_complete' => true]);

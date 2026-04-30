@@ -176,7 +176,7 @@ describe('CampaignsPage — Cancel Campaign Action', function () {
             'id' => $campaign->id,
             'status' => 'cancelled',
         ]);
-    });
+    })->group('smoke');
 
     it('flashes success message after cancel', function () {
         $user = campaignsPageCreateUser();

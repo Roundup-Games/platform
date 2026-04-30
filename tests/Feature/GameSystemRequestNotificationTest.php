@@ -8,6 +8,8 @@ use App\Notifications\GameSystemRequestApproved;
 use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
 use App\Services\NotificationService;
+use Illuminate\Notifications\Channels\DatabaseChannel;
+use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -224,5 +226,38 @@ describe('getActor returns null for all game system request notifications', func
         $existingSystem = GameSystem::factory()->create();
 
         expect((new GameSystemRequestDuplicate($request, $existingSystem))->getActor())->toBeNull();
+    });
+});
+
+// ── via() channel contract ────────────────────────────
+
+describe('via() returns database and mail channels', function () {
+    it('returns correct channels for approved notification', function () {
+        $request = GameSystemRequest::factory()->create();
+        $gameSystem = GameSystem::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $channels = (new GameSystemRequestApproved($request, $gameSystem))->via($notifiable);
+
+        expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
+    });
+
+    it('returns correct channels for rejected notification', function () {
+        $request = GameSystemRequest::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $channels = (new GameSystemRequestRejected($request))->via($notifiable);
+
+        expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
+    });
+
+    it('returns correct channels for duplicate notification', function () {
+        $request = GameSystemRequest::factory()->create();
+        $existingSystem = GameSystem::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $channels = (new GameSystemRequestDuplicate($request, $existingSystem))->via($notifiable);
+
+        expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
     });
 });

@@ -78,7 +78,7 @@ describe('Webhook — subscription.created', function () {
                 ],
             ],
         ])->assertStatus(200);
-    });
+    })->group('smoke');
 
     it('logs paddle subscription ID and status', function () {
         $user = webhookCreateUser();
@@ -158,7 +158,7 @@ describe('Webhook — subscription.updated', function () {
                 ['price' => ['id' => 'pri_new', 'product_id' => 'pro_new'], 'status' => 'active', 'quantity' => 1],
             ],
         ])->assertStatus(200);
-    });
+    })->group('smoke');
 
     it('logs subscription ID and new status', function () {
         $user = webhookCreateUser();
@@ -252,7 +252,7 @@ describe('Webhook — transaction.completed', function () {
                 ],
             ],
         ])->assertStatus(200);
-    });
+    })->group('smoke');
 
     it('logs paddle transaction ID, amount, and currency', function () {
         $user = webhookCreateUser();

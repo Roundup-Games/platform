@@ -33,7 +33,7 @@ describe('UserRelationshipFactory', function () {
         expect($rel->type)->toBe(RelationshipType::Follow);
         expect($rel->user_id)->not->toBeNull();
         expect($rel->related_user_id)->not->toBeNull();
-    });
+    })->group('smoke');
 
     it('creates a follow relationship with follow state', function () {
         $rel = UserRelationship::factory()->follow()->create();
@@ -45,7 +45,7 @@ describe('UserRelationshipFactory', function () {
         $rel = UserRelationship::factory()->block()->create();
 
         expect($rel->type)->toBe(RelationshipType::Block);
-    });
+    })->group('smoke');
 
     it('creates relationships between distinct users', function () {
         $rel = UserRelationship::factory()->create();
@@ -143,7 +143,7 @@ describe('Unfollow Action', function () {
             'related_user_id' => $target->id,
             'type' => 'follow',
         ]);
-    });
+    })->group('smoke');
 
     it('returns false when not following', function () {
         $user = User::factory()->create();
@@ -345,7 +345,7 @@ describe('Unblock Action', function () {
             'related_user_id' => $target->id,
             'type' => 'block',
         ]);
-    });
+    })->group('smoke');
 
     it('returns false when not blocked', function () {
         $user = User::factory()->create();
@@ -443,7 +443,7 @@ describe('isFriend', function () {
 
         expect($alice->isFriend($bob))->toBeTrue();
         expect($bob->isFriend($alice))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('returns false for one-way follow', function () {
         $alice = User::factory()->create();

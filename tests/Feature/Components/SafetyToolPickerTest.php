@@ -13,7 +13,7 @@ describe('Rendering', function () {
     it('renders without errors', function () {
         Livewire::test(SafetyToolPicker::class)
             ->assertOk();
-    });
+    })->group('smoke');
 
     it('initializes with empty selected, text, and note', function () {
         Livewire::test(SafetyToolPicker::class)
@@ -89,7 +89,7 @@ describe('Tool toggling', function () {
         Livewire::test(SafetyToolPicker::class)
             ->call('toggleTool', 'session-zero')
             ->assertSet('selected', ['session-zero']);
-    });
+    })->group('smoke');
 
     it('selecting multiple tools accumulates them', function () {
         Livewire::test(SafetyToolPicker::class)

@@ -49,7 +49,7 @@ describe('Game Detail apply CTA', function () {
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('canApply', true)
             ->assertSee(__('games.action_join_game'));
-    });
+    })->group('smoke');
 
     it('shows Apply to Join for protected game when viewer is friend', function () {
         $owner = createUser();
@@ -153,7 +153,7 @@ describe('ApplyToCampaign', function () {
 
         expect(CampaignApplication::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status)->toBe('approved');
         expect(CampaignParticipant::where('campaign_id', $campaign->id)->where('user_id', $viewer->id)->first()->status->value)->toBe('approved');
-    });
+    })->group('smoke');
 
     it('sets pending for protected campaign applications', function () {
         $owner = createUser();

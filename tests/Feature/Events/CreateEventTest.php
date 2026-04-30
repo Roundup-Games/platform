@@ -186,7 +186,7 @@ describe('CreateEvent', function () {
         expect($event->venue_name)->toBe('Test Arena');
         expect($event->max_teams)->toBe(16);
         expect($event->team_registration_fee)->toBe(5000);
-    });
+    })->group('smoke');
 
     it('stores divisions as JSON', function () {
         seedPermissions();

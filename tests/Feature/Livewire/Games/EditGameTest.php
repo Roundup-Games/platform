@@ -94,7 +94,7 @@ describe('Save Game Edit', function () {
             ->call('saveGameEdit');
 
         expect($game->fresh()->name)->toBe('Updated Game Name');
-    });
+    })->group('smoke');
 
     it('updates game description', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);

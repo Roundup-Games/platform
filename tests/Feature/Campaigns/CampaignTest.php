@@ -65,7 +65,7 @@ describe('CampaignPolicy — Visibility Rules', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
 
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('allows owner to view protected campaigns', function () {
         $owner = User::factory()->create();
@@ -113,7 +113,7 @@ describe('CampaignPolicy — Visibility Rules', function () {
         $stranger = User::factory()->create();
 
         expect(Gate::forUser($stranger)->allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('allows pending participant to view private campaigns', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'private']);
@@ -139,7 +139,7 @@ describe('CampaignPolicy — Ownership Actions', function () {
         $user->unsetRelations();
 
         expect(Gate::forUser($user)->allows('create', Campaign::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies guest from creating', function () {
         expect(Gate::allows('create', Campaign::class))->toBeFalse();
@@ -149,7 +149,7 @@ describe('CampaignPolicy — Ownership Actions', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
 
         expect(Gate::forUser($owner)->allows('update', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies participant from updating', function () {
         $campaign = campaignTestCreateCampaign();
@@ -169,7 +169,7 @@ describe('CampaignPolicy — Ownership Actions', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
 
         expect(Gate::forUser($owner)->allows('delete', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies non-owner from deleting', function () {
         $campaign = campaignTestCreateCampaign();

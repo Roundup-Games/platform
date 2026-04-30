@@ -19,7 +19,7 @@ describe('Password Reset', function () {
         $this->post(route('password.email'), ['email' => $user->email]);
 
         Notification::assertSentTo($user, ResetPassword::class);
-    });
+    })->group('smoke');
 
     test('reset password screen can be rendered', function () {
         Notification::fake();
@@ -58,5 +58,5 @@ describe('Password Reset', function () {
 
             return true;
         });
-    });
+    })->group('smoke');
 });

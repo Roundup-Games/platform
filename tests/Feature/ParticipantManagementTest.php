@@ -100,7 +100,7 @@ describe('Game Invite Participant', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot invite with empty selection', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
@@ -233,7 +233,7 @@ describe('Game Approve/Reject Application', function () {
             'user_id' => $applicant->id,
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('owner can reject an application', function () {
         ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();

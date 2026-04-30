@@ -182,7 +182,7 @@ describe('CreateGame — Board Game Creation', function () {
 
         $game = Game::where('name', 'Board Game Night')->first();
         expect($game->safety_rules)->toBe(['comfort_notes' => 'Keep it light and fun']);
-    });
+    })->group('smoke');
 
     it('creates board game without comfort notes', function () {
         $user = createGameTestUser();

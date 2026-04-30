@@ -49,7 +49,7 @@ describe('GamePolicy — Visibility Rules', function () {
         $game = gameTestCreateGame(['visibility' => 'public']);
 
         expect(Gate::allows('view', $game))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('allows owner to view protected games', function () {
         $owner = User::factory()->create();
@@ -90,14 +90,14 @@ describe('GamePolicy — Visibility Rules', function () {
         ]);
 
         expect(Gate::forUser($participant)->allows('view', $game))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies stranger from viewing private games', function () {
         $game = gameTestCreateGame(['visibility' => 'private']);
         $stranger = User::factory()->create();
 
         expect(Gate::forUser($stranger)->allows('view', $game))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('denies pending participant from viewing private games', function () {
         $game = gameTestCreateGame(['visibility' => 'private']);
@@ -124,7 +124,7 @@ describe('GamePolicy — Ownership Actions', function () {
         $user->unsetRelations();
 
         expect(Gate::forUser($user)->allows('create', Game::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies guest from creating', function () {
         expect(Gate::allows('create', Game::class))->toBeFalse();
@@ -134,7 +134,7 @@ describe('GamePolicy — Ownership Actions', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         expect(Gate::forUser($owner)->allows('update', $game))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies non-owner from updating even if participant', function () {
         $game = gameTestCreateGame();
@@ -154,7 +154,7 @@ describe('GamePolicy — Ownership Actions', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         expect(Gate::forUser($owner)->allows('delete', $game))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('denies non-owner from deleting', function () {
         $game = gameTestCreateGame();

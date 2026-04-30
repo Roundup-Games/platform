@@ -8,63 +8,36 @@ beforeEach(function () {
     App::setLocale('en');
 });
 
-describe('format_date — English locale', function () {
-    test('format_date returns English date format', function () {
+describe('format_date — locale-aware', function () {
+    it('format_date returns locale-specific date format', function (string $locale, string $type, string $dateInput, string $expected) {
+        if ($locale !== 'en') {
+            App::setLocale($locale);
+        }
+        $date = Carbon::createFromFormat('Y-m-d H:i:s', $dateInput);
+        expect(format_date($date, $type))->toBe($expected);
+    })->with([
+        // English locale
+        ['en', 'date',          '2026-04-14 00:00:00', 'Apr 14, 2026'],
+        ['en', 'short_date',    '2026-04-14 00:00:00', 'Apr 14'],
+        ['en', 'datetime',      '2026-04-14 14:30:00', 'Apr 14, 2026 at 2:30 PM'],
+        ['en', 'short_month_day','2026-04-14 00:00:00', 'Apr 14, 2026'],
+        // German locale
+        ['de', 'date',          '2026-04-14 00:00:00', '14. April 2026'],
+        ['de', 'short_date',    '2026-04-14 00:00:00', '14. Apr'],
+        ['de', 'datetime',      '2026-04-14 14:30:00', '14. April 2026, 14:30'],
+        ['de', 'short_month_day','2026-04-14 00:00:00', '14. April 2026'],
+    ]);
+
+    it('format_date defaults to date type', function (string $locale, string $expected) {
+        if ($locale !== 'en') {
+            App::setLocale($locale);
+        }
         $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'date'))->toBe('Apr 14, 2026');
-    });
-
-    test('format_date returns English short_date format', function () {
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'short_date'))->toBe('Apr 14');
-    });
-
-    test('format_date returns English datetime format', function () {
-        $date = Carbon::create(2026, 4, 14, 14, 30, 0);
-        expect(format_date($date, 'datetime'))->toBe('Apr 14, 2026 at 2:30 PM');
-    });
-
-    test('format_date returns English short_month_day format', function () {
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'short_month_day'))->toBe('Apr 14, 2026');
-    });
-
-    test('format_date defaults to date type', function () {
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date))->toBe('Apr 14, 2026');
-    });
-});
-
-describe('format_date — German locale', function () {
-    test('format_date returns German date format', function () {
-        App::setLocale('de');
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'date'))->toBe('14. April 2026');
-    });
-
-    test('format_date returns German short_date format', function () {
-        App::setLocale('de');
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'short_date'))->toBe('14. Apr');
-    });
-
-    test('format_date returns German datetime format', function () {
-        App::setLocale('de');
-        $date = Carbon::create(2026, 4, 14, 14, 30, 0);
-        expect(format_date($date, 'datetime'))->toBe('14. April 2026, 14:30');
-    });
-
-    test('format_date returns German short_month_day same as date', function () {
-        App::setLocale('de');
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date, 'short_month_day'))->toBe('14. April 2026');
-    });
-
-    test('format_date defaults to date type in German', function () {
-        App::setLocale('de');
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
-        expect(format_date($date))->toBe('14. April 2026');
-    });
+        expect(format_date($date))->toBe($expected);
+    })->with([
+        ['en', 'Apr 14, 2026'],
+        ['de', '14. April 2026'],
+    ]);
 });
 
 describe('format_date — Edge cases', function () {
@@ -83,62 +56,28 @@ describe('format_date — Edge cases', function () {
     });
 });
 
-describe('format_currency — English locale', function () {
-    test('format_currency formats cents in English', function () {
-        expect(format_currency(500, true))->toBe('$5.00');
-    });
-
-    test('format_currency formats dollars when inCents is false', function () {
-        expect(format_currency(5, false))->toBe('$5.00');
-    });
-
-    test('format_currency shows Free for zero cents in English', function () {
-        expect(format_currency(0, true))->toBe('Free');
-    });
-
-    test('format_currency shows Free for zero dollars in English', function () {
-        expect(format_currency(0, false))->toBe('Free');
-    });
-
-    test('format_currency handles single-digit cent amounts', function () {
-        expect(format_currency(99, true))->toBe('$0.99');
-    });
-
-    test('format_currency handles large amounts', function () {
-        expect(format_currency(123456, true))->toBe('$1,234.56');
-    });
-});
-
-describe('format_currency — German locale', function () {
-    test('format_currency formats cents in German', function () {
-        App::setLocale('de');
-        expect(format_currency(500, true))->toBe('5,00 €');
-    });
-
-    test('format_currency formats dollars when inCents is false in German', function () {
-        App::setLocale('de');
-        expect(format_currency(5, false))->toBe('5,00 €');
-    });
-
-    test('format_currency shows Kostenlos for zero in German', function () {
-        App::setLocale('de');
-        expect(format_currency(0, true))->toBe('Kostenlos');
-    });
-
-    test('format_currency shows Kostenlos for zero dollars in German', function () {
-        App::setLocale('de');
-        expect(format_currency(0, false))->toBe('Kostenlos');
-    });
-
-    test('format_currency handles single-digit cent amounts in German', function () {
-        App::setLocale('de');
-        expect(format_currency(99, true))->toBe('0,99 €');
-    });
-
-    test('format_currency handles large amounts in German', function () {
-        App::setLocale('de');
-        expect(format_currency(123456, true))->toBe('1.234,56 €');
-    });
+describe('format_currency — locale-aware', function () {
+    it('format_currency formats amount correctly per locale', function (string $locale, int $amount, bool $inCents, string $expected) {
+        if ($locale !== 'en') {
+            App::setLocale($locale);
+        }
+        expect(format_currency($amount, $inCents))->toBe($expected);
+    })->with([
+        // English locale
+        ['en', 500,    true,  '$5.00'],
+        ['en', 5,      false, '$5.00'],
+        ['en', 0,      true,  'Free'],
+        ['en', 0,      false, 'Free'],
+        ['en', 99,     true,  '$0.99'],
+        ['en', 123456, true,  '$1,234.56'],
+        // German locale
+        ['de', 500,    true,  '5,00 €'],
+        ['de', 5,      false, '5,00 €'],
+        ['de', 0,      true,  'Kostenlos'],
+        ['de', 0,      false, 'Kostenlos'],
+        ['de', 99,     true,  '0,99 €'],
+        ['de', 123456, true,  '1.234,56 €'],
+    ]);
 });
 
 describe('format_currency — Edge cases', function () {

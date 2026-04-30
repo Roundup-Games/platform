@@ -15,7 +15,7 @@ describe('DiscoveryPage', function () {
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
             ->assertOk()
             ->assertSee('Discover');
-    });
+    })->group('smoke');
 
     it('shows both games and campaigns in all mode', function () {
         $game = Game::factory()->create([
@@ -34,7 +34,7 @@ describe('DiscoveryPage', function () {
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
             ->assertSee('Public Game Session')
             ->assertSee('Public Campaign');
-    });
+    })->group('smoke');
 
     it('filters to games only when mode is games', function () {
         Game::factory()->create([
@@ -95,7 +95,7 @@ describe('DiscoveryPage', function () {
             ->set('search', 'Dragonslayer')
             ->assertSee('Dragonslayer Quest')
             ->assertDontSee('Unrelated Session');
-    });
+    })->group('smoke');
 
     it('filters by game system', function () {
         $system1 = GameSystem::factory()->create(['name' => 'D&D 5e']);
@@ -163,7 +163,7 @@ describe('DiscoveryPage', function () {
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
             ->assertDontSee('Private Game')
             ->assertDontSee('Private Campaign');
-    });
+    })->group('smoke');
 
     it('shows protected items to authenticated users', function () {
         $user = User::factory()->create(['profile_complete' => true]);

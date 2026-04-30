@@ -28,7 +28,7 @@ describe('Follow → NewFollower', function () {
             ->and($data['follower_id'])->toBe($follower->id)
             ->and($data['follower_name'])->toBe('Alice')
             ->and($data)->toHaveKey('action_url');
-    });
+    })->group('smoke');
 
     it('does not send duplicate notification on repeated follow', function () {
         $follower = User::factory()->create();

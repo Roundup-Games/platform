@@ -71,6 +71,7 @@ class EventStatusTransitionTest extends TestCase
     }
 
     #[DataProvider('validTransitions')]
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_valid_event_status_transitions(string $from, string $to): void
     {
         $this->assertTrue(
@@ -80,6 +81,7 @@ class EventStatusTransitionTest extends TestCase
     }
 
     #[DataProvider('invalidTransitions')]
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_invalid_event_status_transitions(string $from, string $to): void
     {
         $this->assertFalse(

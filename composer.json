@@ -66,6 +66,9 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "smoke": [
+            "@php artisan test --group=smoke"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",

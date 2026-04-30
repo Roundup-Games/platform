@@ -49,7 +49,7 @@ describe('view', function () {
     test('guest can view active team', function () {
         expect($this->team->is_active)->toBeTrue();
         expect(Gate::allows('view', $this->team))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('guest cannot view inactive team', function () {
         $inactiveTeam = Team::factory()->create([
@@ -116,7 +116,7 @@ describe('update', function () {
     test('captain can update team', function () {
         $this->actingAs($this->captain);
         expect(Gate::allows('update', $this->team))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('coach can update team', function () {
         $this->actingAs($this->coach);

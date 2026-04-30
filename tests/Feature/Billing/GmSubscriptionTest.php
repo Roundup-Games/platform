@@ -42,7 +42,7 @@ describe('GmRoleService', function () {
         expect($user->gmProfile)->not->toBeNull();
         expect($user->gmProfile->is_active)->toBeTrue();
         expect($user->localSubscriptions()->active()->count())->toBe(1);
-    });
+    })->group('smoke');
 
     it('creates a GMProfile on activation', function () {
         $user = User::factory()->create();

@@ -54,7 +54,7 @@ describe('Event Policy', function () {
     describe('view', function () {
         test('guest can view public event', function () {
             expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
-        });
+        })->group('smoke');
 
         test('guest cannot view private event', function () {
             expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
@@ -97,7 +97,7 @@ describe('Event Policy', function () {
         test('organizer can update their own event', function () {
             $this->actingAs($this->organizer);
             expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-        });
+        })->group('smoke');
 
         test('event admin can update their scoped event', function () {
             $this->actingAs($this->eventAdmin);

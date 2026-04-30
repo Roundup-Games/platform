@@ -10,8 +10,13 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
+    seedPermissions();
+    seedRoles();
+
     $this->owner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
 });
@@ -450,6 +455,138 @@ describe('Game listing query visibility', function () {
         expect($visible)->toContain($this->protectedGame->id);
         // Private games are excluded from listing — only policy-level view is allowed for owner
         expect($visible)->not->toContain($this->privateGame->id);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CRUD POLICY — ADMIN BYPASS, UPDATE, DELETE, CREATE
+// (Consolidated from GamePolicyTest)
+// ═══════════════════════════════════════════════════════════
+
+describe('Game CRUD policy — admin bypass', function () {
+    test('Platform Admin can do anything on games', function () {
+        setPermissionsTeamId(1);
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+        $admin->unsetRelations();
+        setPermissionsTeamId(1);
+
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($admin);
+        expect(Gate::allows('viewAny', Game::class))->toBeTrue();
+        expect(Gate::allows('create', Game::class))->toBeTrue();
+        expect(Gate::allows('update', $game))->toBeTrue();
+        expect(Gate::allows('delete', $game))->toBeTrue();
+    });
+
+    test('Games Admin can do anything on games', function () {
+        setPermissionsTeamId(1);
+        $gamesAdmin = User::factory()->create();
+        $gamesAdmin->assignRole('Games Admin');
+        $gamesAdmin->unsetRelations();
+        setPermissionsTeamId(1);
+
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($gamesAdmin);
+        expect(Gate::allows('update', $game))->toBeTrue();
+        expect(Gate::allows('delete', $game))->toBeTrue();
+    });
+});
+
+describe('Game CRUD policy — update', function () {
+    test('owner can update their game', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($this->owner);
+        expect(Gate::allows('update', $game))->toBeTrue();
+    });
+
+    test('user with update game permission can update any game', function () {
+        setPermissionsTeamId(1);
+        $user = User::factory()->create();
+        $user->givePermissionTo('update game');
+        $user->unsetRelations();
+        setPermissionsTeamId(1);
+
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($user);
+        expect(Gate::allows('update', $game))->toBeTrue();
+    });
+
+    test('regular user cannot update game', function () {
+        $user = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($user);
+        expect(Gate::allows('update', $game))->toBeFalse();
+    });
+});
+
+describe('Game CRUD policy — delete', function () {
+    test('owner can delete their game', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($this->owner);
+        expect(Gate::allows('delete', $game))->toBeTrue();
+    });
+
+    test('regular user cannot delete game', function () {
+        $user = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'public',
+        ]);
+
+        $this->actingAs($user);
+        expect(Gate::allows('delete', $game))->toBeFalse();
+    });
+});
+
+describe('Game CRUD policy — create', function () {
+    test('user with create game permission can create', function () {
+        setPermissionsTeamId(1);
+        $user = User::factory()->create();
+        $user->givePermissionTo('create game');
+        $user->unsetRelations();
+        setPermissionsTeamId(1);
+
+        $this->actingAs($user);
+        expect(Gate::allows('create', Game::class))->toBeTrue();
+    });
+
+    test('user without permission cannot create game', function () {
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+        expect(Gate::allows('create', Game::class))->toBeFalse();
     });
 });
 

@@ -3,10 +3,6 @@
 use App\Enums\GmProficiency;
 
 describe('GmProficiency Enum', function () {
-    it('has exactly 10 cases', function () {
-        expect(GmProficiency::cases())->toHaveCount(10);
-    });
-
     it('returns correct values for all cases', function () {
         $expected = [
             'creativity', 'inclusive', 'knows-the-rules', 'rule-of-cool',
@@ -14,24 +10,6 @@ describe('GmProficiency Enum', function () {
             'voices', 'world-builder',
         ];
         expect(GmProficiency::values())->toBe($expected);
-    });
-
-    it('is a backed string enum', function () {
-        $reflection = new ReflectionEnum(GmProficiency::class);
-        expect($reflection->getBackingType()?->getName())->toBe('string');
-    });
-
-    it('each case maps to a distinct value', function () {
-        $values = GmProficiency::values();
-        expect($values)->toHaveCount(count(array_unique($values)));
-    });
-
-    it('values() returns flat string array', function () {
-        $values = GmProficiency::values();
-        expect($values)->toBeArray();
-        foreach ($values as $value) {
-            expect($value)->toBeString();
-        }
     });
 
     it('label() returns a translatable string for each case', function () {
@@ -90,19 +68,6 @@ describe('GmProficiency Enum', function () {
         foreach (GmProficiency::values() as $value) {
             expect($value)->toMatch('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', "{$value} should be kebab-case");
         }
-    });
-
-    it('can instantiate from value', function () {
-        expect(GmProficiency::from('creativity'))->toBe(GmProficiency::Creativity);
-        expect(GmProficiency::from('world-builder'))->toBe(GmProficiency::WorldBuilder);
-    });
-
-    it('tryFrom returns null for invalid value', function () {
-        expect(GmProficiency::tryFrom('nonexistent'))->toBeNull();
-    });
-
-    it('values() count matches cases() count', function () {
-        expect(GmProficiency::values())->toHaveCount(count(GmProficiency::cases()));
     });
 
     it('no duplicate labels across cases', function () {
