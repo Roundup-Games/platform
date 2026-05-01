@@ -104,6 +104,32 @@ describe('ParticipantJoined', function () {
             ->and($mail->actionText)->toBe('View game');
     });
 
+    it('stores correct data for a campaign', function () {
+        $participant = User::factory()->create(['name' => 'P1']);
+        $campaign = Campaign::factory()->create(['name' => 'C1']);
+        $notifiable = User::factory()->create();
+
+        $data = (new ParticipantJoined($participant, $campaign, 'campaign'))->toDatabase($notifiable);
+
+        expect($data['type'])->toBe('participant_joined')
+            ->and($data['participant_id'])->toBe($participant->id)
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
+            ->and($data['entity_name'])->toBe('C1')
+            ->and($data['action_url'])->toContain('/campaigns/');
+    });
+
+    it('renders correct email content for a campaign', function () {
+        $participant = User::factory()->create(['name' => 'P1']);
+        $campaign = Campaign::factory()->create(['name' => 'C1']);
+        $notifiable = User::factory()->create(['name' => 'Owner']);
+
+        $mail = (new ParticipantJoined($participant, $campaign, 'campaign'))->toMail($notifiable);
+
+        expect($mail->subject)->toContain('P1')
+            ->and($mail->actionUrl)->toContain('/campaigns/');
+    });
+
     it('returns participant as actor', function () {
         $participant = User::factory()->create();
         $game = Game::factory()->create();
@@ -126,6 +152,31 @@ describe('ParticipantRemoved', function () {
             ->and($data['removed_user_id'])->toBe($removed->id)
             ->and($data['entity_type'])->toBe('game')
             ->and($data['entity_name'])->toBe('G1');
+    });
+
+    it('stores correct data for a campaign', function () {
+        $removed = User::factory()->create(['name' => 'R1']);
+        $campaign = Campaign::factory()->create(['name' => 'C1']);
+        $notifiable = User::factory()->create();
+
+        $data = (new ParticipantRemoved($removed, $campaign, 'campaign'))->toDatabase($notifiable);
+
+        expect($data['type'])->toBe('participant_removed')
+            ->and($data['removed_user_id'])->toBe($removed->id)
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
+            ->and($data['entity_name'])->toBe('C1');
+    });
+
+    it('renders correct email content for a game', function () {
+        $removed = User::factory()->create(['name' => 'R1']);
+        $game = Game::factory()->create(['name' => 'G1']);
+        $notifiable = User::factory()->create(['name' => 'Owner']);
+
+        $mail = (new ParticipantRemoved($removed, $game, 'game'))->toMail($notifiable);
+
+        expect($mail->subject)->toContain('G1')
+            ->and($mail->actionText)->toBe('Browse Games');
     });
 
     it('returns null actor', function () {
