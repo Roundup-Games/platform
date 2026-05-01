@@ -15,10 +15,11 @@ uses(RefreshDatabase::class);
 // ═══════════════════════════════════════════════════════════
 
 describe('Rendering', function () {
+    // smoke: landing page renders without error
     it('renders the landing page without error', function () {
         get(route('home'))
             ->assertOk();
-    });
+    })->group('smoke');
 
     it('shows the hero heading', function () {
         get(route('home'))

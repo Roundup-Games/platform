@@ -256,6 +256,7 @@ describe('Policy Integration: Event Policy', function () {
 });
 
 describe('Policy Integration: Global Admin Bypass', function () {
+    // smoke: Platform Admin bypasses all authorization policies
     test('Platform Admin bypasses all policies via before hook', function () {
         $this->actingAs($this->platformAdmin);
 
@@ -276,7 +277,7 @@ describe('Policy Integration: Global Admin Bypass', function () {
         $campaign = Campaign::factory()->create(['owner_id' => $this->otherUser->id]);
         expect(Gate::allows('update', $game))->toBeTrue();
         expect(Gate::allows('delete', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('Games Admin bypasses all policies via before hook', function () {
         $this->actingAs($this->gamesAdmin);

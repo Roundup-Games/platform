@@ -348,6 +348,7 @@ it('does not go below step 1', function () {
 
 // ── Completion ────────────────────────────────────────
 
+// smoke: core onboarding flow completes and redirects to dashboard
 it('completes profile and redirects to dashboard', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
@@ -373,7 +374,7 @@ it('completes profile and redirects to dashboard', function () {
         ->and($fresh->phone)->toBe('+15551234567')
         ->and($fresh->profile_version)->toBe(1)
         ->and($fresh->profile_updated_at)->not->toBeNull();
-});
+})->group('smoke');
 
 it('stores phone as null when empty', function () {
     $user = User::factory()->create(['profile_complete' => false]);

@@ -80,6 +80,7 @@ function chainOpenSlot(Game $game): void
 // ── Full promotion chain ────────────────────────────────
 
 describe('full promotion chain', function () {
+    // smoke: full waitlist promotion chain works end-to-end
     it('game full → player waitlists → approved cancels → waitlisted promoted → confirms → roster fills', function () {
         $game = chainCreateFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
 
@@ -121,7 +122,7 @@ describe('full promotion chain', function () {
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
         expect($approvedCount)->toBe($game->max_players);
-    });
+    })->group('smoke');
 });
 
 // ── Decline chains to next ──────────────────────────────

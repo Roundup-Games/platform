@@ -16,6 +16,7 @@ uses(RefreshDatabase::class);
 
 // ── Show Component: Page Rendering ────────────────────
 
+// smoke: profile show page renders for authenticated user
 it('displays profile show page', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -26,7 +27,7 @@ it('displays profile show page', function () {
         ->get(route('profile.show'))
         ->assertOk()
         ->assertSee('My Profile');
-});
+})->group('smoke');
 
 it('loads user data on mount', function () {
     $user = User::factory()->create([

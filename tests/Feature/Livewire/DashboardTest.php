@@ -346,6 +346,8 @@ class DashboardTest extends TestCase
 
     // ── Full render with all stat sections ─────────────
 
+    // smoke: dashboard renders all stat sections for user with data
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_livewire_dashboard_renders_all_stat_sections(): void
     {
         Livewire::actingAs($this->user)

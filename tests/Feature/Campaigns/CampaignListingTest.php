@@ -61,12 +61,13 @@ describe('Campaign Listing Route', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CampaignListing — Visibility Scoping', function () {
+    // smoke: campaign listing shows public campaigns to guests
     it('shows public campaigns to guests', function () {
         createPublicCampaign(['name' => 'Public One']);
 
         Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignListing::class)
             ->assertSee('Public One');
-    });
+    })->group('smoke');
 
     it('hides protected campaigns from guests', function () {
         createProtectedCampaign(['name' => 'Protected One']);

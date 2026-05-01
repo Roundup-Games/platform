@@ -16,6 +16,7 @@ beforeEach(function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Visibility matrix: every field × every relationship level', function () {
+    // smoke: basic visibility matrix — guests see only 'everyone' fields
     it('guest sees only "everyone" fields when all three settings are used', function () {
         $this->owner->update([
             'privacy_settings' => [
@@ -30,8 +31,8 @@ describe('Visibility matrix: every field × every relationship level', function 
 
         $visible = $this->resolver->profileFieldsVisible(null, $this->owner);
 
-        expect($visible)->toBe(['location', 'campaigns']);
-    });
+        expect($visible)->toBe(['location', 'campaigns', 'stats']);
+    })->group('smoke');
 
     it('stranger sees only "everyone" fields — same as guest', function () {
         $stranger = User::factory()->create();
@@ -108,6 +109,7 @@ describe('Visibility matrix: every field × every relationship level', function 
         expect($visible)->toBe(['location', 'game_systems', 'campaigns', 'teams']);
     });
 
+    // smoke: self always sees all fields regardless of privacy settings
     it('self sees all fields regardless of settings', function () {
         $this->owner->update([
             'privacy_settings' => array_fill_keys(ProfileVisibilityResolver::FIELDS, 'nobody'),
@@ -116,7 +118,7 @@ describe('Visibility matrix: every field × every relationship level', function 
         $visible = $this->resolver->profileFieldsVisible($this->owner, $this->owner);
 
         expect($visible)->toBe(ProfileVisibilityResolver::FIELDS);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════

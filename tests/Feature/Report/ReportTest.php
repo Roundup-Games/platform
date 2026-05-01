@@ -117,6 +117,7 @@ describe('MembershipReport Page', function () {
         expect(MembershipReport::getNavigationLabel())->toBe('Memberships');
     });
 
+    // smoke: admin-only access restriction on membership report
     it('restricts access to admin users only', function () {
         // Admin can access
         expect(MembershipReport::canAccess())->toBeFalse(); // no logged-in user in test
@@ -127,7 +128,7 @@ describe('MembershipReport Page', function () {
         $regularUser = User::factory()->create([]);
         $this->actingAs($regularUser);
         expect(MembershipReport::canAccess())->toBeFalse();
-    });
+    })->group('smoke');
 
     it('renders the membership report page', function () {
         $this->actingAs($this->admin);

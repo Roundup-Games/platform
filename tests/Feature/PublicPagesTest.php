@@ -104,12 +104,13 @@ describe('AboutPage', function () {
 // ── Contact Page ───────────────────────────────────────
 
 describe('ContactPage', function () {
+    // smoke: contact page renders for guests
     it('renders the contact page', function () {
         get(route('contact'))
             ->assertOk()
             ->assertSee('Contact Us')
             ->assertSee('Send Us a Message');
-    });
+    })->group('smoke');
 
     it('shows the contact form fields', function () {
         get(route('contact'))
@@ -253,5 +254,4 @@ describe('PublicNavigation', function () {
             ->assertSee(route('contact'));
     });
 });
-
 

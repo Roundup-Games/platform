@@ -351,6 +351,7 @@ describe('Campaign Detail — Review Display', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('GM Profile — Review Display', function () {
+    // smoke: GM profile shows aggregate review count and rating
     it('displays review count and average rating on GM profile', function () {
         $data = setupGameWithReview();
         app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
@@ -363,7 +364,7 @@ describe('GM Profile — Review Display', function () {
         $response->assertOk()
             ->assertSee('4.0')
             ->assertSee('1 review');
-    });
+    })->group('smoke');
 
     it('displays top proficiency badges on GM profile', function () {
         $data = setupGameWithReview();

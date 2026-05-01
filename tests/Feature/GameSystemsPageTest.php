@@ -7,11 +7,12 @@ use App\Models\GameSystemMechanic;
 use function Pest\Laravel\{get};
 
 describe('GameSystemsPage', function () {
+    // smoke: game systems listing page renders for guests
     it('renders the game systems page for guests', function () {
         get(route('game-systems'))
             ->assertOk()
             ->assertSee('Explore Game Systems');
-    });
+    })->group('smoke');
 
     it('shows game systems in a grid', function () {
         $system = GameSystem::factory()->create([
@@ -27,7 +28,7 @@ describe('GameSystemsPage', function () {
             ->assertSee('Gloomhaven')
             ->assertSee('8.8')
             ->assertSee('#1');
-    });
+    })->group('smoke');
 
     it('shows active session count badge', function () {
         $system = GameSystem::factory()->create([

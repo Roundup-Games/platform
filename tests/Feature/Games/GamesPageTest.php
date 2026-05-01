@@ -34,6 +34,7 @@ describe('GamesPage — Guest Access', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('GamesPage — Authenticated Access', function () {
+    // smoke: games page renders for authenticated users
     it('renders for authenticated users', function () {
         $user = gamesPageCreateUser();
 
@@ -41,7 +42,7 @@ describe('GamesPage — Authenticated Access', function () {
             ->get('/en/games')
             ->assertOk()
             ->assertSee(__('games.heading_my_games'));
-    });
+    })->group('smoke');
 
     it('shows My Games section heading', function () {
         $user = gamesPageCreateUser();

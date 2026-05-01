@@ -51,6 +51,7 @@ describe('notification preferences section', function () {
             ->assertSet('notificationSettings.game_invitation.push', true); // defaultPushEnabled for game_invitation
     });
 
+    // smoke: notification settings persist across save and reload
     it('saves notification settings including push to user model', function () {
         // Livewire v4's ->set() cannot serialize nested arrays (synthetic tuple limitation).
         // Write settings to DB, then verify mount() loads them and save() persists them.
@@ -75,7 +76,7 @@ describe('notification preferences section', function () {
         expect($this->user->notification_settings['new_follower']['mail'])->toBeTrue();
         expect($this->user->notification_settings['game_invitation']['database'])->toBeFalse();
         expect($this->user->notification_settings['game_invitation']['push'])->toBeTrue();
-    });
+    })->group('smoke');
 
     it('persists all categories when saving', function () {
         Livewire::test(Show::class)

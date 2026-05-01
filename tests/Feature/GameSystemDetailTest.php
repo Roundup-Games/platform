@@ -9,6 +9,7 @@ use App\Models\User;
 use function Pest\Laravel\{actingAs, get};
 
 describe('GameSystemDetail - mount and resolution', function () {
+    // smoke: game system detail page renders by slug
     it('resolves game system by slug and renders', function () {
         $system = GameSystem::factory()->create([
             'name' => 'Wingspan',
@@ -20,7 +21,7 @@ describe('GameSystemDetail - mount and resolution', function () {
             ->assertOk()
             ->assertSee('Wingspan')
             ->assertSee('A competitive bird-collection engine-building game');
-    });
+    })->group('smoke');
 
     it('returns 404 for invalid slug', function () {
         get('/en/game-systems/nonexistent-slug-xyz')

@@ -15,6 +15,7 @@ describe('EventListing', function () {
             ->assertSee('Events');
     });
 
+    // smoke: events listing shows public events
     it('lists public events', function () {
         $event = Event::factory()->create([
             'name' => 'Spring Tournament',
@@ -24,7 +25,7 @@ describe('EventListing', function () {
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
             ->assertSee('Spring Tournament');
-    });
+    })->group('smoke');
 
     it('hides non-public events', function () {
         Event::factory()->create([
