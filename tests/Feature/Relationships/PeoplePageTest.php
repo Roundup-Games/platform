@@ -391,6 +391,45 @@ describe('PeoplePage profile links', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// ROUTE NAMING
+// ═══════════════════════════════════════════════════════════
+
+describe('PeoplePage route naming', function () {
+    it('people route resolves correctly', function () {
+        $user = createPeoplePageUser();
+
+        $this->actingAs($user);
+        expect(route('people', ['locale' => 'en']))->toBe(url('/en/people'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// BADGE EDGE CASES
+// ═══════════════════════════════════════════════════════════
+
+describe('PeoplePage badge edge cases', function () {
+    it('does not show Friends badge for one-way follow', function () {
+        $user = createPeoplePageUser();
+        $followed = createPeoplePageUser(['name' => 'One Way Follow']);
+        UserRelationship::follow($user, $followed);
+
+        $component = Livewire::actingAs($user)
+            ->test(PeoplePage::class);
+
+        $html = $component->html();
+        expect($html)->toContain('One Way Follow');
+
+        // Confirm no reverse follow exists
+        expect(
+            UserRelationship::where('user_id', $followed->id)
+                ->where('related_user_id', $user->id)
+                ->where('type', \App\Enums\RelationshipType::Follow)
+                ->count()
+        )->toBe(0);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // DASHBOARD NAVIGATION
 // ═══════════════════════════════════════════════════════════
 

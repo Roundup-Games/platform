@@ -48,6 +48,88 @@ class GMProfileTest extends TestCase
 
     // ── Specialization Storage & Retrieval ─────────────
 
+    public function test_gm_profiles_table_exists(): void
+    {
+        $profile = GMProfile::factory()->create();
+
+        $this->assertDatabaseHas('gm_profiles', [
+            'id' => $profile->id,
+        ]);
+    }
+
+    public function test_id_is_uuid(): void
+    {
+        $profile = GMProfile::factory()->create();
+
+        $this->assertIsString($profile->id);
+        // UUID v4 format: 8-4-4-4-12 hex chars
+        $this->assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $profile->id,
+        );
+    }
+
+    public function test_user_id_is_unique(): void
+    {
+        $user = User::factory()->create();
+        GMProfile::factory()->create(['user_id' => $user->id]);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        GMProfile::factory()->create(['user_id' => $user->id]);
+    }
+
+    public function test_slug_is_unique(): void
+    {
+        GMProfile::factory()->create(['slug' => 'unique-gm-slug']);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        GMProfile::factory()->create(['slug' => 'unique-gm-slug']);
+    }
+
+    public function test_bio_is_nullable(): void
+    {
+        $profile = GMProfile::factory()->create(['bio' => null]);
+
+        $this->assertNull($profile->bio);
+    }
+
+    public function test_average_rating_defaults_to_null(): void
+    {
+        $profile = GMProfile::factory()->create();
+
+        $this->assertNull($profile->average_rating);
+    }
+
+    public function test_average_rating_stores_decimal(): void
+    {
+        $profile = GMProfile::factory()->create(['average_rating' => 4.75]);
+
+        $profile->refresh();
+        $this->assertEquals('4.75', $profile->average_rating);
+    }
+
+    public function test_review_count_defaults_to_zero(): void
+    {
+        $profile = GMProfile::factory()->create();
+
+        $this->assertEquals(0, $profile->review_count);
+    }
+
+    public function test_is_active_defaults_to_true(): void
+    {
+        $profile = GMProfile::factory()->create();
+
+        $this->assertTrue($profile->is_active);
+    }
+
+    public function test_gm_profile_belongs_to_user(): void
+    {
+        $user = User::factory()->create();
+        $profile = GMProfile::factory()->create(['user_id' => $user->id]);
+
+        $this->assertTrue($profile->user->is($user));
+    }
+
     public function test_specializations_stored_as_json_array(): void
     {
         $specs = ['storytelling', 'world-builder', 'voices'];

@@ -470,4 +470,49 @@ class GmDirectoryTest extends TestCase
 
         $response->assertSee('Test_GM');
     }
+
+    // ── Livewire Component Filter State ────────────────
+
+    public function test_clear_filters_resets_all_livewire_state(): void
+    {
+        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class)
+            ->set('search', 'test')
+            ->set('specialization', 'storytelling')
+            ->set('min_rating', 4)
+            ->call('clearFilters');
+
+        $component
+            ->assertSet('search', '')
+            ->assertSet('specialization', null)
+            ->assertSet('min_rating', null)
+            ->assertSet('sortBy', 'highest_rated');
+    }
+
+    public function test_has_active_filters_detects_search(): void
+    {
+        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class);
+        $this->assertFalse($component->instance()->hasActiveFilters());
+
+        $component->set('search', 'test');
+        $this->assertTrue($component->instance()->hasActiveFilters());
+    }
+
+    // ── Review-Based Proficiency Badges ────────────────
+
+    public function test_gm_card_shows_proficiency_badges_from_reviews(): void
+    {
+        $gm = $this->createActiveGm(['name' => 'Badged GM'], ['specializations' => []]);
+
+        \App\Models\Review::factory()->create([
+            'gm_profile_id' => $gm->gmProfile->id,
+            'proficiency_tags' => ['storytelling', 'voices'],
+            'status' => 'published',
+        ]);
+
+        $response = $this->get('/en/gms');
+
+        $response->assertSee('Badged GM');
+        $response->assertSee(GmProficiency::Storytelling->label());
+        $response->assertSee(GmProficiency::Voices->label());
+    }
 }

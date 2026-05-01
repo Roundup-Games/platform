@@ -72,6 +72,12 @@ class GmRoleServiceTest extends TestCase
 
         $this->assertTrue($result);
         $this->assertTrue($user->fresh()->hasRole('Game Master'));
+
+        // Verify GM profile was created with correct attributes
+        $profile = $user->fresh()->gmProfile;
+        $this->assertNotNull($profile);
+        $this->assertTrue($profile->is_active);
+        $this->assertEquals($user->id, $profile->user_id);
     }
 
     public function test_subscription_canceled_blocks_new_assignment(): void
