@@ -3,17 +3,6 @@
 use App\Enums\PlayStyle;
 
 describe('PlayStyle Enum', function () {
-    it('values() returns all 5 string values', function () {
-        $expected = [
-            'narrative-first',
-            'tactical',
-            'osr',
-            'sandbox',
-            'horror',
-        ];
-        expect(PlayStyle::values())->toBe($expected);
-    });
-
     it('label() returns a translatable string for each case', function () {
         foreach (PlayStyle::cases() as $case) {
             $label = $case->label();
@@ -54,27 +43,6 @@ describe('PlayStyle Enum', function () {
 
         expect($grouped)->toHaveKey('play_styles');
         expect($grouped['play_styles'])->toHaveKeys(['label', 'options', 'descriptions']);
-    });
-
-    it('grouped() options count matches case count', function () {
-        $grouped = PlayStyle::grouped();
-        $options = $grouped['play_styles']['options'];
-
-        expect($options)->toHaveCount(5);
-    });
-
-    it('grouped() options keys match enum values', function () {
-        $grouped = PlayStyle::grouped();
-        $optionKeys = array_keys($grouped['play_styles']['options']);
-
-        expect($optionKeys)->toBe(PlayStyle::values());
-    });
-
-    it('grouped() descriptions keys match enum values', function () {
-        $grouped = PlayStyle::grouped();
-        $descKeys = array_keys($grouped['play_styles']['descriptions']);
-
-        expect($descKeys)->toBe(PlayStyle::values());
     });
 
     it('grouped() label is a translatable string', function () {

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\CampaignStatus;
+use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -432,7 +434,7 @@ describe('Status change edge cases', function () {
             ->call('cancelGame', $game->id)
             ->assertHasNoErrors();
 
-        expect($game->fresh()->status)->toBe('canceled');
+        expect($game->fresh()->status)->toBe(GameStatus::Canceled);
     });
 
     it('handles campaign complete with no participants without error', function () {
@@ -448,6 +450,6 @@ describe('Status change edge cases', function () {
             ->call('completeCampaign', $campaign->id)
             ->assertHasNoErrors();
 
-        expect($campaign->fresh()->status)->toBe('completed');
+        expect($campaign->fresh()->status)->toBe(CampaignStatus::Completed);
     });
 });

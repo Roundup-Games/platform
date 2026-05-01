@@ -471,7 +471,7 @@ class GameDetail extends Component
             $userInvitation = $this->game->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->role === 'invited'
-                    && $p->status === 'pending');
+                    && $p->status === ParticipantStatus::Pending);
 
             $hasExistingApplication = $this->game->applications()
                 ->where('user_id', $viewer->id)

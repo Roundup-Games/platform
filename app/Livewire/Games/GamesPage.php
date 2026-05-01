@@ -4,6 +4,7 @@ namespace App\Livewire\Games;
 
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -315,7 +316,7 @@ class GamesPage extends Component
             return;
         }
 
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
             session()->flash('error', __('games.error_invitation_invalid'));
             return;
         }
@@ -334,7 +335,7 @@ class GamesPage extends Component
         }
 
         $participant->role = 'player';
-        $participant->status = 'approved';
+        $participant->status = ParticipantStatus::Approved;
         $participant->save();
 
         Log::info('Invitation accepted', [
@@ -394,12 +395,12 @@ class GamesPage extends Component
             return;
         }
 
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
             session()->flash('error', __('games.error_invitation_invalid'));
             return;
         }
 
-        $participant->status = 'rejected';
+        $participant->status = ParticipantStatus::Rejected;
         $participant->save();
 
         Log::info('Invitation declined', [

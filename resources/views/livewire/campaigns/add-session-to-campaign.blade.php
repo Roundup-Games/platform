@@ -68,8 +68,8 @@
                     <div class="flex items-center justify-between py-2 border-b border-outline-variant/30">
                         <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_visibility') }}</span>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {{ $campaign->visibility === 'public' ? 'bg-tertiary/10 text-tertiary' : ($campaign->visibility === 'protected' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
-                            {{ __(ucfirst($campaign->visibility ?? 'private')) }}
+                            {{ $campaign->visibility->value === 'public' ? 'bg-tertiary/10 text-tertiary' : ($campaign->visibility->value === 'protected' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
+                            {{ __(ucfirst($campaign->visibility->value ?? 'private')) }}
                         </span>
                     </div>
 

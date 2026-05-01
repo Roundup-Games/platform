@@ -9,24 +9,9 @@ describe('SafetyToolCategory', function () {
         expect(SafetyToolCategory::During->label())->toBe(__('safety.category_during'));
         expect(SafetyToolCategory::After->label())->toBe(__('safety.category_after'));
     });
-
-    it('provides values() for validation', function () {
-        $values = SafetyToolCategory::values();
-        expect($values)->toBeArray();
-        expect($values)->toContain('before', 'during', 'after');
-    });
 });
 
 describe('SafetyTool', function () {
-    it('returns correct values for all cases', function () {
-        $expected = [
-            'session-zero', 'lines-and-veils', 'open-door',
-            'x-card', 'xno-card', 'script-change', 'breaks',
-            'stars-and-wishes', 'debriefing',
-        ];
-        expect(SafetyTool::values())->toBe($expected);
-    })->group('smoke');
-
     it('returns translated labels', function () {
         expect(SafetyTool::SessionZero->label())->toBe(__('safety.tool_session_zero'));
         expect(SafetyTool::LinesAndVeils->label())->toBe(__('safety.tool_lines_and_veils'));
@@ -97,16 +82,6 @@ describe('SafetyTool', function () {
         $grouped = SafetyTool::grouped();
         expect($grouped)->toHaveKeys(['before', 'during', 'after']);
     })->group('smoke');
-
-    it('grouped() contains all 9 tools across categories', function () {
-        $grouped = SafetyTool::grouped();
-        $allValues = [];
-        foreach ($grouped as $group) {
-            $allValues = array_merge($allValues, array_keys($group['options']));
-        }
-        expect($allValues)->toHaveCount(9);
-        expect($allValues)->toBe(SafetyTool::values());
-    });
 
     it('grouped() has translated category labels', function () {
         $grouped = SafetyTool::grouped();

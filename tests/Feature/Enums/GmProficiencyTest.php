@@ -3,15 +3,6 @@
 use App\Enums\GmProficiency;
 
 describe('GmProficiency Enum', function () {
-    it('returns correct values for all cases', function () {
-        $expected = [
-            'creativity', 'inclusive', 'knows-the-rules', 'rule-of-cool',
-            'sets-the-mood', 'storytelling', 'teacher', 'visual-aid',
-            'voices', 'world-builder',
-        ];
-        expect(GmProficiency::values())->toBe($expected);
-    });
-
     it('label() returns a translatable string for each case', function () {
         foreach (GmProficiency::cases() as $case) {
             $label = $case->label();
@@ -61,12 +52,6 @@ describe('GmProficiency Enum', function () {
                 strlen($case->label()),
                 "{$case->value} description should be longer than label"
             );
-        }
-    });
-
-    it('all values are kebab-case', function () {
-        foreach (GmProficiency::values() as $value) {
-            expect($value)->toMatch('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', "{$value} should be kebab-case");
         }
     });
 

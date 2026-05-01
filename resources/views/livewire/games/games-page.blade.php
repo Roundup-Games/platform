@@ -60,8 +60,8 @@
                                         </a>
                                     </h3>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $game->status === 'scheduled' ? 'bg-primary-container text-on-primary-container' : ($game->status === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                                        {{ __('games.status_' . $game->status) }}
+                                        {{ $game->status->value === 'scheduled' ? 'bg-primary-container text-on-primary-container' : ($game->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
+                                        {{ __('games.status_' . $game->status->value) }}
                                     </span>
                                     @if($game->gameSystem)
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -91,7 +91,7 @@
 
                             {{-- Actions --}}
                             <div class="flex flex-wrap items-center gap-2 shrink-0">
-                                @if($game->status === 'scheduled')
+                                @if($game->status->value === 'scheduled')
                                     <button wire:click="editGame('{{ $game->id }}')"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>

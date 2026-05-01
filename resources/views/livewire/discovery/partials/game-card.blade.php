@@ -36,7 +36,7 @@
                     {{ $game->distance_km < 1 ? round($game->distance_km * 1000) . ' m' : number_format($game->distance_km, 1) . ' km' }}
                 </span>
             @endif
-            @if($game->visibility === 'protected')
+            @if($game->visibility->value === 'protected')
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                     <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
                     {{ __('teams.content_members_only') }}

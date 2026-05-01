@@ -343,7 +343,7 @@ trait ManagesParticipants
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
             session()->flash('error', __('people.error_invitation_no_longer_valid'));
 
             return;
@@ -427,7 +427,7 @@ trait ManagesParticipants
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
             session()->flash('error', __('people.error_invitation_no_longer_valid'));
 
             return;

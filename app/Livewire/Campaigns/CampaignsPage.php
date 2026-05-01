@@ -289,7 +289,7 @@ class CampaignsPage extends Component
             return;
         }
 
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
             session()->flash('error', __('campaigns.error_invitation_invalid'));
             return;
         }
@@ -310,7 +310,7 @@ class CampaignsPage extends Component
         $previousRole = $participant->role;
         $previousStatus = $participant->status;
         $participant->role = 'player';
-        $participant->status = 'approved';
+        $participant->status = \App\Enums\ParticipantStatus::Approved;
         $participant->save();
 
         Log::info('Campaign invitation accepted', [
@@ -370,13 +370,13 @@ class CampaignsPage extends Component
             return;
         }
 
-        if ($participant->role !== 'invited' || $participant->status !== 'pending') {
+        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
             session()->flash('error', __('campaigns.error_invitation_invalid'));
             return;
         }
 
         $previousStatus = $participant->status;
-        $participant->status = 'rejected';
+        $participant->status = \App\Enums\ParticipantStatus::Rejected;
         $participant->save();
 
         Log::info('Campaign invitation declined', [

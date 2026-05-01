@@ -60,8 +60,8 @@
                                         </a>
                                     </h3>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $campaign->status === 'active' ? 'bg-primary-container text-on-primary-container' : ($campaign->status === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                                        {{ __('campaigns.status_' . $campaign->status) }}
+                                        {{ $campaign->status->value === 'active' ? 'bg-primary-container text-on-primary-container' : ($campaign->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
+                                        {{ __('campaigns.status_' . $campaign->status->value) }}
                                     </span>
                                     @if($campaign->gameSystem)
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
@@ -85,7 +85,7 @@
 
                             {{-- Actions --}}
                             <div class="flex items-center gap-2 shrink-0">
-                                @if($campaign->status === 'active')
+                                @if($campaign->status->value === 'active')
                                     <button wire:click="editCampaign('{{ $campaign->id }}')"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>

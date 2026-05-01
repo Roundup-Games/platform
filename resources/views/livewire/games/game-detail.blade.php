@@ -41,8 +41,8 @@
                     </span>
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                    {{ $game->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ __('games.visibility_' . $game->visibility) }}
+                    {{ $game->visibility->value === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility->value === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
+                    {{ __('games.visibility_' . $game->visibility->value) }}
                 </span>
             </div>
 
@@ -557,23 +557,23 @@
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
-                                    @if($game->visibility === 'public') login @else edit_note @endif
+                                    @if($game->visibility->value === 'public') login @else edit_note @endif
                                 </span>
-                                @if($game->visibility === 'public')
+                                @if($game->visibility->value === 'public')
                                     {{ __('games.action_join_game') }}
                                 @else
                                     {{ __('games.action_apply_to_join') }}
                                 @endif
                             </h3>
-                            @if($game->visibility === 'protected')
+                            @if($game->visibility->value === 'protected')
                                 <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_this_is_a_protected_game') }}</p>
                             @endif
                             <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">
-                                    @if($game->visibility === 'public') login @else send @endif
+                                    @if($game->visibility->value === 'public') login @else send @endif
                                 </span>
-                                @if($game->visibility === 'public')
+                                @if($game->visibility->value === 'public')
                                     {{ __('games.action_join_game') }}
                                 @else
                                     {{ __('games.action_apply_to_join') }}
@@ -706,9 +706,9 @@
                 <a href="{{ route('games.apply', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
-                        @if($game->visibility === 'public') login @else send @endif
+                        @if($game->visibility->value === 'public') login @else send @endif
                     </span>
-                    @if($game->visibility === 'public')
+                    @if($game->visibility->value === 'public')
                         {{ __('games.action_join_game') }}
                     @else
                         {{ __('games.action_apply_to_join') }}

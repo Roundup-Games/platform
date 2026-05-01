@@ -51,20 +51,20 @@
             <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                 <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">
-                        @if($campaign->visibility === 'public')
+                        @if($campaign->visibility->value === 'public')
                             login
                         @else
                             edit_note
                         @endif
                     </span>
-                    @if($campaign->visibility === 'public')
+                    @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}
                     @else
                         {{ __('campaigns.action_apply_to_join') }}
                     @endif
                 </h2>
 
-                @if($campaign->visibility === 'protected')
+                @if($campaign->visibility->value === 'protected')
                     <p class="mb-4 text-sm text-on-surface-variant">
                         {{ __('campaigns.content_this_is_a_protected_campaign') }}
                     </p>
@@ -87,7 +87,7 @@
                     <button type="submit"
                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                        @if($campaign->visibility === 'public')
+                        @if($campaign->visibility->value === 'public')
                             {{ __('campaigns.action_join_campaign') }}
                         @else
                             {{ __('common.action_submit_application') }}

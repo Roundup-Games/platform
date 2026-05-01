@@ -35,8 +35,8 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">{{ __('common.content_owner') }}</span>
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                    {{ $campaign->visibility === 'public' ? 'bg-on-primary/20 text-on-primary' : ($campaign->visibility === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ __(ucfirst($campaign->visibility)) }}
+                    {{ $campaign->visibility->value === 'public' ? 'bg-on-primary/20 text-on-primary' : ($campaign->visibility->value === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
+                    {{ __(ucfirst($campaign->visibility->value)) }}
                 </span>
             </div>
 
@@ -188,8 +188,8 @@
                                         <p class="text-xs text-on-surface-variant">{{ format_date($session->date_time, 'datetime') }}</p>
                                     </div>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $session->status === 'scheduled' ? 'bg-tertiary/10 text-tertiary' : ($session->status === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant') }}">
-                                        {{ __(ucfirst($session->status)) }}
+                                        {{ $session->status->value === 'scheduled' ? 'bg-tertiary/10 text-tertiary' : ($session->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant') }}">
+                                        {{ __(ucfirst($session->status->value)) }}
                                     </span>
                                 </div>
                             @endforeach
@@ -269,23 +269,23 @@
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
-                                    @if($campaign->visibility === 'public') login @else edit_note @endif
+                                    @if($campaign->visibility->value === 'public') login @else edit_note @endif
                                 </span>
-                                @if($campaign->visibility === 'public')
+                                @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
                                 @else
                                     {{ __('campaigns.action_apply_to_join') }}
                                 @endif
                             </h3>
-                            @if($campaign->visibility === 'protected')
+                            @if($campaign->visibility->value === 'protected')
                                 <p class="text-sm text-on-surface-variant mb-4">{{ __('campaigns.content_this_is_a_protected_campaign') }}</p>
                             @endif
                             <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">
-                                    @if($campaign->visibility === 'public') login @else send @endif
+                                    @if($campaign->visibility->value === 'public') login @else send @endif
                                 </span>
-                                @if($campaign->visibility === 'public')
+                                @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
                                 @else
                                     {{ __('campaigns.action_apply_to_join') }}
@@ -352,9 +352,9 @@
                 <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
-                        @if($campaign->visibility === 'public') login @else send @endif
+                        @if($campaign->visibility->value === 'public') login @else send @endif
                     </span>
-                    @if($campaign->visibility === 'public')
+                    @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}
                     @else
                         {{ __('campaigns.action_apply_to_join') }}

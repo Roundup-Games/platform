@@ -163,7 +163,7 @@
                                         {{ $campaign->gameSystem?->name }}
                                     </span>
                                 @endif
-                                @if($campaign->visibility === 'protected')
+                                @if($campaign->visibility->value === 'protected')
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
                                         <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
                                         {{ __('common.content_members_only') }}

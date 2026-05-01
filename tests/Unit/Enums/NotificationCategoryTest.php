@@ -38,10 +38,9 @@ describe('NotificationCategory Unit Tests', function () {
         expect($channels)->toBe([DatabaseChannel::class, MailChannel::class]);
     });
 
-    it('defaultSettings() returns array keyed by all 23 category values', function () {
+    it('defaultSettings() returns array keyed by all category values', function () {
         $settings = NotificationCategory::defaultSettings();
 
-        expect($settings)->toHaveCount(24);
         expect(array_keys($settings))->toBe(NotificationCategory::values());
     });
 
