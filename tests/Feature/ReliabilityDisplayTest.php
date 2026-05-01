@@ -204,3 +204,25 @@ describe('Session Card — Reliability Preference', function () {
         expect($view->render())->not->toContain('Host prefers');
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// OWN PROFILE — STATS AT 5-GAME THRESHOLD (merged from Attendance/)
+// ═══════════════════════════════════════════════════════════
+
+describe('Own Profile — Stats at 5-Game Threshold', function () {
+    it('shows stats on own profile at exactly 5 games', function () {
+        $user = reliabilityCreateUser([
+            'reliability_score' => [
+                'score' => 95.0,
+                'game_count' => 5,
+                'tier' => 'reliable',
+                'weights_applied' => ['attended' => 5.0],
+            ],
+        ]);
+
+        actingAs($user)
+            ->get(route('profile.public', $user))
+            ->assertStatus(200)
+            ->assertSee('95%');
+    });
+});

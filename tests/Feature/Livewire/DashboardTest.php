@@ -364,4 +364,87 @@ class DashboardTest extends TestCase
             ->assertSee(__('people.content_people'))
             ->assertSee(__('discovery.action_discover'));
     }
+
+    // ── Card Count Rendering (merged from root) ────────
+
+    public function test_shows_game_count_on_my_games_card(): void
+    {
+        Game::factory()->count(3)->create([
+            'owner_id' => $this->user->id,
+            'status' => 'scheduled',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+        $this->assertStringContainsString('3', $content);
+        $this->assertStringContainsString(__('games.content_games'), $content);
+    }
+
+    public function test_shows_campaign_count_on_my_campaigns_card(): void
+    {
+        Campaign::factory()->count(2)->create([
+            'owner_id' => $this->user->id,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+        $this->assertStringContainsString('2', $content);
+        $this->assertStringContainsString(__('campaigns.content_campaigns'), $content);
+    }
+
+    public function test_shows_no_count_badge_when_user_has_no_games(): void
+    {
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+        // Card heading should be present
+        $this->assertStringContainsString(__('profile.dashboard_card_my_games'), $content);
+        // Verify the card section exists
+        $gamesCardStart = strpos($content, __('profile.dashboard_card_my_games'));
+        $this->assertNotFalse($gamesCardStart);
+    }
+
+    public function test_does_not_count_canceled_games_in_card_count(): void
+    {
+        Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'status' => 'scheduled',
+        ]);
+        Game::factory()->count(2)->create([
+            'owner_id' => $this->user->id,
+            'status' => 'canceled',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+        $this->assertStringContainsString('1', $content);
+        $this->assertStringContainsString(__('games.content_game'), $content);
+    }
+
+    public function test_does_not_count_completed_campaigns_in_card_count(): void
+    {
+        Campaign::factory()->create([
+            'owner_id' => $this->user->id,
+            'status' => 'active',
+        ]);
+        Campaign::factory()->count(2)->create([
+            'owner_id' => $this->user->id,
+            'status' => 'completed',
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+
+        $content = $response->getContent();
+        $this->assertStringContainsString('1', $content);
+        $this->assertStringContainsString(__('campaigns.content_campaign'), $content);
+    }
 }

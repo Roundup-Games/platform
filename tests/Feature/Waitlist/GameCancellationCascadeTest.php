@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Log;
 
@@ -135,5 +137,60 @@ describe('game cancellation', function () {
         foreach ($approvedParticipants as $p) {
             expect($p->attendance_status)->toBeNull();
         }
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// HOST CANCELLATION OFFENCE (merged from Attendance/)
+// ═══════════════════════════════════════════════════════════
+
+describe('host cancellation offence', function () {
+    it('records late_cancel offence when host cancels under 24h before game', function () {
+        $host = User::factory()->create();
+        $player = User::factory()->create();
+        $gameSystem = GameSystem::factory()->create();
+
+        // Game in 12h — under the 24h threshold
+        $game = Game::create([
+            'owner_id' => $host->id,
+            'game_system_id' => $gameSystem->id,
+            'name' => 'Late Cancel Game',
+            'date_time' => now()->addHours(12),
+            'description' => 'A test game',
+            'expected_duration' => 3,
+            'visibility' => 'public',
+            'status' => 'canceled',
+            'language' => 'en',
+            'location' => ['details' => 'Online'],
+            'min_players' => 2,
+            'max_players' => 3,
+            'campaign_id' => null,
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $host->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        app(AttendanceService::class)->recordHostCancellationOffence($game);
+
+        // Host should have late_cancel attendance status
+        $hostParticipant = $game->participants()->where('user_id', $host->id)->first();
+        expect($hostParticipant->attendance_status)->toBe(\App\Enums\AttendanceStatus::LateCancel);
+
+        // Attendance report should be created
+        expect(AttendanceReport::where([
+            'game_id' => $game->id,
+            'reported_id' => $host->id,
+            'status' => 'late_cancel',
+        ])->exists())->toBeTrue();
     });
 });

@@ -1,7 +1,34 @@
 <?php
 
+use App\Models\GMProfile;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
 use function Pest\Laravel\{get, actingAs};
+
+// ── Helpers ────────────────────────────────────────────
+
+function createGmNavigationUser(): User
+{
+    Role::firstOrCreate([
+        'name' => 'Game Master',
+        'guard_name' => 'web',
+        'team_id' => null,
+    ]);
+
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+        'profile_complete' => true,
+    ]);
+
+    $user->assignRole('Game Master');
+
+    GMProfile::factory()->create([
+        'user_id' => $user->id,
+        'is_active' => true,
+    ]);
+
+    return $user;
+}
 
 describe('Public Layout Mobile Nav', function () {
     it('includes all navigation links in mobile menu', function () {
@@ -320,5 +347,129 @@ describe('App Sidebar Navigation', function () {
         $this->assertNotFalse($myGamesPos, 'My Games text should appear in sidebar');
         $this->assertNotFalse($myCampaignsPos, 'My Campaigns text should appear in sidebar');
         $this->assertLessThan($myCampaignsPos, $myGamesPos, 'My Games should appear before My Campaigns');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// PEOPLE NAV — ICON & ACTIVE STATE (merged from root)
+// ═══════════════════════════════════════════════════════════
+
+describe('People Nav — Icon & Active State', function () {
+    beforeEach(function () {
+        $this->user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+    });
+
+    it('uses group icon for People nav link', function () {
+        $response = actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+        // The "group" Material Symbol icon should appear (mobile + desktop)
+        $this->assertStringContainsString('>group</span>', $content);
+    });
+
+    it('has active fill state on People page', function () {
+        $response = actingAs($this->user)->get(route('people'));
+        $response->assertOk();
+        $content = $response->getContent();
+        // Active state: the group icon should have FILL variation set
+        $this->assertMatchesRegularExpression("/FILL.*1.*group<\/span>/s", $content);
+    });
+
+    it('does not show active fill on dashboard page', function () {
+        $response = actingAs($this->user)->get(route('dashboard'));
+        $response->assertOk();
+        $content = $response->getContent();
+        // The group icon should NOT have FILL 1 when on dashboard
+        $groupFillCount = substr_count($content, "FILL&#039; 1&quot;>group</span>");
+        $this->assertEquals(0, $groupFillCount, 'People nav icon should not be filled on dashboard page');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GM WORKSPACE NAV (merged from root)
+// ═══════════════════════════════════════════════════════════
+
+describe('GM Workspace Nav', function () {
+    it('workspace link not visible to non-GM', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('gm.workspace'))
+            ->assertDontSee(__('profile.nav_gm_workspace'));
+    });
+
+    it('workspace link visible to GM', function () {
+        $gm = createGmNavigationUser();
+
+        actingAs($gm)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(route('gm.workspace'))
+            ->assertSee(__('profile.nav_gm_workspace'));
+    });
+
+    it('workspace uses casino icon', function () {
+        $gm = createGmNavigationUser();
+
+        $response = actingAs($gm)->get(route('dashboard'));
+        $response->assertOk();
+        $this->assertStringContainsString('>casino</span>', $response->getContent());
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GM DASHBOARD CARD (merged from root)
+// ═══════════════════════════════════════════════════════════
+
+describe('GM Dashboard Card', function () {
+    it('GM workspace card not visible to non-GM', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(__('profile.dashboard_card_gm_workspace'));
+    });
+
+    it('GM workspace card visible to GM', function () {
+        $gm = createGmNavigationUser();
+
+        actingAs($gm)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(__('profile.dashboard_card_gm_workspace'))
+            ->assertSee(__('profile.dashboard_card_gm_workspace_desc'));
+    });
+
+    it('GM workspace card links to workspace', function () {
+        $gm = createGmNavigationUser();
+
+        actingAs($gm)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(route('gm.workspace'));
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GM DIRECTORY — PUBLIC NAV (merged from root)
+// ═══════════════════════════════════════════════════════════
+
+describe('GM Directory — Public Nav', function () {
+    it('appears in public navigation', function () {
+        get('/en/gms')
+            ->assertOk()
+            ->assertSee(__('profile.nav_gm_directory'));
     });
 });
