@@ -103,7 +103,7 @@ describe('Game Participants enum consistency', function () use (
             'user_id' => $user->id,
             'role' => 'player',
             'status' => 'confirmed', // old Filament value — not in migration
-        ]))->toThrow(\Illuminate\Database\QueryException::class);
+        ]))->toThrow(\ValueError::class);
     });
 });
 
@@ -184,7 +184,7 @@ describe('Campaign Participants enum consistency', function () use (
             'user_id' => $user->id,
             'role' => 'player',
             'status' => 'active', // old Filament value — not in migration
-        ]))->toThrow(\Illuminate\Database\QueryException::class);
+        ]))->toThrow(\ValueError::class);
     });
 });
 

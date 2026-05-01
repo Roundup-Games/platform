@@ -232,6 +232,7 @@ describe('CreateGame', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(App\Livewire\Games\CreateGame::class)
+            ->set('game_type', 'ttrpg')
             ->set('name', 'Dungeon Crawl Night')
             ->set('game_system_id', $system->id)
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
