@@ -349,6 +349,54 @@ describe('Remove participant → ParticipantRemoved', function () {
             return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
         });
     });
+
+    it('dispatches ParticipantRemoved to removed campaign participant', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $player = User::factory()->create(['profile_complete' => true]);
+        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
+
+        $participant = CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $player->id,
+            'role' => 'player',
+            'status' => 'approved',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
+            ->call('removeParticipant', (string) $participant->id)
+            ->assertHasNoErrors();
+
+        $notifications = $player->notifications()->where('type', ParticipantRemoved::class)->get();
+        expect($notifications)->toHaveCount(1);
+        $data = $notifications->first()->data;
+        expect($data['type'])->toBe('participant_removed')
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
+            ->and($data['removed_user_id'])->toBe($player->id);
+    });
+
+    it('does not dispatch ParticipantRemoved when trying to remove the owner', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => GameSystem::factory()->create()->id,
+        ]);
+
+        $participant = GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => 'approved',
+        ]);
+
+        \Livewire\Livewire::actingAs($owner)
+            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->call('removeParticipant', (string) $participant->id);
+
+        $notifications = $owner->notifications()->where('type', ParticipantRemoved::class)->get();
+        expect($notifications)->toHaveCount(0);
+    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -465,5 +513,26 @@ describe('Remove team member → TeamMemberRemoved', function () {
         Notification::assertSentTo($player, TeamMemberRemoved::class, function ($notification, $channels) {
             return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
         });
+    });
+
+    it('does not dispatch TeamMemberRemoved for last captain removal', function () {
+        $captain = User::factory()->create(['profile_complete' => true]);
+        $team = Team::factory()->create(['created_by' => $captain->id]);
+
+        $member = TeamMember::create([
+            'team_id' => $team->id,
+            'user_id' => $captain->id,
+            'role' => 'captain',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        \Livewire\Livewire::actingAs($captain)
+            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->call('removeMember', $member->id);
+
+        // Should not remove (last captain), so no notification
+        $notifications = $captain->notifications()->where('type', TeamMemberRemoved::class)->get();
+        expect($notifications)->toHaveCount(0);
     });
 });
