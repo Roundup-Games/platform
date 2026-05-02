@@ -51,7 +51,7 @@ describe('SweepExpiredConfirmations command', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
 
         // Open a slot
@@ -117,7 +117,7 @@ describe('SweepExpiredConfirmations command', function () {
         $user1a = User::factory()->create();
         $user1b = User::factory()->create();
         $this->service->addToWaitlist($game1, $user1a);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game1, $user1b);
         GameParticipant::where('game_id', $game1->id)
             ->where('user_id', $approved1->id)
@@ -131,7 +131,7 @@ describe('SweepExpiredConfirmations command', function () {
         $user2a = User::factory()->create();
         $user2b = User::factory()->create();
         $this->service->addToWaitlist($game2, $user2a);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game2, $user2b);
         GameParticipant::where('game_id', $game2->id)
             ->where('user_id', $approved2->id)

@@ -116,7 +116,7 @@ describe('HandleExpiredConfirmation job', function () {
         $waitlistUser1 = User::factory()->create();
         $waitlistUser2 = User::factory()->create();
         $w1 = $this->service->addToWaitlist($game, $waitlistUser1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $w2 = $this->service->addToWaitlist($game, $waitlistUser2);
 
         // Open a slot by canceling one approved player

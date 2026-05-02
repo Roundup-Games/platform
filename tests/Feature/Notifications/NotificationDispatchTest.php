@@ -34,7 +34,7 @@ describe('ConfirmationExpired notification', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $service->addToWaitlist($game, $user2);
 
         // Open a slot and promote user1

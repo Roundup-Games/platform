@@ -449,7 +449,7 @@ describe('NotificationService', function () {
             $user = User::factory()->create();
 
             $user->notifyNow(new TestNotification(['entity_id' => 1]));
-            sleep(1);
+            $this->travelTo(now()->addSecond());
             $user->notifyNow(new TestNotification(['entity_id' => 2]));
 
             $result = $this->service->getGroupedRecent($user);

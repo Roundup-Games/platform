@@ -134,7 +134,7 @@ describe('decline triggers next promotion', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
 
         chainOpenSlot($game);
@@ -173,9 +173,9 @@ describe('expired confirmation moves to back of queue', function () {
         $user2 = User::factory()->create();
         $user3 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user3);
 
         chainOpenSlot($game);
@@ -190,8 +190,8 @@ describe('expired confirmation moves to back of queue', function () {
         expect($promoted->user_id)->toBe($user1->id);
         $originalWaitlistedAt = $promoted->waitlisted_at;
 
-        // User1's confirmation expires (sleep ensures new waitlisted_at is after user3's)
-        sleep(1);
+        // User1's confirmation expires (travelTo ensures new waitlisted_at is after user3's)
+        $this->travelTo(now()->addSecond());
         $this->service->handleExpiredConfirmation($promoted);
 
         // User1 goes to back of queue
@@ -268,9 +268,9 @@ describe('host manual promote', function () {
         $user2 = User::factory()->create();
         $user3 = User::factory()->create();
         $p1 = $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p3 = $this->service->addToWaitlist($game, $user3);
 
         chainOpenSlot($game);
@@ -297,9 +297,9 @@ describe('waitlist position display', function () {
         $user3 = User::factory()->create();
 
         $p1 = $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p2 = $this->service->addToWaitlist($game, $user2);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p3 = $this->service->addToWaitlist($game, $user3);
 
         expect($this->service->getWaitlistPosition($p1))->toBe(1);
@@ -314,9 +314,9 @@ describe('waitlist position display', function () {
         $user2 = User::factory()->create();
         $user3 = User::factory()->create();
         $p1 = $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p2 = $this->service->addToWaitlist($game, $user2);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p3 = $this->service->addToWaitlist($game, $user3);
 
         chainOpenSlot($game);

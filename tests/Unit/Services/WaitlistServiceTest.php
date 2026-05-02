@@ -106,8 +106,7 @@ describe('addToWaitlist', function () {
         $user2 = User::factory()->create();
 
         $p1 = $this->service->addToWaitlist($game, $user1);
-        // Small sleep to ensure different waitlisted_at
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p2 = $this->service->addToWaitlist($game, $user2);
 
         expect($this->service->getWaitlistPosition($p1))->toBe(1);
@@ -222,7 +221,7 @@ describe('declinePromotion', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
 
         $game->participants()->where('status', ParticipantStatus::Approved->value)
@@ -252,7 +251,7 @@ describe('handleExpiredConfirmation', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $user2);
 
         $game->participants()->where('status', ParticipantStatus::Approved->value)
@@ -289,7 +288,7 @@ describe('manuallyPromote', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
         $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p2 = $this->service->addToWaitlist($game, $user2);
 
         // Open a slot
@@ -317,9 +316,9 @@ describe('getWaitlistPosition', function () {
         $user3 = User::factory()->create();
 
         $p1 = $this->service->addToWaitlist($game, $user1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p2 = $this->service->addToWaitlist($game, $user2);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $p3 = $this->service->addToWaitlist($game, $user3);
 
         expect($this->service->getWaitlistPosition($p1))->toBe(1);
@@ -337,7 +336,7 @@ describe('promoteAllOnCancel', function () {
         $waitUser1 = User::factory()->create();
         $waitUser2 = User::factory()->create();
         $this->service->addToWaitlist($game, $waitUser1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $waitUser2);
 
         // Cancel 2 players to open 2 slots
@@ -359,7 +358,7 @@ describe('promoteAllOnCancel', function () {
         $waitUser1 = User::factory()->create();
         $waitUser2 = User::factory()->create();
         $this->service->addToWaitlist($game, $waitUser1);
-        sleep(1);
+        $this->travelTo(now()->addSecond());
         $this->service->addToWaitlist($game, $waitUser2);
 
         // Cancel only 1 player

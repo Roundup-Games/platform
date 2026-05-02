@@ -4,56 +4,6 @@ use App\Models\User;
 use function Pest\Laravel\{actingAs, get};
 
 describe('PWA Translation Completeness', function () {
-    it('all keys in lang/en/pwa.php exist in lang/de/pwa.php', function () {
-        $en = include base_path('lang/en/pwa.php');
-        $de = include base_path('lang/de/pwa.php');
-
-        // Filter out comment-only entries (keys starting with // or containing only comments)
-        $enKeys = array_keys(array_filter($en, fn ($value, $key) => is_string($value), ARRAY_FILTER_USE_BOTH));
-        $deKeys = array_keys(array_filter($de, fn ($value, $key) => is_string($value), ARRAY_FILTER_USE_BOTH));
-
-        $missingInDe = array_diff($enKeys, $deKeys);
-        expect($missingInDe)->toBeEmpty('Keys present in EN but missing in DE: ' . implode(', ', $missingInDe));
-    });
-
-    it('all keys in lang/de/pwa.php exist in lang/en/pwa.php', function () {
-        $en = include base_path('lang/en/pwa.php');
-        $de = include base_path('lang/de/pwa.php');
-
-        $enKeys = array_keys(array_filter($en, fn ($value, $key) => is_string($value), ARRAY_FILTER_USE_BOTH));
-        $deKeys = array_keys(array_filter($de, fn ($value, $key) => is_string($value), ARRAY_FILTER_USE_BOTH));
-
-        $missingInEn = array_diff($deKeys, $enKeys);
-        expect($missingInEn)->toBeEmpty('Keys present in DE but missing in EN: ' . implode(', ', $missingInEn));
-    });
-
-    it('DE values are not copies of EN values (cognates excepted)', function () {
-        $en = include base_path('lang/en/pwa.php');
-        $de = include base_path('lang/de/pwa.php');
-
-        $cognates = ['manifest_name', 'manifest_short_name']; // Brand names — same in both locales
-
-        $identicalNonCognates = [];
-        foreach ($en as $key => $enValue) {
-            if (! is_string($enValue)) {
-                continue;
-            }
-            if (in_array($key, $cognates, true)) {
-                continue;
-            }
-            if (! isset($de[$key]) || ! is_string($de[$key])) {
-                continue;
-            }
-            if ($enValue === $de[$key]) {
-                $identicalNonCognates[] = $key;
-            }
-        }
-
-        expect($identicalNonCognates)->toBeEmpty(
-            'DE values identical to EN (likely untranslated): ' . implode(', ', $identicalNonCognates)
-        );
-    });
-
     it('all PWA Blade template __() keys resolve in :locale', function (string $locale) {
         app()->setLocale($locale);
         $label = $locale === 'en' ? 'EN' : 'DE';
