@@ -38,11 +38,11 @@ class UpdateUserDiscoveryCache implements ShouldQueue
     public bool $deleteWhenMissingModels = true;
 
     /**
-     * @param  int  $userId  The user whose discovery cache to refresh.
+     * @param  string  $userId  The user whose discovery cache to refresh.
      * @param  string  $triggerType  What triggered this refresh (e.g. 'location_change', 'sweep').
      */
     public function __construct(
-        public int $userId,
+        public string $userId,
         public string $triggerType,
     ) {
         $this->onQueue('discovery');

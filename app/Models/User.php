@@ -14,6 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -54,6 +55,18 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use Notifiable;
+
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (empty($user->id)) {
+                $user->id = (string) Str::orderedUuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

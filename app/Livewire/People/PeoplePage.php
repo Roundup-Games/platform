@@ -152,7 +152,7 @@ class PeoplePage extends Component
 
     // ── Actions ──────────────────────────────────────
 
-    public function unfollow(int $userId): void
+    public function unfollow(string $userId): void
     {
         $target = User::find($userId);
         if (! $target || $target->is($this->authUser)) {

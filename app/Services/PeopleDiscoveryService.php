@@ -319,7 +319,7 @@ class PeopleDiscoveryService
      * Called after follow/unfollow/block/unblock actions that change
      * the candidate pool for the given user.
      */
-    public static function invalidateCacheFor(int $userId): void
+    public static function invalidateCacheFor(string $userId): void
     {
         $keySetKey = "people:nearby:keys:{$userId}";
         $keys = Cache::get($keySetKey, []);

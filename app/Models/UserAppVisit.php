@@ -32,7 +32,7 @@ class UserAppVisit extends Model
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopeForUser(Builder $query, int $userId): Builder
+    public function scopeForUser(Builder $query, string $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
