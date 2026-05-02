@@ -331,7 +331,7 @@ describe('CampaignListing — Pagination & Interaction', function () {
     it('clears all filters', function () {
         $component = Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignListing::class)
             ->set('search', 'test')
-            ->set('game_system_id', 1)
+            ->set('game_system_id', (string) \Illuminate\Support\Str::uuid())
             ->set('experience_level', 'beginner')
             ->set('vibe_flags', ['serious'])
             ->set('language', 'en')

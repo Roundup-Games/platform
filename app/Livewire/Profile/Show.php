@@ -232,9 +232,9 @@ class Show extends Component
 
         $validated = $this->validate([
             'favoriteGameSystemIds' => ['array'],
-            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+            'favoriteGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
             'avoidedGameSystemIds' => ['array'],
-            'avoidedGameSystemIds.*' => ['exists:game_systems,id'],
+            'avoidedGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
             'vibePreferences' => ['array'],
             'vibePreferences.*' => ['nullable', 'in:favorite,avoid'],
         ]);

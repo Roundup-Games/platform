@@ -297,7 +297,7 @@ describe('CreateGame', function () {
             ->set('game_type', 'ttrpg')
             ->set('name', 'Test Game')
             ->set('date_time', now()->addDays(7)->format('Y-m-d\TH:i'))
-            ->set('game_system_id', 999999)
+            ->set('game_system_id', (string) \Illuminate\Support\Str::uuid())
             ->call('save')
             ->assertHasErrors(['game_system_id']);
     });

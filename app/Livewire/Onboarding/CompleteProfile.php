@@ -65,7 +65,7 @@ class CompleteProfile extends Component
     public function rules(): array
     {
         return [
-            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+            'favoriteGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
         ];
     }
 
@@ -272,7 +272,7 @@ class CompleteProfile extends Component
         // Validate game system IDs against actual GameSystem records
         $this->validate([
             'favoriteGameSystemIds' => ['array'],
-            'favoriteGameSystemIds.*' => ['exists:game_systems,id'],
+            'favoriteGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
         ]);
 
         $user = Auth::user();

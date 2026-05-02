@@ -17,6 +17,10 @@ class GameSystem extends Model implements HasMedia
     use HasFactory;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
+
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $fillable = [
         'name', 'slug', 'description', 'images', 'min_players', 'max_players',
         'optimal_players', 'average_play_time', 'age_rating', 'complexity_rating', 'year_released',
@@ -38,7 +42,7 @@ class GameSystem extends Model implements HasMedia
             'average_play_time' => 'integer',
             'year_released' => 'integer',
             'bgg_id' => 'integer',
-            'base_game_id' => 'integer',
+            'base_game_id' => 'string',
             'bgg_average_rating' => 'decimal:2',
             'bgg_bayes_average' => 'decimal:2',
             'bgg_rank' => 'integer',
@@ -60,6 +64,9 @@ class GameSystem extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $gameSystem) {
+            if (empty($gameSystem->id)) {
+                $gameSystem->id = (string) Str::orderedUuid();
+            }
             if (empty($gameSystem->slug)) {
                 $gameSystem->slug = Str::slug($gameSystem->name);
             }

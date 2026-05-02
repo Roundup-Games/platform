@@ -47,8 +47,8 @@ class GameSystemPreferencePicker extends Component
 
     public bool $showExpansionPicker = false;
 
-    /** @var int|null The base game ID when expansion sub-picker is shown */
-    public ?int $selectedBaseId = null;
+    /** @var string|null The base game ID when expansion sub-picker is shown */
+    public ?string $selectedBaseId = null;
 
     public string $conflictMessage = '';
 
@@ -186,7 +186,7 @@ class GameSystemPreferencePicker extends Component
         $this->selectedBaseId = null;
     }
 
-    public function add(int $id): void
+    public function add(string $id): void
     {
         // Prevent duplicates
         if (in_array($id, $this->selectedIds, true)) {

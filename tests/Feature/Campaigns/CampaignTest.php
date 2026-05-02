@@ -494,7 +494,7 @@ describe('CreateCampaign Component', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Campaigns\CreateCampaign::class)
-            ->set('game_system_id', '99999')
+            ->set('game_system_id', (string) \Illuminate\Support\Str::uuid())
             ->call('save')
             ->assertHasErrors(['game_system_id' => 'exists']);
     });

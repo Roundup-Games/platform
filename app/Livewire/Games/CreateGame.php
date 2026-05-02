@@ -31,7 +31,7 @@ class CreateGame extends Component
 
     public string $step = 'type';
 
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
 
     public string $date_time = '';
 
@@ -71,7 +71,7 @@ class CreateGame extends Component
         return [
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:' . implode(',', GameType::values()),
-            'game_system_id' => 'nullable|exists:game_systems,id',
+            'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'date_time' => 'required|date',
             'description' => 'nullable|string|max:5000',
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
@@ -224,7 +224,7 @@ class CreateGame extends Component
 
     // ── Lifecycle Hooks ──────────────────────────────────
 
-    public function updatedGameSystemId(?int $id): void
+    public function updatedGameSystemId(?string $id): void
     {
         $this->autofillFromGameSystem($id);
     }
@@ -389,7 +389,7 @@ class CreateGame extends Component
         };
     }
 
-    protected function autofillFromGameSystem(?int $id): void
+    protected function autofillFromGameSystem(?string $id): void
     {
         if ($id === null) {
             return;

@@ -223,7 +223,7 @@ describe('DiscoveryPage', function () {
 
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
             ->set('search', 'test')
-            ->set('game_system_id', 999)
+            ->set('game_system_id', (string) \Illuminate\Support\Str::uuid())
             ->call('clearFilters')
             ->assertSet('search', '')
             ->assertSet('game_system_id', null)

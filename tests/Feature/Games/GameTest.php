@@ -410,7 +410,7 @@ describe('CreateGame Component', function () {
         Livewire\Livewire::actingAs($user)
             ->test(\App\Livewire\Games\CreateGame::class)
             ->set('game_type', 'board_game')
-            ->set('game_system_id', '99999')
+            ->set('game_system_id', (string) \Illuminate\Support\Str::uuid())
             ->call('save')
             ->assertHasErrors(['game_system_id' => 'exists']);
     });

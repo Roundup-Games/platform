@@ -21,7 +21,7 @@ class CreateCampaign extends Component
 {
     public string $name = '';
 
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
 
     public ?string $location_id = null;
 
@@ -58,7 +58,7 @@ class CreateCampaign extends Component
     {
         return [
             'name' => 'required|string|max:255',
-            'game_system_id' => 'nullable|exists:game_systems,id',
+            'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'location_id' => 'nullable|uuid|exists:locations,id',
             'description' => 'nullable|string|max:10000',
             'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
@@ -112,7 +112,7 @@ class CreateCampaign extends Component
 
     // ── Lifecycle Hooks ──────────────────────────────────
 
-    public function updatedGameSystemId(?int $id): void
+    public function updatedGameSystemId(?string $id): void
     {
         $this->autofillFromGameSystem($id);
     }
@@ -225,7 +225,7 @@ class CreateCampaign extends Component
 
     // ── Private Helpers ──────────────────────────────────
 
-    protected function autofillFromGameSystem(?int $id): void
+    protected function autofillFromGameSystem(?string $id): void
     {
         if ($id === null) {
             return;

@@ -24,7 +24,7 @@ class DiscoveryTestComponent
     use WithPagination;
 
     public string $search = '';
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
     public string $experience_level = '';
     public array $vibe_flags = [];
     public array $safety_tools = [];
@@ -99,7 +99,7 @@ class DiscoveryNoRecurrenceComponent
     use WithPagination;
 
     public string $search = '';
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
     public string $experience_level = '';
     public array $vibe_flags = [];
     public array $safety_tools = [];

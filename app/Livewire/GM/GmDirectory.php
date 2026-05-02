@@ -26,7 +26,7 @@ class GmDirectory extends Component
     public ?string $specialization = null;
 
     #[Url]
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
 
     #[Url]
     public ?int $min_rating = null;

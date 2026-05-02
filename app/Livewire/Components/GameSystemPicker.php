@@ -40,7 +40,7 @@ class GameSystemPicker extends Component
     #[Locked]
     public string $gameType = 'boardgame';
 
-    public ?int $value = null;
+    public ?string $value = null;
 
     public string $error = '';
 
@@ -50,13 +50,13 @@ class GameSystemPicker extends Component
 
     public bool $showExpansionPicker = false;
 
-    /** @var int|null The base game ID when a base-with-expansions is selected */
-    public ?int $selectedBaseId = null;
+    /** @var string|null The base game ID when a base-with-expansions is selected */
+    public ?string $selectedBaseId = null;
 
     public function mount(
         string $fieldId = 'game-system',
         string $label = '',
-        ?int $value = null,
+        ?string $value = null,
         string $error = '',
         ?string $gameType = null,
     ): void {
@@ -216,7 +216,7 @@ class GameSystemPicker extends Component
         }
     }
 
-    public function selectSystem(?int $id): void
+    public function selectSystem(?string $id): void
     {
         $this->value = $id;
 
@@ -280,7 +280,7 @@ class GameSystemPicker extends Component
     /**
      * Select a specific item (base or expansion) from the expansion picker.
      */
-    public function pickExpansion(int $id): void
+    public function pickExpansion(string $id): void
     {
         $this->selectSystem($id);
         $this->showExpansionPicker = false;

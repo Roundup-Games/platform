@@ -29,7 +29,7 @@ class BoardGamesDiscovery extends Component
     public string $search = '';
 
     #[Url]
-    public ?int $game_system_id = null;
+    public ?string $game_system_id = null;
 
     #[Url]
     public string $experience_level = '';
