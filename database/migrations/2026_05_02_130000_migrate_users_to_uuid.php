@@ -153,6 +153,7 @@ return new class extends Migration
         $morphColumns = [
             ['table' => 'subscriptions', 'type_col' => 'billable_type', 'id_col' => 'billable_id'],
             ['table' => 'transactions', 'type_col' => 'billable_type', 'id_col' => 'billable_id'],
+            ['table' => 'customers', 'type_col' => 'billable_type', 'id_col' => 'billable_id'],
             ['table' => 'notifications', 'type_col' => 'notifiable_type', 'id_col' => 'notifiable_id'],
         ];
 

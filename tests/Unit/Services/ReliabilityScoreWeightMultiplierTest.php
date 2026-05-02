@@ -13,7 +13,7 @@ beforeEach(function () {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function weightCreateParticipationRecord(User $user, AttendanceStatus $status, ?float $attendanceWeight = null, ?int $reportedBy = null): GameParticipant
+function weightCreateParticipationRecord(User $user, AttendanceStatus $status, ?float $attendanceWeight = null, ?string $reportedBy = null): GameParticipant
 {
     $game = Game::factory()->create();
 

@@ -303,7 +303,7 @@ class PeopleDiscoveryService
     /**
      * Track a cache key in the user's key set for later invalidation.
      */
-    private function trackCacheKey(int $userId, string $cacheKey, $ttl): void
+    private function trackCacheKey(string $userId, string $cacheKey, $ttl): void
     {
         $keySetKey = "people:nearby:keys:{$userId}";
         $existingKeys = Cache::get($keySetKey, []);
