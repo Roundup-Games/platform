@@ -6,15 +6,27 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class UserAppVisit extends Model
 {
     use HasFactory;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
-        'user_id',
-        'visit_date',
+        'id', 'user_id', 'visit_date',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::orderedUuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

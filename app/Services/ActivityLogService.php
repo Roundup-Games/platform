@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Central service for recording and querying activity logs.
@@ -86,6 +87,7 @@ class ActivityLogService
 
         $now = now();
         $rows = array_map(fn (string $userId) => [
+            'id' => (string) Str::orderedUuid(),
             'user_id' => $userId,
             'subject_type' => get_class($subject),
             'subject_id' => $subject->getKey(),

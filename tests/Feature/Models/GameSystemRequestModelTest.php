@@ -29,7 +29,7 @@ class GameSystemRequestModelTest extends TestCase
         $request = new GameSystemRequest();
 
         $this->assertEqualsCanonicalizing([
-            'user_id', 'name', 'type', 'bgg_url', 'publisher', 'designer',
+            'id', 'user_id', 'name', 'type', 'bgg_url', 'publisher', 'designer',
             'notes', 'status', 'game_system_id', 'reviewed_by', 'rejection_reason',
         ], $request->getFillable());
     }

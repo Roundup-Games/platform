@@ -6,6 +6,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
 
 class Media extends BaseMedia
 {
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     /**
      * Override: cast model_id to string so that Eloquent always binds
      * model_id as a string value. The media.model_id column is varchar(36)
@@ -19,5 +22,14 @@ class Media extends BaseMedia
         return array_merge(parent::casts(), [
             'model_id' => 'string',
         ]);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = (string) \Illuminate\Support\Str::orderedUuid();
+            }
+        });
     }
 }

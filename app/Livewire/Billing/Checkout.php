@@ -12,7 +12,7 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Checkout extends Component
 {
-    public ?int $membershipTypeId = null;
+    public ?string $membershipTypeId = null;
 
     public ?MembershipType $membershipType = null;
 
@@ -24,7 +24,7 @@ class Checkout extends Component
 
     public string $mode = 'subscription'; // subscription or one-time
 
-    public function mount(?int $planId = null, ?string $priceId = null, ?string $eventId = null): void
+    public function mount(?string $planId = null, ?string $priceId = null, ?string $eventId = null): void
     {
         if ($planId) {
             $this->membershipTypeId = $planId;

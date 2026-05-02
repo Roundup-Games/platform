@@ -17,7 +17,7 @@ class MembershipPage extends Component
         //
     }
 
-    public function initiateCheckout(int $planId): void
+    public function initiateCheckout(string $planId): void
     {
         $user = Auth::user();
         $plan = MembershipType::active()->findOrFail($planId);

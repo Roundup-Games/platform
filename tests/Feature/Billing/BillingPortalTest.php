@@ -317,7 +317,7 @@ describe('Checkout Route', function () {
         $user = portalCreateUser();
 
         actingAs($user)
-            ->get(route('billing.checkout', ['planId' => 99999]))
+            ->get(route('billing.checkout', ['planId' => \Illuminate\Support\Str::uuid()->toString()]))
             ->assertStatus(404);
     });
 

@@ -5,24 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class GameSystemRequest extends Model
 {
     use HasFactory;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
-        'user_id',
-        'name',
-        'type',
-        'bgg_url',
-        'publisher',
-        'designer',
-        'notes',
-        'status',
-        'game_system_id',
-        'reviewed_by',
-        'rejection_reason',
+        'id', 'user_id', 'name', 'type', 'bgg_url', 'publisher',
+        'designer', 'notes', 'status', 'game_system_id',
+        'reviewed_by', 'rejection_reason',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::orderedUuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

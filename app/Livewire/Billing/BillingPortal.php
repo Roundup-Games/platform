@@ -133,7 +133,7 @@ class BillingPortal extends Component
         session()->flash('success', __('billing.content_gm_subscription_reactivated'));
     }
 
-    public function activateLocalPlan(int $planId): void
+    public function activateLocalPlan(string $planId): void
     {
         $user = Auth::user();
         $plan = MembershipType::active()->findOrFail($planId);

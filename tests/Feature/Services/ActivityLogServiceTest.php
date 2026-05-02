@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->service = new ActivityLogService();
@@ -72,16 +73,19 @@ describe('getRecentForUser()', function () {
         // Create logs with explicit timestamps
         ActivityLog::insert([
             [
+                'id' => (string) Str::orderedUuid(),
                 'user_id' => $this->user->id,
                 'event_type' => 'game_created',
                 'created_at' => now()->subHours(2),
             ],
             [
+                'id' => (string) Str::orderedUuid(),
                 'user_id' => $this->user->id,
                 'event_type' => 'follow_received',
                 'created_at' => now()->subHour(),
             ],
             [
+                'id' => (string) Str::orderedUuid(),
                 'user_id' => $this->user->id,
                 'event_type' => 'review_received',
                 'created_at' => now(),
@@ -98,6 +102,7 @@ describe('getRecentForUser()', function () {
     it('respects the limit parameter', function () {
         for ($i = 0; $i < 25; $i++) {
             ActivityLog::insert([
+                'id' => (string) Str::orderedUuid(),
                 'user_id' => $this->user->id,
                 'event_type' => 'game_created',
                 'created_at' => now()->subMinutes($i),
@@ -113,8 +118,8 @@ describe('getRecentForUser()', function () {
         $otherUser = User::factory()->create();
 
         ActivityLog::insert([
-            ['user_id' => $this->user->id, 'event_type' => 'game_created', 'created_at' => now()],
-            ['user_id' => $otherUser->id, 'event_type' => 'follow_received', 'created_at' => now()],
+            ['id' => (string) Str::orderedUuid(), 'user_id' => $this->user->id, 'event_type' => 'game_created', 'created_at' => now()],
+            ['id' => (string) Str::orderedUuid(), 'user_id' => $otherUser->id, 'event_type' => 'follow_received', 'created_at' => now()],
         ]);
 
         $results = $this->service->getRecentForUser($this->user);

@@ -45,7 +45,7 @@ it('has timestamps enabled', function () {
 
 it('upsert creates a new row for a new day', function () {
     UserAppVisit::upsert(
-        ['user_id' => $this->user->id, 'visit_date' => now()->toDateString()],
+        ['id' => (string) \Illuminate\Support\Str::orderedUuid(), 'user_id' => $this->user->id, 'visit_date' => now()->toDateString()],
         ['user_id', 'visit_date'],
     );
 
@@ -56,15 +56,15 @@ it('upsert is idempotent for the same user and day', function () {
     $date = now()->toDateString();
 
     UserAppVisit::upsert(
-        ['user_id' => $this->user->id, 'visit_date' => $date],
+        ['id' => (string) \Illuminate\Support\Str::orderedUuid(), 'user_id' => $this->user->id, 'visit_date' => $date],
         ['user_id', 'visit_date'],
     );
     UserAppVisit::upsert(
-        ['user_id' => $this->user->id, 'visit_date' => $date],
+        ['id' => (string) \Illuminate\Support\Str::orderedUuid(), 'user_id' => $this->user->id, 'visit_date' => $date],
         ['user_id', 'visit_date'],
     );
     UserAppVisit::upsert(
-        ['user_id' => $this->user->id, 'visit_date' => $date],
+        ['id' => (string) \Illuminate\Support\Str::orderedUuid(), 'user_id' => $this->user->id, 'visit_date' => $date],
         ['user_id', 'visit_date'],
     );
 

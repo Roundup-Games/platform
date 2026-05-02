@@ -5,24 +5,33 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 use Minishlink\WebPush\Subscription;
 
 class PushSubscription extends Model
 {
     use HasFactory;
 
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
-        'user_id',
-        'endpoint',
-        'p256h_key',
-        'auth_token',
-        'user_agent',
+        'id', 'user_id', 'endpoint', 'p256h_key', 'auth_token', 'user_agent',
     ];
 
     protected $hidden = [
         'p256h_key',
         'auth_token',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::orderedUuid();
+            }
+        });
+    }
 
     /*
     |--------------------------------------------------------------------------

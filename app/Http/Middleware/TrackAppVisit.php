@@ -25,7 +25,11 @@ class TrackAppVisit
             $today = now()->toDateString();
 
             UserAppVisit::upsert(
-                ['user_id' => $user->id, 'visit_date' => $today],
+                [
+                    'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+                    'user_id' => $user->id,
+                    'visit_date' => $today,
+                ],
                 ['user_id', 'visit_date'],
             );
 
