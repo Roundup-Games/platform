@@ -8,21 +8,24 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class NotificationsPageTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     private User $user;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->setUpLocale();
         $this->user = User::factory()->create([
             'profile_complete' => true,
             'email_verified_at' => now(),
         ]);
-        \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
     }
 
     // ── Component Mount ────────────────────────────────

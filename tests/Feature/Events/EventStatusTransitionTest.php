@@ -9,16 +9,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class EventStatusTransitionTest extends TestCase
 {
     use DatabaseTransactions;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
-    }
+    use SetsUpLocale;
 
     private function createOrganizer(): User
     {

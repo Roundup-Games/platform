@@ -15,10 +15,14 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class NearbyPerformanceTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     // Central Berlin (Mitte) — all candidates share this geohash-4 tile
     private const LAT = 52.5163;
@@ -26,7 +30,7 @@ class NearbyPerformanceTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->setUpLocale();
         Cache::flush();
     }
 

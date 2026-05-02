@@ -10,10 +10,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class SessionZeroModelTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── Migration / Table Structure ────────────────────
 

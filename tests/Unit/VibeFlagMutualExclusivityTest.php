@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use App\Enums\VibeFlag;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class VibeFlagMutualExclusivityTest extends TestCase
 {
+    use SetsUpLocale;
     // ── Pair structure validation ─────────────────────
 
     public function test_returns_eight_mutually_exclusive_pairs(): void

@@ -7,10 +7,12 @@ use App\Models\GameSystemRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class GameSystemRequestModelTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── Table Structure ────────────────────────────────
 

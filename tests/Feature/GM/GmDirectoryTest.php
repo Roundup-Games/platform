@@ -10,15 +10,12 @@ use App\Models\GMProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class GmDirectoryTest extends TestCase
 {
     use DatabaseTransactions;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-    }
+    use SetsUpLocale;
 
     // ── Helpers ────────────────────────────────────────
 

@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use App\Enums\VibeFlag;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class VibeFlagGameTypeFilterTest extends TestCase
 {
+    use SetsUpLocale;
     // ── forGameType() ─────────────────────────────────
 
     public function test_board_game_returns_subset_of_flags(): void

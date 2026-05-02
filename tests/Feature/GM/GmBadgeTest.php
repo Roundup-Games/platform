@@ -12,20 +12,21 @@ use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class GmBadgeTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        URL::defaults(['locale' => 'en']);
+        $this->setUpLocale();
 
         Role::firstOrCreate([
             'name' => 'Game Master',

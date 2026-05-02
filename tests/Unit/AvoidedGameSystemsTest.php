@@ -6,10 +6,12 @@ use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class AvoidedGameSystemsTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── avoidedGameSystems() relationship ─────────────
 

@@ -7,10 +7,12 @@ use App\Models\User;
 use App\Models\UserVibePreference;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class UserVibePreferenceTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── Model creation ────────────────────────────────
 

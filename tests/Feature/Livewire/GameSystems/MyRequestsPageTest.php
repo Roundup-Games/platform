@@ -7,20 +7,14 @@ use App\Models\GameSystem;
 use App\Models\GameSystemRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class MyRequestsPageTest extends TestCase
 {
     use DatabaseTransactions;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        URL::defaults(['locale' => 'en']);
-    }
+    use SetsUpLocale;
 
     // ── Page Access ───────────────────────────────────
 

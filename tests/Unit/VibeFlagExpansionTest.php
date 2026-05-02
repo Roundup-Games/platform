@@ -5,9 +5,11 @@ namespace Tests\Unit;
 use App\Enums\VibeFlag;
 use Illuminate\Support\Facades\App;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class VibeFlagExpansionTest extends TestCase
 {
+    use SetsUpLocale;
     // ── Enum count ────────────────────────────────────
 
     public function test_values_returns_30_flags(): void

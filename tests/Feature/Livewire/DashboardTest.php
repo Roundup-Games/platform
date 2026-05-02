@@ -14,22 +14,23 @@ use App\Models\GMProfile;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class DashboardTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     private User $user;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        URL::defaults(['locale' => 'en']);
+        $this->setUpLocale();
 
         $this->user = User::factory()->create([
             'profile_complete' => true,

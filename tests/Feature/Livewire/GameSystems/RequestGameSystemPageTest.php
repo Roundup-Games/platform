@@ -6,21 +6,22 @@ use App\Models\GameSystemRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class RequestGameSystemPageTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     private User $user;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        URL::defaults(['locale' => 'en']);
+        $this->setUpLocale();
 
         $this->user = User::factory()->create([
             'profile_complete' => true,

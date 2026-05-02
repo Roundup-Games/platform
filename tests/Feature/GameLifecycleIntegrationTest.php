@@ -17,6 +17,7 @@ use App\Services\WaitlistService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 /**
  * Full lifecycle integration test — exercises the complete M028 chain:
@@ -29,6 +30,9 @@ use Tests\TestCase;
 class GameLifecycleIntegrationTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     private WaitlistService $waitlistService;
     private AttendanceService $attendanceService;
@@ -38,7 +42,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->setUpLocale();
         $this->waitlistService = app(WaitlistService::class);
         $this->attendanceService = app(AttendanceService::class);
         $this->reliabilityService = app(ReliabilityScoreService::class);

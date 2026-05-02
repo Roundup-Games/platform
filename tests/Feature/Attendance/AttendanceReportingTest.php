@@ -11,10 +11,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class AttendanceReportingTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     #[Test]
     public function test_peer_reports_attendance(): void

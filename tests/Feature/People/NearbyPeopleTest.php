@@ -11,11 +11,15 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
+use Tests\Traits\SetsUpLocale;
 
 class NearbyPeopleTest extends TestCase
 {
     use DatabaseTransactions;
     use CreatesUsers;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     // Berlin coordinates (Mitte area)
     private const LAT = 52.5163;
@@ -25,7 +29,7 @@ class NearbyPeopleTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->setUpLocale();
         $this->user = User::factory()->create([
             'profile_complete' => true,
             'email_verified_at' => now(),

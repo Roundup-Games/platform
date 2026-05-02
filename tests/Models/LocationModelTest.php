@@ -8,10 +8,12 @@ use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class LocationModelTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── Model Basics ───────────────────────────────────
 

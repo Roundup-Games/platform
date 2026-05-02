@@ -9,10 +9,12 @@ use App\Models\UserVibePreference;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
+use Tests\Traits\SetsUpLocale;
 
 class UserPreferenceResolutionTest extends TestCase
 {
     use DatabaseTransactions;
+    use SetsUpLocale;
 
     // ── VibeFlag::mutuallyExclusivePairs() ────────────
 

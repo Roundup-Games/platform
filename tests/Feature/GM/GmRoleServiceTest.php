@@ -13,17 +13,21 @@ use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
+use Tests\Traits\SetsUpLocale;
 
 class GmRoleServiceTest extends TestCase
 {
     use DatabaseTransactions;
     use CreatesUsers;
+    use SetsUpLocale {
+        SetsUpLocale::setUp as setUpLocale;
+    }
 
     private GmRoleService $service;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->setUpLocale();
         $this->service = app(GmRoleService::class);
 
         Role::firstOrCreate([
