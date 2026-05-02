@@ -8,12 +8,12 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class ReviewModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Migration / Table Structure ────────────────────
 

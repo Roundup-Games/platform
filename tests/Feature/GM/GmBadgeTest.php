@@ -11,7 +11,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 class GmBadgeTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

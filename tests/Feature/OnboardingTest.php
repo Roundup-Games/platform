@@ -4,13 +4,11 @@ use App\Livewire\Onboarding\CompleteProfile;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 // ── Middleware: EnsureProfileComplete ──────────────────
 

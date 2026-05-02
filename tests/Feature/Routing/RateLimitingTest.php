@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 
-uses(RefreshDatabase::class);
 
 // ═══════════════════════════════════════════════════════════
 // RATE LIMITING — M7

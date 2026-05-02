@@ -10,11 +10,9 @@ use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use App\Services\ReviewEligibilityService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);

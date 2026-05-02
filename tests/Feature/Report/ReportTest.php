@@ -10,9 +10,7 @@ use App\Models\MembershipType;
 use App\Models\Team;
 use App\Models\User;
 use Filament\Actions\Exports\ExportColumn;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     seedRoles();

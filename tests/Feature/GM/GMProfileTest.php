@@ -5,7 +5,7 @@ namespace Tests\Feature\GM;
 use App\Enums\GmProficiency;
 use App\Models\GMProfile;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class GMProfileTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

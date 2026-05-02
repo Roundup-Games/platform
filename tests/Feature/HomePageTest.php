@@ -5,10 +5,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use function Pest\Laravel\{get, actingAs};
 
-uses(RefreshDatabase::class);
 
 // ═══════════════════════════════════════════════════════════
 // RENDERING

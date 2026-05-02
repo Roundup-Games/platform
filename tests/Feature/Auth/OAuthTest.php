@@ -5,7 +5,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 // ── Redirect ────────────────────────────────────────────
 

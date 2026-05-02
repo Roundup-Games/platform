@@ -7,7 +7,7 @@ use App\Models\Game;
 use App\Models\Location;
 use App\Services\Geohash;
 use App\Services\ProximityQuery;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class ProximityQueryTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
     private ProximityQuery $proximity;
 
     // Berlin Alexanderplatz

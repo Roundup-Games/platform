@@ -9,11 +9,9 @@ use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Models\UserVibePreference;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS

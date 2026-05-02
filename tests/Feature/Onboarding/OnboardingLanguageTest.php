@@ -3,10 +3,8 @@
 use App\Enums\ContentLanguage;
 use App\Livewire\Onboarding\CompleteProfile;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 it('sets preferred_language to En when onboarding with en locale', function () {
     app()->setLocale('en');

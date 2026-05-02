@@ -14,7 +14,7 @@ use App\Services\GameActivityFeedService;
 use App\Services\RecapService;
 use App\Services\ReliabilityScoreService;
 use App\Services\WaitlistService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -28,7 +28,7 @@ use Tests\TestCase;
  */
 class GameLifecycleIntegrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private WaitlistService $waitlistService;
     private AttendanceService $attendanceService;

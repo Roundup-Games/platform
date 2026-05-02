@@ -6,7 +6,7 @@ use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class ViewSessionZeroTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private SessionZeroSurvey $survey;
 

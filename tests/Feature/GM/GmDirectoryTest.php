@@ -8,12 +8,12 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class GmDirectoryTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

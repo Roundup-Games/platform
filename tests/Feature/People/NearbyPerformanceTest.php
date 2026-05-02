@@ -10,7 +10,7 @@ use App\Models\UserRelationship;
 use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
 use App\Services\ProfileVisibilityResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -18,7 +18,7 @@ use Tests\TestCase;
 
 class NearbyPerformanceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // Central Berlin (Mitte) — all candidates share this geohash-4 tile
     private const LAT = 52.5163;

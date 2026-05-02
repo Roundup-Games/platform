@@ -12,7 +12,7 @@ use App\Notifications\GameInvitation;
 use App\Notifications\NewFollower;
 use App\Notifications\PlayerBenched;
 use App\Notifications\SessionReminder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\URL;
 
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\URL;
  */
 class PushLocaleTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     /**
      * Intentionally do NOT call URL::defaults() — this simulates

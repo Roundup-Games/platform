@@ -6,11 +6,9 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);

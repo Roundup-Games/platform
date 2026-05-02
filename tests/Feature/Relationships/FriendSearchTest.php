@@ -3,10 +3,8 @@
 use App\Enums\RelationshipType;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 // ── Helper: create mutual follow (friendship) ──────────
 

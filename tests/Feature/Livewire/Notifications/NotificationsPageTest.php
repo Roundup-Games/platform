@@ -5,13 +5,13 @@ namespace Tests\Feature\Livewire\Notifications;
 use App\Livewire\Notifications\NotificationsPage;
 use App\Models\Game;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class NotificationsPageTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private User $user;
 

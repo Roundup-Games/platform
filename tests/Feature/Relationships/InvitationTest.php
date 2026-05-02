@@ -7,12 +7,10 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 use function Pest\Laravel\assertDatabaseHas;
 
-uses(RefreshDatabase::class);
 
 // ── Helpers ─────────────────────────────────────────
 

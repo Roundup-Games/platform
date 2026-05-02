@@ -6,14 +6,14 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class UpdateUserDiscoveryCacheTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private const LAT = 52.5163;
     private const LNG = 13.3777;

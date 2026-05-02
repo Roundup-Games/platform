@@ -7,13 +7,13 @@ use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class SessionZeroModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Migration / Table Structure ────────────────────
 

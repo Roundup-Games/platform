@@ -8,10 +8,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 // ── Berlin Alexanderplatz — reference point
 beforeEach(function () {

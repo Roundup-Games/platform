@@ -95,4 +95,38 @@ $_SERVER['DB_DATABASE'] = $_ENV['DB_DATABASE'];
 $_SERVER['DB_USERNAME'] = $_ENV['DB_USERNAME'];
 $_SERVER['DB_PASSWORD'] = $_ENV['DB_PASSWORD'];
 
+// Also set via putenv for Artisan shell execution
+putenv("DB_CONNECTION=pgsql");
+putenv("DB_HOST={$started->getHost()}");
+putenv("DB_PORT={$started->getFirstMappedPort()}");
+putenv("DB_DATABASE=roundup_games_test");
+putenv("DB_USERNAME=test");
+putenv("DB_PASSWORD=test");
+putenv('APP_ENV=testing');
+
 echo "  Testcontainers: PostgreSQL ready at {$started->getHost()}:{$started->getFirstMappedPort()}\n";
+
+/*
+ * Run schema migrations once per process, OUTSIDE any test transaction.
+ *
+ * DatabaseTransactions wraps each test in a DB transaction for isolation,
+ * but does NOT run migrations (unlike RefreshDatabase which calls migrate:fresh).
+ * Running migrations here — before PHPUnit/Pest loads — guarantees they are
+ * committed independently and survive per-test transaction rollbacks.
+ */
+$migrateOutput = shell_exec(
+    'DB_CONNECTION=pgsql'
+    . " DB_HOST={$started->getHost()}"
+    . " DB_PORT={$started->getFirstMappedPort()}"
+    . ' DB_DATABASE=roundup_games_test'
+    . ' DB_USERNAME=test'
+    . ' DB_PASSWORD=test'
+    . ' APP_ENV=testing'
+    . ' php ' . escapeshellarg(realpath(__DIR__ . '/..') . '/artisan')
+    . ' migrate --force --no-interaction 2>&1'
+);
+if (str_contains($migrateOutput ?? '', 'ERROR') || str_contains($migrateOutput ?? '', 'Exception')) {
+    fprintf(STDERR, "  Testcontainers: migration FAILED\n%s\n", $migrateOutput);
+} else {
+    echo "  Testcontainers: schema migrated\n";
+}

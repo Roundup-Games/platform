@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use App\Models\GameSystem;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class AvoidedGameSystemsTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── avoidedGameSystems() relationship ─────────────
 

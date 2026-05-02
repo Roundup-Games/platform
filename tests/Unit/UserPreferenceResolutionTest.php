@@ -6,13 +6,13 @@ use App\Enums\VibeFlag;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserVibePreference;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class UserPreferenceResolutionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── VibeFlag::mutuallyExclusivePairs() ────────────
 

@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use App\Enums\ContentLanguage;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class UserProfileFieldsTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── preferred_language ────────────────────────────
 

@@ -8,10 +8,8 @@ use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);

@@ -12,7 +12,7 @@ use App\Models\UserRelationship;
 use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
 use App\Services\ProfileVisibilityResolver;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +22,7 @@ use Tests\TestCase;
 
 class PeopleDiscoveryServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private PeopleDiscoveryService $service;
 

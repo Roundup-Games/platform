@@ -13,11 +13,9 @@ use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);

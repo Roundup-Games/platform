@@ -8,12 +8,12 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ReliabilityScoreService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class ReliabilityScoreServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private ReliabilityScoreService $service;
 

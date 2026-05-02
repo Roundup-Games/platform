@@ -6,14 +6,14 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\Geohash;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class NearbyPeopleTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // Berlin coordinates (Mitte area)
     private const LAT = 52.5163;

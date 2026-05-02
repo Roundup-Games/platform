@@ -9,14 +9,14 @@ use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class DiscoveryCacheTriggersTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Relationship Triggers ───────────────────────────
 

@@ -6,7 +6,7 @@ use App\Enums\GameType;
 use App\Models\GMProfile;
 use App\Models\User;
 use App\Services\GmRoleService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class GmRoleServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private GmRoleService $service;
 

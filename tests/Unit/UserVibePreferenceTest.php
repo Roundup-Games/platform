@@ -5,12 +5,12 @@ namespace Tests\Unit;
 use App\Enums\VibeFlag;
 use App\Models\User;
 use App\Models\UserVibePreference;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class UserVibePreferenceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Model creation ────────────────────────────────
 

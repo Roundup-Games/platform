@@ -5,13 +5,13 @@ namespace Tests\Unit\Models;
 use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class NearbyDiscoveryViewTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     #[Test]
     public function it_can_create_a_discovery_view_record(): void

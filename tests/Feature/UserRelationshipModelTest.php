@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use App\Enums\RelationshipType;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class UserRelationshipModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Model Basics ───────────────────────────────────
 

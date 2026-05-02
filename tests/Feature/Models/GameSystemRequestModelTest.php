@@ -5,12 +5,12 @@ namespace Tests\Feature\Models;
 use App\Models\GameSystem;
 use App\Models\GameSystemRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class GameSystemRequestModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ── Table Structure ────────────────────────────────
 

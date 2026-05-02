@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -9,28 +9,27 @@ use Tests\TestCase;
 | Test Case
 |--------------------------------------------------------------------------
 |
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
+| DatabaseTransactions wraps each test in a DB transaction for isolation.
+| Schema migrations run once in bootstrap.php (before PHPUnit/Pest loads).
 |
 */
 
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(DatabaseTransactions::class)
     ->beforeEach(function () {
         URL::defaults(['locale' => 'en']);
     })
     ->in('Feature');
 
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(DatabaseTransactions::class)
     ->beforeEach(function () {
         URL::defaults(['locale' => 'en']);
     })
     ->in('Unit/Notifications');
 
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(DatabaseTransactions::class)
     ->beforeEach(function () {
         URL::defaults(['locale' => 'en']);
     })

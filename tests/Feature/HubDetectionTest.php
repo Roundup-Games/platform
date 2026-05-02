@@ -6,14 +6,14 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
 use App\Services\ProximityQuery;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class HubDetectionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private ProximityQuery $proximity;
 

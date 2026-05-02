@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Enums\VibeFlag;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class VibeFlagMutualExclusivityTest extends TestCase
