@@ -22,7 +22,7 @@ class UserRelationshipModelTest extends TestCase
         $model = new UserRelationship;
 
         $this->assertEquals(
-            ['user_id', 'related_user_id', 'type'],
+            ['id', 'user_id', 'related_user_id', 'type'],
             $model->getFillable(),
         );
     }

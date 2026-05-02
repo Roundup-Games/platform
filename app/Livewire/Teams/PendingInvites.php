@@ -11,7 +11,7 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class PendingInvites extends Component
 {
-    public function acceptInvite(int $memberId): void
+    public function acceptInvite(string $memberId): void
     {
         $member = $this->findPendingInvite($memberId);
 
@@ -41,7 +41,7 @@ class PendingInvites extends Component
         session()->flash('success', __('teams.content_welcome_to_the_team'));
     }
 
-    public function declineInvite(int $memberId): void
+    public function declineInvite(string $memberId): void
     {
         $member = $this->findPendingInvite($memberId);
 
@@ -59,7 +59,7 @@ class PendingInvites extends Component
         session()->flash('success', __('common.flash_invite_declined'));
     }
 
-    private function findPendingInvite(int $memberId): TeamMember
+    private function findPendingInvite(string $memberId): TeamMember
     {
         return TeamMember::where('id', $memberId)
             ->where('user_id', Auth::id())

@@ -1378,9 +1378,14 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $uuid1 = (string) \Illuminate\Support\Str::uuid();
+        $uuid2 = (string) \Illuminate\Support\Str::uuid();
+        $uuid3 = (string) \Illuminate\Support\Str::uuid();
+        $uuid4 = (string) \Illuminate\Support\Str::uuid();
+
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('category_ids', [1, 2])
-            ->set('mechanic_ids', [3, 4])
+            ->set('category_ids', [$uuid1, $uuid2])
+            ->set('mechanic_ids', [$uuid3, $uuid4])
             ->set('search', 'test')
             ->call('clearFilters')
             ->assertSet('category_ids', [])
@@ -1392,11 +1397,14 @@ describe('DiscoveryPage', function () {
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
-        $component->set('category_ids', [1]);
+        $fakeUuid1 = (string) \Illuminate\Support\Str::uuid();
+        $fakeUuid2 = (string) \Illuminate\Support\Str::uuid();
+
+        $component->set('category_ids', [$fakeUuid1]);
         expect($component->instance()->hasActiveFilters())->toBeTrue();
 
         $component->set('category_ids', []);
-        $component->set('mechanic_ids', [2]);
+        $component->set('mechanic_ids', [$fakeUuid2]);
         expect($component->instance()->hasActiveFilters())->toBeTrue();
 
         $component->call('clearFilters');
@@ -1411,19 +1419,22 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $uuid1 = (string) \Illuminate\Support\Str::uuid();
+        $uuid2 = (string) \Illuminate\Support\Str::uuid();
+
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
 
         // Add
-        $component->call('toggleCategory', 5)
-            ->assertSet('category_ids', [5]);
+        $component->call('toggleCategory', $uuid1)
+            ->assertSet('category_ids', [$uuid1]);
 
         // Add another
-        $component->call('toggleCategory', 10)
-            ->assertSet('category_ids', [5, 10]);
+        $component->call('toggleCategory', $uuid2)
+            ->assertSet('category_ids', [$uuid1, $uuid2]);
 
         // Remove first
-        $component->call('toggleCategory', 5)
-            ->assertSet('category_ids', [10]);
+        $component->call('toggleCategory', $uuid1)
+            ->assertSet('category_ids', [$uuid2]);
     });
 
     it('toggleMechanic adds and removes mechanic ids', function () {
@@ -1434,19 +1445,22 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $uuid1 = (string) \Illuminate\Support\Str::uuid();
+        $uuid2 = (string) \Illuminate\Support\Str::uuid();
+
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
 
         // Add
-        $component->call('toggleMechanic', 7)
-            ->assertSet('mechanic_ids', [7]);
+        $component->call('toggleMechanic', $uuid1)
+            ->assertSet('mechanic_ids', [$uuid1]);
 
         // Add another
-        $component->call('toggleMechanic', 12)
-            ->assertSet('mechanic_ids', [7, 12]);
+        $component->call('toggleMechanic', $uuid2)
+            ->assertSet('mechanic_ids', [$uuid1, $uuid2]);
 
         // Remove first
-        $component->call('toggleMechanic', 7)
-            ->assertSet('mechanic_ids', [12]);
+        $component->call('toggleMechanic', $uuid1)
+            ->assertSet('mechanic_ids', [$uuid2]);
     });
 
     // ── Vibe Preference Pre-Selection ──────────────────

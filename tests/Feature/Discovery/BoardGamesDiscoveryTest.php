@@ -746,9 +746,11 @@ describe('BoardGamesDiscovery', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $fakeUuid = (string) \Illuminate\Support\Str::uuid();
+
         Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->set('category_ids', [1])
-            ->set('mechanic_ids', [2])
+            ->set('category_ids', [$fakeUuid])
+            ->set('mechanic_ids', [$fakeUuid])
             ->call('clearFilters')
             ->assertSet('category_ids', [])
             ->assertSet('mechanic_ids', []);
@@ -762,14 +764,16 @@ describe('BoardGamesDiscovery', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $fakeUuid = (string) \Illuminate\Support\Str::uuid();
+
         $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();
 
-        $component->set('category_ids', [1]);
+        $component->set('category_ids', [$fakeUuid]);
         expect($component->instance()->hasActiveFilters())->toBeTrue();
 
         $component->set('category_ids', []);
-        $component->set('mechanic_ids', [1]);
+        $component->set('mechanic_ids', [$fakeUuid]);
         expect($component->instance()->hasActiveFilters())->toBeTrue();
     });
 
@@ -781,10 +785,12 @@ describe('BoardGamesDiscovery', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $fakeUuid = (string) \Illuminate\Support\Str::uuid();
+
         Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->call('toggleCategory', 5)
-            ->assertSet('category_ids', [5])
-            ->call('toggleCategory', 5)
+            ->call('toggleCategory', $fakeUuid)
+            ->assertSet('category_ids', [$fakeUuid])
+            ->call('toggleCategory', $fakeUuid)
             ->assertSet('category_ids', []);
     });
 
@@ -796,10 +802,12 @@ describe('BoardGamesDiscovery', function () {
             'date_time' => now()->addDays(3),
         ]);
 
+        $fakeUuid = (string) \Illuminate\Support\Str::uuid();
+
         Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->call('toggleMechanic', 7)
-            ->assertSet('mechanic_ids', [7])
-            ->call('toggleMechanic', 7)
+            ->call('toggleMechanic', $fakeUuid)
+            ->assertSet('mechanic_ids', [$fakeUuid])
+            ->call('toggleMechanic', $fakeUuid)
             ->assertSet('mechanic_ids', []);
     });
 

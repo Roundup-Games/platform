@@ -59,11 +59,11 @@
                                 @endif
                             </div>
                             <div class="flex items-center gap-2">
-                                <button wire:click="acceptInvite({{ $invite->id }})"
+                                <button wire:click="acceptInvite('{{ $invite->id }}')"
                                         class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                     {{ __('common.action_accept') }}
                                 </button>
-                                <button wire:click="declineInvite({{ $invite->id }})"
+                                <button wire:click="declineInvite('{{ $invite->id }}')"
                                         class="px-4 py-2 text-on-surface-variant hover:text-on-surface text-sm transition-colors border border-outline-variant rounded-lg">
                                     {{ __('common.action_decline') }}
                                 </button>

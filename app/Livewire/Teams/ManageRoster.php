@@ -27,7 +27,7 @@ class ManageRoster extends Component
     #[Validate('nullable|string|in:captain,coach,player,substitute')]
     public string $inviteRole = 'player';
 
-    public ?int $editingMemberId = null;
+    public ?string $editingMemberId = null;
 
     #[Validate('nullable|string|max:3')]
     public string $editJerseyNumber = '';
@@ -156,7 +156,7 @@ class ManageRoster extends Component
 
     // ── Role Management ────────────────────────────────
 
-    public function promoteMember(int $memberId): void
+    public function promoteMember(string $memberId): void
     {
         $this->authorize('manageMembers', $this->team);
 
@@ -182,7 +182,7 @@ class ManageRoster extends Component
         ]);
     }
 
-    public function demoteMember(int $memberId): void
+    public function demoteMember(string $memberId): void
     {
         $this->authorize('manageMembers', $this->team);
 
@@ -221,7 +221,7 @@ class ManageRoster extends Component
         ]);
     }
 
-    public function setRole(int $memberId, string $role): void
+    public function setRole(string $memberId, string $role): void
     {
         $this->authorize('manageMembers', $this->team);
 
@@ -260,7 +260,7 @@ class ManageRoster extends Component
 
     // ── Roster Details ─────────────────────────────────
 
-    public function startEditing(int $memberId): void
+    public function startEditing(string $memberId): void
     {
         $member = $this->findActiveMember($memberId);
         $this->editingMemberId = $member->id;
@@ -305,7 +305,7 @@ class ManageRoster extends Component
 
     // ── Remove / Leave ─────────────────────────────────
 
-    public function removeMember(int $memberId): void
+    public function removeMember(string $memberId): void
     {
         $this->authorize('manageMembers', $this->team);
 
@@ -357,7 +357,7 @@ class ManageRoster extends Component
         session()->flash('success', __('teams.content_member_removed_from_team'));
     }
 
-    public function cancelInvite(int $memberId): void
+    public function cancelInvite(string $memberId): void
     {
         $this->authorize('invite', $this->team);
 
@@ -418,7 +418,7 @@ class ManageRoster extends Component
 
     // ── Helpers ────────────────────────────────────────
 
-    private function findActiveMember(int $memberId): TeamMember
+    private function findActiveMember(string $memberId): TeamMember
     {
         return TeamMember::where('id', $memberId)
             ->where('team_id', $this->team->id)

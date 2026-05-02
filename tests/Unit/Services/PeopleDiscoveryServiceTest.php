@@ -73,6 +73,7 @@ class PeopleDiscoveryServiceTest extends TestCase
     private function attachToTeam(User $user, Team $team): void
     {
         DB::table('team_members')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'team_id' => $team->id,
             'user_id' => $user->id,
             'role' => 'player',

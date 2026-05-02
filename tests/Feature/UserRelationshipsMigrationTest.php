@@ -42,6 +42,7 @@ class UserRelationshipsMigrationTest extends TestCase
         $related = User::factory()->create();
 
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $user->id,
             'related_user_id' => $related->id,
             'type' => 'follow',
@@ -52,6 +53,7 @@ class UserRelationshipsMigrationTest extends TestCase
         $this->expectException(\Illuminate\Database\QueryException::class);
 
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $user->id,
             'related_user_id' => $related->id,
             'type' => 'follow',
@@ -68,6 +70,7 @@ class UserRelationshipsMigrationTest extends TestCase
 
         // Should not throw — follow and block are different types
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $user->id,
             'related_user_id' => $related->id,
             'type' => 'follow',
@@ -76,6 +79,7 @@ class UserRelationshipsMigrationTest extends TestCase
         ]);
 
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $user->id,
             'related_user_id' => $related->id,
             'type' => 'block',
@@ -93,6 +97,7 @@ class UserRelationshipsMigrationTest extends TestCase
         $related = User::factory()->create();
 
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $user->id,
             'related_user_id' => $related->id,
             'type' => 'follow',
@@ -101,6 +106,7 @@ class UserRelationshipsMigrationTest extends TestCase
         ]);
 
         DB::table('user_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'user_id' => $related->id,
             'related_user_id' => $user->id,
             'type' => 'block',

@@ -13,17 +13,31 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class UserRelationship extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'related_user_id', 'type'];
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = ['id', 'user_id', 'related_user_id', 'type'];
 
     protected function casts(): array
     {
         return [
             'type' => RelationshipType::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $rel) {
+            if (empty($rel->id)) {
+                $rel->id = (string) Str::orderedUuid();
+            }
+        });
     }
 
     // ── Relationships ──────────────────────────────────

@@ -92,7 +92,7 @@
                                     </td>
                                     <td class="py-2 px-3">
                                         @if($editingMemberId === $member->id && $isCaptain)
-                                            <select wire:change="setRole({{ $member->id }}, $event.target.value)"
+                                            <select wire:change="setRole('{{ $member->id }}', $event.target.value)"
                                                     class="text-xs rounded bg-surface-container-high border border-transparent py-0.5 px-1 text-on-surface">
                                                 @foreach(['captain', 'coach', 'player', 'substitute'] as $r)
                                                     <option value="{{ $r }}" {{ $member->role === $r ? 'selected' : '' }}>{{ __(ucfirst($r)) }}</option>
@@ -133,13 +133,13 @@
                                                         class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">{{ __('common.action_cancel') }}</button>
                                             @else
                                                 @if($member->user_id !== auth()->id())
-                                                    <button wire:click="removeMember({{ $member->id }})"
+                                                    <button wire:click="removeMember('{{ $member->id }}')"
                                                             onclick="confirm('{{ __('teams.flash_remove_this_member') }}') || event.preventDefault()"
                                                             class="text-xs px-2 py-1 text-error hover:brightness-110">
                                                         {{ __('common.action_remove') }}
                                                     </button>
                                                 @endif
-                                                <button wire:click="startEditing({{ $member->id }})"
+                                                <button wire:click="startEditing('{{ $member->id }}')"
                                                         class="text-xs px-2 py-1 text-on-surface-variant hover:text-on-surface ml-1">
                                                     {{ __('common.action_edit') }}
                                                 </button>
@@ -180,7 +180,7 @@
                                     <td class="py-2 px-3 text-on-surface-variant">{{ $invite->user?->email ?? '' }}</td>
                                     <td class="py-2 px-3 text-on-surface">{{ __(ucfirst($invite->role)) }}</td>
                                     <td class="py-2 px-3 text-right">
-                                        <button wire:click="cancelInvite({{ $invite->id }})"
+                                        <button wire:click="cancelInvite('{{ $invite->id }}')"
                                                 class="text-xs px-2 py-1 text-error hover:brightness-110">
                                             {{ __('common.action_cancel_invite') }}
                                         </button>
