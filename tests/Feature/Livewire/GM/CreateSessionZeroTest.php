@@ -6,47 +6,13 @@ use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use Illuminate\Support\Str;
-use Laravel\Paddle\Cashier;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
+use Tests\Traits\CreatesUsers;
+
+uses(CreatesUsers::class);
 
 // ── Helpers ──────────────────────────────────────────────
-
-function createSubscribedGmForSurvey(array $userOverrides = [], array $gmOverrides = []): User
-{
-    Role::firstOrCreate([
-        'name' => 'Game Master',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-        'profile_complete' => true,
-        ...$userOverrides,
-    ]);
-
-    Cashier::$subscriptionModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'type' => 'default',
-        'paddle_id' => 'sub_' . Str::random(12),
-        'status' => 'active',
-        'trial_ends_at' => null,
-        'paused_at' => null,
-        'ends_at' => null,
-    ]);
-
-    $user->assignRole('Game Master');
-
-    GMProfile::factory()->create([
-        'user_id' => $user->id,
-        'is_active' => true,
-        ...$gmOverrides,
-    ]);
-
-    return $user;
-}
 
 function createNonGmUser(): User
 {
@@ -95,7 +61,7 @@ describe('CreateSessionZero Access Control', function () {
     });
 
     it('allows active subscribed GMs to view the form', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.session-zero.create', 'en'))
@@ -110,7 +76,7 @@ describe('CreateSessionZero Access Control', function () {
 
 describe('CreateSessionZero Form Rendering', function () {
     it('renders all 5 form sections', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.session-zero.create', 'en'))
@@ -123,7 +89,7 @@ describe('CreateSessionZero Form Rendering', function () {
     });
 
     it('renders title input field', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.session-zero.create', 'en'))
@@ -132,7 +98,7 @@ describe('CreateSessionZero Form Rendering', function () {
     });
 
     it('renders the create survey button', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.session-zero.create', 'en'))
@@ -141,7 +107,7 @@ describe('CreateSessionZero Form Rendering', function () {
     });
 
     it('shows default title when game_id is provided and game belongs to GM', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
             'name' => 'Dragon Heist',
@@ -154,8 +120,8 @@ describe('CreateSessionZero Form Rendering', function () {
     });
 
     it('does not prefill title when game does not belong to GM', function () {
-        $gm = createSubscribedGmForSurvey();
-        $otherGm = createSubscribedGmForSurvey(['name' => 'Other GM']);
+        $gm = $this->createSubscribedGm();
+        $otherGm = $this->createSubscribedGm(['name' => 'Other GM']);
         $game = Game::factory()->create([
             'owner_id' => $otherGm->id,
             'name' => 'Other Game',
@@ -173,7 +139,7 @@ describe('CreateSessionZero Form Rendering', function () {
 
 describe('CreateSessionZero Validation', function () {
     it('requires a title', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -183,7 +149,7 @@ describe('CreateSessionZero Validation', function () {
     });
 
     it('validates title max length', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -193,7 +159,7 @@ describe('CreateSessionZero Validation', function () {
     });
 
     it('accepts valid form data', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -207,7 +173,7 @@ describe('CreateSessionZero Validation', function () {
     });
 
     it('accepts form with only title', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -217,7 +183,7 @@ describe('CreateSessionZero Validation', function () {
     });
 
     it('validates safety tools are from enum values', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -228,7 +194,7 @@ describe('CreateSessionZero Validation', function () {
     });
 
     it('accepts valid safety tool values', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -245,7 +211,7 @@ describe('CreateSessionZero Validation', function () {
 
 describe('CreateSessionZero Survey Creation', function () {
     it('creates a SessionZeroSurvey in the database', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -267,7 +233,7 @@ describe('CreateSessionZero Survey Creation', function () {
     });
 
     it('generates a UUID for sharing', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -280,7 +246,7 @@ describe('CreateSessionZero Survey Creation', function () {
     });
 
     it('stores safety tools in content JSON', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -297,7 +263,7 @@ describe('CreateSessionZero Survey Creation', function () {
     });
 
     it('links survey to game when game_id is provided', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
         $game = Game::factory()->create(['owner_id' => $gm->id]);
 
         Livewire::actingAs($gm)
@@ -310,8 +276,8 @@ describe('CreateSessionZero Survey Creation', function () {
     });
 
     it('does not link game when game belongs to different GM', function () {
-        $gm = createSubscribedGmForSurvey();
-        $otherGm = createSubscribedGmForSurvey(['name' => 'Other GM']);
+        $gm = $this->createSubscribedGm();
+        $otherGm = $this->createSubscribedGm(['name' => 'Other GM']);
         $game = Game::factory()->create(['owner_id' => $otherGm->id]);
 
         Livewire::actingAs($gm)
@@ -324,7 +290,7 @@ describe('CreateSessionZero Survey Creation', function () {
     });
 
     it('sets survey status to active by default', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -342,7 +308,7 @@ describe('CreateSessionZero Survey Creation', function () {
 
 describe('CreateSessionZero Success State', function () {
     it('shows shareable link after saving', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         $component = Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -359,7 +325,7 @@ describe('CreateSessionZero Success State', function () {
     });
 
     it('includes copy link button', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -369,7 +335,7 @@ describe('CreateSessionZero Success State', function () {
     });
 
     it('shows back to workspace link', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -379,7 +345,7 @@ describe('CreateSessionZero Success State', function () {
     });
 
     it('shows preview link', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -389,7 +355,7 @@ describe('CreateSessionZero Success State', function () {
     });
 
     it('hides the form after successful save', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
@@ -405,7 +371,7 @@ describe('CreateSessionZero Success State', function () {
 
 describe('CreateSessionZero Safety Tool Events', function () {
     it('receives safety tools from the picker component', function () {
-        $gm = createSubscribedGmForSurvey();
+        $gm = $this->createSubscribedGm();
 
         Livewire::actingAs($gm)
             ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)

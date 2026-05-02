@@ -6,45 +6,10 @@ use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use Illuminate\Support\Str;
-use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
+use Tests\Traits\CreatesUsers;
 
-function createSubscribedGmForWorkspace(array $userOverrides = [], array $gmOverrides = []): User
-{
-    Role::firstOrCreate([
-        'name' => 'Game Master',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-        'profile_complete' => true,
-        ...$userOverrides,
-    ]);
-
-    Cashier::$subscriptionModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'type' => 'default',
-        'paddle_id' => 'sub_' . Str::random(12),
-        'status' => 'active',
-        'trial_ends_at' => null,
-        'paused_at' => null,
-        'ends_at' => null,
-    ]);
-
-    $user->assignRole('Game Master');
-
-    GMProfile::factory()->create([
-        'user_id' => $user->id,
-        'is_active' => true,
-        ...$gmOverrides,
-    ]);
-
-    return $user;
-}
+uses(CreatesUsers::class);
 
 // ═══════════════════════════════════════════════════════════
 // WORKSPACE SESSION ZERO SURVEYS LIST
@@ -52,7 +17,7 @@ function createSubscribedGmForWorkspace(array $userOverrides = [], array $gmOver
 
 describe('GmWorkspace Session Zero Surveys', function () {
     it('shows Session Zero Surveys heading', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -61,7 +26,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows empty state when no surveys exist', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -70,7 +35,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('lists surveys belonging to the GM', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
         $survey = SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
             'title' => 'My Session Zero',
@@ -84,8 +49,8 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('does not list surveys from other GMs', function () {
-        $gm = createSubscribedGmForWorkspace();
-        $otherGm = createSubscribedGmForWorkspace(['name' => 'Other GM']);
+        $gm = $this->createSubscribedGm();
+        $otherGm = $this->createSubscribedGm(['name' => 'Other GM']);
 
         SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $otherGm->gmProfile->id,
@@ -99,7 +64,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows linked game name', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
             'name' => 'Dragon Heist',
@@ -118,7 +83,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows no linked game label when unlinked', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
@@ -133,7 +98,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows confirmation count for each survey', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
@@ -147,7 +112,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows active and archived status badges', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
@@ -169,7 +134,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('includes View link for each survey', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
         $survey = SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
             'title' => 'Link Test Survey',
@@ -182,7 +147,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('includes Copy Link button for each survey', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
         $survey = SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
             'title' => 'Copy Link Survey',
@@ -195,7 +160,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('shows survey count badge when surveys exist', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         SessionZeroSurvey::factory()->count(3)->create([
             'gm_profile_id' => $gm->gmProfile->id,
@@ -214,7 +179,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
     });
 
     it('passes surveys to view ordered by created_at desc', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         $oldest = SessionZeroSurvey::factory()->create([
             'gm_profile_id' => $gm->gmProfile->id,
@@ -242,7 +207,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
 
 describe('GmWorkspace Session Zero Quick Action', function () {
     it('shows Create Session Zero quick action', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -251,7 +216,7 @@ describe('GmWorkspace Session Zero Quick Action', function () {
     });
 
     it('links to session zero create route', function () {
-        $gm = createSubscribedGmForWorkspace();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))

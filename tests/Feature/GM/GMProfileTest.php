@@ -6,14 +6,14 @@ use App\Enums\GmProficiency;
 use App\Models\GMProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Str;
-use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
+use Tests\Traits\CreatesUsers;
 
 class GMProfileTest extends TestCase
 {
     use DatabaseTransactions;
+    use CreatesUsers;
 
     protected function setUp(): void
     {
@@ -24,26 +24,6 @@ class GMProfileTest extends TestCase
             'guard_name' => 'web',
             'team_id' => null,
         ]);
-    }
-
-    // ── Helpers ────────────────────────────────────────
-
-    private function createSubscribedUser(array $overrides = []): User
-    {
-        $user = User::factory()->create($overrides);
-
-        Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
-            'billable_id' => $user->id,
-            'type' => 'default',
-            'paddle_id' => 'sub_' . Str::random(12),
-            'status' => 'active',
-            'trial_ends_at' => null,
-            'paused_at' => null,
-            'ends_at' => null,
-        ]);
-
-        return $user;
     }
 
     // ── Specialization Storage & Retrieval ─────────────

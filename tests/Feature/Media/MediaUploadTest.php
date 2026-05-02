@@ -8,16 +8,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Tests\Traits\CreatesTeams;
+
+uses(CreatesTeams::class);
 
 // ── Helpers ─────────────────────────────────────────────
-
-function createTeamCaptain(): array
-{
-    $user = User::factory()->create(['profile_complete' => true]);
-    $team = Team::factory()->create(['created_by' => $user->id, 'is_active' => true]);
-
-    return ['user' => $user, 'team' => $team];
-}
 
 function createEventOrganizer(): array
 {
@@ -148,7 +143,7 @@ describe('Event media conversions', function () {
 describe('ImageUpload component', function () {
     it('renders with model and collection', function () {
         Storage::fake('public');
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -164,7 +159,7 @@ describe('ImageUpload component', function () {
     it('shows current media when exists', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $team->addMedia(validImage())->toMediaCollection('logo');
 
         Livewire::actingAs($user)
@@ -179,7 +174,7 @@ describe('ImageUpload component', function () {
     it('shows no media state initially', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -193,7 +188,7 @@ describe('ImageUpload component', function () {
     it('validates image is required on upload', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -207,7 +202,7 @@ describe('ImageUpload component', function () {
     it('validates image max size', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $bigFile = UploadedFile::fake()->create('huge.jpg', 5000);
 
         Livewire::actingAs($user)
@@ -223,7 +218,7 @@ describe('ImageUpload component', function () {
     it('validates image file type via mimes rule', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $textFile = UploadedFile::fake()->create('document.txt', 100, 'text/plain');
 
         Livewire::actingAs($user)
@@ -239,7 +234,7 @@ describe('ImageUpload component', function () {
     it('uploads image to team logo collection', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -277,7 +272,7 @@ describe('ImageUpload component', function () {
     it('replaces existing image on re-upload', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $team->addMedia(validImage())->toMediaCollection('logo');
         expect($team->getMedia('logo'))->toHaveCount(1);
 
@@ -296,7 +291,7 @@ describe('ImageUpload component', function () {
     it('removes image from collection', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $team->addMedia(validImage())->toMediaCollection('logo');
 
         Livewire::actingAs($user)
@@ -315,7 +310,7 @@ describe('ImageUpload component', function () {
     it('accepts PNG images', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -332,7 +327,7 @@ describe('ImageUpload component', function () {
     it('accepts WebP images', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -349,7 +344,7 @@ describe('ImageUpload component', function () {
     it('accepts GIF images', function () {
         Storage::fake('public');
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -373,7 +368,7 @@ describe('Media upload logging', function () {
             ->with('Media uploaded', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'], $ctx['uploaded_by'])))
             ->once();
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire::actingAs($user)
             ->test(ImageUpload::class, [
@@ -390,7 +385,7 @@ describe('Media upload logging', function () {
             ->with('Media removed', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'])))
             ->once();
 
-        ['user' => $user, 'team' => $team] = createTeamCaptain();
+        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
         $team->addMedia(validImage())->toMediaCollection('logo');
 
         Livewire::actingAs($user)

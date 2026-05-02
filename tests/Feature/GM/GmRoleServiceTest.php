@@ -12,10 +12,12 @@ use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
+use Tests\Traits\CreatesUsers;
 
 class GmRoleServiceTest extends TestCase
 {
     use DatabaseTransactions;
+    use CreatesUsers;
 
     private GmRoleService $service;
 
@@ -32,24 +34,6 @@ class GmRoleServiceTest extends TestCase
     }
 
     // ── Helpers ────────────────────────────────────────
-
-    private function createSubscribedUser(array $overrides = []): User
-    {
-        $user = User::factory()->create($overrides);
-
-        Cashier::$subscriptionModel::create([
-            'billable_type' => get_class($user),
-            'billable_id' => $user->id,
-            'type' => 'default',
-            'paddle_id' => 'sub_' . Str::random(12),
-            'status' => 'active',
-            'trial_ends_at' => null,
-            'paused_at' => null,
-            'ends_at' => null,
-        ]);
-
-        return $user;
-    }
 
     // ── Subscription Gate ──────────────────────────────
 

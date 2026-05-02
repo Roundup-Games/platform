@@ -19,10 +19,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use Tests\Traits\CreatesUsers;
 
 class PeopleDiscoveryServiceTest extends TestCase
 {
     use DatabaseTransactions;
+    use CreatesUsers;
 
     private PeopleDiscoveryService $service;
 
@@ -35,22 +37,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         parent::setUp();
         $this->service = new PeopleDiscoveryService(new ProfileVisibilityResolver());
         Cache::flush();
-    }
-
-    // ── Helper: Create a complete-profile user with a location ──
-
-    private function createUserWithLocation(float $lat, float $lng, array $overrides = []): User
-    {
-        $location = Location::factory()->create([
-            'latitude' => $lat,
-            'longitude' => $lng,
-        ]);
-
-        return User::factory()->create(array_merge([
-            'location_id' => $location->id,
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ], $overrides));
     }
 
     private function attachGameSystems(User $user, array $systems): void

@@ -10,10 +10,12 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 use Tests\TestCase;
+use Tests\Traits\CreatesUsers;
 
 class NearbyPeopleTest extends TestCase
 {
     use DatabaseTransactions;
+    use CreatesUsers;
 
     // Berlin coordinates (Mitte area)
     private const LAT = 52.5163;
@@ -32,20 +34,6 @@ class NearbyPeopleTest extends TestCase
     }
 
     // ── Helpers ──────────────────────────────────────
-
-    private function createUserWithLocation(float $lat, float $lng, array $overrides = []): User
-    {
-        $location = Location::factory()->create([
-            'latitude' => $lat,
-            'longitude' => $lng,
-        ]);
-
-        return User::factory()->create(array_merge([
-            'location_id' => $location->id,
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ], $overrides));
-    }
 
     private function createUserWithLinkedLocation(float $lat, float $lng, array $overrides = []): User
     {

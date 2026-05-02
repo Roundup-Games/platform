@@ -11,6 +11,9 @@ use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use Tests\Traits\CreatesGameInstances;
+
+uses(CreatesGameInstances::class);
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
@@ -18,45 +21,6 @@ beforeEach(function () {
 });
 
 // ── Helpers ──────────────────────────────────────────────
-
-function createFullGame(User $owner, GameSystem $system, int $maxPlayers = 3, array $overrides = []): Game
-{
-    $game = Game::create([
-        'owner_id' => $owner->id,
-        'game_system_id' => $system->id,
-        'name' => 'Test Game',
-        'date_time' => now()->addDays(7),
-        'description' => 'A test game',
-        'expected_duration' => 3,
-        'visibility' => 'public',
-        'status' => 'scheduled',
-        'language' => 'en',
-        'location' => ['details' => 'Online'],
-        'min_players' => 2,
-        'max_players' => $maxPlayers,
-        'campaign_id' => null,
-        ...$overrides,
-    ]);
-
-    // Fill with approved participants (including owner)
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role'    => 'owner',
-        'status'  => ParticipantStatus::Approved->value,
-    ]);
-
-    for ($i = 1; $i < $maxPlayers; $i++) {
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-    }
-
-    return $game;
-}
 
 function addWaitlistedUser(Game $game): array
 {
@@ -94,7 +58,7 @@ function getNonOwnerApproved(Game $game): GameParticipant
 
 describe('joinWaitlist', function () {
     it('adds user to waitlist when game is full', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -111,7 +75,7 @@ describe('joinWaitlist', function () {
     });
 
     it('does not add to waitlist when game is not full', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
         openSlot($game);
 
         $user = User::factory()->create();
@@ -129,7 +93,7 @@ describe('joinWaitlist', function () {
     });
 
     it('does not add existing participant to waitlist', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
 
         $ownerCount = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $this->owner->id)
@@ -152,7 +116,7 @@ describe('joinWaitlist', function () {
 
 describe('confirmWaitlistSpot', function () {
     it('confirms a promoted waitlist spot', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['user' => $user] = addWaitlistedUser($game);
 
         openSlot($game);
@@ -167,7 +131,7 @@ describe('confirmWaitlistSpot', function () {
     });
 
     it('does not allow confirmation by different user', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['user' => $user] = addWaitlistedUser($game);
 
         openSlot($game);
@@ -184,7 +148,7 @@ describe('confirmWaitlistSpot', function () {
     });
 
     it('does not confirm non-pending participant', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         ['user' => $user, 'participant' => $waitlisted] = addWaitlistedUser($game);
 
         Livewire::actingAs($user)
@@ -200,7 +164,7 @@ describe('confirmWaitlistSpot', function () {
 
 describe('declineWaitlistSpot', function () {
     it('declines a promoted waitlist spot', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['user' => $user] = addWaitlistedUser($game);
 
         openSlot($game);
@@ -214,7 +178,7 @@ describe('declineWaitlistSpot', function () {
     });
 
     it('does not allow decline by different user', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['user' => $user] = addWaitlistedUser($game);
 
         openSlot($game);
@@ -235,7 +199,7 @@ describe('declineWaitlistSpot', function () {
 
 describe('manualPromote', function () {
     it('allows host to manually promote a waitlisted player', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         Livewire::actingAs($this->owner)
@@ -247,7 +211,7 @@ describe('manualPromote', function () {
     });
 
     it('rejects manual promotion by non-host', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         $nonHost = User::factory()->create();
@@ -260,7 +224,7 @@ describe('manualPromote', function () {
     });
 
     it('rejects manual promotion of non-waitlisted participant', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         // Change status to pending
@@ -281,7 +245,7 @@ describe('manualPromote', function () {
 
 describe('cancelOwnParticipation', function () {
     it('removes own participation and triggers waitlist promotion', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         $approved = getNonOwnerApproved($game);
@@ -299,7 +263,7 @@ describe('cancelOwnParticipation', function () {
     });
 
     it('detects late cancellation within 24 hours of game', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'date_time' => now()->addHours(12),
         ]);
 
@@ -313,7 +277,7 @@ describe('cancelOwnParticipation', function () {
     });
 
     it('does not mark late cancellation if >24h away', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'date_time' => now()->addDays(3),
         ]);
 
@@ -328,7 +292,7 @@ describe('cancelOwnParticipation', function () {
     });
 
     it('rejects cancellation by a different user', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
 
         $approved = getNonOwnerApproved($game);
         $otherUser = User::factory()->create();
@@ -348,7 +312,7 @@ describe('below-min-player warning', function () {
     it('sends below-min-player warning to host when roster drops below minimum', function () {
         Notification::fake();
 
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
             'min_players' => 3,
         ]);
 
@@ -372,7 +336,7 @@ describe('below-min-player warning', function () {
 
 describe('removeParticipant (host-initiated)', function () {
     it('removes participant and triggers waitlist promotion for standalone games', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         $target = getNonOwnerApproved($game);
@@ -389,7 +353,7 @@ describe('removeParticipant (host-initiated)', function () {
     });
 
     it('detects late cancellation when host removes player <24h before game', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'date_time' => now()->addHours(10),
         ]);
 
@@ -403,7 +367,7 @@ describe('removeParticipant (host-initiated)', function () {
     });
 
     it('prevents removing the owner', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
 
         $ownerParticipant = $game->participants()
             ->where('user_id', $this->owner->id)
@@ -421,7 +385,7 @@ describe('removeParticipant (host-initiated)', function () {
 
 describe('UI state rendering', function () {
     it('shows join waitlist button for non-participants when game is full', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -431,7 +395,7 @@ describe('UI state rendering', function () {
     });
 
     it('shows waitlist position to waitlisted users', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         ['user' => $user] = addWaitlistedUser($game);
 
         Livewire::actingAs($user)
@@ -440,7 +404,7 @@ describe('UI state rendering', function () {
     });
 
     it('shows confirmation banner to promoted users', function () {
-        $game = createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2);
         ['user' => $user] = addWaitlistedUser($game);
 
         openSlot($game);
@@ -453,7 +417,7 @@ describe('UI state rendering', function () {
     });
 
     it('shows waitlist management section to host', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         addWaitlistedUser($game);
 
         Livewire::actingAs($this->owner)
@@ -462,7 +426,7 @@ describe('UI state rendering', function () {
     });
 
     it('does not show waitlist promote buttons to non-hosts', function () {
-        $game = createFullGame($this->owner, $this->gameSystem);
+        $game = $this->createFullGame($this->owner, $this->gameSystem);
         addWaitlistedUser($game);
 
         $viewer = User::factory()->create();

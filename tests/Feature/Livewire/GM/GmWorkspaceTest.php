@@ -8,69 +8,10 @@ use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use Illuminate\Support\Str;
-use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
+use Tests\Traits\CreatesUsers;
 
-// ── Helpers ──────────────────────────────────────────────
-
-function createSubscribedGm(array $userOverrides = [], array $gmOverrides = []): User
-{
-    Role::firstOrCreate([
-        'name' => 'Game Master',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-        'profile_complete' => true,
-        ...$userOverrides,
-    ]);
-
-    // Create active Paddle subscription
-    Cashier::$subscriptionModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'type' => 'default',
-        'paddle_id' => 'sub_' . Str::random(12),
-        'status' => 'active',
-        'trial_ends_at' => null,
-        'paused_at' => null,
-        'ends_at' => null,
-    ]);
-
-    $user->assignRole('Game Master');
-
-    GMProfile::factory()->create([
-        'user_id' => $user->id,
-        'is_active' => true,
-        ...$gmOverrides,
-    ]);
-
-    return $user;
-}
-
-function createSubscribedNonGm(): User
-{
-    $user = User::factory()->create([
-        'email_verified_at' => now(),
-        'profile_complete' => true,
-    ]);
-
-    Cashier::$subscriptionModel::create([
-        'billable_type' => get_class($user),
-        'billable_id' => $user->id,
-        'type' => 'default',
-        'paddle_id' => 'sub_' . Str::random(12),
-        'status' => 'active',
-        'trial_ends_at' => null,
-        'paused_at' => null,
-        'ends_at' => null,
-    ]);
-
-    return $user;
-}
+uses(CreatesUsers::class);
 
 // ═══════════════════════════════════════════════════════════
 // ACCESS CONTROL
@@ -83,7 +24,7 @@ describe('GmWorkspace Access Control', function () {
     });
 
     it('redirects non-GM users to dashboard', function () {
-        $user = createSubscribedNonGm();
+        $user = $this->createSubscribedNonGm();
 
         $this->actingAs($user)
             ->get(route('gm.workspace', 'en'))
@@ -111,7 +52,7 @@ describe('GmWorkspace Access Control', function () {
     });
 
     it('allows active subscribed GMs to view workspace', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -126,7 +67,7 @@ describe('GmWorkspace Access Control', function () {
 
 describe('GmWorkspace Upcoming Sessions', function () {
     it('shows upcoming scheduled sessions within 7 days', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
             'status' => 'scheduled',
@@ -141,7 +82,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
     });
 
     it('hides sessions beyond 7 days', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         Game::factory()->create([
             'owner_id' => $gm->id,
             'status' => 'scheduled',
@@ -156,7 +97,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
     });
 
     it('hides non-scheduled sessions', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         Game::factory()->create([
             'owner_id' => $gm->id,
             'status' => 'completed',
@@ -171,8 +112,8 @@ describe('GmWorkspace Upcoming Sessions', function () {
     });
 
     it('hides other GMs sessions', function () {
-        $gm = createSubscribedGm();
-        $otherGm = createSubscribedGm(['name' => 'Other GM']);
+        $gm = $this->createSubscribedGm();
+        $otherGm = $this->createSubscribedGm(['name' => 'Other GM']);
 
         Game::factory()->create([
             'owner_id' => $otherGm->id,
@@ -188,7 +129,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
     });
 
     it('shows empty state when no upcoming sessions', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -203,7 +144,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
 
 describe('GmWorkspace Review Summary', function () {
     it('shows average rating and review count', function () {
-        $gm = createSubscribedGm([], [
+        $gm = $this->createSubscribedGm([], [
             'average_rating' => 4.75,
             'review_count' => 12,
         ]);
@@ -216,7 +157,7 @@ describe('GmWorkspace Review Summary', function () {
     });
 
     it('shows dash when no rating', function () {
-        $gm = createSubscribedGm([], [
+        $gm = $this->createSubscribedGm([], [
             'average_rating' => null,
             'review_count' => 0,
         ]);
@@ -228,7 +169,7 @@ describe('GmWorkspace Review Summary', function () {
     });
 
     it('shows last 5 reviews with star ratings', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $gm->gmProfile->update(['review_count' => 5]);
 
         $reviewer = User::factory()->create(['name' => 'Happy Player']);
@@ -251,7 +192,7 @@ describe('GmWorkspace Review Summary', function () {
     });
 
     it('shows review proficiency tags', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $gm->gmProfile->update(['review_count' => 1]);
 
         Review::factory()->create([
@@ -271,7 +212,7 @@ describe('GmWorkspace Review Summary', function () {
     });
 
     it('shows empty state when no reviews', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $gm->gmProfile->update([
             'average_rating' => null,
             'review_count' => 0,
@@ -290,7 +231,7 @@ describe('GmWorkspace Review Summary', function () {
 
 describe('GmWorkspace Participant Stats', function () {
     it('shows unique player count', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $game = Game::factory()->create(['owner_id' => $gm->id]);
 
         $players = User::factory()->count(3)->create();
@@ -311,7 +252,7 @@ describe('GmWorkspace Participant Stats', function () {
     });
 
     it('counts repeat players appearing in 2+ games', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         $game1 = Game::factory()->create(['owner_id' => $gm->id]);
         $game2 = Game::factory()->create(['owner_id' => $gm->id]);
 
@@ -350,7 +291,7 @@ describe('GmWorkspace Participant Stats', function () {
     });
 
     it('shows zero stats when GM has no games', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         Livewire\Livewire::actingAs($gm)
             ->test(App\Livewire\GM\GmWorkspace::class)
@@ -360,7 +301,7 @@ describe('GmWorkspace Participant Stats', function () {
     });
 
     it('counts total games correctly', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         Game::factory()->count(5)->create(['owner_id' => $gm->id]);
 
         Livewire\Livewire::actingAs($gm)
@@ -369,7 +310,7 @@ describe('GmWorkspace Participant Stats', function () {
     });
 
     it('counts active campaigns correctly', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
         Campaign::factory()->count(3)->create([
             'owner_id' => $gm->id,
             'status' => 'active',
@@ -391,7 +332,7 @@ describe('GmWorkspace Participant Stats', function () {
 
 describe('GmWorkspace Quick Actions', function () {
     it('shows create game action', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -400,7 +341,7 @@ describe('GmWorkspace Quick Actions', function () {
     });
 
     it('shows create campaign action', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
@@ -409,7 +350,7 @@ describe('GmWorkspace Quick Actions', function () {
     });
 
     it('shows manage GM profile action', function () {
-        $gm = createSubscribedGm();
+        $gm = $this->createSubscribedGm();
 
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))

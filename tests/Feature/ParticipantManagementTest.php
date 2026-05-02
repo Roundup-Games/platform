@@ -7,48 +7,11 @@ use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Tests\Traits\CreatesGameInstances;
+use Tests\Traits\CreatesRelationships;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, get, post};
 
-// ── Helpers ──────────────────────────────────────────────
-
-function participantCreateGameWithOwner(array $gameAttrs = []): array
-{
-    $owner = User::factory()->create(['profile_complete' => true]);
-    $game = Game::factory()->create([
-        'owner_id' => $owner->id,
-        ...$gameAttrs,
-    ]);
-
-    return ['owner' => $owner, 'game' => $game];
-}
-
-function participantCreateCampaignWithOwner(array $campaignAttrs = []): array
-{
-    $owner = User::factory()->create(['profile_complete' => true]);
-    $campaign = Campaign::factory()->create([
-        'owner_id' => $owner->id,
-        ...$campaignAttrs,
-    ]);
-
-    return ['owner' => $owner, 'campaign' => $campaign];
-}
-
-/**
- * Make two users mutual friends (both follow each other).
- */
-function makeMutualFriends(User $a, User $b): void
-{
-    \App\Models\UserRelationship::create([
-        'user_id' => $a->id,
-        'related_user_id' => $b->id,
-        'type' => \App\Enums\RelationshipType::Follow,
-    ]);
-    \App\Models\UserRelationship::create([
-        'user_id' => $b->id,
-        'related_user_id' => $a->id,
-        'type' => \App\Enums\RelationshipType::Follow,
-    ]);
-}
+uses(CreatesGameInstances::class, CreatesRelationships::class);
 
 // ═══════════════════════════════════════════════════════════
 // GAME MANAGE PARTICIPANTS
@@ -56,7 +19,7 @@ function makeMutualFriends(User $a, User $b): void
 
 describe('Game ManageParticipants Authorization', function () {
     test('owner can access manage participants page', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         actingAs($owner)
             ->get(route('games.manage-participants', $game->id))
@@ -65,7 +28,7 @@ describe('Game ManageParticipants Authorization', function () {
     });
 
     test('non-owner cannot access manage participants page', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         actingAs($stranger)
@@ -83,9 +46,9 @@ describe('Game ManageParticipants Authorization', function () {
 
 describe('Game Invite Participant', function () {
     test('owner can invite a friend by user ID', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend);
+        $this->makeMutualFriends($owner, $friend);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
@@ -103,7 +66,7 @@ describe('Game Invite Participant', function () {
     })->group('smoke');
 
     test('cannot invite with empty selection', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
@@ -113,7 +76,7 @@ describe('Game Invite Participant', function () {
     });
 
     test('cannot invite yourself', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
@@ -129,7 +92,7 @@ describe('Game Invite Participant', function () {
     });
 
     test('cannot invite non-friend', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($owner)
@@ -146,9 +109,9 @@ describe('Game Invite Participant', function () {
     });
 
     test('cannot invite user who is already a participant', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend);
+        $this->makeMutualFriends($owner, $friend);
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -169,11 +132,11 @@ describe('Game Invite Participant', function () {
     });
 
     test('can invite multiple friends at once', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $friend1 = User::factory()->create(['profile_complete' => true]);
         $friend2 = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend1);
-        makeMutualFriends($owner, $friend2);
+        $this->makeMutualFriends($owner, $friend1);
+        $this->makeMutualFriends($owner, $friend2);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
@@ -199,7 +162,7 @@ describe('Game Invite Participant', function () {
 
 describe('Game Approve/Reject Application', function () {
     test('owner can approve an application', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $applicant = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -236,7 +199,7 @@ describe('Game Approve/Reject Application', function () {
     })->group('smoke');
 
     test('owner can reject an application', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $applicant = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -271,7 +234,7 @@ describe('Game Approve/Reject Application', function () {
     });
 
     test('cannot approve non-applicant participant', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $user = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -296,7 +259,7 @@ describe('Game Approve/Reject Application', function () {
 
 describe('Game Remove Participant', function () {
     test('owner can remove a player', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $player = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -319,7 +282,7 @@ describe('Game Remove Participant', function () {
     });
 
     test('cannot remove the game owner', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         // Create an owner participant record
         $ownerParticipant = GameParticipant::create([
@@ -344,7 +307,7 @@ describe('Game Remove Participant', function () {
 
 describe('Game Cancel Invite', function () {
     test('owner can cancel a pending invite', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $invitedUser = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -367,7 +330,7 @@ describe('Game Cancel Invite', function () {
     });
 
     test('cannot cancel non-invited participant', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $player = User::factory()->create(['profile_complete' => true]);
 
         $participant = GameParticipant::create([
@@ -395,7 +358,7 @@ describe('Game Cancel Invite', function () {
 
 describe('Game ApplyToGame', function () {
     test('authenticated user can view apply page for public game', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         actingAs($user)
@@ -405,7 +368,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('authenticated user can view apply page for protected game', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'protected']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Protected games require friend/teammate relationship for view access
@@ -418,7 +381,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('cannot apply to private game', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'private']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'private']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         actingAs($user)
@@ -427,7 +390,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('public game application auto-approves', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
@@ -454,7 +417,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('protected game application requires approval', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'protected']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Protected games require friend/teammate relationship for view access
@@ -485,7 +448,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('owner cannot apply to own game', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
@@ -495,7 +458,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('cannot apply twice to same game', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         // First application
@@ -519,7 +482,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('existing participant sees info message', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         GameParticipant::create([
@@ -535,7 +498,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('application without message is valid', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
@@ -552,7 +515,7 @@ describe('Game ApplyToGame', function () {
     });
 
     test('message is limited to 1000 characters', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'public']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
@@ -569,7 +532,7 @@ describe('Game ApplyToGame', function () {
 
 describe('Campaign ManageParticipants Authorization', function () {
     test('owner can access manage participants page', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
 
         actingAs($owner)
             ->get(route('campaigns.manage-participants', $campaign->id))
@@ -578,7 +541,7 @@ describe('Campaign ManageParticipants Authorization', function () {
     });
 
     test('non-owner cannot access manage participants page', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         actingAs($stranger)
@@ -596,9 +559,9 @@ describe('Campaign ManageParticipants Authorization', function () {
 
 describe('Campaign Invite Participant', function () {
     test('owner can invite a friend by user ID', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend);
+        $this->makeMutualFriends($owner, $friend);
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
@@ -616,7 +579,7 @@ describe('Campaign Invite Participant', function () {
     });
 
     test('cannot invite with empty selection', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
@@ -626,7 +589,7 @@ describe('Campaign Invite Participant', function () {
     });
 
     test('cannot invite yourself', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
@@ -641,7 +604,7 @@ describe('Campaign Invite Participant', function () {
     });
 
     test('cannot invite non-friend', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($owner)
@@ -657,9 +620,9 @@ describe('Campaign Invite Participant', function () {
     });
 
     test('cannot invite user who is already a participant', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend);
+        $this->makeMutualFriends($owner, $friend);
 
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
@@ -681,7 +644,7 @@ describe('Campaign Invite Participant', function () {
 
 describe('Campaign Approve/Reject Application', function () {
     test('owner can approve an application', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $applicant = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -718,7 +681,7 @@ describe('Campaign Approve/Reject Application', function () {
     });
 
     test('owner can reject an application', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $applicant = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -753,7 +716,7 @@ describe('Campaign Approve/Reject Application', function () {
     });
 
     test('cannot approve non-applicant participant', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $user = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -778,7 +741,7 @@ describe('Campaign Approve/Reject Application', function () {
 
 describe('Campaign Remove Participant', function () {
     test('owner can remove a player', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $player = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -801,7 +764,7 @@ describe('Campaign Remove Participant', function () {
     });
 
     test('cannot remove the campaign owner', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
 
         $ownerParticipant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
@@ -824,7 +787,7 @@ describe('Campaign Remove Participant', function () {
 
 describe('Campaign Cancel Invite', function () {
     test('owner can cancel a pending invite', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $invitedUser = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -847,7 +810,7 @@ describe('Campaign Cancel Invite', function () {
     });
 
     test('cannot cancel non-invited participant', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner();
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner();
         $player = User::factory()->create(['profile_complete' => true]);
 
         $participant = CampaignParticipant::create([
@@ -875,7 +838,7 @@ describe('Campaign Cancel Invite', function () {
 
 describe('Game Participant Status Transitions', function () {
     test('full application lifecycle: apply → approve → remove', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner(['visibility' => 'protected']);
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Step 1: User applies to a protected game
@@ -932,9 +895,9 @@ describe('Game Participant Status Transitions', function () {
     });
 
     test('full invite lifecycle: invite → cancel', function () {
-        ['owner' => $owner, 'game' => $game] = participantCreateGameWithOwner();
+        ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
-        makeMutualFriends($owner, $friend);
+        $this->makeMutualFriends($owner, $friend);
 
         // Step 1: Owner invites via friend IDs
         Livewire\Livewire::actingAs($owner)
@@ -972,7 +935,7 @@ describe('Game Participant Status Transitions', function () {
 
 describe('Campaign Participant Status Transitions', function () {
     test('full campaign application lifecycle: apply → approve → remove', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = participantCreateCampaignWithOwner(['visibility' => 'protected']);
+        ['owner' => $owner, 'campaign' => $campaign] = $this->createCampaignWithOwner(['visibility' => 'protected']);
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Step 1: Apply via participant + application record (simulating what ApplyToGame would do for campaigns)
