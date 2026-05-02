@@ -19,6 +19,9 @@ class Team extends Model implements HasMedia
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use HasTranslations;
 
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $translatable = ['description'];
 
     protected $fillable = [
@@ -38,6 +41,9 @@ class Team extends Model implements HasMedia
     protected static function booted(): void
     {
         static::creating(function (self $team) {
+            if (empty($team->id)) {
+                $team->id = (string) Str::orderedUuid();
+            }
             if (empty($team->slug)) {
                 $team->slug = Str::slug($team->name) . '-' . Str::random(6);
             }
