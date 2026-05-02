@@ -64,14 +64,14 @@ class ManageParticipants extends Component
         ]);
 
         $approvedParticipants = $this->campaign->participants
-            ->filter(fn ($p) => $p->status === 'approved')
+            ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
             ->sortBy(fn ($p) => $p->role === 'owner' ? 0 : 1);
 
         $pendingApplicants = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === 'applicant' && $p->status === 'pending');
+            ->filter(fn ($p) => $p->role === 'applicant' && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         $pendingInvites = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === 'invited' && $p->status === 'pending');
+            ->filter(fn ($p) => $p->role === 'invited' && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         return view('livewire.campaigns.manage-participants', [
             'campaign' => $this->campaign,

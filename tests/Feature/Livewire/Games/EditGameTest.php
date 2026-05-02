@@ -129,7 +129,7 @@ describe('Save Game Edit', function () {
             ->set('edit_visibility', 'private')
             ->call('saveGameEdit');
 
-        expect($game->fresh()->visibility)->toBe('private');
+        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Private);
     });
 
     it('updates game location', function () {
@@ -277,7 +277,7 @@ describe('Save Game Edit', function () {
             ->set('edit_visibility', 'public')
             ->call('saveGameEdit');
 
-        expect($game->fresh()->visibility)->toBe('protected');
+        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Protected);
     });
 
     it('allows public visibility when user has can_create_public_entries', function () {
@@ -289,6 +289,6 @@ describe('Save Game Edit', function () {
             ->set('edit_visibility', 'public')
             ->call('saveGameEdit');
 
-        expect($game->fresh()->visibility)->toBe('public');
+        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Public);
     });
 });

@@ -128,7 +128,7 @@ describe('Save Campaign Edit', function () {
             ->set('edit_visibility', 'private')
             ->call('saveCampaignEdit');
 
-        expect($campaign->fresh()->visibility)->toBe('private');
+        expect($campaign->fresh()->visibility)->toBe(\App\Enums\Visibility::Private);
     });
 
     it('validates required name', function () {
@@ -253,7 +253,7 @@ describe('Save Campaign Edit', function () {
             ->set('edit_visibility', 'public')
             ->call('saveCampaignEdit');
 
-        expect($campaign->fresh()->visibility)->toBe('protected');
+        expect($campaign->fresh()->visibility)->toBe(\App\Enums\Visibility::Protected);
     });
 
     it('allows public visibility when user has can_create_public_entries', function () {
@@ -265,6 +265,6 @@ describe('Save Campaign Edit', function () {
             ->set('edit_visibility', 'public')
             ->call('saveCampaignEdit');
 
-        expect($campaign->fresh()->visibility)->toBe('public');
+        expect($campaign->fresh()->visibility)->toBe(\App\Enums\Visibility::Public);
     });
 });

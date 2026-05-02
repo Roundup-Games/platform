@@ -254,7 +254,7 @@
                                         {{ __('games.field_role_' . $participant->role) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $participant->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === 'waitlisted' ? 'bg-tertiary/10 text-tertiary' : ($participant->status === 'pending' ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container')) }}">
+                                        {{ $participant->status === \App\Enums\ParticipantStatus::Approved ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === \App\Enums\ParticipantStatus::Waitlisted ? 'bg-tertiary/10 text-tertiary' : ($participant->status === \App\Enums\ParticipantStatus::Pending ? 'bg-primary/10 text-primary' : 'bg-error-container text-on-error-container')) }}">
                                         {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __('games.status_' . $participant->status) }}
                                     </span>
                                 </div>
@@ -379,7 +379,7 @@
                 </section>
 
                 {{-- Host Recap (only on completed games with recap content) --}}
-                @if($game->status === 'completed' && $game->recap)
+                @if($game->status === \App\Enums\GameStatus::Completed && $game->recap)
                     <section class="bg-tertiary/5 border-l-4 border-tertiary rounded-xl shadow-ambient p-6">
                         <div class="flex items-center gap-2 mb-4">
                             <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">auto_stories</span>
@@ -399,7 +399,7 @@
 
                 {{-- Write Recap (owner only, completed game, no recap yet) --}}
                 @auth
-                    @if($isOwner && $game->status === 'completed' && empty($game->recap))
+                    @if($isOwner && $game->status === \App\Enums\GameStatus::Completed && empty($game->recap))
                         <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">edit_note</span>
@@ -437,7 +437,7 @@
                 @endauth
 
                 {{-- Debriefing Section (completed games with debriefing tools) --}}
-                @if($game->status === 'completed' && $hasDebriefingTools)
+                @if($game->status === \App\Enums\GameStatus::Completed && $hasDebriefingTools)
                     {{-- Host: aggregated debriefing dashboard --}}
                     @if($isOwner && $hostDebriefings->count() > 0)
                         <section class="bg-secondary-container/30 border-l-4 border-secondary rounded-xl shadow-ambient p-6">
@@ -635,7 +635,7 @@
                                         @endif
                                     </div>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
-                                        {{ $application->status === 'pending' ? 'bg-tertiary/10 text-tertiary' : ($application->status === 'accepted' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
+                                        {{ $application->status === 'pending' ? 'bg-tertiary/10 text-tertiary' : ($application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
                                         {{ __('games.status_' . $application->status) }}
                                     </span>
                                 </div>

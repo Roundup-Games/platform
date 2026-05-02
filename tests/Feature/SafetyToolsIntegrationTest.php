@@ -133,6 +133,7 @@ describe('Game detail page — safety tools display', function () {
 
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
             'visibility' => 'public',
             'safety_rules' => [
                 'tools' => ['session-zero', 'x-card', 'breaks'],
@@ -155,6 +156,7 @@ describe('Game detail page — safety tools display', function () {
 
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
             'visibility' => 'public',
             'safety_rules' => [
                 'tools' => ['lines-and-veils'],
@@ -174,6 +176,7 @@ describe('Game detail page — safety tools display', function () {
 
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
             'visibility' => 'public',
             'safety_rules' => [
                 'tools' => ['session-zero', 'x-card', 'stars-and-wishes'],
@@ -194,6 +197,7 @@ describe('Game detail page — safety tools display', function () {
 
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
             'visibility' => 'public',
             'safety_rules' => null,
         ]);
@@ -209,6 +213,7 @@ describe('Game detail page — safety tools display', function () {
 
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
+            'game_type' => 'ttrpg',
             'visibility' => 'public',
             'safety_rules' => [
                 'tools' => ['x-card'],

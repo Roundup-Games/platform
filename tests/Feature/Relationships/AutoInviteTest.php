@@ -166,7 +166,7 @@ describe('AutoInvite — Session Creation', function () {
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($owner->id)
-            ->and($game->status)->toBe('scheduled');
+            ->and($game->status)->toBe(\App\Enums\GameStatus::Scheduled);
     });
 });
 
@@ -336,6 +336,7 @@ describe('AutoInvite — Observability', function () {
             }));
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('debug')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])

@@ -68,7 +68,7 @@ return [
     'placeholder_dispute_reason' => 'Explain why you disagree with this report...',
     'action_dispute_submit' => 'Submit Dispute',
 
-    // Recap
+    // Recap (used in game-detail.blade.php)
     'heading_recap_title' => 'Host Recap',
     'content_recap_by' => 'Written by :host',
     'action_recap_write' => 'Write a Recap',
@@ -76,7 +76,7 @@ return [
     'content_recap_activity' => 'wrote a recap for',
     'content_recap_none' => 'No recap has been written yet.',
 
-    // Dashboard engagement
+    // Dashboard engagement (used in dashboard.blade.php)
     'dashboard_games_this_week' => 'Games This Week',
     'dashboard_attended' => 'attended',
     'dashboard_pending' => 'pending',

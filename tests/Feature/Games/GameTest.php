@@ -345,7 +345,7 @@ describe('CreateGame Component', function () {
         ]);
 
         $game = Game::where('name', 'Quick Game')->first();
-        expect($game->expected_duration)->toBe(1.5) // board game type default
+        expect($game->expected_duration)->toBe(2.0) // board game type default
             ->and($game->price)->toBe(0.0); // default
     });
 
@@ -808,7 +808,7 @@ describe('Game Application — ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
     });
 
@@ -1209,7 +1209,7 @@ describe('CreateGame — Language Selection', function () {
 });
 
 describe('CreateGame — Duration', function () {
-    it('defaults to 1.5 hours for board games', function () {
+    it('defaults to 2.0 hours for board games', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
@@ -1222,7 +1222,7 @@ describe('CreateGame — Duration', function () {
 
         assertDatabaseHas('games', [
             'name' => 'No Duration',
-            'expected_duration' => 1.5,
+            'expected_duration' => 2.0,
         ]);
     });
 

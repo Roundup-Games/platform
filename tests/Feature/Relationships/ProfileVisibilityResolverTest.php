@@ -26,12 +26,13 @@ describe('Visibility matrix: every field × every relationship level', function 
                 'campaigns' => 'everyone',
                 'teams' => 'friends',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 
         $visible = $this->resolver->profileFieldsVisible(null, $this->owner);
 
-        expect($visible)->toBe(['location', 'campaigns', 'stats']);
+        expect($visible)->toBe(['location', 'campaigns']);
     })->group('smoke');
 
     it('stranger sees only "everyone" fields — same as guest', function () {
@@ -45,6 +46,7 @@ describe('Visibility matrix: every field × every relationship level', function 
                 'campaigns' => 'everyone',
                 'teams' => 'friends',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 
@@ -66,6 +68,7 @@ describe('Visibility matrix: every field × every relationship level', function 
                 'campaigns' => 'everyone',
                 'teams' => 'friends',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 
@@ -101,6 +104,7 @@ describe('Visibility matrix: every field × every relationship level', function 
                 'campaigns' => 'everyone',
                 'teams' => 'friends',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 
@@ -400,6 +404,7 @@ describe('Edge cases', function () {
                 'campaigns' => 'friends',
                 'teams' => 'everyone',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 
@@ -422,6 +427,7 @@ describe('Edge cases', function () {
                 'campaigns' => 'everyone',
                 'teams' => 'nobody',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
             ],
         ]);
 

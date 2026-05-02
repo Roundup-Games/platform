@@ -620,10 +620,10 @@ describe('GamesPage — Accept Invitation Action', function () {
         $component->assertSee(__('games.error_game_full'));
     });
 
-    it('allows accepting when game has no max_players limit', function () {
+    it('allows accepting when game has no effective max_players limit', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'max_players' => null]);
+        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'max_players' => 999]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,

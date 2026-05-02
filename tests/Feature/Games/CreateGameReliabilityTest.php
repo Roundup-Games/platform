@@ -21,6 +21,7 @@ describe('CreateGame — Reliability Preference', function () {
 
         actingAs($user);
         Livewire\Livewire::test(CreateGame::class)
+            ->call('selectType', 'ttrpg')
             ->assertStatus(200)
             ->assertSee('Attendance Preference');
     });
@@ -30,6 +31,7 @@ describe('CreateGame — Reliability Preference', function () {
 
         actingAs($user);
         Livewire\Livewire::test(CreateGame::class)
+            ->call('selectType', 'ttrpg')
             ->set('min_reliability_preference', '80')
             ->assertSet('min_reliability_preference', '80');
     });
@@ -71,9 +73,9 @@ describe('CreateGame — Reliability Preference', function () {
         $user = createGameReliabilityUser();
 
         actingAs($user);
-        $response = $this->get(route('games.create'));
-        $response->assertStatus(200);
-        $response->assertSee('game-reliability');
-        $response->assertSee('min_reliability_preference');
+        Livewire\Livewire::test(CreateGame::class)
+            ->call('selectType', 'ttrpg')
+            ->assertSee('game-reliability')
+            ->assertSee('min_reliability_preference');
     });
 });

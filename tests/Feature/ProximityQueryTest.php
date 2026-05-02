@@ -203,7 +203,7 @@ class ProximityQueryTest extends TestCase
         $results = $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
         $this->assertCount(1, $results);
-        $this->assertEquals('scheduled', $results->first()->entity->status);
+        $this->assertEquals(\App\Enums\GameStatus::Scheduled, $results->first()->entity->status);
     }
 
     #[Test]

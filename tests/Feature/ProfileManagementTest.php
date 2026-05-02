@@ -1079,6 +1079,7 @@ describe('Privacy Settings', function () {
                 'campaigns' => 'friends',
                 'teams' => 'friends',
                 'friends_list' => 'friends',
+                'stats' => 'friends',
             ]);
     });
 
@@ -1138,6 +1139,7 @@ describe('Privacy Settings', function () {
             'campaigns' => 'nobody',
             'teams' => 'friends',
             'friends_list' => 'nobody',
+            'stats' => 'nobody',
         ];
 
         Livewire::actingAs($user)
@@ -1210,6 +1212,7 @@ describe('Privacy Settings', function () {
                 'campaigns' => 'nobody',
                 'teams' => 'friends',
                 'friends_list' => 'nobody',
+                'stats' => 'nobody',
                 'unknown_field' => 'everyone',
             ])
             ->call('savePrivacySettings');
@@ -1217,7 +1220,7 @@ describe('Privacy Settings', function () {
         $saved = $user->fresh()->privacy_settings;
         // Only known fields should be persisted
         expect(array_keys($saved))->toBe([
-            'location', 'game_systems', 'vibes', 'campaigns', 'teams', 'friends_list',
+            'location', 'game_systems', 'vibes', 'campaigns', 'teams', 'friends_list', 'stats',
         ]);
     });
 

@@ -86,14 +86,14 @@ class ActivityLogObserver
 
     private function handleParticipantCreated(GameParticipant $participant): void
     {
-        if ($participant->status === ParticipantStatus::Approved->value) {
+        if ($participant->status === ParticipantStatus::Approved) {
             $this->logPlayerJoined($participant);
         }
     }
 
     private function handleParticipantStatusChanged(GameParticipant $participant): void
     {
-        if ($participant->status === ParticipantStatus::Approved->value) {
+        if ($participant->status === ParticipantStatus::Approved) {
             $this->logPlayerJoined($participant);
         }
     }

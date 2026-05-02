@@ -437,11 +437,11 @@ describe('Game ApplyToGame', function () {
             ->assertHasNoErrors()
             ->assertRedirect(route('games.detail', $game->id));
 
-        // Application should be approved
+        // Application record is always pending; participant record carries resolved status
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
 
         // Participant should be auto-approved as player
@@ -547,7 +547,7 @@ describe('Game ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
     });
 

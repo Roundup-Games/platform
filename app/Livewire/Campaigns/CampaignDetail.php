@@ -103,7 +103,7 @@ class CampaignDetail extends Component
             $userInvitation = $this->campaign->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->role === 'invited'
-                    && $p->status === 'pending');
+                    && $p->status === \App\Enums\ParticipantStatus::Pending);
 
             $hasExistingApplication = $this->campaign->applications()
                 ->where('user_id', $viewer->id)

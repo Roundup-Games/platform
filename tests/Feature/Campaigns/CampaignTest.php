@@ -512,7 +512,7 @@ describe('CreateCampaign Component', function () {
 
         // Should be downgraded to protected since user lacks can_create_public_entries
         $campaign = Campaign::where('name', 'Gated Campaign')->first();
-        expect($campaign->visibility)->toBe('protected');
+        expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
     });
 
     it('flashes success message', function () {
@@ -1242,7 +1242,7 @@ describe('AddSessionToCampaign — Creation', function () {
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game)->not->toBeNull()
             ->and($game->game_system_id)->toBe($system->id)
-            ->and($game->visibility)->toBe('public')
+            ->and($game->visibility)->toBe(\App\Enums\Visibility::Public)
             ->and($game->language)->toBe('de')
             ->and($game->min_players)->toBe(3)
             ->and($game->max_players)->toBe(6)
