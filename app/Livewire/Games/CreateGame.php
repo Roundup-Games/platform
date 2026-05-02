@@ -12,6 +12,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -123,7 +124,7 @@ class CreateGame extends Component
     #[On('value-updated')]
     public function onGameSystemPicked($value): void
     {
-        $id = is_numeric($value) ? (int) $value : null;
+        $id = is_string($value) && Str::isUuid($value) ? $value : null;
         $this->game_system_id = $id;
         $this->autofillFromGameSystem($id);
     }

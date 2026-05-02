@@ -181,15 +181,16 @@ describe('Invitation — Friend Validation', function () {
 
     test('skips nonexistent user ID gracefully', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
+        $fakeUuid = \Illuminate\Support\Str::uuid()->toString();
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [999999])
+            ->set('selectedFriendIds', [$fakeUuid])
             ->call('inviteParticipants');
 
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
-            'user_id' => 999999,
+            'user_id' => $fakeUuid,
         ]);
     });
 });

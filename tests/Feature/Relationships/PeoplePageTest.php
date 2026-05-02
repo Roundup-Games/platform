@@ -127,7 +127,7 @@ describe('PeoplePage following tab', function () {
 
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
-            ->call('unfollow', 99999);
+            ->call('unfollow', \Illuminate\Support\Str::uuid()->toString());
 
         expect(UserRelationship::count())->toBe(0);
     });

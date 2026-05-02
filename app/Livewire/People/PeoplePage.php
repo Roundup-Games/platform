@@ -165,7 +165,7 @@ class PeoplePage extends Component
         session()->flash('success', __('common.flash_unfollowed', ['name' => $target->name]));
     }
 
-    public function followBack(int $userId): void
+    public function followBack(string $userId): void
     {
         $target = User::find($userId);
         if (! $target || $target->is($this->authUser)) {
@@ -178,7 +178,7 @@ class PeoplePage extends Component
         session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));
     }
 
-    public function removeFollower(int $userId): void
+    public function removeFollower(string $userId): void
     {
         $target = User::find($userId);
         if (! $target) {
@@ -196,7 +196,7 @@ class PeoplePage extends Component
         session()->flash('success', __('common.flash_follower_removed', ['name' => $target->name]));
     }
 
-    public function unblock(int $userId): void
+    public function unblock(string $userId): void
     {
         $target = User::find($userId);
         if (! $target) {
@@ -209,7 +209,7 @@ class PeoplePage extends Component
         session()->flash('success', __('common.flash_user_unblocked', ['name' => $target->name]));
     }
 
-    public function followFromNearby(int $userId): void
+    public function followFromNearby(string $userId): void
     {
         $target = User::find($userId);
         if (! $target || $target->is($this->authUser)) {
@@ -226,7 +226,7 @@ class PeoplePage extends Component
 
     // ── Helpers ──────────────────────────────────────
 
-    public function isFollowingUser(int $userId): bool
+    public function isFollowingUser(string $userId): bool
     {
         return $this->authUser->isFollowing(User::find($userId));
     }

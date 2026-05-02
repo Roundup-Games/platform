@@ -125,9 +125,9 @@ class Show extends Component
     public function selectionChanged(string $preferenceType, array $selectedIds): void
     {
         if ($preferenceType === 'favorite') {
-            $this->favoriteGameSystemIds = array_map('intval', $selectedIds);
+            $this->favoriteGameSystemIds = array_map('strval', $selectedIds);
         } elseif ($preferenceType === 'avoid') {
-            $this->avoidedGameSystemIds = array_map('intval', $selectedIds);
+            $this->avoidedGameSystemIds = array_map('strval', $selectedIds);
         }
     }
 
@@ -280,8 +280,8 @@ class Show extends Component
 
         // Detect changes for discovery cache invalidation
         $vibesChanged = $oldVibePreferences !== $this->vibePreferences;
-        $newFavoriteIds = collect($validated['favoriteGameSystemIds'])->map('intval')->sort()->values()->toArray();
-        $newAvoidedIds = collect($validated['avoidedGameSystemIds'])->map('intval')->sort()->values()->toArray();
+        $newFavoriteIds = collect($validated['favoriteGameSystemIds'])->map('strval')->sort()->values()->toArray();
+        $newAvoidedIds = collect($validated['avoidedGameSystemIds'])->map('strval')->sort()->values()->toArray();
         $gameSystemsChanged = $oldFavoriteIds !== $newFavoriteIds || $oldAvoidedIds !== $newAvoidedIds;
 
         $user->update([

@@ -8,11 +8,17 @@ use Illuminate\Support\Str;
 
 class GameSystemFamily extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = ['id', 'name', 'slug'];
 
     protected static function booted(): void
     {
         static::creating(function (self $family) {
+            if (empty($family->id)) {
+                $family->id = (string) Str::orderedUuid();
+            }
             if (empty($family->slug)) {
                 $family->slug = Str::slug($family->name);
             }

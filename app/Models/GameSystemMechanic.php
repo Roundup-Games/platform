@@ -8,11 +8,17 @@ use Illuminate\Support\Str;
 
 class GameSystemMechanic extends Model
 {
-    protected $fillable = ['name', 'slug', 'description'];
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = ['id', 'name', 'slug', 'description'];
 
     protected static function booted(): void
     {
         static::creating(function (self $mechanic) {
+            if (empty($mechanic->id)) {
+                $mechanic->id = (string) Str::orderedUuid();
+            }
             if (empty($mechanic->slug)) {
                 $mechanic->slug = Str::slug($mechanic->name);
             }

@@ -94,9 +94,9 @@ class GameSystemsPage extends Component
 
     // ── Chip toggle actions ────────────────────────────
 
-    public function toggleCategory(int $categoryId): void
+    public function toggleCategory(string $categoryId): void
     {
-        $key = array_search($categoryId, $this->category_ids);
+        $key = array_search($categoryId, $this->category_ids, true);
         if ($key !== false) {
             unset($this->category_ids[$key]);
             $this->category_ids = array_values($this->category_ids);
@@ -106,9 +106,9 @@ class GameSystemsPage extends Component
         $this->resetPage();
     }
 
-    public function toggleMechanic(int $mechanicId): void
+    public function toggleMechanic(string $mechanicId): void
     {
-        $key = array_search($mechanicId, $this->mechanic_ids);
+        $key = array_search($mechanicId, $this->mechanic_ids, true);
         if ($key !== false) {
             unset($this->mechanic_ids[$key]);
             $this->mechanic_ids = array_values($this->mechanic_ids);

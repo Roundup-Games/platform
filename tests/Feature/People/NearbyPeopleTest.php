@@ -212,7 +212,7 @@ class NearbyPeopleTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'nearby')
-            ->call('followFromNearby', 99999);
+            ->call('followFromNearby', \Illuminate\Support\Str::uuid()->toString());
 
         $this->assertEquals(0, UserRelationship::count());
     }

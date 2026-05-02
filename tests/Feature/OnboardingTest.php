@@ -669,7 +669,7 @@ it('rejects invalid game system IDs during onboarding', function () {
         ->set('pronouns', 'he/him')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('favoriteGameSystemIds', [$gs->id, 999999])
+        ->set('favoriteGameSystemIds', [$gs->id, \Illuminate\Support\Str::uuid()->toString()])
         ->call('complete')
         ->assertHasErrors(['favoriteGameSystemIds.1']);
 });
@@ -688,7 +688,7 @@ it('rejects all non-existent game system IDs during onboarding', function () {
         ->set('pronouns', 'he/him')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('favoriteGameSystemIds', [888888, 999999])
+        ->set('favoriteGameSystemIds', [\Illuminate\Support\Str::uuid()->toString(), \Illuminate\Support\Str::uuid()->toString()])
         ->call('complete')
         ->assertHasErrors(['favoriteGameSystemIds.0', 'favoriteGameSystemIds.1']);
 });

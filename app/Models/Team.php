@@ -25,6 +25,7 @@ class Team extends Model implements HasMedia
     protected $translatable = ['description'];
 
     protected $fillable = [
+        'id',
         'name', 'slug', 'description', 'city', 'country', 'logo_url',
         'primary_color', 'secondary_color', 'founded_year', 'website',
         'social_links', 'is_active', 'created_by',

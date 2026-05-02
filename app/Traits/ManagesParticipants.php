@@ -68,7 +68,7 @@ trait ManagesParticipants
         $skippedCount = 0;
 
         foreach ($this->selectedFriendIds as $userId) {
-            $userId = (int) $userId;
+            $userId = (string) $userId;
             $targetUser = User::find($userId);
 
             // Skip if user doesn't exist (stale selection)

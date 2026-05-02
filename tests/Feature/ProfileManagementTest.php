@@ -243,7 +243,7 @@ it('validates game system IDs exist', function () {
 
     Livewire::actingAs($user)
         ->test(Show::class)
-        ->set('favoriteGameSystemIds', [999999])
+        ->set('favoriteGameSystemIds', [\Illuminate\Support\Str::uuid()->toString()])
         ->call('savePreferences')
         ->assertHasErrors(['favoriteGameSystemIds.0']);
 });

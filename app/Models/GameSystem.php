@@ -22,6 +22,7 @@ class GameSystem extends Model implements HasMedia
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'name', 'slug', 'description', 'images', 'min_players', 'max_players',
         'optimal_players', 'average_play_time', 'age_rating', 'complexity_rating', 'year_released',
         'bgg_id', 'bgg_type', 'thumbnail_url', 'base_game_id',

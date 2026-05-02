@@ -58,8 +58,8 @@ class GameSystemPreferencePicker extends Component
         array $conflictIds = [],
     ): void {
         $this->preferenceType = $preferenceType;
-        $this->selectedIds = array_map('intval', $selectedIds);
-        $this->conflictIds = array_map('intval', $conflictIds);
+        $this->selectedIds = array_map('strval', $selectedIds);
+        $this->conflictIds = array_map('strval', $conflictIds);
     }
 
     #[Computed]
@@ -159,7 +159,7 @@ class GameSystemPreferencePicker extends Component
      * If it has expansions, show the expansion sub-picker.
      * If no expansions, add it directly.
      */
-    public function pickFromSearch(int $id): void
+    public function pickFromSearch(string $id): void
     {
         $system = GameSystem::withCount('expansions')->find($id);
         if (! $system) {
@@ -179,7 +179,7 @@ class GameSystemPreferencePicker extends Component
     /**
      * Select a specific item (base or expansion) from the expansion sub-picker.
      */
-    public function pickExpansion(int $id): void
+    public function pickExpansion(string $id): void
     {
         $this->add($id);
         $this->showExpansionPicker = false;
@@ -224,7 +224,7 @@ class GameSystemPreferencePicker extends Component
         );
     }
 
-    public function remove(int $id): void
+    public function remove(string $id): void
     {
         $this->selectedIds = array_values(
             array_filter($this->selectedIds, fn ($sid) => $sid !== $id),
@@ -244,7 +244,7 @@ class GameSystemPreferencePicker extends Component
         $this->selectedBaseId = null;
     }
 
-    public function checkConflict(int $id): void
+    public function checkConflict(string $id): void
     {
         $system = GameSystem::find($id);
 

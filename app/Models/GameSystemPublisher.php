@@ -8,11 +8,17 @@ use Illuminate\Support\Str;
 
 class GameSystemPublisher extends Model
 {
-    protected $fillable = ['name', 'slug'];
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = ['id', 'name', 'slug'];
 
     protected static function booted(): void
     {
         static::creating(function (self $publisher) {
+            if (empty($publisher->id)) {
+                $publisher->id = (string) Str::orderedUuid();
+            }
             if (empty($publisher->slug)) {
                 $publisher->slug = Str::slug($publisher->name);
             }

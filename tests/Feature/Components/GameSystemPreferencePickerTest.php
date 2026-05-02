@@ -436,7 +436,7 @@ describe('Edge Cases', function () {
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
             ->call('add', $base->id)
-            ->call('remove', 99999)
+            ->call('remove', \Illuminate\Support\Str::uuid()->toString())
             ->assertSet('selectedIds', [$base->id]);
     });
 });

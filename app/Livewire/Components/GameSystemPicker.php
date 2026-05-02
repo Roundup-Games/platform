@@ -245,7 +245,7 @@ class GameSystemPicker extends Component
      * If it has expansions, show the expansion picker.
      * If no expansions, select it directly.
      */
-    public function pickFromSearch(int $id): void
+    public function pickFromSearch(string $id): void
     {
         $system = GameSystem::find($id);
         if (! $system) {
@@ -286,7 +286,7 @@ class GameSystemPicker extends Component
         $this->showExpansionPicker = false;
     }
 
-    public function pickFavorite(int $id): void
+    public function pickFavorite(string $id): void
     {
         $this->pickFromSearch($id);
     }

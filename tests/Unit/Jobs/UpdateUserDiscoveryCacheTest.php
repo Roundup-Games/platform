@@ -49,7 +49,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
         Log::shouldReceive('info')->atLeast(1);
         Log::shouldReceive('warning')->once();
 
-        $job = new UpdateUserDiscoveryCache(99999, 'location_change');
+        $job = new UpdateUserDiscoveryCache(\Illuminate\Support\Str::uuid()->toString(), 'location_change');
         $job->handle(app(\App\Services\PeopleDiscoveryService::class));
 
         $this->assertEquals(0, NearbyDiscoveryView::count());
@@ -111,13 +111,14 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     #[Test]
     public function it_logs_failure_on_exception(): void
     {
-        Log::shouldReceive('error')->once()->with('discovery.job.failed', \Mockery::on(function ($context) {
-            return $context['user_id'] === 1
+        $fakeUuid = \Illuminate\Support\Str::uuid()->toString();
+        Log::shouldReceive('error')->once()->with('discovery.job.failed', \Mockery::on(function ($context) use ($fakeUuid) {
+            return $context['user_id'] === $fakeUuid
                 && $context['trigger_type'] === 'sweep'
                 && isset($context['exception']);
         }));
 
-        $job = new UpdateUserDiscoveryCache(1, 'sweep');
+        $job = new UpdateUserDiscoveryCache($fakeUuid, 'sweep');
         $job->failed(new \RuntimeException('test error'));
     }
 
@@ -178,7 +179,7 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     #[Test]
     public function it_deletes_when_model_missing(): void
     {
-        $job = new UpdateUserDiscoveryCache(99999, 'location_change');
+        $job = new UpdateUserDiscoveryCache(\Illuminate\Support\Str::uuid()->toString(), 'location_change');
 
         $this->assertTrue($job->deleteWhenMissingModels);
     }

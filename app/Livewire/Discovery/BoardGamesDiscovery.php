@@ -172,7 +172,7 @@ class BoardGamesDiscovery extends Component
         $this->resetPage();
     }
 
-    public function toggleCategory(int $categoryId): void
+    public function toggleCategory(string $categoryId): void
     {
         $index = array_search($categoryId, $this->category_ids, true);
         if ($index !== false) {
@@ -184,7 +184,7 @@ class BoardGamesDiscovery extends Component
         $this->resetPage();
     }
 
-    public function toggleMechanic(int $mechanicId): void
+    public function toggleMechanic(string $mechanicId): void
     {
         $index = array_search($mechanicId, $this->mechanic_ids, true);
         if ($index !== false) {
