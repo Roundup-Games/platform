@@ -333,7 +333,7 @@ class CompleteProfile extends Component
     /**
      * Resolve or create a Location record from the onboarding location data.
      */
-    private function resolveLocationId(): ?int
+    private function resolveLocationId(): ?string
     {
         if (! $this->locationConfirmed || $this->lat === null || $this->lng === null) {
             return null;

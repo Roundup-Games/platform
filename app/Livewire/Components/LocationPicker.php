@@ -38,7 +38,7 @@ class LocationPicker extends Component
 
     // Input: existing location to pre-fill from
     #[Locked]
-    public ?int $locationId = null;
+    public ?string $locationId = null;
 
     // Internal state
     public string $city = '';
@@ -49,7 +49,7 @@ class LocationPicker extends Component
     public bool $locationConfirmed = false;
     public bool $editing = false;
 
-    public function mount(?int $locationId = null): void
+    public function mount(?string $locationId = null): void
     {
         $this->locationId = $locationId;
 

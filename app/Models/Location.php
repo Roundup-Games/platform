@@ -6,10 +6,14 @@ use App\Services\Geohash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Location extends Model
 {
     use HasFactory;
+
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'name',
@@ -39,6 +43,12 @@ class Location extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (self $location) {
+            if (empty($location->id)) {
+                $location->id = (string) Str::orderedUuid();
+            }
+        });
+
         static::saving(function (self $location) {
             if ($location->latitude && $location->longitude) {
                 $location->geohash_4 = Geohash::tilePrefix(

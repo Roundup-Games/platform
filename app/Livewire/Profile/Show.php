@@ -32,7 +32,7 @@ class Show extends Component
 
     public string $preferredLanguage = '';
 
-    public ?int $locationId = null;
+    public ?string $locationId = null;
 
     #[Locked]
     public bool $userHasPassword;
@@ -148,7 +148,7 @@ class Show extends Component
      * Receive location selection from the LocationPicker component.
      */
     #[On('location-selected')]
-    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
+    public function onLocationSelected(string $locationId, string $city, ?string $address = null): void
     {
         $this->locationId = $locationId;
     }

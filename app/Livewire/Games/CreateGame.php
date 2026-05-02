@@ -43,7 +43,7 @@ class CreateGame extends Component
 
     public string $language = 'en';
 
-    public ?int $location_id = null;
+    public ?string $location_id = null;
 
     public string $visibility = 'protected';
 
@@ -77,7 +77,7 @@ class CreateGame extends Component
             'expected_duration' => 'nullable|numeric|min:0.5|max:24',
             'price' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
-            'location_id' => 'nullable|integer|exists:locations,id',
+            'location_id' => 'nullable|uuid|exists:locations,id',
             'visibility' => 'required|in:public,protected,private',
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
@@ -97,7 +97,7 @@ class CreateGame extends Component
     // ── Event Listeners ──────────────────────────────────
 
     #[On('location-selected')]
-    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
+    public function onLocationSelected(string $locationId, string $city, ?string $address = null): void
     {
         $this->location_id = $locationId;
     }

@@ -23,7 +23,7 @@ class CreateCampaign extends Component
 
     public ?int $game_system_id = null;
 
-    public ?int $location_id = null;
+    public ?string $location_id = null;
 
     public string $description = '';
 
@@ -59,7 +59,7 @@ class CreateCampaign extends Component
         return [
             'name' => 'required|string|max:255',
             'game_system_id' => 'nullable|exists:game_systems,id',
-            'location_id' => 'nullable|integer|exists:locations,id',
+            'location_id' => 'nullable|uuid|exists:locations,id',
             'description' => 'nullable|string|max:10000',
             'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
             'time_of_day' => 'required|date_format:H:i',
@@ -79,7 +79,7 @@ class CreateCampaign extends Component
     // ── Event Listeners ──────────────────────────────────
 
     #[On('location-selected')]
-    public function onLocationSelected(int $locationId, string $city, ?string $address = null): void
+    public function onLocationSelected(string $locationId, string $city, ?string $address = null): void
     {
         $this->location_id = $locationId;
     }
