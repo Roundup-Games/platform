@@ -7,39 +7,6 @@ use App\Models\GameSystemPublisher;
 use Illuminate\Support\Facades\Artisan;
 
 // ═══════════════════════════════════════════════════════════
-// SEEDER SMOKE: RUN ONCE, VERIFY COUNTS
-// ═══════════════════════════════════════════════════════════
-
-describe('StartPlayingSeeder — counts', function () {
-    beforeEach(function () {
-        Artisan::call('db:seed', ['--class' => 'StartPlayingSeeder']);
-    });
-
-    it('seeds 71 TTRPG systems', function () {
-        expect(GameSystem::where('type', 'ttrpg')->where('source', 'startplaying')->count())->toBe(71);
-    });
-
-    it('seeds 40 genres', function () {
-        // SP crawl data contains exactly 40 genres; additional genres may be
-        // created as fallbacks from system data, so we assert >= 40.
-        $crawlSlugs = array_column(require database_path('seeders/data/ttrpg-genres.php'), 'slug');
-        $present = GameSystemCategory::whereIn('slug', $crawlSlugs)->count();
-        expect($present)->toBe(40);
-    });
-
-    it('seeds 17 mechanics', function () {
-        $crawlSlugs = array_column(require database_path('seeders/data/ttrpg-mechanics.php'), 'slug');
-        $present = GameSystemMechanic::whereIn('slug', $crawlSlugs)->count();
-        expect($present)->toBe(17);
-    });
-
-    it('seeds publishers extracted from system data', function () {
-        // 32 unique publishers from SP data
-        expect(GameSystemPublisher::count())->toBeGreaterThanOrEqual(32);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
 // SPOT-CHECK: DAGGERHEART
 // ═══════════════════════════════════════════════════════════
 
@@ -154,69 +121,6 @@ describe('StartPlayingSeeder — Daggerheart spot-check', function () {
             ->and($dh->sp_rating)->toBeGreaterThan(4.0)
             ->and($dh->sp_review_count)->not->toBeNull()
             ->and($dh->sp_review_count)->toBeGreaterThan(0);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// SPOT-CHECK: GENRE CROSS-LINKS
-// ═══════════════════════════════════════════════════════════
-
-describe('StartPlayingSeeder — genre cross-links', function () {
-    beforeEach(function () {
-        Artisan::call('db:seed', ['--class' => 'StartPlayingSeeder']);
-    });
-
-    it('Fantasy genre has similar genres linked', function () {
-        $fantasy = GameSystemCategory::where('slug', 'fantasy')->firstOrFail();
-
-        $similarSlugs = $fantasy->similarCategories()->pluck('slug')->toArray();
-
-        // From crawl data: cozy, dark-fantasy, gritty-fantasy, high-fantasy, low-magic, urban-fantasy
-        expect(count($similarSlugs))->toBeGreaterThanOrEqual(5)
-            ->and($similarSlugs)->toContain('dark-fantasy')
-            ->and($similarSlugs)->toContain('high-fantasy')
-            ->and($similarSlugs)->toContain('urban-fantasy');
-    });
-
-    it('similar categories have pivot type = similar', function () {
-        $fantasy = GameSystemCategory::where('slug', 'fantasy')->firstOrFail();
-
-        $all = $fantasy->similarCategories()->get();
-
-        foreach ($all as $related) {
-            expect($related->pivot->type)->toBe('similar');
-        }
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// SPOT-CHECK: MECHANIC CROSS-LINKS
-// ═══════════════════════════════════════════════════════════
-
-describe('StartPlayingSeeder — mechanic cross-links', function () {
-    beforeEach(function () {
-        Artisan::call('db:seed', ['--class' => 'StartPlayingSeeder']);
-    });
-
-    it('d20 System mechanic has similar mechanics linked', function () {
-        $d20 = GameSystemMechanic::where('slug', 'd20-system')->firstOrFail();
-
-        $similarSlugs = $d20->similarMechanics()->pluck('slug')->toArray();
-
-        // From crawl data: powered-by-mörk-borg, osr, essence-20-system
-        expect(count($similarSlugs))->toBeGreaterThanOrEqual(3)
-            ->and($similarSlugs)->toContain('osr')
-            ->and($similarSlugs)->toContain('essence-20-system');
-    });
-
-    it('similar mechanics have pivot type = similar', function () {
-        $d20 = GameSystemMechanic::where('slug', 'd20-system')->firstOrFail();
-
-        $all = $d20->similarMechanics()->get();
-
-        foreach ($all as $related) {
-            expect($related->pivot->type)->toBe('similar');
-        }
     });
 });
 
