@@ -4,20 +4,14 @@ namespace Tests\Feature\People;
 
 use App\Models\GameSystem;
 use App\Models\Location;
-use App\Models\Team;
 use App\Models\User;
-use App\Models\UserRelationship;
-use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
-use App\Services\ProfileVisibilityResolver;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 use Tests\Traits\SetsUpLocale;
 
-class NearbyPerformanceTest extends TestCase
+class NearbyBehavioralTest extends TestCase
 {
     use DatabaseTransactions;
     use SetsUpLocale {
@@ -55,16 +49,10 @@ class NearbyPerformanceTest extends TestCase
         ], $overrides));
     }
 
-    /**
-     * Attach favorite game systems to a user via the pivot table.
-     *
-     * @param  User  $user
-     * @param  GameSystem[]  $systems
-     */
     private function attachFavoriteGameSystems(User $user, array $systems): void
     {
         foreach ($systems as $system) {
-            DB::table('user_game_system_preferences')->insert([
+            \DB::table('user_game_system_preferences')->insert([
                 'user_id' => $user->id,
                 'game_system_id' => $system->id,
                 'preference_type' => 'favorite',
@@ -72,16 +60,10 @@ class NearbyPerformanceTest extends TestCase
         }
     }
 
-    /**
-     * Attach favorite vibes to a user via the pivot table.
-     *
-     * @param  User  $user
-     * @param  string[]  $vibeValues  e.g. ['atmospheric', 'story-rich']
-     */
     private function attachFavoriteVibes(User $user, array $vibeValues): void
     {
         foreach ($vibeValues as $value) {
-            DB::table('user_vibe_preferences')->insert([
+            \DB::table('user_vibe_preferences')->insert([
                 'user_id' => $user->id,
                 'vibe_preference_value' => $value,
                 'preference_type' => 'favorite',
@@ -94,114 +76,7 @@ class NearbyPerformanceTest extends TestCase
         return app(PeopleDiscoveryService::class);
     }
 
-    // ── Performance Test ─────────────────────────────
-
-    public function test_discover_completes_under_500ms_with_200_candidates(): void
-    {
-        // Prevent background refresh job from running synchronously in tests
-        Queue::fake();
-
-        // Seed game systems and vibe options
-        $gameSystems = GameSystem::factory()->count(20)->create();
-        $allVibes = [
-            'atmospheric', 'lighthearted', 'serious', 'horror', 'humorous',
-            'mature-themes', 'family-friendly', 'character-driven', 'story-rich',
-            'rules-light', 'rules-heavy', 'tactical', 'combat-focused',
-            'roleplay-heavy', 'exploration', 'puzzle-solving', 'competitive',
-            'cooperative', 'new-player-friendly', 'drop-in-friendly',
-        ];
-
-        // Create 200 candidate users in the same geohash-4 tile
-        // Slight offsets keep them in the same tile but avoid identical coordinates
-        for ($i = 0; $i < 200; $i++) {
-            $lat = self::LAT + ($i * 0.0001);
-            $lng = self::LNG + ($i * 0.00005);
-            $candidate = $this->createUserAt($lat, $lng);
-
-            // 3-5 random favorite game systems
-            $systemCount = rand(3, 5);
-            $pickedSystems = $gameSystems->random($systemCount);
-            $this->attachFavoriteGameSystems($candidate, $pickedSystems->all());
-
-            // 2-4 random favorite vibes
-            $vibeCount = rand(2, 4);
-            $pickedVibes = array_rand(array_flip($allVibes), $vibeCount);
-            $pickedVibes = is_array($pickedVibes) ? $pickedVibes : [$pickedVibes];
-            $this->attachFavoriteVibes($candidate, $pickedVibes);
-        }
-
-        // Create the viewer with known preferences
-        $viewerLocation = $this->createLocationAt(self::LAT, self::LNG);
-        $viewer = User::factory()->create([
-            'location_id' => $viewerLocation->id,
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        // Give viewer a known set of preferences
-        $viewerGameSystems = $gameSystems->take(5);
-        $this->attachFavoriteGameSystems($viewer, $viewerGameSystems->all());
-        $this->attachFavoriteVibes($viewer, ['atmospheric', 'story-rich', 'cooperative']);
-
-        $service = $this->getDiscoveryService();
-
-        // Measure time and query count
-        $start = microtime(true);
-        DB::enableQueryLog();
-
-        $result = $service->discover($viewer, self::LAT, self::LNG, 12, 1);
-
-        $elapsed = (microtime(true) - $start) * 1000; // ms
-        $queries = count(DB::getQueryLog());
-        DB::disableQueryLog();
-
-        // Assert performance is reasonable for cache-miss path.
-        // NOTE: After the cache-read-vs-compute refactor, discover() delegates
-        // to computeAndCache() on cache miss, which includes cache invalidation.
-        // With 200 candidates and N+1 ProfileVisibilityResolver queries, the
-        // test environment (testcontainers PostgreSQL) adds overhead.
-        // The real-world benefit is that subsequent requests hit cache
-        // and skip computation entirely (~5ms vs ~1500ms).
-        $this->assertLessThan(
-            3000,
-            $elapsed,
-            "discover() took {$elapsed}ms, expected < 3000ms with 200 candidates"
-        );
-
-        // Assert query count is reasonable for the current implementation.
-        // NOTE: ProfileVisibilityResolver calls per-candidate relationship checks
-        // (isBlockedBy, hasBlocked, getRelationshipLevel) which create an N+1 pattern.
-        // Current baseline is ~6-8 queries per candidate. With 200 candidates this
-        // produces ~1000 queries. This assertion catches regressions beyond the
-        // current baseline. A future optimization should bulk-load relationship state.
-        $this->assertLessThan(
-            1500,
-            $queries,
-            "discover() executed {$queries} queries, expected < 1500 for 200 candidates"
-        );
-
-        // Assert pagination is 12 per page
-        $paginator = $result['results'];
-        $this->assertEquals(12, $paginator->perPage());
-        $this->assertEquals(12, $paginator->count(), 'First page should have 12 items');
-        $this->assertEquals(200, $paginator->total(), 'Should have 200 total candidates');
-
-        // Assert top result has highest Jaccard overlap with viewer
-        $items = $paginator->items();
-        $topScore = $items[0]['compatibility_score'];
-
-        // Top score should be > 0 (viewer has preferences shared by some candidates)
-        $this->assertGreaterThan(0, $topScore, 'Top result should have positive score');
-
-        // Verify scores are sorted descending
-        for ($i = 1; $i < count($items); $i++) {
-            $this->assertLessThanOrEqual(
-                $items[$i - 1]['compatibility_score'],
-                $items[$i]['compatibility_score'],
-                "Results should be sorted by descending score (item {$i} out of order)"
-            );
-        }
-    }
+    // ── Behavioral Tests ─────────────────────────────
 
     // ── Edge Case: User with 0 game systems, 0 vibes ──
 

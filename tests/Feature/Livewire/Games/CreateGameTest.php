@@ -248,7 +248,7 @@ describe('CreateGame — TTRPG Creation', function () {
 
         $game = Game::where('name', 'Dungeon Crawl')->first();
         expect($game->safety_rules['tools'])->toContain('x-card', 'lines-veils');
-    });
+    })->group('smoke');
 
     it('stores TTRPG duration default when not overridden', function () {
         $user = createGameTestUser();
