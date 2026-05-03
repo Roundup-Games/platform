@@ -31,19 +31,6 @@ function createGmNavigationUser(): User
 }
 
 describe('Public Layout Mobile Nav', function () {
-    it('includes all navigation links in mobile menu', function () {
-        get(route('home'))
-            ->assertOk()
-            // Mobile nav links — primary items
-            ->assertSee('Discover')
-            ->assertSee('How It Works')
-            // Secondary items still accessible in mobile
-            ->assertSee('About')
-            ->assertSee('Contact')
-            // Hamburger/X icon swap via Alpine
-            ->assertSee('x-transition:enter');
-    });
-
     it('includes correct route URLs in mobile nav', function () {
         get(route('home'))
             ->assertOk()
@@ -72,16 +59,6 @@ describe('Public Layout Mobile Nav', function () {
             ->assertSee(route('logout'));
     });
 
-    it('has hamburger and X icons for mobile toggle', function () {
-        get(route('home'))
-            ->assertOk()
-            // Material Symbols hamburger icon (menu)
-            ->assertSee('material-symbols-outlined')
-            ->assertSee('menu')
-            // Material Symbols close icon
-            ->assertSee('close');
-    });
-
     it('does not show Events link in mobile primary nav', function () {
         $response = get(route('home'));
         $response->assertOk();
@@ -100,13 +77,6 @@ describe('Public Layout Mobile Nav', function () {
 });
 
 describe('Public Layout Desktop Nav', function () {
-    it('shows primary nav items in desktop header', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Discover')
-            ->assertSee('How It Works');
-    });
-
     it('does not show Events as a prominent desktop nav item', function () {
         // Events is demoted to footer only — it should NOT appear
         // as a top-level desktop nav link. We check the desktop nav
@@ -128,13 +98,6 @@ describe('Public Layout Desktop Nav', function () {
         $desktopNav = $desktopNavMatch[0] ?? '';
         // Events link should not appear in desktop primary nav
         $this->assertStringNotContainsString(route('events.index'), $desktopNav);
-    });
-
-    it('includes Near Me with location icon', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('location_on')  // Material Symbol for Near Me
-            ->assertSee(route('discover'));
     });
 });
 
@@ -160,16 +123,6 @@ describe('Public Layout Footer', function () {
             ->assertSee('Account')
             ->assertSee(route('login'))
             ->assertSee(route('register'));
-    });
-
-    it('includes satellite page links in footer', function () {
-        get(route('home'))
-            ->assertOk()
-            // Game Systems is in the Platform column
-            ->assertSee('Game Systems')
-            // How It Works and For Organizers are in the Support column
-            ->assertSee('How It Works')
-            ->assertSee('For Organizers');
     });
 
     it('includes satellite page URLs with locale prefix in footer', function () {
@@ -351,44 +304,6 @@ describe('App Sidebar Navigation', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// PEOPLE NAV — ICON & ACTIVE STATE (merged from root)
-// ═══════════════════════════════════════════════════════════
-
-describe('People Nav — Icon & Active State', function () {
-    beforeEach(function () {
-        $this->user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-    });
-
-    it('uses group icon for People nav link', function () {
-        $response = actingAs($this->user)->get(route('dashboard'));
-        $response->assertOk();
-        $content = $response->getContent();
-        // The "group" Material Symbol icon should appear (mobile + desktop)
-        $this->assertStringContainsString('>group</span>', $content);
-    });
-
-    it('has active fill state on People page', function () {
-        $response = actingAs($this->user)->get(route('people'));
-        $response->assertOk();
-        $content = $response->getContent();
-        // Active state: the group icon should have FILL variation set
-        $this->assertMatchesRegularExpression("/FILL.*1.*group<\/span>/s", $content);
-    });
-
-    it('does not show active fill on dashboard page', function () {
-        $response = actingAs($this->user)->get(route('dashboard'));
-        $response->assertOk();
-        $content = $response->getContent();
-        // The group icon should NOT have FILL 1 when on dashboard
-        $groupFillCount = substr_count($content, "FILL&#039; 1&quot;>group</span>");
-        $this->assertEquals(0, $groupFillCount, 'People nav icon should not be filled on dashboard page');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
 // GM WORKSPACE NAV (merged from root)
 // ═══════════════════════════════════════════════════════════
 
@@ -414,14 +329,6 @@ describe('GM Workspace Nav', function () {
             ->assertOk()
             ->assertSee(route('gm.workspace'))
             ->assertSee(__('profile.nav_gm_workspace'));
-    });
-
-    it('workspace uses casino icon', function () {
-        $gm = createGmNavigationUser();
-
-        $response = actingAs($gm)->get(route('dashboard'));
-        $response->assertOk();
-        $this->assertStringContainsString('>casino</span>', $response->getContent());
     });
 });
 

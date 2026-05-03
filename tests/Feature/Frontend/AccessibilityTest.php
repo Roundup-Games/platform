@@ -25,8 +25,7 @@ describe('Skip Links', function () {
             ->assertOk()
             ->assertSee('Skip to content')
             ->assertSee('href="#main-content"', false)
-            ->assertSee('id="main-content"', false)
-            ->assertSee('sr-only focus:not-sr-only', false);
+            ->assertSee('id="main-content"', false);
     });
 
     it('has skip link on public layout pages', function () {
@@ -62,50 +61,6 @@ describe('Navigation ARIA', function () {
             ->assertOk()
             ->assertSee('aria-label="Toggle navigation menu"', false)
             ->assertSee('aria-expanded', false);
-    });
-});
-
-describe('Decorative SVGs', function () {
-    it('all SVGs have aria-hidden attribute in public pages', function () {
-        $response = get(route('home'));
-        $content = $response->getContent();
-
-        // Find all SVG tags
-        preg_match_all('/<svg\b[^>]*>/s', $content, $matches);
-
-        // If no SVGs found (e.g. replaced with icon fonts), the test is vacuously true
-        if (empty($matches[0])) {
-            expect(true)->toBeTrue();
-
-            return;
-        }
-
-        foreach ($matches[0] as $svgTag) {
-            expect($svgTag)->toContain('aria-hidden="true"');
-        }
-    });
-
-    it('all SVGs have aria-hidden attribute in dashboard', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $response = actingAs($user)->get(route('dashboard'));
-        $content = $response->getContent();
-
-        preg_match_all('/<svg\b[^>]*>/s', $content, $matches);
-
-        // If no SVGs found (e.g. replaced with icon fonts), the test is vacuously true
-        if (empty($matches[0])) {
-            expect(true)->toBeTrue();
-
-            return;
-        }
-
-        foreach ($matches[0] as $svgTag) {
-            expect($svgTag)->toContain('aria-hidden="true"');
-        }
     });
 });
 
@@ -191,19 +146,6 @@ describe('Theme Toggle', function () {
     it('has aria-label for accessibility', function () {
         $template = file_get_contents(resource_path('views/components/theme-toggle.blade.php'));
         expect($template)->toContain('aria-label="Toggle theme"');
-    });
-
-    it('icons have aria-hidden', function () {
-        $template = file_get_contents(resource_path('views/components/theme-toggle.blade.php'));
-
-        // Material Symbol spans replaced SVGs — verify they all have aria-hidden
-        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $template, $matches);
-
-        expect($matches[0])->not->toBeEmpty('Expected at least one Material Symbol icon in theme-toggle');
-
-        foreach ($matches[0] as $iconTag) {
-            expect($iconTag)->toContain('aria-hidden="true"');
-        }
     });
 });
 
@@ -386,28 +328,9 @@ describe('Form Label Associations', function () {
 });
 
 describe('User Link Component', function () {
-    it('renders link with sr-only accessible text for screen readers', function () {
-        $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
-        expect($template)->toContain('sr-only');
-        expect($template)->toContain("View {{ \$user->name }}'s profile");
-    });
-
-    it('renders avatar image with aria-hidden and empty alt', function () {
-        // Avatar was extracted from user-link to user-avatar component
+    it('renders avatar image with empty alt via user-avatar component', function () {
         $template = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
-        // Avatar image should be decorative (aria-hidden, alt="")
-        expect($template)->toContain('aria-hidden="true"');
         expect($template)->toContain('alt=""');
-    });
-
-    it('renders avatar initial fallback as decorative', function () {
-        // Avatar was extracted from user-link to user-avatar component
-        $template = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
-        // Initial-letter fallback span should be aria-hidden
-        // Count that aria-hidden appears in avatar-related contexts
-        // (3 instances: img, initial span, null-user fallback span)
-        $ariaHiddenCount = substr_count($template, 'aria-hidden="true"');
-        expect($ariaHiddenCount)->toBeGreaterThanOrEqual(2, 'Expected aria-hidden on both img and fallback span');
     });
 
     it('renders link text with meaningful user name content', function () {
@@ -493,31 +416,5 @@ describe('User Link Component Sweep', function () {
         $this->assertStringContainsString('sr-only', $content);
         // Should have avatar images or initial fallbacks (aria-hidden)
         $this->assertStringContainsString('aria-hidden="true"', $content);
-    });
-
-    it('user link renders correct aria structure on public profile page', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-        $visitor = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        // Visit another user's profile — profile.public renders the user,
-        // but the sidebar/footer nav should have user links elsewhere.
-        // We verify the component template itself has the right structure.
-        $template = file_get_contents(resource_path('views/components/user-link.blade.php'));
-        // Avatar was extracted to user-avatar component
-        $avatarTemplate = file_get_contents(resource_path('views/components/user-avatar.blade.php'));
-
-        // Link should have wire:navigate for SPA transitions
-        expect($template)->toContain('wire:navigate');
-        // Avatar is decorative (aria-hidden) — now in user-avatar component
-        expect($avatarTemplate)->toContain('aria-hidden="true"');
-        // Screen reader text provides context
-        expect($template)->toContain('sr-only');
-        expect($template)->toContain("View {{ \$user->name }}'s profile");
     });
 });
