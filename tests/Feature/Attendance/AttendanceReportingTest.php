@@ -18,6 +18,8 @@ class AttendanceReportingTest extends TestCase
     use DatabaseTransactions;
     use SetsUpLocale;
 
+    // smoke: core attendance flow — peer reports attendance for another player
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_peer_reports_attendance(): void
     {

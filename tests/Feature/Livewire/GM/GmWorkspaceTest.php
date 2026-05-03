@@ -51,6 +51,8 @@ describe('GmWorkspace Access Control', function () {
             ->assertRedirect(route('dashboard', 'en'));
     });
 
+    // smoke: subscription gate — active subscribed GMs can view workspace
+    // smoke: subscription gate — active subscribed GMs can view workspace
     it('allows active subscribed GMs to view workspace', function () {
         $gm = $this->createSubscribedGm();
 
@@ -58,7 +60,7 @@ describe('GmWorkspace Access Control', function () {
             ->get(route('gm.workspace', 'en'))
             ->assertOk()
             ->assertSee('GM Workspace');
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════

@@ -230,6 +230,8 @@ class GMProfileTest extends TestCase
 
     // ── Profile Lifecycle via GmRoleService ────────────
 
+    // smoke: GM profile is created when GM role is assigned
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_profile_created_on_role_assignment(): void
     {
         $user = $this->createSubscribedUser();

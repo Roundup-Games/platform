@@ -75,6 +75,7 @@ function createEligibleCampaign(): array
 // ═══════════════════════════════════════════════════════════
 
 describe('WriteReview — Game Session', function () {
+    // smoke: write-review form renders for eligible game participant
     it('renders the form for an eligible game session', function () {
         $data = createEligibleGameSession();
 
@@ -87,7 +88,7 @@ describe('WriteReview — Game Session', function () {
             ->assertOk()
             ->assertSee('Write a Review')
             ->assertSet('reviewableName', $data['game']->name);
-    });
+    })->group('smoke');
 
     it('shows error for non-participant user', function () {
         $data = createEligibleGameSession();

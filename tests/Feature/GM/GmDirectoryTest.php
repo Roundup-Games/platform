@@ -49,6 +49,8 @@ class GmDirectoryTest extends TestCase
 
     // ── Page Renders ───────────────────────────────────
 
+    // smoke: paid-feature landing page renders
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_directory_page_renders_successfully(): void
     {
         $response = $this->get('/en/gms');
@@ -72,6 +74,8 @@ class GmDirectoryTest extends TestCase
 
     // ── GM Cards ───────────────────────────────────────
 
+    // smoke: core value proposition — active GMs appear in directory
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_active_gm_appears_in_directory(): void
     {
         $gm = $this->createActiveGm(['name' => 'Alice the GM']);
@@ -277,6 +281,8 @@ class GmDirectoryTest extends TestCase
 
     // ── Non-active GMs Hidden ──────────────────────────
 
+    // smoke: gating works — inactive GMs are filtered out
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_inactive_gm_not_shown_in_directory(): void
     {
         $inactiveGm = $this->createInactiveGm(['name' => 'Inactive GM']);

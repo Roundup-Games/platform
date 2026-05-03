@@ -67,10 +67,11 @@ function guestTestCreatePublicUser(): User
 // ═══════════════════════════════════════════════════════════
 
 describe('R019 — Guest listing redirects', function () {
+    // smoke: guest routing — /games redirects to /discover
     it('redirects guest from /games to /discover', function () {
         get('/en/games')
             ->assertRedirect('/en/discover');
-    });
+    })->group('smoke');
 
     it('redirects guest from /campaigns to /discover', function () {
         get('/en/campaigns')
@@ -90,7 +91,7 @@ describe('R020 — Guest game detail page', function () {
             ->assertOk()
             ->assertSee($game->name)
             ->assertSee('Sign Up Free');
-    });
+    })->group('smoke');
 
     it('denies guest from viewing protected game', function () {
         $game = guestTestCreatePublicGame(['visibility' => 'protected']);

@@ -94,7 +94,7 @@ describe('Game Detail — Review Display', function () {
         $response->assertOk()
             ->assertSee('Excellent storytelling session!')
             ->assertSee($data['reviewer']->name);
-    });
+    })->group('smoke');
 
     it('shows star rating on game detail reviews', function () {
         $data = setupGameWithReview();

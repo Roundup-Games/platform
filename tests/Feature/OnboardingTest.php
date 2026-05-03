@@ -101,7 +101,7 @@ it('redirects to onboarding after registration', function () {
     ]);
 
     $response->assertRedirect(route('onboarding.index'));
-});
+})->group('smoke');
 
 // ── Profile completion (direct model) ─────────────────
 
@@ -127,7 +127,7 @@ it('marks profile complete after updating profile fields', function () {
         ->and($fresh)->pronouns->toBe('they/them')
         ->and($fresh)->phone->toBe('+15551234567')
         ->and($fresh)->profile_version->toBe(1);
-});
+})->group('smoke');
 
 it('increments profile_version on completion', function () {
     $user = User::factory()->create([

@@ -67,7 +67,7 @@ describe('CreateSessionZero Access Control', function () {
             ->get(route('gm.session-zero.create', 'en'))
             ->assertOk()
             ->assertSee('Create Session Zero');
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
