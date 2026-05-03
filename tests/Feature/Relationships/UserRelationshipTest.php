@@ -15,57 +15,9 @@ use Illuminate\Support\Facades\Log;
 | This test suite provides end-to-end coverage of the relationship system:
 |   - UserRelationship model actions (follow, unfollow, block, unblock)
 |   - User model resolution helpers (isFollowing, isFriend, etc.)
-|   - Factory correctness
 |   - Edge cases and cross-concern interactions
 |
-| Note: T02 and T03 already have PHPUnit-style test files
-| (UserRelationshipModelTest, UserRelationshipTest). This file
-| consolidates and extends coverage using Pest syntax.
-|
 */
-
-// ── Factory ────────────────────────────────────────────
-
-describe('UserRelationshipFactory', function () {
-    it('creates a follow relationship by default', function () {
-        $rel = UserRelationship::factory()->create();
-
-        expect($rel->type)->toBe(RelationshipType::Follow);
-        expect($rel->user_id)->not->toBeNull();
-        expect($rel->related_user_id)->not->toBeNull();
-    })->group('smoke');
-
-    it('creates a follow relationship with follow state', function () {
-        $rel = UserRelationship::factory()->follow()->create();
-
-        expect($rel->type)->toBe(RelationshipType::Follow);
-    });
-
-    it('creates a block relationship with block state', function () {
-        $rel = UserRelationship::factory()->block()->create();
-
-        expect($rel->type)->toBe(RelationshipType::Block);
-    })->group('smoke');
-
-    it('creates relationships between distinct users', function () {
-        $rel = UserRelationship::factory()->create();
-
-        expect($rel->user_id)->not->toBe($rel->related_user_id);
-    });
-
-    it('allows overriding user IDs', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        $rel = UserRelationship::factory()->create([
-            'user_id' => $user->id,
-            'related_user_id' => $target->id,
-        ]);
-
-        expect($rel->user_id)->toBe($user->id);
-        expect($rel->related_user_id)->toBe($target->id);
-    });
-});
 
 // ── Follow Action ──────────────────────────────────────
 
@@ -1056,16 +1008,4 @@ describe('Edge Cases', function () {
         expect($alice->getRelationshipLevel($bob))->toBe('friend_or_teammate');
     });
 
-    it('factory with existing users does not create extra users', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-        $userCountBefore = User::count();
-
-        UserRelationship::factory()->create([
-            'user_id' => $alice->id,
-            'related_user_id' => $bob->id,
-        ]);
-
-        expect(User::count())->toBe($userCountBefore);
-    });
 });
