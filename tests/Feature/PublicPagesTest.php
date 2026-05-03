@@ -24,7 +24,7 @@ describe('HomePage', function () {
     it('shows sign up link for guests', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('Create Free Account');
+            ->assertSee(__('profile.action_create_free_account'));
     });
 
     it('shows browse sessions link for authenticated users', function () {
@@ -33,7 +33,7 @@ describe('HomePage', function () {
         actingAs($user)
             ->get(route('home'))
             ->assertOk()
-            ->assertSee('Browse Sessions');
+            ->assertSee(__('campaigns.action_browse_sessions'));
     });
 });
 
@@ -58,23 +58,23 @@ describe('ContactPage', function () {
     it('renders the contact page', function () {
         get(route('contact'))
             ->assertOk()
-            ->assertSee('Contact Us')
-            ->assertSee('Send Us a Message');
+            ->assertSee(__('pages.content_contact_us'))
+            ->assertSee(__('pages.field_send_us_a_message'));
     })->group('smoke');
 
     it('shows the contact form fields', function () {
         get(route('contact'))
             ->assertOk()
-            ->assertSee('Name')
-            ->assertSee('Email')
-            ->assertSee('Subject')
-            ->assertSee('Message');
+            ->assertSee(__('common.field_name'))
+            ->assertSee(__('emails.field_email'))
+            ->assertSee(__('common.content_subject'))
+            ->assertSee(__('common.content_message'));
     });
 
     it('shows FAQ section', function () {
         get(route('contact'))
             ->assertOk()
-            ->assertSee('Frequently Asked');
+            ->assertSee(__('common.content_frequently_asked'));
     });
 
     it('can submit a valid contact form', function () {
@@ -153,7 +153,7 @@ describe('ContactPage', function () {
 
         get(route('contact'))
             ->assertOk()
-            ->assertSee('Thank you for your message');
+            ->assertSee(__('common.content_thank_you_for_your_message'));
     });
 
     it('shows validation errors on invalid input', function () {

@@ -19,6 +19,11 @@ use App\Notifications\ParticipantRemoved;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
 use App\Notifications\TeamMemberRemoved;
+use App\Notifications\SessionReminder;
+use App\Notifications\PlayerBenched;
+use App\Notifications\DebriefingAvailable;
+use App\Notifications\RecapPosted;
+use App\Notifications\AttendanceReported;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\URL;
@@ -617,5 +622,146 @@ describe('toPush() returns null for non-push notification types', function () {
         foreach ($notifications as $notification) {
             expect($notification->toPush($user))->toBeNull();
         }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Additional push-enabled notifications
+// ---------------------------------------------------------------------------
+describe('SessionReminder push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create([
+            'name' => 'Weekly Session',
+            'date_time' => now()->addMinutes(30),
+        ]);
+        $notifiable = User::factory()->create();
+
+        $payload = (new SessionReminder($game))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Game Reminder')
+            ->and($payload->body)->toContain('Weekly Session')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toBe("game-reminder-1h-{$game->id}");
+    });
+
+    it('handles CET winter time correctly', function () {
+        $game = Game::factory()->create([
+            'name' => 'Winter Game',
+            'date_time' => \Carbon\Carbon::parse('2026-01-15 19:00:00', 'UTC'),
+        ]);
+        $notifiable = User::factory()->create();
+
+        $payload = (new SessionReminder($game))->toPush($notifiable);
+
+        expect($payload->body)->toContain('8:00 PM CET');
+    });
+});
+
+describe('PlayerBenched push payload', function () {
+    it('returns PushPayload with correct fields for game entity', function () {
+        $game = Game::factory()->create(['name' => 'Full Table']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe("You're on the Bench")
+            ->and($payload->body)->toContain('Full Table')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toBe("player-benched-game-{$game->id}");
+    });
+
+    it('returns PushPayload with correct fields for campaign entity', function () {
+        $campaign = Campaign::factory()->create(['name' => 'Long Campaign']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe("You're on the Bench")
+            ->and($payload->body)->toContain('Long Campaign')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/campaigns/')
+            ->and($payload->tag)->toBe("player-benched-campaign-{$campaign->id}");
+    });
+
+    it('URL resolves to game detail page for game entity', function () {
+        $game = Game::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
+
+        expect($payload->url)->toBe(route('games.detail', $game->id));
+    });
+
+    it('URL resolves to campaign detail page for campaign entity', function () {
+        $campaign = Campaign::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
+
+        expect($payload->url)->toBe(route('campaigns.detail', $campaign->id));
+    });
+});
+
+describe('AttendanceReported push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Board Game Night']);
+        $reporter = User::factory()->create();
+        $reported = User::factory()->create();
+        $notifiable = User::factory()->create();
+
+        $report = \App\Models\AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $reporter->id,
+            'reported_id' => $reported->id,
+            'status' => \App\Enums\AttendanceStatus::Attended,
+        ]);
+
+        $payload = (new AttendanceReported($game, $report))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Attendance Report')
+            ->and($payload->body)->toContain('Board Game Night')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('attendance-reported-');
+    });
+});
+
+describe('DebriefingAvailable push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Epic Quest']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new DebriefingAvailable($game))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Session Debriefing Available')
+            ->and($payload->body)->toContain('Epic Quest')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('debriefing-');
+    });
+});
+
+describe('RecapPosted push payload', function () {
+    it('returns PushPayload with correct fields', function () {
+        $game = Game::factory()->create(['name' => 'Session Recap']);
+        $author = User::factory()->create(['name' => 'GameMaster']);
+        $notifiable = User::factory()->create();
+
+        $payload = (new RecapPosted($game, $author))->toPush($notifiable);
+
+        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
+            ->and($payload->title)->toBe('Session Recap Posted')
+            ->and($payload->body)->toContain('GameMaster')
+            ->and($payload->body)->toContain('Session Recap')
+            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
+            ->and($payload->url)->toContain('/games/')
+            ->and($payload->tag)->toContain('recap-');
     });
 });

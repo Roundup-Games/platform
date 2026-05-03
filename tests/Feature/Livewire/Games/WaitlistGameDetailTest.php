@@ -36,16 +36,6 @@ function addWaitlistedUser(Game $game): array
     return ['user' => $user, 'participant' => $participant];
 }
 
-function openSlot(Game $game): void
-{
-    // Remove one non-owner approved participant to open a slot
-    $game->participants()
-        ->where('status', ParticipantStatus::Approved->value)
-        ->where('user_id', '!=', $game->owner_id)
-        ->first()
-        ->update(['status' => ParticipantStatus::Rejected->value]);
-}
-
 function getNonOwnerApproved(Game $game): GameParticipant
 {
     return $game->participants()

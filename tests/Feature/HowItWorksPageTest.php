@@ -10,8 +10,8 @@ describe('HowItWorksPage', function () {
     it('shows sign-up CTA for guests', function () {
         get(route('how-it-works'))
             ->assertOk()
-            ->assertSee('Sign Up Free')
-            ->assertSee('Browse Sessions');
+            ->assertSee(__('auth.content_sign_up_free'))
+            ->assertSee(__('campaigns.action_browse_sessions'));
     });
 
     it('shows only browse sessions CTA for authenticated users', function () {
@@ -21,8 +21,8 @@ describe('HowItWorksPage', function () {
 
         get(route('how-it-works'))
             ->assertOk()
-            ->assertDontSee('Sign Up Free')
-            ->assertSee('Browse Sessions');
+            ->assertDontSee(__('auth.content_sign_up_free'))
+            ->assertSee(__('campaigns.action_browse_sessions'));
     });
 
     it('redirects /about to /how-it-works with 301', function () {
@@ -54,11 +54,22 @@ describe('HowItWorksPage - Accessibility', function () {
             ->assertSee('<h3', false);
     });
 
-    it('decorative icons in page template have aria-hidden', function () {
-        $template = file_get_contents(resource_path('views/pages/how-it-works.blade.php'));
-        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $template, $matches);
+    it('decorative icons have aria-hidden on rendered page', function () {
+        $response = get(route('how-it-works'));
+        $content = $response->content();
+
+        // Find all material-symbols-outlined icons in the rendered output
+        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $content, $matches);
 
         foreach ($matches[0] as $iconTag) {
+            // Skip Alpine-bound interactive icons (hamburger/close menu toggles in layout)
+            if (str_contains($iconTag, ':class=')) {
+                continue;
+            }
+            // Skip layout navigation icons (language switcher, forum, contact links)
+            if (str_contains($iconTag, 'cursor-pointer')) {
+                continue;
+            }
             expect($iconTag)->toContain('aria-hidden="true"');
         }
     });

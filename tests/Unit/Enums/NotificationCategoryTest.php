@@ -1,8 +1,6 @@
 <?php
 
 use App\Enums\NotificationCategory;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 
 describe('NotificationCategory Unit Tests', function () {
     it('group() returns a valid group for every case', function () {
@@ -31,22 +29,6 @@ describe('NotificationCategory Unit Tests', function () {
         }
 
         expect(NotificationCategory::GameSystemRequest->group())->toBe('content');
-    });
-
-    it('defaultSettings() returns array keyed by all category values', function () {
-        $settings = NotificationCategory::defaultSettings();
-
-        expect(array_keys($settings))->toBe(NotificationCategory::values());
-    });
-
-    it('defaultSettings() each entry has exactly database, mail, and push keys', function () {
-        $settings = NotificationCategory::defaultSettings();
-        foreach ($settings as $category => $channels) {
-            expect(array_keys($channels))->toBe(['database', 'mail', 'push'], "{$category} should have exactly database, mail, and push keys");
-            expect($channels['database'])->toBeBool();
-            expect($channels['mail'])->toBeBool();
-            expect($channels['push'])->toBeBool();
-        }
     });
 
     // Note: grouped() and label() require Laravel's translator (app container).

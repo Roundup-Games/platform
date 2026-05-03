@@ -8,8 +8,12 @@ use Testcontainers\Modules\PostgresContainer;
  * Starts an ephemeral PostgreSQL container before the test suite runs
  * and configures Laravel's database connection to point to it.
  *
- * A shutdown function stops and removes the container when the PHP process exits,
- * preventing orphaned containers from accumulating between runs.
+ * In parallel mode (--parallel / paratest), only worker 1 starts the container.
+ * It writes connection details to a temp file. Other workers wait for that file
+ * and reuse the same container, avoiding Docker resource contention.
+ *
+ * A shutdown function from worker 1 removes the temp file on exit.
+ * The container itself has autoRemove=true — Docker handles cleanup.
  */
 
 // Require the autoloader first
@@ -38,69 +42,135 @@ if (! getenv('DOCKER_HOST')) {
     }
 }
 
-// Use the locally available postgres image (avoids pulling from registry)
-$pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
+$isParallel = (bool) getenv('PARATEST');
+$token = (int) (getenv('TEST_TOKEN') ?: 0);
+$isPrimary = ! $isParallel || $token === 1;
 
-$container = new PostgresContainer(
-    version: $pgVersion,
-    username: 'test',
-    password: 'test',
-    database: 'roundup_games_test',
-);
-$container->withAutoRemove(true);
-$started = $container->start();
+// Temp file for sharing container details across parallel workers
+$cacheFile = sys_get_temp_dir() . '/roundup_testcontainers_' . getmypid();
 
-// No shutdown teardown — container has autoRemove=true, Docker handles cleanup.
+// In parallel mode, use a stable cache key based on the parent paratest PID
+// so all sibling workers share the same file.
+if ($isParallel) {
+    // UNIQUE_TEST_TOKEN is "TOKEN_randomhex" — extract a stable key from the
+    // paratest runner's tmp-dir or fall back to a sentinel file.
+    $cacheFile = sys_get_temp_dir() . '/roundup_testcontainers_parallel';
+}
 
-// Expose connection details via environment variables that Laravel will pick up.
-// These override phpunit.xml <env> values at runtime.
-$_ENV['DB_CONNECTION'] = 'pgsql';
-$_ENV['DB_HOST'] = $started->getHost();
-$_ENV['DB_PORT'] = (string) $started->getFirstMappedPort();
-$_ENV['DB_DATABASE'] = 'roundup_games_test';
-$_ENV['DB_USERNAME'] = 'test';
-$_ENV['DB_PASSWORD'] = 'test';
-
-// Also set in $_SERVER for good measure (Laravel reads both)
-$_SERVER['DB_CONNECTION'] = $_ENV['DB_CONNECTION'];
-$_SERVER['DB_HOST'] = $_ENV['DB_HOST'];
-$_SERVER['DB_PORT'] = $_ENV['DB_PORT'];
-$_SERVER['DB_DATABASE'] = $_ENV['DB_DATABASE'];
-$_SERVER['DB_USERNAME'] = $_ENV['DB_USERNAME'];
-$_SERVER['DB_PASSWORD'] = $_ENV['DB_PASSWORD'];
-
-// Also set via putenv for Artisan shell execution
-putenv("DB_CONNECTION=pgsql");
-putenv("DB_HOST={$started->getHost()}");
-putenv("DB_PORT={$started->getFirstMappedPort()}");
-putenv("DB_DATABASE=roundup_games_test");
-putenv("DB_USERNAME=test");
-putenv("DB_PASSWORD=test");
-putenv('APP_ENV=testing');
-
-echo "  Testcontainers: PostgreSQL ready at {$started->getHost()}:{$started->getFirstMappedPort()}\n";
-
-/*
- * Run schema migrations once per process, OUTSIDE any test transaction.
- *
- * DatabaseTransactions wraps each test in a DB transaction for isolation,
- * but does NOT run migrations (unlike RefreshDatabase which calls migrate:fresh).
- * Running migrations here — before PHPUnit/Pest loads — guarantees they are
- * committed independently and survive per-test transaction rollbacks.
+/**
+ * Apply connection details to all PHP superglobals that Laravel reads.
  */
-$migrateOutput = shell_exec(
-    'DB_CONNECTION=pgsql'
-    . " DB_HOST={$started->getHost()}"
-    . " DB_PORT={$started->getFirstMappedPort()}"
-    . ' DB_DATABASE=roundup_games_test'
-    . ' DB_USERNAME=test'
-    . ' DB_PASSWORD=test'
-    . ' APP_ENV=testing'
-    . ' php ' . escapeshellarg(realpath(__DIR__ . '/..') . '/artisan')
-    . ' migrate --force --no-interaction 2>&1'
-);
-if (str_contains($migrateOutput ?? '', 'ERROR') || str_contains($migrateOutput ?? '', 'Exception')) {
-    fprintf(STDERR, "  Testcontainers: migration FAILED\n%s\n", $migrateOutput);
+function applyConnection(string $host, int $port): void
+{
+    $vars = [
+        'DB_CONNECTION' => 'pgsql',
+        'DB_HOST' => $host,
+        'DB_PORT' => (string) $port,
+        'DB_DATABASE' => 'roundup_games_test',
+        'DB_USERNAME' => 'test',
+        'DB_PASSWORD' => 'test',
+        'APP_ENV' => 'testing',
+    ];
+
+    foreach ($vars as $key => $value) {
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+        putenv("{$key}={$value}");
+    }
+}
+
+/**
+ * Run schema migrations using the current connection env vars.
+ */
+function runMigrations(): void
+{
+    $artisan = escapeshellarg(realpath(__DIR__ . '/..') . '/artisan');
+    $env = "DB_CONNECTION=pgsql DB_HOST={$_ENV['DB_HOST']} DB_PORT={$_ENV['DB_PORT']}"
+        . ' DB_DATABASE=roundup_games_test DB_USERNAME=test DB_PASSWORD=test APP_ENV=testing';
+
+    $migrateOutput = shell_exec("{$env} php {$artisan} migrate --force --no-interaction 2>&1");
+    if (str_contains($migrateOutput ?? '', 'ERROR') || str_contains($migrateOutput ?? '', 'Exception')) {
+        fprintf(STDERR, "  Testcontainers: migration FAILED\n%s\n", $migrateOutput);
+    } else {
+        echo "  Testcontainers: schema migrated.\n";
+    }
+}
+
+// ── Parallel: primary worker starts container, others wait ─────────────────
+
+if ($isParallel) {
+    if ($isPrimary) {
+        // Primary worker: start the container and write details for siblings
+        $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
+
+        $container = new PostgresContainer(
+            version: $pgVersion,
+            username: 'test',
+            password: 'test',
+            database: 'roundup_games_test',
+        );
+        $container->withAutoRemove(true);
+        $started = $container->start();
+
+        $host = $started->getHost();
+        $port = $started->getFirstMappedPort();
+
+        applyConnection($host, $port);
+        runMigrations();
+
+        // Write connection details for sibling workers
+        file_put_contents($cacheFile, json_encode(['host' => $host, 'port' => $port]));
+
+        // Clean up the cache file when this process exits
+        register_shutdown_function(function () use ($cacheFile) {
+            if (file_exists($cacheFile)) {
+                @unlink($cacheFile);
+            }
+        });
+
+        echo "  Testcontainers: PostgreSQL ready at {$host}:{$port} (primary worker)\n";
+    } else {
+        // Secondary worker: wait for the primary to write connection details
+        $waited = 0;
+        $maxWait = 60; // seconds
+        while (! file_exists($cacheFile) && $waited < $maxWait) {
+            usleep(500_000); // 0.5s
+            $waited += 0.5;
+        }
+
+        if (! file_exists($cacheFile)) {
+            fwrite(STDERR, "  Testcontainers: TIMED OUT waiting for primary worker to start container\n");
+            exit(1);
+        }
+
+        // Small delay to ensure the file is fully written
+        usleep(100_000);
+
+        $details = json_decode(file_get_contents($cacheFile), true);
+        if (! $details || ! isset($details['host'], $details['port'])) {
+            fwrite(STDERR, "  Testcontainers: invalid cache file from primary worker\n");
+            exit(1);
+        }
+
+        applyConnection($details['host'], (int) $details['port']);
+
+        echo "  Testcontainers: reusing PostgreSQL at {$details['host']}:{$details['port']} (worker {$token})\n";
+    }
 } else {
-    echo "  Testcontainers: schema migrated\n";
+    // ── Sequential: single container as before ─────────────────────────────
+    $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
+
+    $container = new PostgresContainer(
+        version: $pgVersion,
+        username: 'test',
+        password: 'test',
+        database: 'roundup_games_test',
+    );
+    $container->withAutoRemove(true);
+    $started = $container->start();
+
+    applyConnection($started->getHost(), $started->getFirstMappedPort());
+    runMigrations();
+
+    echo "  Testcontainers: PostgreSQL ready at {$started->getHost()}:{$started->getFirstMappedPort()}\n";
 }

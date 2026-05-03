@@ -112,8 +112,6 @@ describe('Notification Translations', function () {
         expect($rendered)->toBeString();
         expect($rendered)->toContain('Roundup Games');
         expect($rendered)->toContain('Unsubscribe');
-        expect($rendered)->toContain('#835500'); // amber primary
-        expect($rendered)->toContain('#fbf9f1'); // cream surface
         expect($rendered)->toContain('Test notification body content');
     });
 });

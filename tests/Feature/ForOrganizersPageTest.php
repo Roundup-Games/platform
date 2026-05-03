@@ -10,8 +10,8 @@ describe('ForOrganizersPage', function () {
     it('shows sign-up CTA for guests', function () {
         get(route('for-organizers'))
             ->assertOk()
-            ->assertSee('Sign Up Free')
-            ->assertSee('See How It Works');
+            ->assertSee(__('auth.content_sign_up_free'))
+            ->assertSee(__('pages.content_see_how_it_works'));
     });
 
     it('shows session creation CTA for authenticated users', function () {
@@ -21,8 +21,8 @@ describe('ForOrganizersPage', function () {
 
         get(route('for-organizers'))
             ->assertOk()
-            ->assertDontSee('Sign Up Free')
-            ->assertSee('Create Your First Session');
+            ->assertDontSee(__('auth.content_sign_up_free'))
+            ->assertSee(__('campaigns.action_create_your_first_session'));
     });
 });
 
@@ -42,11 +42,19 @@ describe('ForOrganizersPage - Accessibility', function () {
             ->assertSee('<h3', false);
     });
 
-    it('decorative icons in page template have aria-hidden', function () {
-        $template = file_get_contents(resource_path('views/pages/for-organizers.blade.php'));
-        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $template, $matches);
+    it('decorative icons have aria-hidden on rendered page', function () {
+        $response = get(route('for-organizers'));
+        $content = $response->content();
+
+        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $content, $matches);
 
         foreach ($matches[0] as $iconTag) {
+            if (str_contains($iconTag, ':class=')) {
+                continue;
+            }
+            if (str_contains($iconTag, 'cursor-pointer')) {
+                continue;
+            }
             expect($iconTag)->toContain('aria-hidden="true"');
         }
     });

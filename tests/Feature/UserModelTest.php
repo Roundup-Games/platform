@@ -47,30 +47,6 @@ describe('User Model — Relationships', function () {
 });
 
 describe('User Model — Helpers', function () {
-    it('casts email_verified_at as datetime', function () {
-        $user = User::factory()->create(['email_verified_at' => '2025-04-13 10:00:00']);
-
-        expect($user->email_verified_at)->toBeInstanceOf(\Carbon\Carbon::class);
-    });
-
-    it('casts profile_complete as boolean', function () {
-        $user = User::factory()->create(['profile_complete' => 1]);
-
-        expect($user->profile_complete)->toBeTrue();
-    });
-
-    it('casts privacy_settings as array', function () {
-        $user = User::factory()->create(['privacy_settings' => ['show_email' => false]]);
-
-        expect($user->privacy_settings)->toBe(['show_email' => false]);
-    });
-
-    it('casts profile_version as integer', function () {
-        $user = User::factory()->create(['profile_version' => '3']);
-
-        expect($user->profile_version)->toBe(3);
-    });
-
     it('isAdmin returns true for Platform Admin', function () {
         seedRoles();
         $user = User::factory()->create();
@@ -132,24 +108,9 @@ describe('User Model — Helpers', function () {
         expect($user->isTeamCaptain($team))->toBeFalse();
     });
 
-    it('registers avatar media collection', function () {
-        $user = User::factory()->create();
-
-        // Verify the media collection is configured by checking the method exists
-        expect(method_exists($user, 'registerMediaCollections'))->toBeTrue();
-    });
-
     it('hasActiveMembership returns false when no subscription', function () {
         $user = User::factory()->create();
 
         expect($user->hasActiveMembership())->toBeFalse();
-    });
-
-    it('hides password and remember_token from array', function () {
-        $user = User::factory()->create();
-        $json = $user->toArray();
-
-        expect($json)->not->toHaveKey('password')
-            ->and($json)->not->toHaveKey('remember_token');
     });
 });

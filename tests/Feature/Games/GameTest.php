@@ -29,17 +29,6 @@ function gameTestCreateGameWithOwner(array $gameAttrs = []): array
     return ['owner' => $owner, 'game' => $game];
 }
 
-function gameTestCreateUserWithPermission(string $permission = 'create game', bool $canCreatePublic = false): User
-{
-    seedPermissions();
-    $user = User::factory()->create(['profile_complete' => true, 'can_create_public_entries' => $canCreatePublic]);
-    setPermissionsTeamId(1);
-    $user->givePermissionTo($permission);
-    $user->unsetRelations();
-    setPermissionsTeamId(1);
-    return $user;
-}
-
 // ═══════════════════════════════════════════════════════════
 // GAME POLICY — VISIBILITY & OWNERSHIP
 // ═══════════════════════════════════════════════════════════

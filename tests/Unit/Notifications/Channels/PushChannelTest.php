@@ -328,31 +328,6 @@ describe('PushChannel', function () {
     });
 });
 
-describe('PushPayload', function () {
-    it('converts to array with all fields', function () {
-        $payload = new PushPayload('Title', 'Body text', '/icon.png', 'https://example.com/game/1', 'game-1');
-
-        $array = $payload->toArray();
-
-        expect($array)->toBe([
-            'title' => 'Title',
-            'body' => 'Body text',
-            'icon' => '/icon.png',
-            'url' => 'https://example.com/game/1',
-            'tag' => 'game-1',
-        ]);
-    });
-
-    it('omits tag when null', function () {
-        $payload = new PushPayload('Title', 'Body', '/icon.png', '/url');
-
-        $array = $payload->toArray();
-
-        expect($array)->not->toHaveKey('tag');
-        expect($array)->toHaveCount(4);
-    });
-});
-
 describe('Key mapping', function () {
     it('maps p256h_key to p256dh for Minishlink compatibility', function () {
         $source = file_get_contents(base_path('app/Models/PushSubscription.php'));

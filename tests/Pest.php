@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\ParticipantStatus;
+use App\Models\Game;
+use App\Models\GameParticipant;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -147,4 +151,38 @@ function seedRoles()
     ]);
 
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+}
+
+/**
+ * Build the path to a test fixture file.
+ */
+function fixture_path(string $file): string
+{
+    return base_path("tests/Fixtures/{$file}");
+}
+
+/**
+ * Create a user with a specific permission for game tests.
+ */
+function gameTestCreateUserWithPermission(string $permission = 'create game', bool $canCreatePublic = false): User
+{
+    seedPermissions();
+    $user = User::factory()->create(['profile_complete' => true, 'can_create_public_entries' => $canCreatePublic]);
+    setPermissionsTeamId(1);
+    $user->givePermissionTo($permission);
+    $user->unsetRelations();
+    setPermissionsTeamId(1);
+    return $user;
+}
+
+/**
+ * Open a slot in a full game by rejecting one non-owner approved participant.
+ */
+function openSlot(Game $game): void
+{
+    $game->participants()
+        ->where('status', ParticipantStatus::Approved->value)
+        ->where('user_id', '!=', $game->owner_id)
+        ->first()
+        ->update(['status' => ParticipantStatus::Rejected->value]);
 }

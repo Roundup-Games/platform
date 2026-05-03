@@ -17,11 +17,6 @@ beforeEach(function () {
     $this->gloomhavenXml = file_get_contents(fixture_path('bgg-gloomhaven.xml'));
 });
 
-function fixture_path(string $file): string
-{
-    return base_path("tests/Fixtures/{$file}");
-}
-
 function createService(?callable $clientDecorator = null): BggSyncService
 {
     $client = new BggClient(

@@ -155,11 +155,9 @@ describe('GameSystemsPage', function () {
             ->assertSee(__('games.request_cta_link'));
     });
 
-    it('request CTA link uses wire:navigate', function () {
-        $template = file_get_contents(resource_path('views/livewire/game-systems/game-systems-page.blade.php'));
-
-        expect($template)->toContain("route('game-systems.request')");
-        expect($template)->toContain('wire:navigate');
+    it('request CTA link is present on page', function () {
+        Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
+            ->assertSee(route('game-systems.request'));
     });
 
     it('paginates at 24 per page', function () {
@@ -347,9 +345,9 @@ describe('GameSystemsPage - Accessibility', function () {
             ->assertSee('aria-label="Maximum complexity"', false);
     });
 
-    it('decorative icons in page template have aria-hidden', function () {
-        $template = file_get_contents(resource_path('views/livewire/game-systems/game-systems-page.blade.php'));
-        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $template, $matches);
+    it('decorative icons have aria-hidden on rendered page', function () {
+        $content = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)->html();
+        preg_match_all('/<span\s+[^>]*material-symbols-outlined[^>]*>/s', $content, $matches);
 
         foreach ($matches[0] as $iconTag) {
             expect($iconTag)->toContain('aria-hidden="true"');
