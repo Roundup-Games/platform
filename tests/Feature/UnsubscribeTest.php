@@ -8,6 +8,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
 });
 
+// smoke: signed URL unsubscribe
 it('unsubscribes user from a notification category via signed URL', function () {
     $category = 'game_invitation';
     $url = URL::signedRoute('notifications.unsubscribe', [
@@ -30,7 +31,7 @@ it('unsubscribes user from a notification category via signed URL', function () 
     $settings = $this->user->fresh()->notification_settings;
     expect($settings[$category]['mail'])->toBeFalse();
     expect($settings[$category]['database'])->toBeTrue();
-});
+})->group('smoke');
 
 it('preserves other category settings when unsubscribing', function () {
     $category = 'new_follower';

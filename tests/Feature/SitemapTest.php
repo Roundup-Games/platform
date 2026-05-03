@@ -8,12 +8,13 @@ beforeEach(function () {
     Cache::forget('sitemap');
 });
 
+// smoke: sitemap returns valid XML
 it('returns valid XML with correct content type', function () {
     $response = $this->get('/sitemap.xml');
 
     $response->assertStatus(200);
     $response->assertHeader('Content-Type', 'application/xml');
-});
+})->group('smoke');
 
 it('includes static pages for both locales', function () {
     $response = $this->get('/sitemap.xml');

@@ -29,6 +29,7 @@ test('host sees bench section with benched players on campaign detail', function
         ->assertSeeHtml('promoteFromBench');
 });
 
+// smoke: host can promote benched player
 test('host can promote benched player from campaign detail', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 3);
     ['participant' => $benchedParticipant] = $this->addBenchUser($campaign);
@@ -44,7 +45,7 @@ test('host can promote benched player from campaign detail', function () {
     $benchedParticipant->refresh();
     expect($benchedParticipant->status)->toBe(ParticipantStatus::Approved);
     expect($benchedParticipant->benched_at)->toBeNull();
-});
+})->group('smoke');
 
 test('non-host cannot promote from bench on campaign', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);

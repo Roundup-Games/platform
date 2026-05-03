@@ -17,6 +17,7 @@ describe('Recap Service', function () {
         $this->service = app(RecapService::class);
     });
 
+    // smoke: host writes recap on completed game
     it('allows host to write recap on completed game', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->host->id,
@@ -27,7 +28,7 @@ describe('Recap Service', function () {
         $this->service->writeRecap($game, $this->host, 'Great session with epic roleplay moments!');
 
         expect($game->fresh()->recap)->toBe('Great session with epic roleplay moments!');
-    });
+    })->group('smoke');
 
     it('rejects non-host writing recap', function () {
         $other = User::factory()->create();

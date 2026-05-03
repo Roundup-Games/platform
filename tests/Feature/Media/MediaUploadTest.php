@@ -44,6 +44,7 @@ describe('Team media conversions', function () {
         expect($logo->singleFile)->toBeTrue();
     });
 
+// smoke: accepts logo upload
     it('accepts logo upload and creates media record', function () {
         Storage::fake('public');
 
@@ -53,7 +54,7 @@ describe('Team media conversions', function () {
         expect($team->hasMedia('logo'))->toBeTrue();
         expect($media->collection_name)->toBe('logo');
         expect($media->mime_type)->toBe('image/jpeg');
-    });
+    })->group('smoke');
 
     it('replaces existing logo on new upload', function () {
         Storage::fake('public');

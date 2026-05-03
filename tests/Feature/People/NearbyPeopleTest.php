@@ -9,6 +9,7 @@ use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
 use Tests\Traits\SetsUpLocale;
@@ -46,6 +47,8 @@ class NearbyPeopleTest extends TestCase
 
     // ── Nearby tab rendering ────────────────────────
 
+    // smoke: nearby tab renders
+    #[Group('smoke')]
     public function test_nearby_tab_is_accessible(): void
     {
         Livewire::actingAs($this->user)
@@ -63,6 +66,8 @@ class NearbyPeopleTest extends TestCase
             ->assertSet('nearbyUsers.noLocation', true);
     }
 
+    // smoke: nearby shows results with linked location
+    #[Group('smoke')]
     public function test_nearby_tab_shows_results_when_user_has_linked_location(): void
     {
         $location = Location::factory()->create([

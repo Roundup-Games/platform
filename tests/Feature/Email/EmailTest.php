@@ -15,6 +15,7 @@ beforeEach(function () {
 });
 
 describe('WelcomeEmail', function () {
+    // smoke: welcome email can be queued
     test('welcome email can be queued for a user', function () {
         $user = User::factory()->create(['name' => 'Jane Doe', 'email' => 'jane@example.com']);
 
@@ -24,7 +25,7 @@ describe('WelcomeEmail', function () {
         Mail::assertQueued(WelcomeEmail::class, function ($mail) use ($user) {
             return $mail->hasTo($user->email) && $mail->user->is($user);
         });
-    });
+    })->group('smoke');
 
     test('welcome email implements ShouldQueue', function () {
         $user = User::factory()->create();

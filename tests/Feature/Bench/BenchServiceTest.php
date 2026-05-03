@@ -94,6 +94,7 @@ function benchCreateFullCampaignSession(User $owner, GameSystem $system, Campaig
 
 // ── addToBench ───────────────────────────────────────────
 
+// smoke: bench placement when campaign is full
 test('add to bench when campaign is full', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
     $applicant = User::factory()->create();
@@ -103,7 +104,7 @@ test('add to bench when campaign is full', function () {
     expect($participant->status)->toBe(ParticipantStatus::Benched);
     expect($participant->benched_at)->not->toBeNull();
     expect($participant->user_id)->toBe($applicant->id);
-});
+})->group('smoke');
 
 test('add to bench when campaign session is full', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);

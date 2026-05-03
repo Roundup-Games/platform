@@ -19,6 +19,7 @@ use function Pest\Laravel\actingAs;
  * duplicate check + create sequence under concurrent requests.
  */
 describe('Event Registration Concurrency', function () {
+// smoke: over-capacity prevention
     it('prevents over-capacity registration under simulated concurrency', function () {
         // Create an event with capacity for exactly 1 individual registration
         $event = Event::factory()->create([
@@ -94,7 +95,7 @@ describe('Event Registration Concurrency', function () {
 
         // Exactly 1 registration should exist
         expect(EventRegistration::where('event_id', $event->id)->count())->toBe(1);
-    });
+    })->group('smoke');
 
     it('prevents duplicate registration for same user under simulated concurrency', function () {
         $event = Event::factory()->create([

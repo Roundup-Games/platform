@@ -11,12 +11,13 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 // ── HasTranslations Trait ─────────────────────────────
 
 describe('HasTranslations Trait', function () {
+// smoke: set/get translation round-trip
     it('can set and get a translation', function () {
         $event = Event::factory()->create(['name' => 'English Name']);
         $event->setTranslation('de', 'name', 'Deutscher Name');
 
         expect($event->getTranslation('de', 'name'))->toBe('Deutscher Name');
-    });
+    })->group('smoke');
 
     it('falls back to entity attribute for app locale', function () {
         $event = Event::factory()->create(['name' => 'English Name']);

@@ -10,6 +10,7 @@ use App\Services\ProximityQuery;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -31,6 +32,8 @@ class ProximityQueryTest extends TestCase
 
     // ── Bounding Box ───────────────────────────────────
 
+    // smoke: bounding box contains center
+    #[Group('smoke')]
     #[Test]
     public function bounding_box_contains_center_point()
     {

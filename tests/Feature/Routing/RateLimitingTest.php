@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 // RATE LIMITING — M7
 // ═══════════════════════════════════════════════════════════
 
+// smoke: throttle on POST /contact
 describe('Contact form rate limiting', function () {
     it('applies throttle:5,1 middleware to POST /contact', function () {
         $route = Route::getRoutes()->getByAction('App\Http\Controllers\PageController@submitContact');
@@ -16,7 +17,7 @@ describe('Contact form rate limiting', function () {
         $middleware = $route->gatherMiddleware();
 
         expect($middleware)->toContain('throttle:5,1');
-    });
+    })->group('smoke');
 });
 
 describe('OAuth callback rate limiting', function () {

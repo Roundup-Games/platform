@@ -9,6 +9,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Tests\Traits\SetsUpLocale;
@@ -18,6 +19,8 @@ class AutoAttendTest extends TestCase
     use DatabaseTransactions;
     use SetsUpLocale;
 
+    // smoke: auto-attend after 48h sweep
+    #[Group('smoke')]
     #[Test]
     public function test_auto_attend_after_48h(): void
     {
