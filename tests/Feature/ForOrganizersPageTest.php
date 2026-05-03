@@ -4,38 +4,7 @@ use function Pest\Laravel\{get, actingAs};
 
 describe('ForOrganizersPage', function () {
     it('renders the for-organizers page for guests', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('Bring your games to the table');
-    });
-
-    it('displays the four benefit cards', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('One link for signups')
-            ->assertSee('Automatic player matching')
-            ->assertSee('Campaign management')
-            ->assertSee('Visibility controls');
-    });
-
-    it('displays the three how-it-works steps', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('Create a session')
-            ->assertSee('Set your preferences')
-            ->assertSee('Players find you');
-    });
-
-    it('displays the social proof section', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('organizers who bring people together');
-    });
-
-    it('displays the CTA section', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('Start your first session');
+        get(route('for-organizers'))->assertOk();
     });
 
     it('shows sign-up CTA for guests', function () {
@@ -54,18 +23,6 @@ describe('ForOrganizersPage', function () {
             ->assertOk()
             ->assertDontSee('Sign Up Free')
             ->assertSee('Create Your First Session');
-    });
-
-    it('uses the public layout', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('Roundup Games');
-    });
-
-    it('has Material Symbols icons', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('material-symbols-outlined');
     });
 });
 

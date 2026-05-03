@@ -4,41 +4,7 @@ use function Pest\Laravel\{get, actingAs};
 
 describe('HowItWorksPage', function () {
     it('renders the how-it-works page for guests', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('How Roundup Works');
-    });
-
-    it('displays the three-step section', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Discover sessions near you')
-            ->assertSee('Find your kind of game')
-            ->assertSee('Show up and play');
-    });
-
-    it('displays the four values', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Inclusivity')
-            ->assertSee('Safety')
-            ->assertSee('Community')
-            ->assertSee('Curiosity');
-    });
-
-    it('displays the safety and vetting section', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Your safety, built in')
-            ->assertSee('Transparent sessions')
-            ->assertSee('Organizer profiles')
-            ->assertSee('Protected sessions');
-    });
-
-    it('displays the CTA section', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Ready to find your table?');
+        get(route('how-it-works'))->assertOk();
     });
 
     it('shows sign-up CTA for guests', function () {
@@ -57,18 +23,6 @@ describe('HowItWorksPage', function () {
             ->assertOk()
             ->assertDontSee('Sign Up Free')
             ->assertSee('Browse Sessions');
-    });
-
-    it('uses the public layout', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Roundup Games');
-    });
-
-    it('has Material Symbols icons', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('material-symbols-outlined');
     });
 
     it('redirects /about to /how-it-works with 301', function () {

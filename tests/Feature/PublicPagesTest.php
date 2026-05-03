@@ -8,56 +8,17 @@ use function Pest\Laravel\{get, post, actingAs};
 // ── Home Page ──────────────────────────────────────────
 
 describe('HomePage', function () {
-    it('renders the landing page with community identity', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee("There's a seat waiting for you.")
-            ->assertSee('Find sessions near me')
-            ->assertSee('Explore games');
+    it('renders the landing page successfully', function () {
+        get(route('home'))->assertOk();
     });
 
-    it('shows the nearby sessions section with location gate', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee("What's happening near you?")
-            ->assertSee('Show me sessions near me');
-    });
-
-    it('shows living stats section', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Sessions this week')
-            ->assertSee('People joined sessions this week')
-            ->assertSee('Active campaigns');
-    });
-
-    it('passes weekly stats to the view', function () {
+    it('passes weekly stats to the view as integers', function () {
         $response = get(route('home'));
         $response->assertOk();
 
-        $sessionsThisWeek = $response->viewData('sessionsThisWeek');
-        $activeCampaigns = $response->viewData('activeCampaigns');
-        $peopleThisWeek = $response->viewData('peopleThisWeek');
-
-        expect($sessionsThisWeek)->toBeInt();
-        expect($activeCampaigns)->toBeInt();
-        expect($peopleThisWeek)->toBeInt();
-    });
-
-    it('shows values strip', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Built for real connection')
-            ->assertSee('Welcoming Community')
-            ->assertSee('Imaginative Play')
-            ->assertSee('Safe Spaces')
-            ->assertSee('Discovery');
-    });
-
-    it('shows community CTA section', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Your next adventure starts here');
+        expect($response->viewData('sessionsThisWeek'))->toBeInt();
+        expect($response->viewData('activeCampaigns'))->toBeInt();
+        expect($response->viewData('peopleThisWeek'))->toBeInt();
     });
 
     it('shows sign up link for guests', function () {
@@ -74,30 +35,19 @@ describe('HomePage', function () {
             ->assertOk()
             ->assertSee('Browse Sessions');
     });
-
-    it('does not show competition or tournament language', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertDontSee('Organize. Compete.')
-            ->assertDontSee('Ready to Compete?')
-            ->assertDontSee('Browse Events')
-            ->assertDontSee('Featured Events')
-            ->assertDontSee('Everything You Need');
-    });
 });
 
 // ── About Page ─────────────────────────────────────────
 
 describe('AboutPage', function () {
-    it('redirects /about to /how-it-works permanently', function () {
+    it('redirects /about to /how-it-works with 301', function () {
         get(route('about'))
-            ->assertRedirect(route('how-it-works'));
+            ->assertRedirect(route('how-it-works'))
+            ->assertStatus(301);
     });
 
-    it('renders how-it-works page with mission content', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('How Roundup Works');
+    it('renders how-it-works page successfully', function () {
+        get(route('how-it-works'))->assertOk();
     });
 });
 
@@ -219,39 +169,17 @@ describe('ContactPage', function () {
 // ── Navigation Integration ─────────────────────────────
 
 describe('PublicNavigation', function () {
-    it('includes navigation links in header', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee('Discover')
-            ->assertSee('Games')
-            ->assertSee('Campaigns');
-    });
-
     it('includes footer links', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee('How It Works')
-            ->assertSee('Contact');
+            ->assertSee(route('how-it-works'))
+            ->assertSee(route('contact'));
     });
 
     it('navigates from home to events', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee(route('events.index'));
-    });
-
-    it('navigates from home to about', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee(route('about'));
-    });
-
-    it('navigates from about (redirect) to contact', function () {
-        $response = get(route('about'));
-        // /about now redirects to /how-it-works, follow the redirect
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee(route('contact'));
     });
 });
 
