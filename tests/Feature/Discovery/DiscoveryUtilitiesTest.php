@@ -406,11 +406,15 @@ describe('DiscoveryUtilities trait', function () {
     });
 
     it('applies date filter for this_week', function () {
+        // Must be both in the future AND within this week.
+        // On Sunday, endOfWeek == today, so use a time that's still in the future.
+        $inRange = now()->endOfWeek()->subHour();
+
         Game::factory()->create([
             'name' => 'This Week Game',
             'visibility' => 'public',
             'status' => 'scheduled',
-            'date_time' => now()->addDay(),
+            'date_time' => $inRange,
         ]);
 
         Game::factory()->create([
