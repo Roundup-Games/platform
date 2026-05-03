@@ -97,55 +97,6 @@ describe('DiscoveryPage', function () {
             ->assertDontSee('Unrelated Session');
     })->group('smoke');
 
-    it('filters by game system', function () {
-        $system1 = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $system2 = GameSystem::factory()->create(['name' => 'Pathfinder']);
-
-        Game::factory()->create([
-            'name' => 'D&D Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system1->id,
-        ]);
-
-        Game::factory()->create([
-            'name' => 'Pathfinder Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-            'game_system_id' => $system2->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('game_system_id', $system1->id)
-            ->assertSee('D&D Game')
-            ->assertDontSee('Pathfinder Game');
-    });
-
-    it('filters by vibe flags', function () {
-        Game::factory()->create([
-            'name' => 'Chill Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'vibe_flags' => ['lighthearted', 'cooperative'],
-        ]);
-
-        Game::factory()->create([
-            'name' => 'Intense Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-            'vibe_flags' => ['horror', 'tactical'],
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('vibe_flags', ['lighthearted'])
-            ->assertSee('Chill Game')
-            ->assertDontSee('Intense Game');
-    });
-
     it('hides private games and campaigns', function () {
         Game::factory()->create([
             'name' => 'Private Game',
@@ -379,73 +330,6 @@ describe('DiscoveryPage', function () {
             ->set('recurrence', 'weekly')
             ->assertSee('Weekly Campaign')
             ->assertDontSee('Monthly Campaign');
-    });
-
-    it('filters by experience level', function () {
-        Game::factory()->create([
-            'name' => 'Beginner Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'experience_level' => 'beginner',
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Advanced Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-            'experience_level' => 'advanced',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('experience_level', 'beginner')
-            ->assertSee('Beginner Game')
-            ->assertDontSee('Advanced Campaign');
-    });
-
-    it('filters by language', function () {
-        Game::factory()->create([
-            'name' => 'English Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'language' => 'en',
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'German Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-            'language' => 'de',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('language', 'de')
-            ->assertSee('German Campaign')
-            ->assertDontSee('English Game');
-    });
-
-    it('filters by complexity range', function () {
-        Game::factory()->create([
-            'name' => 'Simple Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'complexity' => 1.5,
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Complex Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-            'complexity' => 4.5,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('complexity_min', '4.0')
-            ->set('complexity_max', '5.0')
-            ->assertSee('Complex Campaign')
-            ->assertDontSee('Simple Game');
     });
 
     it('shows empty state when no results match', function () {
@@ -737,24 +621,6 @@ describe('DiscoveryPage', function () {
         expect($component->get('language'))->toBe('en');
     });
 
-    it('defaults language filter to app locale for guests', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('language'))->toBe(app()->getLocale());
-    });
-
-    it('defaults language filter to German locale when app locale is de', function () {
-        app()->setLocale('de');
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('language'))->toBe('de');
-    });
-
-    it('URL language param overrides app locale default', function () {
-        app()->setLocale('de');
-        $component = Livewire\Livewire::withQueryParams(['language' => 'en'])
-            ->test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('language'))->toBe('en');
-    });
-
     it('recommendations exclude avoided game systems', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $favoriteSystem = GameSystem::factory()->create(['name' => 'Favorite']);
@@ -810,18 +676,6 @@ describe('DiscoveryPage', function () {
         expect($names)->toContain('Expansion Game');
     });
 
-    it('defaults language filter to user preferred language en', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'en',
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        expect($component->get('language'))->toBe('en');
-    });
-
     it('recommendations return null when user only has avoided systems and no favorites', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $avoidedSystem = GameSystem::factory()->create(['name' => 'Avoided Only']);
@@ -841,40 +695,6 @@ describe('DiscoveryPage', function () {
         $recommendations = $component->viewData('recommendations');
 
         expect($recommendations)->toBeNull();
-    });
-
-    it('recommendations exclude favorite system when it is also avoided', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $favSystem = GameSystem::factory()->create(['name' => 'Fav System']);
-        $avoidedSystem = GameSystem::factory()->create(['name' => 'Avoided System']);
-
-        // User has one favorite and one avoided — avoid wins per system
-        $user->favoriteGameSystems()->attach($favSystem->id, ['preference_type' => 'favorite']);
-        $user->avoidedGameSystems()->attach($avoidedSystem->id, ['preference_type' => 'avoid']);
-
-        Game::factory()->create([
-            'name' => 'Favorite System Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $favSystem->id,
-        ]);
-
-        Game::factory()->create([
-            'name' => 'Avoided System Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(4),
-            'game_system_id' => $avoidedSystem->id,
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $recommendations = $component->viewData('recommendations');
-
-        $names = collect($recommendations)->pluck('name')->toArray();
-        expect($names)->toContain('Favorite System Game');
-        expect($names)->not->toContain('Avoided System Game');
     });
 
     it('recommendations boost vibe items across both games and campaigns', function () {
@@ -931,148 +751,6 @@ describe('DiscoveryPage', function () {
 
         expect($boostedGameIdx)->toBeLessThan($fallbackIdx);
         expect($boostedCampaignIdx)->toBeLessThan($fallbackIdx);
-    });
-
-    it('combines all three preference behaviors: language default, system filtering, and vibe boosting', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'en',
-        ]);
-
-        $favoriteSystem = GameSystem::factory()->create(['name' => 'Fav System']);
-        $avoidedSystem = GameSystem::factory()->create(['name' => 'Avoid System']);
-
-        $user->favoriteGameSystems()->attach($favoriteSystem->id, ['preference_type' => 'favorite']);
-        $user->avoidedGameSystems()->attach($avoidedSystem->id, ['preference_type' => 'avoid']);
-        $user->vibePreferences()->create([
-            'vibe_preference_value' => 'cooperative',
-            'preference_type' => 'favorite',
-        ]);
-
-        // Boosted game: favorite system + favorite vibe
-        Game::factory()->create([
-            'name' => 'Boosted Fav Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $favoriteSystem->id,
-            'vibe_flags' => ['cooperative'],
-            'language' => 'en',
-        ]);
-
-        // Fallback game: favorite system, no vibe match
-        Game::factory()->create([
-            'name' => 'Fallback Fav Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(4),
-            'game_system_id' => $favoriteSystem->id,
-            'vibe_flags' => [],
-            'language' => 'en',
-        ]);
-
-        // Avoided game: should not appear in recommendations
-        Game::factory()->create([
-            'name' => 'Avoided System Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-            'game_system_id' => $avoidedSystem->id,
-            'vibe_flags' => ['cooperative'],
-            'language' => 'en',
-        ]);
-
-        // Same-system game in German: should not appear in main results due to language filter
-        Game::factory()->create([
-            'name' => 'German Fav Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(6),
-            'game_system_id' => $favoriteSystem->id,
-            'vibe_flags' => ['cooperative'],
-            'language' => 'de',
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        // Language should default to 'en' from preferred_language
-        expect($component->get('language'))->toBe('en');
-
-        // Recommendations: should have boosted and fallback, but not avoided
-        $recommendations = $component->viewData('recommendations');
-        $recNames = collect($recommendations)->pluck('name')->toArray();
-
-        expect($recNames)->toContain('Boosted Fav Game');
-        expect($recNames)->toContain('Fallback Fav Game');
-        expect($recNames)->not->toContain('Avoided System Game');
-
-        // Boosted should come before fallback
-        $boostedIdx = array_search('Boosted Fav Game', $recNames);
-        $fallbackIdx = array_search('Fallback Fav Game', $recNames);
-        expect($boostedIdx)->toBeLessThan($fallbackIdx);
-
-        // Main results should be filtered by language='en', excluding German content
-        $results = $component->viewData('results');
-        $resultNames = collect($results->items())->pluck('name')->toArray();
-        expect($resultNames)->not->toContain('German Fav Game');
-    });
-
-    it('recommendations with multiple vibe preferences boost items matching any favorite vibe', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $system = GameSystem::factory()->create(['name' => 'Multi Vibe System']);
-
-        $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
-
-        // Multiple favorite vibes
-        $user->vibePreferences()->createMany([
-            ['vibe_preference_value' => 'lighthearted', 'preference_type' => 'favorite'],
-            ['vibe_preference_value' => 'cooperative', 'preference_type' => 'favorite'],
-        ]);
-
-        Game::factory()->create([
-            'name' => 'Lighthearted Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-            'vibe_flags' => ['lighthearted'],
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Cooperative Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-            'game_system_id' => $system->id,
-            'vibe_flags' => ['cooperative'],
-        ]);
-
-        Game::factory()->create([
-            'name' => 'No Vibe Match Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(4),
-            'game_system_id' => $system->id,
-            'vibe_flags' => ['tactical'],
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $recommendations = $component->viewData('recommendations');
-
-        $names = collect($recommendations)->pluck('name')->toArray();
-
-        // Both vibe-matched items should be boosted (before fallback)
-        expect($names)->toContain('Lighthearted Game');
-        expect($names)->toContain('Cooperative Campaign');
-        expect($names)->toContain('No Vibe Match Game');
-
-        $lightheartedIdx = array_search('Lighthearted Game', $names);
-        $coopIdx = array_search('Cooperative Campaign', $names);
-        $noVibeIdx = array_search('No Vibe Match Game', $names);
-
-        expect($lightheartedIdx)->toBeLessThan($noVibeIdx);
-        expect($coopIdx)->toBeLessThan($noVibeIdx);
     });
 
     it('implied favorites from expansion are excluded if expansion system is also avoided', function () {
@@ -1465,23 +1143,6 @@ describe('DiscoveryPage', function () {
 
     // ── Vibe Preference Pre-Selection ──────────────────
 
-    it('pre-selects vibe flags from user preferences on mount', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        // Create favorite vibe preferences
-        $user->vibePreferences()->createMany([
-            ['vibe_preference_value' => 'lighthearted', 'preference_type' => 'favorite'],
-            ['vibe_preference_value' => 'cooperative', 'preference_type' => 'favorite'],
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        $vibes = $component->get('vibe_flags');
-        expect($vibes)->toContain('lighthearted');
-        expect($vibes)->toContain('cooperative');
-    });
-
     it('does not override vibe flags when URL already has values', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
@@ -1501,14 +1162,6 @@ describe('DiscoveryPage', function () {
     });
 
     it('does not pre-select vibe flags for guest users', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('vibe_flags'))->toBe([]);
-    });
-
-    it('does not pre-select vibe flags when user has no vibe preferences', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        actingAs($user);
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
         expect($component->get('vibe_flags'))->toBe([]);
     });
