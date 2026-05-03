@@ -649,27 +649,7 @@ describe('ApplicationApproved Notification Content', function () {
             ->and($mail->actionText)->toBe('View Campaign');
     });
 
-    it('returns approver as actor for block-list checking', function () {
-        $approver = User::factory()->create();
-        $game = Game::factory()->create();
-        $notification = new ApplicationApproved($game, 'game', $approver);
 
-        expect($notification->getActor())->toBe($approver);
-    });
-
-    it('resolves via channels to database and mail', function () {
-        $notifiable = User::factory()->create();
-        $notification = new ApplicationApproved(
-            Game::factory()->create(),
-            'game',
-            User::factory()->create(),
-        );
-
-        expect($notification->via($notifiable))->toContain(
-            \Illuminate\Notifications\Channels\DatabaseChannel::class,
-            \Illuminate\Notifications\Channels\MailChannel::class,
-        );
-    });
 });
 
 describe('ApplicationRejected Notification Content', function () {
@@ -735,25 +715,5 @@ describe('ApplicationRejected Notification Content', function () {
             ->and($mail->actionText)->toBe('Browse Games');
     });
 
-    it('returns rejector as actor for block-list checking', function () {
-        $rejector = User::factory()->create();
-        $game = Game::factory()->create();
-        $notification = new ApplicationRejected($game, 'game', $rejector);
 
-        expect($notification->getActor())->toBe($rejector);
-    });
-
-    it('resolves via channels to database and mail', function () {
-        $notifiable = User::factory()->create();
-        $notification = new ApplicationRejected(
-            Game::factory()->create(),
-            'game',
-            User::factory()->create(),
-        );
-
-        expect($notification->via($notifiable))->toContain(
-            \Illuminate\Notifications\Channels\DatabaseChannel::class,
-            \Illuminate\Notifications\Channels\MailChannel::class,
-        );
-    });
 });

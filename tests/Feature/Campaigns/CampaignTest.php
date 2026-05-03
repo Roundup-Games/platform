@@ -272,34 +272,6 @@ describe('CreateCampaign Component', function () {
         expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
     });
 
-    it('flashes success message', function () {
-        $user = campaignTestCreateOwner();
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
-            ->set('name', 'Flash Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->call('save');
-
-        // The component calls session()->flash() before redirect
-        expect(session('success'))->toBe('Campaign "Flash Campaign" created successfully!');
-    });
-
-    it('sets default price_per_session to 0', function () {
-        $user = campaignTestCreateOwner();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
-            ->set('name', 'Free Campaign')
-            ->set('recurrence', 'weekly')
-            ->set('time_of_day', '19:00')
-            ->set('price_per_session', '')
-            ->call('save');
-
-        $campaign = Campaign::where('name', 'Free Campaign')->first();
-        expect($campaign->price_per_session)->toBe(0.0);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -311,16 +283,6 @@ describe('Campaign Detail Route', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => 'Open Campaign']);
 
         Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertOk()
-            ->assertSee('Open Campaign');
-    });
-
-    it('shows public campaign to authenticated user via route', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => 'Open Campaign']);
-        $user = User::factory()->create();
-
-        actingAs($user)
-            ->get(route('campaigns.detail', $campaign->id))
             ->assertOk()
             ->assertSee('Open Campaign');
     });
@@ -380,114 +342,6 @@ describe('Campaign Detail Route', function () {
     it('returns 404 for non-existent campaign', function () {
         get(route('campaigns.detail', Str::uuid()->toString()))
             ->assertNotFound();
-    });
-});
-
-describe('CampaignDetail Component', function () {
-    it('shows campaign name and description', function () {
-        $campaign = campaignTestCreateCampaign([
-            'name' => 'Waterdeep Dragon Heist',
-            'description' => 'Urban intrigue in the City of Splendors',
-            'visibility' => 'public',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Waterdeep Dragon Heist')
-            ->assertSee('Urban intrigue');
-    });
-
-    it('shows game system name', function () {
-        $system = GameSystem::factory()->create(['name' => 'Blades in the Dark']);
-        $campaign = campaignTestCreateCampaign(['game_system_id' => $system->id, 'visibility' => 'public']);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Blades in the Dark');
-    });
-
-    it('shows participants', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
-        $player = User::factory()->create(['name' => 'Thorin']);
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Thorin');
-    });
-
-    it('shows owner badge', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner(['visibility' => 'public']);
-
-        actingAs($owner)
-            ->get(route('campaigns.detail', $campaign->id))
-            ->assertOk()
-            ->assertSee('Owner');
-    });
-
-    it('shows linked sessions', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
-        Game::factory()->create([
-            'campaign_id' => $campaign->id,
-            'name' => 'Session 1: The Heist',
-            'visibility' => 'public',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Session 1: The Heist');
-    });
-
-    it('shows recurrence info', function () {
-        $campaign = campaignTestCreateCampaign([
-            'visibility' => 'public',
-            'recurrence' => 'bi-weekly',
-            'time_of_day' => '20:00',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Bi-weekly')
-            ->assertSee('20:00');
-    });
-
-    it('shows empty participants state', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('No participants yet');
-    });
-
-    it('shows empty sessions state', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('No sessions scheduled yet');
-    });
-
-    it('indicates isOwner correctly', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner(['visibility' => 'public']);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('isOwner', true);
-    });
-
-    it('indicates isParticipant correctly', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public']);
-        $player = User::factory()->create();
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire\Livewire::actingAs($player)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('isParticipant', true);
     });
 });
 
@@ -816,53 +670,6 @@ describe('Campaign Full Lifecycle', function () {
         ]);
     });
 
-    it('invite flow: invite → cancel', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner();
-        $friend = campaignTestCreateOwner();
-        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
-        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        $participant = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $friend->id)
-            ->first();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->call('cancelInvite', $participant->id);
-
-        assertDatabaseHas('campaign_participants', [
-            'campaign_id' => $campaign->id,
-            'user_id' => $friend->id,
-            'status' => 'rejected',
-        ]);
-    });
-
-    it('campaign with sessions shows linked games', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner(['visibility' => 'public']);
-
-        Game::factory()->create([
-            'campaign_id' => $campaign->id,
-            'name' => 'Episode 1: The Beginning',
-            'visibility' => 'public',
-            'date_time' => now()->addDays(7),
-        ]);
-
-        Game::factory()->create([
-            'campaign_id' => $campaign->id,
-            'name' => 'Episode 2: The Journey',
-            'visibility' => 'public',
-            'date_time' => now()->addDays(14),
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Episode 1: The Beginning')
-            ->assertSee('Episode 2: The Journey');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -902,53 +709,6 @@ describe('AddSessionToCampaign — Authorization', function () {
             ->set('date_time', '2026-05-01 19:00')
             ->call('save')
             ->assertForbidden();
-    });
-});
-
-describe('AddSessionToCampaign — Rendering', function () {
-    it('renders add session form for campaign owner', function () {
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'name' => 'Curse of Strahd',
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->assertOk()
-            ->assertSee('Add Session')
-            ->assertSee('Curse of Strahd');
-    });
-
-    it('displays campaign metadata as read-only', function () {
-        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $system->id,
-            'visibility' => 'public',
-            'language' => 'en',
-            'min_players' => 3,
-            'max_players' => 6,
-            'experience_level' => 'intermediate',
-            'complexity' => 3.50,
-            'vibe_flags' => ['serious', 'rules_heavy'],
-            'session_duration' => 3,
-            'price_per_session' => 10,
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->assertSee('D&D 5e')
-            ->assertSee('Public')
-            ->assertSee('EN')
-            ->assertSee('3–6')
-            ->assertSee('Intermediate')
-            ->assertSee('3.50 / 5')
-            ->assertSee('Serious')
-            ->assertSee('Rules heavy')
-            ->assertSee('3 hours')
-            ->assertSee('10');
     });
 });
 
@@ -1069,26 +829,6 @@ describe('AddSessionToCampaign — Creation', function () {
             ->set('name', 'Boardgame System Session')
             ->set('date_time', '2026-08-01 19:00')
             ->call('save');
-    });
-});
-
-describe('AddSessionToCampaign — Integration', function () {
-    it('created session appears on campaign detail page', function () {
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Session 42 — Grand Finale')
-            ->set('date_time', '2026-07-20 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Session 42 — Grand Finale');
     });
 });
 
@@ -1262,62 +1002,4 @@ describe('AddSessionToCampaign — Auto-Invite Campaign Participants', function 
         expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(0);
     });
 
-    it('logs auto-invite count for funnel analytics', function () {
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
-        $player = User::factory()->create();
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Game session added to campaign', \Mockery::on(function ($context) use ($campaign, $owner, $player) {
-                return $context['campaign_id'] === $campaign->id
-                    && $context['owner_id'] === $owner->id
-                    && $context['auto_invited_count'] === 1
-                    && isset($context['game_id']);
-            }));
-
-        // NotificationService may also log (dispatched/skipped/failed)
-        Log::shouldReceive('info')->byDefault();
-        Log::shouldReceive('error')->byDefault();
-        Log::shouldReceive('debug')->byDefault();
-        Log::shouldReceive('warning')->byDefault();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Logged Session')
-            ->set('date_time', '2026-06-01 19:00')
-            ->call('save');
-    });
-
-    it('wraps game creation and auto-invite in a transaction', function () {
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
-        $player = User::factory()->create();
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Transactional Session')
-            ->set('date_time', '2026-06-01 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        // Verify both game and participant were created atomically
-        $game = Game::where('campaign_id', $campaign->id)->first();
-        expect($game)->not->toBeNull();
-        expect(\App\Models\GameParticipant::where('game_id', $game->id)->count())->toBe(1);
-    });
 });

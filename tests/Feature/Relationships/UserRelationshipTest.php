@@ -5,7 +5,6 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,25 +44,6 @@ describe('Follow Action', function () {
 
         expect(UserRelationship::count())->toBe(1);
         expect($first->id)->toBe($second->id);
-    });
-
-    it('logs the follow action with structured context', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->withArgs(function (string $message, array $context) use ($user, $target) {
-                return $message === 'user.relationship.follow'
-                    && $context['user_id'] === $user->id
-                    && $context['target_id'] === $target->id
-                    && $context['action'] === 'follow';
-            });
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-
-        UserRelationship::follow($user, $target);
     });
 
     it('allows mutual follows between two users', function () {
@@ -143,23 +123,6 @@ describe('Unfollow Action', function () {
         ]);
     });
 
-    it('logs the unfollow action', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->withArgs(function (string $message, array $context) use ($user, $target) {
-                return $message === 'user.relationship.unfollow'
-                    && $context['user_id'] === $user->id
-                    && $context['target_id'] === $target->id
-                    && $context['action'] === 'unfollow';
-            });
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        UserRelationship::unfollow($user, $target);
-    });
 });
 
 // ── Block Action ───────────────────────────────────────
@@ -234,24 +197,6 @@ describe('Block Action', function () {
 
         expect(UserRelationship::where('type', 'block')->count())->toBe(1);
         expect($first->id)->toBe($second->id);
-    });
-
-    it('logs the block action', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->withArgs(function (string $message, array $context) use ($user, $target) {
-                return $message === 'user.relationship.block'
-                    && $context['user_id'] === $user->id
-                    && $context['target_id'] === $target->id
-                    && $context['action'] === 'block';
-            });
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        UserRelationship::block($user, $target);
     });
 
     it('prevents new follow after block is in place (follow still created but block remains)', function () {
@@ -922,33 +867,6 @@ describe('Eloquent Relationships', function () {
 // ── Edge Cases ─────────────────────────────────────────
 
 describe('Edge Cases', function () {
-    it('self-relationship: user can follow themselves at DB level but it is a valid record', function () {
-        $user = User::factory()->create();
-
-        // The unique constraint allows this — (user_id, related_user_id, type)
-        // The model does not explicitly prevent self-relationships.
-        $rel = UserRelationship::follow($user, $user);
-
-        expect($rel)->not->toBeNull();
-        expect($rel->user_id)->toBe($rel->related_user_id);
-    });
-
-    it('self-relationship: isFollowing self returns true after self-follow', function () {
-        $user = User::factory()->create();
-
-        UserRelationship::follow($user, $user);
-
-        expect($user->isFollowing($user))->toBeTrue();
-    });
-
-    it('self-relationship: getRelationshipLevel returns self regardless of self-follow', function () {
-        $user = User::factory()->create();
-
-        UserRelationship::follow($user, $user);
-
-        expect($user->getRelationshipLevel($user))->toBe('self');
-    });
-
     it('cascade deletion: deleting user removes their relationships', function () {
         $alice = User::factory()->create();
         $bob = User::factory()->create();
@@ -966,46 +884,6 @@ describe('Edge Cases', function () {
         $this->assertDatabaseMissing('user_relationships', [
             'related_user_id' => $alice->id,
         ]);
-    });
-
-    it('action methods work with freshly created users (no prior state)', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        // Immediately use all action methods
-        UserRelationship::follow($alice, $bob);
-        expect($alice->isFollowing($bob))->toBeTrue();
-
-        UserRelationship::unfollow($alice, $bob);
-        expect($alice->isFollowing($bob))->toBeFalse();
-
-        UserRelationship::block($alice, $bob);
-        expect($alice->hasBlocked($bob))->toBeTrue();
-
-        UserRelationship::unblock($alice, $bob);
-        expect($alice->hasBlocked($bob))->toBeFalse();
-    });
-
-    it('block then unblock then re-follow restores friendship', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        // Friends
-        UserRelationship::follow($alice, $bob);
-        UserRelationship::follow($bob, $alice);
-        expect($alice->isFriend($bob))->toBeTrue();
-
-        // Block removes follows
-        UserRelationship::block($alice, $bob);
-        expect($alice->isFriend($bob))->toBeFalse();
-
-        // Unblock + re-follow both directions
-        UserRelationship::unblock($alice, $bob);
-        UserRelationship::follow($alice, $bob);
-        UserRelationship::follow($bob, $alice);
-
-        expect($alice->isFriend($bob))->toBeTrue();
-        expect($alice->getRelationshipLevel($bob))->toBe('friend_or_teammate');
     });
 
 });

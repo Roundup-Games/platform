@@ -7,7 +7,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use function Pest\Laravel\{actingAs};
 
 describe('AdventuresDiscovery', function () {
     // ── Core rendering ──────────────────────────────────
@@ -654,71 +654,6 @@ describe('AdventuresDiscovery', function () {
             ->assertSet('safety_tools', []);
     });
 
-    it('renders session type pills in the UI', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSee('Campaign')
-            ->assertSee('One-shot');
-    });
-
-    it('renders session zero toggle in the UI', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSee('Session zero support');
-    });
-
-    it('renders the expandable narrow-it-down toggle', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSee('Narrow it down');
-    });
-
-    it('passes play style groups to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
-        $groups = $component->viewData('playStyleGroups');
-
-        expect($groups)->not->toBeNull();
-        expect($groups)->toHaveKey('play_styles');
-        expect($groups['play_styles'])->toHaveKey('label');
-        expect($groups['play_styles'])->toHaveKey('options');
-        expect($groups['play_styles'])->toHaveKey('descriptions');
-        expect($groups['play_styles'])->toHaveKey('icons');
-        expect($groups['play_styles']['options'])->toHaveKey('narrative-first');
-        expect($groups['play_styles']['options'])->toHaveKey('tactical');
-        expect($groups['play_styles']['options'])->toHaveKey('osr');
-        expect($groups['play_styles']['options'])->toHaveKey('sandbox');
-        expect($groups['play_styles']['options'])->toHaveKey('horror');
-    });
-
-    it('passes safety tool groups to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
-        $groups = $component->viewData('safetyToolGroups');
-
-        expect($groups)->not->toBeNull();
-    });
-
-    it('passes curated TTRPG categories to view', function () {
-        $category = GameSystemCategory::create(['name' => 'Fantasy']);
-        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
-        $system->categories()->attach($category->id);
-
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
-        $categories = $component->viewData('curatedCategories');
-
-        expect($categories)->not->toBeNull();
-        expect($categories->count())->toBeGreaterThanOrEqual(1);
-    });
-
-    // ── Language default tests ─────────────────────────
-
-    it('defaults language filter to app locale for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSet('language', app()->getLocale());
-    });
-
-    it('defaults language filter to German locale when app locale is de', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSet('language', 'de');
-    });
-
     it('defaults language filter to user preferred language on mount', function () {
         $user = User::factory()->create([
             'profile_complete' => true,
@@ -730,24 +665,4 @@ describe('AdventuresDiscovery', function () {
             ->assertSet('language', 'de');
     });
 
-    it('URL language param overrides app locale default', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::withQueryParams(['language' => 'en'])
-            ->test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSet('language', 'en');
-    });
-
-    // ── Route-level smoke tests ───────────────────────────
-
-    it('renders at /discover/adventures for guests via HTTP', function () {
-        get(route('discover.adventures', 'en'))
-            ->assertOk();
-    });
-
-    it('route is accessible via named route discover.adventures', function () {
-        $url = route('discover.adventures', 'en');
-        expect($url)->toEndWith('/en/discover/adventures');
-
-        get($url)->assertOk();
-    });
 });

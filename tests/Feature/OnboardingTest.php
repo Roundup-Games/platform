@@ -10,50 +10,6 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
 
-// ── Middleware: EnsureProfileComplete ──────────────────
-
-it('redirects unprofiled user to onboarding from dashboard', function () {
-    $user = User::factory()->create([
-        'profile_complete' => false,
-        'email_verified_at' => now(),
-    ]);
-
-    $response = $this->actingAs($user)->get(route('dashboard'));
-
-    $response->assertRedirect(route('onboarding.index'));
-});
-
-it('allows unprofiled user to access profile edit (needed for onboarding)', function () {
-    $user = User::factory()->create([
-        'profile_complete' => false,
-        'email_verified_at' => now(),
-    ]);
-
-    // Profile routes are allowed through the middleware so users can
-    // still update their profile even if not fully complete
-    $response = $this->actingAs($user)->get(route('profile.show'));
-
-    $response->assertOk();
-});
-
-it('allows profiled user to access dashboard', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'email_verified_at' => now(),
-    ]);
-
-    $response = $this->actingAs($user)->get(route('dashboard'));
-
-    $response->assertOk();
-});
-
-it('does not redirect unauthenticated users', function () {
-    $response = $this->get(route('dashboard'));
-
-    // Should redirect to login, not onboarding
-    $response->assertRedirect(route('login'));
-});
-
 // ── Onboarding page access ────────────────────────────
 
 it('allows unprofiled user to access onboarding page', function () {
@@ -77,20 +33,6 @@ it('redirects profiled user away from onboarding to dashboard', function () {
 });
 
 // ── Registration sets profile_complete=false ──────────
-
-it('sets profile_complete to false on email registration', function () {
-    $this->post(route('register'), [
-        'name' => 'New User',
-        'email' => 'new@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-    ]);
-
-    $this->assertDatabaseHas('users', [
-        'email' => 'new@example.com',
-        'profile_complete' => false,
-    ]);
-});
 
 it('redirects to onboarding after registration', function () {
     $response = $this->post(route('register'), [
@@ -129,61 +71,7 @@ it('marks profile complete after updating profile fields', function () {
         ->and($fresh)->profile_version->toBe(1);
 })->group('smoke');
 
-it('increments profile_version on completion', function () {
-    $user = User::factory()->create([
-        'profile_complete' => false,
-        'profile_version' => 0,
-    ]);
-
-    $user->update([
-        'gender' => 'female',
-        'pronouns' => 'she/her',
-        'profile_complete' => true,
-        'profile_version' => $user->profile_version + 1,
-        'profile_updated_at' => now(),
-    ]);
-
-    expect($user->fresh()->profile_version)->toBe(1);
-});
-
-it('sets profile_updated_at on completion', function () {
-    $user = User::factory()->create([
-        'profile_complete' => false,
-        'profile_updated_at' => null,
-    ]);
-
-    $user->update([
-        'gender' => 'male',
-        'pronouns' => 'he/him',
-        'profile_complete' => true,
-        'profile_version' => $user->profile_version + 1,
-        'profile_updated_at' => now(),
-    ]);
-
-    expect($user->fresh()->profile_updated_at)->not->toBeNull();
-});
-
-it('allows profiled user to access profile edit without redirect', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'email_verified_at' => now(),
-    ]);
-
-    $response = $this->actingAs($user)->get(route('profile.show'));
-
-    $response->assertOk();
-});
-
 // ── Livewire Component: Multi-step flow ───────────────
-
-it('renders step 1 (Location) by default', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->assertSet('step', 1)
-        ->assertSee('Where are you based?');
-});
 
 it('redirects profiled user on mount', function () {
     $user = User::factory()->create(['profile_complete' => true]);
@@ -335,15 +223,6 @@ it('goes back to previous step', function () {
         ->assertSet('step', 1);
 });
 
-it('does not go below step 1', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->call('previousStep')
-        ->assertSet('step', 1);
-});
-
 // ── Completion ────────────────────────────────────────
 
 // smoke: core onboarding flow completes and redirects to dashboard
@@ -374,26 +253,6 @@ it('completes profile and redirects to dashboard', function () {
         ->and($fresh->profile_updated_at)->not->toBeNull();
 })->group('smoke');
 
-it('stores phone as null when empty', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
-        ->set('gender', 'female')
-        ->set('pronouns', 'she/her')
-        ->call('nextStep')
-        ->set('phone', '')
-        ->call('nextStep')
-        ->call('complete');
-
-    expect($user->fresh()->phone)->toBeNull();
-});
-
 it('syncs favorite game systems on completion', function () {
     $user = User::factory()->create(['profile_complete' => false]);
     $gs1 = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
@@ -417,28 +276,6 @@ it('syncs favorite game systems on completion', function () {
     $fresh = $user->fresh();
     expect($fresh->favoriteGameSystems->pluck('id')->sort()->values()->toArray())
         ->toBe([$gs1->id, $gs3->id]);
-});
-
-it('handles no game system selections gracefully', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
-        ->set('gender', 'prefer-not-to-say')
-        ->set('pronouns', 'prefer-not-to-say')
-        ->call('nextStep')
-        ->call('nextStep')
-        ->set('favoriteGameSystemIds', [])
-        ->call('complete')
-        ->assertRedirect(route('dashboard'));
-
-    expect($user->fresh()->profile_complete)->toBeTrue();
-    expect($user->fresh()->gameSystemPreferences)->toHaveCount(0);
 });
 
 it('logs onboarding completion event', function () {

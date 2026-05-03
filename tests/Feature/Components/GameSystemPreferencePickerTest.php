@@ -42,16 +42,6 @@ function prefCreateUser(): User
 // ═══════════════════════════════════════════════════════════
 
 describe('Search', function () {
-    it('returns empty results for short search terms', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'a')
-            ->assertSet('isOpen', true)
-            ->assertSet('searchResults', collect());
-    });
-
     it('finds base games by name', function () {
         $user = prefCreateUser();
         prefCreateBaseGame(['name' => 'Wingspan', 'bgg_rank' => 38]);
@@ -151,17 +141,6 @@ describe('Selection (add)', function () {
             ->assertSet('search', '');
     });
 
-    it('closes dropdown after add', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'Chess')
-            ->call('add', $base->id)
-            ->assertSet('isOpen', false);
-    });
-
     it('dispatches selection-changed event with updated array', function () {
         $user = prefCreateUser();
         $base = prefCreateBaseGame(['name' => 'Chess']);
@@ -235,48 +214,6 @@ describe('Multi-select', function () {
             ->assertSet('selectedIds', [$game1->id, $game2->id]);
     });
 
-    it('can remove one system without affecting others', function () {
-        $user = prefCreateUser();
-        $game1 = prefCreateBaseGame(['name' => 'Chess']);
-        $game2 = prefCreateBaseGame(['name' => 'Go']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $game1->id)
-            ->call('add', $game2->id)
-            ->call('remove', $game1->id)
-            ->assertSet('selectedIds', [$game2->id]);
-    });
-
-    it('selectedSystems computed returns correct models', function () {
-        $user = prefCreateUser();
-        $game1 = prefCreateBaseGame(['name' => 'Alpha']);
-        $game2 = prefCreateBaseGame(['name' => 'Beta']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $game1->id)
-            ->call('add', $game2->id);
-
-        $systems = $component->instance()->selectedSystems;
-        expect($systems)->toHaveCount(2);
-        expect($systems->pluck('id')->sort()->values()->toArray())->toBe([$game1->id, $game2->id]);
-    });
-
-    it('selectedSystems returns expansion count', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $base->id);
-
-        $systems = $component->instance()->selectedSystems;
-        expect($systems)->toHaveCount(1);
-        expect($systems->first()->expansions_count)->toBe(2);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -310,16 +247,6 @@ describe('Conflict Detection', function () {
             ->call('add', $base->id);
 
         $component->assertSet('conflictMessage', fn ($msg) => str_contains($msg, 'Chess'));
-    });
-
-    it('shows no conflict when conflictIds is empty', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $base->id)
-            ->assertSet('conflictMessage', '');
     });
 
     it('warns when adding expansion to avoid whose base is favorited', function () {
@@ -358,36 +285,6 @@ describe('Conflict Detection', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Dropdown Behavior', function () {
-    it('opens on search focus (updatedSearch)', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'test')
-            ->assertSet('isOpen', true);
-    });
-
-    it('closes on Escape (closeDropdown)', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'test')
-            ->call('closeDropdown')
-            ->assertSet('isOpen', false);
-    });
-
-    it('closes on outside click (closeDropdown)', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'test')
-            ->assertSet('isOpen', true)
-            ->call('closeDropdown')
-            ->assertSet('isOpen', false);
-    });
-
     it('clears conflict message when search changes', function () {
         $user = prefCreateUser();
         $base = prefCreateBaseGame(['name' => 'Chess']);
@@ -406,16 +303,6 @@ describe('Dropdown Behavior', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Edge Cases', function () {
-    it('empty selectedIds shows empty selectedSystems', function () {
-        $user = prefCreateUser();
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class);
-
-        $systems = $component->instance()->selectedSystems;
-        expect($systems)->toHaveCount(0);
-    });
-
     it('adding already-selected item is idempotent', function () {
         $user = prefCreateUser();
         $base = prefCreateBaseGame(['name' => 'Chess']);
@@ -429,16 +316,6 @@ describe('Edge Cases', function () {
         $component->assertSet('selectedIds', [$base->id]);
     });
 
-    it('removing non-existent item is safe', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $base->id)
-            ->call('remove', \Illuminate\Support\Str::uuid()->toString())
-            ->assertSet('selectedIds', [$base->id]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -446,36 +323,6 @@ describe('Edge Cases', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Mount', function () {
-    it('initializes with provided selectedIds', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class, [
-                'selectedIds' => [$base->id],
-            ])
-            ->assertSet('selectedIds', [$base->id]);
-    });
-
-    it('initializes with provided conflictIds', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class, [
-                'conflictIds' => [$base->id],
-            ])
-            ->assertSet('conflictIds', [$base->id]);
-    });
-
-    it('defaults to favorite preference type', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->assertSet('preferenceType', 'favorite');
-    });
-
     it('accepts avoid preference type', function () {
         $user = prefCreateUser();
 

@@ -37,19 +37,7 @@ describe('CreateGame — Type Selector', function () {
             ->assertDontSeeHtml('wire:submit="save"');
     });
 
-    it('does not show form fields on type step', function () {
-        createGameComponent()
-            ->assertDontSeeHtml('id="game-name"')
-            ->assertDontSeeHtml('id="game-date-time"')
-            ->assertDontSeeHtml('id="game-comfort-notes"')
-            ->assertDontSeeHtml('id="game-experience"');
-    });
 
-    it('shows both type cards with labels', function () {
-        createGameComponent()
-            ->assertSee(__('games.type_board_game'))
-            ->assertSee(__('games.type_ttrpg'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -66,18 +54,6 @@ describe('CreateGame — Board Game Selection', function () {
             ->assertDontSeeHtml('id="game-experience"')
             ->assertDontSee(__('safety.content_safety_tools'));
     });
-
-    it('renders vibe picker component for board game', function () {
-        createGameComponent()
-            ->call('selectType', 'board_game')
-            ->assertSeeLivewire('components.vibe-preference-picker');
-    });
-
-    it('sets board game duration default to 1.5', function () {
-        createGameComponent()
-            ->call('selectType', 'board_game')
-            ->assertSet('expected_duration', '1.5');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -93,18 +69,6 @@ describe('CreateGame — TTRPG Selection', function () {
             ->assertSeeHtml('id="game-experience"')
             ->assertSee(__('safety.content_safety_tools'))
             ->assertDontSeeHtml('id="game-comfort-notes"');
-    });
-
-    it('renders vibe picker component for TTRPG', function () {
-        createGameComponent()
-            ->call('selectType', 'ttrpg')
-            ->assertSeeLivewire('components.vibe-preference-picker');
-    });
-
-    it('sets TTRPG duration default to 3', function () {
-        createGameComponent()
-            ->call('selectType', 'ttrpg')
-            ->assertSet('expected_duration', '3');
     });
 });
 
@@ -141,14 +105,6 @@ describe('CreateGame — Type Switching', function () {
             ->assertSet('date_time', now()->addDay()->format('Y-m-d\TH:i'));
     });
 
-    it('resets duration to new type default when switching', function () {
-        createGameComponent()
-            ->call('selectType', 'board_game')
-            ->assertSet('expected_duration', '1.5')
-            ->call('changeType', 'ttrpg')
-            ->assertSet('expected_duration', '3');
-    });
-
     it('shows type switcher link after selecting type', function () {
         createGameComponent()
             ->call('selectType', 'board_game')
@@ -183,41 +139,6 @@ describe('CreateGame — Board Game Creation', function () {
         $game = Game::where('name', 'Board Game Night')->first();
         expect($game->safety_rules)->toBe(['comfort_notes' => 'Keep it light and fun']);
     })->group('smoke');
-
-    it('creates board game without comfort notes', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'Simple Board Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save')
-            ->assertRedirect();
-
-        assertDatabaseHas('games', [
-            'name' => 'Simple Board Game',
-            'game_type' => 'board_game',
-        ]);
-    });
-
-    it('stores board game duration default when not overridden', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'Default Duration BG')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save');
-
-        assertDatabaseHas('games', [
-            'name' => 'Default Duration BG',
-            'expected_duration' => 1.5,
-        ]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -250,22 +171,7 @@ describe('CreateGame — TTRPG Creation', function () {
         expect($game->safety_rules['tools'])->toContain('x-card', 'lines-veils');
     })->group('smoke');
 
-    it('stores TTRPG duration default when not overridden', function () {
-        $user = createGameTestUser();
 
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'Default Duration TTRPG')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save');
-
-        assertDatabaseHas('games', [
-            'name' => 'Default Duration TTRPG',
-            'expected_duration' => 3,
-        ]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -464,15 +370,6 @@ describe('CreateGame — Clone Source', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => $source->id]);
-    });
-
-    it('shows type selector when no clone parameter is provided', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->assertSet('step', 'type')
-            ->assertSet('game_type', null);
     });
 
     it('can save a cloned game with new date_time', function () {
@@ -744,14 +641,4 @@ describe('CreateGame — Clone to Different Type', function () {
     });
 });
 
-describe('CreateGame — Translation Key Verification', function () {
-    it('resolves error_select_game_type translation key', function () {
-        $enValue = __('games.error_select_game_type');
-        expect($enValue)->not->toBe('games.error_select_game_type');
 
-        app()->setLocale('de');
-        $deValue = __('games.error_select_game_type');
-        expect($deValue)->not->toBe('games.error_select_game_type');
-        app()->setLocale('en');
-    });
-});

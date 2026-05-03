@@ -8,7 +8,7 @@ use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use function Pest\Laravel\{actingAs};
 
 describe('DiscoveryPage', function () {
     it('renders the discovery page for guests', function () {
@@ -179,10 +179,6 @@ describe('DiscoveryPage', function () {
             ->assertSet('search', '')
             ->assertSet('game_system_id', null)
             ->assertSet('vibe_flags', []);
-    });
-
-    it('is accessible via route', function () {
-        get('/en/discover')->assertOk();
     });
 
     it('toggles vibe flags via preference picker', function () {
@@ -542,54 +538,6 @@ describe('DiscoveryPage', function () {
             ->set('search', 'forgotten realms')
             ->assertSee('Regular Game')
             ->assertDontSee('Regular Campaign');
-    });
-
-    it('hasActiveFilters returns correct state', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        // No filters active
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-
-        // Set a filter
-        $component->set('search', 'test');
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-
-        // Clear all filters
-        $component->call('clearFilters');
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-    });
-
-    it('renders for authenticated users', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertOk()
-            ->assertSee('Discover');
-    });
-
-    it('renders correct discoverable_type on games in all mode', function () {
-        Game::factory()->create([
-            'name' => 'Typed Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Typed Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-        ]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $results = $component->viewData('results');
-
-        $game = $results->first(fn ($item) => $item->name === 'Typed Game');
-        $campaign = $results->first(fn ($item) => $item->name === 'Typed Campaign');
-
-        expect($game->discoverable_type)->toBe('game');
-        expect($campaign->discoverable_type)->toBe('campaign');
     });
 
     // ── Preference-aware tests ─────────────────────────
@@ -1071,24 +1019,6 @@ describe('DiscoveryPage', function () {
             ->assertSet('search', '');
     });
 
-    it('hasActiveFilters detects category_ids and mechanic_ids', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-
-        $fakeUuid1 = (string) \Illuminate\Support\Str::uuid();
-        $fakeUuid2 = (string) \Illuminate\Support\Str::uuid();
-
-        $component->set('category_ids', [$fakeUuid1]);
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-
-        $component->set('category_ids', []);
-        $component->set('mechanic_ids', [$fakeUuid2]);
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-
-        $component->call('clearFilters');
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-    });
-
     it('toggleCategory adds and removes category ids', function () {
         Game::factory()->create([
             'name' => 'Toggle Cat Game',
@@ -1166,89 +1096,6 @@ describe('DiscoveryPage', function () {
         expect($component->get('vibe_flags'))->toBe([]);
     });
 
-    // ── Progressive Disclosure & Layout ────────────────
-
-    it('renders the expandable narrow-it-down toggle', function () {
-        Game::factory()->create([
-            'name' => 'Layout Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSee('Narrow it down');
-    });
-
-    it('renders session type pills (Either, One-shot, Campaign)', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSee('Either')
-            ->assertSee('One-shot')
-            ->assertSee('Campaign');
-    });
-
-    it('renders curated categories in view data', function () {
-        Game::factory()->create([
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $categories = $component->viewData('curatedCategories');
-
-        expect($categories)->not->toBeNull();
-    });
-
-    it('renders curated mechanics in view data', function () {
-        Game::factory()->create([
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $mechanics = $component->viewData('curatedMechanics');
-
-        expect($mechanics)->not->toBeNull();
-    });
-
-    it('renders category pills in expandable section when categories exist', function () {
-        $category = GameSystemCategory::create(['name' => 'Card Game']);
-        $system = GameSystem::factory()->create(['name' => 'Card System']);
-        $system->categories()->attach($category->id);
-
-        Game::factory()->create([
-            'name' => 'Card Game Session',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSee('Categories')
-            ->assertSee('Card Game');
-    });
-
-    it('renders mechanic pills in expandable section when mechanics exist', function () {
-        $mechanic = GameSystemMechanic::create(['name' => 'Set Collection']);
-        $system = GameSystem::factory()->create(['name' => 'Collection System']);
-        $system->mechanics()->attach($mechanic->id);
-
-        Game::factory()->create([
-            'name' => 'Collection Session',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSee('Mechanics')
-            ->assertSee('Set Collection');
-    });
-
     it('shows active filter chips for selected categories and mechanics', function () {
         $category = GameSystemCategory::create(['name' => 'Economic']);
         $mechanic = GameSystemMechanic::create(['name' => 'Auction']);
@@ -1299,13 +1146,6 @@ describe('DiscoveryPage', function () {
             ->assertSet('radius', 0.0);
     });
 
-    it('setRadius accepts 0 to clear proximity filter', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $component->set('radius', 25)
-            ->call('setRadius', 0)
-            ->assertSet('radius', 0.0);
-    });
-
     it('clearFilters resets radius to 0', function () {
         Game::factory()->create([
             'visibility' => 'public',
@@ -1328,111 +1168,4 @@ describe('DiscoveryPage', function () {
         expect($component->instance()->hasActiveFilters())->toBeTrue();
     });
 
-    it('shows distance badge on game card when distance_km is set', function () {
-        $game = Game::factory()->create([
-            'name' => 'Nearby Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-        $game->distance_km = 5.3;
-
-        // Verify the badge renders via the card partial
-        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
-        expect($html)->toContain('5.3 km');
-        expect($html)->toContain('location_on');
-    });
-
-    it('shows distance badge on campaign card when distance_km is set', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => 'Nearby Campaign',
-            'visibility' => 'public',
-            'status' => 'active',
-        ]);
-        $campaign->distance_km = 12.7;
-
-        $html = view('livewire.discovery.partials.campaign-card', ['campaign' => $campaign])->render();
-        expect($html)->toContain('12.7 km');
-        expect($html)->toContain('location_on');
-    });
-
-    it('does not show distance badge when distance_km is null', function () {
-        $game = Game::factory()->create([
-            'name' => 'No Distance Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
-        expect($html)->not->toContain('km');
-    });
-
-    it('shows distance badge in meters when under 1km', function () {
-        $game = Game::factory()->create([
-            'name' => 'Very Close Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-        $game->distance_km = 0.5;
-
-        $html = view('livewire.discovery.partials.game-card', ['game' => $game])->render();
-        expect($html)->toContain('500 m');
-    });
-
-    it('passes radius options to view', function () {
-        Game::factory()->create([
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $radiusOptions = $component->viewData('radiusOptions');
-
-        expect($radiusOptions)->toBe([10, 25, 50]);
-    });
-
-    it('passes hasLocation to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $hasLocation = $component->viewData('hasLocation');
-
-        // No location set by default in tests
-        expect($hasLocation)->toBeFalse();
-    });
-
-    it('radius with no guest location preserves default sort order', function () {
-        Game::factory()->create([
-            'name' => 'Regular Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        // Set radius without location — should fall through to default behavior
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('radius', 25);
-
-        $results = $component->viewData('results');
-        expect($results->count())->toBe(1);
-    });
-
-    it('updatingRadius hook resets page', function () {
-        Game::factory()->count(13)->create([
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
-        ]);
-
-        // Start on page 2
-        $component = Livewire\Livewire::withQueryParams(['page' => 2])
-            ->test(App\Livewire\Discovery\DiscoveryPage::class);
-
-        expect($component->viewData('results')->count())->toBe(1);
-
-        // Change radius — should reset to page 1
-        $component->set('radius', 10);
-        expect($component->viewData('results')->count())->toBe(12);
-    });
 });

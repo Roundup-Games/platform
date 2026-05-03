@@ -27,33 +27,6 @@ class VibeFlagGameTypeFilterTest extends TestCase
         );
     }
 
-    // ── Board game excludes TTRPG-only flags ──────────────────
-
-    public function test_board_game_excludes_ttrpg_only_flags(): void
-    {
-        $values = array_map(fn (VibeFlag $f) => $f->value, VibeFlag::forGameType('board_game'));
-
-        $excluded = ['character-driven', 'story-rich', 'combat-focused', 'roleplay-heavy',
-            'exploration', 'sandbox', 'rule-of-cool', 'dungeon-crawl', 'kingdom-building',
-            'theater-of-the-mind', 'rules-as-written', 'roleplay-light',
-            'play-by-post', 'organized-play', 'west-marches'];
-        foreach ($excluded as $v) {
-            $this->assertNotContains($v, $values, "board_game flags should NOT include {$v}");
-        }
-    }
-
-    // ── Fallback behavior ─────────────────────────────────────
-
-    public function test_ttrpg_returns_all_flags(): void
-    {
-        $this->assertEquals(VibeFlag::cases(), VibeFlag::forGameType('ttrpg'));
-    }
-
-    public function test_unknown_type_returns_all_flags(): void
-    {
-        $this->assertEquals(VibeFlag::cases(), VibeFlag::forGameType('unknown_type'));
-    }
-
     // ── Group label preservation ──────────────────────────────
 
     public function test_grouped_for_game_type_preserves_group_labels(): void

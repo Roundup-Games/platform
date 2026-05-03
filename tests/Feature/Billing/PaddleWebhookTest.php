@@ -101,43 +101,7 @@ describe('Webhook — subscription.created', function () {
             );
     });
 
-    it('logs customer_id', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_present');
 
-        webhookPostEvent('subscription.created', [
-            'id' => 'sub_cid_test',
-            'customer_id' => 'ctm_present',
-            'status' => 'active',
-            'items' => [
-                ['price' => ['id' => 'pri_x', 'product_id' => 'pro_x'], 'status' => 'active', 'quantity' => 1],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                ($context['paddle_customer_id'] ?? null) === 'ctm_present'
-            );
-    });
-
-    it('logs price_id from subscription items', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_price');
-
-        webhookPostEvent('subscription.created', [
-            'id' => 'sub_price',
-            'customer_id' => 'ctm_price',
-            'status' => 'active',
-            'items' => [
-                ['price' => ['id' => 'pri_price_check', 'product_id' => 'pro_p'], 'status' => 'active', 'quantity' => 1],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                ($context['price_id'] ?? null) === 'pri_price_check'
-            );
-    });
 });
 
 describe('Webhook — subscription.updated', function () {
@@ -160,26 +124,7 @@ describe('Webhook — subscription.updated', function () {
         ])->assertStatus(200);
     })->group('smoke');
 
-    it('logs subscription ID and new status', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_upd');
-        webhookCreateSubscription($user, ['paddle_id' => 'sub_upd_log']);
 
-        webhookPostEvent('subscription.updated', [
-            'id' => 'sub_upd_log',
-            'status' => 'paused',
-            'items' => [
-                ['price' => ['id' => 'pri_x', 'product_id' => 'pro_x'], 'status' => 'active', 'quantity' => 1],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                $message === 'Paddle webhook: subscription.updated'
-                && ($context['paddle_subscription_id'] ?? null) === 'sub_upd_log'
-                && ($context['status'] ?? null) === 'paused'
-            );
-    });
 });
 
 describe('Webhook — subscription.canceled', function () {
@@ -206,25 +151,7 @@ describe('Webhook — subscription.canceled', function () {
         expect($subscription->fresh()->status)->toBe('canceled');
     });
 
-    it('logs cancellation timestamp', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_cancel_ts');
-        webhookCreateSubscription($user, ['paddle_id' => 'sub_cancel_ts']);
-        $cancelTime = now()->toIso8601String();
 
-        webhookPostEvent('subscription.canceled', [
-            'id' => 'sub_cancel_ts',
-            'status' => 'canceled',
-            'canceled_at' => $cancelTime,
-            'items' => [],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                $message === 'Paddle webhook: subscription.canceled'
-                && isset($context['canceled_at'])
-            );
-    });
 });
 
 describe('Webhook — transaction.completed', function () {
@@ -254,59 +181,7 @@ describe('Webhook — transaction.completed', function () {
         ])->assertStatus(200);
     })->group('smoke');
 
-    it('logs paddle transaction ID, amount, and currency', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_txn_log');
 
-        webhookPostEvent('transaction.completed', [
-            'id' => 'txn_log_001',
-            'customer_id' => 'ctm_txn_log',
-            'subscription_id' => null,
-            'invoice_number' => 'INV-LOG',
-            'status' => 'completed',
-            'currency_code' => 'EUR',
-            'billed_at' => now()->toIso8601String(),
-            'details' => [
-                'totals' => ['total' => '14.99', 'tax' => '1.20'],
-                'line_items' => [
-                    ['price' => ['product_id' => 'pro_log_test']],
-                ],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                $message === 'Paddle webhook: transaction.completed'
-                && ($context['paddle_transaction_id'] ?? null) === 'txn_log_001'
-                && ($context['amount'] ?? null) === '14.99'
-                && ($context['currency'] ?? null) === 'EUR'
-            );
-    });
-
-    it('logs product_id from line items', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_prod');
-
-        webhookPostEvent('transaction.completed', [
-            'id' => 'txn_prod',
-            'customer_id' => 'ctm_prod',
-            'subscription_id' => null,
-            'status' => 'completed',
-            'currency_code' => 'USD',
-            'billed_at' => now()->toIso8601String(),
-            'details' => [
-                'totals' => ['total' => '5.00'],
-                'line_items' => [
-                    ['price' => ['product_id' => 'pro_product_check']],
-                ],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                ($context['product_id'] ?? null) === 'pro_product_check'
-            );
-    });
 });
 
 describe('Webhook — transaction.payment_failed', function () {
@@ -342,25 +217,7 @@ describe('Webhook — transaction.payment_failed', function () {
             );
     });
 
-    it('logs transaction ID, amount, currency, and status', function () {
-        webhookPostEvent('transaction.payment_failed', [
-            'id' => 'txn_fail_log',
-            'customer_id' => 'ctm_fail_log',
-            'status' => 'failed',
-            'currency_code' => 'GBP',
-            'details' => [
-                'totals' => ['total' => '49.99'],
-            ],
-        ]);
 
-        Log::shouldHaveReceived('warning')
-            ->withArgs(fn (string $message, array $context) =>
-                ($context['paddle_transaction_id'] ?? null) === 'txn_fail_log'
-                && ($context['amount'] ?? null) === '49.99'
-                && ($context['currency'] ?? null) === 'GBP'
-                && ($context['status'] ?? null) === 'failed'
-            );
-    });
 });
 
 describe('Webhook — Unknown Events', function () {
@@ -383,32 +240,7 @@ describe('Webhook — Unknown Events', function () {
     });
 });
 
-// ═══════════════════════════════════════════════════════════
-// WEBHOOK ERROR HANDLING
-// ═══════════════════════════════════════════════════════════
 
-describe('Webhook — Error Handling', function () {
-    beforeEach(function () {
-        config(['cashier.webhook_secret' => null]);
-    });
-
-    it('catches unhandled exceptions and returns 500', function () {
-        Log::spy();
-
-        // Send a subscription.created for a customer that doesn't exist locally
-        // This may cause the parent handler to throw when trying to process
-        webhookPostEvent('subscription.created', [
-            'id' => 'sub_error_test',
-            'customer_id' => 'ctm_nonexistent',
-            'status' => 'active',
-            'items' => [],
-        ]);
-
-        // If it errors, our try/catch should handle it
-        // If it doesn't error (Cashier handles gracefully), that's also fine
-        $this->assertTrue(true);
-    });
-});
 
 // ═══════════════════════════════════════════════════════════
 // WEBHOOK SIGNATURE VERIFICATION

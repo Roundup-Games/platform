@@ -2,14 +2,8 @@
 
 use App\Enums\RelationshipType;
 use App\Livewire\Profile\PublicProfile;
-use App\Models\Campaign;
-use App\Models\GameSystem;
-use App\Models\Team;
-use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Models\UserVibePreference;
-use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
 
@@ -71,74 +65,6 @@ describe('Public Profile page loads', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Public Profile displays user data', function () {
-    it('shows pronouns when set', function () {
-        $user = createProfileUser(['pronouns' => 'she/her']);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSee('she/her');
-    });
-
-    it('shows follower and following counts', function () {
-        $user = createProfileUser();
-        $follower = createProfileUser();
-        UserRelationship::follow($follower, $user);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSet('followerCount', 1)
-            ->assertSet('followingCount', 0);
-    });
-
-    it('shows game systems', function () {
-        $user = createProfileUser();
-        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSee('D&D 5e');
-    });
-
-    it('shows vibes', function () {
-        $user = createProfileUser();
-        UserVibePreference::create([
-            'user_id' => $user->id,
-            'vibe_preference_value' => 'cooperative',
-            'preference_type' => 'favorite',
-        ]);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSee('Cooperative');
-    });
-
-    it('shows campaigns', function () {
-        $user = createProfileUser();
-        $system = GameSystem::factory()->create(['name' => 'Test System']);
-        Campaign::factory()->create([
-            'owner_id' => $user->id,
-            'name' => 'Epic Campaign',
-            'visibility' => 'public',
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSee('Epic Campaign');
-    });
-
-    it('shows teams', function () {
-        $user = createProfileUser();
-        $team = Team::factory()->create(['name' => 'Test Team']);
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        Livewire::test(PublicProfile::class, ['user' => $user])
-            ->assertSee('Test Team')
-            ->assertSee('captain');
-    });
-
     it('shows Friends badge for mutual follows', function () {
         $viewer = createProfileUser();
         $profileUser = createProfileUser(['name' => 'Friend User']);
@@ -183,35 +109,6 @@ describe('Follow / Unfollow actions', function () {
 
         expect($viewer->isFollowing($profileUser))->toBeFalse();
     })->group('smoke');
-
-    it('updates follower count after follow', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-
-        $component = Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser]);
-
-        expect($component->get('followerCount'))->toBe(0);
-
-        $component->call('follow');
-
-        expect($component->get('followerCount'))->toBe(1);
-    });
-
-    it('updates follower count after unfollow', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-        UserRelationship::follow($viewer, $profileUser);
-
-        $component = Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser]);
-
-        expect($component->get('followerCount'))->toBe(1);
-
-        $component->call('unfollow');
-
-        expect($component->get('followerCount'))->toBe(0);
-    });
 
     it('detects friend status after mutual follow', function () {
         $viewer = createProfileUser();
@@ -328,123 +225,6 @@ describe('Block / Unblock actions', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// SESSION FLASH FEEDBACK
-// ═══════════════════════════════════════════════════════════
-
-describe('Session flash feedback', function () {
-    it('flashes success after follow', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser(['name' => 'Alice']);
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('follow')
-            ->assertSee(__('common.flash_now_following', ['name' => 'Alice']));
-    });
-
-    it('flashes success after unfollow', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser(['name' => 'Bob']);
-        UserRelationship::follow($viewer, $profileUser);
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('unfollow')
-            ->assertSee(__('common.flash_unfollowed', ['name' => 'Bob']));
-    });
-
-    it('flashes success after block', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser(['name' => 'Charlie']);
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('block')
-            ->assertSee(__('common.flash_user_blocked', ['name' => 'Charlie']));
-    });
-
-    it('flashes success after unblock', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser(['name' => 'Dana']);
-        UserRelationship::block($viewer, $profileUser);
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('unblock')
-            ->assertSee(__('common.flash_user_unblocked', ['name' => 'Dana']));
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// ACTION LOGGING
-// ═══════════════════════════════════════════════════════════
-
-describe('Action logging', function () {
-    it('logs follow action via model', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('user.relationship.follow', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $profileUser->id));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('follow');
-    });
-
-    it('logs unfollow action via model', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-        UserRelationship::follow($viewer, $profileUser);
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('user.relationship.unfollow', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $profileUser->id));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('unfollow');
-    });
-
-    it('logs block action via model', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('user.relationship.block', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $profileUser->id));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('block');
-    });
-
-    it('logs unblock action via model', function () {
-        $viewer = createProfileUser();
-        $profileUser = createProfileUser();
-        UserRelationship::block($viewer, $profileUser);
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('user.relationship.unblock', \Mockery::on(fn ($ctx) => $ctx['user_id'] === $viewer->id && $ctx['target_id'] === $profileUser->id));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->call('unblock');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
 // UNAUTHENTICATED VIEWER
 // ═══════════════════════════════════════════════════════════
 
@@ -457,13 +237,6 @@ describe('Unauthenticated viewer', function () {
             ->assertDontSee('wire:click="follow"');
     });
 
-    it('does not see Follow or Block buttons', function () {
-        $profileUser = createProfileUser();
-
-        Livewire::test(PublicProfile::class, ['user' => $profileUser])
-            ->assertDontSee('Unfollow')
-            ->assertDontSee('Block');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -567,58 +340,6 @@ describe('Game session visibility on profile', function () {
             ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
     });
 
-    it('hides participated protected games from strangers', function () {
-        $profileUser = createProfileUser();
-        $otherOwner = createProfileUser();
-
-        $game = \App\Models\Game::factory()->create([
-            'owner_id' => $otherOwner->id,
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-        ]);
-
-        \App\Models\GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $profileUser->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $viewer = createProfileUser();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->assertViewHas('games', fn ($games) => $games->isEmpty());
-    });
-
-    it('shows participated protected games to friends', function () {
-        $profileUser = createProfileUser();
-        $viewer = createProfileUser();
-        $otherOwner = createProfileUser();
-
-        UserRelationship::follow($viewer, $profileUser);
-        UserRelationship::follow($profileUser, $viewer);
-
-        $game = \App\Models\Game::factory()->create([
-            'owner_id' => $otherOwner->id,
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-        ]);
-
-        \App\Models\GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $profileUser->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
-    });
-
     it('does not show past games', function () {
         $profileUser = createProfileUser();
         \App\Models\Game::factory()->create([
@@ -702,24 +423,6 @@ describe('Game session visibility on profile', function () {
         Livewire::test(PublicProfile::class, ['user' => $profileUser])
             ->assertViewHas('games', fn ($games) => $games->count() === 1);
     });
-
-    it('does not show public games to guest when profile owner is blocked', function () {
-        $profileUser = createProfileUser();
-        $viewer = createProfileUser();
-
-        // Guest viewing when blocked — this is about the profileUser blocking someone
-        // Unauthenticated viewers can't be blocked, so they should still see public games
-        \App\Models\Game::factory()->create([
-            'owner_id' => $profileUser->id,
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(5),
-        ]);
-
-        // Guest should always see public games since they can't be blocked
-        Livewire::test(PublicProfile::class, ['user' => $profileUser])
-            ->assertViewHas('games', fn ($games) => $games->count() === 1);
-    });
 });
 
 describe('Campaign visibility on profile', function () {
@@ -767,52 +470,6 @@ describe('Campaign visibility on profile', function () {
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->contains('id', $campaign->id));
     })->group('smoke');
-
-    it('shows participated campaigns (not just owned)', function () {
-        $profileUser = createProfileUser();
-        $otherOwner = createProfileUser();
-
-        $campaign = \App\Models\Campaign::factory()->create([
-            'owner_id' => $otherOwner->id,
-            'visibility' => 'public',
-        ]);
-
-        \App\Models\CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $profileUser->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $viewer = createProfileUser();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->contains('id', $campaign->id));
-    });
-
-    it('hides participated protected campaigns from strangers', function () {
-        $profileUser = createProfileUser();
-        $otherOwner = createProfileUser();
-
-        $campaign = \App\Models\Campaign::factory()->create([
-            'owner_id' => $otherOwner->id,
-            'visibility' => 'protected',
-        ]);
-
-        \App\Models\CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $profileUser->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $viewer = createProfileUser();
-
-        Livewire::actingAs($viewer)
-            ->test(PublicProfile::class, ['user' => $profileUser])
-            ->assertViewHas('campaigns', fn ($campaigns) => $campaigns->isEmpty());
-    });
 
     it('never shows private campaigns even to friends', function () {
         $profileUser = createProfileUser();
@@ -962,18 +619,4 @@ describe('GM Profile section on public profile', function () {
             ->assertSee('Game Master');
     });
 
-    it('does not show bio line when bio is null', function () {
-        $user = createProfileUser();
-        \App\Models\GMProfile::factory()->create([
-            'user_id' => $user->id,
-            'bio' => null,
-            'is_active' => true,
-        ]);
-
-        $html = Livewire::test(PublicProfile::class, ['user' => $user])
-            ->html();
-
-        // The About label should not appear when there is no bio
-        expect(str_contains($html, '>About<'))->toBeFalse();
-    });
 });

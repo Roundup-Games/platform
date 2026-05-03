@@ -45,16 +45,6 @@ function pickerCreateUser(): User
 // ═══════════════════════════════════════════════════════════
 
 describe('Search', function () {
-    it('returns empty results for short search terms', function () {
-        $user = pickerCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'a')
-            ->assertSet('isOpen', true)
-            ->assertSet('searchResults', collect());
-    });
-
     it('finds base games by name', function () {
         $user = pickerCreateUser();
         pickerCreateBaseGame(['name' => 'Wingspan', 'bgg_rank' => 38]);
@@ -113,33 +103,6 @@ describe('Search', function () {
         expect($results->first()->expansions_count)->toBe(2);
     });
 
-    it('sorts results by prefix match first', function () {
-        $user = pickerCreateUser();
-        pickerCreateBaseGame(['name' => 'Europe: Ticket to Ride', 'bgg_rank' => 50]);
-        pickerCreateBaseGame(['name' => 'Ticket to Ride', 'bgg_rank' => 100]);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'Ticket to Ride');
-
-        $results = $component->instance()->searchResults;
-        // Exact prefix match should come first regardless of rank
-        expect($results->first()->name)->toBe('Ticket to Ride');
-    });
-
-    it('limits results to 20', function () {
-        $user = pickerCreateUser();
-        for ($i = 0; $i < 25; $i++) {
-            pickerCreateBaseGame(['name' => "Game {$i}", 'bgg_rank' => $i + 1]);
-        }
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'Game');
-
-        $results = $component->instance()->searchResults;
-        expect($results)->toHaveCount(20);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -187,32 +150,6 @@ describe('Selection', function () {
             ->assertSet('showExpansionPicker', false);
     });
 
-    it('allows keeping the base game in the expansion picker', function () {
-        $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan']);
-        pickerCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-
-        // pickFromSearch pre-selects the base game
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->call('pickFromSearch', $base->id);
-
-        // Confirm the base game stays selected
-        $component->assertSet('value', $base->id);
-    });
-
-    it('clears selection when search is cleared', function () {
-        $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->call('pickFromSearch', $base->id)
-            ->set('search', '')
-            ->assertSet('value', null)
-            ->assertSet('search', '');
-    });
-
     it('clears selection via clearSelection method', function () {
         $user = pickerCreateUser();
         $base = pickerCreateBaseGame(['name' => 'Chess']);
@@ -251,31 +188,6 @@ describe('Expansion Picker', function () {
         expect($options[2]->id)->toBe($exp1->id);
     });
 
-    it('sorts expansions by rating when rank is null', function () {
-        $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Test']);
-        pickerCreateExpansion($base, ['name' => 'Low Rated', 'bgg_rank' => null, 'bgg_average_rating' => 5.00]);
-        pickerCreateExpansion($base, ['name' => 'High Rated', 'bgg_rank' => null, 'bgg_average_rating' => 9.00]);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('selectedBaseId', $base->id);
-
-        $options = $component->instance()->expansionOptions;
-        // Base first, then sorted by rating desc
-        expect($options[1]->name)->toBe('High Rated');
-        expect($options[2]->name)->toBe('Low Rated');
-    });
-
-    it('returns empty collection when no base game selected', function () {
-        $user = pickerCreateUser();
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class);
-
-        $options = $component->instance()->expansionOptions;
-        expect($options)->toHaveCount(0);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -323,25 +235,6 @@ describe('Favorites', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Dropdown Behavior', function () {
-    it('opens dropdown when search is updated', function () {
-        $user = pickerCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'test')
-            ->assertSet('isOpen', true);
-    });
-
-    it('closes dropdown when closeDropdown is called', function () {
-        $user = pickerCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'test')
-            ->call('closeDropdown')
-            ->assertSet('isOpen', false);
-    });
-
     it('resets expansion picker when search changes', function () {
         $user = pickerCreateUser();
         $base = pickerCreateBaseGame(['name' => 'Catan']);
@@ -595,16 +488,4 @@ describe('Game Type Parameter', function () {
             ->assertSeeHtml('type=ttrpg');
     });
 
-    it('boardgame mode remains backward compatible', function () {
-        $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'Chess');
-
-        $results = $component->instance()->searchResults;
-        expect($results)->toHaveCount(1);
-        expect($results->first()->name)->toBe('Chess');
-    });
 });

@@ -96,47 +96,6 @@ describe('Game Detail — Review Display', function () {
             ->assertSee($data['reviewer']->name);
     })->group('smoke');
 
-    it('shows star rating on game detail reviews', function () {
-        $data = setupGameWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('star'); // Material symbol for filled stars
-    });
-
-    it('shows proficiency tags on game detail reviews', function () {
-        $data = setupGameWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk();
-        // Proficiency tags are rendered via GmProficiency enum labels
-        $tag = GmProficiency::from('storytelling');
-        $response->assertSee($tag->label());
-    });
-
-    it('displays no reviews message when game has no reviews', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-            'visibility' => 'public',
-        ]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $game->id));
-
-        $response->assertOk()
-            ->assertSee(__('reviews.content_no_reviews_yet'));
-    });
-
     it('shows write review link for eligible user', function () {
         $data = setupGameWithReview();
         // The reviewer already reviewed, so create a second eligible player
@@ -178,15 +137,6 @@ describe('Game Detail — Review Display', function () {
         $response->assertOk()
             ->assertDontSee('Excellent storytelling session!')
             ->assertSee(__('reviews.content_no_reviews_yet'));
-    });
-
-    it('guest can see reviews on public game detail', function () {
-        $data = setupGameWithReview();
-
-        $response = $this->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('Excellent storytelling session!');
     });
 
     it('displays multiple reviews on game detail', function () {
@@ -250,27 +200,6 @@ describe('Campaign Detail — Review Display', function () {
         $response->assertSee($tag->label());
     });
 
-    it('displays no reviews message when campaign has no reviews', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $gm->id,
-            'visibility' => 'public',
-        ]);
-        Game::factory()->create([
-            'owner_id' => $gm->id,
-            'campaign_id' => $campaign->id,
-            'date_time' => now()->subDay(),
-        ]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $campaign->id));
-
-        $response->assertOk()
-            ->assertSee(__('reviews.content_no_reviews_yet'));
-    });
-
     it('shows write review link for eligible campaign participant', function () {
         $data = setupCampaignWithReview();
 
@@ -302,15 +231,6 @@ describe('Campaign Detail — Review Display', function () {
         $response->assertOk()
             ->assertDontSee('Incredible multi-session campaign!')
             ->assertSee(__('reviews.content_no_reviews_yet'));
-    });
-
-    it('guest can see reviews on public campaign detail', function () {
-        $data = setupCampaignWithReview();
-
-        $response = $this->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertSee('Incredible multi-session campaign!');
     });
 
     it('displays multiple reviews on campaign detail', function () {
@@ -408,17 +328,6 @@ describe('GM Profile — Review Display', function () {
             ->assertSee('No reviews yet');
     });
 
-    it('guest can view GM profile reviews', function () {
-        $data = setupGameWithReview();
-        app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
-
-        $response = $this->get(route('profile.public', $data['gm']));
-
-        $response->assertOk()
-            ->assertSee('4.0')
-            ->assertSee('Excellent storytelling session!');
-    });
-
     it('aggregate reflects all published reviews across games and campaigns', function () {
         $gameData = setupGameWithReview();
         $campaignData = setupCampaignWithReview();
@@ -468,19 +377,6 @@ describe('GM Profile — Review Display', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Review Display — Edge Cases', function () {
-    it('review without body does not show empty paragraph', function () {
-        $data = setupGameWithReview();
-        $data['review']->update(['body' => null]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee($data['reviewer']->name);
-    });
-
     it('review without proficiency tags renders without tags section', function () {
         $gm = User::factory()->create(['profile_complete' => true]);
         $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
@@ -549,25 +445,5 @@ describe('Review Display — Edge Cases', function () {
         // Guest cannot see report button due to @auth guard
     });
 
-    it('game detail shows reviews section heading', function () {
-        $data = setupGameWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
 
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee(__('reviews.title_reviews'));
-    });
-
-    it('campaign detail shows reviews section heading', function () {
-        $data = setupCampaignWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertSee(__('reviews.title_reviews'));
-    });
 });

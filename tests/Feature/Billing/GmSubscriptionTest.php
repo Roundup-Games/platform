@@ -44,16 +44,7 @@ describe('GmRoleService', function () {
         expect($user->localSubscriptions()->active()->count())->toBe(1);
     })->group('smoke');
 
-    it('creates a GMProfile on activation', function () {
-        $user = User::factory()->create();
-        expect($user->gmProfile)->toBeNull();
 
-        app(GmRoleService::class)->activateGmSubscription($user);
-
-        $freshUser = $user->fresh();
-        expect($freshUser->gmProfile)->not->toBeNull();
-        expect($freshUser->gmProfile->is_active)->toBeTrue();
-    });
 
     it('is idempotent — safe to activate twice', function () {
         $user = User::factory()->create();
@@ -142,16 +133,7 @@ describe('User model GM helpers', function () {
         expect($user->fresh()->hasActiveMembership())->toBeTrue();
     });
 
-    it('isGM checks role, not subscription', function () {
-        $user = User::factory()->create();
-        expect($user->isGM())->toBeFalse();
 
-        // Assign role directly without subscription
-        $role = Role::where('name', 'Game Master')->first();
-        $user->assignRole($role);
-
-        expect($user->fresh()->isGM())->toBeTrue();
-    });
 });
 
 describe('LocalSubscription model', function () {

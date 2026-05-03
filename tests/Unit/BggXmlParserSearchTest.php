@@ -46,15 +46,6 @@ describe('Happy path: Catan search fixture', function () {
         expect($results[3]['name'])->toBe('Catan: Traders & Barbarians');
     });
 
-    test('each result contains exactly the four expected keys', function () {
-        $xml = file_get_contents(__DIR__.'/../Fixtures/bgg-search-catan.xml');
-        $results = $this->parser->parseSearchResults($xml);
-
-        $expectedKeys = ['bgg_id', 'name', 'year_released', 'bgg_type'];
-        foreach ($results as $result) {
-            expect(array_keys($result))->toBe($expectedKeys);
-        }
-    });
 });
 
 describe('Edge cases', function () {

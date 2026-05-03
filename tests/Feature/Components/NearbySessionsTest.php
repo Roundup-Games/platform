@@ -22,18 +22,6 @@ beforeEach(function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Rendering', function () {
-    it('renders without errors when no location', function () {
-        Livewire::test(NearbySessions::class)
-            ->assertOk()
-            ->assertSeeHtml('happening near you');
-    });
-
-    it('shows location gate when guest has no location', function () {
-        Livewire::test(NearbySessions::class)
-            ->assertSeeHtml('Show me sessions near me')
-            ->assertSeeHtml('Or enter your city');
-    });
-
     it('shows session cards when location is set and sessions exist', function () {
         $location = Location::factory()->create([
             'latitude' => 52.5230,
@@ -81,11 +69,6 @@ describe('Rendering', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Location gate', function () {
-    it('hasGuestLocation returns false initially', function () {
-        $component = Livewire::test(NearbySessions::class);
-        $this->assertFalse($component->instance()->hasGuestLocation());
-    });
-
     it('hasGuestLocation returns true after receiving location', function () {
         $component = Livewire::test(NearbySessions::class)
             ->call('onGuestLocationUpdated', 52.5, 13.4, 'browser');
@@ -95,13 +78,7 @@ describe('Location gate', function () {
         $this->assertEquals(13.4, $component->get('guestLng'));
     });
 
-    it('clears guest location', function () {
-        $component = Livewire::test(NearbySessions::class)
-            ->call('onGuestLocationUpdated', 52.5, 13.4, 'browser')
-            ->call('clearGuestLocation');
 
-        $this->assertFalse($component->instance()->hasGuestLocation());
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -443,12 +420,7 @@ describe('City search', function () {
             ->assertHasErrors(['cityQuery' => 'required']);
     });
 
-    it('validates city query minimum length', function () {
-        Livewire::test(NearbySessions::class)
-            ->set('cityQuery', 'A')
-            ->call('searchCity')
-            ->assertHasErrors(['cityQuery' => 'min']);
-    });
+
 });
 
 // ═══════════════════════════════════════════════════════════

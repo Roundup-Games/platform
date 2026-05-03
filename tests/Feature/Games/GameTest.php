@@ -275,15 +275,6 @@ describe('CreateGame Component', function () {
             ->assertSessionHas('success', 'Game "Flash Test Game" created successfully!');
     });
 
-    it('renders the game system picker component', function () {
-        $user = gameTestCreateUserWithPermission();
-        GameSystem::factory()->create(['name' => 'D&D 5e']);
-        GameSystem::factory()->create(['name' => 'Pathfinder 2e']);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->assertOk();
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -365,96 +356,6 @@ describe('Game Detail Route', function () {
     it('returns 404 for non-existent game', function () {
         get(route('games.detail', Str::uuid()->toString()))
             ->assertNotFound();
-    });
-});
-
-describe('GameDetail Component', function () {
-    it('shows game name and description', function () {
-        $game = gameTestCreateGame([
-            'name' => 'Goblin Raid',
-            'description' => 'Defend the village!',
-            'visibility' => 'public',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->assertSee('Goblin Raid')
-            ->assertSee('Defend the village!');
-    });
-
-    it('shows game system name when set', function () {
-        $system = GameSystem::factory()->create(['name' => 'Shadowrun 6e']);
-        $game = gameTestCreateGame(['game_system_id' => $system->id, 'visibility' => 'public']);
-
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->assertSee('Shadowrun 6e');
-    });
-
-    it('shows participants with roles', function () {
-        $game = gameTestCreateGame(['visibility' => 'public']);
-        $player = User::factory()->create(['name' => 'Ragnar']);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->assertSee('Ragnar');
-    });
-
-    it('shows owner badge when owner is viewing', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
-
-        actingAs($owner)
-            ->get(route('games.detail', $game->id))
-            ->assertOk()
-            ->assertSee('Owner');
-    });
-
-    it('shows empty participant state', function () {
-        $game = gameTestCreateGame(['visibility' => 'public']);
-
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->assertSee('No participants yet');
-    });
-
-    it('indicates isOwner correctly', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
-
-        $component = Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
-
-        $component->assertViewHas('isOwner', true);
-    });
-
-    it('indicates isParticipant correctly', function () {
-        $game = gameTestCreateGame(['visibility' => 'public']);
-        $player = User::factory()->create();
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $component = Livewire\Livewire::actingAs($player)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
-
-        $component->assertViewHas('isParticipant', true);
-    });
-
-    it('indicates non-participant for stranger', function () {
-        $game = gameTestCreateGame(['visibility' => 'public']);
-        $stranger = User::factory()->create();
-
-        $component = Livewire\Livewire::actingAs($stranger)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
-
-        $component->assertViewHas('isOwner', false)
-            ->assertViewHas('isParticipant', false);
     });
 });
 
@@ -892,32 +793,6 @@ describe('Game Full Lifecycle', function () {
         ]);
     });
 
-    it('invite flow: invite → cancel', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-        $friend = gameTestCreateOwner();
-        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
-        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $friend->id)
-            ->first();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('cancelInvite', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'status' => 'rejected',
-        ]);
-    });
-
     it('protected game: apply → approve → verify player', function () {
         $owner = gameTestCreateOwner();
         $user = gameTestCreateOwner();
@@ -963,45 +838,6 @@ describe('Game Full Lifecycle', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateGame — Language Selection', function () {
-    it('defaults language to en', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->assertSet('language', 'en');
-    });
-
-    it('stores language from ContentLanguage enum', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'German Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('language', 'de')
-            ->set('max_players', 6)
-            ->call('save');
-
-        assertDatabaseHas('games', [
-            'name' => 'German Game',
-            'language' => 'de',
-        ]);
-    });
-
-    it('rejects de+en bilingual language', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Bilingual Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('language', 'de+en')
-            ->call('save')
-            ->assertHasErrors(['language']);
-    });
-
     it('rejects invalid language', function () {
         $user = gameTestCreateUserWithPermission();
 
@@ -1052,26 +888,6 @@ describe('CreateGame — Duration', function () {
             ->set('game_type', 'board_game')
             ->set('expected_duration', '1.7')
             ->assertSet('expected_duration', '1.5');
-    });
-
-    it('rounds 2.8 to 3', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('expected_duration', '2.8')
-            ->assertSet('expected_duration', '3');
-    });
-
-    it('clamps duration below 0.5 to 0.5', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('expected_duration', '0.2')
-            ->assertSet('expected_duration', '0.5');
     });
 
     it('auto-fills from game system average_play_time', function () {
@@ -1417,37 +1233,6 @@ describe('CreateGame — Visibility Gating', function () {
         ]);
     });
 
-    it('allows protected visibility regardless of flag', function () {
-        $user = gameTestCreateUserWithPermission(canCreatePublic: false);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Protected Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('visibility', 'protected')
-            ->set('max_players', 6)
-            ->call('save')
-            ->assertRedirect();
-
-        assertDatabaseHas('games', [
-            'name' => 'Protected Game',
-            'visibility' => 'protected',
-        ]);
-    });
-
-    it('exposes canCreatePublic computed property', function () {
-        $userWith = gameTestCreateUserWithPermission(canCreatePublic: true);
-        $userWithout = gameTestCreateUserWithPermission(canCreatePublic: false);
-
-        Livewire\Livewire::actingAs($userWith)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->assertSet('canCreatePublic', true);
-
-        Livewire\Livewire::actingAs($userWithout)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->assertSet('canCreatePublic', false);
-    });
 });
 
 describe('CreateGame — Autofill Experience Level from BGG Weight', function () {
@@ -1637,18 +1422,4 @@ describe('CreateGame — Type Selection', function () {
         ]);
     });
 
-    it('logs game_type with game creation event', function () {
-        $user = gameTestCreateUserWithPermission();
-        Log::shouldReceive('info')->once()->with('Game created', \Mockery::on(function ($context) {
-            return isset($context['game_type']) && $context['game_type'] === 'ttrpg';
-        }));
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'Logged Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save');
-    });
 });

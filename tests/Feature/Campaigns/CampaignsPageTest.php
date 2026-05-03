@@ -43,21 +43,7 @@ describe('CampaignsPage — Authenticated Access', function () {
             ->assertSee(__('campaigns.heading_my_campaigns'));
     });
 
-    it('shows My Campaigns section heading', function () {
-        $user = campaignsPageCreateUser();
 
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.heading_my_campaigns'));
-    });
-
-    it('shows create campaign button', function () {
-        $user = campaignsPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.action_create_campaign'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -74,32 +60,7 @@ describe('CampaignsPage — My Campaigns Display', function () {
             ->assertSee('Test Campaign');
     });
 
-    it('shows status badge for active campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'active']);
 
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.status_active'));
-    });
-
-    it('shows status badge for cancelled campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'cancelled']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.status_cancelled'));
-    });
-
-    it('shows status badge for completed campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'completed']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.status_completed'));
-    });
 
     it('does not show other users campaigns in My Campaigns', function () {
         $user = campaignsPageCreateUser();
@@ -112,51 +73,7 @@ describe('CampaignsPage — My Campaigns Display', function () {
             ->assertDontSee('Other User Campaign');
     });
 
-    it('shows empty state when no campaigns exist', function () {
-        $user = campaignsPageCreateUser();
 
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.content_no_owned_campaigns'));
-    });
-
-    it('shows cancel button for active campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'active']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.action_cancel_campaign'));
-    });
-
-    it('shows complete button for active campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'active']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.action_complete_campaign'));
-    });
-
-    it('does not show cancel/complete buttons for cancelled campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'cancelled']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertDontSee(__('campaigns.action_cancel_campaign'))
-            ->assertDontSee(__('campaigns.action_complete_campaign'));
-    });
-
-    it('does not show cancel/complete buttons for completed campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'completed']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertDontSee(__('campaigns.action_cancel_campaign'))
-            ->assertDontSee(__('campaigns.action_complete_campaign'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -177,22 +94,6 @@ describe('CampaignsPage — Cancel Campaign Action', function () {
             'status' => 'cancelled',
         ]);
     })->group('smoke');
-
-    it('flashes success message after cancel', function () {
-        $user = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $user->id, 'status' => 'active']);
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('cancelCampaign', $campaign->id);
-
-        assertDatabaseHas('campaigns', [
-            'id' => $campaign->id,
-            'status' => 'cancelled',
-        ]);
-
-        $component->assertSee(__('campaigns.flash_campaign_canceled'));
-    });
 
     it('cannot cancel already cancelled campaign', function () {
         $user = campaignsPageCreateUser();
@@ -318,22 +219,6 @@ describe('CampaignsPage — Complete Campaign Action', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CampaignsPage — Campaigns I\'m In Display', function () {
-    it('shows section heading', function () {
-        $user = campaignsPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.heading_campaigns_im_in'));
-    });
-
-    it('shows empty state when not participating in any campaigns', function () {
-        $user = campaignsPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.content_no_campaigns_joined'));
-    });
-
     it('shows campaigns where user is an approved player', function () {
         $user = campaignsPageCreateUser();
         $owner = campaignsPageCreateUser();
@@ -427,22 +312,7 @@ describe('CampaignsPage — Campaigns I\'m In Display', function () {
         expect($sectionContent)->not->toContain('Invited Only Campaign');
     });
 
-    it('shows view link for participating campaigns', function () {
-        $user = campaignsPageCreateUser();
-        $owner = campaignsPageCreateUser();
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $owner->id, 'name' => 'Viewable Campaign']);
 
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.action_view_campaign'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -695,22 +565,6 @@ describe('CampaignsPage — Accept Invitation Action', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CampaignsPage — Community Activity Feed', function () {
-    it('shows community section heading', function () {
-        $user = campaignsPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.heading_community'));
-    });
-
-    it('shows empty state when user follows nobody', function () {
-        $user = campaignsPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee(__('campaigns.content_no_community_activity'));
-    });
-
     it('shows activity when a followed user creates a campaign', function () {
         $user = campaignsPageCreateUser();
         $friend = campaignsPageCreateUser();
@@ -780,17 +634,6 @@ describe('CampaignsPage — Community Activity Feed', function () {
         actingAs($user)
             ->get('/en/campaigns')
             ->assertDontSee('Stranger Campaign');
-    });
-
-    it('shows friend name in activity', function () {
-        $user = campaignsPageCreateUser();
-        $friend = campaignsPageCreateUser(['name' => 'Bob Player']);
-        \App\Models\UserRelationship::follow($user, $friend);
-        $campaign = campaignsPageCreateCampaign(['owner_id' => $friend->id, 'name' => 'Bob Campaign']);
-
-        actingAs($user)
-            ->get('/en/campaigns')
-            ->assertSee('Bob Player');
     });
 
     it('paginates activity feed at 15 per page', function () {

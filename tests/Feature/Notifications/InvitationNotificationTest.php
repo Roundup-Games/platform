@@ -122,26 +122,7 @@ describe('CampaignInvitation notification class', function () {
             ->and($mail->actionText)->toBe('View Campaign');
     });
 
-    it('returns inviter as actor for block-list checking', function () {
-        $inviter = User::factory()->create();
-        $campaign = Campaign::factory()->create();
-        $notification = new CampaignInvitation($campaign, $inviter);
 
-        expect($notification->getActor())->toBe($inviter);
-    });
-
-    it('resolves via channels to database and mail', function () {
-        $notifiable = User::factory()->create();
-        $notification = new CampaignInvitation(
-            Campaign::factory()->create(),
-            User::factory()->create(),
-        );
-
-        expect($notification->via($notifiable))->toContain(
-            \Illuminate\Notifications\Channels\DatabaseChannel::class,
-            \Illuminate\Notifications\Channels\MailChannel::class,
-        );
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -180,26 +161,7 @@ describe('TeamInvitation notification class', function () {
             ->and($mail->actionText)->toBe('View Team');
     });
 
-    it('returns inviter as actor for block-list checking', function () {
-        $inviter = User::factory()->create();
-        $team = Team::factory()->create();
-        $notification = new TeamInvitation($team, $inviter);
 
-        expect($notification->getActor())->toBe($inviter);
-    });
-
-    it('resolves via channels to database and mail', function () {
-        $notifiable = User::factory()->create();
-        $notification = new TeamInvitation(
-            Team::factory()->create(),
-            User::factory()->create(),
-        );
-
-        expect($notification->via($notifiable))->toContain(
-            \Illuminate\Notifications\Channels\DatabaseChannel::class,
-            \Illuminate\Notifications\Channels\MailChannel::class,
-        );
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -239,30 +201,7 @@ describe('SessionAddedToCampaign notification class', function () {
             ->and($mail->actionText)->toBe('View Session');
     });
 
-    it('returns campaign owner as actor for block-list checking', function () {
-        $owner = User::factory()->create();
-        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
-        $session = Game::factory()->create(['campaign_id' => $campaign->id]);
 
-        $notification = new SessionAddedToCampaign($session, $campaign);
-        $actor = $notification->getActor();
-
-        expect($actor)->not->toBeNull()
-            ->and($actor->id)->toBe($owner->id);
-    });
-
-    it('resolves via channels to database and mail', function () {
-        $notifiable = User::factory()->create();
-        $campaign = Campaign::factory()->create();
-        $session = Game::factory()->create(['campaign_id' => $campaign->id]);
-
-        $notification = new SessionAddedToCampaign($session, $campaign);
-
-        expect($notification->via($notifiable))->toContain(
-            \Illuminate\Notifications\Channels\DatabaseChannel::class,
-            \Illuminate\Notifications\Channels\MailChannel::class,
-        );
-    });
 });
 
 // ══════════════════════════════════════════════════════

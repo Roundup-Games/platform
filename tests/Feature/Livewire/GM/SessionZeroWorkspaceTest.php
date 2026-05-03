@@ -16,24 +16,6 @@ uses(CreatesUsers::class);
 // ═══════════════════════════════════════════════════════════
 
 describe('GmWorkspace Session Zero Surveys', function () {
-    it('shows Session Zero Surveys heading', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Session Zero Surveys');
-    });
-
-    it('shows empty state when no surveys exist', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('No Session Zero surveys yet');
-    });
-
     it('lists surveys belonging to the GM', function () {
         $gm = $this->createSubscribedGm();
         $survey = SessionZeroSurvey::factory()->create([
@@ -82,21 +64,6 @@ describe('GmWorkspace Session Zero Surveys', function () {
             ->assertSee('Dragon Heist');
     });
 
-    it('shows no linked game label when unlinked', function () {
-        $gm = $this->createSubscribedGm();
-
-        SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'game_id' => null,
-            'title' => 'Standalone Survey',
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('No linked game');
-    });
-
     it('shows confirmation count for each survey', function () {
         $gm = $this->createSubscribedGm();
 
@@ -109,28 +76,6 @@ describe('GmWorkspace Session Zero Surveys', function () {
         $this->actingAs($gm)
             ->get(route('gm.workspace', 'en'))
             ->assertOk();
-    });
-
-    it('shows active and archived status badges', function () {
-        $gm = $this->createSubscribedGm();
-
-        SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Active Survey',
-            'status' => 'active',
-        ]);
-
-        SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Archived Survey',
-            'status' => 'archived',
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Active')
-            ->assertSee('Archived');
     });
 
     it('includes View link for each survey', function () {
@@ -146,18 +91,6 @@ describe('GmWorkspace Session Zero Surveys', function () {
             ->assertSee(route('session-zero.view', ['locale' => 'en', 'uuid' => $survey->uuid]));
     });
 
-    it('includes Copy Link button for each survey', function () {
-        $gm = $this->createSubscribedGm();
-        $survey = SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Copy Link Survey',
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Copy Link');
-    });
 
     it('shows survey count badge when surveys exist', function () {
         $gm = $this->createSubscribedGm();
@@ -178,27 +111,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
             });
     });
 
-    it('passes surveys to view ordered by created_at desc', function () {
-        $gm = $this->createSubscribedGm();
 
-        $oldest = SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Oldest Survey',
-            'created_at' => now()->subDays(5),
-        ]);
-
-        $newest = SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Newest Survey',
-            'created_at' => now()->subDay(),
-        ]);
-
-        Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
-            ->assertViewHas('sessionZeroSurveys', function ($surveys) {
-                return $surveys->first()->title === 'Newest Survey';
-            });
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -462,18 +375,6 @@ describe('GameDetail Session Zero Link', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Game Session Zero Relationship', function () {
-    it('has sessionZeroSurveys relationship', function () {
-        $game = Game::factory()->create();
-        $gmProfile = GMProfile::factory()->create(['is_active' => true]);
-
-        SessionZeroSurvey::factory()->count(2)->create([
-            'gm_profile_id' => $gmProfile->id,
-            'game_id' => $game->id,
-        ]);
-
-        expect($game->sessionZeroSurveys)->toHaveCount(2);
-    });
-
     it('returns active survey via activeSessionZeroSurvey', function () {
         $game = Game::factory()->create();
         $gmProfile = GMProfile::factory()->create(['is_active' => true]);

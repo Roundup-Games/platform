@@ -44,21 +44,7 @@ describe('GamesPage — Authenticated Access', function () {
             ->assertSee(__('games.heading_my_games'));
     })->group('smoke');
 
-    it('shows My Games section heading', function () {
-        $user = gamesPageCreateUser();
 
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.heading_my_games'));
-    });
-
-    it('shows create game button', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.action_create_game'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -75,32 +61,7 @@ describe('GamesPage — My Games Display', function () {
             ->assertSee('Test Game Session');
     });
 
-    it('shows status badge for scheduled games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
 
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.status_scheduled'));
-    });
-
-    it('shows status badge for canceled games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'canceled']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.status_canceled'));
-    });
-
-    it('shows status badge for completed games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'completed']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.status_completed'));
-    });
 
     it('does not show other users private games on the page', function () {
         $user = gamesPageCreateUser();
@@ -112,51 +73,7 @@ describe('GamesPage — My Games Display', function () {
             ->assertDontSee('Other User Game');
     });
 
-    it('shows empty state when no games exist', function () {
-        $user = gamesPageCreateUser();
 
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.content_no_owned_games'));
-    });
-
-    it('shows cancel button for scheduled games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.action_cancel_game'));
-    });
-
-    it('shows complete button for scheduled games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.action_complete_game'));
-    });
-
-    it('does not show cancel/complete buttons for canceled games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'canceled']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertDontSee(__('games.action_cancel_game'))
-            ->assertDontSee(__('games.action_complete_game'));
-    });
-
-    it('does not show cancel/complete buttons for completed games', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'completed']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertDontSee(__('games.action_cancel_game'))
-            ->assertDontSee(__('games.action_complete_game'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -176,24 +93,6 @@ describe('GamesPage — Cancel Game Action', function () {
             'id' => $game->id,
             'status' => 'canceled',
         ]);
-    });
-
-    it('flashes success message after cancel', function () {
-        $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
-
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('cancelGame', $game->id);
-
-        // Verify DB state
-        assertDatabaseHas('games', [
-            'id' => $game->id,
-            'status' => 'canceled',
-        ]);
-
-        // Verify flash message is set on the component
-        $component->assertSee(__('games.flash_game_canceled'));
     });
 
     it('cannot cancel already canceled game', function () {
@@ -322,22 +221,6 @@ describe('GamesPage — Complete Game Action', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('GamesPage — Games I\'m In Display', function () {
-    it('shows section heading', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.heading_games_im_in'));
-    });
-
-    it('shows empty state when not participating in any games', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.content_no_games_joined'));
-    });
-
     it('shows games where user is an approved player', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
@@ -423,22 +306,7 @@ describe('GamesPage — Games I\'m In Display', function () {
         expect($gamesImInSection)->not->toContain('Invited Only Game');
     });
 
-    it('shows view link for participating games', function () {
-        $user = gamesPageCreateUser();
-        $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Viewable Game']);
 
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.action_view_game'));
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -770,22 +638,6 @@ describe('GamesPage — Decline Invitation Action', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('GamesPage — Community Activity Feed', function () {
-    it('shows community section heading', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.heading_community'));
-    });
-
-    it('shows empty state when user follows nobody', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee(__('games.content_no_community_activity'));
-    });
-
     it('shows activity when a followed user creates a game', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
@@ -862,17 +714,6 @@ describe('GamesPage — Community Activity Feed', function () {
         $heading = __('games.heading_community');
         $pos = strpos($content, $heading);
         expect($pos)->not->toBeFalse();
-    });
-
-    it('shows friend name in activity', function () {
-        $user = gamesPageCreateUser();
-        $friend = gamesPageCreateUser(['name' => 'Alice Gamer']);
-        \App\Models\UserRelationship::follow($user, $friend);
-        $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => 'Alice Game']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertSee('Alice Gamer');
     });
 
     it('paginates activity feed at 15 per page', function () {

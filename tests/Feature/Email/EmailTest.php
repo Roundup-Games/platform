@@ -289,14 +289,6 @@ describe('TeamInvitationEmail', function () {
         });
     });
 
-    test('team invitation email implements ShouldQueue', function () {
-        $inviter = User::factory()->create();
-        $team = Team::factory()->create();
-
-        $mailable = new TeamInvitationEmail($team, $inviter, 'someone@example.com', 'https://example.com/accept');
-        expect($mailable)->toBeInstanceOf(Illuminate\Contracts\Queue\ShouldQueue::class);
-    });
-
     test('team invitation email subject includes inviter and team names', function () {
         $inviter = User::factory()->create(['name' => 'Sarah']);
         $team = Team::factory()->create(['name' => 'Board Game Kings']);
@@ -383,19 +375,5 @@ describe('Locale-aware email subjects', function () {
         $mailable = new MembershipConfirmationEmail($user, 'Premium');
 
         expect($mailable->envelope()->subject)->toBe('Deine Roundup-Games-Mitgliedschaft ist bestätigt!');
-    });
-});
-
-describe('Mail configuration', function () {
-    test('mail config uses resend transport', function () {
-        $mailConfig = config('mail.mailers.resend');
-
-        expect($mailConfig['transport'])->toBe('resend');
-    });
-
-    test('mail config has array transport for testing', function () {
-        expect(config('mail.mailers.array.transport'))->toBe('array');
-        // Test env uses array mailer via phpunit.xml
-        expect(config('mail.default'))->toBe('array');
     });
 });

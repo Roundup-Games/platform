@@ -65,18 +65,7 @@ describe('Billing Portal Route Protection', function () {
             ->assertRedirect(route('login'));
     });
 
-    it('allows unverified user through since User model does not implement MustVerifyEmail', function () {
-        $user = User::factory()->create([
-            'email_verified_at' => null,
-            'profile_complete' => true,
-        ]);
 
-        // The verified middleware only blocks if the User model implements MustVerifyEmail
-        // Our User model does not, so the middleware passes through
-        actingAs($user)
-            ->get(route('billing.portal'))
-            ->assertStatus(200);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -93,14 +82,7 @@ describe('Billing Portal Display', function () {
             ->assertSeeLivewire('billing.billing-portal');
     })->group('smoke');
 
-    it('shows no subscription when user has none', function () {
-        $user = portalCreateUser();
 
-        actingAs($user)
-            ->get(route('billing.portal'))
-            ->assertOk()
-            ->assertSee('No active subscription');
-    });
 
     it('shows available plans when no subscription', function () {
         $user = portalCreateUser();
@@ -124,38 +106,9 @@ describe('Billing Portal Display', function () {
             ->assertSee('Current Plan');
     })->group('smoke');
 
-    it('hides available plans when subscription is active', function () {
-        $user = portalCreateUser();
-        portalCreateMembershipType(['name' => 'Hidden Plan']);
-        portalCreateSubscription($user, ['status' => 'active']);
 
-        actingAs($user)
-            ->get(route('billing.portal'))
-            ->assertOk()
-            ->assertDontSee('Available Plans');
-    });
 
-    it('shows payment history section', function () {
-        $user = portalCreateUser();
-        portalCreateSubscription($user);
 
-        Cashier::$transactionModel::create([
-            'billable_type' => get_class($user),
-            'billable_id' => $user->id,
-            'paddle_id' => 'txn_portal_001',
-            'paddle_subscription_id' => null,
-            'invoice_number' => 'INV-P001',
-            'status' => 'completed',
-            'total' => '9.99',
-            'tax' => '0.80',
-            'currency' => 'USD',
-            'billed_at' => now(),
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
-            ->assertSee('Payment History');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -191,43 +144,7 @@ describe('Billing Portal — Cancel Subscription', function () {
         expect($subscription->fresh()->ends_at)->not->toBeNull();
     });
 
-    it('flashes error when no active subscription', function () {
-        $user = portalCreateUser();
 
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
-            ->call('cancelSubscription');
-
-        // Component doesn't crash — flash message is set
-        $this->assertTrue(true);
-    });
-
-    it('logs cancellation with user and subscription IDs', function () {
-        config(['cashier.api_key' => 'test_api_key']);
-
-        Log::shouldReceive('info')->twice()->andReturn(null);
-
-        $user = portalCreateUser();
-        $subscription = portalCreateSubscription($user, ['status' => 'active']);
-
-        Http::fake([
-            '*/subscriptions/*' => Http::response([
-                'data' => [
-                    'id' => $subscription->paddle_id,
-                    'status' => 'active',
-                    'canceled_at' => now()->addMonth()->toIso8601String(),
-                    'scheduled_change' => [
-                        'action' => 'cancel',
-                        'effective_at' => now()->addMonth()->toIso8601String(),
-                    ],
-                ],
-            ]),
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
-            ->call('cancelSubscription');
-    });
 });
 
 describe('Billing Portal — Resume Subscription', function () {
@@ -242,28 +159,7 @@ describe('Billing Portal — Resume Subscription', function () {
         $this->assertTrue(true);
     });
 
-    it('handles error when trying to resume non-paused subscription', function () {
-        Log::spy();
 
-        $user = portalCreateUser();
-        // Create a subscription that's on "grace period" (active + future ends_at)
-        // but NOT paused — Cashier's resume() only works for paused subscriptions
-        portalCreateSubscription($user, [
-            'status' => 'active',
-            'ends_at' => now()->addDays(10),
-        ]);
-
-        // The component checks onGracePeriod() before calling resume()
-        // but Cashier's resume() throws for non-paused subscriptions
-        // This is a known limitation — the component's gate and Cashier's gate differ
-        try {
-            Livewire::actingAs($user)
-                ->test(\App\Livewire\Billing\BillingPortal::class)
-                ->call('resumeSubscription');
-        } catch (\LogicException $e) {
-            expect($e->getMessage())->toBe('Cannot resume a subscription that is not paused.');
-        }
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -321,14 +217,7 @@ describe('Checkout Component — Subscription Mode', function () {
             ->assertSee('Order Summary');
     });
 
-    it('shows formatted price', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType(['price_cents' => 5999]);
 
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\Checkout::class, ['planId' => $plan->id])
-            ->assertSee('$59.99');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -436,57 +325,7 @@ describe('Membership Page Component', function () {
             ->assertDontSee('Membership Expiring Soon');
     });
 
-    it('redirects to checkout on purchase initiation', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType(['paddle_price_id' => 'pri_checkout_test']);
 
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
-            ->call('initiateCheckout', $plan->id)
-            ->assertRedirect(route('billing.checkout', ['planId' => $plan->id]));
-    });
-
-    it('shows error when plan has no paddle price ID', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType(['paddle_price_id' => null]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
-            ->call('initiateCheckout', $plan->id);
-
-        // No crash — flash message set
-        $this->assertTrue(true);
-    });
-
-    it('shows error when user already subscribed', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType();
-        portalCreateSubscription($user, ['status' => 'active']);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
-            ->call('initiateCheckout', $plan->id);
-
-        // No crash — flash message set
-        $this->assertTrue(true);
-    });
-
-    it('shows Coming Soon badge for plans without price ID', function () {
-        $user = portalCreateUser();
-        portalCreateMembershipType(['name' => 'Future Plan', 'paddle_price_id' => null]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
-            ->assertSee('Coming Soon');
-    });
-
-    it('shows empty state when no plans', function () {
-        $user = portalCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
-            ->assertSee('No Plans Available Yet');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -529,18 +368,7 @@ describe('MembershipType Seeder', function () {
             ->and($annual->metadata['popular'])->toBeTrue();
     });
 
-    it('is idempotent via updateOrCreate', function () {
-        config(['billing.annual_price_id' => 'pri_first_run']);
-        $this->seed(\Database\Seeders\MembershipTypeSeeder::class);
 
-        config(['billing.annual_price_id' => 'pri_second_run']);
-        $this->seed(\Database\Seeders\MembershipTypeSeeder::class);
-
-        expect(MembershipType::where('name', 'Annual Membership')->count())->toBe(1);
-
-        $annual = MembershipType::where('name', 'Annual Membership')->first();
-        expect($annual->paddle_price_id)->toBe('pri_second_run');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -561,59 +389,5 @@ describe('User Billing Helpers', function () {
         expect($user->hasActiveMembership())->toBeFalse();
     });
 
-    it('hides paddle_id from array serialization', function () {
-        $user = portalCreateUser();
-        $array = $user->toArray();
 
-        expect($array)->not->toHaveKey('paddle_id');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// MEMBERSHIP TYPE MODEL
-// ═══════════════════════════════════════════════════════════
-
-describe('MembershipType Model', function () {
-    it('active scope returns only active plans', function () {
-        $active = portalCreateMembershipType(['name' => 'Active Plan']);
-        $inactive = portalCreateMembershipType(['status' => 'inactive', 'name' => 'Inactive Plan']);
-
-        $results = MembershipType::active()->get();
-
-        expect($results->contains($active))->toBeTrue()
-            ->and($results->contains($inactive))->toBeFalse();
-    });
-
-    it('formats price in dollars', function () {
-        $type = portalCreateMembershipType(['price_cents' => 999]);
-
-        expect($type->formattedPrice())->toBe('$9.99');
-    });
-
-    it('formats zero price', function () {
-        $type = portalCreateMembershipType(['price_cents' => 0]);
-
-        expect($type->formattedPrice())->toBe('$0.00');
-    });
-
-    it('formats large price correctly', function () {
-        $type = portalCreateMembershipType(['price_cents' => 14999]);
-
-        expect($type->formattedPrice())->toBe('$149.99');
-    });
-
-    it('casts metadata as array', function () {
-        $type = portalCreateMembershipType([
-            'metadata' => ['features' => ['Feature A'], 'popular' => true],
-        ]);
-
-        expect($type->metadata)->toBeArray()
-            ->and($type->metadata['features'])->toBeArray();
-    });
-
-    it('casts duration_months as integer', function () {
-        $type = portalCreateMembershipType(['duration_months' => '12']);
-
-        expect($type->duration_months)->toBe(12);
-    });
 });

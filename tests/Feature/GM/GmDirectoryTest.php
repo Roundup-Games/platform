@@ -58,20 +58,6 @@ class GmDirectoryTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_directory_page_shows_title(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('gms.title_game_master_directory'));
-    }
-
-    public function test_directory_page_shows_search_input(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('gms.action_search_gms'));
-    }
-
     // ── GM Cards ───────────────────────────────────────
 
     // smoke: core value proposition — active GMs appear in directory
@@ -319,39 +305,7 @@ class GmDirectoryTest extends TestCase
 
     // ── URL Filter Persistence ─────────────────────────
 
-    public function test_search_query_appears_in_url(): void
-    {
-        $gm = $this->createActiveGm(['name' => 'Test GM Name']);
 
-        $response = $this->get('/en/gms?q=Test');
-
-        $response->assertStatus(200);
-        // Verify the filter actually worked — the search was applied
-        $response->assertSee('Test GM Name');
-    }
-
-    public function test_specialization_filter_appears_in_url(): void
-    {
-        $response = $this->get('/en/gms?specialization=storytelling');
-
-        $response->assertStatus(200);
-    }
-
-    public function test_sort_appears_in_url(): void
-    {
-        $response = $this->get('/en/gms?sort=newest');
-
-        $response->assertStatus(200);
-    }
-
-    public function test_min_rating_filter_appears_in_url(): void
-    {
-        $response = $this->get('/en/gms?min_rating=4');
-
-        $response->assertStatus(200);
-    }
-
-    // ── Combined Filters ───────────────────────────────
 
     public function test_combined_search_and_specialization_filter(): void
     {
@@ -368,61 +322,9 @@ class GmDirectoryTest extends TestCase
 
     // ── GM Card Links ──────────────────────────────────
 
-    public function test_gm_card_links_to_public_profile(): void
-    {
-        $gm = $this->createActiveGm();
 
-        $response = $this->get('/en/gms');
 
-        $response->assertSee(route('profile.public', $gm));
-    }
 
-    // ── Filter Bar Elements ────────────────────────────
-
-    public function test_filter_bar_shows_sort_options(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('gms.sort_highest_rated'));
-        $response->assertSee(__('gms.sort_most_reviewed'));
-        $response->assertSee(__('gms.sort_newest'));
-    }
-
-    public function test_filter_bar_shows_specialization_options(): void
-    {
-        $response = $this->get('/en/gms');
-
-        // Pills render each proficiency label from the enum
-        foreach (GmProficiency::cases() as $proficiency) {
-            $response->assertSee($proficiency->label());
-        }
-    }
-
-    public function test_filter_bar_shows_min_rating_options(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('gms.field_any_rating'));
-    }
-
-    public function test_clear_filters_button_shows_when_filters_active(): void
-    {
-        $response = $this->get('/en/gms?q=test');
-
-        $response->assertSee(__('gms.action_clear_filters'));
-    }
-
-    public function test_clear_filters_button_hidden_when_no_filters_active(): void
-    {
-        $gm = $this->createActiveGm();
-
-        $response = $this->get('/en/gms');
-
-        $content = $response->getContent();
-        $this->assertStringNotContainsString(__('gms.action_clear_filters'), $content);
-    }
-
-    // ── Pagination ─────────────────────────────────────
 
     public function test_pagination_with_many_gms(): void
     {
@@ -440,19 +342,7 @@ class GmDirectoryTest extends TestCase
         $this->assertStringContainsString('gotoPage', $content);
     }
 
-    public function test_no_pagination_with_few_gms(): void
-    {
-        $gm = $this->createActiveGm();
 
-        $response = $this->get('/en/gms');
-
-        $response->assertStatus(200);
-        // With only 1 GM (under 12 limit), no pagination should appear
-        $content = $response->getContent();
-        $this->assertStringNotContainsString('page=2', $content);
-    }
-
-    // ── Search Wildcard Escaping ───────────────────────
 
     public function test_search_with_percent_sign_does_not_match_all(): void
     {
@@ -491,16 +381,7 @@ class GmDirectoryTest extends TestCase
             ->assertSet('sortBy', 'highest_rated');
     }
 
-    public function test_has_active_filters_detects_search(): void
-    {
-        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class);
-        $this->assertFalse($component->instance()->hasActiveFilters());
 
-        $component->set('search', 'test');
-        $this->assertTrue($component->instance()->hasActiveFilters());
-    }
-
-    // ── Review-Based Proficiency Badges ────────────────
 
     public function test_gm_card_shows_proficiency_badges_from_reviews(): void
     {

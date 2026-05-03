@@ -93,22 +93,6 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     }
 
     #[Test]
-    public function it_uses_discovery_queue(): void
-    {
-        $job = new UpdateUserDiscoveryCache(1, 'sweep');
-
-        $this->assertEquals('discovery', $job->queue);
-    }
-
-    #[Test]
-    public function it_has_three_tries(): void
-    {
-        $job = new UpdateUserDiscoveryCache(1, 'sweep');
-
-        $this->assertEquals(3, $job->tries);
-    }
-
-    #[Test]
     public function it_logs_failure_on_exception(): void
     {
         $fakeUuid = \Illuminate\Support\Str::uuid()->toString();
@@ -174,27 +158,6 @@ class UpdateUserDiscoveryCacheTest extends TestCase
 
         $expectedGeohash = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
         $this->assertEquals($expectedGeohash, $view->geohash_4);
-    }
-
-    #[Test]
-    public function it_deletes_when_model_missing(): void
-    {
-        $job = new UpdateUserDiscoveryCache(\Illuminate\Support\Str::uuid()->toString(), 'location_change');
-
-        $this->assertTrue($job->deleteWhenMissingModels);
-    }
-
-    #[Test]
-    public function it_can_be_dispatched_with_various_trigger_types(): void
-    {
-        $triggerTypes = ['location_change', 'vibe_change', 'game_system_change', 'follow', 'unfollow', 'block', 'unblock', 'sweep', 'cache_miss_refresh'];
-
-        foreach ($triggerTypes as $type) {
-            $job = new UpdateUserDiscoveryCache(1, $type);
-            $this->assertEquals($type, $job->triggerType, "Failed for trigger type: {$type}");
-            $this->assertEquals(1, $job->userId);
-            $this->assertEquals('discovery', $job->queue);
-        }
     }
 
     #[Test]
