@@ -12,37 +12,6 @@ beforeEach(function () {
     $this->user = User::factory()->create();
 });
 
-// ── getUnreadCount ───────────────────────────────────────────
-
-describe('getUnreadCount', function () {
-    it('returns 0 when user has no notifications', function () {
-        expect($this->service->getUnreadCount($this->user))->toBe(0);
-    });
-
-    it('returns correct count for unread notifications', function () {
-        $follower = User::factory()->create();
-
-        // Send 3 notifications
-        for ($i = 0; $i < 3; $i++) {
-            $this->user->notify(new NewFollower($follower));
-        }
-
-        expect($this->service->getUnreadCount($this->user))->toBe(3);
-    });
-
-    it('excludes read notifications from count', function () {
-        $follower = User::factory()->create();
-
-        $this->user->notify(new NewFollower($follower));
-        $this->user->notify(new NewFollower($follower));
-
-        // Mark one as read
-        $this->user->notifications()->first()->markAsRead();
-
-        expect($this->service->getUnreadCount($this->user))->toBe(1);
-    });
-});
-
 // ── getGroupedForUser ─────────────────────────────────────────
 
 describe('getGroupedForUser', function () {

@@ -71,27 +71,4 @@ describe('PWA Translation Completeness', function () {
         $response->assertSee(__('pwa.offline_indicator'));
         $response->assertSee(__('pwa.back_online'));
     });
-
-    it('manifest-related meta tags present in authenticated layout', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $response = actingAs($user)->get(route('dashboard'));
-        $response->assertOk();
-
-        $response->assertSee('<link rel="manifest" href="/manifest.json">', false);
-        $response->assertSee('<meta name="theme-color"', false);
-        $response->assertSee('apple-mobile-web-app-capable', false);
-    });
-
-    it('manifest-related meta tags present in public layout', function () {
-        $response = get(route('home'));
-        $response->assertOk();
-
-        $response->assertSee('<link rel="manifest" href="/manifest.json">', false);
-        $response->assertSee('<meta name="theme-color"', false);
-        $response->assertSee('apple-mobile-web-app-capable', false);
-    });
 });

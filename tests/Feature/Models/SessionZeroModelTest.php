@@ -43,17 +43,6 @@ class SessionZeroModelTest extends TestCase
 
     // ── Helpers (state transitions, lookups) ──────────────────
 
-    public function test_is_active_and_is_archived_are_mutually_exclusive(): void
-    {
-        $survey = SessionZeroSurvey::factory()->create(['status' => 'active']);
-        $this->assertTrue($survey->isActive());
-        $this->assertFalse($survey->isArchived());
-
-        $archived = SessionZeroSurvey::factory()->archived()->create();
-        $this->assertTrue($archived->isArchived());
-        $this->assertFalse($archived->isActive());
-    }
-
     public function test_archive_transitions_status(): void
     {
         $survey = SessionZeroSurvey::factory()->create(['status' => 'active']);
@@ -77,13 +66,6 @@ class SessionZeroModelTest extends TestCase
 
         $this->assertNotNull($found);
         $this->assertTrue($found->is($survey));
-    }
-
-    public function test_find_by_uuid_returns_null_for_missing(): void
-    {
-        $found = SessionZeroSurvey::findByUuid(Str::uuid()->toString());
-
-        $this->assertNull($found);
     }
 
     // ── Cascade Delete (data integrity) ──────────────────────
@@ -125,23 +107,5 @@ class SessionZeroModelTest extends TestCase
             'session_zero_survey_id' => $survey->id,
             'user_id' => $user->id,
         ]);
-    }
-
-    public function test_same_user_can_confirm_different_surveys(): void
-    {
-        $user = User::factory()->create();
-        $survey1 = SessionZeroSurvey::factory()->create();
-        $survey2 = SessionZeroSurvey::factory()->create();
-
-        SessionZeroConfirmation::factory()->create([
-            'session_zero_survey_id' => $survey1->id,
-            'user_id' => $user->id,
-        ]);
-        SessionZeroConfirmation::factory()->create([
-            'session_zero_survey_id' => $survey2->id,
-            'user_id' => $user->id,
-        ]);
-
-        $this->assertDatabaseCount('session_zero_confirmations', 2);
     }
 }

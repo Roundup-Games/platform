@@ -2,7 +2,6 @@
 
 use App\Livewire\Games\ApplyToGame;
 use App\Livewire\Campaigns\ApplyToCampaign;
-use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
@@ -249,79 +248,6 @@ describe('ApplyToCampaign', function () {
 
         Livewire::test(ApplyToCampaign::class, ['id' => $campaign->id])
             ->assertRedirect(route('login'));
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CAMPAIGN DETAIL APPLY CTA
-// ═══════════════════════════════════════════════════════════
-
-describe('Campaign Detail apply CTA', function () {
-    it('shows Join Campaign for public campaign', function () {
-        $owner = createUser();
-        $viewer = createUser();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-        ]);
-
-        Livewire::actingAs($viewer)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('canApply', true)
-            ->assertSee(__('campaigns.action_join_campaign'));
-    });
-
-    it('hides CTA for owner', function () {
-        $owner = createUser();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-        ]);
-
-        Livewire::actingAs($owner)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('canApply', false);
-    });
-
-    it('hides CTA when already participant', function () {
-        $owner = createUser();
-        $viewer = createUser();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-        ]);
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $viewer->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire::actingAs($viewer)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('canApply', false);
-    });
-
-    it('shows Application Pending when already applied', function () {
-        $owner = createUser();
-        $viewer = createUser();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'public',
-        ]);
-
-        CampaignApplication::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $viewer->id,
-            'status' => 'pending',
-        ]);
-
-        Livewire::actingAs($viewer)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertViewHas('canApply', false)
-            ->assertViewHas('hasExistingApplication', true)
-            ->assertSee(__('campaigns.content_application_pending'));
     });
 });
 

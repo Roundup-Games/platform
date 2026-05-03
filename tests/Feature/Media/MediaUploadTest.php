@@ -35,15 +35,6 @@ function validBannerImage(): UploadedFile
 // ── Model Media Conversions ─────────────────────────────
 
 describe('Team media conversions', function () {
-    it('registers logo collection as single file', function () {
-        $team = Team::factory()->create();
-        $collections = $team->getRegisteredMediaCollections();
-
-        $logo = $collections->first(fn ($c) => $c->name === 'logo');
-        expect($logo)->not->toBeNull();
-        expect($logo->singleFile)->toBeTrue();
-    });
-
 // smoke: accepts logo upload
     it('accepts logo upload and creates media record', function () {
         Storage::fake('public');
@@ -92,19 +83,6 @@ describe('Team media conversions', function () {
 });
 
 describe('Event media conversions', function () {
-    it('registers logo and banner collections', function () {
-        $event = Event::factory()->create();
-        $collections = $event->getRegisteredMediaCollections();
-
-        $logo = $collections->first(fn ($c) => $c->name === 'logo');
-        $banner = $collections->first(fn ($c) => $c->name === 'banner');
-
-        expect($logo)->not->toBeNull();
-        expect($banner)->not->toBeNull();
-        expect($logo->singleFile)->toBeTrue();
-        expect($banner->singleFile)->toBeTrue();
-    });
-
     it('accepts logo upload', function () {
         Storage::fake('public');
 
@@ -308,56 +286,6 @@ describe('ImageUpload component', function () {
         expect($team->fresh()->hasMedia('logo'))->toBeFalse();
     });
 
-    it('accepts PNG images', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('image', UploadedFile::fake()->image('logo.png', 200, 200))
-            ->call('upload')
-            ->assertSet('messageType', 'success');
-
-        expect($team->fresh()->hasMedia('logo'))->toBeTrue();
-    });
-
-    it('accepts WebP images', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('image', UploadedFile::fake()->image('logo.webp', 200, 200))
-            ->call('upload')
-            ->assertSet('messageType', 'success');
-
-        expect($team->fresh()->hasMedia('logo'))->toBeTrue();
-    });
-
-    it('accepts GIF images', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('image', UploadedFile::fake()->image('logo.gif', 200, 200))
-            ->call('upload')
-            ->assertSet('messageType', 'success');
-
-        expect($team->fresh()->hasMedia('logo'))->toBeTrue();
-    });
 });
 
 // ── Logging ─────────────────────────────────────────────

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\VibeFlag;
 use App\Livewire\Games\CreateGame;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -354,24 +353,6 @@ describe('CreateGame — Clone Source', function () {
             ->test(CreateGame::class, ['clone' => '00000000-0000-0000-0000-000000000000']);
     })->throws(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
 
-    it('logs clone initiation event', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-        ]);
-
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
-            ->once()
-            ->with('Game clone initiated', \Mockery::on(function ($context) use ($source) {
-                return isset($context['source_game_id']) && $context['source_game_id'] === $source->id;
-            }));
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id]);
-    });
-
     it('can save a cloned game with new date_time', function () {
         $user = createGameTestUser();
 
@@ -399,104 +380,6 @@ describe('CreateGame — Clone Source', function () {
         expect($games)->toHaveCount(2);
     });
 
-    it('sets game_type to board_game from board game clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('game_type', 'board_game')
-            ->assertSet('step', 'form');
-    });
-
-    it('sets game_type to ttrpg from TTRPG clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('game_type', 'ttrpg')
-            ->assertSet('step', 'form');
-    });
-
-    it('pre-fills TTRPG safety tools from clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-            'safety_rules' => ['tools' => ['x-card', 'lines-veils'], 'custom_note' => 'No graphic violence'],
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('safety_rules', ['tools' => ['x-card', 'lines-veils'], 'custom_note' => 'No graphic violence']);
-    });
-
-    it('converts vibe flags from flat array to favorite map', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-            'vibe_flags' => ['cooperative', 'new-player-friendly', 'roleplay-heavy'],
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('vibePreferences', [
-                'cooperative' => 'favorite',
-                'new-player-friendly' => 'favorite',
-                'roleplay-heavy' => 'favorite',
-            ]);
-    });
-
-    it('denies clone for guests by redirecting to login', function () {
-        $source = Game::factory()->create([
-            'game_type' => 'ttrpg',
-        ]);
-
-        $response = $this->get(route('games.create', ['clone' => $source->id]));
-
-        $response->assertRedirect(route('login'));
-    });
-
-    it('logs clone source_game_id on game creation', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-            'name' => 'Clone Source Game',
-        ]);
-
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
-            ->once()
-            ->with('Game created', \Mockery::on(function ($context) use ($source) {
-                return isset($context['source_game_id'])
-                    && $context['source_game_id'] === $source->id
-                    && isset($context['game_type'])
-                    && $context['game_type'] === 'board_game';
-            }));
-
-        // Allow clone initiated log (from mount)
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
-            ->once()
-            ->with('Game clone initiated', \Mockery::any());
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->call('save');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -539,60 +422,24 @@ describe('CreateGame — Board Game Safety Rules Edge Cases', function () {
 });
 
 describe('CreateGame — Clone Pre-fill Completeness', function () {
-    it('pre-fills location_id from clone source', function () {
+    it('pre-fills location_id, expected_duration, min_reliability_preference, and complexity from clone source', function () {
         $user = createGameTestUser();
         $location = \App\Models\Location::factory()->create();
 
         $source = Game::factory()->create([
             'owner_id' => $user->id,
-            'game_type' => 'board_game',
+            'game_type' => 'ttrpg',
             'location_id' => $location->id,
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('location_id', $location->id);
-    });
-
-    it('pre-fills expected_duration from clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
             'expected_duration' => 4.5,
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('expected_duration', '4.5');
-    });
-
-    it('pre-fills min_reliability_preference from clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
             'min_reliability_preference' => 75,
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('min_reliability_preference', '75.00');
-    });
-
-    it('pre-fills complexity from clone source', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
             'complexity' => 3.5,
         ]);
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => $source->id])
+            ->assertSet('location_id', $location->id)
+            ->assertSet('expected_duration', '4.5')
+            ->assertSet('min_reliability_preference', '75.00')
             ->assertSet('complexity', '3.50');
     });
 });

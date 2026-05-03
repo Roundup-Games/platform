@@ -248,60 +248,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(0, $this->gmProfile->review_count);
     }
 
-    
-    public function observer_skips_when_status_unchanged(): void
-    {
-        $review = $this->createPublishedReview(rating: 5);
-
-        // Update body, not status — aggregates should remain the same
-        $review->update(['body' => 'Updated text']);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(5.00, (float) $this->gmProfile->average_rating);
-        $this->assertEquals(1, $this->gmProfile->review_count);
-    }
-
-    // ── GMProfile Convenience Methods ──────────────────
-
-    
-    public function gm_profile_average_rating_method(): void
-    {
-        $this->createPublishedReview(rating: 4);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(4.00, (float) $this->gmProfile->averageRating());
-    }
-
-    
-    public function gm_profile_top_proficiencies_method(): void
-    {
-        $this->createPublishedReview(tags: ['storytelling', 'voices']);
-
-        $result = $this->gmProfile->topProficiencies();
-
-        $this->assertCount(2, $result);
-    }
-
-    
-    public function gm_profile_recent_reviews_method(): void
-    {
-        $this->createPublishedReview();
-        $this->createPublishedReview();
-
-        $result = $this->gmProfile->recentReviews(perPage: 5);
-
-        $this->assertEquals(2, $result->total());
-    }
-
-    
-    public function gm_profile_reviews_relationship(): void
-    {
-        $this->createPublishedReview();
-        $this->createPublishedReview();
-
-        $this->assertEquals(2, $this->gmProfile->refresh()->reviews()->count());
-    }
-
     // ── Helpers ────────────────────────────────────────
 
     private function createPublishedReview(

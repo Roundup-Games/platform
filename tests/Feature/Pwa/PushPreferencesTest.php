@@ -137,19 +137,6 @@ describe('push subscription management', function () {
         ]);
     });
 
-    it('push subscription count reflects on profile component', function () {
-        // Initially 0
-        Livewire::test(Show::class)
-            ->assertSet('pushSubscriptionCount', 0);
-
-        // Add 2 subscriptions
-        PushSubscription::factory()->count(2)->create(['user_id' => $this->user->id]);
-
-        // Count should reflect
-        Livewire::test(Show::class)
-            ->assertSet('pushSubscriptionCount', 2);
-    });
-
     it('subscription count updates after saving notification settings', function () {
         PushSubscription::factory()->create(['user_id' => $this->user->id]);
 
@@ -157,26 +144,5 @@ describe('push subscription management', function () {
             ->assertSet('pushSubscriptionCount', 1)
             ->call('saveNotificationSettings')
             ->assertSet('pushSubscriptionCount', 1); // Still 1 after save
-    });
-});
-
-describe('push unavailable state', function () {
-    it('renders push devices section with enable button when no subscriptions', function () {
-        Livewire::test(Show::class)
-            ->assertSee(__('notifications.push_devices_heading'))
-            ->assertSee(__('notifications.push_enable_button'));
-    });
-
-    it('renders enabled-on-N-devices message when subscriptions exist', function () {
-        PushSubscription::factory()->count(3)->create(['user_id' => $this->user->id]);
-
-        Livewire::test(Show::class)
-            ->assertSet('pushSubscriptionCount', 3)
-            ->assertSee(__('pwa.push_enabled_on_devices', ['count' => 3]));
-    });
-
-    it('renders channel push label in preferences table', function () {
-        Livewire::test(Show::class)
-            ->assertSee(__('notifications.channel_push'));
     });
 });

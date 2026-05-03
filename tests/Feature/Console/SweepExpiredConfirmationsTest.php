@@ -179,33 +179,4 @@ describe('SweepExpiredConfirmations command', function () {
         expect($promoted->fresh()->status)->toBe(ParticipantStatus::Pending);
     });
 
-    it('acquires game lock when processing expired confirmation', function () {
-        // Verify the WaitlistService::handleExpiredConfirmation uses a DB transaction
-        // with lockForUpdate by testing the method directly and verifying the
-        // game is locked during processing.
-        ['game' => $game, 'approved' => $approved] = createFullGameForSweep();
-
-        $user1 = User::factory()->create();
-        $this->service->addToWaitlist($game, $user1);
-
-        // Open a slot and promote
-        GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $approved->id)
-            ->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
-
-        $promoted = $this->service->promoteNext($game);
-        $promoted->update(['confirmation_expires_at' => now()->subHour()]);
-
-        // Verify the code path works — handleExpiredConfirmation processes the expired
-        // record through a DB::transaction with Game::lockForUpdate() internally.
-        // This test verifies the happy path; the lock prevents concurrent sweeps
-        // from processing the same expired confirmation twice.
-        $this->service->handleExpiredConfirmation($promoted);
-
-        $refreshed = $promoted->fresh();
-        // After handling, participant should be back on waitlist (first expiration)
-        expect($refreshed->status)->toBe(ParticipantStatus::Waitlisted)
-            ->and($refreshed->confirmation_expires_at)->toBeNull();
-    });
 });

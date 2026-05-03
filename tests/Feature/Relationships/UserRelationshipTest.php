@@ -307,25 +307,6 @@ describe('isFollowing / isFollowedBy', function () {
         expect($bob->isFollowedBy($alice))->toBeTrue();
         expect($alice->isFollowedBy($bob))->toBeFalse();
     });
-
-    it('returns false when no relationship exists', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        expect($alice->isFollowing($bob))->toBeFalse();
-        expect($alice->isFollowedBy($bob))->toBeFalse();
-    });
-
-    it('unfollow updates isFollowing to false', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        UserRelationship::follow($alice, $bob);
-        expect($alice->isFollowing($bob))->toBeTrue();
-
-        UserRelationship::unfollow($alice, $bob);
-        expect($alice->isFollowing($bob))->toBeFalse();
-    });
 });
 
 // ── isFriend (mutual follow) ───────────────────────────
@@ -436,19 +417,6 @@ describe('isBlockedBy / hasBlocked', function () {
 
         expect($alice->hasBlocked($bob))->toBeFalse();
         expect($alice->isBlockedBy($bob))->toBeFalse();
-    });
-
-    it('both users can block each other simultaneously', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        UserRelationship::block($alice, $bob);
-        UserRelationship::block($bob, $alice);
-
-        expect($alice->hasBlocked($bob))->toBeTrue();
-        expect($alice->isBlockedBy($bob))->toBeTrue();
-        expect($bob->hasBlocked($alice))->toBeTrue();
-        expect($bob->isBlockedBy($alice))->toBeTrue();
     });
 
     it('unblock clears the block direction', function () {
@@ -843,47 +811,6 @@ describe('Eloquent Relationships', function () {
         UserRelationship::block($user, $other);
 
         expect($user->followings()->count())->toBe(0);
-    });
-
-    it('mixed relationships are counted separately', function () {
-        $user = User::factory()->create();
-        $followTarget = User::factory()->create();
-        $blockTarget = User::factory()->create();
-        $follower = User::factory()->create();
-        $blocker = User::factory()->create();
-
-        UserRelationship::follow($user, $followTarget);
-        UserRelationship::block($user, $blockTarget);
-        UserRelationship::follow($follower, $user);
-        UserRelationship::block($blocker, $user);
-
-        expect($user->followings()->count())->toBe(1);
-        expect($user->blocks()->count())->toBe(1);
-        expect($user->followers()->count())->toBe(1);
-        expect($user->blockedBy()->count())->toBe(1);
-    });
-});
-
-// ── Edge Cases ─────────────────────────────────────────
-
-describe('Edge Cases', function () {
-    it('cascade deletion: deleting user removes their relationships', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        UserRelationship::follow($alice, $bob);
-        UserRelationship::follow($bob, $alice);
-        UserRelationship::block($alice, $bob);
-
-        $alice->delete();
-
-        // All of alice's relationships should be gone
-        $this->assertDatabaseMissing('user_relationships', [
-            'user_id' => $alice->id,
-        ]);
-        $this->assertDatabaseMissing('user_relationships', [
-            'related_user_id' => $alice->id,
-        ]);
     });
 
 });

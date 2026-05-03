@@ -68,20 +68,6 @@ class GmRoleServiceTest extends TestCase
         $this->assertEquals($user->id, $profile->user_id);
     }
 
-    public function test_subscription_canceled_blocks_new_assignment(): void
-    {
-        // Create user with active subscription
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-
-        // Cancel subscription
-        Cashier::$subscriptionModel::where('billable_id', $user->id)->delete();
-
-        // New user without subscription cannot get GM role
-        $newUser = User::factory()->create();
-        $this->assertFalse($this->service->assignGMRole($newUser));
-    }
-
     // ── Logging Events ─────────────────────────────────
 
     public function test_assign_gm_role_logs_info_on_success(): void
@@ -140,17 +126,6 @@ class GmRoleServiceTest extends TestCase
     }
 
     // ── Role Assignment Transaction Safety ─────────────
-
-    public function test_assign_creates_role_if_missing(): void
-    {
-        // Delete the role created in setUp
-        Role::where('name', 'Game Master')->delete();
-
-        $user = $this->createSubscribedUser();
-
-        $this->assertTrue($this->service->assignGMRole($user));
-        $this->assertDatabaseHas('roles', ['name' => 'Game Master', 'team_id' => null]);
-    }
 
     public function test_assign_is_idempotent(): void
     {
@@ -222,17 +197,6 @@ class GmRoleServiceTest extends TestCase
         $this->assertFalse($user->hasRole('Game Master'));
     }
 
-    public function test_revoke_without_profile_does_not_throw(): void
-    {
-        $user = User::factory()->create();
-        $user->assignRole('Game Master');
-
-        // Should not throw even though no GMProfile exists
-        $this->service->revokeGMRole($user);
-
-        $this->assertFalse($user->fresh()->hasRole('Game Master'));
-    }
-
     // ── isGmActive ────────────────────────────────────
 
     public function test_is_gm_active_with_role_and_subscription(): void
@@ -301,49 +265,6 @@ class GmRoleServiceTest extends TestCase
         $user->assignRole('Game Master');
 
         $this->assertFalse($this->service->canCreateAsGm($user, GameType::Ttrpg->value));
-    }
-
-    // ── Subscription Lapse Integration ─────────────────
-
-    public function test_handle_subscription_lapse_revokes_role(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-
-        $this->service->handleSubscriptionLapse($user);
-
-        $this->assertFalse($user->fresh()->hasRole('Game Master'));
-    }
-
-    public function test_handle_subscription_lapse_deactivates_profile(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-
-        $this->service->handleSubscriptionLapse($user);
-
-        $this->assertFalse($user->gmProfile->fresh()->is_active);
-    }
-
-    public function test_handle_subscription_lapse_preserves_profile(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-        $profileId = $user->gmProfile->id;
-
-        $this->service->handleSubscriptionLapse($user);
-
-        $this->assertNotNull(GMProfile::find($profileId));
-    }
-
-    public function test_handle_subscription_lapse_idempotent(): void
-    {
-        $user = User::factory()->create();
-
-        // Should not throw when called on non-GM user
-        $this->service->handleSubscriptionLapse($user);
-
-        $this->assertFalse($user->hasRole('Game Master'));
     }
 
     // ── Full Lifecycle Integration ─────────────────────

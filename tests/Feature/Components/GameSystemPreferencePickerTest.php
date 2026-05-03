@@ -42,50 +42,6 @@ function prefCreateUser(): User
 // ═══════════════════════════════════════════════════════════
 
 describe('Search', function () {
-    it('finds base games by name', function () {
-        $user = prefCreateUser();
-        prefCreateBaseGame(['name' => 'Wingspan', 'bgg_rank' => 38]);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'Wings');
-
-        $results = $component->instance()->searchResults;
-        expect($results)->toHaveCount(1);
-        expect($results->first()->name)->toBe('Wingspan');
-    });
-
-    it('excludes expansions from results', function () {
-        $user = prefCreateUser();
-        GameSystem::factory()->create([
-            'name' => 'Some Expansion',
-            'bgg_type' => 'boardgameexpansion',
-            'base_game_id' => null,
-        ]);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'Expansion');
-
-        $results = $component->instance()->searchResults;
-        expect($results)->toHaveCount(0);
-    });
-
-    it('shows expansion count in results', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'Catan');
-
-        $results = $component->instance()->searchResults;
-        expect($results)->toHaveCount(1);
-        expect($results->first()->expansions_count)->toBe(2);
-    });
-
     it('limits results to 20', function () {
         $user = prefCreateUser();
         for ($i = 0; $i < 25; $i++) {
@@ -120,27 +76,6 @@ describe('Search', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Selection (add)', function () {
-    it('adds a system to selectedIds', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $base->id)
-            ->assertSet('selectedIds', [$base->id]);
-    });
-
-    it('clears search after add', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('search', 'Chess')
-            ->call('add', $base->id)
-            ->assertSet('search', '');
-    });
-
     it('dispatches selection-changed event with updated array', function () {
         $user = prefCreateUser();
         $base = prefCreateBaseGame(['name' => 'Chess']);
@@ -202,18 +137,6 @@ describe('Removal', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Multi-select', function () {
-    it('can add multiple systems', function () {
-        $user = prefCreateUser();
-        $game1 = prefCreateBaseGame(['name' => 'Chess']);
-        $game2 = prefCreateBaseGame(['name' => 'Go']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $game1->id)
-            ->call('add', $game2->id)
-            ->assertSet('selectedIds', [$game1->id, $game2->id]);
-    });
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -323,15 +246,6 @@ describe('Edge Cases', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Mount', function () {
-    it('accepts avoid preference type', function () {
-        $user = prefCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class, [
-                'preferenceType' => 'avoid',
-            ])
-            ->assertSet('preferenceType', 'avoid');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

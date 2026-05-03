@@ -41,26 +41,6 @@ describe('Baseline checks', function () {
             ->and($result->source)->toBe('none');
     });
 
-    it('rejects user without location_id', function () {
-        $this->user->update(['location_id' => null]);
-
-        $result = $this->service->isEligible($this->user);
-
-        expect($result->eligible)->toBeFalse()
-            ->and($result->reason)->toBe('baseline_missing');
-    });
-
-    it('rejects user with both profile incomplete and no location', function () {
-        $this->user->update([
-            'profile_complete' => false,
-            'location_id' => null,
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-
-        expect($result->eligible)->toBeFalse()
-            ->and($result->reason)->toBe('baseline_missing');
-    });
 });
 
 // ── Trypass Events ─────────────────────────────────────

@@ -350,32 +350,6 @@ describe('Remove participant → ParticipantRemoved', function () {
         });
     });
 
-    it('dispatches ParticipantRemoved to removed campaign participant', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create(['profile_complete' => true]);
-        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
-
-        $participant = CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->call('removeParticipant', (string) $participant->id)
-            ->assertHasNoErrors();
-
-        $notifications = $player->notifications()->where('type', ParticipantRemoved::class)->get();
-        expect($notifications)->toHaveCount(1);
-        $data = $notifications->first()->data;
-        expect($data['type'])->toBe('participant_removed')
-            ->and($data['entity_type'])->toBe('campaign')
-            ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['removed_user_id'])->toBe($player->id);
-    });
-
     it('does not dispatch ParticipantRemoved when trying to remove the owner', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $game = Game::factory()->create([

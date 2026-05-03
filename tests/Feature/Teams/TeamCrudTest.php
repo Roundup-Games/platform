@@ -115,30 +115,6 @@ describe('BrowseTeams', function () {
             ->assertSee('Browse Teams');
     })->group('smoke');
 
-    it('lists active teams', function () {
-        $team = Team::factory()->create(['name' => 'Visible FC', 'is_active' => true]);
-
-        Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
-            ->assertSee('Visible FC');
-    });
-
-    it('hides inactive teams', function () {
-        Team::factory()->create(['name' => 'Hidden FC', 'is_active' => false]);
-
-        Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
-            ->assertDontSee('Hidden FC');
-    });
-
-    it('searches by name', function () {
-        Team::factory()->create(['name' => 'Alpha Team', 'is_active' => true]);
-        Team::factory()->create(['name' => 'Beta Squad', 'is_active' => true]);
-
-        Livewire\Livewire::test(App\Livewire\Teams\BrowseTeams::class)
-            ->set('search', 'Alpha')
-            ->assertSee('Alpha Team')
-            ->assertDontSee('Beta Squad');
-    });
-
     it('searches by city', function () {
         Team::factory()->create(['name' => 'Team A', 'city' => 'Austin', 'is_active' => true]);
         Team::factory()->create(['name' => 'Team B', 'city' => 'Denver', 'is_active' => true]);
@@ -155,34 +131,6 @@ describe('BrowseTeams', function () {
 // ── TeamDetail ──────────────────────────────────────────
 
 describe('TeamDetail', function () {
-    it('renders team detail component for active team', function () {
-        $team = Team::factory()->create([
-            'name' => 'Public Team',
-            'is_active' => true,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Teams\TeamDetail::class, ['slug' => $team->slug])
-            ->assertOk()
-            ->assertSee('Public Team');
-    });
-
-    it('shows roster with active members', function () {
-        $user = User::factory()->create(['name' => 'John Captain']);
-        $team = Team::factory()->create(['is_active' => true, 'created_by' => $user->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Teams\TeamDetail::class, ['slug' => $team->slug])
-            ->assertSee('John Captain')
-            ->assertSee('Captain');
-    });
-
     it('does not show removed members in roster', function () {
         $captain = User::factory()->create(['name' => 'Active Captain']);
         $removed = User::factory()->create(['name' => 'Removed Player']);

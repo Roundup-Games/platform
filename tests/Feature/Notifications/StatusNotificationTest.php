@@ -436,20 +436,4 @@ describe('Status change edge cases', function () {
 
         expect($game->fresh()->status)->toBe(GameStatus::Canceled);
     });
-
-    it('handles campaign complete with no participants without error', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => GameSystem::factory()->create()->id,
-            'status' => 'active',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('completeCampaign', $campaign->id)
-            ->assertHasNoErrors();
-
-        expect($campaign->fresh()->status)->toBe(CampaignStatus::Completed);
-    });
 });

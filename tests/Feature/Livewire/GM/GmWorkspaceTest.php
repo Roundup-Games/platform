@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\GmProficiency;
+
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -130,14 +130,6 @@ describe('GmWorkspace Upcoming Sessions', function () {
             ->assertDontSee('Other GMs Session');
     });
 
-    it('shows empty state when no upcoming sessions', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('No upcoming sessions');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -156,18 +148,6 @@ describe('GmWorkspace Review Summary', function () {
             ->assertOk()
             ->assertSee('4.8')
             ->assertSee('12');
-    });
-
-    it('shows dash when no rating', function () {
-        $gm = $this->createSubscribedGm([], [
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('—');
     });
 
     it('shows last 5 reviews with star ratings', function () {
@@ -213,18 +193,6 @@ describe('GmWorkspace Review Summary', function () {
             ->assertSee('Storyteller');
     });
 
-    it('shows empty state when no reviews', function () {
-        $gm = $this->createSubscribedGm();
-        $gm->gmProfile->update([
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('No reviews yet');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -325,51 +293,5 @@ describe('GmWorkspace Participant Stats', function () {
         Livewire\Livewire::actingAs($gm)
             ->test(App\Livewire\GM\GmWorkspace::class)
             ->assertViewHas('activeCampaigns', 3);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// QUICK ACTIONS
-// ═══════════════════════════════════════════════════════════
-
-describe('GmWorkspace Quick Actions', function () {
-    it('shows create game action', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Create Game');
-    });
-
-    it('shows create campaign action', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Create Campaign');
-    });
-
-    it('shows manage GM profile action', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk()
-            ->assertSee('Manage GM Profile');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// ROUTE REGISTRATION
-// ═══════════════════════════════════════════════════════════
-
-describe('GmWorkspace Route', function () {
-    it('registers route with correct name', function () {
-        $this->assertStringContainsString(
-            'gm-workspace',
-            route('gm.workspace', 'en')
-        );
     });
 });

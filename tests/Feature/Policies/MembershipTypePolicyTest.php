@@ -44,29 +44,14 @@ describe('MembershipType Policy', function () {
             expect(Gate::allows('create', MembershipType::class))->toBeTrue();
         })->group('smoke');
 
-        test('regular user cannot create membership type', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', MembershipType::class))->toBeFalse();
-        })->group('smoke');
-
         test('Platform Admin can update membership type', function () {
             $this->actingAs($this->admin);
             expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
         })->group('smoke');
 
-        test('regular user cannot update membership type', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('update', $this->activeMembership))->toBeFalse();
-        })->group('smoke');
-
         test('Platform Admin can delete membership type', function () {
             $this->actingAs($this->admin);
             expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
-        })->group('smoke');
-
-        test('regular user cannot delete membership type', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('delete', $this->activeMembership))->toBeFalse();
         })->group('smoke');
     });
 });

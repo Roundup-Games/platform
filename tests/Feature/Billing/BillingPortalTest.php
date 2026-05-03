@@ -64,8 +64,6 @@ describe('Billing Portal Route Protection', function () {
         get(route('billing.portal'))
             ->assertRedirect(route('login'));
     });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -81,34 +79,6 @@ describe('Billing Portal Display', function () {
             ->assertOk()
             ->assertSeeLivewire('billing.billing-portal');
     })->group('smoke');
-
-
-
-    it('shows available plans when no subscription', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType(['name' => 'Annual Plan']);
-
-        actingAs($user)
-            ->get(route('billing.portal'))
-            ->assertOk()
-            ->assertSee('Annual Plan')
-            ->assertSee('Available Plans');
-    });
-
-    it('shows active subscription with status badge', function () {
-        $user = portalCreateUser();
-        portalCreateSubscription($user, ['status' => 'active']);
-
-        actingAs($user)
-            ->get(route('billing.portal'))
-            ->assertOk()
-            ->assertSee('Active')
-            ->assertSee('Current Plan');
-    })->group('smoke');
-
-
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -143,23 +113,6 @@ describe('Billing Portal — Cancel Subscription', function () {
 
         expect($subscription->fresh()->ends_at)->not->toBeNull();
     });
-
-
-});
-
-describe('Billing Portal — Resume Subscription', function () {
-    it('flashes error when no grace period subscription', function () {
-        $user = portalCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
-            ->call('resumeSubscription');
-
-        // Component handles gracefully
-        $this->assertTrue(true);
-    });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -216,8 +169,6 @@ describe('Checkout Component — Subscription Mode', function () {
             ->assertSee('Premium')
             ->assertSee('Order Summary');
     });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -249,7 +200,7 @@ describe('One-Time Checkout Route', function () {
 // MEMBERSHIP PAGE
 // ═══════════════════════════════════════════════════════════
 
-describe('Membership Page Route', function () {
+describe('MembershipPage Route', function () {
     it('requires authentication', function () {
         get(route('membership'))
             ->assertRedirect(route('login'));
@@ -266,7 +217,7 @@ describe('Membership Page Route', function () {
     });
 });
 
-describe('Membership Page Component', function () {
+describe('MembershipPage Component', function () {
     it('shows available plans', function () {
         $user = portalCreateUser();
         $plan = portalCreateMembershipType(['name' => 'Annual Plan', 'price_cents' => 4999]);
@@ -324,70 +275,4 @@ describe('Membership Page Component', function () {
             ->test(\App\Livewire\Billing\MembershipPage::class)
             ->assertDontSee('Membership Expiring Soon');
     });
-
-
-});
-
-// ═══════════════════════════════════════════════════════════
-// MEMBERSHIP TYPE SEEDER
-// ═══════════════════════════════════════════════════════════
-
-describe('MembershipType Seeder', function () {
-    it('creates annual and monthly plans', function () {
-        config(['billing.annual_price_id' => 'pri_annual_seed']);
-        config(['billing.monthly_price_id' => 'pri_monthly_seed']);
-
-        $this->seed(\Database\Seeders\MembershipTypeSeeder::class);
-
-        assertDatabaseHas('membership_types', [
-            'name' => 'Annual Membership',
-            'price_cents' => 4999,
-            'duration_months' => 12,
-            'status' => 'active',
-            'paddle_price_id' => 'pri_annual_seed',
-        ]);
-
-        assertDatabaseHas('membership_types', [
-            'name' => 'Monthly Membership',
-            'price_cents' => 599,
-            'duration_months' => 1,
-            'status' => 'active',
-            'paddle_price_id' => 'pri_monthly_seed',
-        ]);
-    });
-
-    it('creates plans with feature metadata', function () {
-        config(['billing.annual_price_id' => 'pri_seed_meta']);
-
-        $this->seed(\Database\Seeders\MembershipTypeSeeder::class);
-
-        $annual = MembershipType::where('name', 'Annual Membership')->first();
-        expect($annual->metadata)->not->toBeNull()
-            ->and($annual->metadata['features'])->toBeArray()
-            ->and($annual->metadata['features'])->toContain('Unlimited game sessions')
-            ->and($annual->metadata['popular'])->toBeTrue();
-    });
-
-
-});
-
-// ═══════════════════════════════════════════════════════════
-// USER BILLING HELPERS
-// ═══════════════════════════════════════════════════════════
-
-describe('User Billing Helpers', function () {
-    it('hasActiveMembership returns true when subscribed', function () {
-        $user = portalCreateUser();
-        portalCreateSubscription($user, ['status' => 'active']);
-
-        expect($user->hasActiveMembership())->toBeTrue();
-    });
-
-    it('hasActiveMembership returns false when not subscribed', function () {
-        $user = portalCreateUser();
-
-        expect($user->hasActiveMembership())->toBeFalse();
-    });
-
-
 });

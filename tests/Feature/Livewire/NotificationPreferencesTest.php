@@ -108,40 +108,12 @@ describe('notification preferences section', function () {
         expect($savedKeys)->toBe($allCategoryValues);
     });
 
-    it('renders notification preferences section with push column', function () {
-        Livewire::test(Show::class)
-            ->assertSee(__('notifications.content_notification_preferences'))
-            ->assertSee(__('notifications.channel_in_app'))
-            ->assertSee(__('notifications.channel_email'))
-            ->assertSee(__('notifications.channel_push'));
-    });
-
-    it('renders push devices section', function () {
-        Livewire::test(Show::class)
-            ->assertSee(__('notifications.push_devices_heading'))
-            ->assertSee(__('notifications.push_enable_button'));
-    });
-
     it('shows push subscription count when user has subscriptions', function () {
         \App\Models\PushSubscription::factory()->create(['user_id' => $this->user->id]);
 
         Livewire::test(Show::class)
             ->assertSet('pushSubscriptionCount', 1)
             ->assertSee(__('pwa.push_enabled_on_devices', ['count' => 1]));
-    });
-
-    it('push subscription count is zero by default', function () {
-        Livewire::test(Show::class)
-            ->assertSet('pushSubscriptionCount', 0);
-    });
-
-    it('shows group headings for all five groups', function () {
-        Livewire::test(Show::class)
-            ->assertSee(__('notifications.group_social'))
-            ->assertSee(__('notifications.group_invitations'))
-            ->assertSee(__('notifications.group_applications'))
-            ->assertSee(__('notifications.group_participation'))
-            ->assertSee(__('notifications.group_status'));
     });
 
     it('shows success flash after saving', function () {

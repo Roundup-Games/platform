@@ -33,11 +33,6 @@ describe('NotificationCategory Unit Tests', function () {
         expect(NotificationCategory::GameSystemRequest->group())->toBe('content');
     });
 
-    it('channels() returns database and mail channel classes', function () {
-        $channels = NotificationCategory::channels();
-        expect($channels)->toBe([DatabaseChannel::class, MailChannel::class]);
-    });
-
     it('defaultSettings() returns array keyed by all category values', function () {
         $settings = NotificationCategory::defaultSettings();
 

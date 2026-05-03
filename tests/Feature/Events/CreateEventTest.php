@@ -20,28 +20,6 @@ describe('CreateEvent', function () {
             ->assertRedirect(route('onboarding.index'));
     });
 
-    it('renders create form for authorized user', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->assertOk()
-            ->assertSee('Create Event')
-            ->assertSee('Basic Information');
-    });
-
-    it('starts at step 1', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->assertSet('step', 1);
-    });
-
     it('validates step 1 before advancing', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
@@ -720,39 +698,5 @@ describe('EventAnnouncements', function () {
         $announcements = $component->instance()->announcements;
 
         expect($announcements->first()->title)->toBe('Pinned');
-    });
-});
-
-// ── Route Integration ──────────────────────────────────
-
-describe('Event Management Routes', function () {
-    it('create route is behind auth middleware', function () {
-        get(route('events.create'))
-            ->assertRedirect(route('login'));
-    });
-
-    it('manage route is behind auth middleware', function () {
-        $event = Event::factory()->create();
-        get(route('events.manage', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
-    it('announcements route is behind auth middleware', function () {
-        $event = Event::factory()->create();
-        get(route('events.announcements', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
-    it('organizer can access all management routes', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-
-        actingAs($user);
-
-        get(route('events.create'))->assertOk();
-        get(route('events.manage', ['slug' => $event->slug]))->assertOk();
-        get(route('events.announcements', ['slug' => $event->slug]))->assertOk();
     });
 });

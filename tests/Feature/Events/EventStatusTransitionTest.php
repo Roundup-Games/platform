@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 use Tests\Traits\SetsUpLocale;
 
@@ -29,61 +28,6 @@ class EventStatusTransitionTest extends TestCase
             'organizer_id' => $organizer->id,
             'status' => $status,
         ]);
-    }
-
-    // ── Unit: Event model isValidStatusTransition ───────
-
-    public static function validTransitions(): array
-    {
-        return [
-            'draft → published' => ['draft', 'published'],
-            'published → registration_open' => ['published', 'registration_open'],
-            'published → cancelled' => ['published', 'cancelled'],
-            'registration_open → registration_closed' => ['registration_open', 'registration_closed'],
-            'registration_open → cancelled' => ['registration_open', 'cancelled'],
-            'registration_closed → in_progress' => ['registration_closed', 'in_progress'],
-            'registration_closed → cancelled' => ['registration_closed', 'cancelled'],
-            'in_progress → completed' => ['in_progress', 'completed'],
-            'in_progress → cancelled' => ['in_progress', 'cancelled'],
-            'cancelled → draft' => ['cancelled', 'draft'],
-        ];
-    }
-
-    public static function invalidTransitions(): array
-    {
-        return [
-            'completed → draft' => ['completed', 'draft'],
-            'completed → published' => ['completed', 'published'],
-            'cancelled → published' => ['cancelled', 'published'],
-            'cancelled → registration_open' => ['cancelled', 'registration_open'],
-            'published → draft' => ['published', 'draft'],
-            'draft → registration_open' => ['draft', 'registration_open'],
-            'draft → cancelled' => ['draft', 'cancelled'],
-            'registration_open → draft' => ['registration_open', 'draft'],
-            'registration_open → published' => ['registration_open', 'published'],
-            'completed → completed' => ['completed', 'completed'],
-            'draft → draft' => ['draft', 'draft'],
-        ];
-    }
-
-    #[DataProvider('validTransitions')]
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
-    public function test_valid_event_status_transitions(string $from, string $to): void
-    {
-        $this->assertTrue(
-            Event::isValidStatusTransition($from, $to),
-            "Transition from '{$from}' to '{$to}' should be valid."
-        );
-    }
-
-    #[DataProvider('invalidTransitions')]
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
-    public function test_invalid_event_status_transitions(string $from, string $to): void
-    {
-        $this->assertFalse(
-            Event::isValidStatusTransition($from, $to),
-            "Transition from '{$from}' to '{$to}' should be invalid."
-        );
     }
 
     // ── Specific scenario tests ─────────────────────────

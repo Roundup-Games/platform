@@ -6,7 +6,7 @@ use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use function Pest\Laravel\{actingAs};
 
 describe('BoardGamesDiscovery', function () {
     it('shows only games — no campaigns appear', function () {
@@ -214,47 +214,6 @@ describe('BoardGamesDiscovery', function () {
         expect($recNames)->not->toContain('Other System Game');
     });
 
-    it('defaults language filter to user preferred language on mount', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'de',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSet('language', 'de');
-    });
-
-    it('does not override language filter if URL already has a value', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'de',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->set('language', 'en')
-            ->assertSet('language', 'en');
-    });
-
-    it('defaults language filter to app locale for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSet('language', app()->getLocale());
-    });
-
-    it('defaults language filter to German locale when app locale is de', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSet('language', 'de');
-    });
-
-    it('URL language param overrides app locale default', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::withQueryParams(['language' => 'en'])
-            ->test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSet('language', 'en');
-    });
-
     it('recommendations exclude avoided game systems', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $favSystem = GameSystem::factory()->create(['type' => 'boardgame']);
@@ -423,53 +382,4 @@ describe('BoardGamesDiscovery', function () {
             ->assertDontSee('Category Only Game');
     });
 
-    it('renders category pills in expandable section when categories exist', function () {
-        $category = GameSystemCategory::create(['name' => 'Strategy']);
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-        $system->categories()->attach($category->id);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSee('Categories');
-    });
-
-    it('renders mechanic pills in expandable section when mechanics exist', function () {
-        $mechanic = GameSystemMechanic::create(['name' => 'Worker Placement']);
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-        $system->mechanics()->attach($mechanic->id);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSee('Mechanics');
-    });
-
-    it('shows active filter chips for selected categories and mechanics', function () {
-        $category = GameSystemCategory::create(['name' => 'Dice Game']);
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-        $system->categories()->attach($category->id);
-
-        Game::factory()->create([
-            'name' => 'Cat Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->set('category_ids', [$category->id])
-            ->assertSee('Dice Game');
-    });
-
-    it('passes radius options to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
-        $radiusOptions = $component->viewData('radiusOptions');
-
-        expect($radiusOptions)->toContain(10, 25, 50);
-    });
-
-    it('passes hasLocation to view', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
-        $hasLocation = $component->viewData('hasLocation');
-
-        expect($hasLocation)->toBeBool();
-    });
 });

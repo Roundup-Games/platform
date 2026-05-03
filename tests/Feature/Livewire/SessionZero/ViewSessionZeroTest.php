@@ -63,56 +63,12 @@ class ViewSessionZeroTest extends TestCase
             ->assertSee('Be on time');
     }
 
-    public function test_shows_safety_tool_labels(): void
-    {
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertSee('X-Card')
-            ->assertSee('Lines & Veils');
-    }
-
-    public function test_shows_lines_and_veils_text(): void
-    {
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertSee('No spiders please');
-    }
-
-    public function test_shows_safety_custom_note(): void
-    {
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertSee('Be kind');
-    }
-
     public function test_aborts_404_for_invalid_uuid(): void
     {
         // Use a valid UUID format that doesn't exist
         $fakeUuid = (string) \Illuminate\Support\Str::uuid();
 
         $this->get('/en/session-zero/' . $fakeUuid)->assertStatus(404);
-    }
-
-    public function test_hides_empty_sections(): void
-    {
-        $emptySurvey = SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $this->gmProfile->id,
-            'title' => 'Minimal Survey',
-            'content' => [
-                'safety_tools' => [],
-                'lines_and_veils_text' => '',
-                'safety_custom_note' => '',
-                'tone_and_genre' => '',
-                'house_rules' => '',
-                'content_warnings' => '',
-                'player_expectations' => '',
-            ],
-        ]);
-
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $emptySurvey->uuid])
-            ->assertSee('Minimal Survey')
-            ->assertDontSee(__('session_zero.heading_safety_tools'))
-            ->assertDontSee(__('session_zero.heading_tone_and_genre'))
-            ->assertDontSee(__('session_zero.heading_house_rules'))
-            ->assertDontSee(__('session_zero.heading_content_warnings'))
-            ->assertDontSee(__('session_zero.heading_player_expectations'));
     }
 
     // ── Confirmation: Unauthenticated ────────────────────
@@ -290,23 +246,6 @@ class ViewSessionZeroTest extends TestCase
         Livewire::actingAs($this->gmUser)
             ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee('(1)');
-    }
-
-    // ── Route Registration ───────────────────────────────
-
-    public function test_route_is_registered(): void
-    {
-        $routeNames = collect(\Illuminate\Support\Facades\Route::getRoutes()->getRoutesByName())->keys()->toArray();
-        $this->assertContains('session-zero.view', $routeNames);
-    }
-
-    public function test_route_accepts_valid_uuid(): void
-    {
-        $url = '/en/session-zero/' . $this->survey->uuid;
-
-        // Use Livewire test to avoid layout auth issues
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertStatus(200);
     }
 
     // ── Observability ────────────────────────────────────

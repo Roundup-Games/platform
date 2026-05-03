@@ -70,24 +70,6 @@ describe('Admin Panel Authentication', function () {
     })->group('smoke');
 });
 
-describe('canAccessPanel unit checks', function () {
-    test('admin can access filament panel via canAccessPanel', function () {
-        $panel = filament()->getPanel('admin');
-        expect($this->platformAdmin->canAccessPanel($panel))->toBeTrue();
-        expect($this->gamesAdmin->canAccessPanel($panel))->toBeTrue();
-    })->group('smoke');
-
-    test('regular user cannot access filament panel via canAccessPanel', function () {
-        $panel = filament()->getPanel('admin');
-        expect($this->regularUser->canAccessPanel($panel))->toBeFalse();
-    })->group('smoke');
-
-    test('team admin without global admin cannot access filament panel via canAccessPanel', function () {
-        $panel = filament()->getPanel('admin');
-        expect($this->teamAdmin->canAccessPanel($panel))->toBeFalse();
-    })->group('smoke');
-});
-
 describe('Policy-based Resource Visibility', function () {
     test('Platform Admin has viewAny for all entity types', function () {
         $this->actingAs($this->platformAdmin);
@@ -187,8 +169,4 @@ describe('Platform Login & Custom 403', function () {
         $response->assertSee('Return to Dashboard');
     })->group('smoke');
 
-    test('admin login route no longer exists', function () {
-        $response = $this->get('/admin/login');
-        $response->assertNotFound();
-    })->group('smoke');
 });

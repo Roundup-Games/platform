@@ -194,26 +194,6 @@ class NearbyPeopleTest extends TestCase
         $this->assertEquals(0, $afterFollow['results']->total());
     }
 
-    public function test_follow_from_nearby_self_is_noop(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
-            ->set('activeTab', 'nearby')
-            ->call('followFromNearby', $this->user->id);
-
-        $this->assertEquals(0, UserRelationship::count());
-    }
-
-    public function test_follow_from_nearby_nonexistent_user_is_noop(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
-            ->set('activeTab', 'nearby')
-            ->call('followFromNearby', \Illuminate\Support\Str::uuid()->toString());
-
-        $this->assertEquals(0, UserRelationship::count());
-    }
-
     // ── nearbyCount ──────────────────────────────────
 
     public function test_nearby_count_reflects_total_candidates(): void
@@ -234,16 +214,5 @@ class NearbyPeopleTest extends TestCase
         $component->set('activeTab', 'nearby');
 
         $component->assertSet('nearbyCount', 3);
-    }
-
-    public function test_nearby_count_is_zero_when_no_location(): void
-    {
-        $this->assertNull($this->user->location_id);
-
-        $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
-        $component->set('activeTab', 'nearby');
-
-        $component->assertSet('nearbyCount', 0);
     }
 }

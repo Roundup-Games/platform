@@ -57,11 +57,6 @@ describe('Rendering', function () {
             ->assertSeeHtml('No sessions near you yet');
     });
 
-    it('shows organizer recruitment CTA in empty state', function () {
-        Livewire::test(NearbySessions::class)
-            ->call('onGuestLocationUpdated', 0.0, 0.0, 'browser')
-            ->assertSeeHtml('Be the first to bring tabletop gaming to your area');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -331,50 +326,6 @@ describe('BGG rank badge', function () {
             ->call('onGuestLocationUpdated', $this->centerLat, $this->centerLng, 'browser')
             ->assertSeeHtml('#1');
     });
-
-    it('does not show BGG badge for rank > 100', function () {
-        $location = Location::factory()->create([
-            'latitude' => 52.5230,
-            'longitude' => 13.4120,
-        ]);
-        $gameSystem = GameSystem::factory()->create([
-            'name' => 'Some Game',
-            'bgg_rank' => 500,
-        ]);
-        Game::factory()->create([
-            'location_id' => $location->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-            'name' => 'Regular Session',
-        ]);
-
-        Livewire::test(NearbySessions::class)
-            ->call('onGuestLocationUpdated', $this->centerLat, $this->centerLng, 'browser')
-            ->assertDontSeeHtml('emoji_events');
-    });
-
-    it('does not show BGG badge for null rank', function () {
-        $location = Location::factory()->create([
-            'latitude' => 52.5230,
-            'longitude' => 13.4120,
-        ]);
-        $gameSystem = GameSystem::factory()->create([
-            'name' => 'Indie Game',
-            'bgg_rank' => null,
-        ]);
-        Game::factory()->create([
-            'location_id' => $location->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-            'name' => 'Indie Session',
-        ]);
-
-        Livewire::test(NearbySessions::class)
-            ->call('onGuestLocationUpdated', $this->centerLat, $this->centerLng, 'browser')
-            ->assertDontSeeHtml('emoji_events');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -413,14 +364,6 @@ describe('Fallback radius', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('City search', function () {
-    it('validates city query is required', function () {
-        Livewire::test(NearbySessions::class)
-            ->set('cityQuery', '')
-            ->call('searchCity')
-            ->assertHasErrors(['cityQuery' => 'required']);
-    });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════

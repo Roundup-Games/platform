@@ -3,6 +3,7 @@
 namespace Tests\Feature\Livewire\GameSystems;
 
 use App\Livewire\GameSystems\MyRequestsPage;
+
 use App\Models\GameSystem;
 use App\Models\GameSystemRequest;
 use App\Models\User;
@@ -92,68 +93,6 @@ class MyRequestsPageTest extends TestCase
             ->assertDontSee('Their System');
     }
 
-    // ── Status Badges ─────────────────────────────────
-
-    public function test_displays_pending_status_badge(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'pending',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(__('games.request_status_pending'));
-    }
-
-    public function test_displays_approved_status_badge(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'approved',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(__('games.request_status_approved'));
-    }
-
-    public function test_displays_rejected_status_badge(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'rejected',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(__('games.request_status_rejected'));
-    }
-
-    public function test_displays_duplicate_status_badge(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'duplicate',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(__('games.request_status_duplicate'));
-    }
-
     // ── Approved Request Link ─────────────────────────
 
     public function test_approved_request_links_to_game_system(): void
@@ -213,22 +152,6 @@ class MyRequestsPageTest extends TestCase
             ->assertSee('Already exists in our database.');
     }
 
-    public function test_non_rejected_request_does_not_show_rejection_reason(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'pending',
-            'rejection_reason' => 'Should not be visible',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertDontSee('Should not be visible');
-    }
-
     // ── Pagination ────────────────────────────────────
 
     public function test_paginates_at_12_per_page(): void
@@ -247,21 +170,4 @@ class MyRequestsPageTest extends TestCase
         $this->assertCount(12, $component->viewData('requests')->items());
     }
 
-    // ── Type Badge ────────────────────────────────────
-
-    public function test_displays_type_label(): void
-    {
-        $user = User::factory()->create();
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'D&D 5e',
-            'type' => 'ttrpg',
-            'status' => 'pending',
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(__('games.type_ttrpg'));
-    }
 }

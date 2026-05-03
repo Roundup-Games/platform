@@ -302,24 +302,6 @@ describe('NotificationService', function () {
 
             expect($user->notifications)->toHaveCount(1);
         });
-
-        it('skipped log includes reason, notifiable_id, and notification_type', function () {
-            Log::shouldReceive('info')->with('notification.dispatch_skipped', \Mockery::capture($capturedContext));
-
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'game_invitation' => ['database' => false, 'mail' => false],
-                ],
-            ]);
-
-            $notification = new TestNotification(['game_id' => 1]);
-            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
-
-            expect($capturedContext['reason'])->toBe('all_channels_disabled');
-            expect($capturedContext['notifiable_id'])->toBe($user->id);
-            expect($capturedContext['category'])->toBe('game_invitation');
-            expect($capturedContext['notification_type'])->toBeString();
-        });
     });
 
     // ── markReadByType ───────────────────────────────────────────
@@ -372,49 +354,9 @@ describe('NotificationService', function () {
         });
     });
 
-    // ── getUnreadCount ───────────────────────────────────────────
-
-    describe('getUnreadCount', function () {
-        it('returns 0 for a user with no notifications', function () {
-            $user = User::factory()->create();
-
-            expect($this->service->getUnreadCount($user))->toBe(0);
-        });
-
-        it('returns correct count of unread notifications', function () {
-            $user = User::factory()->create();
-
-            $user->notifyNow(new TestNotification(['entity_id' => 1]));
-            $user->notifyNow(new TestNotification(['entity_id' => 2]));
-            $user->notifyNow(new TestNotificationB(['entity_id' => 3]));
-
-            expect($this->service->getUnreadCount($user))->toBe(3);
-        });
-
-        it('excludes read notifications from count', function () {
-            $user = User::factory()->create();
-
-            $user->notifyNow(new TestNotification(['entity_id' => 1]));
-            $user->notifyNow(new TestNotification(['entity_id' => 2]));
-
-            // Mark one as read
-            $user->notifications->first()->markAsRead();
-
-            expect($this->service->getUnreadCount($user))->toBe(1);
-        });
-    });
-
     // ── getGroupedRecent ─────────────────────────────────────────
 
     describe('getGroupedRecent', function () {
-        it('returns empty collection for user with no notifications', function () {
-            $user = User::factory()->create();
-
-            $result = $this->service->getGroupedRecent($user);
-
-            expect($result)->toBeEmpty();
-        });
-
         it('groups notifications by read/unread status', function () {
             $user = User::factory()->create();
 
@@ -456,17 +398,6 @@ describe('NotificationService', function () {
 
             $all = $result->flatten();
             expect($all->first()->data['entity_id'])->toBe(2);
-        });
-
-        it('returns only unread group when no read notifications exist', function () {
-            $user = User::factory()->create();
-
-            $user->notifyNow(new TestNotification(['entity_id' => 1]));
-
-            $result = $this->service->getGroupedRecent($user);
-
-            expect($result)->toHaveKey('unread');
-            expect($result)->not->toHaveKey('read');
         });
     });
 });

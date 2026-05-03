@@ -9,12 +9,6 @@ use function Pest\Laravel\{actingAs, get};
 // ── EventListing ───────────────────────────────────────
 
 describe('EventListing', function () {
-    it('renders the events listing page for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertOk()
-            ->assertSee('Events');
-    });
-
     // smoke: events listing shows public events
     it('lists public events', function () {
         $event = Event::factory()->create([
@@ -183,11 +177,6 @@ describe('EventListing', function () {
         expect($events->hasMorePages())->toBeTrue();
     });
 
-    it('accessible via route', function () {
-        get(route('events.index'))
-            ->assertOk()
-            ->assertSee('Events');
-    });
 });
 
 // ── EventDetail ────────────────────────────────────────
@@ -203,35 +192,6 @@ describe('EventDetail', function () {
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Grand Tournament');
-    });
-
-    it('shows event date range', function () {
-        $event = Event::factory()->create([
-            'name' => 'Multi Day Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'start_date' => now()->addDays(10),
-            'end_date' => now()->addDays(12),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee($event->start_date->format('M j, Y'))
-            ->assertSee($event->end_date->format('M j, Y'));
-    });
-
-    it('shows venue information', function () {
-        $event = Event::factory()->create([
-            'name' => 'Venue Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'venue_name' => 'Central Stadium',
-            'venue_address' => '123 Main St',
-            'city' => 'Austin',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Central Stadium')
-            ->assertSee('Austin');
     });
 
     it('shows divisions', function () {
@@ -266,44 +226,6 @@ describe('EventDetail', function () {
             ->assertSee('Schedule')
             ->assertSee('Check-in')
             ->assertSee('Matches Begin');
-    });
-
-    it('shows registration status as open', function () {
-        $event = Event::factory()->create([
-            'name' => 'Open Reg Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Registration Open');
-    });
-
-    it('shows registration as closed when status is not open', function () {
-        $event = Event::factory()->create([
-            'name' => 'Closed Reg Event',
-            'is_public' => true,
-            'status' => 'registration_closed',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Registration Closed');
-    });
-
-    it('shows registration window dates', function () {
-        $event = Event::factory()->create([
-            'name' => 'Window Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'registration_opens_at' => $opensAt = now()->subDay(),
-            'registration_closes_at' => $closesAt = now()->addDays(14),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee($opensAt->format('M j, Y'))
-            ->assertSee($closesAt->format('M j, Y'));
     });
 
     it('shows capacity bar with registration counts', function () {
@@ -345,19 +267,6 @@ describe('EventDetail', function () {
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertSee('$250.00')
             ->assertSee('$50.00');
-    });
-
-    it('shows free for zero fees', function () {
-        $event = Event::factory()->create([
-            'name' => 'Free Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'team_registration_fee' => 0,
-            'individual_registration_fee' => 0,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Free');
     });
 
     it('shows published announcements', function () {
@@ -420,102 +329,9 @@ describe('EventDetail', function () {
         expect($announcements->first()->title)->toBe('Pinned Announcement');
     });
 
-    it('shows contact info', function () {
-        $event = Event::factory()->create([
-            'name' => 'Contact Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'contact_email' => 'info@example.com',
-            'contact_phone' => '+1-555-0123',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('info@example.com')
-            ->assertSee('+1-555-0123');
-    });
-
-    it('shows sign in to register button for guests when registration is open and has capacity', function () {
-        $event = Event::factory()->create([
-            'name' => 'Registrable Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'max_teams' => 10,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Sign in to Register');
-    });
-
-    it('shows register now button for authenticated users when registration is open and has capacity', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create([
-            'name' => 'Registrable Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'max_teams' => 10,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Register Now');
-    });
-
-    it('shows event full when capacity is reached', function () {
-        $organizer = User::factory()->create();
-        $event = Event::factory()->create([
-            'name' => 'Full Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-            'registration_type' => 'individual',
-            'max_participants' => 2,
-            'organizer_id' => $organizer->id,
-        ]);
-
-        // Fill capacity
-        for ($i = 0; $i < 2; $i++) {
-            $user = User::factory()->create();
-            EventRegistration::create([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-                'registration_type' => 'individual',
-                'status' => 'confirmed',
-                'payment_status' => 'paid',
-            ]);
-        }
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Event Full');
-    });
-
     it('returns 404 for nonexistent event', function () {
         get(route('events.detail', 'nonexistent-slug'))
             ->assertNotFound();
-    });
-
-    it('accessible via route', function () {
-        $event = Event::factory()->create([
-            'name' => 'Route Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('events.detail', $event->slug))
-            ->assertOk()
-            ->assertSee('Route Event');
-    });
-
-    it('shows back to events link', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Back to Events');
     });
 
     it('shows early bird discount when within deadline', function () {

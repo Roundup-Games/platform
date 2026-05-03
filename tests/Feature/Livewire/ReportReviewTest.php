@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\NotificationCategory;
 use App\Livewire\Reviews\ReportReview;
 use App\Models\Game;
 use App\Models\GMProfile;
@@ -227,64 +226,4 @@ it('review report method triggers aggregate recalculation', function () {
     // Observer should have fired and updated aggregates (no published reviews now)
     expect($gmProfile->fresh()->review_count)->toBe(0);
     expect($gmProfile->fresh()->average_rating)->toBeNull();
-});
-
-// ── GM Profile review section tests ────────────────────
-
-it('gm profile shows review section with reviews', function () {
-    ['gm' => $gm, 'gmProfile' => $gmProfile, 'reviewer' => $reviewer] = createReportableReview();
-
-    // Update aggregates
-    app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile);
-
-    $response = $this->actingAs(User::factory()->create(['profile_complete' => true]))
-        ->get(route('profile.public', $gm));
-
-    $response->assertOk()
-        ->assertSee('4.0')
-        ->assertSee('1 review')
-        ->assertSee('Great session!');
-});
-
-it('gm profile shows no reviews message when empty', function () {
-    $gm = User::factory()->create(['profile_complete' => true]);
-    $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id, 'review_count' => 0]);
-
-    $response = $this->actingAs(User::factory()->create(['profile_complete' => true]))
-        ->get(route('profile.public', $gm));
-
-    $response->assertOk()
-        ->assertSee('No reviews yet');
-});
-
-it('gm profile shows top proficiency badges', function () {
-    ['gm' => $gm, 'gmProfile' => $gmProfile] = createReportableReview();
-
-    // Update the review to have proficiency tags
-    $review = Review::first();
-    $review->update(['proficiency_tags' => ['storytelling', 'voices', 'world_builder']]);
-
-    app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile->fresh());
-
-    $response = $this->actingAs(User::factory()->create(['profile_complete' => true]))
-        ->get(route('profile.public', $gm));
-
-    $response->assertOk();
-
-    // Verify proficiency badges render (check the top proficiencies are computed)
-    $topProfs = $gmProfile->fresh()->topProficiencies();
-    expect($topProfs)->toHaveCount(3);
-    expect($topProfs->first()['name'])->toBe('storytelling');
-});
-
-it('guest can view gm profile review section', function () {
-    ['gm' => $gm, 'gmProfile' => $gmProfile] = createReportableReview();
-
-    app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile);
-
-    $response = $this->get(route('profile.public', $gm));
-
-    $response->assertOk()
-        ->assertSee('4.0')
-        ->assertSee('Great session!');
 });

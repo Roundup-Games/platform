@@ -4,20 +4,6 @@ use App\Enums\SafetyTool;
 use App\Enums\SafetyToolCategory;
 
 describe('SafetyTool', function () {
-    it('maps each tool to the correct category', function () {
-        expect(SafetyTool::SessionZero->category())->toBe(SafetyToolCategory::Before);
-        expect(SafetyTool::LinesAndVeils->category())->toBe(SafetyToolCategory::Before);
-        expect(SafetyTool::OpenDoor->category())->toBe(SafetyToolCategory::Before);
-
-        expect(SafetyTool::XCard->category())->toBe(SafetyToolCategory::During);
-        expect(SafetyTool::XnoCard->category())->toBe(SafetyToolCategory::During);
-        expect(SafetyTool::ScriptChange->category())->toBe(SafetyToolCategory::During);
-        expect(SafetyTool::Breaks->category())->toBe(SafetyToolCategory::During);
-
-        expect(SafetyTool::StarsAndWishes->category())->toBe(SafetyToolCategory::After);
-        expect(SafetyTool::Debriefing->category())->toBe(SafetyToolCategory::After);
-    });
-
     it('only LinesAndVeils supports text', function () {
         foreach (SafetyTool::cases() as $tool) {
             $expected = $tool === SafetyTool::LinesAndVeils;

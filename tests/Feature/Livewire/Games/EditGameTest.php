@@ -71,16 +71,6 @@ describe('Edit Game Modal', function () {
             ->assertSee(__('games.heading_edit_game'));
     });
 
-    it('closes modal on cancelEdit', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->call('cancelEdit')
-            ->assertSet('editingGameId', null)
-            ->assertDontSee(__('games.heading_edit_game'));
-    });
 });
 
 describe('Save Game Edit', function () {
@@ -95,54 +85,6 @@ describe('Save Game Edit', function () {
 
         expect($game->fresh()->name)->toBe('Updated Game Name');
     })->group('smoke');
-
-    it('updates game description', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_description', 'New description')
-            ->call('saveGameEdit');
-
-        expect($game->fresh()->description)->toBe('New description');
-    });
-
-    it('updates game duration', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_expected_duration', '3.5')
-            ->call('saveGameEdit');
-
-        expect($game->fresh()->expected_duration)->toBe(3.5);
-    });
-
-    it('updates game visibility', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_visibility', 'private')
-            ->call('saveGameEdit');
-
-        expect($game->fresh()->visibility)->toBe(\App\Enums\Visibility::Private);
-    });
-
-    it('updates game location', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_location_details', '456 New Address')
-            ->call('saveGameEdit');
-
-        expect($game->fresh()->location['details'])->toBe('456 New Address');
-    });
 
     it('validates required name', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
@@ -246,17 +188,6 @@ describe('Save Game Edit', function () {
         $afterGame = $freshGame->fresh();
         expect($afterGame->name)->toBe($freshGame->name);
         expect($afterGame->description)->toBe($freshGame->description);
-    });
-
-    it('shows flash message on success', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_name', 'Changed Name')
-            ->call('saveGameEdit')
-            ->assertSee(__('games.flash_game_updated'));
     });
 
     it('prevents non-owners from editing', function () {

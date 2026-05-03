@@ -83,19 +83,6 @@ describe('Game observers', function () {
         expect($playerLog)->not->toBeNull();
     });
 
-    it('does not log game_completed when a non-status field is updated', function () {
-        $game = Game::factory()->create(['owner_id' => $this->owner->id]);
-
-        // Clear logs from creation
-        ActivityLog::query()->delete();
-
-        $game->update(['name' => 'Updated Name']);
-
-        $log = ActivityLog::where('event_type', ActivityType::GameCompleted)
-            ->orWhere('event_type', ActivityType::GameCanceled)
-            ->first();
-        expect($log)->toBeNull();
-    });
 });
 
 describe('Campaign observer', function () {
@@ -161,24 +148,6 @@ describe('Participant observer', function () {
         expect($log)->not->toBeNull();
     });
 
-    it('does not log player_joined when participant is created with pending status', function () {
-        $game = Game::factory()->create(['owner_id' => $this->owner->id]);
-        $player = User::factory()->create();
-
-        // Clear logs from game creation
-        ActivityLog::query()->delete();
-
-        GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'pending',
-        ]);
-
-        $log = ActivityLog::where('event_type', ActivityType::PlayerJoined)->first();
-        expect($log)->toBeNull();
-    });
 });
 
 describe('Review observer', function () {

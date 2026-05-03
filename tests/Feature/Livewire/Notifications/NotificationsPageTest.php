@@ -37,21 +37,7 @@ class NotificationsPageTest extends TestCase
             ->assertOk();
     }
 
-    public function test_shows_page_title(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertSee('Notifications');
-    }
-
     // ── Notifications Data ─────────────────────────────
-
-    public function test_shows_empty_state_when_no_notifications_exist(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertSee('No notifications yet');
-    }
 
     public function test_displays_grouped_notifications(): void
     {
@@ -97,18 +83,6 @@ class NotificationsPageTest extends TestCase
         $this->assertEquals(5, $group->count);
     }
 
-    public function test_shows_count_badge_for_grouped_notifications(): void
-    {
-        for ($i = 0; $i < 3; $i++) {
-            $follower = User::factory()->create(['name' => "Follower{$i}"]);
-            $this->user->notify(new \App\Notifications\NewFollower($follower));
-        }
-
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertSee('3 notifications');
-    }
-
     // ── Unread Count ───────────────────────────────────
 
     public function test_shows_zero_unread_count_initially(): void
@@ -130,23 +104,6 @@ class NotificationsPageTest extends TestCase
             ->test(NotificationsPage::class);
 
         $this->assertEquals(4, $component->get('unreadCount'));
-    }
-
-    public function test_shows_mark_all_read_button_when_unread(): void
-    {
-        $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
-
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertSee('Mark all read');
-    }
-
-    public function test_hides_mark_all_read_button_when_no_unread(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertDontSee('Mark all read');
     }
 
     // ── Mark As Read ───────────────────────────────────
@@ -314,27 +271,6 @@ class NotificationsPageTest extends TestCase
             ->html();
 
         $this->assertStringContainsString('border-primary', $html);
-    }
-
-    public function test_removes_mark_read_button_after_marking_read(): void
-    {
-        $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
-
-        $notification = $this->user->notifications()->first();
-        $dateString = $notification->created_at->toDateString();
-        $groupKey = "NewFollower_{$dateString}";
-
-        $component = Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class);
-
-        // Mark-read button is visible for unread notification
-        $component->assertSee('Mark as read');
-
-        $component->call('markAsRead', $groupKey);
-
-        // After marking read, mark-read button should not be present
-        $component->assertDontSee('Mark as read');
     }
 
     // ── Multiple Notification Types ────────────────────

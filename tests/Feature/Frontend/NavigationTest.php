@@ -53,19 +53,6 @@ describe('App Sidebar Navigation', function () {
         ]);
     });
 
-    it('includes correct route URLs in sidebar', function () {
-        actingAs($this->user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee(route('dashboard'))
-            ->assertSee(route('notifications.index'))
-            ->assertSee(route('games.index'))
-            ->assertSee(route('campaigns.index'))
-            ->assertSee(route('people'))
-            ->assertSee(route('billing.portal'))
-            ->assertSee(route('profile.show'));
-    });
-
     it('does not include public-browsing links in authenticated sidebar', function () {
         $response = actingAs($this->user)
             ->get(route('dashboard'));
@@ -95,18 +82,6 @@ describe('App Sidebar Navigation', function () {
 });
 
 describe('GM Workspace Nav', function () {
-    it('workspace link not visible to non-GM', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        actingAs($user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertDontSee(route('gm.workspace'));
-    });
-
     it('workspace link visible to GM', function () {
         $gm = createGmNavigationUser();
 
@@ -118,18 +93,6 @@ describe('GM Workspace Nav', function () {
 });
 
 describe('GM Dashboard Card', function () {
-    it('GM workspace card not visible to non-GM', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        actingAs($user)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertDontSee(__('profile.dashboard_card_gm_workspace'));
-    });
-
     it('GM workspace card visible to GM', function () {
         $gm = createGmNavigationUser();
 

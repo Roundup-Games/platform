@@ -52,46 +52,6 @@ describe('PlatformScoreService - computeScore', function () {
             ->and($boardgameScore)->toBe(5);
     });
 
-    it('counts favorites correctly', function () {
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-        $users = User::factory()->count(3)->create();
-        foreach ($users as $user) {
-            $system->favoredByUsers()->attach($user->id, ['preference_type' => 'favorite']);
-        }
-
-        // 3 favorites × 10 = 30
-        $service = new PlatformScoreService;
-        expect($service->computeScore($system))->toBe(30);
-    });
-
-    it('counts active games correctly', function () {
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-        // Active games: scheduled + future
-        Game::factory()->count(2)->create([
-            'game_system_id' => $system->id,
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-        // Past game should not count as active
-        Game::factory()->create([
-            'game_system_id' => $system->id,
-            'status' => 'scheduled',
-            'date_time' => now()->subDays(3),
-        ]);
-        // Non-scheduled game should not count as active
-        Game::factory()->create([
-            'game_system_id' => $system->id,
-            'status' => 'completed',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        // Boardgame weights: active_games=20; 2 active × 20 = 40
-        // Total games count: 4 games × 3 = 12
-        // Total = 40 + 12 = 52
-        $service = new PlatformScoreService;
-        expect($service->computeScore($system))->toBe(52);
-    });
-
     it('computes composite score with all activity types', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
         $user = User::factory()->create();

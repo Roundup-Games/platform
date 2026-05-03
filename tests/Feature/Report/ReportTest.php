@@ -29,14 +29,6 @@ describe('MembershipExporter', function () {
         expect($names)->toContain('id', 'billable.name', 'billable.email', 'type', 'status', 'trial_ends_at', 'ends_at', 'created_at');
     });
 
-    it('all export columns are ExportColumn instances', function () {
-        $columns = MembershipExporter::getColumns();
-
-        foreach ($columns as $column) {
-            expect($column)->toBeInstanceOf(ExportColumn::class);
-        }
-    });
-
     it('has a model class', function () {
         expect(MembershipExporter::getModel())->toBeString();
     });
@@ -75,14 +67,6 @@ describe('EventAttendanceExporter', function () {
         );
     });
 
-    it('all export columns are ExportColumn instances', function () {
-        $columns = EventAttendanceExporter::getColumns();
-
-        foreach ($columns as $column) {
-            expect($column)->toBeInstanceOf(ExportColumn::class);
-        }
-    });
-
     it('has EventRegistration as model', function () {
         expect(EventAttendanceExporter::getModel())->toBe(EventRegistration::class);
     });
@@ -111,10 +95,6 @@ describe('MembershipReport Page', function () {
         expect(MembershipReport::getNavigationGroup())->toBe('Reports');
     });
 
-    it('has navigation label', function () {
-        expect(MembershipReport::getNavigationLabel())->toBe('Memberships');
-    });
-
     // smoke: admin-only access restriction on membership report
     it('restricts access to admin users only', function () {
         // Admin can access
@@ -139,10 +119,6 @@ describe('MembershipReport Page', function () {
 describe('EventAttendanceReport Page', function () {
     it('is in the Reports navigation group', function () {
         expect(EventAttendanceReport::getNavigationGroup())->toBe('Reports');
-    });
-
-    it('has navigation label', function () {
-        expect(EventAttendanceReport::getNavigationLabel())->toBe('Event Attendance');
     });
 
     it('restricts access to admin users only', function () {

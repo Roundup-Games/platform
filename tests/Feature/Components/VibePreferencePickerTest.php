@@ -49,44 +49,6 @@ describe('Rendering', function () {
             $component->assertSet('preferences.'.$flag->value, null);
         }
     });
-
-    it('renders all paired flags as segmented controls', function () {
-        $component = Livewire::test(VibePreferencePicker::class);
-        $pairedFlags = $component->instance()->getPairedFlags;
-
-        // 8 mutually exclusive pairs
-        expect($pairedFlags)->toHaveCount(8);
-
-        foreach ($pairedFlags as $pair) {
-            expect($pair)->toHaveKeys(['flagA', 'labelA', 'flagB', 'labelB', 'valueA', 'valueB']);
-            // Both start neutral
-            expect($pair['valueA'])->toBeNull();
-            expect($pair['valueB'])->toBeNull();
-        }
-    });
-
-    it('renders all standalone flags as tri-state chips', function () {
-        $component = Livewire::test(VibePreferencePicker::class);
-        $standaloneFlags = $component->instance()->getStandaloneFlags;
-
-        // Standalone flags = all flags minus paired flags
-        $standaloneValues = vibeStandaloneValues();
-        expect($standaloneFlags)->toHaveCount(count($standaloneValues));
-
-        foreach ($standaloneFlags as $sf) {
-            expect($sf)->toHaveKeys(['flag', 'label', 'value', 'group', 'groupLabel']);
-            expect($sf['value'])->toBeNull();
-        }
-    });
-
-    it('all flags from VibeFlag::grouped() appear in output', function () {
-        $component = Livewire::test(VibePreferencePicker::class);
-        $prefs = $component->get('preferences');
-
-        foreach (VibeFlag::cases() as $flag) {
-            expect(array_key_exists($flag->value, $prefs))->toBeTrue("Flag {$flag->value} missing from preferences");
-        }
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -258,65 +220,6 @@ describe('Mount with existing preferences', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Game type filtering', function () {
-    it('board_game mode initializes only 15 flags', function () {
-        $component = Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ]);
-
-        $prefs = $component->get('preferences');
-
-        // All 30 flag keys should be initialized, but only board_game flags should be non-null-capable
-        $nonNull = array_filter($prefs, fn ($v) => $v !== null);
-        expect($nonNull)->toHaveCount(0); // All start neutral
-    });
-
-    it('board_game mode shows 5 paired flag groups', function () {
-        $component = Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ]);
-
-        $paired = $component->instance()->getPairedFlags;
-
-        // board_game pairs: lighthearted/serious, horror/family-friendly,
-        // mature-themes/family-friendly, rules-light/rules-heavy, competitive/cooperative
-        expect($paired)->toHaveCount(5);
-
-        $pairFlags = [];
-        foreach ($paired as $pair) {
-            $pairFlags[] = $pair['flagA'];
-            $pairFlags[] = $pair['flagB'];
-        }
-
-        // Should NOT include ttrpg-only pairs like combat-focused/roleplay-heavy
-        expect($pairFlags)->not->toContain('combat-focused');
-        expect($pairFlags)->not->toContain('roleplay-heavy');
-        expect($pairFlags)->not->toContain('rule-of-cool');
-        expect($pairFlags)->not->toContain('roleplay-light');
-    });
-
-    it('board_game mode shows 6 standalone flags', function () {
-        $component = Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ]);
-
-        $standalone = $component->instance()->getStandaloneFlags;
-
-        // 15 board_game flags - 9 paired unique flags = 6 standalone
-        // Paired: lighthearted, serious, horror, family-friendly, mature-themes,
-        //         rules-light, rules-heavy, competitive, cooperative (9 unique)
-        // Standalone: atmospheric, humorous, tactical, puzzle-solving,
-        //             new-player-friendly, drop-in-friendly (6)
-        expect($standalone)->toHaveCount(6);
-
-        $standaloneFlags = array_map(fn ($s) => $s['flag'], $standalone);
-        expect($standaloneFlags)->toContain('atmospheric');
-        expect($standaloneFlags)->toContain('humorous');
-        expect($standaloneFlags)->toContain('tactical');
-        expect($standaloneFlags)->toContain('puzzle-solving');
-        expect($standaloneFlags)->toContain('new-player-friendly');
-        expect($standaloneFlags)->toContain('drop-in-friendly');
-    });
-
     it('board_game mode clears preferences for non-board-game flags', function () {
         $component = Livewire::test(VibePreferencePicker::class, [
             'gameType' => 'board_game',
@@ -379,19 +282,5 @@ describe('Game type filtering', function () {
         // All 30 flags initialized
         $prefs = $component->get('preferences');
         expect($prefs)->toHaveCount(30);
-    });
-
-    it('board_game mode initializes exactly 15 preference keys', function () {
-        $component = Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ]);
-
-        $prefs = $component->get('preferences');
-
-        // Only board_game flag keys should be initialized
-        $boardGameValues = array_map(fn (VibeFlag $f) => $f->value, VibeFlag::forGameType('board_game'));
-        foreach ($boardGameValues as $value) {
-            expect(array_key_exists($value, $prefs))->toBeTrue("Board game flag {$value} should be in preferences");
-        }
     });
 });

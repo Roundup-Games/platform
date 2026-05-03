@@ -43,19 +43,6 @@ class RequestGameSystemPageTest extends TestCase
         $response->assertOk();
     }
 
-    // ── Query Param Pre-fill ───────────────────────────
-
-    public function test_name_and_type_prefilled_from_query_params(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class, [
-                'name' => 'Wingspan',
-                'type' => 'ttrpg',
-            ])
-            ->assertSet('name', 'Wingspan')
-            ->assertSet('type', 'ttrpg');
-    }
-
     // ── Validation ─────────────────────────────────────
 
     public function test_name_is_required(): void

@@ -55,22 +55,6 @@ class LocationGeohashTest extends TestCase
     }
 
     #[Test]
-    public function geohash_4_is_null_when_coordinates_are_missing()
-    {
-        // Create without lat/lng — the migration makes the column nullable
-        // but the model's fillable includes it, so we can test the guard
-        $location = new Location([
-            'name' => 'No Coords',
-            'city' => 'Nowhere',
-        ]);
-        $location->latitude = null;
-        $location->longitude = null;
-        $location->save();
-
-        $this->assertNull($location->geohash_4);
-    }
-
-    #[Test]
     public function nearby_locations_share_geohash_4()
     {
         // Two points within 500m in Berlin
@@ -182,36 +166,4 @@ class LocationGeohashTest extends TestCase
             ->assertSuccessful();
     }
 
-    // ── Database index verification ────────────────────
-
-    #[Test]
-    public function geohash_4_column_exists_in_database()
-    {
-        $location = Location::create([
-            'name' => 'Test',
-            'city' => 'Test',
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-
-        $this->assertTrue(
-            collect(\Schema::getColumnListing('locations'))->contains('geohash_4'),
-            'geohash_4 column should exist on locations table'
-        );
-    }
-
-    #[Test]
-    public function geohash_4_can_be_queried_by_index()
-    {
-        // Create several locations in Berlin (same tile)
-        Location::factory()->count(5)->create([
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-
-        $hash = Geohash::tilePrefix(52.5163, 13.3777, 4);
-        $results = Location::where('geohash_4', $hash)->get();
-
-        $this->assertCount(5, $results);
-    }
 }

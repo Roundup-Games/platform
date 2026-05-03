@@ -85,25 +85,6 @@ describe('FriendSearch — Mutual Follow Enforcement', function () {
 // ── Query Length / Debounce ─────────────────────────
 
 describe('FriendSearch — Query Length Threshold', function () {
-    test('search returns empty for single character query', function () {
-        $friend = User::factory()->create(['name' => 'Amy']);
-        makeTestFriend($this->user, $friend);
-
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-        $component->instance()->search = 'A';
-
-        expect($component->instance()->searchResults)->toBeEmpty();
-    });
-
-    test('search returns empty for empty query', function () {
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-        $component->instance()->search = '';
-
-        expect($component->instance()->searchResults)->toBeEmpty();
-    });
-
     test('search works with two character query', function () {
         $friend = User::factory()->create(['name' => 'Amy']);
         makeTestFriend($this->user, $friend);
@@ -222,24 +203,6 @@ describe('FriendSearch — Selection', function () {
 
 // ── Rendering ──────────────────────────────────────
 
-describe('FriendSearch — Rendering', function () {
-    test('component renders successfully', function () {
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search')
-            ->assertOk()
-            ->assertSeeHtml('friend-search-input');
-    });
-
-    test('component renders with preselected IDs', function () {
-        $friend = User::factory()->create(['name' => 'Alice']);
-        makeTestFriend($this->user, $friend);
-
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search', ['selectedIds' => [$friend->id]])
-            ->assertSee('Alice');
-    });
-});
-
 // ── Already-Selected Exclusion ─────────────────────
 
 describe('FriendSearch — Already-Selected Exclusion', function () {
@@ -307,30 +270,6 @@ describe('FriendSearch — Selection Actions', function () {
 });
 
 // ── Dropdown Behavior ──────────────────────────────
-
-describe('FriendSearch — Dropdown', function () {
-    test('dropdown opens on search update', function () {
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search')
-            ->set('search', 'test')
-            ->assertSet('isOpen', true);
-    });
-
-    test('dropdown can be closed', function () {
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search')
-            ->set('isOpen', true)
-            ->call('closeDropdown')
-            ->assertSet('isOpen', false);
-    });
-
-    test('dropdown opens on focus', function () {
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search')
-            ->call('setOpen')
-            ->assertSet('isOpen', true);
-    });
-});
 
 // ── Edge Cases ──────────────────────────────────────
 

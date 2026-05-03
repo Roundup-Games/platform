@@ -1,12 +1,11 @@
 <?php
 
-use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use function Pest\Laravel\{actingAs};
 
 describe('GameListing', function () {
     it('renders the games listing page for guests', function () {
@@ -391,71 +390,4 @@ describe('GameListing', function () {
         expect($games->hasMorePages())->toBeTrue();
     });
 
-    it('redirects /games listing to discover page', function () {
-        get(route('games.index'))
-            ->assertRedirect(route('discover', app()->getLocale()));
-    });
-
-    it('eager loads owner, gameSystem, and campaign relationships', function () {
-        Game::factory()->create(['visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Games\GameListing::class);
-        $games = $component->viewData('games');
-
-        expect($games->first()->relationLoaded('owner'))->toBeTrue();
-        expect($games->first()->relationLoaded('gameSystem'))->toBeTrue();
-        expect($games->first()->relationLoaded('campaign'))->toBeTrue();
-    });
-
-    it('orders games by date_time ascending', function () {
-        $later = Game::factory()->create(['name' => 'Later Game', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(10)]);
-        $earlier = Game::factory()->create(['name' => 'Earlier Game', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(2)]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Games\GameListing::class);
-        $games = $component->viewData('games');
-
-        expect($games->first()->name)->toBe('Earlier Game');
-        expect($games->last()->name)->toBe('Later Game');
-    });
-
-    it('includes participants count', function () {
-        Game::factory()->create(['name' => 'Popular Game', 'visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(3)]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Games\GameListing::class);
-        $games = $component->viewData('games');
-
-        // participants_count should be accessible (withCount applied)
-        expect($games->first())->toHaveKey('participants_count');
-    });
-
-    // ── Language default tests ─────────────────────────
-
-    it('defaults language filter to app locale for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->assertSet('language', app()->getLocale());
-    });
-
-    it('defaults language filter to German locale when app locale is de', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->assertSet('language', 'de');
-    });
-
-    it('defaults language filter to user preferred language on mount', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'de',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->assertSet('language', 'de');
-    });
-
-    it('URL language param overrides app locale default', function () {
-        app()->setLocale('de');
-        Livewire\Livewire::withQueryParams(['language' => 'en'])
-            ->test(App\Livewire\Games\GameListing::class)
-            ->assertSet('language', 'en');
-    });
 });

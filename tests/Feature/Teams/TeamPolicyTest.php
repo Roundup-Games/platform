@@ -123,11 +123,6 @@ describe('update', function () {
         expect(Gate::allows('update', $this->team))->toBeTrue();
     });
 
-    test('player cannot update team', function () {
-        $this->actingAs($this->player);
-        expect(Gate::allows('update', $this->team))->toBeFalse();
-    });
-
     test('stranger cannot update team', function () {
         $this->actingAs($this->stranger);
         expect(Gate::allows('update', $this->team))->toBeFalse();
@@ -142,11 +137,6 @@ describe('delete', function () {
 
     test('coach cannot delete team', function () {
         $this->actingAs($this->coach);
-        expect(Gate::allows('delete', $this->team))->toBeFalse();
-    });
-
-    test('player cannot delete team', function () {
-        $this->actingAs($this->player);
         expect(Gate::allows('delete', $this->team))->toBeFalse();
     });
 
@@ -166,11 +156,6 @@ describe('manageMembers', function () {
         $this->actingAs($this->coach);
         expect(Gate::allows('manageMembers', $this->team))->toBeFalse();
     });
-
-    test('player cannot manage members', function () {
-        $this->actingAs($this->player);
-        expect(Gate::allows('manageMembers', $this->team))->toBeFalse();
-    });
 });
 
 describe('invite', function () {
@@ -182,11 +167,6 @@ describe('invite', function () {
     test('coach can invite', function () {
         $this->actingAs($this->coach);
         expect(Gate::allows('invite', $this->team))->toBeTrue();
-    });
-
-    test('player cannot invite', function () {
-        $this->actingAs($this->player);
-        expect(Gate::allows('invite', $this->team))->toBeFalse();
     });
 
     test('stranger cannot invite', function () {

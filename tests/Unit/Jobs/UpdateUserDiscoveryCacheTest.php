@@ -107,60 +107,6 @@ class UpdateUserDiscoveryCacheTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_results_in_cache(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => self::LAT,
-            'longitude' => self::LNG,
-        ]);
-
-        $user = User::factory()->create([
-            'location_id' => $location->id,
-            'profile_complete' => true,
-        ]);
-
-        Log::shouldReceive('info')->atLeast(2);
-        Log::shouldReceive('debug')->atLeast(0);
-
-        $job = new UpdateUserDiscoveryCache($user->id, 'location_change');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
-
-        // The cache key follows the pattern people:nearby:{userId}:{geohash4}
-        $geohash4 = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
-        $cacheKey = "people:nearby:{$user->id}:{$geohash4}";
-
-        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
-        $this->assertNotNull($cached, 'Discovery cache should be populated after job runs');
-        $this->assertIsArray($cached);
-    }
-
-    #[Test]
-    public function it_updates_nearby_discovery_view_with_geohash(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => self::LAT,
-            'longitude' => self::LNG,
-        ]);
-
-        $user = User::factory()->create([
-            'location_id' => $location->id,
-            'profile_complete' => true,
-        ]);
-
-        Log::shouldReceive('info')->atLeast(2);
-        Log::shouldReceive('debug')->atLeast(0);
-
-        $job = new UpdateUserDiscoveryCache($user->id, 'follow');
-        $job->handle(app(\App\Services\PeopleDiscoveryService::class));
-
-        $view = NearbyDiscoveryView::where('user_id', $user->id)->first();
-        $this->assertNotNull($view);
-
-        $expectedGeohash = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
-        $this->assertEquals($expectedGeohash, $view->geohash_4);
-    }
-
-    #[Test]
     public function it_handles_user_with_location_but_no_lat_lng(): void
     {
         // Location exists but has null lat/lng

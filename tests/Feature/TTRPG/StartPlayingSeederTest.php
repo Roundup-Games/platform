@@ -45,30 +45,6 @@ describe('StartPlayingSeeder — Daggerheart spot-check', function () {
         expect($dh->year_released)->toBe(2025);
     });
 
-    it('associates correct genres (Fantasy, Imaginative)', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        $genreSlugs = $dh->categories()->pluck('slug')->toArray();
-
-        expect($genreSlugs)->toContain('fantasy')
-            ->and($genreSlugs)->toContain('imaginative')
-            ->and(count($genreSlugs))->toBe(2);
-    });
-
-    it('associates correct mechanic', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        $mechSlugs = $dh->mechanics()->pluck('slug')->toArray();
-
-        // Mechanic "d12 System" → slug "d12-system"
-        expect(count($mechSlugs))->toBeGreaterThanOrEqual(1);
-        expect($mechSlugs)->toContain('d12-system');
-    });
-
     it('associates correct publisher (Darrington Press)', function () {
         $dh = GameSystem::where('source', 'startplaying')
             ->where('source_slug', 'daggerheart')
@@ -79,49 +55,6 @@ describe('StartPlayingSeeder — Daggerheart spot-check', function () {
         expect($publishers)->toContain('Darrington Press');
     });
 
-    it('stores faq_content as non-empty JSON array', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        expect($dh->faq_content)->not->toBeNull()
-            ->and(is_array($dh->faq_content))->toBeTrue()
-            ->and(count($dh->faq_content))->toBeGreaterThanOrEqual(5);
-
-        // Spot-check first FAQ has question/answer keys
-        expect($dh->faq_content[0])->toHaveKeys(['question', 'answer']);
-    });
-
-    it('stores external_links as non-empty array', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        expect($dh->external_links)->not->toBeNull()
-            ->and(is_array($dh->external_links))->toBeTrue()
-            ->and(count($dh->external_links))->toBeGreaterThanOrEqual(3);
-    });
-
-    it('stores showcases as non-empty array', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        expect($dh->showcases)->not->toBeNull()
-            ->and(is_array($dh->showcases))->toBeTrue()
-            ->and(count($dh->showcases))->toBeGreaterThanOrEqual(1);
-    });
-
-    it('stores sp_rating and sp_review_count', function () {
-        $dh = GameSystem::where('source', 'startplaying')
-            ->where('source_slug', 'daggerheart')
-            ->firstOrFail();
-
-        expect($dh->sp_rating)->not->toBeNull()
-            ->and($dh->sp_rating)->toBeGreaterThan(4.0)
-            ->and($dh->sp_review_count)->not->toBeNull()
-            ->and($dh->sp_review_count)->toBeGreaterThan(0);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

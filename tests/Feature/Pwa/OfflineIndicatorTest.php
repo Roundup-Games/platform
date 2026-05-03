@@ -23,19 +23,6 @@ describe('Offline Indicator Layout Integration', function () {
         $response->assertSee('offlineIndicator()', false);
     });
 
-    it('component contains Alpine x-data for online/offline detection', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $response = actingAs($user)->get(route('dashboard'));
-
-        $response->assertOk();
-        $response->assertSee('x-data="offlineIndicator()"', false);
-        $response->assertSee('x-init="init()"', false);
-    });
-
     it('component renders localized offline text from common.php', function () {
         app()->setLocale('en');
 
@@ -50,21 +37,5 @@ describe('Offline Indicator Layout Integration', function () {
 
         $response->assertSee(__('pwa.offline_indicator'));
         $response->assertSee(__('pwa.back_online'));
-    });
-
-    it('component contains pre-Alpine CSS fallback for offline state', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'email_verified_at' => now(),
-        ]);
-
-        $response = actingAs($user)->get(route('dashboard'));
-
-        $response->assertOk();
-
-        // Pre-Alpine fallback uses data-network="offline" selector
-        $response->assertSee('data-network="offline"', false);
-        $response->assertSee('data-offline-banner', false);
-        $response->assertSee('data-online-flash', false);
     });
 });

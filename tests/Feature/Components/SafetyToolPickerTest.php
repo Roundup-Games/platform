@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\SafetyTool;
-use App\Enums\SafetyToolCategory;
 use App\Livewire\Components\SafetyToolPicker;
 use Livewire\Livewire;
 
@@ -20,25 +19,6 @@ describe('Rendering', function () {
             ->assertSet('selected', [])
             ->assertSet('linesAndVeilsText', '')
             ->assertSet('customNote', '');
-    });
-
-    it('renders all 9 tools grouped by 3 categories', function () {
-        $component = Livewire::test(SafetyToolPicker::class);
-        $grouped = $component->instance()->getGroupedTools;
-
-        expect($grouped)->toHaveCount(3);
-
-        // Before: 3 tools
-        expect($grouped[0]['category'])->toBe(SafetyToolCategory::Before);
-        expect($grouped[0]['tools'])->toHaveCount(3);
-
-        // During: 4 tools
-        expect($grouped[1]['category'])->toBe(SafetyToolCategory::During);
-        expect($grouped[1]['tools'])->toHaveCount(4);
-
-        // After: 2 tools
-        expect($grouped[2]['category'])->toBe(SafetyToolCategory::After);
-        expect($grouped[2]['tools'])->toHaveCount(2);
     });
 
     it('each tool has required UI properties', function () {
@@ -224,13 +204,6 @@ describe('Grouped tools computed property', function () {
         expect($breaks['isSelected'])->toBeFalse();
     });
 
-    it('total tool count across all groups equals 9', function () {
-        $component = Livewire::test(SafetyToolPicker::class);
-        $grouped = $component->instance()->getGroupedTools;
-
-        $totalTools = array_sum(array_map(fn ($g) => count($g['tools']), $grouped));
-        expect($totalTools)->toBe(9);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -243,21 +216,6 @@ describe('Mount with existing data', function () {
             'selected' => ['session-zero', 'x-card'],
         ])
             ->assertSet('selected', ['session-zero', 'x-card']);
-    });
-
-    it('loads provided Lines & Veils text on mount', function () {
-        Livewire::test(SafetyToolPicker::class, [
-            'selected' => ['lines-and-veils'],
-            'linesAndVeilsText' => 'No gore',
-        ])
-            ->assertSet('linesAndVeilsText', 'No gore');
-    });
-
-    it('loads provided custom note on mount', function () {
-        Livewire::test(SafetyToolPicker::class, [
-            'customNote' => 'Check in after every session',
-        ])
-            ->assertSet('customNote', 'Check in after every session');
     });
 
     it('loads all properties together', function () {

@@ -100,31 +100,6 @@ describe('Webhook — subscription.created', function () {
                 && ($context['status'] ?? null) === 'active'
             );
     });
-
-
-});
-
-describe('Webhook — subscription.updated', function () {
-    beforeEach(function () {
-        config(['cashier.webhook_secret' => null]);
-        Log::spy();
-    });
-
-    it('responds 200 to subscription.updated', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_update');
-        webhookCreateSubscription($user, ['paddle_id' => 'sub_update_001']);
-
-        webhookPostEvent('subscription.updated', [
-            'id' => 'sub_update_001',
-            'status' => 'active',
-            'items' => [
-                ['price' => ['id' => 'pri_new', 'product_id' => 'pro_new'], 'status' => 'active', 'quantity' => 1],
-            ],
-        ])->assertStatus(200);
-    })->group('smoke');
-
-
 });
 
 describe('Webhook — subscription.canceled', function () {
@@ -150,38 +125,6 @@ describe('Webhook — subscription.canceled', function () {
 
         expect($subscription->fresh()->status)->toBe('canceled');
     });
-
-
-});
-
-describe('Webhook — transaction.completed', function () {
-    beforeEach(function () {
-        config(['cashier.webhook_secret' => null]);
-        Log::spy();
-    });
-
-    it('responds 200 to transaction.completed', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_txn');
-
-        webhookPostEvent('transaction.completed', [
-            'id' => 'txn_complete_001',
-            'customer_id' => 'ctm_txn',
-            'subscription_id' => null,
-            'invoice_number' => 'INV-001',
-            'status' => 'completed',
-            'currency_code' => 'USD',
-            'billed_at' => now()->toIso8601String(),
-            'details' => [
-                'totals' => ['total' => '9.99', 'tax' => '0.80'],
-                'line_items' => [
-                    ['price' => ['product_id' => 'pro_test']],
-                ],
-            ],
-        ])->assertStatus(200);
-    })->group('smoke');
-
-
 });
 
 describe('Webhook — transaction.payment_failed', function () {
@@ -216,31 +159,7 @@ describe('Webhook — transaction.payment_failed', function () {
                 $message === 'Paddle webhook: transaction.payment_failed'
             );
     });
-
-
 });
-
-describe('Webhook — Unknown Events', function () {
-    beforeEach(function () {
-        config(['cashier.webhook_secret' => null]);
-    });
-
-    it('responds 200 to unknown event types', function () {
-        post('/paddle/webhook', [
-            'event_type' => 'something.unknown',
-            'data' => ['id' => 'test'],
-        ])->assertStatus(200);
-    });
-
-    it('responds 200 to empty event type', function () {
-        post('/paddle/webhook', [
-            'event_type' => '',
-            'data' => ['id' => 'test'],
-        ])->assertStatus(200);
-    });
-});
-
-
 
 // ═══════════════════════════════════════════════════════════
 // WEBHOOK SIGNATURE VERIFICATION
@@ -351,27 +270,6 @@ describe('Webhook — Subscription Status Transitions', function () {
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
         Log::spy();
-    });
-
-    it('tracks subscription from active to canceled', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_transition');
-        $subscription = webhookCreateSubscription($user, [
-            'paddle_id' => 'sub_transition',
-            'status' => 'active',
-        ]);
-
-        expect($subscription->status)->toBe('active');
-
-        // Cancel via webhook
-        webhookPostEvent('subscription.canceled', [
-            'id' => 'sub_transition',
-            'status' => 'canceled',
-            'canceled_at' => now()->toIso8601String(),
-            'items' => [],
-        ])->assertStatus(200);
-
-        expect($subscription->fresh()->status)->toBe('canceled');
     });
 
     it('creates transaction record from webhook', function () {

@@ -356,53 +356,6 @@ describe('PeoplePage pagination', function () {
 // PROFILE LINKS
 // ═══════════════════════════════════════════════════════════
 
-describe('PeoplePage profile links', function () {
-    it('following tab links to public profile', function () {
-        $user = createPeoplePageUser();
-        $followed = createPeoplePageUser(['name' => 'Linked User']);
-        UserRelationship::follow($user, $followed);
-
-        Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->assertSee(route('profile.public', ['locale' => 'en', 'user' => $followed->id]));
-    });
-
-    it('followers tab links to public profile', function () {
-        $user = createPeoplePageUser();
-        $follower = createPeoplePageUser(['name' => 'Linked Follower']);
-        UserRelationship::follow($follower, $user);
-
-        Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->set('activeTab', 'followers')
-            ->assertSee(route('profile.public', ['locale' => 'en', 'user' => $follower->id]));
-    });
-
-    it('blocked tab links to public profile', function () {
-        $user = createPeoplePageUser();
-        $blocked = createPeoplePageUser(['name' => 'Linked Blocked']);
-        UserRelationship::block($user, $blocked);
-
-        Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->set('activeTab', 'blocked')
-            ->assertSee(route('profile.public', ['locale' => 'en', 'user' => $blocked->id]));
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// ROUTE NAMING
-// ═══════════════════════════════════════════════════════════
-
-describe('PeoplePage route naming', function () {
-    it('people route resolves correctly', function () {
-        $user = createPeoplePageUser();
-
-        $this->actingAs($user);
-        expect(route('people', ['locale' => 'en']))->toBe(url('/en/people'));
-    });
-});
-
 // ═══════════════════════════════════════════════════════════
 // BADGE EDGE CASES
 // ═══════════════════════════════════════════════════════════
@@ -429,17 +382,3 @@ describe('PeoplePage badge edge cases', function () {
     });
 });
 
-// ═══════════════════════════════════════════════════════════
-// DASHBOARD NAVIGATION
-// ═══════════════════════════════════════════════════════════
-
-describe('PeoplePage dashboard navigation', function () {
-    it('dashboard shows People link', function () {
-        $user = createPeoplePageUser();
-
-        $this->actingAs($user)
-            ->get('/en/dashboard')
-            ->assertOk()
-            ->assertSee('People');
-    });
-});

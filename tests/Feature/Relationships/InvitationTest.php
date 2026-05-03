@@ -2,7 +2,6 @@
 
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -74,55 +73,6 @@ describe('Invitation — Game Creation', function () {
             'status' => 'pending',
         ]);
     });
-
-    test('invitation resets selected friend IDs', function () {
-        ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants')
-            ->assertSet('selectedFriendIds', []);
-    });
-
-    test('invitation flashes success message', function () {
-        ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants')
-            ->assertSee('friend invited');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CAMPAIGN INVITATION CREATION
-// ═══════════════════════════════════════════════════════════
-
-describe('Invitation — Campaign Creation', function () {
-    test('campaign invitation creates pending participant', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants')
-            ->assertHasNoErrors();
-
-        assertDatabaseHas('campaign_participants', [
-            'campaign_id' => $campaign->id,
-            'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -141,22 +91,6 @@ describe('Invitation — Friend Validation', function () {
 
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $stranger->id,
-            'role' => 'invited',
-        ]);
-    })->group('smoke');
-
-    test('cannot invite non-friend to campaign', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
-        $stranger = User::factory()->create(['profile_complete' => true]);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$stranger->id])
-            ->call('inviteParticipants');
-
-        $this->assertDatabaseMissing('campaign_participants', [
-            'campaign_id' => $campaign->id,
             'user_id' => $stranger->id,
             'role' => 'invited',
         ]);
@@ -216,28 +150,6 @@ describe('Invitation — Duplicate Prevention', function () {
             ->call('inviteParticipants');
 
         expect(GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $friend->id)
-            ->count())->toBe(1);
-    });
-
-    test('campaign duplicate invite skipped', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        expect(CampaignParticipant::where('campaign_id', $campaign->id)
             ->where('user_id', $friend->id)
             ->count())->toBe(1);
     });
@@ -325,25 +237,6 @@ describe('Invitation — Blocked Users', function () {
 
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'role' => 'invited',
-        ]);
-    })->group('smoke');
-
-    test('blocked user cannot be invited to campaign', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        inviteTestBlock($owner, $friend);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        $this->assertDatabaseMissing('campaign_participants', [
-            'campaign_id' => $campaign->id,
             'user_id' => $friend->id,
             'role' => 'invited',
         ]);

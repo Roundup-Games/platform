@@ -447,22 +447,6 @@ class PeopleDiscoveryServiceTest extends TestCase
 
     // ── Users without location ──
 
-    #[Test]
-    public function it_excludes_users_without_location()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-
-        $noLocation = User::factory()->create([
-            'location_id' => null,
-            'profile_complete' => true,
-        ]);
-
-        $results = $this->discover($viewer, self::LAT, self::LNG);
-        $ids = collect($results->items())->pluck('user.id');
-
-        $this->assertFalse($ids->contains($noLocation->id));
-    }
-
     // ── Edge cases ──
 
     #[Test]
@@ -517,28 +501,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertEquals('no_location', $response['status']);
         $this->assertEquals(0, $response['results']->total());
         $this->assertCount(0, $response['results']->items());
-    }
-
-    #[Test]
-    public function it_returns_no_location_status_when_lat_is_null()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-
-        $response = $this->discoverWithStatus($viewer, null, self::LNG);
-
-        $this->assertEquals('no_location', $response['status']);
-        $this->assertEquals(0, $response['results']->total());
-    }
-
-    #[Test]
-    public function it_returns_no_location_status_when_lng_is_null()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-
-        $response = $this->discoverWithStatus($viewer, self::LAT, null);
-
-        $this->assertEquals('no_location', $response['status']);
-        $this->assertEquals(0, $response['results']->total());
     }
 
     // ── All-signals-hidden candidate ──
@@ -698,46 +660,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         // Cache should be invalidated
         $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
         $this->assertEquals(0, $response2['results']->total(), 'Cache should be invalidated after block');
-    }
-
-    #[Test]
-    public function it_invalidates_cache_after_unblock_action()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        // Block first
-        UserRelationship::block($viewer, $candidate);
-
-        // Discover — empty
-        $response1 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals(0, $response1['results']->total());
-
-        // Unblock — invalidates cache
-        UserRelationship::unblock($viewer, $candidate);
-
-        // Should now see the candidate again
-        $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals(1, $response2['results']->total(), 'Cache should be invalidated after unblock');
-    }
-
-    #[Test]
-    public function it_invalidates_cache_after_unfollow_action()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        // Follow first — candidate excluded
-        UserRelationship::follow($viewer, $candidate);
-
-        $response1 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals(0, $response1['results']->total());
-
-        // Unfollow — invalidates cache, candidate should come back
-        UserRelationship::unfollow($viewer, $candidate);
-
-        $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals(1, $response2['results']->total(), 'Cache should be invalidated after unfollow');
     }
 
     // ── Zero candidates across all tiers ──

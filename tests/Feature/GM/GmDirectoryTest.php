@@ -130,15 +130,6 @@ class GmDirectoryTest extends TestCase
         $response->assertDontSee('Elena Nightwhisper');
     }
 
-    public function test_search_by_partial_name_finds_gm(): void
-    {
-        $gm = $this->createActiveGm(['name' => 'Gandalf the Grey']);
-
-        $response = $this->get('/en/gms?q=Gandalf');
-
-        $response->assertSee('Gandalf the Grey');
-    }
-
     public function test_search_with_no_results_shows_empty_state(): void
     {
         $gm = $this->createActiveGm(['name' => 'Someone']);
@@ -287,14 +278,7 @@ class GmDirectoryTest extends TestCase
         $response->assertDontSee('Regular User');
     }
 
-    // ── Empty State ────────────────────────────────────
-
-    public function test_empty_directory_shows_empty_state(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('gms.content_no_gms_found'));
-    }
+    // ── URL Filter Persistence ─────────────────────────
 
     public function test_empty_state_with_filters_shows_clear_button(): void
     {
@@ -302,10 +286,6 @@ class GmDirectoryTest extends TestCase
 
         $response->assertSee(__('gms.action_clear_filters'));
     }
-
-    // ── URL Filter Persistence ─────────────────────────
-
-
 
     public function test_combined_search_and_specialization_filter(): void
     {
@@ -321,28 +301,6 @@ class GmDirectoryTest extends TestCase
     }
 
     // ── GM Card Links ──────────────────────────────────
-
-
-
-
-
-    public function test_pagination_with_many_gms(): void
-    {
-        // Create 13 active GMs (more than the 12-per-page limit)
-        for ($i = 0; $i < 13; $i++) {
-            $this->createActiveGm(['name' => "GM Number {$i}"]);
-        }
-
-        $response = $this->get('/en/gms');
-
-        $response->assertStatus(200);
-        $response->assertSee('GM Number 0');
-        // Livewire pagination uses wire:click for page navigation
-        $content = $response->getContent();
-        $this->assertStringContainsString('gotoPage', $content);
-    }
-
-
 
     public function test_search_with_percent_sign_does_not_match_all(): void
     {

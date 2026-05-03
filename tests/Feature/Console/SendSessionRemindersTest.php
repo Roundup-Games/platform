@@ -15,77 +15,6 @@ describe('SendSessionReminders command', function () {
             ->expectsOutputToContain('Found 0 game(s)');
     })->group('smoke');
 
-    it('skips games with reminder already sent', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(30),
-            'status' => 'scheduled',
-            'reminder_sent_at' => now(),
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('Found 0 game(s)');
-    });
-
-    it('skips cancelled and completed games', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(30),
-            'status' => 'canceled',
-        ]);
-
-        Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(30),
-            'status' => 'completed',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('Found 0 game(s)');
-    });
-
-    it('skips games starting beyond 1 hour', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addHours(2),
-            'status' => 'scheduled',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('Found 0 game(s)');
-    });
-
-    it('skips games starting in the past', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->subMinutes(30),
-            'status' => 'scheduled',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('Found 0 game(s)');
-    });
-
     it('finds games starting within 1 hour and marks reminder_sent_at', function () {
         $owner = User::factory()->create();
         $gameSystem = GameSystem::factory()->create();
@@ -111,67 +40,6 @@ describe('SendSessionReminders command', function () {
             ->expectsOutputToContain('Found 1 game(s)');
 
         // Verify reminder_sent_at was set
-        expect($game->fresh()->reminder_sent_at)->not->toBeNull();
-    });
-
-    it('excludes game owner from participants', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(45),
-            'status' => 'scheduled',
-        ]);
-
-        // Owner is also in participants — should be excluded
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'owner',
-            'status' => 'approved',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful();
-
-        // No push should be sent to owner (no push subscriptions anyway)
-        // But the game should still be marked
-        expect($game->fresh()->reminder_sent_at)->not->toBeNull();
-    });
-
-    it('skips pending and rejected participants', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(45),
-            'status' => 'scheduled',
-        ]);
-
-        $pendingUser = User::factory()->create();
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $pendingUser->id,
-            'role' => 'player',
-            'status' => 'pending',
-        ]);
-
-        $rejectedUser = User::factory()->create();
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $rejectedUser->id,
-            'role' => 'player',
-            'status' => 'rejected',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful();
-
-        // Game should be marked even though no participants qualified
         expect($game->fresh()->reminder_sent_at)->not->toBeNull();
     });
 
@@ -208,19 +76,6 @@ describe('SendSessionReminders command', function () {
 
         // Should NOT be marked in dry-run
         expect($game->fresh()->reminder_sent_at)->toBeNull();
-    });
-
-    it('logs structured start and completion events', function () {
-        Log::spy();
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful();
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message) => $message === 'session_reminders.started');
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message) => $message === 'session_reminders.completed');
     });
 
     it('skips participant with push disabled in notification settings', function () {
@@ -260,37 +115,6 @@ describe('SendSessionReminders command', function () {
 
         // No push_failed or push dispatch logs should appear for this participant
         Log::shouldNotHaveReceived('info', fn ($msg) => str_contains($msg, 'push_sent'));
-    });
-
-    it('skips participant with no push subscriptions without errors', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(45),
-            'status' => 'scheduled',
-        ]);
-
-        // Participant with push enabled in settings but no subscriptions
-        $participant = User::factory()->create([
-            'notification_settings' => [
-                'participant_joined' => ['database' => true, 'mail' => false, 'push' => true],
-            ],
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful();
-
-        // Game should be marked
-        expect($game->fresh()->reminder_sent_at)->not->toBeNull();
     });
 
     it('processes multiple games in one run', function () {

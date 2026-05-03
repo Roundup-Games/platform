@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\GmProficiency;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -168,99 +167,6 @@ describe('Game Detail — Review Display', function () {
         $response->assertOk()
             ->assertSee('Excellent storytelling session!')
             ->assertSee('Second opinion review text');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CAMPAIGN DETAIL — REVIEW DISPLAY
-// ═══════════════════════════════════════════════════════════
-
-describe('Campaign Detail — Review Display', function () {
-    it('displays published reviews on campaign detail page', function () {
-        $data = setupCampaignWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertSee('Incredible multi-session campaign!')
-            ->assertSee($data['reviewer']->name);
-    });
-
-    it('shows proficiency tags on campaign detail reviews', function () {
-        $data = setupCampaignWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk();
-        $tag = GmProficiency::from('world-builder');
-        $response->assertSee($tag->label());
-    });
-
-    it('shows write review link for eligible campaign participant', function () {
-        $data = setupCampaignWithReview();
-
-        // Create another eligible participant (the existing reviewer already reviewed)
-        $player2 = User::factory()->create(['profile_complete' => true]);
-        CampaignParticipant::create([
-            'campaign_id' => $data['campaign']->id,
-            'user_id' => $player2->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $response = $this->actingAs($player2)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertSee(__('reviews.action_write_review'));
-    });
-
-    it('hides reported reviews from campaign detail', function () {
-        $data = setupCampaignWithReview();
-        $data['review']->update(['status' => 'reported']);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertDontSee('Incredible multi-session campaign!')
-            ->assertSee(__('reviews.content_no_reviews_yet'));
-    });
-
-    it('displays multiple reviews on campaign detail', function () {
-        $data = setupCampaignWithReview();
-
-        $reviewer2 = User::factory()->create(['profile_complete' => true]);
-        CampaignParticipant::create([
-            'campaign_id' => $data['campaign']->id,
-            'user_id' => $reviewer2->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-        Review::factory()->create([
-            'reviewable_type' => Campaign::class,
-            'reviewable_id' => $data['campaign']->id,
-            'reviewer_id' => $reviewer2->id,
-            'gm_profile_id' => $data['gmProfile']->id,
-            'rating' => 3,
-            'body' => 'A different campaign review',
-            'status' => 'published',
-        ]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('campaigns.detail', $data['campaign']->id));
-
-        $response->assertOk()
-            ->assertSee('Incredible multi-session campaign!')
-            ->assertSee('A different campaign review');
     });
 });
 

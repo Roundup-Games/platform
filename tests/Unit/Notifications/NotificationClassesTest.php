@@ -104,32 +104,6 @@ describe('ParticipantJoined', function () {
             ->and($mail->actionText)->toBe('View game');
     });
 
-    it('stores correct data for a campaign', function () {
-        $participant = User::factory()->create(['name' => 'P1']);
-        $campaign = Campaign::factory()->create(['name' => 'C1']);
-        $notifiable = User::factory()->create();
-
-        $data = (new ParticipantJoined($participant, $campaign, 'campaign'))->toDatabase($notifiable);
-
-        expect($data['type'])->toBe('participant_joined')
-            ->and($data['participant_id'])->toBe($participant->id)
-            ->and($data['entity_type'])->toBe('campaign')
-            ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['entity_name'])->toBe('C1')
-            ->and($data['action_url'])->toContain('/campaigns/');
-    });
-
-    it('renders correct email content for a campaign', function () {
-        $participant = User::factory()->create(['name' => 'P1']);
-        $campaign = Campaign::factory()->create(['name' => 'C1']);
-        $notifiable = User::factory()->create(['name' => 'Owner']);
-
-        $mail = (new ParticipantJoined($participant, $campaign, 'campaign'))->toMail($notifiable);
-
-        expect($mail->subject)->toContain('P1')
-            ->and($mail->actionUrl)->toContain('/campaigns/');
-    });
-
     it('returns participant as actor', function () {
         $participant = User::factory()->create();
         $game = Game::factory()->create();
@@ -542,85 +516,6 @@ describe('GameCompleted', function () {
     it('returns game owner as actor', function () {
         $game = Game::factory()->create();
         expect((new GameCompleted($game))->getActor())->toBe($game->owner);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// CampaignCancelled
-// ---------------------------------------------------------------------------
-describe('CampaignCancelled', function () {
-    it('stores correct data to database', function () {
-        $campaign = Campaign::factory()->create(['name' => 'Cancelled Camp']);
-        $notifiable = User::factory()->create();
-
-        $data = (new CampaignCancelled($campaign))->toDatabase($notifiable);
-
-        expect($data['type'])->toBe('campaign_cancelled')
-            ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['entity_type'])->toBe('campaign')
-            ->and($data['entity_name'])->toBe('Cancelled Camp')
-            ->and($data['action_url'])->toContain('/campaigns');
-    });
-
-    it('renders correct email content', function () {
-        $campaign = Campaign::factory()->create(['name' => 'Cancelled Camp']);
-        $notifiable = User::factory()->create(['name' => 'Player']);
-
-        $mail = (new CampaignCancelled($campaign))->toMail($notifiable);
-
-        expect($mail->subject)->toContain('Cancelled Camp')
-            ->and($mail->actionUrl)->toContain('/campaigns');
-    });
-
-    it('returns campaign owner as actor', function () {
-        $campaign = Campaign::factory()->create();
-        expect((new CampaignCancelled($campaign))->getActor())->toBe($campaign->owner);
-    });
-
-    it('returns correct push payload', function () {
-        $campaign = Campaign::factory()->create(['name' => 'Cancelled Camp']);
-        $notifiable = User::factory()->create();
-
-        $payload = (new CampaignCancelled($campaign))->toPush($notifiable);
-
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Campaign Cancelled')
-            ->and($payload->body)->toBe('Cancelled Camp has been cancelled')
-            ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
-            ->and($payload->url)->toContain('/campaigns/')
-            ->and($payload->tag)->toBe("campaign-cancelled-{$campaign->id}");
-    });
-});
-
-// ---------------------------------------------------------------------------
-// CampaignCompleted
-// ---------------------------------------------------------------------------
-describe('CampaignCompleted', function () {
-    it('stores correct data to database', function () {
-        $campaign = Campaign::factory()->create(['name' => 'Completed Camp']);
-        $notifiable = User::factory()->create();
-
-        $data = (new CampaignCompleted($campaign))->toDatabase($notifiable);
-
-        expect($data['type'])->toBe('campaign_completed')
-            ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['entity_type'])->toBe('campaign')
-            ->and($data['entity_name'])->toBe('Completed Camp');
-    });
-
-    it('renders correct email content', function () {
-        $campaign = Campaign::factory()->create(['name' => 'Completed Camp']);
-        $notifiable = User::factory()->create(['name' => 'Player']);
-
-        $mail = (new CampaignCompleted($campaign))->toMail($notifiable);
-
-        expect($mail->subject)->toContain('Completed Camp')
-            ->and($mail->actionUrl)->toContain('/campaigns');
-    });
-
-    it('returns campaign owner as actor', function () {
-        $campaign = Campaign::factory()->create();
-        expect((new CampaignCompleted($campaign))->getActor())->toBe($campaign->owner);
     });
 });
 

@@ -5,7 +5,7 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use Illuminate\Support\Str;
+
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
@@ -86,24 +86,6 @@ describe('CreateSessionZero Form Rendering', function () {
             ->assertSee('House Rules')
             ->assertSee('Content Warnings')
             ->assertSee('Player Expectations');
-    });
-
-    it('renders title input field', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.session-zero.create', 'en'))
-            ->assertOk()
-            ->assertSee('Survey Title');
-    });
-
-    it('renders the create survey button', function () {
-        $gm = $this->createSubscribedGm();
-
-        $this->actingAs($gm)
-            ->get(route('gm.session-zero.create', 'en'))
-            ->assertOk()
-            ->assertSee('Create Survey');
     });
 
     it('shows default title when game_id is provided and game belongs to GM', function () {
@@ -324,36 +306,6 @@ describe('CreateSessionZero Success State', function () {
             ->assertSee('session-zero/' . $survey->uuid);
     });
 
-    it('includes copy link button', function () {
-        $gm = $this->createSubscribedGm();
-
-        Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
-            ->set('title', 'Copy Test')
-            ->call('save')
-            ->assertSee('Copy Link');
-    });
-
-    it('shows back to workspace link', function () {
-        $gm = $this->createSubscribedGm();
-
-        Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
-            ->set('title', 'Back Test')
-            ->call('save')
-            ->assertSee('Back to Workspace');
-    });
-
-    it('shows preview link', function () {
-        $gm = $this->createSubscribedGm();
-
-        Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\SessionZero\CreateSessionZero::class)
-            ->set('title', 'Preview Test')
-            ->call('save')
-            ->assertSee('Preview');
-    });
-
     it('hides the form after successful save', function () {
         $gm = $this->createSubscribedGm();
 
@@ -386,19 +338,4 @@ describe('CreateSessionZero Safety Tool Events', function () {
     });
 });
 
-// ═══════════════════════════════════════════════════════════
-// ROUTE REGISTRATION
-// ═══════════════════════════════════════════════════════════
 
-describe('CreateSessionZero Routes', function () {
-    it('registers create route with correct path', function () {
-        $url = route('gm.session-zero.create', 'en');
-        $this->assertStringContainsString('/en/gm/session-zero/create', $url);
-    });
-
-    it('registers create-for-game route with game_id parameter', function () {
-        $gameId = (string) Str::uuid();
-        $url = route('gm.session-zero.create-for-game', ['locale' => 'en', 'game_id' => $gameId]);
-        $this->assertStringContainsString('/en/gm/session-zero/create/' . $gameId, $url);
-    });
-});

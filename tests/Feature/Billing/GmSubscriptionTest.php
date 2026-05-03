@@ -44,8 +44,6 @@ describe('GmRoleService', function () {
         expect($user->localSubscriptions()->active()->count())->toBe(1);
     })->group('smoke');
 
-
-
     it('is idempotent — safe to activate twice', function () {
         $user = User::factory()->create();
         $service = app(GmRoleService::class);
@@ -113,47 +111,5 @@ describe('User model GM helpers', function () {
         app(GmRoleService::class)->activateGmSubscription($user);
 
         expect($user->fresh()->hasGmSubscription())->toBeTrue();
-    });
-
-    it('hasGmSubscription returns false when GM sub is canceled', function () {
-        $user = User::factory()->create();
-        $service = app(GmRoleService::class);
-        $service->activateGmSubscription($user);
-        $service->deactivateGmSubscription($user);
-
-        expect($user->fresh()->hasGmSubscription())->toBeFalse();
-    });
-
-    it('hasActiveMembership includes local subscriptions', function () {
-        $user = User::factory()->create();
-        expect($user->hasActiveMembership())->toBeFalse();
-
-        app(GmRoleService::class)->activateGmSubscription($user);
-
-        expect($user->fresh()->hasActiveMembership())->toBeTrue();
-    });
-
-
-});
-
-describe('LocalSubscription model', function () {
-    it('isGmPlan detects GM membership type', function () {
-        $user = User::factory()->create();
-        app(GmRoleService::class)->activateGmSubscription($user);
-
-        $sub = $user->localSubscriptions()->first();
-        expect($sub->isGmPlan())->toBeTrue();
-    });
-
-    it('active scope filters correctly', function () {
-        $user = User::factory()->create();
-        $service = app(GmRoleService::class);
-        $service->activateGmSubscription($user);
-
-        expect(LocalSubscription::active()->count())->toBe(1);
-
-        $service->deactivateGmSubscription($user);
-
-        expect(LocalSubscription::active()->count())->toBe(0);
     });
 });

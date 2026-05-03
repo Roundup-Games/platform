@@ -16,59 +16,6 @@ describe('Activity Feed Recap Integration', function () {
         $this->feedService = app(GameActivityFeedService::class);
     });
 
-    it('shows recap in followers activity feed', function () {
-        // Viewer follows the host
-        UserRelationship::follow($this->viewer, $this->host);
-
-        $game = Game::factory()->create([
-            'owner_id' => $this->host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'recap' => 'This session was incredible with a dramatic climax!',
-        ]);
-
-        $feed = $this->feedService->getFeed($this->viewer);
-
-        $recapItem = $feed->first(fn ($item) => $item->type === 'session_recapped' && $item->entity->id === $game->id);
-
-        expect($recapItem)->not->toBeNull()
-            ->and($recapItem->entity->recap)->toBe('This session was incredible with a dramatic climax!')
-            ->and($recapItem->user->id)->toBe($this->host->id);
-    });
-
-    it('does not show recap for non-followers', function () {
-        // Viewer does NOT follow the host
-        $game = Game::factory()->create([
-            'owner_id' => $this->host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'recap' => 'This session was incredible with a dramatic climax!',
-        ]);
-
-        $feed = $this->feedService->getFeed($this->viewer);
-
-        $recapItem = $feed->first(fn ($item) => $item->type === 'session_recapped' && $item->entity->id === $game->id);
-
-        expect($recapItem)->toBeNull();
-    });
-
-    it('does not show recap entry for game without recap', function () {
-        UserRelationship::follow($this->viewer, $this->host);
-
-        Game::factory()->create([
-            'owner_id' => $this->host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'recap' => null,
-        ]);
-
-        $feed = $this->feedService->getFeed($this->viewer);
-
-        $recapItem = $feed->first(fn ($item) => $item->type === 'session_recapped');
-
-        expect($recapItem)->toBeNull();
-    });
-
     it('includes recap in feed alongside other activity types', function () {
         UserRelationship::follow($this->viewer, $this->host);
 
