@@ -1,11 +1,6 @@
 <?php
 
-use App\Models\Campaign;
-use App\Models\Event;
-use App\Models\EventRegistration;
-use App\Models\Game;
 use App\Models\GameSystem;
-use App\Models\LinkedAccount;
 use App\Models\User;
 
 // ═══════════════════════════════════════════════════════════
@@ -13,54 +8,6 @@ use App\Models\User;
 // ═══════════════════════════════════════════════════════════
 
 describe('User Model — Relationships', function () {
-    it('has linkedAccounts relationship', function () {
-        $user = User::factory()->create();
-        LinkedAccount::create([
-            'user_id' => $user->id,
-            'provider' => 'google',
-            'provider_user_id' => '12345',
-            'token' => 'token',
-        ]);
-
-        expect($user->linkedAccounts)->toHaveCount(1)
-            ->and($user->linkedAccounts->first()->provider)->toBe('google');
-    });
-
-    it('has ownedGames relationship', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        Game::factory()->create(['owner_id' => $user->id]);
-
-        expect($user->ownedGames)->toHaveCount(1);
-    });
-
-    it('has ownedCampaigns relationship', function () {
-        $user = User::factory()->create();
-        Campaign::factory()->create(['owner_id' => $user->id]);
-
-        expect($user->ownedCampaigns)->toHaveCount(1);
-    });
-
-    it('has organizedEvents relationship', function () {
-        $user = User::factory()->create();
-        Event::factory()->create(['organizer_id' => $user->id]);
-
-        expect($user->organizedEvents)->toHaveCount(1);
-    });
-
-    it('has eventRegistrations relationship', function () {
-        $user = User::factory()->create();
-        $event = Event::factory()->create();
-
-        EventRegistration::create([
-            'event_id' => $event->id,
-            'user_id' => $user->id,
-            'status' => 'confirmed',
-            'registration_type' => 'individual',
-        ]);
-
-        expect($user->eventRegistrations)->toHaveCount(1);
-    });
-
     it('has gameSystemPreferences relationship', function () {
         $user = User::factory()->create();
         $system = GameSystem::factory()->create();

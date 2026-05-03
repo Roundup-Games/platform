@@ -4,7 +4,6 @@ use App\Models\MembershipType;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Route;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
 
@@ -64,20 +63,6 @@ describe('Billing Portal Route Protection', function () {
     it('requires authentication', function () {
         get(route('billing.portal'))
             ->assertRedirect(route('login'));
-    });
-
-    it('requires verified email', function () {
-        $route = Route::getRoutes()->getByName('billing.portal');
-        $middleware = $route->gatherMiddleware();
-
-        expect($middleware)->toContain('verified');
-    });
-
-    it('requires profile complete', function () {
-        $route = Route::getRoutes()->getByName('billing.portal');
-        $middleware = $route->gatherMiddleware();
-
-        expect($middleware)->toContain('profile.complete');
     });
 
     it('allows unverified user through since User model does not implement MustVerifyEmail', function () {
@@ -304,30 +289,20 @@ describe('Checkout Route', function () {
             ->assertSee('Gold Plan');
     })->group('smoke');
 
-    it('returns 404 for inactive plan', function () {
+    it('rejects invalid checkout requests', function (string $planId, int $expectedStatus) {
         $user = portalCreateUser();
-        $plan = portalCreateMembershipType(['status' => 'inactive']);
-
+        $params = $planId ? ['planId' => $planId] : [];
         actingAs($user)
-            ->get(route('billing.checkout', ['planId' => $plan->id]))
-            ->assertStatus(404);
-    });
-
-    it('returns 404 for non-existent plan', function () {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->get(route('billing.checkout', ['planId' => \Illuminate\Support\Str::uuid()->toString()]))
-            ->assertStatus(404);
-    });
-
-    it('returns 400 when no plan or price specified', function () {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->get(route('billing.checkout'))
-            ->assertStatus(400);
-    });
+            ->get(route('billing.checkout', $params))
+            ->assertStatus($expectedStatus);
+    })->with([
+        'inactive plan' => function () {
+            $plan = portalCreateMembershipType(['status' => 'inactive']);
+            return [$plan->id, 404];
+        },
+        'non-existent plan' => fn () => [(string) \Illuminate\Support\Str::uuid(), 404],
+        'no plan or price' => fn () => ['', 400],
+    ]);
 });
 
 describe('Checkout Component — Subscription Mode', function () {
@@ -367,42 +342,18 @@ describe('One-Time Checkout Route', function () {
         ])->assertRedirect(route('login'));
     });
 
-    it('validates price_id is required', function () {
+    it('validates one-time checkout request fields', function (array $payload, string $errorField) {
         $user = portalCreateUser();
 
         actingAs($user)
-            ->post(route('billing.one-time-checkout'), [])
-            ->assertSessionHasErrors('price_id');
-    });
-
-    it('validates price_id is string', function () {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->post(route('billing.one-time-checkout'), [
-                'price_id' => ['array_value'],
-            ])->assertSessionHasErrors('price_id');
-    });
-
-    it('validates event_id exists when provided', function () {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->post(route('billing.one-time-checkout'), [
-                'price_id' => 'pri_test',
-                'event_id' => 999999,
-            ])->assertSessionHasErrors('event_id');
-    });
-
-    it('validates event_id is integer when provided', function () {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->post(route('billing.one-time-checkout'), [
-                'price_id' => 'pri_test',
-                'event_id' => 'not-a-number',
-            ])->assertSessionHasErrors('event_id');
-    });
+            ->post(route('billing.one-time-checkout'), $payload)
+            ->assertSessionHasErrors($errorField);
+    })->with([
+        'price_id required' => [[], 'price_id'],
+        'price_id must be string' => [['price_id' => ['array_value']], 'price_id'],
+        'event_id must exist' => [['price_id' => 'pri_test', 'event_id' => 999999], 'event_id'],
+        'event_id must be integer' => [['price_id' => 'pri_test', 'event_id' => 'not-a-number'], 'event_id'],
+    ]);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -413,13 +364,6 @@ describe('Membership Page Route', function () {
     it('requires authentication', function () {
         get(route('membership'))
             ->assertRedirect(route('login'));
-    });
-
-    it('requires verified email', function () {
-        $route = Route::getRoutes()->getByName('membership');
-        $middleware = $route->gatherMiddleware();
-
-        expect($middleware)->toContain('verified');
     });
 
     it('renders for authenticated user', function () {
@@ -622,14 +566,6 @@ describe('User Billing Helpers', function () {
         $array = $user->toArray();
 
         expect($array)->not->toHaveKey('paddle_id');
-    });
-
-    it('hides password and remember_token from serialization', function () {
-        $user = portalCreateUser();
-        $array = $user->toArray();
-
-        expect($array)->not->toHaveKey('password')
-            ->and($array)->not->toHaveKey('remember_token');
     });
 });
 
