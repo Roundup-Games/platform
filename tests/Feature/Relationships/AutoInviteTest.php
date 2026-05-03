@@ -60,7 +60,7 @@ describe('AutoInvite — Session Creation', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id, 'user_id' => $player2->id, 'role' => 'invited', 'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 
     test('auto-invite skips campaign owner', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();

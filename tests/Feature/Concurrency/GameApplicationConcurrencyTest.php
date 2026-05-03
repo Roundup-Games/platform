@@ -120,7 +120,7 @@ describe('Game Application Concurrency', function () {
 
         expect(GameApplication::where('game_id', $gameId)->where('user_id', $userId)->count())->toBe(1);
         expect(GameParticipant::where('game_id', $gameId)->where('user_id', $userId)->count())->toBe(1);
-    });
+    })->group('smoke');
 
     it('catches QueryException from unique constraint violation', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -163,7 +163,7 @@ describe('Game Application Concurrency', function () {
 
         expect($caught)->toBeTrue('QueryException should be thrown for unique constraint violation');
         expect(GameApplication::where('game_id', $gameId)->where('user_id', $userId)->count())->toBe(1);
-    });
+    })->group('smoke');
 
     it('prevents duplicate participant via unique constraint', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -205,7 +205,7 @@ describe('Game Application Concurrency', function () {
 
         expect($caught)->toBeTrue('QueryException should be thrown for duplicate participant');
         expect(GameParticipant::where('game_id', $gameId)->where('user_id', $userId)->count())->toBe(1);
-    });
+    })->group('smoke');
 
     it('uses Livewire component to submit application and prevents double-submit', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -230,5 +230,5 @@ describe('Game Application Concurrency', function () {
 
         expect(GameApplication::where('game_id', $game->id)->where('user_id', $user->id)->count())->toBe(1);
         expect(GameParticipant::where('game_id', $game->id)->where('user_id', $user->id)->count())->toBe(1);
-    });
+    })->group('smoke');
 });

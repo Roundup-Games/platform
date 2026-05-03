@@ -175,7 +175,7 @@ describe('Team Invite Concurrency', function () {
 
         // No new team_members for team2
         expect(TeamMember::where('team_id', $team2->id)->where('user_id', $targetUserId)->exists())->toBeFalse();
-    });
+    })->group('smoke');
 
     it('prevents duplicate pending invite to same team via transaction', function () {
         $targetUser = User::factory()->create(['profile_complete' => true]);
@@ -262,5 +262,5 @@ describe('Team Invite Concurrency', function () {
         expect($result2)->toBeFalse('Second invite should fail — duplicate pending');
 
         expect(TeamMember::where('team_id', $teamId)->where('user_id', $targetUserId)->count())->toBe(1);
-    });
+    })->group('smoke');
 });

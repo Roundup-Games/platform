@@ -58,7 +58,7 @@ describe('Controller Tests', function () {
 
         $response->assertRedirect();
         $response->assertSessionHas('error', 'Invalid payment option selected.');
-    });
+    })->group('smoke');
 
     test('one-time checkout accepts matching price_id and proceeds to payment', function () {
         $user = checkoutCreateUser();
@@ -77,7 +77,7 @@ describe('Controller Tests', function () {
         $response->assertSessionMissing('error');
         // Redirected to checkout page with the event context
         $response->assertRedirectContains('checkout');
-    });
+    })->group('smoke');
 
     test('one-time checkout rejects request without event_id', function () {
         $user = checkoutCreateUser();
@@ -90,7 +90,7 @@ describe('Controller Tests', function () {
 
         // event_id is now required by validation rules
         $response->assertSessionHasErrors('event_id');
-    });
+    })->group('smoke');
 
     test('one-time checkout rejects when event has no paddle_price_id', function () {
         $user = checkoutCreateUser();
@@ -108,7 +108,7 @@ describe('Controller Tests', function () {
 
         $response->assertRedirect();
         $response->assertSessionHas('error', 'This event does not have a payment configuration.');
-    });
+    })->group('smoke');
 });
 
 describe('Livewire Component Tests', function () {
@@ -133,7 +133,7 @@ describe('Livewire Component Tests', function () {
         // doesn't expose it the same way — verified via Log::warning)
         $log->shouldHaveReceived('warning');
         $this->assertTrue(true);
-    });
+    })->group('smoke');
 
     test('checkout component rejects without event_id', function () {
         $user = checkoutCreateUser();
@@ -152,5 +152,5 @@ describe('Livewire Component Tests', function () {
         // Component handled gracefully without redirecting to Paddle
         $log->shouldHaveReceived('warning');
         $this->assertTrue(true);
-    });
+    })->group('smoke');
 });

@@ -41,7 +41,7 @@ describe('ImageUpload security', function () {
         expect($data)->not->toHaveKey('name');
         expect($data)->not->toHaveKey('created_by');
         expect($data)->not->toHaveKey('is_active');
-    });
+    })->group('smoke');
 
     it('locks model_type and model_id from client-side tampering', function () {
         Storage::fake('public');
@@ -56,7 +56,7 @@ describe('ImageUpload security', function () {
             ])
             ->set('model_type', 'App\Models\Event');
 
-    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)->group('smoke');
 
     it('locks model_id from client-side tampering', function () {
         Storage::fake('public');
@@ -71,7 +71,7 @@ describe('ImageUpload security', function () {
             ])
             ->set('model_id', 99999);
 
-    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)->group('smoke');
 
     it('resolves the correct model from stored type and id', function () {
         Storage::fake('public');
@@ -87,5 +87,5 @@ describe('ImageUpload security', function () {
                 'label' => 'Logo',
             ])
             ->assertSet('hasMedia', false);
-    });
+    })->group('smoke');
 });

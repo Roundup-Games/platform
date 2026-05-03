@@ -33,7 +33,7 @@ describe('Public campaign visibility', function () {
         ]);
 
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is visible to any authenticated user', function () {
         $campaign = Campaign::factory()->create([
@@ -45,7 +45,7 @@ describe('Public campaign visibility', function () {
 
         $this->actingAs($viewer);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is visible to the owner', function () {
         $campaign = Campaign::factory()->create([
@@ -56,7 +56,7 @@ describe('Public campaign visibility', function () {
 
         $this->actingAs($this->owner);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -72,7 +72,7 @@ describe('Protected campaign visibility', function () {
         ]);
 
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('is visible to the owner', function () {
         $campaign = Campaign::factory()->create([
@@ -83,7 +83,7 @@ describe('Protected campaign visibility', function () {
 
         $this->actingAs($this->owner);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is not visible to a stranger', function () {
         $campaign = Campaign::factory()->create([
@@ -95,7 +95,7 @@ describe('Protected campaign visibility', function () {
 
         $this->actingAs($stranger);
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('is visible to a friend (mutual follow)', function () {
         $campaign = Campaign::factory()->create([
@@ -109,7 +109,7 @@ describe('Protected campaign visibility', function () {
 
         $this->actingAs($friend);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is not visible to a one-way follower', function () {
         $campaign = Campaign::factory()->create([
@@ -149,7 +149,7 @@ describe('Protected campaign visibility', function () {
 
         $this->actingAs($teammate);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is not visible to a former teammate (inactive membership)', function () {
         $campaign = Campaign::factory()->create([
@@ -194,7 +194,7 @@ describe('Protected campaign visibility', function () {
 
         $this->actingAs($participant);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -210,7 +210,7 @@ describe('Private campaign visibility', function () {
         ]);
 
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('is visible to the owner', function () {
         $campaign = Campaign::factory()->create([
@@ -221,7 +221,7 @@ describe('Private campaign visibility', function () {
 
         $this->actingAs($this->owner);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is visible to a participant', function () {
         $campaign = Campaign::factory()->create([
@@ -239,7 +239,7 @@ describe('Private campaign visibility', function () {
 
         $this->actingAs($participant);
         expect(Gate::allows('view', $campaign))->toBeTrue();
-    });
+    })->group('smoke');
 
     it('is not visible to a friend', function () {
         $campaign = Campaign::factory()->create([
@@ -253,7 +253,7 @@ describe('Private campaign visibility', function () {
 
         $this->actingAs($friend);
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('is not visible to a teammate', function () {
         $campaign = Campaign::factory()->create([
@@ -280,7 +280,7 @@ describe('Private campaign visibility', function () {
 
         $this->actingAs($teammate);
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 
     it('is not visible to a stranger', function () {
         $campaign = Campaign::factory()->create([
@@ -292,7 +292,7 @@ describe('Private campaign visibility', function () {
 
         $this->actingAs($stranger);
         expect(Gate::allows('view', $campaign))->toBeFalse();
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════

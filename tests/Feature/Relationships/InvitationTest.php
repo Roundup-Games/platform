@@ -144,7 +144,7 @@ describe('Invitation — Friend Validation', function () {
             'user_id' => $stranger->id,
             'role' => 'invited',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot invite non-friend to campaign', function () {
         ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
@@ -160,7 +160,7 @@ describe('Invitation — Friend Validation', function () {
             'user_id' => $stranger->id,
             'role' => 'invited',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot invite self', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
@@ -190,7 +190,7 @@ describe('Invitation — Friend Validation', function () {
             'game_id' => $game->id,
             'user_id' => $fakeUuid,
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -309,7 +309,7 @@ describe('Invitation — Blocked Users', function () {
             'user_id' => $friend->id,
             'role' => 'invited',
         ]);
-    });
+    })->group('smoke');
 
     test('user who blocked owner cannot be invited', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
@@ -328,7 +328,7 @@ describe('Invitation — Blocked Users', function () {
             'user_id' => $friend->id,
             'role' => 'invited',
         ]);
-    });
+    })->group('smoke');
 
     test('blocked user cannot be invited to campaign', function () {
         ['owner' => $owner, 'campaign' => $campaign] = inviteTestCreateCampaignWithOwner();
@@ -347,7 +347,7 @@ describe('Invitation — Blocked Users', function () {
             'user_id' => $friend->id,
             'role' => 'invited',
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -376,7 +376,7 @@ describe('Invitation — Batch', function () {
             'game_id' => $game->id,
             'user_id' => $stranger->id,
         ]);
-    });
+    })->group('smoke');
 
     test('empty selection shows error', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();

@@ -59,7 +59,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot accept someone else\'s invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -84,7 +84,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot accept already-accepted invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -108,7 +108,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot accept when game is full', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['max_players' => 2]);
@@ -148,7 +148,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 
     test('can accept when under capacity', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['max_players' => 5]);
@@ -179,7 +179,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('accept invitation from manage participants page', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -204,7 +204,7 @@ describe('Game AcceptInvitation', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -233,7 +233,7 @@ describe('Game DeclineInvitation', function () {
             'id' => $participant->id,
             'status' => 'rejected',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot decline someone else\'s invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -257,7 +257,7 @@ describe('Game DeclineInvitation', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -288,7 +288,7 @@ describe('Campaign AcceptInvitation', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot accept someone else\'s campaign invitation', function () {
         ['owner' => $owner, 'campaign' => $campaign] = acceptTestCreateCampaignWithOwner();
@@ -312,7 +312,7 @@ describe('Campaign AcceptInvitation', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 
     test('cannot accept when campaign is full', function () {
         ['owner' => $owner, 'campaign' => $campaign] = acceptTestCreateCampaignWithOwner(['max_players' => 2]);
@@ -350,7 +350,7 @@ describe('Campaign AcceptInvitation', function () {
             'role' => 'invited',
             'status' => 'pending',
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -379,7 +379,7 @@ describe('Campaign DeclineInvitation', function () {
             'id' => $participant->id,
             'status' => 'rejected',
         ]);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -402,7 +402,7 @@ describe('Game Invitation Banner', function () {
             ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
             ->assertSee('Accept Invitation')
             ->assertSee('Accept');
-    });
+    })->group('smoke');
 
     test('non-invited user does not see invitation banner', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['visibility' => 'public']);
@@ -411,7 +411,7 @@ describe('Game Invitation Banner', function () {
         Livewire\Livewire::actingAs($randomUser)
             ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
             ->assertDontSee('Accept Invitation');
-    });
+    })->group('smoke');
 
     test('owner does not see invitation banner', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -419,7 +419,7 @@ describe('Game Invitation Banner', function () {
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
             ->assertDontSee('Accept Invitation');
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -442,7 +442,7 @@ describe('Campaign Invitation Banner', function () {
             ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee('Accept Invitation')
             ->assertSee('Accept');
-    });
+    })->group('smoke');
 
     test('non-invited user does not see invitation banner', function () {
         ['owner' => $owner, 'campaign' => $campaign] = acceptTestCreateCampaignWithOwner(['visibility' => 'public']);
@@ -451,7 +451,7 @@ describe('Campaign Invitation Banner', function () {
         Livewire\Livewire::actingAs($randomUser)
             ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
             ->assertDontSee('Accept Invitation');
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -487,7 +487,7 @@ describe('Full Invitation Lifecycle', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 
     test('game invite → decline lifecycle', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -511,7 +511,7 @@ describe('Full Invitation Lifecycle', function () {
             'id' => $participant->id,
             'status' => 'rejected',
         ]);
-    });
+    })->group('smoke');
 
     test('campaign invite → accept lifecycle', function () {
         ['owner' => $owner, 'campaign' => $campaign] = acceptTestCreateCampaignWithOwner();
@@ -535,5 +535,5 @@ describe('Full Invitation Lifecycle', function () {
             'role' => 'player',
             'status' => 'approved',
         ]);
-    });
+    })->group('smoke');
 });

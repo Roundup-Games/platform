@@ -69,7 +69,7 @@ describe('ApplyToGame capacity guard', function () {
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
             ->and($participant->waitlisted_at)->not->toBeNull();
-    });
+    })->group('smoke');
 
     it('auto-approves when standalone public game has capacity', function () {
         // Create a game with capacity (5 max, only 2 participants → 3 open slots)
@@ -109,7 +109,7 @@ describe('ApplyToGame capacity guard', function () {
 
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Approved);
-    });
+    })->group('smoke');
 
     it('sets waitlisted_at when auto-waitlisting from apply flow', function () {
         $game = capacityCreateFullPublicGame($this->owner, $this->gameSystem, maxPlayers: 2);

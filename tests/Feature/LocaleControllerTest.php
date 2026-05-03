@@ -12,7 +12,7 @@ it('redirects to locale-prefixed path for valid locale', function () {
     $response = get(route('locale.switch', ['locale' => 'de', 'redirect' => '/de/games']));
 
     $response->assertRedirect('/de/games');
-});
+})->group('smoke');
 
 it('persists locale in session', function () {
     get(route('locale.switch', ['locale' => 'de', 'redirect' => '/de/games']));
@@ -24,14 +24,14 @@ it('aborts with 400 for invalid locale', function () {
     $response = get(route('locale.switch', ['locale' => 'fr']));
 
     $response->assertStatus(400);
-});
+})->group('smoke');
 
 it('rejects external URLs in redirect (open-redirect protection)', function () {
     $response = get(route('locale.switch', ['locale' => 'en', 'redirect' => 'https://evil.com']));
 
     // Should fall back to /en/ instead of redirecting externally
     $response->assertRedirect('/en/');
-});
+})->group('smoke');
 
 it('rejects scheme-relative external URLs', function () {
     $response = get(route('locale.switch', ['locale' => 'en', 'redirect' => '//evil.com']));

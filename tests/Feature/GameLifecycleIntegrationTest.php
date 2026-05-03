@@ -50,6 +50,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->debriefingService = app(DebriefingService::class);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_full_game_lifecycle_with_waitlist_attendance_debriefing_recap(): void
     {
@@ -198,6 +199,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertEquals($game->id, $recapEntry->entity->id);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_host_no_show_heavier_penalty_than_player_no_show(): void
     {
@@ -250,6 +252,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertLessThanOrEqual($playerScore['score'], $hostScore['score']);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_host_late_cancellation_uses_host_weight(): void
     {
@@ -288,6 +291,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertEquals(63.33, $hostScore['score']);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_game_cancellation_resolves_waitlisted_and_benched(): void
     {
@@ -328,6 +332,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertNull($hostParticipant->attendance_status);
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('smoke')]
     #[Test]
     public function test_auto_attend_after_48h_and_reliability_tier(): void
     {

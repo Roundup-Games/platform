@@ -85,7 +85,7 @@ describe('game cancellation', function () {
 
         expect($wp1->fresh()->status)->toBe(ParticipantStatus::Rejected);
         expect($wp2->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    });
+    })->group('smoke');
 
     it('resolves all benched participants when game is cancelled', function () {
         $game = createGameForCancellation($this->owner, $this->gameSystem);
@@ -192,5 +192,5 @@ describe('host cancellation offence', function () {
             'reported_id' => $host->id,
             'status' => 'late_cancel',
         ])->exists())->toBeTrue();
-    });
+    })->group('smoke');
 });

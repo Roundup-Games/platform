@@ -38,13 +38,13 @@ describe('User Policy', function () {
             expect(Gate::allows('create', User::class))->toBeTrue();
             expect(Gate::allows('update', $this->otherUser))->toBeTrue();
             expect(Gate::allows('delete', $this->otherUser))->toBeTrue();
-        });
+        })->group('smoke');
 
         test('Games Admin can do anything on users', function () {
             $this->actingAs($this->gamesAdmin);
             expect(Gate::allows('viewAny', User::class))->toBeTrue();
             expect(Gate::allows('update', $this->otherUser))->toBeTrue();
-        });
+        })->group('smoke');
     });
 
     describe('viewAny', function () {
@@ -88,7 +88,7 @@ describe('User Policy', function () {
         test('user can update their own profile', function () {
             $this->actingAs($this->regularUser);
             expect(Gate::allows('update', $this->regularUser))->toBeTrue();
-        });
+        })->group('smoke');
 
         test('user with permission can update other user', function () {
             setPermissionsTeamId(1);
@@ -102,14 +102,14 @@ describe('User Policy', function () {
         test('user without permission cannot update other user', function () {
             $this->actingAs($this->regularUser);
             expect(Gate::allows('update', $this->otherUser))->toBeFalse();
-        });
+        })->group('smoke');
     });
 
     describe('delete', function () {
         test('user cannot delete themselves', function () {
             $this->actingAs($this->regularUser);
             expect(Gate::allows('delete', $this->regularUser))->toBeFalse();
-        });
+        })->group('smoke');
 
         test('user with permission can delete other user', function () {
             setPermissionsTeamId(1);
@@ -123,7 +123,7 @@ describe('User Policy', function () {
         test('user without permission cannot delete other user', function () {
             $this->actingAs($this->regularUser);
             expect(Gate::allows('delete', $this->otherUser))->toBeFalse();
-        });
+        })->group('smoke');
     });
 
     describe('create', function () {

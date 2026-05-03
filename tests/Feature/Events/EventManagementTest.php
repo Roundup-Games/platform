@@ -25,7 +25,7 @@ describe('Registration Window Enforcement', function () {
         actingAs($user);
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    });
+    })->group('smoke');
 
     it('blocks registration when registration_opens_at is in the future', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -41,7 +41,7 @@ describe('Registration Window Enforcement', function () {
         actingAs($user);
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    });
+    })->group('smoke');
 
     it('allows registration when window is currently open', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -145,7 +145,7 @@ describe('Capacity Enforcement', function () {
             ->set('selectedTeamId', (string) $team->id)
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    });
+    })->group('smoke');
 
     it('counts all registrations toward capacity including cancelled', function () {
         $organizer = User::factory()->create();
@@ -171,7 +171,7 @@ describe('Capacity Enforcement', function () {
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    });
+    })->group('smoke');
 });
 
 // ── Early Bird Pricing ────────────────────────────────

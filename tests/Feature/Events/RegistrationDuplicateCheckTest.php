@@ -87,7 +87,7 @@ describe('Duplicate registration check — cross-user team registration', functi
             ->where('registration_type', 'individual')
             ->where('status', '!=', 'cancelled')
             ->exists())->toBeTrue();
-    });
+    })->group('smoke');
 });
 
 describe('Duplicate registration prevention', function () {
@@ -111,7 +111,7 @@ describe('Duplicate registration prevention', function () {
         expect(EventRegistration::where('event_id', $event->id)
             ->where('user_id', $user->id)
             ->count())->toBe(1);
-    });
+    })->group('smoke');
 
     test('duplicate team registration prevented', function () {
         $captain = regCreateUser();
@@ -134,7 +134,7 @@ describe('Duplicate registration prevention', function () {
         expect(EventRegistration::where('event_id', $event->id)
             ->where('team_id', $team->id)
             ->count())->toBe(1);
-    });
+    })->group('smoke');
 });
 
 describe('Independent team registrations', function () {
@@ -161,7 +161,7 @@ describe('Independent team registrations', function () {
             ->whereIn('team_id', [$teamA->id, $teamB->id])
             ->where('status', '!=', 'cancelled')
             ->count())->toBe(2);
-    });
+    })->group('smoke');
 });
 
 describe('Cancelled registration re-registration', function () {
@@ -185,5 +185,5 @@ describe('Cancelled registration re-registration', function () {
             ->where('user_id', $user->id)
             ->where('status', '!=', 'cancelled')
             ->exists())->toBeTrue();
-    });
+    })->group('smoke');
 });

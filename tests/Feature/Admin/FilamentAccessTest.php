@@ -37,37 +37,37 @@ describe('Admin Panel Authentication', function () {
     test('guest is redirected from admin panel', function () {
         $response = $this->get('/admin');
         $response->assertRedirect();
-    });
+    })->group('smoke');
 
     test('Platform Admin can access admin panel', function () {
         $this->actingAs($this->platformAdmin);
         $response = $this->get('/admin');
         $response->assertSuccessful();
-    });
+    })->group('smoke');
 
     test('Games Admin can access admin panel', function () {
         $this->actingAs($this->gamesAdmin);
         $response = $this->get('/admin');
         $response->assertSuccessful();
-    });
+    })->group('smoke');
 
     test('regular user cannot access admin panel', function () {
         $this->actingAs($this->regularUser);
         $response = $this->get('/admin');
         $response->assertForbidden();
-    });
+    })->group('smoke');
 
     test('Team Admin cannot access admin panel', function () {
         $this->actingAs($this->teamAdmin);
         $response = $this->get('/admin');
         $response->assertForbidden();
-    });
+    })->group('smoke');
 
     test('Event Admin cannot access admin panel', function () {
         $this->actingAs($this->eventAdmin);
         $response = $this->get('/admin');
         $response->assertForbidden();
-    });
+    })->group('smoke');
 });
 
 describe('canAccessPanel unit checks', function () {
@@ -75,17 +75,17 @@ describe('canAccessPanel unit checks', function () {
         $panel = filament()->getPanel('admin');
         expect($this->platformAdmin->canAccessPanel($panel))->toBeTrue();
         expect($this->gamesAdmin->canAccessPanel($panel))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('regular user cannot access filament panel via canAccessPanel', function () {
         $panel = filament()->getPanel('admin');
         expect($this->regularUser->canAccessPanel($panel))->toBeFalse();
-    });
+    })->group('smoke');
 
     test('team admin without global admin cannot access filament panel via canAccessPanel', function () {
         $panel = filament()->getPanel('admin');
         expect($this->teamAdmin->canAccessPanel($panel))->toBeFalse();
-    });
+    })->group('smoke');
 });
 
 describe('Policy-based Resource Visibility', function () {
@@ -98,7 +98,7 @@ describe('Policy-based Resource Visibility', function () {
         expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('Games Admin has viewAny for games, campaigns, and users', function () {
         $this->actingAs($this->gamesAdmin);
@@ -106,7 +106,7 @@ describe('Policy-based Resource Visibility', function () {
         expect(Gate::allows('viewAny', \App\Models\Game::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('Games Admin cannot viewAny teams, events, or membership types', function () {
         $this->actingAs($this->gamesAdmin);
@@ -118,21 +118,21 @@ describe('Policy-based Resource Visibility', function () {
         // For now, this test documents the actual behavior: Games Admin bypasses all
         expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('Team Admin has viewAny for teams and users', function () {
         $this->actingAs($this->teamAdmin);
 
         expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('Event Admin has viewAny for events and users', function () {
         $this->actingAs($this->eventAdmin);
 
         expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeTrue();
         expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('regular user without permissions cannot viewAny any entity', function () {
         $this->actingAs($this->regularUser);
@@ -143,7 +143,7 @@ describe('Policy-based Resource Visibility', function () {
         expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeFalse();
         expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeFalse();
         expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeFalse();
-    });
+    })->group('smoke');
 });
 
 describe('CRUD Permission Checks', function () {
@@ -156,7 +156,7 @@ describe('CRUD Permission Checks', function () {
         expect(Gate::allows('create', \App\Models\Campaign::class))->toBeTrue();
         expect(Gate::allows('create', \App\Models\Event::class))->toBeTrue();
         expect(Gate::allows('create', \App\Models\MembershipType::class))->toBeTrue();
-    });
+    })->group('smoke');
 
     test('regular user cannot create any entity without permissions', function () {
         $this->actingAs($this->regularUser);
@@ -167,7 +167,7 @@ describe('CRUD Permission Checks', function () {
         expect(Gate::allows('create', \App\Models\Campaign::class))->toBeFalse();
         expect(Gate::allows('create', \App\Models\Event::class))->toBeFalse();
         expect(Gate::allows('create', \App\Models\MembershipType::class))->toBeFalse();
-    });
+    })->group('smoke');
 });
 
 describe('Platform Login & Custom 403', function () {
@@ -177,7 +177,7 @@ describe('Platform Login & Custom 403', function () {
         // Should redirect to the platform login route, not /admin/login
         expect($response->headers->get('Location'))->not->toContain('/admin/login');
         expect($response->headers->get('Location'))->toContain('login');
-    });
+    })->group('smoke');
 
     test('unauthorized user sees custom 403 page with dashboard link', function () {
         $this->actingAs($this->regularUser);
@@ -185,10 +185,10 @@ describe('Platform Login & Custom 403', function () {
         $response->assertForbidden();
         $response->assertSee('Not Authorized');
         $response->assertSee('Return to Dashboard');
-    });
+    })->group('smoke');
 
     test('admin login route no longer exists', function () {
         $response = $this->get('/admin/login');
         $response->assertNotFound();
-    });
+    })->group('smoke');
 });
