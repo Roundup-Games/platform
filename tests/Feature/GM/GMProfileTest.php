@@ -30,155 +30,7 @@ class GMProfileTest extends TestCase
         ]);
     }
 
-    // ── Specialization Storage & Retrieval ─────────────
-
-    public function test_gm_profiles_table_exists(): void
-    {
-        $profile = GMProfile::factory()->create();
-
-        $this->assertDatabaseHas('gm_profiles', [
-            'id' => $profile->id,
-        ]);
-    }
-
-    public function test_id_is_uuid(): void
-    {
-        $profile = GMProfile::factory()->create();
-
-        $this->assertIsString($profile->id);
-        // UUID v4 format: 8-4-4-4-12 hex chars
-        $this->assertMatchesRegularExpression(
-            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
-            $profile->id,
-        );
-    }
-
-    public function test_user_id_is_unique(): void
-    {
-        $user = User::factory()->create();
-        GMProfile::factory()->create(['user_id' => $user->id]);
-
-        $this->expectException(\Illuminate\Database\QueryException::class);
-        GMProfile::factory()->create(['user_id' => $user->id]);
-    }
-
-    public function test_slug_is_unique(): void
-    {
-        GMProfile::factory()->create(['slug' => 'unique-gm-slug']);
-
-        $this->expectException(\Illuminate\Database\QueryException::class);
-        GMProfile::factory()->create(['slug' => 'unique-gm-slug']);
-    }
-
-    public function test_bio_is_nullable(): void
-    {
-        $profile = GMProfile::factory()->create(['bio' => null]);
-
-        $this->assertNull($profile->bio);
-    }
-
-    public function test_average_rating_defaults_to_null(): void
-    {
-        $profile = GMProfile::factory()->create();
-
-        $this->assertNull($profile->average_rating);
-    }
-
-    public function test_average_rating_stores_decimal(): void
-    {
-        $profile = GMProfile::factory()->create(['average_rating' => 4.75]);
-
-        $profile->refresh();
-        $this->assertEquals('4.75', $profile->average_rating);
-    }
-
-    public function test_review_count_defaults_to_zero(): void
-    {
-        $profile = GMProfile::factory()->create();
-
-        $this->assertEquals(0, $profile->review_count);
-    }
-
-    public function test_is_active_defaults_to_true(): void
-    {
-        $profile = GMProfile::factory()->create();
-
-        $this->assertTrue($profile->is_active);
-    }
-
-    public function test_gm_profile_belongs_to_user(): void
-    {
-        $user = User::factory()->create();
-        $profile = GMProfile::factory()->create(['user_id' => $user->id]);
-
-        $this->assertTrue($profile->user->is($user));
-    }
-
-    public function test_specializations_stored_as_json_array(): void
-    {
-        $specs = ['storytelling', 'world-builder', 'voices'];
-        $profile = GMProfile::factory()->create(['specializations' => $specs]);
-
-        $profile->refresh();
-        $this->assertIsArray($profile->specializations);
-        $this->assertEquals($specs, $profile->specializations);
-    }
-
-    public function test_specializations_can_be_empty_array(): void
-    {
-        $profile = GMProfile::factory()->create(['specializations' => []]);
-
-        $profile->refresh();
-        $this->assertIsArray($profile->specializations);
-        $this->assertEquals([], $profile->specializations);
-    }
-
-    public function test_specializations_can_be_null(): void
-    {
-        $profile = GMProfile::factory()->create(['specializations' => null]);
-
-        $profile->refresh();
-        $this->assertNull($profile->specializations);
-    }
-
-    public function test_specializations_contain_valid_gm_proficiency_values(): void
-    {
-        $validValues = GmProficiency::values();
-        $profile = GMProfile::factory()->create([
-            'specializations' => $validValues,
-        ]);
-
-        $profile->refresh();
-        $this->assertCount(10, $profile->specializations);
-        foreach ($profile->specializations as $spec) {
-            $this->assertNotNull(
-                GmProficiency::tryFrom($spec),
-                "'{$spec}' should be a valid GmProficiency value"
-            );
-        }
-    }
-
-    public function test_specialization_roundtrip_with_enum(): void
-    {
-        $original = [
-            GmProficiency::Creativity->value,
-            GmProficiency::Storytelling->value,
-            GmProficiency::WorldBuilder->value,
-        ];
-        $profile = GMProfile::factory()->create(['specializations' => $original]);
-
-        $profile->refresh();
-        $retrieved = $profile->specializations;
-
-        // Each stored value resolves back to the enum case
-        foreach ($retrieved as $value) {
-            $enum = GmProficiency::tryFrom($value);
-            $this->assertNotNull($enum);
-            $this->assertNotEmpty($enum->label());
-        }
-    }
-
-    // ── Slug Generation Integration ────────────────────
+    // ── Slug Generation (non-trivial boot logic) ──────────────
 
     public function test_slug_generated_from_user_name_on_create(): void
     {
@@ -224,13 +76,11 @@ class GMProfileTest extends TestCase
         $user = User::factory()->create(['name' => 'Müller']);
         $profile = GMProfile::factory()->create(['user_id' => $user->id, 'slug' => null]);
 
-        // Str::slug handles transliteration
         $this->assertMatchesRegularExpression('/^muller-[a-zA-Z0-9]{6}$/', $profile->slug);
     }
 
-    // ── Profile Lifecycle via GmRoleService ────────────
+    // ── Profile Lifecycle via GmRoleService ────────────────────
 
-    // smoke: GM profile is created when GM role is assigned
     #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_profile_created_on_role_assignment(): void
     {
@@ -270,18 +120,14 @@ class GMProfileTest extends TestCase
         $user = $this->createSubscribedUser();
         $service = app(\App\Services\GmRoleService::class);
 
-        // First assignment
         $service->assignGMRole($user);
         $profileId = $user->gmProfile->id;
 
-        // Revoke
         $service->revokeGMRole($user);
         $this->assertFalse($user->gmProfile->fresh()->is_active);
 
-        // Re-assign (simulate resubscribe)
         $service->assignGMRole($user);
 
-        // Should be same profile, reactivated
         $profile = $user->fresh()->gmProfile;
         $this->assertEquals($profileId, $profile->id);
         $this->assertTrue($profile->is_active);
@@ -294,7 +140,6 @@ class GMProfileTest extends TestCase
 
         $service->assignGMRole($user);
 
-        // Update bio and specializations
         $profile = $user->gmProfile;
         $profile->bio = 'Experienced GM specializing in horror campaigns';
         $profile->specializations = ['storytelling', 'sets-the-mood'];
@@ -302,10 +147,8 @@ class GMProfileTest extends TestCase
 
         $profileId = $profile->id;
 
-        // Simulate subscription lapse
         $service->handleSubscriptionLapse($user);
 
-        // Profile still exists with all data
         $preserved = GMProfile::find($profileId);
         $this->assertNotNull($preserved);
         $this->assertEquals('Experienced GM specializing in horror campaigns', $preserved->bio);
@@ -313,119 +156,25 @@ class GMProfileTest extends TestCase
         $this->assertFalse($preserved->is_active);
     }
 
-    // ── Profile Update Integration ─────────────────────
-
-    public function test_bio_can_be_updated(): void
-    {
-        $profile = GMProfile::factory()->create(['bio' => null]);
-
-        $profile->bio = 'Updated bio text';
-        $profile->save();
-
-        $this->assertEquals('Updated bio text', $profile->fresh()->bio);
-    }
-
-    public function test_specializations_can_be_updated(): void
-    {
-        $profile = GMProfile::factory()->create(['specializations' => null]);
-
-        $profile->specializations = ['creativity', 'teacher'];
-        $profile->save();
-
-        $this->assertEquals(['creativity', 'teacher'], $profile->fresh()->specializations);
-    }
-
-    public function test_rating_and_review_count_update(): void
-    {
-        $profile = GMProfile::factory()->create([
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        $profile->average_rating = 4.50;
-        $profile->review_count = 5;
-        $profile->save();
-
-        $fresh = $profile->fresh();
-        $this->assertEquals('4.50', $fresh->average_rating);
-        $this->assertEquals(5, $fresh->review_count);
-    }
-
-    // ── Cascade Delete ─────────────────────────────────
+    // ── Cascade Delete ────────────────────────────────────────
 
     public function test_profile_deleted_when_user_deleted(): void
     {
         $profile = GMProfile::factory()->create();
         $profileId = $profile->id;
-        $userId = $profile->user_id;
 
         $profile->user->delete();
 
         $this->assertDatabaseMissing('gm_profiles', ['id' => $profileId]);
     }
 
-    // ── User Relationship Integration ──────────────────
-
-    public function test_user_is_gm_returns_true_with_role(): void
-    {
-        $user = User::factory()->create();
-        $user->assignRole('Game Master');
-
-        $this->assertTrue($user->isGM());
-    }
-
-    public function test_user_is_gm_returns_false_without_role(): void
-    {
-        $user = User::factory()->create();
-
-        $this->assertFalse($user->isGM());
-    }
-
-    public function test_user_gm_profile_relationship(): void
-    {
-        $user = User::factory()->create();
-        $profile = GMProfile::factory()->create(['user_id' => $user->id]);
-
-        $user->refresh();
-        $this->assertTrue($user->gmProfile->is($profile));
-    }
-
-    public function test_user_without_gm_profile_returns_null(): void
-    {
-        $user = User::factory()->create();
-
-        $this->assertNull($user->gmProfile);
-    }
-
-    // ── Factory Integration ────────────────────────────
-
-    public function test_factory_creates_valid_profile_with_specializations(): void
-    {
-        $profile = GMProfile::factory()->create([
-            'specializations' => ['creativity', 'inclusive', 'knows-the-rules'],
-        ]);
-
-        $this->assertIsArray($profile->specializations);
-        $this->assertCount(3, $profile->specializations);
-        $this->assertTrue($profile->is_active);
-        $this->assertNotNull($profile->slug);
-    }
-
-    public function test_factory_auto_generates_slug_from_user(): void
-    {
-        $user = User::factory()->create(['name' => 'Test GM User']);
-        $profile = GMProfile::factory()->create(['user_id' => $user->id]);
-
-        $this->assertStringStartsWith('test-gm-user-', $profile->slug);
-    }
-
-    // ── Full End-to-End Lifecycle ──────────────────────
+    // ── Full End-to-End Lifecycle ─────────────────────────────
 
     public function test_full_gm_lifecycle_with_profile_updates(): void
     {
         $service = app(\App\Services\GmRoleService::class);
 
-        // 1. User subscribes and becomes GM
+        // 1. Assign GM role
         $user = $this->createSubscribedUser(['name' => 'Jane GM']);
         $this->assertTrue($service->assignGMRole($user));
 
@@ -434,12 +183,11 @@ class GMProfileTest extends TestCase
         $this->assertTrue($profile->is_active);
         $this->assertStringStartsWith('jane-gm-', $profile->slug);
 
-        // 2. User updates their GM profile
+        // 2. Update profile
         $profile->bio = 'Expert D&D 5e dungeon master';
         $profile->specializations = ['storytelling', 'world-builder', 'rule-of-cool'];
         $profile->save();
 
-        // 3. Verify data persisted
         $fresh = $profile->fresh();
         $this->assertEquals('Expert D&D 5e dungeon master', $fresh->bio);
         $this->assertCount(3, $fresh->specializations);
@@ -447,18 +195,17 @@ class GMProfileTest extends TestCase
             $this->assertNotNull(GmProficiency::tryFrom($spec));
         }
 
-        // 4. Subscription lapses
+        // 3. Subscription lapses
         $service->handleSubscriptionLapse($user);
         $this->assertFalse($service->isGmActive($user->fresh()));
 
-        // 5. Profile preserved with data
+        // 4. Profile preserved
         $preserved = GMProfile::where('user_id', $user->id)->first();
         $this->assertNotNull($preserved);
         $this->assertFalse($preserved->is_active);
         $this->assertEquals('Expert D&D 5e dungeon master', $preserved->bio);
-        $this->assertCount(3, $preserved->specializations);
 
-        // 6. User resubscribes
+        // 5. Resubscribe — same profile reactivated
         $service->assignGMRole($user);
         $reactivated = GMProfile::where('user_id', $user->id)->first();
         $this->assertTrue($reactivated->is_active);

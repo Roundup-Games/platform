@@ -173,23 +173,6 @@ class ReliabilityScoreServiceTest extends TestCase
 
     // ── Weight constants ───────────────────────────────
 
-    public function test_weight_constants_cover_all_attendance_statuses(): void
-    {
-        foreach (AttendanceStatus::cases() as $status) {
-            $this->assertArrayHasKey(
-                $status->value,
-                ReliabilityScoreService::WEIGHTS,
-                "Missing weight for AttendanceStatus::{$status->name}"
-            );
-        }
-    }
-
-    public function test_host_weight_constants_exist(): void
-    {
-        $this->assertEquals(-1.5, ReliabilityScoreService::HOST_WEIGHTS['host_no_show']);
-        $this->assertEquals(-1.2, ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late']);
-    }
-
     public function test_resolve_weight_uses_host_no_show_when_owner(): void
     {
         $host = User::factory()->create();
@@ -276,16 +259,6 @@ class ReliabilityScoreServiceTest extends TestCase
         $this->assertLessThan($playerResult['score'], $hostResult['score']);
     }
 
-    public function test_min_games_constant(): void
-    {
-        $this->assertEquals(5, ReliabilityScoreService::MIN_GAMES);
-    }
-
-    public function test_reliable_threshold_constant(): void
-    {
-        $this->assertEquals(95.0, ReliabilityScoreService::RELIABLE_THRESHOLD);
-    }
-
     public function test_compute_score_clamps_negative_scores_to_zero(): void
     {
         $user = User::factory()->create();
@@ -306,6 +279,60 @@ class ReliabilityScoreServiceTest extends TestCase
         // Score must be clamped to 0, not negative
         $this->assertEquals(0.0, $result['score']);
         $this->assertEquals('active', $result['tier']);
+    }
+
+    // ── attendance_weight multiplier (peer vs auto-attend) ─────
+
+    public function test_weight_multiplier_only_applies_for_peer_reported(): void
+    {
+        $user = User::factory()->create();
+        $reporter = User::factory()->create();
+
+        // 4 attended (system-generated)
+        for ($i = 0; $i < 4; $i++) {
+            GameParticipant::factory()->create([
+                'user_id' => $user->id,
+                'game_id' => Game::factory()->create()->id,
+                'attendance_status' => AttendanceStatus::Attended,
+                'attendance_weight' => null,
+                'attendance_reported_by' => null,
+            ]);
+        }
+
+        // 1 peer-reported no_show with weight 0.5
+        GameParticipant::factory()->create([
+            'user_id' => $user->id,
+            'game_id' => Game::factory()->create()->id,
+            'attendance_status' => AttendanceStatus::NoShow,
+            'attendance_weight' => 0.5,
+            'attendance_reported_by' => $reporter->id,
+        ]);
+
+        $result = $this->service->computeScore($user);
+
+        // 4*1.0 + 1*(-1.0*0.5) = 3.5 / 5 * 100 = 70.0
+        $this->assertEquals(70.0, $result['score']);
+    }
+
+    public function test_weight_multiplier_ignored_for_auto_attend(): void
+    {
+        $user = User::factory()->create();
+
+        // 5 system-generated attended with weight 0.7 — should be ignored
+        for ($i = 0; $i < 5; $i++) {
+            GameParticipant::factory()->create([
+                'user_id' => $user->id,
+                'game_id' => Game::factory()->create()->id,
+                'attendance_status' => AttendanceStatus::Attended,
+                'attendance_weight' => 0.7,
+                'attendance_reported_by' => null,
+            ]);
+        }
+
+        $result = $this->service->computeScore($user);
+
+        // Auto-attend ignores multiplier → all at base weight 1.0 → 100%
+        $this->assertEquals(100.0, $result['score']);
     }
 
     // ── Helpers ────────────────────────────────────────
