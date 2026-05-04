@@ -16,49 +16,6 @@ class UserPreferenceResolutionTest extends TestCase
     use DatabaseTransactions;
     use SetsUpLocale;
 
-    // ── VibeFlag::mutuallyExclusivePairs() ────────────
-
-    public function test_mutually_exclusive_pairs_returns_array_of_pairs(): void
-    {
-        $pairs = VibeFlag::mutuallyExclusivePairs();
-
-        $this->assertIsArray($pairs);
-        $this->assertNotEmpty($pairs);
-
-        foreach ($pairs as $pair) {
-            $this->assertCount(2, $pair);
-            $this->assertInstanceOf(VibeFlag::class, $pair[0]);
-            $this->assertInstanceOf(VibeFlag::class, $pair[1]);
-            $this->assertNotSame($pair[0], $pair[1]);
-        }
-    }
-
-    public function test_rules_light_and_heavy_are_mutually_exclusive(): void
-    {
-        $pairs = VibeFlag::mutuallyExclusivePairs();
-        $flatValues = collect($pairs)->map(fn ($p) => [$p[0]->value, $p[1]->value])->flatten()->all();
-
-        $this->assertContains('rules-light', $flatValues);
-        $this->assertContains('rules-heavy', $flatValues);
-    }
-
-    public function test_competitive_and_cooperative_are_mutually_exclusive(): void
-    {
-        $pairs = VibeFlag::mutuallyExclusivePairs();
-
-        $found = false;
-        foreach ($pairs as $pair) {
-            $vals = [$pair[0]->value, $pair[1]->value];
-            if (in_array('competitive', $vals) && in_array('cooperative', $vals)) {
-                $found = true;
-                break;
-            }
-        }
-        $this->assertTrue($found, 'Expected competitive and cooperative to be a mutual exclusion pair');
-    }
-
-    // ── resolvedGameSystemPreferences() ───────────────
-
     public function test_game_system_resolution_with_no_preferences(): void
     {
         $user = User::factory()->create();

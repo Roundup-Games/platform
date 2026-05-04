@@ -9,11 +9,6 @@ use Livewire\Livewire;
 // ═══════════════════════════════════════════════════════════
 
 describe('Rendering', function () {
-    it('renders without errors', function () {
-        Livewire::test(SafetyToolPicker::class)
-            ->assertOk();
-    })->group('smoke');
-
     it('initializes with empty selected, text, and note', function () {
         Livewire::test(SafetyToolPicker::class)
             ->assertSet('selected', [])

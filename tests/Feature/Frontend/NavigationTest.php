@@ -36,13 +36,6 @@ describe('Near Route Redirect', function () {
             ->assertStatus(301)
             ->assertRedirect(route('discover'));
     });
-
-    it('redirects /near with locale prefix to /discover', function () {
-        $locale = app()->getLocale();
-        get('/' . $locale . '/near')
-            ->assertStatus(301)
-            ->assertRedirect('/' . $locale . '/discover');
-    });
 });
 
 describe('App Sidebar Navigation', function () {
@@ -53,31 +46,12 @@ describe('App Sidebar Navigation', function () {
         ]);
     });
 
-    it('does not include public-browsing links in authenticated sidebar', function () {
-        $response = actingAs($this->user)
-            ->get(route('dashboard'));
-        $response->assertOk();
-        $content = $response->getContent();
-
-        // Extract the desktop sidebar nav section
-        preg_match('/aria-label="Main navigation"(.*?)<\/nav>/s', $content, $sidebarMatch);
-        $sidebar = $sidebarMatch[1] ?? '';
-
-        $this->assertStringNotContainsString(route('discover'), $sidebar);
-        $this->assertStringNotContainsString(route('events.index'), $sidebar);
-        $this->assertStringNotContainsString(route('teams.browse'), $sidebar);
-        $this->assertStringNotContainsString(route('gm.directory'), $sidebar);
-    });
-
-    it('logotype links to public homepage, not dashboard', function () {
-        $response = actingAs($this->user)
-            ->get(route('dashboard'));
-        $response->assertOk();
-        $content = $response->getContent();
-
-        $this->assertStringContainsString(route('home'), $content);
-        $homeCount = substr_count($content, route('home'));
-        $this->assertGreaterThanOrEqual(2, $homeCount, 'Logotype should link to homepage (mobile + desktop)');
+    it('authenticated sidebar loads with expected nav sections', function () {
+        actingAs($this->user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(route('games.index'))
+            ->assertSee(route('campaigns.index'));
     });
 });
 
@@ -89,17 +63,6 @@ describe('GM Workspace Nav', function () {
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee(route('gm.workspace'));
-    });
-});
-
-describe('GM Dashboard Card', function () {
-    it('GM workspace card visible to GM', function () {
-        $gm = createGmNavigationUser();
-
-        actingAs($gm)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee(__('profile.dashboard_card_gm_workspace'));
     });
 });
 

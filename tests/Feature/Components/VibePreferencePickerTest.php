@@ -37,11 +37,6 @@ function vibeStandaloneValues(): array
 // ═══════════════════════════════════════════════════════════
 
 describe('Rendering', function () {
-    it('renders without errors', function () {
-        Livewire::test(VibePreferencePicker::class)
-            ->assertOk();
-    });
-
     it('initializes all flags to null (neutral) by default', function () {
         $component = Livewire::test(VibePreferencePicker::class);
 

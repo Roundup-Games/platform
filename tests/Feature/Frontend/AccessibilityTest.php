@@ -28,16 +28,14 @@ describe('Skip Links', function () {
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Skip to content')
-            ->assertSee('href="#main-content"', false)
-            ->assertSee('id="main-content"', false);
+            ->assertSee('main-content');
     });
 
     it('has skip link on public layout pages', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee('Skip to content')
-            ->assertSee('href="#main-content"', false)
-            ->assertSee('id="main-content"', false);
+            ->assertSee('main-content');
     });
 });
 

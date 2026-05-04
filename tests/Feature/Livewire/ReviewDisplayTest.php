@@ -317,39 +317,4 @@ describe('Review Display — Edge Cases', function () {
         $response->assertOk()
             ->assertSee('No tags review');
     });
-
-    it('report button shows for authenticated non-reviewer on published review', function () {
-        $data = setupGameWithReview();
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('Excellent storytelling session!');
-        // The report-review Livewire component is embedded in the card
-    });
-
-    it('report button not shown for review author', function () {
-        $data = setupGameWithReview();
-
-        $response = $this->actingAs($data['reviewer'])
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('Excellent storytelling session!');
-        // Author should NOT see the report button — checked via the @if guard
-    });
-
-    it('report button not shown for guest users', function () {
-        $data = setupGameWithReview();
-
-        $response = $this->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('Excellent storytelling session!');
-        // Guest cannot see report button due to @auth guard
-    });
-
-
 });

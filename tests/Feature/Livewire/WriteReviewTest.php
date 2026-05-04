@@ -271,16 +271,6 @@ describe('WriteReview — Game Session', function () {
 // ═══════════════════════════════════════════════════════════
 // WRITE REVIEW COMPONENT — CAMPAIGN
 // ═══════════════════════════════════════════════════════════
-
-describe('WriteReview — Campaign', function () {
-    // Campaign tests intentionally mirror game session tests above.
-    // The shared WriteReview component uses the same logic for both reviewable types,
-    // so the game session tests already cover: rendering, submission, validation,
-    // duplicate prevention, and edge cases. Campaign-specific tests are omitted to
-    // avoid redundant symmetric duplicates.
-});
-
-// ═══════════════════════════════════════════════════════════
 // WRITE REVIEW COMPONENT — EDGE CASES
 // ═══════════════════════════════════════════════════════════
 

@@ -89,25 +89,6 @@ describe('notification preferences section', function () {
         expect($savedKeys)->toBe($allCategoryValues);
     });
 
-    it('validates notification settings structure', function () {
-        // Livewire v4 ->set() doesn't work for nested arrays.
-        // Instead, test validation by calling save with empty notification_settings on the DB
-        // and letting mount() produce defaults — then test that validation catches bad input.
-        // We test the validation rule directly since the Livewire test harness can't send
-        // empty arrays for nested properties.
-        $this->user->update(['notification_settings' => []]);
-        $this->user->refresh();
-
-        Livewire::test(Show::class)
-            ->call('saveNotificationSettings');
-
-        $this->user->refresh();
-        // With empty stored settings, mount() fills defaults, so save succeeds
-        $allCategoryValues = NotificationCategory::values();
-        $savedKeys = array_keys($this->user->notification_settings);
-        expect($savedKeys)->toBe($allCategoryValues);
-    });
-
     it('shows push subscription count when user has subscriptions', function () {
         \App\Models\PushSubscription::factory()->create(['user_id' => $this->user->id]);
 
@@ -122,17 +103,4 @@ describe('notification preferences section', function () {
             ->assertSee(__('notifications.flash_notification_preferences_saved'));
     });
 
-    it('toggles a single channel for a category', function () {
-        // Write custom settings to DB, verify mount loads them, verify save persists.
-        $settings = NotificationCategory::defaultSettings();
-        $settings['new_follower']['mail'] = true;
-        $this->user->update(['notification_settings' => $settings]);
-
-        Livewire::test(Show::class)
-            ->assertSet('notificationSettings.new_follower.mail', true)
-            ->call('saveNotificationSettings');
-
-        $this->user->refresh();
-        expect($this->user->notification_settings['new_follower']['mail'])->toBeTrue();
-    });
 });

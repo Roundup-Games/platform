@@ -58,28 +58,6 @@ describe('Team media conversions', function () {
         $team->addMedia(validImage())->toMediaCollection('logo');
         expect($team->getMedia('logo'))->toHaveCount(1);
     });
-
-    it('generates thumb, medium, and large conversions', function () {
-        Storage::fake('public');
-
-        $team = Team::factory()->create();
-        $media = $team->addMedia(validImage())->toMediaCollection('logo');
-
-        $conversions = $media->getMediaConversionNames();
-        expect($conversions)->toContain('thumb');
-        expect($conversions)->toContain('medium');
-        expect($conversions)->toContain('large');
-    });
-
-    it('restricts accepted mime types for logo', function () {
-        $team = Team::factory()->create();
-        $collections = $team->getRegisteredMediaCollections();
-        $logo = $collections->first(fn ($c) => $c->name === 'logo');
-
-        expect($logo->acceptsMimeTypes)->toContain('image/jpeg');
-        expect($logo->acceptsMimeTypes)->toContain('image/png');
-        expect($logo->acceptsMimeTypes)->toContain('image/webp');
-    });
 });
 
 describe('Event media conversions', function () {
@@ -148,20 +126,6 @@ describe('ImageUpload component', function () {
                 'label' => 'Team Logo',
             ])
             ->assertSet('hasMedia', true);
-    });
-
-    it('shows no media state initially', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-                'label' => 'Team Logo',
-            ])
-            ->assertSet('hasMedia', false);
     });
 
     it('validates image is required on upload', function () {

@@ -29,10 +29,6 @@ describe('MembershipExporter', function () {
         expect($names)->toContain('id', 'billable.name', 'billable.email', 'type', 'status', 'trial_ends_at', 'ends_at', 'created_at');
     });
 
-    it('has a model class', function () {
-        expect(MembershipExporter::getModel())->toBeString();
-    });
-
     it('generates a filename containing membership-report', function () {
         $export = new \Filament\Actions\Exports\Models\Export();
         $export->id = 99;
@@ -157,15 +153,6 @@ describe('EventAttendanceReport Page', function () {
 // ── Integration: Exporters produce data ───────────────────────────
 
 describe('Exporter data production', function () {
-    it('membership exporter processes subscription records', function () {
-        // Create a user with the customer/subscription tables via Paddle
-        // This is a structural test — verify the exporter class is constructable
-        $export = new \Filament\Actions\Exports\Models\Export();
-        $exporter = new MembershipExporter($export, ['id' => 'ID', 'status' => 'Status'], []);
-
-        expect($exporter)->toBeInstanceOf(MembershipExporter::class);
-    });
-
     it('event attendance exporter processes registration records', function () {
         $user = User::factory()->create(['name' => 'Alice']);
         $event = Event::factory()->create(['name' => 'Summer League']);

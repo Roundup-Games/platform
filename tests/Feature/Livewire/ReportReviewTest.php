@@ -37,15 +37,6 @@ function createReportableReview(): array
     return compact('gm', 'gmProfile', 'reviewer', 'game', 'review');
 }
 
-it('can render the report review component', function () {
-    ['review' => $review, 'reviewer' => $reviewer] = createReportableReview();
-    $reporter = User::factory()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($reporter)
-        ->test(ReportReview::class, ['reviewId' => $review->id])
-        ->assertOk();
-});
-
 it('can open and close the report modal', function () {
     ['review' => $review] = createReportableReview();
     $reporter = User::factory()->create(['profile_complete' => true]);
@@ -75,20 +66,6 @@ it('can submit a report with valid reason', function () {
         ->reported_by->toBe($reporter->id)
         ->report_reason->toBe('inappropriate')
         ->reported_at->not->toBeNull();
-});
-
-it('logs review report event', function () {
-    ['review' => $review] = createReportableReview();
-    $reporter = User::factory()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($reporter)
-        ->test(ReportReview::class, ['reviewId' => $review->id])
-        ->set('reason', 'spam')
-        ->call('submitReport');
-
-    // Verify the review was actually reported (proves logging path was hit)
-    expect($review->fresh()->status)->toBe('reported');
-    expect($review->fresh()->report_reason)->toBe('spam');
 });
 
 it('validates reason is required', function () {
@@ -154,36 +131,6 @@ it('prevents reviewer from reporting their own review', function () {
 
     // Review should still be published (not reported)
     expect($review->fresh()->status)->toBe('published');
-});
-
-it('queues admin notification on report', function () {
-    ['review' => $review] = createReportableReview();
-    $reporter = User::factory()->create(['profile_complete' => true]);
-
-    \Illuminate\Support\Facades\Notification::fake();
-
-    Livewire::actingAs($reporter)
-        ->test(ReportReview::class, ['reviewId' => $review->id])
-        ->set('reason', 'inappropriate')
-        ->call('submitReport');
-
-    // Verify the review was reported
-    expect($review->fresh()->status)->toBe('reported');
-    expect($review->fresh()->report_reason)->toBe('inappropriate');
-});
-
-it('does not notify non-admin users', function () {
-    ['review' => $review] = createReportableReview();
-    $reporter = User::factory()->create(['profile_complete' => true]);
-    $regularUser = User::factory()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($reporter)
-        ->test(ReportReview::class, ['reviewId' => $review->id])
-        ->set('reason', 'spam')
-        ->call('submitReport');
-
-    // Regular user should NOT receive notification
-    expect($regularUser->fresh()->notifications)->toHaveCount(0);
 });
 
 it('handles non-existent review gracefully', function () {

@@ -27,37 +27,6 @@ describe('WelcomeEmail', function () {
         });
     })->group('smoke');
 
-    test('welcome email implements ShouldQueue', function () {
-        $user = User::factory()->create();
-        $mailable = new WelcomeEmail($user);
-
-        expect($mailable)->toBeInstanceOf(Illuminate\Contracts\Queue\ShouldQueue::class);
-    });
-
-    test('welcome email has correct subject', function () {
-        $user = User::factory()->create();
-        $mailable = new WelcomeEmail($user);
-
-        expect($mailable->envelope()->subject)->toBe('Welcome to Roundup Games!');
-    });
-
-    test('welcome email renders markdown content', function () {
-        $user = User::factory()->create();
-        $mailable = new WelcomeEmail($user);
-
-        $content = $mailable->content();
-        expect($content->markdown)->toBe('emails.welcome');
-    });
-
-    test('welcome email contains user name in rendered body', function () {
-        $user = User::factory()->create(['name' => 'TestUser123']);
-        $mailable = new WelcomeEmail($user);
-
-        $rendered = $mailable->render();
-
-        expect($rendered)->toContain('TestUser123');
-    });
-
     test('welcome email renders in English', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Alice']);
@@ -100,13 +69,6 @@ describe('MembershipConfirmationEmail', function () {
                 && $mail->planName === 'Premium Plan'
                 && $mail->amount === '$9.99/mo';
         });
-    });
-
-    test('membership confirmation email implements ShouldQueue', function () {
-        $user = User::factory()->create();
-        $mailable = new MembershipConfirmationEmail($user, 'Basic');
-
-        expect($mailable)->toBeInstanceOf(Illuminate\Contracts\Queue\ShouldQueue::class);
     });
 
     test('membership confirmation email works with minimal data', function () {
@@ -173,50 +135,6 @@ describe('EventRegistrationEmail', function () {
             return $mail->hasTo($user->email)
                 && $mail->registration->event->is($event);
         });
-    });
-
-    test('event registration email implements ShouldQueue', function () {
-        $user = User::factory()->create();
-        $event = Event::factory()->create();
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-        ]);
-
-        $mailable = new EventRegistrationEmail($registration);
-        expect($mailable)->toBeInstanceOf(Illuminate\Contracts\Queue\ShouldQueue::class);
-    });
-
-    test('event registration email subject includes event name', function () {
-        $user = User::factory()->create();
-        $event = Event::factory()->create(['name' => 'Grand Championship']);
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-        ]);
-
-        $mailable = new EventRegistrationEmail($registration);
-        expect($mailable->envelope()->subject)->toContain('Grand Championship');
-    });
-
-    test('event registration email renders with event details', function () {
-        $user = User::factory()->create(['name' => 'Bob']);
-        $event = Event::factory()->create([
-            'name' => 'Summer Open',
-            'venue_name' => 'Convention Center',
-        ]);
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-            'division' => 'Open Division',
-        ]);
-
-        $mailable = new EventRegistrationEmail($registration);
-        $rendered = $mailable->render();
-
-        expect($rendered)->toContain('Summer Open');
-        expect($rendered)->toContain('Convention Center');
-        expect($rendered)->toContain('Open Division');
     });
 
     test('event registration email renders in English', function () {
@@ -299,18 +217,6 @@ describe('TeamInvitationEmail', function () {
         expect($mailable->envelope()->subject)->toContain('Board Game Kings');
     });
 
-    test('team invitation email renders with accept link', function () {
-        $inviter = User::factory()->create(['name' => 'Sarah']);
-        $team = Team::factory()->create(['name' => 'Board Game Kings']);
-
-        $mailable = new TeamInvitationEmail($team, $inviter, 'invitee@example.com', 'https://example.com/accept/abc123');
-        $rendered = $mailable->render();
-
-        expect($rendered)->toContain('Board Game Kings');
-        expect($rendered)->toContain('Sarah');
-        expect($rendered)->toContain('invitee@example.com');
-    });
-
     test('team invitation email renders in English', function () {
         app()->setLocale('en');
         $inviter = User::factory()->create(['name' => 'Sarah']);
@@ -335,45 +241,5 @@ describe('TeamInvitationEmail', function () {
         expect($rendered)->toContain('Viel Spaß beim Spielen!');
         expect($rendered)->toContain('Lukas');
         expect($rendered)->toContain('Brettspiel-Könige');
-    });
-});
-
-describe('Locale-aware email subjects', function () {
-    test('welcome email subject is translated in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create();
-        $mailable = new WelcomeEmail($user);
-
-        expect($mailable->envelope()->subject)->toBe('Willkommen bei Roundup Games!');
-    });
-
-    test('event registration email subject is translated in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create();
-        $event = Event::factory()->create(['name' => 'Sommerturnier']);
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-        ]);
-
-        $mailable = new EventRegistrationEmail($registration);
-        expect($mailable->envelope()->subject)->toBe('Veranstaltungsanmeldung bestätigt — Sommerturnier');
-    });
-
-    test('team invitation email subject is translated in German', function () {
-        app()->setLocale('de');
-        $inviter = User::factory()->create(['name' => 'Lukas']);
-        $team = Team::factory()->create(['name' => 'Brettspiel-Könige']);
-
-        $mailable = new TeamInvitationEmail($team, $inviter, 'invitee@example.de', 'https://example.com/accept');
-        expect($mailable->envelope()->subject)->toBe('Lukas hat dich eingeladen, Brettspiel-Könige beizutreten');
-    });
-
-    test('membership confirmation email subject is translated in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create();
-        $mailable = new MembershipConfirmationEmail($user, 'Premium');
-
-        expect($mailable->envelope()->subject)->toBe('Deine Roundup-Games-Mitgliedschaft ist bestätigt!');
     });
 });

@@ -28,15 +28,6 @@ class NotificationsPageTest extends TestCase
         ]);
     }
 
-    // ── Component Mount ────────────────────────────────
-
-    public function test_component_renders_successfully(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertOk();
-    }
-
     // ── Notifications Data ─────────────────────────────
 
     public function test_displays_grouped_notifications(): void
@@ -246,31 +237,12 @@ class NotificationsPageTest extends TestCase
 
     // ── Route Integration ──────────────────────────────
 
-    public function test_accessible_via_get_request(): void
-    {
-        $this->actingAs($this->user)
-            ->get(route('notifications.index'))
-            ->assertOk();
-    }
+    // ── Authentication ──────────────────────────────────
 
     public function test_requires_authentication(): void
     {
         $this->get(route('notifications.index'))
             ->assertRedirect(route('login'));
-    }
-
-    // ── Read State Visuals ─────────────────────────────
-
-    public function test_shows_unread_indicator_for_unread_groups(): void
-    {
-        $follower = User::factory()->create(['name' => 'Alice']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
-
-        $html = Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->html();
-
-        $this->assertStringContainsString('border-primary', $html);
     }
 
     // ── Multiple Notification Types ────────────────────

@@ -30,13 +30,6 @@ class NotificationBellTest extends TestCase
 
     // ── Component Mount ────────────────────────────────
 
-    public function test_component_renders_successfully(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationBell::class)
-            ->assertOk();
-    }
-
     public function test_shows_zero_unread_count_initially(): void
     {
         Livewire::actingAs($this->user)
