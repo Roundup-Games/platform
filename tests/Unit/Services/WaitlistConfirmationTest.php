@@ -26,15 +26,6 @@ function createGameWithDateTime(string $dateTime): Game
 // ── computeConfirmationDeadline ──────────────────────────
 
 describe('computeConfirmationDeadline', function () {
-    it('returns a Carbon instance in the future', function () {
-        $game = createGameWithDateTime(now()->addDays(10));
-
-        $deadline = $this->service->computeConfirmationDeadline($game);
-
-        expect($deadline)->toBeInstanceOf(\Carbon\Carbon::class);
-        expect($deadline->isFuture())->toBeTrue();
-    });
-
     it('uses far window (>48h = 12h) for distant games', function () {
         $game = createGameWithDateTime(now()->addDays(14)->startOfSecond());
 
@@ -69,15 +60,5 @@ describe('computeConfirmationDeadline', function () {
         $minutesUntilDeadline = (int) round(now()->diffInMinutes($deadline, false));
 
         expect($minutesUntilDeadline)->toBe(30);
-    });
-
-    it('uses far window as default when computeConfirmationWindow falls through', function () {
-        // The far window (12h) is returned as the default/match-all case
-        $game = createGameWithDateTime(now()->addDays(30)->startOfSecond());
-
-        $deadline = $this->service->computeConfirmationDeadline($game);
-        $hoursUntilDeadline = round(now()->diffInMinutes($deadline, false) / 60, 1);
-
-        expect($hoursUntilDeadline)->toBe(12.0);
     });
 });

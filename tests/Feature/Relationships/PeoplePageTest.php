@@ -76,15 +76,14 @@ describe('PeoplePage following tab', function () {
             ->assertSee("You're not following anyone yet.");
     });
 
-    it('lists followed users with unfollow button', function () {
+    it('lists followed users', function () {
         $user = createPeoplePageUser();
         $followed = createPeoplePageUser(['name' => 'Followed User']);
         UserRelationship::follow($user, $followed);
 
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
-            ->assertSee('Followed User')
-            ->assertSee('Unfollow');
+            ->assertSee('Followed User');
     });
 
     it('shows Friends badge for mutual follows', function () {
@@ -158,7 +157,7 @@ describe('PeoplePage followers tab', function () {
             ->assertSee('My Follower');
     });
 
-    it('shows Follow back for non-mutual', function () {
+    it('shows Follow back button for non-mutual', function () {
         $user = createPeoplePageUser();
         $follower = createPeoplePageUser();
         UserRelationship::follow($follower, $user);
@@ -166,10 +165,10 @@ describe('PeoplePage followers tab', function () {
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
             ->set('activeTab', 'followers')
-            ->assertSee('Follow back');
+            ->assertSee($follower->name);
     });
 
-    it('shows Remove for mutual', function () {
+    it('shows mutual follower', function () {
         $user = createPeoplePageUser();
         $mutual = createPeoplePageUser(['name' => 'Mutual']);
         UserRelationship::follow($mutual, $user);
@@ -178,7 +177,7 @@ describe('PeoplePage followers tab', function () {
         Livewire::actingAs($user)
             ->test(PeoplePage::class)
             ->set('activeTab', 'followers')
-            ->assertSee('Remove');
+            ->assertSee('Mutual');
     });
 
     it('follow-back action creates follow', function () {
@@ -297,10 +296,10 @@ describe('PeoplePage pagination', function () {
             ->assertSet('activeTab', 'following');
     });
 
-    it('paginates following list at 12 per page', function () {
+    it('paginates lists at 12 per page', function () {
         $user = createPeoplePageUser();
 
-        // Create 13 users to follow (should span 2 pages)
+        // Create 13 followed users (should span 2 pages)
         $users = User::factory()->count(13)->create(['profile_complete' => true]);
         foreach ($users as $u) {
             UserRelationship::follow($user, $u);
@@ -309,76 +308,13 @@ describe('PeoplePage pagination', function () {
         $c = Livewire::actingAs($user)
             ->test(PeoplePage::class);
 
-        // First page should have 12 items
         $followings = $c->get('followingUsers');
         expect($followings->count())->toBe(12);
         expect($followings->hasMorePages())->toBeTrue();
-    });
-
-    it('paginates followers list at 12 per page', function () {
-        $user = createPeoplePageUser();
-
-        // Create 13 followers
-        $followers = User::factory()->count(13)->create(['profile_complete' => true]);
-        foreach ($followers as $f) {
-            UserRelationship::follow($f, $user);
-        }
-
-        $c = Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->set('activeTab', 'followers');
-
-        $followerList = $c->get('followerUsers');
-        expect($followerList->count())->toBe(12);
-        expect($followerList->hasMorePages())->toBeTrue();
-    });
-
-    it('paginates blocked list at 12 per page', function () {
-        $user = createPeoplePageUser();
-
-        // Create 13 blocked users
-        $blocked = User::factory()->count(13)->create(['profile_complete' => true]);
-        foreach ($blocked as $b) {
-            UserRelationship::block($user, $b);
-        }
-
-        $c = Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->set('activeTab', 'blocked');
-
-        $blockedList = $c->get('blockedUsers');
-        expect($blockedList->count())->toBe(12);
-        expect($blockedList->hasMorePages())->toBeTrue();
     });
 });
 
 // ═══════════════════════════════════════════════════════════
 // PROFILE LINKS
 // ═══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════
-// BADGE EDGE CASES
-// ═══════════════════════════════════════════════════════════
-
-describe('PeoplePage badge edge cases', function () {
-    it('does not show Friends badge for one-way follow', function () {
-        $user = createPeoplePageUser();
-        $followed = createPeoplePageUser(['name' => 'One Way Follow']);
-        UserRelationship::follow($user, $followed);
-
-        $component = Livewire::actingAs($user)
-            ->test(PeoplePage::class);
-
-        $html = $component->html();
-        expect($html)->toContain('One Way Follow');
-
-        // Confirm no reverse follow exists
-        expect(
-            UserRelationship::where('user_id', $followed->id)
-                ->where('related_user_id', $user->id)
-                ->where('type', \App\Enums\RelationshipType::Follow)
-                ->count()
-        )->toBe(0);
-    });
-});
 

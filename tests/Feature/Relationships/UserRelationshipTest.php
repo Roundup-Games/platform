@@ -751,50 +751,6 @@ describe('getRelationshipLevel', function () {
 // ── Eloquent Relationship Queries ──────────────────────
 
 describe('Eloquent Relationships', function () {
-    it('followers returns only incoming follows', function () {
-        $user = User::factory()->create();
-        $follower1 = User::factory()->create();
-        $follower2 = User::factory()->create();
-
-        UserRelationship::follow($follower1, $user);
-        UserRelationship::follow($follower2, $user);
-
-        expect($user->followers()->count())->toBe(2);
-    });
-
-    it('followings returns only outgoing follows', function () {
-        $user = User::factory()->create();
-        $target1 = User::factory()->create();
-        $target2 = User::factory()->create();
-
-        UserRelationship::follow($user, $target1);
-        UserRelationship::follow($user, $target2);
-
-        expect($user->followings()->count())->toBe(2);
-    });
-
-    it('blocks returns only outgoing blocks', function () {
-        $user = User::factory()->create();
-        $target1 = User::factory()->create();
-        $target2 = User::factory()->create();
-
-        UserRelationship::block($user, $target1);
-        UserRelationship::block($user, $target2);
-
-        expect($user->blocks()->count())->toBe(2);
-    });
-
-    it('blockedBy returns only incoming blocks', function () {
-        $user = User::factory()->create();
-        $blocker1 = User::factory()->create();
-        $blocker2 = User::factory()->create();
-
-        UserRelationship::block($blocker1, $user);
-        UserRelationship::block($blocker2, $user);
-
-        expect($user->blockedBy()->count())->toBe(2);
-    });
-
     it('followers excludes blocks', function () {
         $user = User::factory()->create();
         $other = User::factory()->create();

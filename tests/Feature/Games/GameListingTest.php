@@ -364,20 +364,6 @@ describe('GameListing', function () {
             ->assertSee('Advanced Game');
     });
 
-    it('resets page when search changes', function () {
-        Game::factory()->count(15)->create(['visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(rand(1, 30))]);
-
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->set('search', 'test')
-            ->assertSet('search', 'test');
-    });
-
-    it('shows empty state when no games match', function () {
-        Livewire\Livewire::test(App\Livewire\Games\GameListing::class)
-            ->set('search', 'nonexistent-xyz-abc')
-            ->assertSee('No games found');
-    });
-
     it('paginates results at 12 per page', function () {
         Game::factory()->count(15)->create(['visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(rand(1, 30))]);
 

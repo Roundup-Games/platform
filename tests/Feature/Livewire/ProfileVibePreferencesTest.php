@@ -69,7 +69,7 @@ describe('Load existing preferences', function () {
     it('loads existing UserVibePreference rows into component state', function () {
         $user = createVibeUser();
 
-        // Create some existing preferences
+        // Create preferences: favorite, avoid, and a third to verify multi-row loading
         UserVibePreference::create([
             'user_id' => $user->id,
             'vibe_preference_value' => 'atmospheric',
@@ -78,28 +78,6 @@ describe('Load existing preferences', function () {
         UserVibePreference::create([
             'user_id' => $user->id,
             'vibe_preference_value' => 'competitive',
-            'preference_type' => 'avoid',
-        ]);
-
-        $component = Livewire::actingAs($user)
-            ->test(Show::class);
-
-        $component
-            ->assertSet('vibePreferences.atmospheric', 'favorite')
-            ->assertSet('vibePreferences.competitive', 'avoid');
-    });
-
-    it('preferences display correctly with favorites and avoids', function () {
-        $user = createVibeUser();
-
-        UserVibePreference::create([
-            'user_id' => $user->id,
-            'vibe_preference_value' => 'lighthearted',
-            'preference_type' => 'favorite',
-        ]);
-        UserVibePreference::create([
-            'user_id' => $user->id,
-            'vibe_preference_value' => 'horror',
             'preference_type' => 'avoid',
         ]);
         UserVibePreference::create([
@@ -111,11 +89,12 @@ describe('Load existing preferences', function () {
         $component = Livewire::actingAs($user)
             ->test(Show::class);
 
-        $prefs = $component->get('vibePreferences');
-        expect($prefs['lighthearted'])->toBe('favorite');
-        expect($prefs['horror'])->toBe('avoid');
-        expect($prefs['rules-light'])->toBe('favorite');
+        $component
+            ->assertSet('vibePreferences.atmospheric', 'favorite')
+            ->assertSet('vibePreferences.competitive', 'avoid')
+            ->assertSet('vibePreferences.rules-light', 'favorite');
         // Unset flags should be null
+        $prefs = $component->get('vibePreferences');
         expect($prefs['exploration'] ?? null)->toBeNull();
     });
 });

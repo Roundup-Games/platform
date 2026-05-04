@@ -175,31 +175,15 @@ describe('invite', function () {
     });
 });
 
-describe('inactive/pending members have no privileges', function () {
-    test('inactive captain cannot update team', function () {
+describe('inactive/pending/removed members have no privileges', function () {
+    test('non-active members lose all privileges', function (string $status) {
         TeamMember::where('team_id', $this->team->id)
             ->where('user_id', $this->captain->id)
-            ->update(['status' => 'inactive']);
+            ->update(['status' => $status]);
 
         $this->actingAs($this->captain);
         expect(Gate::allows('update', $this->team))->toBeFalse();
-    });
-
-    test('pending coach cannot invite', function () {
-        TeamMember::where('team_id', $this->team->id)
-            ->where('user_id', $this->coach->id)
-            ->update(['status' => 'pending']);
-
-        $this->actingAs($this->coach);
-        expect(Gate::allows('invite', $this->team))->toBeFalse();
-    });
-
-    test('removed member cannot manage members', function () {
-        TeamMember::where('team_id', $this->team->id)
-            ->where('user_id', $this->captain->id)
-            ->update(['status' => 'removed']);
-
-        $this->actingAs($this->captain);
         expect(Gate::allows('manageMembers', $this->team))->toBeFalse();
-    });
+        expect(Gate::allows('invite', $this->team))->toBeFalse();
+    })->with(['inactive', 'pending', 'removed']);
 });

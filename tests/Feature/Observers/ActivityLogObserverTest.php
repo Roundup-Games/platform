@@ -15,17 +15,24 @@ beforeEach(function () {
     $this->owner = User::factory()->create();
 });
 
-describe('Game observers', function () {
-    it('logs game_created when a game is created', function () {
+describe('Game & Campaign observers', function () {
+    it('logs entity_created when a game or campaign is created', function () {
         $game = Game::factory()->create(['owner_id' => $this->owner->id]);
+        $campaign = Campaign::factory()->create(['owner_id' => $this->owner->id]);
 
-        $log = ActivityLog::where('user_id', $this->owner->id)
+        $gameLog = ActivityLog::where('user_id', $this->owner->id)
             ->where('event_type', ActivityType::GameCreated)
             ->where('subject_type', Game::class)
             ->where('subject_id', $game->id)
             ->first();
+        expect($gameLog)->not->toBeNull();
 
-        expect($log)->not->toBeNull();
+        $campaignLog = ActivityLog::where('user_id', $this->owner->id)
+            ->where('event_type', ActivityType::CampaignCreated)
+            ->where('subject_type', Campaign::class)
+            ->where('subject_id', $campaign->id)
+            ->first();
+        expect($campaignLog)->not->toBeNull();
     });
 
     it('logs game_completed for owner and participants when game status changes to completed', function () {
@@ -82,20 +89,6 @@ describe('Game observers', function () {
         expect($playerLog)->not->toBeNull();
     });
 
-});
-
-describe('Campaign observer', function () {
-    it('logs campaign_created when a campaign is created', function () {
-        $campaign = Campaign::factory()->create(['owner_id' => $this->owner->id]);
-
-        $log = ActivityLog::where('user_id', $this->owner->id)
-            ->where('event_type', ActivityType::CampaignCreated)
-            ->where('subject_type', Campaign::class)
-            ->where('subject_id', $campaign->id)
-            ->first();
-
-        expect($log)->not->toBeNull();
-    });
 });
 
 describe('Participant observer', function () {

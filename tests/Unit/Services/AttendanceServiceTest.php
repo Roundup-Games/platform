@@ -137,13 +137,16 @@ describe('reportAttendance', function () {
         expect($result['reason'])->toContain('Host cannot self-report');
     });
 
-    it('allows non-host self-reporting as attended', function () {
+    it('allows non-host self-reporting with valid non-no_show statuses', function () {
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
 
-        $result = $this->service->reportAttendance($game, $reporter, $reporter, 'attended');
+        // Self-report as attended
+        $resultAttended = $this->service->reportAttendance($game, $participants[1], $participants[1], 'attended');
+        expect($resultAttended['success'])->toBeTrue();
 
-        expect($result['success'])->toBeTrue();
+        // Self-report as excused (separate participant)
+        $resultExcused = $this->service->reportAttendance($game, $participants[2], $participants[2], 'excused');
+        expect($resultExcused['success'])->toBeTrue();
     });
 
     it('rejects non-host self-reporting as no_show', function () {
@@ -154,15 +157,6 @@ describe('reportAttendance', function () {
 
         expect($result['success'])->toBeFalse();
         expect($result['reason'])->toContain('Self-reporting');
-    });
-
-    it('allows non-host self-reporting as excused', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-
-        $result = $this->service->reportAttendance($game, $reporter, $reporter, 'excused');
-
-        expect($result['success'])->toBeTrue();
     });
 
     it('rejects invalid attendance status', function () {

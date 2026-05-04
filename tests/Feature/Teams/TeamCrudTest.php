@@ -194,9 +194,10 @@ describe('ManageTeam', function () {
             ->assertOk();
     });
 
-    it('denies player access to manage page', function () {
+    it('denies player and non-member access to manage page', function () {
         $captain = User::factory()->create();
         $player = User::factory()->create(['profile_complete' => true]);
+        $stranger = User::factory()->create(['profile_complete' => true]);
         $team = Team::factory()->create(['is_active' => true, 'created_by' => $captain->id]);
 
         TeamMember::create(['team_id' => $team->id, 'user_id' => $captain->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
@@ -205,14 +206,6 @@ describe('ManageTeam', function () {
         actingAs($player)
             ->get(route('teams.manage', $team->slug))
             ->assertForbidden();
-    });
-
-    it('denies non-member access to manage page', function () {
-        $captain = User::factory()->create();
-        $stranger = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create(['is_active' => true, 'created_by' => $captain->id]);
-
-        TeamMember::create(['team_id' => $team->id, 'user_id' => $captain->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
 
         actingAs($stranger)
             ->get(route('teams.manage', $team->slug))

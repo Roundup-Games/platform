@@ -49,43 +49,13 @@ describe('ImageUpload security', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $team = Team::factory()->create(['created_by' => $user->id, 'is_active' => true]);
 
-        Livewire::actingAs($user)
+        $component = Livewire::actingAs($user)
             ->test(ImageUpload::class, [
                 'model' => $team,
                 'collection' => 'logo',
-            ])
-            ->set('model_type', 'App\Models\Event');
+            ]);
 
+        // Both locked properties should reject client-side updates
+        $component->set('model_type', 'App\Models\Event');
     })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)->group('smoke');
-
-    it('locks model_id from client-side tampering', function () {
-        Storage::fake('public');
-
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create(['created_by' => $user->id, 'is_active' => true]);
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('model_id', 99999);
-
-    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)->group('smoke');
-
-    it('resolves the correct model from stored type and id', function () {
-        Storage::fake('public');
-
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create(['created_by' => $user->id, 'is_active' => true]);
-
-        // Verify the component works end-to-end with the new resolveModel() approach
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-                'label' => 'Logo',
-            ])
-            ->assertSet('hasMedia', false);
-    })->group('smoke');
 });

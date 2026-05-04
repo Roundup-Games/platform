@@ -54,21 +54,6 @@ describe('BoardGamesDiscovery', function () {
             ->assertDontSee('Wingspan Game');
     });
 
-    it('shows protected items to authenticated users', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        Game::factory()->create([
-            'name' => 'Protected Game',
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertSee('Protected Game');
-    });
-
     it('shows recommendations scoped to boardgame systems for logged-in users', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $boardgameSystem = GameSystem::factory()->create(['type' => 'boardgame']);

@@ -109,8 +109,29 @@ if ($isParallel) {
             password: 'test',
             database: 'roundup_games_test',
         );
+        // Docker 29.x: use WaitForHostPort to avoid 409 during startup exec
+        $container->withWait(new \Testcontainers\Wait\WaitForHostPort(timeout: 30000));
         $container->withAutoRemove(true);
         $started = $container->start();
+
+        // Verify PostgreSQL is accepting queries (not just port-open)
+        $pgReady = false;
+        for ($i = 0; $i < 30; $i++) {
+            try {
+                $output = $started->exec(['pg_isready', '-h', '127.0.0.1', '-U', 'test']);
+                if (str_contains($output, 'accepting connections')) {
+                    $pgReady = true;
+                    break;
+                }
+            } catch (\Docker\API\Exception\ContainerExecConflictException |
+                      \Docker\API\Exception\ContainerExecNotFoundException) {
+                // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
+            }
+            usleep(500_000); // 0.5s
+        }
+        if (! $pgReady) {
+            fwrite(STDERR, "  Testcontainers: WARNING — pg_isready did not confirm after 15s\n");
+        }
 
         $host = $started->getHost();
         $port = $started->getFirstMappedPort();
@@ -167,7 +188,37 @@ if ($isParallel) {
         database: 'roundup_games_test',
     );
     $container->withAutoRemove(true);
+
+    // Docker Engine 29.x returns HTTP 409 "container is paused" when exec runs
+    // during the container's startup sequence. The library's WaitForExec throws
+    // ContainerExecConflictException before its retry loop can catch it.
+    // Use WaitForHostPort (TCP probe) to confirm the port is open, then do a
+    // manual pg_isready exec loop with 409-retry logic.
+    $container->withWait(new \Testcontainers\Wait\WaitForHostPort(timeout: 30000));
     $started = $container->start();
+
+    // Verify PostgreSQL is actually ready for queries (not just port-open).
+    // WaitForHostPort only checks that the port accepts TCP connections, but
+    // PostgreSQL may still be running init scripts. Poll pg_isready with
+    // retry on 409 "container is paused" from Docker 29.x.
+    $pgReady = false;
+    for ($i = 0; $i < 30; $i++) {
+        try {
+            $output = $started->exec(['pg_isready', '-h', '127.0.0.1', '-U', 'test']);
+            if (str_contains($output, 'accepting connections')) {
+                $pgReady = true;
+                break;
+            }
+        } catch (\Docker\API\Exception\ContainerExecConflictException |
+                  \Docker\API\Exception\ContainerExecNotFoundException) {
+            // Container not yet ready for exec (Docker 29.x startup race) — wait and retry
+        }
+        usleep(500_000); // 0.5s
+    }
+
+    if (! $pgReady) {
+        fwrite(STDERR, "  Testcontainers: WARNING — pg_isready did not confirm after 15s\n");
+    }
 
     applyConnection($started->getHost(), $started->getFirstMappedPort());
     runMigrations();

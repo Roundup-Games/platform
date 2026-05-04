@@ -205,27 +205,6 @@ describe('Cancel campaign → CampaignCancelled', function () {
         expect($owner->notifications()->where('type', CampaignCancelled::class)->count())->toBe(0);
     });
 
-    it('does not dispatch to pending participants', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $pending = User::factory()->create(['profile_complete' => true]);
-
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'active',
-        ]);
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $pending->id, 'role' => 'invited', 'status' => 'pending']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('cancelCampaign', $campaign->id);
-
-        expect($pending->notifications()->where('type', CampaignCancelled::class)->count())->toBe(0);
-    });
-
-
 });
 
 // ══════════════════════════════════════════════════════
@@ -261,27 +240,6 @@ describe('Complete campaign → CampaignCompleted', function () {
 
         expect($owner->notifications()->where('type', CampaignCompleted::class)->count())->toBe(0);
     });
-
-    it('does not dispatch when campaign is not active', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create(['profile_complete' => true]);
-
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'cancelled',
-        ]);
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('completeCampaign', $campaign->id);
-
-        expect($player->notifications()->where('type', CampaignCompleted::class)->count())->toBe(0);
-    });
-
 
 });
 

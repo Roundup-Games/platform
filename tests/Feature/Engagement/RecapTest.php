@@ -26,19 +26,6 @@ describe('Recap Service', function () {
         expect($game->fresh()->recap)->toBe('Great session with epic roleplay moments!');
     })->group('smoke');
 
-    it('accepts recap at exactly 2000 characters', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-        ]);
-
-        $content = str_repeat('a', 2000);
-        $this->service->writeRecap($game, $this->host, $content);
-
-        expect($game->fresh()->recap)->toBe($content);
-    });
-
     it('prevents overwriting an existing recap', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->host->id,

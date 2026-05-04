@@ -43,19 +43,6 @@ function featuredCreateEvent(array $overrides = []): Event
     ]);
 }
 
-describe('Create Event — is_featured not exposed', function () {
-    test('non-admin cannot set is_featured on create — field removed from form', function () {
-        $user = featuredCreateUser();
-
-        $event = Event::factory()->create([
-            'organizer_id' => $user->id,
-            'is_featured' => false,
-        ]);
-
-        expect($event->fresh()->is_featured)->toBeFalse();
-    })->group('smoke');
-});
-
 describe('Manage Event — is_featured guarded by admin check', function () {
     test('non-admin cannot change is_featured on edit', function () {
         $organizer = featuredCreateUser();

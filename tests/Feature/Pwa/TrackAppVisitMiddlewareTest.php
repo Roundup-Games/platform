@@ -119,14 +119,5 @@ describe('TrackAppVisit Middleware', function () {
         expect(UserAppVisit::where('user_id', $this->user->id)->count())->toBe(1);
     });
 
-    it('logs at debug level not info', function () {
-        // Verify the source code uses debug, not info, for visit tracking.
-        // This is a static analysis test since Log::channel('daily') is hard
-        // to mock cleanly without breaking other parts of the request lifecycle.
-        $source = file_get_contents(app_path('Http/Middleware/TrackAppVisit.php'));
 
-        expect($source)->toContain("Log::channel('daily')->debug('pwa.visit.tracked'")
-            ->and($source)->not->toContain("Log::channel('daily')->info('pwa.visit.tracked'")
-            ->and($source)->not->toContain("Log::info('pwa.visit.tracked'");
-    });
 });

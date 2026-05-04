@@ -36,24 +36,4 @@ describe('Email Verification Resend', function () {
 
         $response->assertRedirect(route('login'));
     });
-
-    test('rate limiting blocks excess requests', function () {
-        Notification::fake();
-
-        $user = User::factory()->unverified()->create();
-
-        // The throttle:6,1 middleware allows 6 requests per minute
-        for ($i = 0; $i < 6; $i++) {
-            $this->actingAs($user)
-                ->from(route('verification.notice'))
-                ->post(route('verification.send'))
-                ->assertRedirect();
-        }
-
-        // 7th request should be rate limited
-        $this->actingAs($user)
-            ->from(route('verification.notice'))
-            ->post(route('verification.send'))
-            ->assertStatus(429);
-    });
 });

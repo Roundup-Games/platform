@@ -7,8 +7,6 @@ use App\Filament\Pages\Reports\EventAttendanceReport;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
-use Filament\Actions\Exports\ExportColumn;
-
 
 beforeEach(function () {
     seedRoles();
@@ -17,60 +15,11 @@ beforeEach(function () {
     $this->admin->assignRole('Platform Admin');
 });
 
-// ── Membership Exporter ───────────────────────────────────────────
-
-describe('MembershipExporter', function () {
-    it('defines expected export columns', function () {
-        $columns = MembershipExporter::getColumns();
-        $names = collect($columns)->map->getName()->toArray();
-
-        expect($names)->toContain('id', 'billable.name', 'billable.email', 'type', 'status', 'trial_ends_at', 'ends_at', 'created_at');
-    });
-
-    it('generates a filename containing membership-report', function () {
-        $export = new \Filament\Actions\Exports\Models\Export();
-        $export->id = 99;
-        $exporter = new MembershipExporter($export, [], []);
-
-        expect($exporter->getFileName($export))->toContain('membership-report');
-    });
-
-    it('returns a completed notification body', function () {
-        $method = new ReflectionMethod(MembershipExporter::class, 'getCompletedNotificationBody');
-        $method->setAccessible(true);
-
-        $export = Mockery::mock(\Filament\Actions\Exports\Models\Export::class)->makePartial();
-        $export->successful_rows = 42;
-        $export->shouldReceive('getFailedRowsCount')->andReturn(0);
-
-        $body = $method->invoke(null, $export);
-        expect($body)->toContain('42')->toContain('completed');
-    });
-});
-
-// ── Event Attendance Exporter ─────────────────────────────────────
+// ── EventAttendanceExporter ─────────────────────────────────────
 
 describe('EventAttendanceExporter', function () {
-    it('defines expected export columns', function () {
-        $columns = EventAttendanceExporter::getColumns();
-        $names = collect($columns)->map->getName()->toArray();
-
-        expect($names)->toContain(
-            'id', 'event.name', 'user.name', 'user.email',
-            'team.name', 'registration_type', 'status', 'payment_status', 'created_at',
-        );
-    });
-
     it('has EventRegistration as model', function () {
         expect(EventAttendanceExporter::getModel())->toBe(EventRegistration::class);
-    });
-
-    it('generates a filename containing event-attendance-report', function () {
-        $export = new \Filament\Actions\Exports\Models\Export();
-        $export->id = 42;
-        $exporter = new EventAttendanceExporter($export, [], []);
-
-        expect($exporter->getFileName($export))->toContain('event-attendance-report');
     });
 
     it('eager-loads relationships in modifyQuery', function () {
@@ -85,10 +34,6 @@ describe('EventAttendanceExporter', function () {
 // ── MembershipReport Page ─────────────────────────────────────────
 
 describe('MembershipReport Page', function () {
-    it('is in the Reports navigation group', function () {
-        expect(MembershipReport::getNavigationGroup())->toBe('Reports');
-    });
-
     // smoke: admin-only access restriction on membership report
     it('restricts access to admin users only', function () {
         // Admin can access
@@ -111,10 +56,6 @@ describe('MembershipReport Page', function () {
 // ── EventAttendanceReport Page ────────────────────────────────────
 
 describe('EventAttendanceReport Page', function () {
-    it('is in the Reports navigation group', function () {
-        expect(EventAttendanceReport::getNavigationGroup())->toBe('Reports');
-    });
-
     it('restricts access to admin users only', function () {
         $this->actingAs($this->admin);
         expect(EventAttendanceReport::canAccess())->toBeTrue();

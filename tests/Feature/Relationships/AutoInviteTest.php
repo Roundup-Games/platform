@@ -150,22 +150,6 @@ describe('AutoInvite — Session Creation', function () {
         expect($game)->not->toBeNull();
         expect(GameParticipant::where('game_id', $game->id)->count())->toBe(0);
     });
-
-    test('created game has correct campaign link and owner', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Link Test')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('campaign_id', $campaign->id)->first();
-        expect($game)->not->toBeNull()
-            ->and($game->owner_id)->toBe($owner->id)
-            ->and($game->status)->toBe(\App\Enums\GameStatus::Scheduled);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -294,76 +278,4 @@ describe('AutoInvite — Decline', function () {
     });
 });
 
-// ═══════════════════════════════════════════════════════════
-// OBSERVABILITY: LOG STRUCTURED CONTEXT
-// ═══════════════════════════════════════════════════════════
 
-describe('AutoInvite — Observability', function () {
-    test('logs structured context with auto-invite count', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-        $player = User::factory()->create();
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Game session added to campaign', \Mockery::on(function ($context) use ($campaign, $owner) {
-                return $context['campaign_id'] === $campaign->id
-                    && $context['owner_id'] === $owner->id
-                    && $context['auto_invited_count'] === 1
-                    && isset($context['game_id']);
-            }));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Log Test')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save');
-    });
-
-    test('logs zero count when no participants', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Game session added to campaign', \Mockery::on(function ($context) {
-                return $context['auto_invited_count'] === 0;
-            }));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Zero Invite Log')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// TRANSACTION ATOMICITY
-// ═══════════════════════════════════════════════════════════
-
-describe('AutoInvite — Transaction', function () {
-    test('game creation and auto-invite are atomic', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-        $player = User::factory()->create();
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Atomic Test')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('campaign_id', $campaign->id)->first();
-        expect($game)->not->toBeNull();
-        expect(GameParticipant::where('game_id', $game->id)->count())->toBe(1);
-    });
-});

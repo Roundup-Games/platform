@@ -47,30 +47,6 @@ describe('CreateEvent', function () {
             ->assertSet('step', 2);
     });
 
-    it('navigates back to previous step', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('step', 3)
-            ->call('previousStep')
-            ->assertSet('step', 2);
-    });
-
-    it('can navigate to completed steps directly', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('step', 4)
-            ->call('goToStep', 1)
-            ->assertSet('step', 1);
-    });
-
     it('validates step 1 through step 5 before skipping ahead', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);

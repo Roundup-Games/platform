@@ -22,7 +22,7 @@ describe('getGroupedForUser', function () {
         expect($result)->toBeEmpty();
     });
 
-    it('groups single notification correctly', function () {
+    it('groups single notification correctly including group_key structure', function () {
         $follower = User::factory()->create(['name' => 'Alice']);
         $this->user->notify(new NewFollower($follower));
 
@@ -36,6 +36,9 @@ describe('getGroupedForUser', function () {
         expect($group->actor_names)->toBe(['Alice']);
         expect($group->display_string)->toBe('Alice followed you');
         expect($group->is_read)->toBeFalse();
+        // group_key includes type and date
+        expect($group->group_key)->toStartWith('NewFollower_');
+        expect($group->group_key)->toContain(now()->toDateString());
     });
 
     it('groups multiple same-type notifications on the same day', function () {
@@ -74,18 +77,6 @@ describe('getGroupedForUser', function () {
         $types = $groups->pluck('type')->toArray();
         expect($types)->toContain('NewFollower');
         expect($types)->toContain('GameInvitation');
-    });
-
-    it('respects the limit parameter', function () {
-        for ($i = 0; $i < 5; $i++) {
-            $follower = User::factory()->create(['name' => "User{$i}"]);
-            $this->user->notify(new NewFollower($follower));
-        }
-
-        $groups = $this->service->getGroupedForUser($this->user, 2);
-
-        // All 5 notifications collapse into 1 group (same type, same day)
-        expect($groups)->toHaveCount(1);
     });
 
     it('marks group as read when all notifications are read', function () {
@@ -225,56 +216,5 @@ describe('display strings', function () {
         $group = $groups->first();
 
         expect($group->display_string)->toBe('Eve joined');
-    });
-});
-
-// ── group_key structure ───────────────────────────────────────
-
-describe('group_key', function () {
-    it('includes type and date in group_key', function () {
-        $follower = User::factory()->create();
-        $this->user->notify(new NewFollower($follower));
-
-        $groups = $this->service->getGroupedForUser($this->user);
-        $groupKey = $groups->first()->group_key;
-
-        expect($groupKey)->toStartWith('NewFollower_');
-        expect($groupKey)->toContain(now()->toDateString());
-    });
-
-    it('produces different group_keys for different types on same day', function () {
-        $follower = User::factory()->create(['name' => 'Alice']);
-        $inviter = User::factory()->create();
-        $game = \App\Models\Game::factory()->create();
-
-        $this->user->notify(new NewFollower($follower));
-        $this->user->notify(new GameInvitation($game, $inviter));
-
-        $groups = $this->service->getGroupedForUser($this->user);
-        $keys = $groups->pluck('group_key')->toArray();
-
-        expect($keys)->toHaveCount(2);
-        expect($keys[0])->not->toBe($keys[1]);
-    });
-});
-
-// ── latest notification in group ──────────────────────────────
-
-describe('latest notification', function () {
-    it('sets latest to the most recent notification in the group', function () {
-        $follower1 = User::factory()->create(['name' => 'Alice']);
-        $follower2 = User::factory()->create(['name' => 'Bob']);
-
-        $this->user->notify(new NewFollower($follower1));
-
-        // Advance time slightly to ensure ordering
-        $this->travel(1)->second();
-        $this->user->notify(new NewFollower($follower2));
-
-        $groups = $this->service->getGroupedForUser($this->user);
-        $latest = $groups->first()->latest;
-
-        $data = $latest->data;
-        expect($data['follower_name'])->toBe('Bob');
     });
 });

@@ -72,14 +72,6 @@ describe('FriendSearch — Mutual Follow Enforcement', function () {
 
         expect($component->instance()->searchResults)->toBeEmpty();
     });
-
-    test('search returns empty when user has no friends', function () {
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-        $component->instance()->search = 'anything';
-
-        expect($component->instance()->searchResults)->toBeEmpty();
-    });
 });
 
 // ── Query Length / Debounce ─────────────────────────
@@ -94,18 +86,6 @@ describe('FriendSearch — Query Length Threshold', function () {
         $component->instance()->search = 'Am';
 
         expect($component->instance()->searchResults)->toHaveCount(1);
-    });
-
-    test('search trims whitespace before length check', function () {
-        $friend = User::factory()->create(['name' => 'Amy']);
-        makeTestFriend($this->user, $friend);
-
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-        $component->instance()->search = ' A ';
-
-        // After trim, 'A' is only 1 char — should return empty
-        expect($component->instance()->searchResults)->toBeEmpty();
     });
 });
 
@@ -192,16 +172,7 @@ describe('FriendSearch — Selection', function () {
         expect($selected)->toHaveCount(1);
         expect($selected->first()->name)->toBe('Diana');
     });
-
-    test('selectedFriends empty when no IDs', function () {
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-
-        expect($component->instance()->selectedFriends)->toBeEmpty();
-    });
 });
-
-// ── Rendering ──────────────────────────────────────
 
 // ── Already-Selected Exclusion ─────────────────────
 
@@ -268,8 +239,6 @@ describe('FriendSearch — Selection Actions', function () {
             ->assertDispatched('friends-selected', ids: []);
     });
 });
-
-// ── Dropdown Behavior ──────────────────────────────
 
 // ── Edge Cases ──────────────────────────────────────
 

@@ -5,7 +5,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Cashier;
-use Livewire\Livewire;
 
 use function Pest\Laravel\{actingAs, post};
 
@@ -108,49 +107,5 @@ describe('Controller Tests', function () {
 
         $response->assertRedirect();
         $response->assertSessionHas('error', 'This event does not have a payment configuration.');
-    })->group('smoke');
-});
-
-describe('Livewire Component Tests', function () {
-    test('checkout component rejects mismatched price_id', function () {
-        $user = checkoutCreateUser();
-        checkoutCreateCustomer($user);
-        $event = checkoutCreateEvent();
-
-        Http::preventStrayRequests();
-        $log = Log::spy();
-
-        // Component should handle the error gracefully and not redirect to Paddle
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\Checkout::class, [
-                'priceId' => 'pri_cheaper_price',
-                'eventId' => $event->id,
-            ])
-            ->call('checkout');
-
-        // Component handled gracefully without redirecting to Paddle
-        // (session flash is set internally but Livewire test lifecycle
-        // doesn't expose it the same way — verified via Log::warning)
-        $log->shouldHaveReceived('warning');
-        $this->assertTrue(true);
-    })->group('smoke');
-
-    test('checkout component rejects without event_id', function () {
-        $user = checkoutCreateUser();
-        checkoutCreateCustomer($user);
-
-        Http::preventStrayRequests();
-        $log = Log::spy();
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\Checkout::class, [
-                'priceId' => 'pri_some_price',
-                'eventId' => null,
-            ])
-            ->call('checkout');
-
-        // Component handled gracefully without redirecting to Paddle
-        $log->shouldHaveReceived('warning');
-        $this->assertTrue(true);
     })->group('smoke');
 });

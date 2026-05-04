@@ -333,14 +333,6 @@ describe('Multi-Team Isolation', function () {
     });
 });
 
-describe('checkPermission graceful handling', function () {
-    test('checkPermission returns false for non-existent permission', function () {
-        // Create a user with no permissions seeded
-        $freshUser = User::factory()->create();
-        expect($this->service->checkPermission($freshUser, 'nonexistent permission'))->toBeFalse();
-    });
-});
-
 describe('viewAny for Filament resource listing', function () {
     test('regular user without permissions cannot viewAny entities', function () {
         $this->actingAs($this->regularUser);

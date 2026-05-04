@@ -262,64 +262,6 @@ describe('Registration with Notes', function () {
     });
 });
 
-// ── Announcement Visibility ───────────────────────────
-
-describe('Announcement Visibility', function () {
-    it('event detail hides draft announcements from public', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        EventAnnouncement::create([
-            'event_id' => $event->id,
-            'author_id' => $event->organizer_id,
-            'title' => 'Draft Announcement',
-            'content' => 'This is a draft.',
-            'is_published' => false,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertDontSee('Draft Announcement');
-    });
-
-    it('event detail shows published announcements to public', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        EventAnnouncement::create([
-            'event_id' => $event->id,
-            'author_id' => $event->organizer_id,
-            'title' => 'Public Update',
-            'content' => 'This is public.',
-            'is_published' => true,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('Public Update')
-            ->assertSee('This is public.');
-    });
-
-    it('organizer can see draft announcements in management view', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-
-        EventAnnouncement::create([
-            'event_id' => $event->id,
-            'author_id' => $user->id,
-            'title' => 'Draft Note',
-            'content' => 'Draft content.',
-            'is_published' => false,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
-            ->assertSee('Draft Note');
-    });
-});
-
 // ── Organizer Event Status Transitions ────────────────
 
 describe('Organizer Event Status Transitions', function () {

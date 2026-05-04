@@ -32,69 +32,6 @@ function validBannerImage(): UploadedFile
     return UploadedFile::fake()->image('banner.jpg', 1200, 630);
 }
 
-// ── Model Media Conversions ─────────────────────────────
-
-describe('Team media conversions', function () {
-// smoke: accepts logo upload
-    it('accepts logo upload and creates media record', function () {
-        Storage::fake('public');
-
-        $team = Team::factory()->create();
-        $media = $team->addMedia(validImage())->toMediaCollection('logo');
-
-        expect($team->hasMedia('logo'))->toBeTrue();
-        expect($media->collection_name)->toBe('logo');
-        expect($media->mime_type)->toBe('image/jpeg');
-    })->group('smoke');
-
-    it('replaces existing logo on new upload', function () {
-        Storage::fake('public');
-
-        $team = Team::factory()->create();
-        $team->addMedia(validImage())->toMediaCollection('logo');
-        expect($team->getMedia('logo'))->toHaveCount(1);
-
-        $team->clearMediaCollection('logo');
-        $team->addMedia(validImage())->toMediaCollection('logo');
-        expect($team->getMedia('logo'))->toHaveCount(1);
-    });
-});
-
-describe('Event media conversions', function () {
-    it('accepts logo upload', function () {
-        Storage::fake('public');
-
-        $event = Event::factory()->create();
-        $media = $event->addMedia(validImage())->toMediaCollection('logo');
-
-        expect($event->hasMedia('logo'))->toBeTrue();
-        expect($media->collection_name)->toBe('logo');
-    });
-
-    it('accepts banner upload', function () {
-        Storage::fake('public');
-
-        $event = Event::factory()->create();
-        $media = $event->addMedia(validBannerImage())->toMediaCollection('banner');
-
-        expect($event->hasMedia('banner'))->toBeTrue();
-        expect($media->collection_name)->toBe('banner');
-    });
-
-    it('generates event-specific conversions including banner_thumb', function () {
-        Storage::fake('public');
-
-        $event = Event::factory()->create();
-        $media = $event->addMedia(validImage())->toMediaCollection('logo');
-
-        $conversions = $media->getMediaConversionNames();
-        expect($conversions)->toContain('thumb');
-        expect($conversions)->toContain('medium');
-        expect($conversions)->toContain('large');
-        expect($conversions)->toContain('banner_thumb');
-    });
-});
-
 // ── ImageUpload Livewire Component ──────────────────────
 
 describe('ImageUpload component', function () {

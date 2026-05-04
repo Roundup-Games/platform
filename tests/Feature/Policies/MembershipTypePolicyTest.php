@@ -39,18 +39,10 @@ describe('MembershipType Policy', function () {
     });
 
     describe('create/update/delete', function () {
-        test('Platform Admin can create membership type', function () {
+        test('Platform Admin can create, update, and delete membership type', function () {
             $this->actingAs($this->admin);
             expect(Gate::allows('create', MembershipType::class))->toBeTrue();
-        })->group('smoke');
-
-        test('Platform Admin can update membership type', function () {
-            $this->actingAs($this->admin);
             expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
-        })->group('smoke');
-
-        test('Platform Admin can delete membership type', function () {
-            $this->actingAs($this->admin);
             expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
         })->group('smoke');
     });

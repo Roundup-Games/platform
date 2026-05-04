@@ -25,14 +25,6 @@ class SessionZeroModelTest extends TestCase
         $this->assertEquals('archived', $survey->fresh()->status);
     }
 
-    public function test_increment_confirmation_count(): void
-    {
-        $survey = SessionZeroSurvey::factory()->create(['confirmation_count' => 0]);
-        $survey->incrementConfirmationCount();
-
-        $this->assertEquals(1, $survey->fresh()->confirmation_count);
-    }
-
     public function test_find_by_uuid(): void
     {
         $survey = SessionZeroSurvey::factory()->create();

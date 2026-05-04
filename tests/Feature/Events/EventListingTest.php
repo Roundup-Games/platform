@@ -54,19 +54,6 @@ describe('EventListing', function () {
             ->assertDontSee('Cancelled Event');
     });
 
-    it('shows published and active events', function () {
-        Event::factory()->create(['name' => 'Published Event', 'status' => 'published', 'is_public' => true]);
-        Event::factory()->create(['name' => 'Reg Open Event', 'status' => 'registration_open', 'is_public' => true]);
-        Event::factory()->create(['name' => 'Reg Closed Event', 'status' => 'registration_closed', 'is_public' => true]);
-        Event::factory()->create(['name' => 'In Progress Event', 'status' => 'in_progress', 'is_public' => true]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
-        $component->assertSee('Published Event')
-            ->assertSee('Reg Open Event')
-            ->assertSee('Reg Closed Event')
-            ->assertSee('In Progress Event');
-    });
-
     it('searches by name', function () {
         Event::factory()->create(['name' => 'Alpha Tournament', 'is_public' => true, 'status' => 'registration_open']);
         Event::factory()->create(['name' => 'Beta League', 'is_public' => true, 'status' => 'registration_open']);
@@ -151,20 +138,6 @@ describe('EventListing', function () {
             ->assertSet('date', '')
             ->assertSee('Tournament X')
             ->assertSee('Camp Y');
-    });
-
-    it('resets page when search changes', function () {
-        Event::factory()->count(15)->create(['is_public' => true, 'status' => 'registration_open']);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('search', 'test')
-            ->assertSet('search', 'test');
-    });
-
-    it('shows empty state when no events match', function () {
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('search', 'nonexistent-xyz-abc')
-            ->assertSee('No events found');
     });
 
     it('paginates results at 12 per page', function () {

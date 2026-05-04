@@ -50,21 +50,19 @@ describe('log()', function () {
     });
 
     it('returns null when logging fails', function () {
-        Log::spy();
-
-        // Drop the activity_logs table to force a real DB error
-        DB::statement('DROP TABLE activity_logs');
-
-        $result = $this->service->log(ActivityType::ReviewReceived, $this->user);
-
-        expect($result)->toBeNull();
-
-        Log::shouldHaveReceived('warning')
+        Log::shouldReceive('warning')
             ->once()
             ->with('Activity log write failed', \Mockery::on(fn ($ctx) =>
                 $ctx['event_type'] === 'review_received'
                 && $ctx['user_id'] === $this->user->id
             ));
+
+        // Add a CHECK constraint that always rejects inserts, forcing a real DB error
+        DB::statement("ALTER TABLE activity_logs ADD CONSTRAINT test_fail_check CHECK (event_type != 'review_received')");
+
+        $result = $this->service->log(ActivityType::ReviewReceived, $this->user);
+
+        expect($result)->toBeNull();
     });
 });
 

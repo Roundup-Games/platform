@@ -103,11 +103,14 @@ class PeopleDiscoveryServiceTest extends TestCase
     public function it_excludes_self_from_results()
     {
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        // Add a second user so the result set isn't empty
+        $other = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
-        // Same location as viewer
         $results = $this->discover($viewer, self::LAT, self::LNG);
 
-        $this->assertEquals(0, $results->total());
+        $ids = collect($results->items())->pluck('user.id');
+        $this->assertFalse($ids->contains($viewer->id), 'Self should be excluded');
+        $this->assertTrue($ids->contains($other->id), 'Other user should be present');
     }
 
     #[Test]
@@ -384,45 +387,22 @@ class PeopleDiscoveryServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_includes_distance_km_in_results()
+    public function it_finds_users_in_same_geohash_tile_with_distance_and_tier()
     {
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
         $results = $this->discover($viewer, self::LAT, self::LNG);
-        $items = $results->items();
 
-        $found = false;
-        foreach ($items as $item) {
-            if ($item['user']->id === $candidate->id) {
-                $found = true;
-                $this->assertIsFloat($item['distance_km']);
-                $this->assertGreaterThan(0, $item['distance_km']);
-                $this->assertLessThan(1, $item['distance_km']);
-            }
-        }
-
-        $this->assertTrue($found);
-    }
-
-    #[Test]
-    public function it_includes_tier_in_results()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        $results = $this->discover($viewer, self::LAT, self::LNG);
-        $items = $results->items();
-
-        $found = false;
-        foreach ($items as $item) {
-            if ($item['user']->id === $candidate->id) {
-                $found = true;
-                $this->assertEquals(1, $item['tier']);
-            }
-        }
-
-        $this->assertTrue($found);
+        $this->assertEquals(1, $results->total());
+        $item = $results->items()[0];
+        $this->assertEquals($candidate->id, $item['user']->id);
+        // distance_km is a positive float < 1km
+        $this->assertIsFloat($item['distance_km']);
+        $this->assertGreaterThan(0, $item['distance_km']);
+        $this->assertLessThan(1, $item['distance_km']);
+        // tier is 1 (same geohash tile)
+        $this->assertEquals(1, $item['tier']);
     }
 
     // ── Pagination ──
@@ -471,18 +451,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         }
 
         $this->assertTrue($found, 'Candidate with no preferences should still appear');
-    }
-
-    #[Test]
-    public function it_finds_users_in_same_geohash_tile()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        $results = $this->discover($viewer, self::LAT, self::LNG);
-
-        $this->assertEquals(1, $results->total());
-        $this->assertEquals($candidate->id, $results->items()[0]['user']->id);
     }
 
     // ── No-location viewer ──

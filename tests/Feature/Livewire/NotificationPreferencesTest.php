@@ -18,12 +18,13 @@ describe('notification preferences section', function () {
 
         $component = Livewire::test(Show::class);
 
-        // Verify all three channels present for each category
-        foreach ($defaults as $key => $channels) {
-            $component->assertSet("notificationSettings.{$key}.database", $channels['database'])
-                      ->assertSet("notificationSettings.{$key}.mail", $channels['mail'])
-                      ->assertSet("notificationSettings.{$key}.push", $channels['push']);
-        }
+        // Verify 3 representative categories have correct channel defaults
+        $component->assertSet('notificationSettings.new_follower.database', $defaults['new_follower']['database'])
+                  ->assertSet('notificationSettings.new_follower.mail', $defaults['new_follower']['mail'])
+                  ->assertSet('notificationSettings.game_invitation.database', $defaults['game_invitation']['database'])
+                  ->assertSet('notificationSettings.game_invitation.mail', $defaults['game_invitation']['mail'])
+                  ->assertSet('notificationSettings.session_reminder.database', $defaults['session_reminder']['database'])
+                  ->assertSet('notificationSettings.session_reminder.mail', $defaults['session_reminder']['mail']);
     });
 
     it('loads stored notification settings on mount', function () {

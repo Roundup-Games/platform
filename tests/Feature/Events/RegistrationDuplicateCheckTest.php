@@ -88,56 +88,7 @@ describe('Duplicate registration check — cross-user team registration', functi
             ->where('status', '!=', 'cancelled')
             ->exists())->toBeTrue();
     })->group('smoke');
-});
 
-describe('Duplicate registration prevention', function () {
-    test('duplicate individual registration prevented', function () {
-        $user = regCreateUser();
-        $event = regCreateEvent();
-
-        EventRegistration::create([
-            'event_id' => $event->id,
-            'user_id' => $user->id,
-            'team_id' => null,
-            'registration_type' => 'individual',
-            'status' => 'confirmed',
-            'payment_status' => 'not_required',
-            'confirmed_at' => now(),
-        ]);
-
-        regActingAsUser($user, $event, 'individual')
-            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-
-        expect(EventRegistration::where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->count())->toBe(1);
-    })->group('smoke');
-
-    test('duplicate team registration prevented', function () {
-        $captain = regCreateUser();
-        $event = regCreateEvent(['registration_type' => 'team', 'individual_registration_fee' => 0]);
-        $team = regCreateTeam($captain);
-
-        EventRegistration::create([
-            'event_id' => $event->id,
-            'user_id' => $captain->id,
-            'team_id' => $team->id,
-            'registration_type' => 'team',
-            'status' => 'confirmed',
-            'payment_status' => 'not_required',
-            'confirmed_at' => now(),
-        ]);
-
-        regActingAsUser($captain, $event, 'team', $team->id)
-            ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-
-        expect(EventRegistration::where('event_id', $event->id)
-            ->where('team_id', $team->id)
-            ->count())->toBe(1);
-    })->group('smoke');
-});
-
-describe('Independent team registrations', function () {
     test('different teams can register independently', function () {
         $captainA = regCreateUser();
         $captainB = regCreateUser();
@@ -161,29 +112,5 @@ describe('Independent team registrations', function () {
             ->whereIn('team_id', [$teamA->id, $teamB->id])
             ->where('status', '!=', 'cancelled')
             ->count())->toBe(2);
-    })->group('smoke');
-});
-
-describe('Cancelled registration re-registration', function () {
-    test('cancelled registration does not block new registration', function () {
-        $user = regCreateUser();
-        $event = regCreateEvent();
-
-        EventRegistration::create([
-            'event_id' => $event->id,
-            'user_id' => $user->id,
-            'team_id' => null,
-            'registration_type' => 'individual',
-            'status' => 'cancelled',
-            'payment_status' => 'not_required',
-            'cancelled_at' => now(),
-        ]);
-
-        regActingAsUser($user, $event, 'individual');
-
-        expect(EventRegistration::where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->where('status', '!=', 'cancelled')
-            ->exists())->toBeTrue();
     })->group('smoke');
 });

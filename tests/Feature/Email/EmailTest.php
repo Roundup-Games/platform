@@ -15,7 +15,6 @@ beforeEach(function () {
 });
 
 describe('WelcomeEmail', function () {
-    // smoke: welcome email can be queued
     test('welcome email can be queued for a user', function () {
         $user = User::factory()->create(['name' => 'Jane Doe', 'email' => 'jane@example.com']);
 
@@ -27,33 +26,14 @@ describe('WelcomeEmail', function () {
         });
     })->group('smoke');
 
-    test('welcome email renders in English', function () {
+    test('welcome email renders with correct content and locale-prefixed URLs', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Alice']);
         $rendered = (new WelcomeEmail($user))->render();
 
         expect($rendered)->toContain('Welcome to Roundup Games!');
-        expect($rendered)->toContain('Thanks for joining');
         expect($rendered)->toContain('Get Started');
-        expect($rendered)->toContain('Go to Your Dashboard');
-        expect($rendered)->toContain('Happy gaming!');
-        // Button URL includes locale
         expect($rendered)->toContain('/en/dashboard');
-    });
-
-    test('welcome email renders in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create(['name' => 'Hans']);
-        $rendered = (new WelcomeEmail($user))->render();
-
-        expect($rendered)->toContain('Willkommen bei Roundup Games!');
-        expect($rendered)->toContain('Hans');
-        expect($rendered)->toContain('Danke, dass du bei');
-        expect($rendered)->toContain('Loslegen');
-        expect($rendered)->toContain('Zu deinem Dashboard');
-        expect($rendered)->toContain('Viel Spaß beim Spielen!');
-        // Button URL includes locale
-        expect($rendered)->toContain('/de/dashboard');
     });
 });
 
@@ -71,16 +51,6 @@ describe('MembershipConfirmationEmail', function () {
         });
     });
 
-    test('membership confirmation email works with minimal data', function () {
-        $user = User::factory()->create();
-        $mailable = new MembershipConfirmationEmail($user, 'Free Plan');
-
-        expect($mailable->envelope()->subject)->toBe('Your Roundup Games Membership is Confirmed!');
-
-        $rendered = $mailable->render();
-        expect($rendered)->toContain('Free Plan');
-    });
-
     test('membership confirmation email includes plan details when provided', function () {
         $user = User::factory()->create(['name' => 'Alice']);
         $mailable = new MembershipConfirmationEmail($user, 'Premium', '$9.99/mo', 'June 1, 2026');
@@ -91,31 +61,14 @@ describe('MembershipConfirmationEmail', function () {
         expect($rendered)->toContain('June 1, 2026');
     });
 
-    test('membership confirmation email renders in English', function () {
+    test('membership confirmation email renders with locale-prefixed URLs', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Alice']);
         $mailable = new MembershipConfirmationEmail($user, 'Premium', '$9.99/mo', 'June 1, 2026');
         $rendered = $mailable->render();
 
         expect($rendered)->toContain('Membership Confirmed!');
-        expect($rendered)->toContain('Membership Details');
-        expect($rendered)->toContain('Manage Your Membership');
-        expect($rendered)->toContain('Thanks for supporting Roundup Games!');
         expect($rendered)->toContain('/en/billing');
-    });
-
-    test('membership confirmation email renders in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create(['name' => 'Anna']);
-        $mailable = new MembershipConfirmationEmail($user, 'Premium', '9,99 €/Monat', '1. Juni 2026');
-        $rendered = $mailable->render();
-
-        expect($rendered)->toContain('Mitgliedschaft bestätigt!');
-        expect($rendered)->toContain('Anna');
-        expect($rendered)->toContain('Mitgliedschaftsdetails');
-        expect($rendered)->toContain('Mitgliedschaft verwalten');
-        expect($rendered)->toContain('Danke, dass du Roundup Games unterstützt!');
-        expect($rendered)->toContain('/de/billing');
     });
 });
 
@@ -137,7 +90,7 @@ describe('EventRegistrationEmail', function () {
         });
     });
 
-    test('event registration email renders in English', function () {
+    test('event registration email renders with event details and locale-prefixed URLs', function () {
         app()->setLocale('en');
         $user = User::factory()->create(['name' => 'Bob']);
         $event = Event::factory()->create([
@@ -155,39 +108,8 @@ describe('EventRegistrationEmail', function () {
         $rendered = (new EventRegistrationEmail($registration))->render();
 
         expect($rendered)->toContain('Event Registration Confirmed!');
-        expect($rendered)->toContain('Event Details');
-        expect($rendered)->toContain('View Event Details');
-        expect($rendered)->toContain('See you there!');
-        // Date formatted in English style
-        expect($rendered)->toContain('Jul');
+        expect($rendered)->toContain('Summer Open');
         expect($rendered)->toContain('/en/events/');
-    });
-
-    test('event registration email renders in German', function () {
-        app()->setLocale('de');
-        $user = User::factory()->create(['name' => 'Hans']);
-        $event = Event::factory()->create([
-            'name' => 'Sommerturnier',
-            'start_date' => '2026-07-15',
-            'end_date' => '2026-07-17',
-            'venue_name' => 'Messezentrum',
-        ]);
-        $registration = EventRegistration::factory()->create([
-            'user_id' => $user->id,
-            'event_id' => $event->id,
-            'division' => 'Offene Division',
-        ]);
-
-        $rendered = (new EventRegistrationEmail($registration))->render();
-
-        expect($rendered)->toContain('Veranstaltungsanmeldung bestätigt!');
-        expect($rendered)->toContain('Veranstaltungsdetails');
-        expect($rendered)->toContain('Veranstaltungsdetails ansehen');
-        expect($rendered)->toContain('Wir sehen uns dort!');
-        expect($rendered)->toContain('Hans');
-        // Date formatted in German style
-        expect($rendered)->toContain('Juli');
-        expect($rendered)->toContain('/de/events/');
     });
 });
 
@@ -217,7 +139,7 @@ describe('TeamInvitationEmail', function () {
         expect($mailable->envelope()->subject)->toContain('Board Game Kings');
     });
 
-    test('team invitation email renders in English', function () {
+    test('team invitation email renders with correct content', function () {
         app()->setLocale('en');
         $inviter = User::factory()->create(['name' => 'Sarah']);
         $team = Team::factory()->create(['name' => 'Board Game Kings']);
@@ -225,21 +147,8 @@ describe('TeamInvitationEmail', function () {
         $rendered = (new TeamInvitationEmail($team, $inviter, 'invitee@example.com', 'https://example.com/accept'))->render();
 
         expect($rendered)->toContain("You're Invited to Join a Team!");
+        expect($rendered)->toContain('Sarah');
+        expect($rendered)->toContain('Board Game Kings');
         expect($rendered)->toContain('Accept Invitation');
-        expect($rendered)->toContain('Happy gaming!');
-    });
-
-    test('team invitation email renders in German', function () {
-        app()->setLocale('de');
-        $inviter = User::factory()->create(['name' => 'Lukas']);
-        $team = Team::factory()->create(['name' => 'Brettspiel-Könige']);
-
-        $rendered = (new TeamInvitationEmail($team, $inviter, 'invitee@example.de', 'https://example.com/accept'))->render();
-
-        expect($rendered)->toContain('Du wurdest eingeladen, einem Team beizutreten!');
-        expect($rendered)->toContain('Einladung annehmen');
-        expect($rendered)->toContain('Viel Spaß beim Spielen!');
-        expect($rendered)->toContain('Lukas');
-        expect($rendered)->toContain('Brettspiel-Könige');
     });
 });

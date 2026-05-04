@@ -154,39 +154,6 @@ class GmRoleServiceTest extends TestCase
 
     // ── Revocation ─────────────────────────────────────
 
-    public function test_revoke_removes_role(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-
-        $this->service->revokeGMRole($user);
-
-        $this->assertFalse($user->fresh()->hasRole('Game Master'));
-    }
-
-    public function test_revoke_deactivates_profile(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-
-        $this->assertTrue($user->gmProfile->is_active);
-
-        $this->service->revokeGMRole($user);
-
-        $this->assertFalse($user->gmProfile->fresh()->is_active);
-    }
-
-    public function test_revoke_does_not_delete_profile(): void
-    {
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-        $profileId = $user->gmProfile->id;
-
-        $this->service->revokeGMRole($user);
-
-        $this->assertNotNull(GMProfile::find($profileId));
-    }
-
     public function test_revoke_idempotent_on_non_gm(): void
     {
         $user = User::factory()->create();

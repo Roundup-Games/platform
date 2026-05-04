@@ -262,21 +262,13 @@ describe('GamesPage — Games I\'m In Display', function () {
             'status' => 'pending',
         ]);
 
-        $response = actingAs($user)->get('/en/games');
-        $content = $response->getContent();
+        // Verify pending participation does not show as approved via component state
+        $component = Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\GamesPage::class);
 
-        // Find the Games I'm In section and verify the game is not there
-        $heading = __('games.heading_games_im_in');
-        $escapedHeading = htmlspecialchars($heading, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $pos = strpos($content, $heading) ?: strpos($content, $escapedHeading);
-        expect($pos)->not->toBeFalse('Games I\'m In section heading should be present');
-
-        $sectionContent = substr($content, $pos);
-        $nextSection = strpos($sectionContent, '<section>');
-        if ($nextSection !== false) {
-            $sectionContent = substr($sectionContent, 0, $nextSection);
-        }
-        expect($sectionContent)->not->toContain('Pending Game');
+        // The participatingGames view data should only return approved participations
+        $participatingGames = $component->viewData('participatingGames');
+        expect($participatingGames->pluck('id'))->not->toContain($game->id);
     });
 
     it('does not show invited games in Games I\'m In section', function () {
@@ -292,17 +284,11 @@ describe('GamesPage — Games I\'m In Display', function () {
         ]);
 
         // Invited games appear in Open Invitations, not in Games I'm In
-        $response = actingAs($user)->get('/en/games');
-        $content = $response->getContent();
+        $component = Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Games\GamesPage::class);
 
-        // Find the Games I'm In section and ensure the game is NOT there
-        $gamesImInSection = substr($content, strpos($content, 'Games I&#039;m In') ?: strpos($content, "Games I'm In"));
-        $nextSection = strpos($gamesImInSection, '<section>');
-        if ($nextSection !== false) {
-            $gamesImInSection = substr($gamesImInSection, 0, $nextSection);
-        }
-
-        expect($gamesImInSection)->not->toContain('Invited Only Game');
+        $participatingGames = $component->viewData('participatingGames');
+        expect($participatingGames->pluck('id'))->not->toContain($game->id);
     });
 
 

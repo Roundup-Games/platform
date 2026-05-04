@@ -45,23 +45,27 @@ class NearbyPeopleTest extends TestCase
 
     // ── Nearby tab rendering ────────────────────────
 
-    // smoke: nearby tab renders
+    // smoke: nearby tab shows no-location state then falls back to guest location
     #[Group('smoke')]
-    public function test_nearby_tab_is_accessible(): void
+    public function test_nearby_tab_shows_no_location_state_then_falls_back_to_guest_location(): void
     {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class)
-            ->set('activeTab', 'nearby')
-            ->assertSet('activeTab', 'nearby');
-    }
-
-    public function test_nearby_tab_shows_no_location_state_when_user_has_no_location(): void
-    {
-        // User with no location_id and no guest location
-        Livewire::actingAs($this->user)
+        // User with no location_id and no guest location → noLocation = true
+        $component = Livewire::actingAs($this->user)
             ->test(\App\Livewire\People\PeoplePage::class)
             ->set('activeTab', 'nearby')
             ->assertSet('nearbyUsers.noLocation', true);
+
+        // Now set guest location — should fall back to it
+        $nearby = $this->createUserWithLinkedLocation(48.1351 + 0.001, 11.5820, ['name' => 'Guest Nearby']);
+
+        $component->call('onGuestLocationUpdated', 48.1351, 11.5820, 'test');
+        $component->set('activeTab', 'nearby');
+
+        $nearbyUsers = $component->get('nearbyUsers');
+        $this->assertFalse($nearbyUsers['noLocation']);
+        $this->assertEquals('ok', $nearbyUsers['status']);
+        $ids = collect($nearbyUsers['results']->items())->pluck('user_id');
+        $this->assertTrue($ids->contains($nearby->id));
     }
 
     // smoke: nearby shows results with linked location
@@ -119,28 +123,6 @@ class NearbyPeopleTest extends TestCase
         // Should find the user near linked location (Berlin), not near guest location (Munich)
         $this->assertTrue($ids->contains($nearbyLinked->id), 'Should find candidate near linked location');
         $this->assertFalse($ids->contains($nearbyGuest->id), 'Should not find candidate near guest location');
-    }
-
-    public function test_nearby_tab_falls_back_to_guest_location(): void
-    {
-        // User without a linked location
-        $this->assertNull($this->user->location_id);
-
-        // Create a candidate near the guest location
-        $nearby = $this->createUserWithLinkedLocation(48.1351 + 0.001, 11.5820, ['name' => 'Guest Nearby']);
-
-        $component = Livewire::actingAs($this->user)
-            ->test(\App\Livewire\People\PeoplePage::class);
-
-        // Set guest location to Munich
-        $component->call('onGuestLocationUpdated', 48.1351, 11.5820, 'test');
-        $component->set('activeTab', 'nearby');
-
-        $nearbyUsers = $component->get('nearbyUsers');
-        $this->assertFalse($nearbyUsers['noLocation']);
-        $this->assertEquals('ok', $nearbyUsers['status']);
-        $ids = collect($nearbyUsers['results']->items())->pluck('user_id');
-        $this->assertTrue($ids->contains($nearby->id));
     }
 
     // ── followFromNearby action ──────────────────────

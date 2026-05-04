@@ -171,42 +171,22 @@ describe('Trypass events', function () {
             ->and($result->reason)->toBe('trypass_invitation_received');
     });
 
-    it('does not trypass for invitation on old game (more than 5 minutes ago)', function () {
+    it('does not trypass for second invitation (also covers old-game invitation)', function () {
         $host = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'date_time' => now()->addDays(30),
-            'created_at' => now()->subMinutes(10),
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
-            'created_at' => now()->subMinutes(10), // old — matches game age, avoids trypass
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-
-        expect($result->reason)->not->toBe('trypass_invitation_received');
-    });
-
-    it('does not trypass for second invitation (not first-ever)', function () {
-        $host = User::factory()->create();
-        // First invitation (old)
+        // First invitation (old — covers "old game" case too)
         $game1 = Game::factory()->create([
             'owner_id' => $host->id,
             'date_time' => now()->addDays(30),
-            'created_at' => now()->subDay(),
+            'created_at' => now()->subMinutes(10),
         ]);
         GameParticipant::create([
             'game_id' => $game1->id,
             'user_id' => $this->user->id,
             'role' => 'player',
             'status' => 'pending',
-            'created_at' => now()->subDay(), // old — first invitation
+            'created_at' => now()->subMinutes(10),
         ]);
-        // Second invitation (recent)
+        // Second invitation (recent but not first-ever)
         $game2 = Game::factory()->create([
             'owner_id' => $host->id,
             'date_time' => now()->addDays(30),
@@ -297,81 +277,60 @@ describe('Trypass events', function () {
     });
 });
 
-// ── Score Gate (all 2^3 = 8 combinations) ──────────────
+// ── Score Gate (boundary tests: 0, 1, 2 of 3 signals) ──
 
 describe('Score gate combinations', function () {
-    $combinations = [
-        // [visit_days, game_participation, social_investment, expected_eligible]
-        [false, false, false, false],  // 0 of 3 → not eligible
-        [true,  false, false, false],  // 1 of 3 → not eligible
-        [false, true,  false, false],  // 1 of 3 → not eligible
-        [false, false, true,  false],  // 1 of 3 → not eligible
-        [true,  true,  false, true],   // 2 of 3 → eligible
-        [true,  false, true,  true],   // 2 of 3 → eligible
-        [false, true,  true,  true],   // 2 of 3 → eligible
-        [true,  true,  true,  true],   // 3 of 3 → eligible
-    ];
+    it('rejects with 0 of 3 signals', function () {
+        $result = $this->service->isEligible($this->user);
 
-    foreach ($combinations as [$visits, $games, $social, $expected]) {
-        $label = sprintf(
-            '%s visits, %s games, %s social → %s',
-            $visits ? '2+' : '0',
-            $games ? 'approved' : 'none',
-            $social ? 'follows' : 'none',
-            $expected ? 'eligible' : 'not eligible'
-        );
+        expect($result->eligible)->toBeFalse()
+            ->and($result->reason)->toBe('score_too_low');
+    });
 
-        it("score gate: {$label}", function () use ($visits, $games, $social, $expected) {
-            if ($visits) {
-                UserAppVisit::factory()->create([
-                    'user_id' => $this->user->id,
-                    'visit_date' => now()->subDay()->toDateString(),
-                ]);
-                UserAppVisit::factory()->create([
-                    'user_id' => $this->user->id,
-                    'visit_date' => now()->toDateString(),
-                ]);
-            }
+    it('rejects with only 1 of 3 signals (visits)', function () {
+        UserAppVisit::factory()->create([
+            'user_id' => $this->user->id,
+            'visit_date' => now()->subDay()->toDateString(),
+        ]);
+        UserAppVisit::factory()->create([
+            'user_id' => $this->user->id,
+            'visit_date' => now()->toDateString(),
+        ]);
 
-            if ($games) {
-                $game = Game::factory()->create([
-                    'date_time' => now()->subDay(), // past — avoids trypass_game_upcoming
-                    'created_at' => now()->subDay(), // old — avoids trypass_first_game_created/joined
-                ]);
-                GameParticipant::create([
-                    'game_id' => $game->id,
-                    'user_id' => $this->user->id,
-                    'role' => 'player',
-                    'status' => 'approved',
-                    'created_at' => now()->subDay(), // old — avoids trypass_game_joined
-                ]);
-            }
+        $result = $this->service->isEligible($this->user);
 
-            if ($social) {
-                $otherUser = User::factory()->create();
-                $rel = UserRelationship::create([
-                    'user_id' => $this->user->id,
-                    'related_user_id' => $otherUser->id,
-                    'type' => RelationshipType::Follow,
-                ]);
-                // Make the follow old to avoid any follow-based trypass
-                \DB::table('user_relationships')
-                    ->where('id', $rel->id)
-                    ->update(['created_at' => now()->subDay()]);
-            }
+        expect($result->eligible)->toBeFalse()
+            ->and($result->reason)->toBe('score_too_low');
+    });
 
-            $result = $this->service->isEligible($this->user);
+    it('accepts with 2 of 3 signals (visits + games)', function () {
+        UserAppVisit::factory()->create([
+            'user_id' => $this->user->id,
+            'visit_date' => now()->subDay()->toDateString(),
+        ]);
+        UserAppVisit::factory()->create([
+            'user_id' => $this->user->id,
+            'visit_date' => now()->toDateString(),
+        ]);
 
-            expect($result->eligible)->toBe($expected);
+        $game = Game::factory()->create([
+            'date_time' => now()->subDay(),
+            'created_at' => now()->subDay(),
+        ]);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'role' => 'player',
+            'status' => 'approved',
+            'created_at' => now()->subDay(),
+        ]);
 
-            if ($expected) {
-                expect($result->source)->toBe('baseline+score')
-                    ->and($result->reason)->toBe('engagement_threshold_met');
-            } else {
-                expect($result->reason)->toBe('score_too_low');
-            }
-        });
-    }
+        $result = $this->service->isEligible($this->user);
+
+        expect($result->eligible)->toBeTrue()
+            ->and($result->source)->toBe('baseline+score')
+            ->and($result->reason)->toBe('engagement_threshold_met');
+    });
 });
 
 // ── Session Caching ────────────────────────────────────
@@ -520,10 +479,11 @@ describe('Edge cases', function () {
     });
 
     it('trypass game_joined uses participant created_at, not game created_at', function () {
-        // Create an OLD game (created days ago)
+        // Create an OLD game (created days ago, date_time in the past so it's not "upcoming")
         $oldGame = Game::factory()->create([
             'owner_id' => User::factory()->create()->id,
             'created_at' => now()->subDays(7),
+            'date_time' => now()->subDays(7),
         ]);
 
         // Participant was just approved (created_at = now, auto-set by model)

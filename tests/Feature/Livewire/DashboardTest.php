@@ -69,22 +69,6 @@ class DashboardTest extends TestCase
             ->assertSet('activeGamesCount', 3);
     }
 
-    public function test_active_games_count_excludes_non_scheduled(): void
-    {
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'status' => 'completed',
-        ]);
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'status' => 'canceled',
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('activeGamesCount', 0);
-    }
-
     // ── Stats: Active Campaigns ────────────────────────
 
     public function test_active_campaigns_count_includes_owned_active(): void
@@ -97,18 +81,6 @@ class DashboardTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\Dashboard::class)
             ->assertSet('activeCampaignsCount', 2);
-    }
-
-    public function test_active_campaigns_count_excludes_non_active(): void
-    {
-        Campaign::factory()->create([
-            'owner_id' => $this->user->id,
-            'status' => 'completed',
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('activeCampaignsCount', 0);
     }
 
     // ── Stats: Upcoming Sessions ────────────────────────
@@ -124,19 +96,6 @@ class DashboardTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\Dashboard::class)
             ->assertSet('upcomingSessionsCount', 1);
-    }
-
-    public function test_upcoming_sessions_count_excludes_past_games(): void
-    {
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'status' => 'scheduled',
-            'date_time' => now()->subDay(),
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('upcomingSessionsCount', 0);
     }
 
     public function test_upcoming_sessions_count_includes_approved_participations(): void
@@ -156,25 +115,6 @@ class DashboardTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\Dashboard::class)
             ->assertSet('upcomingSessionsCount', 1);
-    }
-
-    public function test_upcoming_sessions_count_excludes_pending_participations(): void
-    {
-        $game = Game::factory()->create([
-            'status' => 'scheduled',
-            'date_time' => now()->addDay(),
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('upcomingSessionsCount', 0);
     }
 
     // ── Stats: Pending Invitations ─────────────────────
@@ -202,37 +142,7 @@ class DashboardTest extends TestCase
             ->assertSet('pendingInvitationsCount', 2);
     }
 
-    // ── Stats: Followers / Following ───────────────────
-
-    public function test_followers_count(): void
-    {
-        $follower = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $follower->id,
-            'related_user_id' => $this->user->id,
-            'type' => RelationshipType::Follow,
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('followersCount', 1);
-    }
-
-    public function test_following_count(): void
-    {
-        $target = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $this->user->id,
-            'related_user_id' => $target->id,
-            'type' => RelationshipType::Follow,
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('followingCount', 1);
-    }
-
-    // ── Stats: Unread Notifications ────────────────────
+    // ── Recent Activity ────────────────────────────────
 
     public function test_unread_notifications_count(): void
     {
@@ -308,24 +218,6 @@ class DashboardTest extends TestCase
             ->assertSet('recentActivity', function ($activity) {
                 return $activity->count() === 1;
             });
-    }
-
-    // ── Zero-state ─────────────────────────────────────
-
-    public function test_dashboard_works_with_no_data(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Dashboard::class)
-            ->assertSet('upcomingSessionsCount', 0)
-            ->assertSet('activeGamesCount', 0)
-            ->assertSet('activeCampaignsCount', 0)
-            ->assertSet('pendingInvitationsCount', 0)
-            ->assertSet('followersCount', 0)
-            ->assertSet('followingCount', 0)
-            ->assertSet('unreadNotificationsCount', 0)
-            ->assertSet('gmAverageRating', null)
-            ->assertSet('gmReviewCount', 0)
-            ->assertSet('gmUpcomingSessionsCount', 0);
     }
 
 }

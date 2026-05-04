@@ -213,46 +213,35 @@ class GmDirectoryTest extends TestCase
 
     // ── Sort ───────────────────────────────────────────
 
-    public function test_sort_by_highest_rated_default(): void
+    public function test_sort_order_uses_query_not_html_position(): void
     {
-        $gm1 = $this->createActiveGm([], ['average_rating' => 3.00, 'review_count' => 1]);
-        $gm2 = $this->createActiveGm([], ['average_rating' => 4.90, 'review_count' => 10]);
+        $gm1 = $this->createActiveGm(['name' => 'Low Rated'], ['average_rating' => 3.00, 'review_count' => 1]);
+        $gm2 = $this->createActiveGm(['name' => 'High Rated'], ['average_rating' => 4.90, 'review_count' => 10]);
+        $gm3 = $this->createActiveGm(['name' => 'Mid Rated'], ['average_rating' => 4.00, 'review_count' => 5]);
 
-        $response = $this->get('/en/gms');
+        // Default sort (highest_rated) via Livewire component — verify view data order
+        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class);
+        $gms = $component->viewData('results');
 
-        $content = $response->getContent();
-        $pos1 = strpos($content, $gm1->name);
-        $pos2 = strpos($content, $gm2->name);
-        // Higher rated GM should appear first
-        $this->assertNotFalse($pos1);
-        $this->assertNotFalse($pos2);
-        $this->assertLessThan($pos1, $pos2);
-    }
+        // Results should be ordered by rating descending (compare by user_id since results are GMProfiles)
+        $userIds = $gms->pluck('user_id')->toArray();
+        expect($userIds)->toBe([$gm2->id, $gm3->id, $gm1->id]);
 
-    public function test_sort_by_most_reviewed(): void
-    {
-        $gm1 = $this->createActiveGm([], ['review_count' => 2, 'average_rating' => 5.00]);
-        $gm2 = $this->createActiveGm([], ['review_count' => 50, 'average_rating' => 3.00]);
+        // Sort by most_reviewed
+        $component->set('sortBy', 'most_reviewed')->assertSuccessful();
+        $gms = $component->viewData('results');
+        $userIds = $gms->pluck('user_id')->toArray();
+        expect($userIds)->toBe([$gm2->id, $gm3->id, $gm1->id]);
 
-        $response = $this->get('/en/gms?sort=most_reviewed');
+        // Sort by newest
+        $gm1->gmProfile->forceFill(['created_at' => now()->subDays(30)])->saveQuietly();
+        $gm2->gmProfile->forceFill(['created_at' => now()])->saveQuietly();
+        $gm3->gmProfile->forceFill(['created_at' => now()->subDays(5)])->saveQuietly();
 
-        $content = $response->getContent();
-        $pos1 = strpos($content, $gm1->name);
-        $pos2 = strpos($content, $gm2->name);
-        $this->assertLessThan($pos1, $pos2);
-    }
-
-    public function test_sort_by_newest(): void
-    {
-        $gm1 = $this->createActiveGm([], ['created_at' => now()->subDays(30)]);
-        $gm2 = $this->createActiveGm([], ['created_at' => now()]);
-
-        $response = $this->get('/en/gms?sort=newest');
-
-        $content = $response->getContent();
-        $pos1 = strpos($content, $gm1->name);
-        $pos2 = strpos($content, $gm2->name);
-        $this->assertLessThan($pos1, $pos2);
+        $component->set('sortBy', 'newest')->assertSuccessful();
+        $gms = $component->viewData('results');
+        $userIds = $gms->pluck('user_id')->toArray();
+        expect($userIds)->toBe([$gm2->id, $gm3->id, $gm1->id]);
     }
 
     // ── Non-active GMs Hidden ──────────────────────────

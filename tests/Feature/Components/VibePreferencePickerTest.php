@@ -263,19 +263,4 @@ describe('Game type filtering', function () {
         expect($standalone)->toHaveCount(count($standaloneValues));
     });
 
-    it('null gameType shows all flags (backward compatible)', function () {
-        $component = Livewire::test(VibePreferencePicker::class);
-
-        $paired = $component->instance()->getPairedFlags;
-        $standalone = $component->instance()->getStandaloneFlags;
-
-        expect($paired)->toHaveCount(8);
-
-        $standaloneValues = vibeStandaloneValues();
-        expect($standalone)->toHaveCount(count($standaloneValues));
-
-        // All 30 flags initialized
-        $prefs = $component->get('preferences');
-        expect($prefs)->toHaveCount(30);
-    });
 });

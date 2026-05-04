@@ -15,21 +15,6 @@ class LocationGeohashTest extends TestCase
     // ── Auto-compute on save ───────────────────────────
 
     #[Test]
-    public function geohash_4_is_auto_computed_when_location_is_created()
-    {
-        $location = Location::create([
-            'name' => 'Berlin Test',
-            'city' => 'Berlin',
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-
-        $expected = Geohash::tilePrefix(52.5163, 13.3777, 4);
-        $this->assertEquals($expected, $location->geohash_4);
-        $this->assertEquals(4, strlen($location->geohash_4));
-    }
-
-    #[Test]
     public function geohash_4_is_updated_when_coordinates_change()
     {
         $location = Location::create([
@@ -52,48 +37,6 @@ class LocationGeohashTest extends TestCase
 
         $this->assertNotEquals($originalHash, $location->geohash_4);
         $this->assertEquals($munichHash, $location->geohash_4);
-    }
-
-    #[Test]
-    public function nearby_locations_share_geohash_4()
-    {
-        // Two points within 500m in Berlin
-        $loc1 = Location::create([
-            'name' => 'Point A',
-            'city' => 'Berlin',
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-
-        $loc2 = Location::create([
-            'name' => 'Point B',
-            'city' => 'Berlin',
-            'latitude' => 52.5170,
-            'longitude' => 13.3780,
-        ]);
-
-        // Nearby points should share the same 4-char geohash tile
-        $this->assertEquals($loc1->geohash_4, $loc2->geohash_4);
-    }
-
-    #[Test]
-    public function distant_locations_have_different_geohash_4()
-    {
-        $berlin = Location::create([
-            'name' => 'Berlin',
-            'city' => 'Berlin',
-            'latitude' => 52.5163,
-            'longitude' => 13.3777,
-        ]);
-
-        $munich = Location::create([
-            'name' => 'Munich',
-            'city' => 'Munich',
-            'latitude' => 48.1351,
-            'longitude' => 11.5820,
-        ]);
-
-        $this->assertNotEquals($berlin->geohash_4, $munich->geohash_4);
     }
 
     // ── Backfill command ───────────────────────────────

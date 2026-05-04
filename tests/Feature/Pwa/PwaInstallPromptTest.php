@@ -14,15 +14,14 @@ beforeEach(function () {
 // ── Visibility Gating ─────────────────────────────────
 
 describe('Visibility gating', function () {
-    it('guest user does not see install prompt on public page', function () {
+    it('guest user does not see install prompt', function () {
         $response = get(route('home'));
 
         $response->assertOk();
-        $response->assertDontSee('pwaInstallPrompt()', false);
         $response->assertDontSee('Install Roundup Games', false);
     });
 
-    it('authenticated user with profile + location but 0/3 score sees no prompt', function () {
+    it('authenticated user with 0/3 score sees no prompt', function () {
         $user = User::factory()->create([
             'profile_complete' => true,
             'location_id' => $this->location->id,
@@ -32,7 +31,6 @@ describe('Visibility gating', function () {
         $response = actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertDontSee('pwaInstallPrompt()', false);
         $response->assertDontSee('Install Roundup Games', false);
     });
 
@@ -71,28 +69,6 @@ describe('Visibility gating', function () {
         $response = actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('pwaInstallPrompt()', false);
-        $response->assertSee('Install Roundup Games', false);
-    });
-
-    it('authenticated user with trypass (upcoming game) sees the install prompt', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'location_id' => $this->location->id,
-            'email_verified_at' => now(),
-        ]);
-
-        Game::factory()->create([
-            'owner_id' => $user->id,
-            'date_time' => now()->addDays(3),
-        ]);
-
-        session()->flush();
-
-        $response = actingAs($user)->get(route('dashboard'));
-
-        $response->assertOk();
-        $response->assertSee('pwaInstallPrompt()', false);
         $response->assertSee('Install Roundup Games', false);
     });
 
@@ -118,7 +94,6 @@ describe('Visibility gating', function () {
         $response = actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertDontSee('pwaInstallPrompt()', false);
         $response->assertDontSee('Install Roundup Games', false);
     });
 });
@@ -144,7 +119,7 @@ describe('Trypass events via HTTP', function () {
 
         $response = actingAs($this->user)->get(route('dashboard'));
         $response->assertOk();
-        $response->assertSee('pwaInstallPrompt()', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 
     it('user with game starting in 8 days does not get trypass', function () {
@@ -159,7 +134,7 @@ describe('Trypass events via HTTP', function () {
 
         $response = actingAs($this->user)->get(route('dashboard'));
         $response->assertOk();
-        $response->assertDontSee('pwaInstallPrompt()', false);
+        $response->assertDontSee('Install Roundup Games', false);
     });
 
     it('user who just created a game sees prompt via trypass', function () {
@@ -173,7 +148,7 @@ describe('Trypass events via HTTP', function () {
 
         $response = actingAs($this->user)->get(route('dashboard'));
         $response->assertOk();
-        $response->assertSee('pwaInstallPrompt()', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 
     it('user who just received a game invitation sees prompt via trypass', function () {
@@ -190,51 +165,6 @@ describe('Trypass events via HTTP', function () {
 
         $response = actingAs($this->user)->get(route('dashboard'));
         $response->assertOk();
-        $response->assertSee('pwaInstallPrompt()', false);
-    });
-});
-
-// ── Layout Integration ────────────────────────────────
-
-describe('Layout integration', function () {
-    it('authenticated layout includes pwa-install-prompt component for eligible user', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'location_id' => $this->location->id,
-            'email_verified_at' => now(),
-        ]);
-
-        Game::factory()->create([
-            'owner_id' => $user->id,
-            'date_time' => now()->addDays(3),
-        ]);
-
-        session()->flush();
-
-        $response = actingAs($user)->get(route('dashboard'));
-        $response->assertOk();
-
-        // Verify the component renders with expected Alpine.js data
-        $response->assertSee('x-data="pwaInstallPrompt()"', false);
-        $response->assertSee('x-init="init()"', false);
-    });
-
-    it('public layout does not include pwa-install-prompt component', function () {
-        $response = get(route('home'));
-        $response->assertOk();
-
-        $response->assertDontSee('x-data="pwaInstallPrompt()"', false);
-        $response->assertDontSee('pwaInstallPrompt()', false);
-        $response->assertDontSee('Install Roundup Games', false);
-    });
-
-    it('guest page renders without any PWA prompt markers', function () {
-        $response = get(route('home'));
-        $response->assertOk();
-
-        $response->assertDontSee('beforeinstallprompt', false);
-        $response->assertDontSee('pwa_prompt_dismissed', false);
-        $response->assertDontSee('__pwaDeferredPrompt', false);
-        $response->assertDontSee('install result:', false);
+        $response->assertSee('Install Roundup Games', false);
     });
 });

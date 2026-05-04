@@ -186,42 +186,6 @@ describe('Accept campaign invitation → ParticipantJoined', function () {
 });
 
 // ══════════════════════════════════════════════════════
-// Accept Invitation via ManagesParticipants trait
-// ══════════════════════════════════════════════════════
-
-describe('Accept invitation via ManageParticipants → ParticipantJoined', function () {
-    it('dispatches ParticipantJoined to game owner via ManageParticipants component', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $invitee = User::factory()->create(['profile_complete' => true]);
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => GameSystem::factory()->create()->id,
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->call('acceptInvitation', (string) $participant->id);
-
-        $notifications = $owner->notifications()->where('type', ParticipantJoined::class)->get();
-        expect($notifications)->toHaveCount(1);
-
-        $data = $notifications->first()->data;
-        expect($data['type'])->toBe('participant_joined')
-            ->and($data['entity_type'])->toBe('game')
-            ->and($data['entity_id'])->toBe($game->id)
-            ->and($data)->toHaveKey('action_url');
-    });
-});
-
-// ══════════════════════════════════════════════════════
 // Remove Participant
 // ══════════════════════════════════════════════════════
 

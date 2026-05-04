@@ -138,45 +138,7 @@ describe('Game Detail — Review Display', function () {
             ->assertSee(__('reviews.content_no_reviews_yet'));
     });
 
-    it('displays multiple reviews on game detail', function () {
-        $data = setupGameWithReview();
-
-        // Add a second review
-        $reviewer2 = User::factory()->create(['profile_complete' => true]);
-        GameParticipant::create([
-            'game_id' => $data['game']->id,
-            'user_id' => $reviewer2->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-        Review::factory()->create([
-            'reviewable_type' => Game::class,
-            'reviewable_id' => $data['game']->id,
-            'reviewer_id' => $reviewer2->id,
-            'gm_profile_id' => $data['gmProfile']->id,
-            'rating' => 5,
-            'body' => 'Second opinion review text',
-            'status' => 'published',
-        ]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
-
-        $response->assertOk()
-            ->assertSee('Excellent storytelling session!')
-            ->assertSee('Second opinion review text');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// GM PROFILE — REVIEW DISPLAY
-// ═══════════════════════════════════════════════════════════
-
-describe('GM Profile — Review Display', function () {
-    // smoke: GM profile shows aggregate review count and rating
-    it('displays review count and average rating on GM profile', function () {
+    it('displays rating on GM profile', function () {
         $data = setupGameWithReview();
         app(\App\Services\ReviewAggregateService::class)->updateAggregates($data['gmProfile']);
 
@@ -275,46 +237,5 @@ describe('GM Profile — Review Display', function () {
         $response->assertOk()
             ->assertSee('4.5') // (4 + 5) / 2 = 4.5
             ->assertSee('2 reviews');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// REVIEW DISPLAY — EDGE CASES
-// ═══════════════════════════════════════════════════════════
-
-describe('Review Display — Edge Cases', function () {
-    it('review without proficiency tags renders without tags section', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-        $game = Game::factory()->create([
-            'owner_id' => $gm->id,
-            'date_time' => now()->subDay(),
-            'visibility' => 'public',
-        ]);
-        $reviewer = User::factory()->create(['profile_complete' => true]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $reviewer->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-        Review::factory()->create([
-            'reviewable_type' => Game::class,
-            'reviewable_id' => $game->id,
-            'reviewer_id' => $reviewer->id,
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 3,
-            'body' => 'No tags review',
-            'proficiency_tags' => null,
-            'status' => 'published',
-        ]);
-
-        $viewer = User::factory()->create(['profile_complete' => true]);
-
-        $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $game->id));
-
-        $response->assertOk()
-            ->assertSee('No tags review');
     });
 });

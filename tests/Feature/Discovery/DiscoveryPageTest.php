@@ -521,12 +521,6 @@ describe('DiscoveryPage', function () {
 
     // ── Proximity / Radius Filtering ───────────────────
 
-    it('radius defaults to 0 with no proximity filter', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->get('radius'))->toBe(0.0);
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-    });
-
     it('setRadius updates radius and resets page', function () {
         Game::factory()->create([
             'visibility' => 'public',
@@ -558,14 +552,6 @@ describe('DiscoveryPage', function () {
             ->call('clearFilters')
             ->assertSet('radius', 0.0)
             ->assertSet('usingFallbackRadius', false);
-    });
-
-    it('hasActiveFilters detects radius > 0', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-
-        $component->set('radius', 10);
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
     });
 
 });

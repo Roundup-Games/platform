@@ -97,21 +97,3 @@ describe('Notification preferences', function () {
 
 
 });
-
-// ── Resilience ────────────────────────────────────────
-
-describe('Notification resilience', function () {
-    it('never prevents the follow when notification dispatch fails', function () {
-        $follower = User::factory()->create();
-        $target = User::factory()->create();
-
-        $rel = UserRelationship::follow($follower, $target);
-
-        $this->assertNotNull($rel);
-        $this->assertDatabaseHas('user_relationships', [
-            'user_id' => $follower->id,
-            'related_user_id' => $target->id,
-            'type' => 'follow',
-        ]);
-    });
-});

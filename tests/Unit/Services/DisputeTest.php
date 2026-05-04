@@ -212,43 +212,20 @@ describe('resolveDispute', function () {
 // ── getCorroboratingReports ──────────────────────────────
 
 describe('getCorroboratingReports', function () {
-    it('returns reports from other reporters saying attended', function () {
+    it('returns reports from other reporters saying attended, excluding self-reports', function () {
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(4);
         $reported = $participants[3];
 
-        // Create reports
-        $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
+        // Self-report attended
+        $this->service->reportAttendance($game, $reported, $reported, 'attended');
+        // Independent reporter says attended
         $this->service->reportAttendance($game, $participants[2], $reported, 'attended');
 
         $corroborating = $this->service->getCorroboratingReports($game, $reported);
 
         expect($corroborating)->toHaveCount(1);
         expect($corroborating->first()->status)->toBe(AttendanceStatus::Attended);
-    });
-
-    it('excludes self-reports', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
-        $reported = $participants[1];
-
-        // Self-report attended
-        $this->service->reportAttendance($game, $reported, $reported, 'attended');
-
-        $corroborating = $this->service->getCorroboratingReports($game, $reported);
-
-        // Self-report excluded
-        expect($corroborating)->toHaveCount(0);
-    });
-
-    it('returns empty collection for no matching reports', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
-        $reported = $participants[2];
-
-        // Only no_show report exists, not attended
-        $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
-
-        $corroborating = $this->service->getCorroboratingReports($game, $reported);
-
-        expect($corroborating)->toHaveCount(0);
+        expect($corroborating->first()->reporter_id)->not->toBe($reported->id);
     });
 });
 
@@ -361,22 +338,6 @@ describe('full dispute flow', function () {
 // ── Dispute Authorization ───────────────────────────────
 
 describe('dispute authorization', function () {
-    it('allows reported user to dispute', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
-        $reporter = $participants[1];
-        $reported = $participants[2];
-
-        $this->service->reportAttendance($game, $reporter, $reported, 'no_show');
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $reported->id)
-            ->first();
-
-        $result = $this->service->disputeAttendanceReport($participant->id, 'I was there', $reported);
-
-        expect($result['success'])->toBeTrue();
-    });
-
     it('allows game host to dispute', function () {
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
         $reporter = $participants[1];

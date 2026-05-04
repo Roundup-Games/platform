@@ -53,29 +53,21 @@ describe('Debriefing Flow', function () {
             ->and($game->getDebriefingToolType())->toBe('stars-and-wishes');
     });
 
-    it('returns no debriefing tools for game without safety rules', function () {
+    it('returns no debriefing tools for game without debriefing rules', function (array|null $safetyRules) {
         $game = Game::factory()->create([
             'owner_id' => $this->host->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'completed',
-            'safety_rules' => null,
+            'safety_rules' => $safetyRules,
         ]);
 
         expect($game->hasDebriefingTools())->toBeFalse()
             ->and($game->getDebriefingPrompts())->toBe([])
             ->and($game->getDebriefingToolType())->toBeNull();
-    });
-
-    it('returns no debriefing tools when only other safety rules present', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->host->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-            'safety_rules' => ['lines-and-veils', 'x-card'],
-        ]);
-
-        expect($game->hasDebriefingTools())->toBeFalse();
-    });
+    })->with([
+        'null safety rules' => [null],
+        'other safety rules only' => [['lines-and-veils', 'x-card']],
+    ]);
 
     it('prefers debriefing tool type when both tools present', function () {
         $game = Game::factory()->create([

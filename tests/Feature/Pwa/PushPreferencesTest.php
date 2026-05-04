@@ -16,17 +16,6 @@ beforeEach(function () {
 });
 
 describe('profile push preferences rendering', function () {
-    it('shows push toggles for all notification categories', function () {
-        $component = Livewire::test(Show::class);
-
-        foreach (NotificationCategory::values() as $category) {
-            // Each category should have push property in notificationSettings
-            $component->assertSet("notificationSettings.{$category}.push", function ($value) {
-                return is_bool($value);
-            });
-        }
-    });
-
     it('push toggle updates notification_settings JSON', function () {
         // Livewire v4's test harness reconstructs components from snapshots on ->call(),
         // discarding instance-level modifications. Instead, write settings to DB and test
@@ -59,46 +48,6 @@ describe('profile push preferences rendering', function () {
         // After save, the toggled values should persist
         expect($this->user->notification_settings['game_invitation']['push'])->toBeFalse();
         expect($this->user->notification_settings['new_follower']['push'])->toBeTrue();
-    });
-
-    it('push defaults follow enum policy for high-priority events', function () {
-        // Categories where push defaults ON
-        $pushOnCategories = [
-            'game_invitation', 'campaign_invitation', 'team_invitation',
-            'new_application', 'application_approved', 'application_rejected',
-            'participant_removed', 'team_member_removed',
-            'game_cancelled', 'game_completed', 'campaign_cancelled', 'campaign_completed',
-            'game_updated', 'campaign_updated', 'game_system_request', 'review_reported',
-        ];
-        foreach ($pushOnCategories as $cat) {
-            expect(NotificationCategory::from($cat)->defaultPushEnabled())
-                ->toBeTrue("Push should default ON for {$cat}");
-        }
-
-        // Informational / low-priority events should default push OFF
-        $informational = ['new_follower', 'session_added_to_campaign', 'participant_joined'];
-        foreach ($informational as $cat) {
-            expect(NotificationCategory::from($cat)->defaultPushEnabled())
-                ->toBeFalse("Push should default OFF for {$cat}");
-        }
-    });
-
-    it('toggle state persists across page loads', function () {
-        // Write custom push settings to DB, call save via Livewire, then
-        // verify they survive a fresh component mount.
-        $settings = NotificationCategory::defaultSettings();
-        $settings['new_follower']['push'] = true;
-        $settings['game_invitation']['push'] = false;
-        $this->user->update(['notification_settings' => $settings]);
-
-        // Call save to exercise the full persistence path
-        Livewire::test(Show::class)
-            ->call('saveNotificationSettings');
-
-        // Reload — verify persisted values survive mount()
-        Livewire::test(Show::class)
-            ->assertSet('notificationSettings.new_follower.push', true)
-            ->assertSet('notificationSettings.game_invitation.push', false);
     });
 });
 

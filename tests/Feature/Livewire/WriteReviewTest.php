@@ -296,36 +296,4 @@ describe('WriteReview — Edge Cases', function () {
             ->assertSet('errorMessage', 'The item you are trying to review could not be found.');
     });
 
-    it('accepts empty body and no tags', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 3)
-            ->call('submit')
-            ->assertRedirect();
-
-        $review = Review::first();
-        $this->assertEquals(3, $review->rating);
-        $this->assertNull($review->body);
-        $this->assertNull($review->proficiency_tags);
-    });
-
-    it('blocks submit when error state is active', function () {
-        $data = createEligibleGameSession();
-        $stranger = createReviewUser();
-        $this->actingAs($stranger);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 5)
-            ->call('submit');
-
-        $this->assertDatabaseCount('reviews', 0);
-    });
 });

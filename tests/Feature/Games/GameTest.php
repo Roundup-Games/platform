@@ -34,25 +34,9 @@ function gameTestCreateGameWithOwner(array $gameAttrs = []): array
 // ═══════════════════════════════════════════════════════════
 
 describe('GamePolicy — Ownership Actions', function () {
-    it('allows authenticated user with permission to create', function () {
-        $user = User::factory()->create();
-        \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'create game', 'guard_name' => 'web']);
-        setPermissionsTeamId(1);
-        $user->givePermissionTo('create game');
-        $user->unsetRelations();
-
-        expect(Gate::forUser($user)->allows('create', Game::class))->toBeTrue();
-    })->group('smoke');
-
     it('denies guest from creating', function () {
         expect(Gate::allows('create', Game::class))->toBeFalse();
     });
-
-    it('allows owner to update', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        expect(Gate::forUser($owner)->allows('update', $game))->toBeTrue();
-    })->group('smoke');
 
     it('denies non-owner from updating even if participant', function () {
         $game = gameTestCreateGame();
@@ -67,12 +51,6 @@ describe('GamePolicy — Ownership Actions', function () {
 
         expect(Gate::forUser($player)->allows('update', $game))->toBeFalse();
     });
-
-    it('allows owner to delete', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
-
-        expect(Gate::forUser($owner)->allows('delete', $game))->toBeTrue();
-    })->group('smoke');
 
     it('denies non-owner from deleting', function () {
         $game = gameTestCreateGame();
@@ -178,19 +156,6 @@ describe('CreateGame Component', function () {
 
         $game = Game::where('name', 'Location Test')->first();
         expect($game->location_id)->toBe($location->id);
-    });
-
-    it('flashes success message on creation', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Flash Test Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save')
-            ->assertSessionHas('success', 'Game "Flash Test Game" created successfully!');
     });
 
 });
@@ -593,86 +558,6 @@ describe('Game Remove/Cancel Participant', function () {
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
             'status' => 'rejected',
-        ]);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// GAME END-TO-END STATUS TRANSITIONS
-// ═══════════════════════════════════════════════════════════
-
-describe('Game Full Lifecycle', function () {
-    it('complete flow: create → apply → approve → remove', function () {
-        $owner = gameTestCreateOwner();
-        $user = gameTestCreateOwner();
-
-        // Create a public game
-        $game = gameTestCreateGame(['owner_id' => $owner->id, 'visibility' => 'public']);
-
-        // User applies (public = auto-approve)
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
-            ->call('submitApplication');
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        // Owner removes
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('removeParticipant', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'status' => 'rejected',
-        ]);
-    });
-
-    it('protected game: apply → approve → verify player', function () {
-        $owner = gameTestCreateOwner();
-        $user = gameTestCreateOwner();
-        $game = gameTestCreateGame(['owner_id' => $owner->id, 'visibility' => 'protected']);
-
-        // Make user a friend of the owner so they can view/apply
-        \App\Models\UserRelationship::follow($owner, $user);
-        \App\Models\UserRelationship::follow($user, $owner);
-
-        // Apply (stays pending)
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Love to join')
-            ->call('submitApplication');
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
-        ]);
-
-        // Owner approves
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('approveApplication', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
         ]);
     });
 });

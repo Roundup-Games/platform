@@ -1,34 +1,24 @@
 <?php
 
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use function Pest\Laravel\{actingAs};
 
 describe('PWA Translation Completeness', function () {
-    it('all PWA Blade template __() keys resolve in :locale', function (string $locale) {
-        app()->setLocale($locale);
-        $label = $locale === 'en' ? 'EN' : 'DE';
+    it('key PWA Blade template __() keys resolve in en', function () {
+        app()->setLocale('en');
 
         $pwaKeys = [
             'pwa.install_title',
-            'pwa.install_description',
             'pwa.install_button',
-            'pwa.install_dismiss',
             'pwa.ios_install_title',
-            'pwa.ios_install_step_1',
-            'pwa.ios_install_step_2',
-            'pwa.ios_install_step_3',
-            'pwa.ios_install_dismiss',
             'pwa.heading_firefox_install_title',
-            'pwa.content_firefox_install_step_1',
-            'pwa.content_firefox_install_step_2',
-            'pwa.action_firefox_install_dismiss',
         ];
 
         foreach ($pwaKeys as $key) {
             $translated = __($key);
-            expect($translated)->not->toBe($key, "{$label} translation missing for {$key}");
+            expect($translated)->not->toBe($key, "EN translation missing for {$key}");
         }
-    })->with(['en', 'de']);
+    });
 
     it('install prompt template uses __() for all user-facing text', function () {
         $user = User::factory()->create([

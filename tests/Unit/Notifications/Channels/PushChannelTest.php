@@ -22,72 +22,35 @@ describe('PushChannel', function () {
         Mockery::close();
     });
 
-    it('returns early when WebPush is null (VAPID keys missing)', function () {
-        $channel = new PushChannel(null);
-
-        $sub = Mockery::mock(PushSubscription::class)->makePartial();
-        $sub->endpoint = 'https://push.example.com/1';
-        $sub->p256h_key = 'key1';
-        $sub->auth_token = 'auth1';
-
+    it('returns early when WebPush is null, notification has no toPush, or toPush returns null', function () {
         $user = Mockery::mock(User::class);
         $user->shouldNotReceive('getAttribute');
 
+        // 1. WebPush is null — should not throw
+        $channel = new PushChannel(null);
         $payload = new PushPayload('Title', 'Body', '/icon.png', '/url');
-        $notification = new class($payload) extends Notification
+        $notificationWithPush = new class($payload) extends Notification
         {
             public function __construct(private PushPayload $payload) {}
-
-            public function via(object $notifiable): array
-            {
-                return [];
-            }
-
-            public function toPush(object $notifiable): PushPayload
-            {
-                return $this->payload;
-            }
+            public function via(object $notifiable): array { return []; }
+            public function toPush(object $notifiable): PushPayload { return $this->payload; }
         };
+        $channel->send($user, $notificationWithPush);
 
-        // Should not throw or attempt to access subscriptions
-        $channel->send($user, $notification);
-        expect(true)->toBeTrue();
-    });
-
-    it('does nothing when notification has no toPush method', function () {
-        $user = Mockery::mock(User::class);
-        $notification = new class extends Notification
+        // 2. Notification has no toPush method — should not throw
+        $notificationNoPush = new class extends Notification
         {
-            public function via(object $notifiable): array
-            {
-                return [];
-            }
+            public function via(object $notifiable): array { return []; }
         };
+        $this->channel->send($user, $notificationNoPush);
 
-        // Should not throw or call anything
-        $this->channel->send($user, $notification);
-        expect(true)->toBeTrue();
-    });
-
-    it('does nothing when toPush returns null (opted out)', function () {
-        $user = Mockery::mock(User::class);
-        $user->shouldNotReceive('getAttribute');
-
-        $notification = new class extends Notification
+        // 3. toPush returns null (opted out) — should not throw
+        $notificationNull = new class extends Notification
         {
-            public function via(object $notifiable): array
-            {
-                return [];
-            }
-
-            public function toPush(object $notifiable): ?PushPayload
-            {
-                return null;
-            }
+            public function via(object $notifiable): array { return []; }
+            public function toPush(object $notifiable): ?PushPayload { return null; }
         };
-
-        $this->channel->send($user, $notification);
-        expect(true)->toBeTrue();
+        $this->channel->send($user, $notificationNull);
     });
 
     it('does nothing when user has no push subscriptions', function () {
@@ -112,7 +75,6 @@ describe('PushChannel', function () {
         };
 
         $this->channel->send($user, $notification);
-        expect(true)->toBeTrue();
     });
 
     it('queues notifications and flushes batch', function () {
@@ -325,24 +287,5 @@ describe('PushChannel', function () {
 
         // Must NOT throw
         $this->channel->send($user, $notification);
-    });
-});
-
-describe('Key mapping', function () {
-    it('maps p256h_key to p256dh for Minishlink compatibility', function () {
-        $source = file_get_contents(base_path('app/Models/PushSubscription.php'));
-
-        // Verify the model's toWebPushSubscription() correctly maps our DB
-        // column name (p256h_key) to Minishlink's expected key name (p256dh)
-        expect($source)->toContain("'p256dh' =>");
-        expect($source)->toContain('p256h_key');
-        expect($source)->toContain('toWebPushSubscription');
-    });
-
-    it('PushChannel uses toWebPushSubscription from model', function () {
-        $source = file_get_contents(base_path('app/Notifications/Channels/PushChannel.php'));
-
-        expect($source)->toContain('toWebPushSubscription()');
-        expect($source)->not->toContain("'p256dh' =>");  // mapping no longer in PushChannel
     });
 });

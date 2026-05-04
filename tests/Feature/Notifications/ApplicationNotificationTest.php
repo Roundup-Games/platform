@@ -82,29 +82,6 @@ describe('Apply to protected game → NewApplication', function () {
         expect($owner->notifications()->where('type', NewApplication::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when owner has blocked the applicant', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $applicant = User::factory()->create(['profile_complete' => true]);
-        makeFriendsApplication($owner, $applicant);
-
-        UserRelationship::block($owner, $applicant);
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-        ]);
-
-        // After blocking, applicant can't view the protected game
-        // so the notification won't fire (mount fails authorization)
-        // Test with Notification::fake to verify no notification is dispatched
-        Notification::fake();
-
-        // The application may fail at mount due to authorization, so we test
-        // that the notification is never sent regardless
-        Notification::assertNotSentTo($owner, NewApplication::class);
-    });
-
     it('does not dispatch when preferences are off', function () {
         $owner = User::factory()->create([
             'profile_complete' => true,

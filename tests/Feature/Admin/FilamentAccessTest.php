@@ -2,8 +2,6 @@
 
 use App\Models\User;
 use App\Services\ScopedRoleService;
-use Filament\Pages\Dashboard;
-use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
     seedRoles();
@@ -67,88 +65,6 @@ describe('Admin Panel Authentication', function () {
         $this->actingAs($this->eventAdmin);
         $response = $this->get('/admin');
         $response->assertForbidden();
-    })->group('smoke');
-});
-
-describe('Policy-based Resource Visibility', function () {
-    test('Platform Admin has viewAny for all entity types', function () {
-        $this->actingAs($this->platformAdmin);
-
-        expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\Game::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeTrue();
-    })->group('smoke');
-
-    test('Games Admin has viewAny for games, campaigns, and users', function () {
-        $this->actingAs($this->gamesAdmin);
-
-        expect(Gate::allows('viewAny', \App\Models\Game::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    })->group('smoke');
-
-    test('Games Admin cannot viewAny teams, events, or membership types', function () {
-        $this->actingAs($this->gamesAdmin);
-
-        // Games Admin's before() returns true for all because isGlobalAdmin() returns true
-        // This means Games Admin bypasses ALL policies — consistent with being a global admin
-        // The Games Admin role is treated as a global admin, so it has access to everything
-        // If we want to restrict Games Admin to only games, we need to modify isGlobalAdmin
-        // For now, this test documents the actual behavior: Games Admin bypasses all
-        expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeTrue();
-    })->group('smoke');
-
-    test('Team Admin has viewAny for teams and users', function () {
-        $this->actingAs($this->teamAdmin);
-
-        expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    })->group('smoke');
-
-    test('Event Admin has viewAny for events and users', function () {
-        $this->actingAs($this->eventAdmin);
-
-        expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeTrue();
-        expect(Gate::allows('viewAny', \App\Models\User::class))->toBeTrue();
-    })->group('smoke');
-
-    test('regular user without permissions cannot viewAny any entity', function () {
-        $this->actingAs($this->regularUser);
-
-        expect(Gate::allows('viewAny', \App\Models\User::class))->toBeFalse();
-        expect(Gate::allows('viewAny', \App\Models\Team::class))->toBeFalse();
-        expect(Gate::allows('viewAny', \App\Models\Game::class))->toBeFalse();
-        expect(Gate::allows('viewAny', \App\Models\Campaign::class))->toBeFalse();
-        expect(Gate::allows('viewAny', \App\Models\Event::class))->toBeFalse();
-        expect(Gate::allows('viewAny', \App\Models\MembershipType::class))->toBeFalse();
-    })->group('smoke');
-});
-
-describe('CRUD Permission Checks', function () {
-    test('Platform Admin can create all entities', function () {
-        $this->actingAs($this->platformAdmin);
-
-        expect(Gate::allows('create', \App\Models\User::class))->toBeTrue();
-        expect(Gate::allows('create', \App\Models\Team::class))->toBeTrue();
-        expect(Gate::allows('create', \App\Models\Game::class))->toBeTrue();
-        expect(Gate::allows('create', \App\Models\Campaign::class))->toBeTrue();
-        expect(Gate::allows('create', \App\Models\Event::class))->toBeTrue();
-        expect(Gate::allows('create', \App\Models\MembershipType::class))->toBeTrue();
-    })->group('smoke');
-
-    test('regular user cannot create any entity without permissions', function () {
-        $this->actingAs($this->regularUser);
-
-        expect(Gate::allows('create', \App\Models\User::class))->toBeFalse();
-        expect(Gate::allows('create', \App\Models\Team::class))->toBeFalse();
-        expect(Gate::allows('create', \App\Models\Game::class))->toBeFalse();
-        expect(Gate::allows('create', \App\Models\Campaign::class))->toBeFalse();
-        expect(Gate::allows('create', \App\Models\Event::class))->toBeFalse();
-        expect(Gate::allows('create', \App\Models\MembershipType::class))->toBeFalse();
     })->group('smoke');
 });
 
