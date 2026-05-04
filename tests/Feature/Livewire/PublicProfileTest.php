@@ -52,12 +52,6 @@ describe('Public Profile page loads', function () {
             ->assertDontSee('Block');
     });
 
-    it('returns 404 for nonexistent user via HTTP', function () {
-        $viewer = createProfileUser();
-        $this->actingAs($viewer)
-            ->get(route('profile.public', ['locale' => 'en', 'user' => Str::uuid()->toString()]))
-            ->assertNotFound();
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

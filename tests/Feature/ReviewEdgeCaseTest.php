@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\GmProficiency;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;

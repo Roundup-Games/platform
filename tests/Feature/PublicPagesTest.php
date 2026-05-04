@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\ContactMessage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormSubmitted;
 use function Pest\Laravel\{get, post, actingAs};

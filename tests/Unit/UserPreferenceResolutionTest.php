@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Enums\VibeFlag;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserVibePreference;

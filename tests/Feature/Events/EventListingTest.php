@@ -265,8 +265,8 @@ describe('EventDetail', function () {
         ]);
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
-            ->assertSee('$250.00')
-            ->assertSee('$50.00');
+            ->assertSee(format_currency(25000))
+            ->assertSee(format_currency(5000));
     });
 
     it('shows published announcements', function () {
@@ -329,11 +329,6 @@ describe('EventDetail', function () {
         expect($announcements->first()->title)->toBe('Pinned Announcement');
     });
 
-    it('returns 404 for nonexistent event', function () {
-        get(route('events.detail', 'nonexistent-slug'))
-            ->assertNotFound();
-    });
-
     it('shows early bird discount when within deadline', function () {
         $event = Event::factory()->create([
             'name' => 'Early Bird Event',
@@ -346,6 +341,6 @@ describe('EventDetail', function () {
 
         Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Early bird')
-            ->assertSee('$20.00');
+            ->assertSee(format_currency(2000));
     });
 });

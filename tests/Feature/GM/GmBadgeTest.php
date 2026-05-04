@@ -8,7 +8,6 @@ use App\Livewire\Games\GameDetail;
 use App\Livewire\Profile\PublicProfile;
 use App\Models\Campaign;
 use App\Models\Game;
-use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

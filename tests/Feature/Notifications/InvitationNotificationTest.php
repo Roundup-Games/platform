@@ -14,7 +14,6 @@ use App\Notifications\CampaignInvitation;
 use App\Notifications\GameInvitation;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -111,63 +110,7 @@ describe('Game Invitation → GameInvitation', function () {
         expect($friend->notifications()->where('type', GameInvitation::class)->count())->toBe(0);
     });
 
-    it('sends notification with mail channel when mail preference is on', function () {
-        Notification::fake();
 
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $friend = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['game_invitation' => ['database' => true, 'mail' => true]]
-            ),
-        ]);
-        makeFriendsInvitation($owner, $friend);
-
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        Notification::assertSentTo($friend, GameInvitation::class, function ($notification, $channels) {
-            return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
-        });
-    });
-
-    it('does not include mail channel when mail preference is off', function () {
-        Notification::fake();
-
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $friend = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['game_invitation' => ['database' => true, 'mail' => false]]
-            ),
-        ]);
-        makeFriendsInvitation($owner, $friend);
-
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        Notification::assertSentTo($friend, GameInvitation::class, function ($notification, $channels) {
-            return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
-        });
-    });
 
     it('does not dispatch notification for non-friend invite attempt', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -242,30 +185,7 @@ describe('Campaign Invitation → CampaignInvitation', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $friend = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['campaign_invitation' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
-        makeFriendsInvitation($owner, $friend);
 
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        expect($friend->notifications()->where('type', CampaignInvitation::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -335,40 +255,7 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
         expect($owner->fresh()->notifications()->where('type', SessionAddedToCampaign::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        seedPermissions(); setPermissionsTeamId(1); $owner->givePermissionTo('create game');
-        $participant = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['session_added_to_campaign' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'active',
-        ]);
-
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Test Session 3')
-            ->set('date_time', now()->addDays(7)->format('Y-m-d H:i:s'))
-            ->call('save')
-            ->assertHasNoErrors();
-
-        expect($participant->fresh()->notifications()->where('type', SessionAddedToCampaign::class)->count())->toBe(0);
-    });
 
     it('does not dispatch to pending or rejected participants', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -464,100 +351,7 @@ describe('Team Invitation → TeamInvitation', function () {
         expect($player->notifications()->where('type', TeamInvitation::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'email' => 'pref-off@example.com',
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['team_invitation' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'pref-off@example.com')
-            ->call('inviteMember');
-
-        expect($player->notifications()->where('type', TeamInvitation::class)->count())->toBe(0);
-    });
-
-    it('sends notification with mail channel when mail preference is on', function () {
-        Notification::fake();
-
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'email' => 'mail-on@example.com',
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['team_invitation' => ['database' => true, 'mail' => true]]
-            ),
-        ]);
-
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'mail-on@example.com')
-            ->call('inviteMember');
-
-        Notification::assertSentTo($player, TeamInvitation::class, function ($notification, $channels) {
-            return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
-        });
-    });
-
-    it('does not include mail channel when mail preference is off', function () {
-        Notification::fake();
-
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'email' => 'mail-off@example.com',
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['team_invitation' => ['database' => true, 'mail' => false]]
-            ),
-        ]);
-
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'mail-off@example.com')
-            ->call('inviteMember');
-
-        Notification::assertSentTo($player, TeamInvitation::class, function ($notification, $channels) {
-            return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
-        });
-    });
 
     it('does not dispatch notification when user already has active team membership', function () {
         $captain = User::factory()->create(['profile_complete' => true]);

@@ -2,8 +2,6 @@
 
 use App\Models\BggSyncLog;
 use App\Models\GameSystem;
-use App\Services\BggClient;
-use App\Services\BggSyncService;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {

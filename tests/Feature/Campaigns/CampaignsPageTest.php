@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Campaign;
 use App\Models\User;
 use function Pest\Laravel\{actingAs, get};
 

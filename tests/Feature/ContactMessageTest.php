@@ -29,7 +29,7 @@ describe('ContactMessage Model', function () {
             'email' => 'jane@example.com',
             'subject' => 'Question',
             'message' => 'Help needed',
-            'replied_at' => '2025-04-13 10:00:00',
+            'replied_at' => now()->subWeek()->format('Y-m-d H:i:s'),
         ]);
 
         expect($msg->replied_at)->toBeInstanceOf(\Carbon\Carbon::class);

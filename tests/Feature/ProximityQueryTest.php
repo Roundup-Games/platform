@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
-use App\Services\Geohash;
 use App\Services\ProximityQuery;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;

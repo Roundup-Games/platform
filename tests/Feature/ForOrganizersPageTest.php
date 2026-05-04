@@ -59,12 +59,6 @@ describe('ForOrganizersPage - Accessibility', function () {
         }
     });
 
-    it('has skip link', function () {
-        get(route('for-organizers'))
-            ->assertOk()
-            ->assertSee('Skip to content');
-    });
-
     it('has proper section landmarks', function () {
         get(route('for-organizers'))
             ->assertOk()

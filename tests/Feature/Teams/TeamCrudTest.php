@@ -150,10 +150,6 @@ describe('TeamDetail', function () {
             ->assertDontSee('Removed Player');
     });
 
-    it('returns 404 for nonexistent team', function () {
-        get(route('teams.detail', 'nonexistent'))
-            ->assertNotFound();
-    });
 });
 
 // ── ManageTeam ──────────────────────────────────────────

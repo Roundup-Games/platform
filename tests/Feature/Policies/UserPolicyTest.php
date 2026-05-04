@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\User;
-use App\Models\Team;
-use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;

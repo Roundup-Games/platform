@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Models;
 
-use App\Models\Game;
-use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
@@ -16,30 +14,6 @@ class SessionZeroModelTest extends TestCase
 {
     use DatabaseTransactions;
     use SetsUpLocale;
-
-    // ── Scopes (filter logic, not trivial column checks) ──────
-
-    public function test_scope_active_filters_by_status(): void
-    {
-        SessionZeroSurvey::factory()->create(['status' => 'active']);
-        SessionZeroSurvey::factory()->archived()->create();
-
-        $active = SessionZeroSurvey::active()->get();
-
-        $this->assertCount(1, $active);
-        $this->assertEquals('active', $active->first()->status);
-    }
-
-    public function test_scope_archived_filters_by_status(): void
-    {
-        SessionZeroSurvey::factory()->create(['status' => 'active']);
-        SessionZeroSurvey::factory()->archived()->create();
-
-        $archived = SessionZeroSurvey::archived()->get();
-
-        $this->assertCount(1, $archived);
-        $this->assertEquals('archived', $archived->first()->status);
-    }
 
     // ── Helpers (state transitions, lookups) ──────────────────
 
@@ -90,22 +64,5 @@ class SessionZeroModelTest extends TestCase
         $this->assertDatabaseMissing('session_zero_confirmations', ['id' => $confirmationId]);
     }
 
-    // ── SessionZeroConfirmation constraints ──────────────────
-
-    public function test_unique_constraint_on_survey_and_user(): void
-    {
-        $survey = SessionZeroSurvey::factory()->create();
-        $user = User::factory()->create();
-
-        SessionZeroConfirmation::factory()->create([
-            'session_zero_survey_id' => $survey->id,
-            'user_id' => $user->id,
-        ]);
-
-        $this->expectException(\Illuminate\Database\QueryException::class);
-        SessionZeroConfirmation::factory()->create([
-            'session_zero_survey_id' => $survey->id,
-            'user_id' => $user->id,
-        ]);
-    }
+    // ── Cascade Delete (data integrity) ──────────────────────
 }

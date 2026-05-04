@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\SafetyTool;
 use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;

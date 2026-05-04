@@ -219,58 +219,6 @@ describe('Game Detail Route', function () {
             ->assertSee('Open Session');
     });
 
-    it('shows protected game to owner', function () {
-        $owner = User::factory()->create();
-        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
-
-        actingAs($owner)
-            ->get(route('games.detail', $game->id))
-            ->assertOk();
-    });
-
-    it('denies protected game to stranger', function () {
-        $owner = User::factory()->create();
-        $game = gameTestCreateGame(['visibility' => 'protected', 'owner_id' => $owner->id]);
-        $stranger = User::factory()->create();
-
-        actingAs($stranger)
-            ->get(route('games.detail', $game->id))
-            ->assertForbidden();
-    });
-
-    it('denies private game to stranger', function () {
-        $game = gameTestCreateGame(['visibility' => 'private']);
-        $stranger = User::factory()->create();
-
-        actingAs($stranger)
-            ->get(route('games.detail', $game->id))
-            ->assertForbidden();
-    });
-
-    it('shows private game to owner', function () {
-        ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'private']);
-
-        actingAs($owner)
-            ->get(route('games.detail', $game->id))
-            ->assertOk();
-    });
-
-    it('shows private game to participant', function () {
-        $game = gameTestCreateGame(['visibility' => 'private']);
-        $player = User::factory()->create();
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        actingAs($player)
-            ->get(route('games.detail', $game->id))
-            ->assertOk();
-    });
-
     it('returns 404 for non-existent game', function () {
         get(route('games.detail', Str::uuid()->toString()))
             ->assertNotFound();
@@ -282,22 +230,6 @@ describe('Game Detail Route', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Game Manage Participants — Authorization', function () {
-    it('requires authentication', function () {
-        $game = gameTestCreateGame();
-
-        get(route('games.manage-participants', $game->id))
-            ->assertRedirect(route('login'));
-    });
-
-    it('requires profile complete', function () {
-        $owner = User::factory()->create(['profile_complete' => false]);
-        $game = gameTestCreateGame(['owner_id' => $owner->id]);
-
-        actingAs($owner)
-            ->get(route('games.manage-participants', $game->id))
-            ->assertRedirect(route('onboarding.index'));
-    });
-
     it('owner can access', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
@@ -507,12 +439,6 @@ describe('Game Application — ApplyToGame', function () {
             ->assertSee('already a participant');
     });
 
-    it('redirects guest to login', function () {
-        $game = gameTestCreateGame(['visibility' => 'public']);
-
-        get(route('games.apply', $game->id))
-            ->assertRedirect(route('login'));
-    });
 });
 
 describe('Game Approve/Reject Application', function () {

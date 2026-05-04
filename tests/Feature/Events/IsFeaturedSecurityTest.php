@@ -2,7 +2,6 @@
 
 use App\Models\Event;
 use App\Models\User;
-use App\Services\ScopedRoleService;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 

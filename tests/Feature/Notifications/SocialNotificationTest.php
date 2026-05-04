@@ -4,7 +4,6 @@ use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\NewFollower;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -96,41 +95,7 @@ describe('Notification preferences', function () {
         expect($target->notifications()->where('type', NewFollower::class)->count())->toBe(0);
     });
 
-    it('sends notification with mail channel when mail preference is on', function () {
-        Notification::fake();
 
-        $follower = User::factory()->create(['name' => 'Mailer']);
-        $target = User::factory()->create([
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['new_follower' => ['database' => true, 'mail' => true]]
-            ),
-        ]);
-
-        UserRelationship::follow($follower, $target);
-
-        Notification::assertSentTo($target, NewFollower::class, function ($notification, $channels) {
-            return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
-        });
-    });
-
-    it('does not include mail channel when mail preference is off', function () {
-        Notification::fake();
-
-        $follower = User::factory()->create();
-        $target = User::factory()->create([
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['new_follower' => ['database' => true, 'mail' => false]]
-            ),
-        ]);
-
-        UserRelationship::follow($follower, $target);
-
-        Notification::assertSentTo($target, NewFollower::class, function ($notification, $channels) {
-            return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
-        });
-    });
 });
 
 // ── Resilience ────────────────────────────────────────

@@ -6,8 +6,6 @@ use App\Filament\Pages\Reports\MembershipReport;
 use App\Filament\Pages\Reports\EventAttendanceReport;
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\MembershipType;
-use App\Models\Team;
 use App\Models\User;
 use Filament\Actions\Exports\ExportColumn;
 
@@ -133,7 +131,7 @@ describe('EventAttendanceReport Page', function () {
 
     it('shows event registrations in the table', function () {
         $user = User::factory()->create(['name' => 'John Doe']);
-        $event = Event::factory()->create(['name' => 'Spring Tournament', 'start_date' => '2026-06-01']);
+        $event = Event::factory()->create(['name' => 'Spring Tournament', 'start_date' => now()->addMonth()->format('Y-m-d')]);
         EventRegistration::factory()->create([
             'event_id' => $event->id,
             'user_id' => $user->id,

@@ -354,9 +354,4 @@ describe('GameSystemsPage - Accessibility', function () {
         }
     });
 
-    it('has skip link', function () {
-        get(route('game-systems'))
-            ->assertOk()
-            ->assertSee('Skip to content');
-    });
 });

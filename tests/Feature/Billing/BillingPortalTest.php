@@ -226,7 +226,7 @@ describe('MembershipPage Component', function () {
             ->test(\App\Livewire\Billing\MembershipPage::class)
             ->assertSee('Annual Plan')
             ->assertSee('Choose Your Plan')
-            ->assertSee('$49.99');
+            ->assertSee(format_currency(4999));
     });
 
     it('shows active member badge when subscribed', function () {

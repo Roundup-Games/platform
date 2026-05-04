@@ -703,7 +703,7 @@ it('geocodes manually entered city and confirms location', function () {
             'lat' => '48.8566',
             'lon' => '2.3522',
             'display_name' => 'Paris, France',
-            'place_id' => 99999,
+            'place_id' => 'paris-test-99999',
             'address' => ['city' => 'Paris', 'country' => 'France'],
         ]], 200),
     ]);

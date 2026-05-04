@@ -1,8 +1,6 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;

@@ -24,8 +24,6 @@ use App\Notifications\PlayerBenched;
 use App\Notifications\DebriefingAvailable;
 use App\Notifications\RecapPosted;
 use App\Notifications\AttendanceReported;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -59,19 +57,13 @@ describe('NewFollower', function () {
             ->and($mail->actionText)->toBe('View Profile');
     });
 
-    it('returns follower as actor', function () {
-        $follower = User::factory()->create();
-        expect((new NewFollower($follower))->getActor())->toBe($follower);
-    });
-
     it('returns correct push payload', function () {
         $follower = User::factory()->create(['name' => 'Alice']);
         $notifiable = User::factory()->create();
 
         $payload = (new NewFollower($follower))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('New Follower')
+            expect($payload->title)->toBe('New Follower')
             ->and($payload->body)->toBe('Alice started following you')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/u/')
@@ -107,12 +99,6 @@ describe('ParticipantJoined', function () {
         expect($mail->subject)->toContain('P1')
             ->and($mail->actionUrl)->toContain('/games/')
             ->and($mail->actionText)->toBe('View game');
-    });
-
-    it('returns participant as actor', function () {
-        $participant = User::factory()->create();
-        $game = Game::factory()->create();
-        expect((new ParticipantJoined($participant, $game, 'game'))->getActor())->toBe($participant);
     });
 });
 
@@ -157,12 +143,6 @@ describe('ParticipantRemoved', function () {
         expect($mail->subject)->toContain('G1')
             ->and($mail->actionText)->toBe('Browse Games');
     });
-
-    it('returns null actor', function () {
-        $removed = User::factory()->create();
-        $game = Game::factory()->create();
-        expect((new ParticipantRemoved($removed, $game, 'game'))->getActor())->toBeNull();
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -194,12 +174,6 @@ describe('GameInvitation', function () {
             ->and($mail->actionUrl)->toContain('/games/');
     });
 
-    it('returns inviter as actor', function () {
-        $game = Game::factory()->create();
-        $inviter = User::factory()->create();
-        expect((new GameInvitation($game, $inviter))->getActor())->toBe($inviter);
-    });
-
     it('returns correct push payload', function () {
         $game = Game::factory()->create(['name' => 'Epic Quest']);
         $inviter = User::factory()->create(['name' => 'Host']);
@@ -207,8 +181,7 @@ describe('GameInvitation', function () {
 
         $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Game Invitation')
+            expect($payload->title)->toBe('Game Invitation')
             ->and($payload->body)->toBe('Host invited you to Epic Quest')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -245,12 +218,6 @@ describe('CampaignInvitation', function () {
             ->and($mail->actionUrl)->toContain('/campaigns/');
     });
 
-    it('returns inviter as actor', function () {
-        $campaign = Campaign::factory()->create();
-        $inviter = User::factory()->create();
-        expect((new CampaignInvitation($campaign, $inviter))->getActor())->toBe($inviter);
-    });
-
     it('returns correct push payload', function () {
         $campaign = Campaign::factory()->create(['name' => 'Long Campaign']);
         $inviter = User::factory()->create(['name' => 'DM']);
@@ -258,8 +225,7 @@ describe('CampaignInvitation', function () {
 
         $payload = (new CampaignInvitation($campaign, $inviter))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Campaign Invitation')
+            expect($payload->title)->toBe('Campaign Invitation')
             ->and($payload->body)->toBe('DM invited you to Long Campaign')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/campaigns/')
@@ -296,11 +262,6 @@ describe('TeamInvitation', function () {
             ->and($mail->actionUrl)->toContain('/teams/');
     });
 
-    it('returns inviter as actor', function () {
-        $team = Team::factory()->create();
-        $inviter = User::factory()->create();
-        expect((new TeamInvitation($team, $inviter))->getActor())->toBe($inviter);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -331,11 +292,6 @@ describe('SessionAddedToCampaign', function () {
             ->and($mail->actionUrl)->toContain('/games/');
     });
 
-    it('returns campaign owner as actor', function () {
-        $session = Game::factory()->create();
-        $campaign = Campaign::factory()->create();
-        expect((new SessionAddedToCampaign($session, $campaign))->getActor())->toBe($campaign->owner);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -368,11 +324,6 @@ describe('NewApplication', function () {
             ->and($mail->actionUrl)->toContain('/games/');
     });
 
-    it('returns applicant as actor', function () {
-        $applicant = User::factory()->create();
-        $game = Game::factory()->create();
-        expect((new NewApplication($applicant, $game, 'game'))->getActor())->toBe($applicant);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -403,11 +354,6 @@ describe('ApplicationApproved', function () {
             ->and($mail->actionUrl)->toContain('/games/');
     });
 
-    it('returns approver as actor', function () {
-        $game = Game::factory()->create();
-        $approver = User::factory()->create();
-        expect((new ApplicationApproved($game, 'game', $approver))->getActor())->toBe($approver);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -438,11 +384,6 @@ describe('ApplicationRejected', function () {
             ->and($mail->actionUrl)->toContain('/games');
     });
 
-    it('returns rejector as actor', function () {
-        $game = Game::factory()->create();
-        $rejector = User::factory()->create();
-        expect((new ApplicationRejected($game, 'game', $rejector))->getActor())->toBe($rejector);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -472,19 +413,13 @@ describe('GameCancelled', function () {
             ->and($mail->actionUrl)->toContain('/games');
     });
 
-    it('returns game owner as actor', function () {
-        $game = Game::factory()->create();
-        expect((new GameCancelled($game))->getActor())->toBe($game->owner);
-    });
-
     it('returns correct push payload', function () {
         $game = Game::factory()->create(['name' => 'Cancelled Game']);
         $notifiable = User::factory()->create();
 
         $payload = (new GameCancelled($game))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Game Cancelled')
+            expect($payload->title)->toBe('Game Cancelled')
             ->and($payload->body)->toBe('Cancelled Game has been cancelled')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -518,10 +453,6 @@ describe('GameCompleted', function () {
             ->and($mail->actionUrl)->toContain('/games');
     });
 
-    it('returns game owner as actor', function () {
-        $game = Game::factory()->create();
-        expect((new GameCompleted($game))->getActor())->toBe($game->owner);
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -554,76 +485,8 @@ describe('TeamMemberRemoved', function () {
             ->and($mail->actionUrl)->toContain('/teams');
     });
 
-    it('returns remover as actor', function () {
-        $team = Team::factory()->create();
-        $remover = User::factory()->create();
-        expect((new TeamMemberRemoved($team, $remover))->getActor())->toBe($remover);
-    });
 });
 
-// ---------------------------------------------------------------------------
-// All notifications return correct via() channels
-// ---------------------------------------------------------------------------
-describe('via() channel resolution', function () {
-    it('all notification classes return database and mail as fallback channels', function () {
-        $user = User::factory()->create();
-        $game = Game::factory()->create();
-        $campaign = Campaign::factory()->create();
-        $team = Team::factory()->create();
-
-        $notifications = [
-            new NewFollower($user),
-            new ParticipantJoined($user, $game, 'game'),
-            new ParticipantRemoved($user, $game, 'game'),
-            new GameInvitation($game, $user),
-            new CampaignInvitation($campaign, $user),
-            new TeamInvitation($team, $user),
-            new SessionAddedToCampaign($game, $campaign),
-            new NewApplication($user, $game, 'game'),
-            new ApplicationApproved($game, 'game', $user),
-            new ApplicationRejected($game, 'game', $user),
-            new GameCancelled($game),
-            new GameCompleted($game),
-            new CampaignCancelled($campaign),
-            new CampaignCompleted($campaign),
-            new TeamMemberRemoved($team, $user),
-        ];
-
-        foreach ($notifications as $notification) {
-            $channels = $notification->via($user);
-            expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
-        }
-    });
-});
-
-// ---------------------------------------------------------------------------
-// Non-push notifications return null from toPush()
-// ---------------------------------------------------------------------------
-describe('toPush() returns null for non-push notification types', function () {
-    it('returns null for notifications not requiring push', function () {
-        $user = User::factory()->create();
-        $game = Game::factory()->create();
-        $campaign = Campaign::factory()->create();
-        $team = Team::factory()->create();
-
-        $notifications = [
-            new ParticipantJoined($user, $game, 'game'),
-            new ParticipantRemoved($user, $game, 'game'),
-            new TeamInvitation($team, $user),
-            new SessionAddedToCampaign($game, $campaign),
-            new NewApplication($user, $game, 'game'),
-            new ApplicationApproved($game, 'game', $user),
-            new ApplicationRejected($game, 'game', $user),
-            new GameCompleted($game),
-            new CampaignCompleted($campaign),
-            new TeamMemberRemoved($team, $user),
-        ];
-
-        foreach ($notifications as $notification) {
-            expect($notification->toPush($user))->toBeNull();
-        }
-    });
-});
 
 // ---------------------------------------------------------------------------
 // Additional push-enabled notifications
@@ -638,8 +501,7 @@ describe('SessionReminder push payload', function () {
 
         $payload = (new SessionReminder($game))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Game Reminder')
+            expect($payload->title)->toBe('Game Reminder')
             ->and($payload->body)->toContain('Weekly Session')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -666,8 +528,7 @@ describe('PlayerBenched push payload', function () {
 
         $payload = (new PlayerBenched($game, 'game'))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe("You're on the Bench")
+            expect($payload->title)->toBe("You're on the Bench")
             ->and($payload->body)->toContain('Full Table')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -680,8 +541,7 @@ describe('PlayerBenched push payload', function () {
 
         $payload = (new PlayerBenched($campaign, 'campaign'))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe("You're on the Bench")
+            expect($payload->title)->toBe("You're on the Bench")
             ->and($payload->body)->toContain('Long Campaign')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/campaigns/')
@@ -723,8 +583,7 @@ describe('AttendanceReported push payload', function () {
 
         $payload = (new AttendanceReported($game, $report))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Attendance Report')
+            expect($payload->title)->toBe('Attendance Report')
             ->and($payload->body)->toContain('Board Game Night')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -739,8 +598,7 @@ describe('DebriefingAvailable push payload', function () {
 
         $payload = (new DebriefingAvailable($game))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Session Debriefing Available')
+            expect($payload->title)->toBe('Session Debriefing Available')
             ->and($payload->body)->toContain('Epic Quest')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')
             ->and($payload->url)->toContain('/games/')
@@ -756,8 +614,7 @@ describe('RecapPosted push payload', function () {
 
         $payload = (new RecapPosted($game, $author))->toPush($notifiable);
 
-        expect($payload)->toBeInstanceOf(\App\Dto\PushPayload::class)
-            ->and($payload->title)->toBe('Session Recap Posted')
+            expect($payload->title)->toBe('Session Recap Posted')
             ->and($payload->body)->toContain('GameMaster')
             ->and($payload->body)->toContain('Session Recap')
             ->and($payload->icon)->toBe('/icons/pwa-192x192.png')

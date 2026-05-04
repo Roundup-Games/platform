@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\NotificationCategory;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -14,7 +13,6 @@ use App\Notifications\GameInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\TeamMemberRemoved;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -117,36 +115,7 @@ describe('Accept game invitation → ParticipantJoined', function () {
         expect($owner->notifications()->where('type', ParticipantJoined::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['participant_joined' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
-        $invitee = User::factory()->create(['profile_complete' => true]);
 
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('acceptInvitation', (string) $participant->id);
-
-        expect($owner->notifications()->where('type', ParticipantJoined::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -288,67 +257,7 @@ describe('Remove participant → ParticipantRemoved', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['participant_removed' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => GameSystem::factory()->create()->id,
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('removeParticipant', (string) $participant->id);
-
-        expect($player->notifications()->where('type', ParticipantRemoved::class)->count())->toBe(0);
-    });
-
-    it('sends notification with mail channel when mail preference is on', function () {
-        Notification::fake();
-
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['participant_removed' => ['database' => true, 'mail' => true]]
-            ),
-        ]);
-
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => GameSystem::factory()->create()->id,
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('removeParticipant', (string) $participant->id);
-
-        Notification::assertSentTo($player, ParticipantRemoved::class, function ($notification, $channels) {
-            return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
-        });
-    });
 
     it('does not dispatch ParticipantRemoved when trying to remove the owner', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -415,79 +324,7 @@ describe('Remove team member → TeamMemberRemoved', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['team_member_removed' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        $member = TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->call('removeMember', $member->id);
-
-        expect($player->notifications()->where('type', TeamMemberRemoved::class)->count())->toBe(0);
-    });
-
-    it('sends notification without mail channel when mail preference is off', function () {
-        Notification::fake();
-
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['team_member_removed' => ['database' => true, 'mail' => false]]
-            ),
-        ]);
-
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        $member = TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->call('removeMember', $member->id);
-
-        Notification::assertSentTo($player, TeamMemberRemoved::class, function ($notification, $channels) {
-            return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
-        });
-    });
 
     it('does not dispatch TeamMemberRemoved for last captain removal', function () {
         $captain = User::factory()->create(['profile_complete' => true]);

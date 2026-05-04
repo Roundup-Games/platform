@@ -1,6 +1,5 @@
 <?php
 
-use App\Dto\PwaEligibilityResult;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\Game;

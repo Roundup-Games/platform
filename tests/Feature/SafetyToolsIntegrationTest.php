@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\SafetyTool;
-use App\Enums\SafetyToolCategory;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;

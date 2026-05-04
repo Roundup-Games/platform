@@ -2,7 +2,6 @@
 
 use App\Livewire\Profile\Show;
 use App\Models\GameSystem;
-use App\Models\LinkedAccount;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;

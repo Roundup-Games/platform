@@ -1,12 +1,10 @@
 <?php
 
-use App\Enums\RelationshipType;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserAppVisit;
-use App\Models\UserRelationship;
 use function Pest\Laravel\{actingAs, get};
 
 beforeEach(function () {

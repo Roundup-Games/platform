@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\SafetyTool;
 use App\Livewire\Components\SafetyToolPicker;
 use Livewire\Livewire;
 

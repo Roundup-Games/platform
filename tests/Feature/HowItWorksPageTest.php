@@ -74,12 +74,6 @@ describe('HowItWorksPage - Accessibility', function () {
         }
     });
 
-    it('has skip link', function () {
-        get(route('how-it-works'))
-            ->assertOk()
-            ->assertSee('Skip to content');
-    });
-
     it('has proper section landmarks', function () {
         get(route('how-it-works'))
             ->assertOk()

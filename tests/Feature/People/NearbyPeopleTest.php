@@ -4,8 +4,6 @@ namespace Tests\Feature\People;
 
 use App\Models\Location;
 use App\Models\User;
-use App\Models\UserRelationship;
-use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;

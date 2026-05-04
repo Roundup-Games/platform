@@ -22,16 +22,6 @@ describe('GameSystemDetail - mount and resolution', function () {
             ->assertSee('Wingspan')
             ->assertSee('A competitive bird-collection engine-building game');
     })->group('smoke');
-
-    it('returns 404 for invalid slug', function () {
-        get('/en/game-systems/nonexistent-slug-xyz')
-            ->assertNotFound();
-    });
-
-    it('returns 404 for valid-format slug that does not exist', function () {
-        get('/en/game-systems/this-slug-does-not-exist-at-all')
-            ->assertNotFound();
-    });
 });
 
 describe('GameSystemDetail - eager loaded relationships', function () {

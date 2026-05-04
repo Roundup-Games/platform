@@ -194,8 +194,8 @@ describe('Early Bird Pricing', function () {
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->assertSet('registrationMode', 'team')
             ->assertSee('Early Bird Discount')
-            ->assertSee('-$50.00')
-            ->assertSee('$150.00');
+            ->assertSee('-' . format_currency(5000))
+            ->assertSee(format_currency(15000));
     });
 
     it('does not show early bird when no deadline set', function () {

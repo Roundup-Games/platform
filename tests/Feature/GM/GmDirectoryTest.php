@@ -4,7 +4,6 @@ namespace Tests\Feature\GM;
 
 use App\Enums\GmProficiency;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\GMProfile;
 use App\Models\User;

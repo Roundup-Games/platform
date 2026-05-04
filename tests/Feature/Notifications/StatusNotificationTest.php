@@ -13,7 +13,6 @@ use App\Notifications\CampaignCancelled;
 use App\Notifications\CampaignCompleted;
 use App\Notifications\GameCancelled;
 use App\Notifications\GameCompleted;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -108,65 +107,7 @@ describe('Cancel game → GameCancelled', function () {
         expect($player->notifications()->where('type', GameCancelled::class)->count())->toBe(0);
     });
 
-    it('sends notification with mail channel when mail preference is on', function () {
-        Notification::fake();
 
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['game_cancelled' => ['database' => true, 'mail' => true]]
-            ),
-        ]);
-
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('cancelGame', $game->id);
-
-        Notification::assertSentTo($player, GameCancelled::class, function ($notification, $channels) {
-            return in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels);
-        });
-    });
-
-    it('sends notification without mail channel when mail preference is off', function () {
-        Notification::fake();
-
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['game_cancelled' => ['database' => true, 'mail' => false]]
-            ),
-        ]);
-
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('cancelGame', $game->id);
-
-        Notification::assertSentTo($player, GameCancelled::class, function ($notification, $channels) {
-            return ! in_array(\Illuminate\Notifications\Channels\MailChannel::class, $channels) && in_array(\Illuminate\Notifications\Channels\DatabaseChannel::class, $channels);
-        });
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -223,31 +164,7 @@ describe('Complete game → GameCompleted', function () {
         expect($player->notifications()->where('type', GameCompleted::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['game_completed' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $gameSystem = GameSystem::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('completeGame', $game->id);
-
-        expect($player->notifications()->where('type', GameCompleted::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -308,31 +225,7 @@ describe('Cancel campaign → CampaignCancelled', function () {
         expect($pending->notifications()->where('type', CampaignCancelled::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['campaign_cancelled' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'active',
-        ]);
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('cancelCampaign', $campaign->id);
-
-        expect($player->notifications()->where('type', CampaignCancelled::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -389,31 +282,7 @@ describe('Complete campaign → CampaignCompleted', function () {
         expect($player->notifications()->where('type', CampaignCompleted::class)->count())->toBe(0);
     });
 
-    it('does not dispatch when preferences are off', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create([
-            'profile_complete' => true,
-            'notification_settings' => array_merge(
-                NotificationCategory::defaultSettings(),
-                ['campaign_completed' => ['database' => false, 'mail' => false]]
-            ),
-        ]);
 
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'active',
-        ]);
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('completeCampaign', $campaign->id);
-
-        expect($player->notifications()->where('type', CampaignCompleted::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════

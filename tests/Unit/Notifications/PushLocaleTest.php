@@ -2,15 +2,9 @@
 
 namespace Tests\Unit\Notifications;
 
-use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
-use App\Notifications\CampaignCancelled;
-use App\Notifications\CampaignInvitation;
-use App\Notifications\GameCancelled;
 use App\Notifications\GameInvitation;
-use App\Notifications\NewFollower;
-use App\Notifications\PlayerBenched;
 use App\Notifications\SessionReminder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;

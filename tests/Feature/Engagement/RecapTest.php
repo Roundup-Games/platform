@@ -1,10 +1,6 @@
 <?php
 
-use App\Enums\ActivityType;
-use App\Enums\ParticipantStatus;
-use App\Models\ActivityLog;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\RecapService;

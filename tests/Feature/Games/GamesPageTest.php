@@ -2,7 +2,6 @@
 
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
 use App\Models\User;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
 

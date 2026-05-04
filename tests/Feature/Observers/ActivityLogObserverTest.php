@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\ActivityType;
-use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
