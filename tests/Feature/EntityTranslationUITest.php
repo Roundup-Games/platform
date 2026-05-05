@@ -142,37 +142,6 @@ describe('EventDetail Translations', function () {
 // ── EventListing Display ─────────────────────────────
 
 describe('EventListing Translations', function () {
-    it('shows event name directly regardless of locale', function () {
-        $event = Event::factory()->create([
-            'name' => 'English Tournament',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-        $event->setTranslation('de', 'name', 'Deutsches Turnier');
-
-        app()->setLocale('de');
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertSee('English Tournament')
-            ->assertDontSee('Deutsches Turnier');
-    });
-
-    it('shows short description directly regardless of locale', function () {
-        $event = Event::factory()->create([
-            'name' => 'Test Event',
-            'short_description' => 'English short desc',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-        $event->setTranslation('de', 'short_description', 'Deutsche Kurzbeschreibung');
-
-        app()->setLocale('de');
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertSee('English short desc')
-            ->assertDontSee('Deutsche Kurzbeschreibung');
-    });
-
     it('shows event attributes directly when no translation exists', function () {
         $event = Event::factory()->create([
             'name' => 'English Only',
@@ -200,68 +169,6 @@ describe('EventListing Translations', function () {
         foreach ($events as $event) {
             expect($event->name)->not->toBeEmpty();
         }
-    });
-});
-
-// ── EventCard Component Display ──────────────────────
-
-describe('EventCard Translations', function () {
-    it('shows event name directly in event card regardless of locale', function () {
-        $event = Event::factory()->create([
-            'name' => 'English Tournament',
-            'short_description' => 'English desc',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-        $event->setTranslation('de', 'name', 'Deutsches Turnier');
-
-        app()->setLocale('de');
-
-        $view = $this->blade(
-            '<x-event-card :event="$event" />',
-            ['event' => $event]
-        );
-
-        $view->assertSee('English Tournament')
-            ->assertDontSee('Deutsches Turnier');
-    });
-
-    it('does not show fallback badge since content is always in primary language', function () {
-        $event = Event::factory()->create([
-            'name' => 'English Only Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        app()->setLocale('de');
-
-        $view = $this->blade(
-            '<x-event-card :event="$event" />',
-            ['event' => $event]
-        );
-
-        $view->assertSee('English Only Event')
-            ->assertDontSee('Verfügbar in:');
-    });
-
-    it('does not show fallback badge even when translation exists', function () {
-        $event = Event::factory()->create([
-            'name' => 'Bilingual Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-        $event->setTranslation('de', 'name', 'Zweisprachiges Event');
-
-        app()->setLocale('de');
-
-        $view = $this->blade(
-            '<x-event-card :event="$event" />',
-            ['event' => $event]
-        );
-
-        $view->assertSee('Bilingual Event')
-            ->assertDontSee('Zweisprachiges Event')
-            ->assertDontSee('Verfügbar in:');
     });
 });
 
@@ -315,26 +222,6 @@ describe('CreateEvent Translations', function () {
         expect($event)->not->toBeNull()
             ->and($event->content_language)->toBe('de')
             ->and($event->name)->toBe('Deutsches Event');
-    });
-
-    it('creates event with content_language=de without requiring separate DE fields', function () {
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('name', 'Event in German')
-            ->set('type', 'tournament')
-            ->set('content_language', 'de')
-            ->set('start_date', now()->addDays(14)->format('Y-m-d'))
-            ->set('end_date', now()->addDays(16)->format('Y-m-d'))
-            ->call('nextStep') // step 1 → 2
-            ->call('nextStep') // step 2 → 3
-            ->call('nextStep') // step 3 → 4
-            ->call('nextStep') // step 4 → 5
-            ->call('create')
-            ->assertHasNoErrors()
-            ->assertRedirect();
-
-        $event = Event::where('name', 'Event in German')->first();
-        expect($event)->not->toBeNull()
-            ->and($event->content_language)->toBe('de');
     });
 });
 

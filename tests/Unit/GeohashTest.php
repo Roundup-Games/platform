@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Services\Geohash;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class GeohashTest extends TestCase
 {

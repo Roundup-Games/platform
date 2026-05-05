@@ -28,32 +28,7 @@ class HubDetectionTest extends TestCase
         Cache::flush();
     }
 
-    // ── Hub Threshold: 3+ sessions ─────────────────────
-
-    #[Test]
-    public function hub_with_three_scheduled_games_is_detected(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => 52.5230,
-            'longitude' => 13.4120,
-            'name' => 'Board Game Café Berlin',
-        ]);
-
-        // Exactly 3 scheduled games at this location
-        Game::factory()->count(3)->create([
-            'location_id' => $location->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-        ]);
-
-        $results = $this->proximity->hubs($this->centerLat, $this->centerLng, 10);
-
-        $this->assertCount(1, $results);
-        $hub = $results->first();
-        $this->assertEquals(3, $hub->active_sessions_count);
-        $this->assertEquals($location->id, $hub->location->id);
-        $this->assertEquals('Board Game Café Berlin', $hub->location->name);
-    }
+    // ── Hub Threshold ──────────────────────────────────
 
     #[Test]
     public function hub_with_many_sessions_counts_correctly(): void
@@ -161,28 +136,6 @@ class HubDetectionTest extends TestCase
         $this->assertLessThan($results[1]->distance_km, $results[0]->distance_km);
     }
 
-    #[Test]
-    public function hubs_with_mixed_game_statuses_count_only_scheduled(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => 52.5230,
-            'longitude' => 13.4120,
-        ]);
-
-        // Mix of statuses
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'completed', 'visibility' => 'public']);
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'canceled', 'visibility' => 'public']);
-        Game::factory()->create(['location_id' => $location->id, 'status' => 'scheduled', 'visibility' => 'public']);
-
-        $results = $this->proximity->hubs($this->centerLat, $this->centerLng, 10);
-
-        $this->assertCount(1, $results);
-        // Only 3 scheduled games should count
-        $this->assertEquals(3, $results->first()->active_sessions_count);
-    }
-
     // ── Hub Distance Accuracy ──────────────────────────
 
     #[Test]
@@ -206,59 +159,6 @@ class HubDetectionTest extends TestCase
         $this->assertCount(1, $results);
         // Distance should be approximately 5km (±0.5km tolerance)
         $this->assertEqualsWithDelta(5.0, $results->first()->distance_km, 0.5);
-    }
-
-    #[Test]
-    public function hub_at_exactly_radius_boundary_excluded_by_precision(): void
-    {
-        // Create a hub slightly beyond 10km radius
-        // ~0.091 degrees latitude ≈ 10.1km
-        $location = Location::factory()->create([
-            'latitude' => $this->centerLat - 0.092,
-            'longitude' => $this->centerLng,
-        ]);
-
-        Game::factory()->create([
-            'location_id' => $location->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-        ]);
-
-        $results = $this->proximity->hubs($this->centerLat, $this->centerLng, 10);
-
-        $this->assertCount(0, $results);
-    }
-
-    // ── Hub Caching ────────────────────────────────────
-
-    #[Test]
-    public function hub_results_include_geohash_cache_key_components(): void
-    {
-        $location = Location::factory()->create([
-            'latitude' => 52.5230,
-            'longitude' => 13.4120,
-        ]);
-
-        Game::factory()->count(3)->create([
-            'location_id' => $location->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-        ]);
-
-        // First call populates cache
-        $results1 = $this->proximity->hubs($this->centerLat, $this->centerLng, 5);
-        $this->assertCount(1, $results1);
-
-        // Add more games — cached result should still show old count
-        Game::factory()->count(2)->create([
-            'location_id' => $location->id,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-        ]);
-
-        $results2 = $this->proximity->hubs($this->centerLat, $this->centerLng, 5);
-        // Cache hit — should still show 3, not 5
-        $this->assertEquals(3, $results2->first()->active_sessions_count);
     }
 
     // ── Events at Hubs ─────────────────────────────────

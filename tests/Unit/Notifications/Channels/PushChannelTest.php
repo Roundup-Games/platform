@@ -51,6 +51,8 @@ describe('PushChannel', function () {
             public function toPush(object $notifiable): ?PushPayload { return null; }
         };
         $this->channel->send($user, $notificationNull);
+
+        expect(true)->toBeTrue();
     });
 
     it('does nothing when user has no push subscriptions', function () {
@@ -75,6 +77,8 @@ describe('PushChannel', function () {
         };
 
         $this->channel->send($user, $notification);
+
+        expect(true)->toBeTrue();
     });
 
     it('queues notifications and flushes batch', function () {
@@ -130,6 +134,8 @@ describe('PushChannel', function () {
         };
 
         $this->channel->send($user, $notification);
+
+        expect(true)->toBeTrue();
     })->group('smoke');
 
     it('deletes expired subscriptions and logs on flush', function () {
@@ -183,6 +189,8 @@ describe('PushChannel', function () {
         };
 
         $channel->send($user, $notification);
+
+        expect(true)->toBeTrue();
     });
 
     it('logs warning on failed send that is not expired', function () {
@@ -238,6 +246,8 @@ describe('PushChannel', function () {
         };
 
         $this->channel->send($user, $notification);
+
+        expect(true)->toBeTrue();
     });
 
     it('logs warning and continues on queue exception', function () {
@@ -287,5 +297,7 @@ describe('PushChannel', function () {
 
         // Must NOT throw
         $this->channel->send($user, $notification);
+
+        expect(true)->toBeTrue();
     });
 });

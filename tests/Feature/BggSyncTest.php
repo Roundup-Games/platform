@@ -514,28 +514,6 @@ it('returns empty discovered_expansion_ids when no expansions linked', function 
     expect($result['discovered_expansion_ids'])->toBe([]);
 });
 
-it('attempts cover image download and handles failure gracefully', function () {
-    Http::fake([
-        'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
-    ]);
-
-    $service = createService();
-    $result = $service->syncGameSystems([174430]);
-
-    // Sync succeeds — image download failure is caught
-    expect($result['synced'])->toBe(1);
-    expect($result['failed'])->toBe(0);
-
-    // GameSystem was created with all data
-    $game = GameSystem::where('bgg_id', 174430)->first();
-    expect($game)->not->toBeNull();
-    expect($game->name)->toBe('Gloomhaven');
-
-    // Cover media is empty since the image URL cannot be reached in test env,
-    // but the sync was NOT blocked by the image download failure
-    expect($game->getMedia('cover'))->toHaveCount(0);
-});
-
 it('continues sync when cover image download fails', function () {
     Http::fake([
         'boardgamegeek.com/xmlapi2/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
@@ -604,25 +582,8 @@ it('runs bgg:sync command end-to-end via artisan', function () {
     expect($output)->toContain('Syncing 1 game(s) from BGG');
     expect($output)->toContain('Synced: 1, Failed: 0');
 
-    // Assert GameSystem exists with all fields
-    $game = GameSystem::where('bgg_id', 174430)->first();
-    expect($game)->not->toBeNull();
-    expect($game->name)->toBe('Gloomhaven');
-    expect($game->bgg_type)->toBe('boardgame');
-    expect($game->year_released)->toBe(2017);
-    expect($game->min_players)->toBe(1);
-    expect($game->max_players)->toBe(4);
-    expect($game->average_play_time)->toBe(150);
-    expect($game->bgg_rank)->toBe(1);
-    expect($game->bgg_average_rating)->toBe('8.71');
-    expect($game->bgg_last_synced_at)->not->toBeNull();
-
-    // Assert taxonomy synced
-    expect($game->categories)->toHaveCount(4);
-    expect($game->mechanics)->toHaveCount(4);
-    expect($game->families)->toHaveCount(3);
-    expect($game->designers)->toHaveCount(1);
-    expect($game->publishers)->toHaveCount(2);
+    // GameSystem was created — field values covered by service-level test
+    expect(GameSystem::where('bgg_id', 174430)->count())->toBe(1);
 
     // Assert sync log created
     $log = BggSyncLog::where('status', 'success')->first();

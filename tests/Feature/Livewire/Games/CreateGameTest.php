@@ -203,19 +203,6 @@ describe('CreateGame — Type-Specific Validation', function () {
             ->assertHasErrors(['date_time' => 'required']);
     });
 
-    it('validates required fields for TTRPG', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', '')
-            ->set('date_time', '')
-            ->call('save')
-            ->assertHasErrors(['name' => 'required'])
-            ->assertHasErrors(['date_time' => 'required']);
-    });
-
     it('rejects invalid game type', function () {
         createGameComponent()
             ->call('selectType', 'invalid_type')

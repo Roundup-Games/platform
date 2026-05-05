@@ -8,7 +8,6 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Notifications\NewFollower;
 use App\Services\NotificationService;
 use App\Services\PeopleDiscoveryService;
-use Database\Factories\UserRelationshipFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

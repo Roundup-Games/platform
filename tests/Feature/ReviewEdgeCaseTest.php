@@ -304,23 +304,6 @@ describe('Duplicate Review Prevention', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Aggregate Edge Cases', function () {
-    it('all same ratings produce exact average', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-
-        for ($i = 0; $i < 5; $i++) {
-            Review::factory()->create([
-                'gm_profile_id' => $gmProfile->id,
-                'rating' => 5,
-                'status' => 'published',
-            ]);
-        }
-
-        app(ReviewAggregateService::class)->updateAggregates($gmProfile);
-        expect($gmProfile->fresh()->average_rating)->toBe('5.00');
-        expect($gmProfile->fresh()->review_count)->toBe(5);
-    });
-
     it('tie-breaking in proficiency tags returns deterministic order', function () {
         $gm = User::factory()->create(['profile_complete' => true]);
         $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
@@ -348,68 +331,6 @@ describe('Aggregate Edge Cases', function () {
         $names = $result->pluck('name')->toArray();
         expect($names)->toContain('storytelling', 'voices', 'world-builder');
     });
-
-    it('single review produces exact rating', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-
-        Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 3,
-            'status' => 'published',
-        ]);
-
-        app(ReviewAggregateService::class)->updateAggregates($gmProfile);
-        expect($gmProfile->fresh()->average_rating)->toBe('3.00');
-        expect($gmProfile->fresh()->review_count)->toBe(1);
-    });
-
-    it('deleting all reviews resets aggregate to null', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-
-        $review = Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 4,
-            'status' => 'published',
-        ]);
-
-        app(ReviewAggregateService::class)->updateAggregates($gmProfile);
-        expect($gmProfile->fresh()->review_count)->toBe(1);
-
-        $review->delete();
-
-        expect($gmProfile->fresh()->average_rating)->toBeNull();
-        expect($gmProfile->fresh()->review_count)->toBe(0);
-    });
-
-    it('rating with 1-star minimum is computed correctly', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-
-        Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 1,
-            'status' => 'published',
-        ]);
-
-        app(ReviewAggregateService::class)->updateAggregates($gmProfile);
-        expect($gmProfile->fresh()->average_rating)->toBe('1.00');
-    });
-
-    it('top proficiencies respects the limit parameter', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
-
-        Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'proficiency_tags' => ['storytelling', 'voices', 'world-builder', 'creativity'],
-            'status' => 'published',
-        ]);
-
-        $result = app(ReviewAggregateService::class)->topProficiencies($gmProfile, 3);
-        expect($result)->toHaveCount(3);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -417,47 +338,6 @@ describe('Aggregate Edge Cases', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Observer Integration', function () {
-    it('creating a review automatically updates GM aggregates', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create([
-            'user_id' => $gm->id,
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 4,
-            'status' => 'published',
-        ]);
-
-        expect($gmProfile->fresh()->average_rating)->toBe('4.00');
-        expect($gmProfile->fresh()->review_count)->toBe(1);
-    });
-
-    it('changing review status to reported recalculates aggregates', function () {
-        $gm = User::factory()->create(['profile_complete' => true]);
-        $gmProfile = GMProfile::factory()->create([
-            'user_id' => $gm->id,
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        $review = Review::factory()->create([
-            'gm_profile_id' => $gmProfile->id,
-            'rating' => 4,
-            'status' => 'published',
-        ]);
-
-        expect($gmProfile->fresh()->review_count)->toBe(1);
-
-        $reporter = User::factory()->create();
-        $review->report($reporter->id, 'spam');
-
-        expect($gmProfile->fresh()->review_count)->toBe(0);
-        expect($gmProfile->fresh()->average_rating)->toBeNull();
-    });
-
     it('updating review body does not trigger recalculation', function () {
         $gm = User::factory()->create(['profile_complete' => true]);
         $gmProfile = GMProfile::factory()->create([

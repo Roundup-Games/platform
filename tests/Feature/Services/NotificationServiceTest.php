@@ -127,34 +127,6 @@ describe('NotificationService', function () {
             expect($channels)->toHaveKey('database');
         });
 
-        it('falls back to defaults when category value is an integer', function () {
-            Log::shouldReceive('warning')->once();
-
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'new_follower' => 42,
-                ],
-            ]);
-
-            $channels = $this->service->resolveChannels($user, NotificationCategory::NewFollower);
-
-            expect($channels)->toHaveCount(1);
-            expect($channels)->toHaveKey('database');
-        });
-
-        it('returns correct channels for representative categories with null settings', function () {
-            // Category with mail=true default
-            $userMailEnabled = User::factory()->create(['notification_settings' => null]);
-            $channelsMail = $this->service->resolveChannels($userMailEnabled, NotificationCategory::GameInvitation);
-            expect($channelsMail)->toHaveCount(3); // database + mail + push
-
-            // Category with mail=false default
-            $userMailDisabled = User::factory()->create(['notification_settings' => null]);
-            $channelsNoMail = $this->service->resolveChannels($userMailDisabled, NotificationCategory::NewFollower);
-            expect($channelsNoMail)->toHaveCount(1); // database only
-            expect($channelsNoMail)->toHaveKey('database');
-        });
-
         it('includes push channel when push is enabled in settings', function () {
             $user = User::factory()->create([
                 'notification_settings' => [

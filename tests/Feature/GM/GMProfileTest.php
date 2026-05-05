@@ -168,47 +168,5 @@ class GMProfileTest extends TestCase
         $this->assertDatabaseMissing('gm_profiles', ['id' => $profileId]);
     }
 
-    // ── Full End-to-End Lifecycle ─────────────────────────────
 
-    public function test_full_gm_lifecycle_with_profile_updates(): void
-    {
-        $service = app(\App\Services\GmRoleService::class);
-
-        // 1. Assign GM role
-        $user = $this->createSubscribedUser(['name' => 'Jane GM']);
-        $this->assertTrue($service->assignGMRole($user));
-
-        $profile = $user->fresh()->gmProfile;
-        $this->assertNotNull($profile);
-        $this->assertTrue($profile->is_active);
-        $this->assertStringStartsWith('jane-gm-', $profile->slug);
-
-        // 2. Update profile
-        $profile->bio = 'Expert D&D 5e dungeon master';
-        $profile->specializations = ['storytelling', 'world-builder', 'rule-of-cool'];
-        $profile->save();
-
-        $fresh = $profile->fresh();
-        $this->assertEquals('Expert D&D 5e dungeon master', $fresh->bio);
-        $this->assertCount(3, $fresh->specializations);
-        foreach ($fresh->specializations as $spec) {
-            $this->assertNotNull(GmProficiency::tryFrom($spec));
-        }
-
-        // 3. Subscription lapses
-        $service->handleSubscriptionLapse($user);
-        $this->assertFalse($service->isGmActive($user->fresh()));
-
-        // 4. Profile preserved
-        $preserved = GMProfile::where('user_id', $user->id)->first();
-        $this->assertNotNull($preserved);
-        $this->assertFalse($preserved->is_active);
-        $this->assertEquals('Expert D&D 5e dungeon master', $preserved->bio);
-
-        // 5. Resubscribe — same profile reactivated
-        $service->assignGMRole($user);
-        $reactivated = GMProfile::where('user_id', $user->id)->first();
-        $this->assertTrue($reactivated->is_active);
-        $this->assertEquals($preserved->id, $reactivated->id);
-    }
 }

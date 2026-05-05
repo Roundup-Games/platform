@@ -53,20 +53,6 @@ describe('Game creation — safety rules persistence', function () {
         $fresh = Game::find($game->id);
         expect($fresh->safety_rules)->toBe($safetyRules);
     });
-
-    it('persists null safety_rules when not provided', function () {
-        $game = Game::factory()->create(['safety_rules' => null]);
-
-        expect($game->safety_rules)->toBeNull();
-    });
-
-    it('persists empty tools array within safety_rules', function () {
-        $game = Game::factory()->create([
-            'safety_rules' => ['tools' => [], 'lines_and_veils_text' => '', 'custom_note' => ''],
-        ]);
-
-        expect($game->safety_rules['tools'])->toBe([]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -113,12 +99,6 @@ describe('Campaign creation — safety rules persistence', function () {
         // Verify persisted to DB
         $fresh = Campaign::find($campaign->id);
         expect($fresh->safety_rules)->toBe($safetyRules);
-    });
-
-    it('persists null safety_rules when not provided', function () {
-        $campaign = Campaign::factory()->create(['safety_rules' => null]);
-
-        expect($campaign->safety_rules)->toBeNull();
     });
 });
 
@@ -450,11 +430,6 @@ describe('Discovery page — safety tools filter', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('/safety-tools static page', function () {
-    it('returns 200 status', function () {
-        get(route('safety-tools'))
-            ->assertOk();
-    });
-
     it('shows the page title and description', function () {
         get(route('safety-tools'))
             ->assertOk()

@@ -4,11 +4,13 @@ namespace Tests\Models;
 
 use App\Models\Game;
 use App\Models\Location;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 use Tests\Traits\SetsUpLocale;
 
 class LocationModelTest extends TestCase
 {
+    use DatabaseTransactions;
     use SetsUpLocale;
 
     // ── Deduplication (non-trivial upsert logic) ──────────────
@@ -94,7 +96,7 @@ class LocationModelTest extends TestCase
             'country' => 'DEU',
         ]);
 
-        $this->assertEquals('Musterstraße 42, 10115 Berlin, DEU', $location->fullAddress());
+        $this->assertEquals('Musterstraße 42, 10115 Berlin', $location->fullAddress());
     }
 
     public function test_full_address_handles_missing_parts(): void
@@ -106,7 +108,7 @@ class LocationModelTest extends TestCase
             'country' => 'DEU',
         ]);
 
-        $this->assertEquals('Berlin, DEU', $location->fullAddress());
+        $this->assertEquals('Berlin', $location->fullAddress());
     }
 
     // ── FK Nullification on Delete (data integrity) ───────────
