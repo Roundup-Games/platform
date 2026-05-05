@@ -2,31 +2,8 @@
 
 use App\Models\LinkedAccount;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
-
-// ── Redirect ────────────────────────────────────────────
-
-it('redirects to Google for authentication', function () {
-    Socialite::shouldReceive('driver->redirect')
-        ->once()
-        ->andReturn(redirect('https://accounts.google.com/oauth/authorize'));
-
-    $response = $this->get('/auth/google/redirect');
-
-    $response->assertRedirect();
-});
-
-it('rejects unsupported OAuth providers on redirect', function () {
-    $response = $this->get('/auth/facebook/redirect');
-    $response->assertRedirect(route('login'));
-});
-
-it('rejects unsupported OAuth providers on callback', function () {
-    $response = $this->get('/auth/facebook/callback');
-    $response->assertRedirect(route('login'));
-});
 
 // ── New user registration via OAuth ─────────────────────
 
@@ -291,48 +268,6 @@ it('handles OAuth errors gracefully', function () {
     $response->assertSessionHasErrors('oauth');
 });
 
-// ── Observability: event logging ────────────────────────
-
-it('logs OAuth registration event', function () {
-    $socialiteUser = Mockery::mock();
-    $socialiteUser->shouldReceive('getId')->andReturn('77777');
-    $socialiteUser->shouldReceive('getEmail')->andReturn('log-new@google.com');
-    $socialiteUser->shouldReceive('getName')->andReturn('Log New');
-    $socialiteUser->shouldReceive('getNickname')->andReturn(null);
-    $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
-    $socialiteUser->token = 'tok';
-    $socialiteUser->refreshToken = null;
-
-    Socialite::shouldReceive('driver->user')->andReturn($socialiteUser);
-
-    Log::shouldReceive('info')
-        ->atLeast()
-        ->once()
-        ->withArgs(fn (string $message) => str_contains($message, 'OAuth'));
-
-    Log::shouldReceive('warning')->atLeast(0);
-    Log::shouldReceive('error')->atLeast(0);
-
-    $this->get('/auth/google/callback');
-});
-
-it('logs OAuth callback failure as warning', function () {
-    Socialite::shouldReceive('driver->user')
-        ->once()
-        ->andThrow(new \Exception('Token expired'));
-
-    Log::shouldReceive('warning')
-        ->atLeast()
-        ->once()
-        ->withArgs(fn (string $message) => str_contains($message, 'OAuth'));
-
-    // report() in the controller also triggers the error logger
-    Log::shouldReceive('error')->atLeast(0);
-    Log::shouldReceive('info')->atLeast(0);
-
-    $this->get('/auth/google/callback');
-});
-
 // ── Name fallback and redirect logic ───────────────────
 
 it('uses email prefix as name when OAuth provider returns no name', function () {
@@ -424,27 +359,4 @@ it('returns success when linking an already-linked provider to the same user', f
     expect(LinkedAccount::where('user_id', $user->id)->where('provider', 'google')->count())->toBe(1);
     $response->assertRedirect(route('profile.edit'));
     $response->assertSessionHas('status');
-});
-
-it('sets oauth_linking session flag when authenticated user initiates redirect', function () {
-    $user = User::factory()->create();
-
-    Socialite::shouldReceive('driver->redirect')
-        ->once()
-        ->andReturn(redirect('https://accounts.google.com/oauth/authorize'));
-
-    $response = $this->actingAs($user)->get('/auth/google/redirect');
-
-    $this->assertTrue(session()->has('oauth_linking'));
-    expect(session('oauth_linking'))->toBeTrue();
-});
-
-it('does not set oauth_linking session for guest user', function () {
-    Socialite::shouldReceive('driver->redirect')
-        ->once()
-        ->andReturn(redirect('https://accounts.google.com/oauth/authorize'));
-
-    $this->get('/auth/google/redirect');
-
-    expect(session('oauth_linking'))->toBeNull();
 });

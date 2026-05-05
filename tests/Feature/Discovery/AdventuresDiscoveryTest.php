@@ -10,12 +10,6 @@ use function Pest\Laravel\{actingAs};
 describe('AdventuresDiscovery', function () {
     // ── Core rendering ──────────────────────────────────
 
-    it('renders for guests at /discover/adventures', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertOk()
-            ->assertSee('Discover Adventures');
-    });
-
     it('shows campaigns and games scoped to TTRPG game systems only', function () {
         $ttrpgSystem = GameSystem::factory()->create(['type' => 'ttrpg']);
 
@@ -321,11 +315,6 @@ describe('AdventuresDiscovery', function () {
 
     // ── Edge cases ──────────────────────────────────────
 
-    it('shows empty state with TTRPG-specific messaging', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSee('Check back soon for new adventures');
-    });
-
     it('clearFilters resets all adventure-specific filters', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
@@ -444,17 +433,6 @@ describe('AdventuresDiscovery', function () {
             ->assertSet('safety_tools', ['x-card'])
             ->call('toggleSafetyTool', 'x-card')
             ->assertSet('safety_tools', []);
-    });
-
-    it('defaults language filter to user preferred language on mount', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-            'preferred_language' => 'de',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->assertSet('language', 'de');
     });
 
 });

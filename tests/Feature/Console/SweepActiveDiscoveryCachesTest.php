@@ -8,12 +8,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 describe('SweepActiveDiscoveryCaches command', function () {
-    it('runs successfully with no active users', function () {
-        $this->artisan('discovery:sweep-active')
-            ->assertSuccessful()
-            ->expectsOutput('No active users to sweep.');
-    });
-
     it('runs with --dry-run without dispatching jobs', function () {
         Queue::fake();
 

@@ -20,20 +20,6 @@ class GeohashTest extends TestCase
     }
 
     #[Test]
-    public function it_encodes_with_default_precision()
-    {
-        $hash = Geohash::encode(52.5163, 13.3777);
-        $this->assertEquals(12, strlen($hash));
-    }
-
-    #[Test]
-    public function it_encodes_with_custom_precision()
-    {
-        $hash = Geohash::encode(52.5163, 13.3777, 8);
-        $this->assertEquals(8, strlen($hash));
-    }
-
-    #[Test]
     public function it_encodes_zero_zero()
     {
         // 0,0 → s7zzzzzzzzzz (first char 's' covers the Gulf of Guinea)

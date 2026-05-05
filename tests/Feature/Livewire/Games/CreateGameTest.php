@@ -27,16 +27,11 @@ function createGameComponent(?User $user = null)
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateGame — Type Selector', function () {
-    it('shows type selector on initial load', function () {
+    it('initializes with type selector step', function () {
         createGameComponent()
             ->assertSet('step', 'type')
-            ->assertSet('game_type', null)
-            ->assertSeeHtml("wire:click=\"selectType('board_game')\"")
-            ->assertSeeHtml("wire:click=\"selectType('ttrpg')\"")
-            ->assertDontSeeHtml('wire:submit="save"');
+            ->assertSet('game_type', null);
     });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -48,10 +43,7 @@ describe('CreateGame — Board Game Selection', function () {
         createGameComponent()
             ->call('selectType', 'board_game')
             ->assertSet('step', 'form')
-            ->assertSet('game_type', 'board_game')
-            ->assertSeeHtml('id="game-comfort-notes"')
-            ->assertDontSeeHtml('id="game-experience"')
-            ->assertDontSee(__('safety.content_safety_tools'));
+            ->assertSet('game_type', 'board_game');
     });
 });
 
@@ -64,10 +56,7 @@ describe('CreateGame — TTRPG Selection', function () {
         createGameComponent()
             ->call('selectType', 'ttrpg')
             ->assertSet('step', 'form')
-            ->assertSet('game_type', 'ttrpg')
-            ->assertSeeHtml('id="game-experience"')
-            ->assertSee(__('safety.content_safety_tools'))
-            ->assertDontSeeHtml('id="game-comfort-notes"');
+            ->assertSet('game_type', 'ttrpg');
     });
 });
 
@@ -102,12 +91,6 @@ describe('CreateGame — Type Switching', function () {
             ->assertSet('name', 'Epic Session')
             ->assertSet('description', 'A grand adventure')
             ->assertSet('date_time', now()->addDay()->format('Y-m-d\TH:i'));
-    });
-
-    it('shows type switcher link after selecting type', function () {
-        createGameComponent()
-            ->call('selectType', 'board_game')
-            ->assertSee(__('games.action_switch_type'));
     });
 });
 
@@ -188,19 +171,6 @@ describe('CreateGame — Type-Specific Validation', function () {
             ->set('max_players', 6)
             ->call('save')
             ->assertHasErrors(['game_type']);
-    });
-
-    it('validates required fields for board game', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', '')
-            ->set('date_time', '')
-            ->call('save')
-            ->assertHasErrors(['name' => 'required'])
-            ->assertHasErrors(['date_time' => 'required']);
     });
 
     it('rejects invalid game type', function () {

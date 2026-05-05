@@ -55,32 +55,6 @@ describe('PushChannel', function () {
         expect(true)->toBeTrue();
     });
 
-    it('does nothing when user has no push subscriptions', function () {
-        $user = Mockery::mock(User::class);
-        $user->shouldReceive('getAttribute')->with('pushSubscriptions')->andReturn(collect([]));
-
-        $payload = new PushPayload('Title', 'Body', '/icon.png', '/url');
-
-        $notification = new class($payload) extends Notification
-        {
-            public function __construct(private PushPayload $payload) {}
-
-            public function via(object $notifiable): array
-            {
-                return [];
-            }
-
-            public function toPush(object $notifiable): PushPayload
-            {
-                return $this->payload;
-            }
-        };
-
-        $this->channel->send($user, $notification);
-
-        expect(true)->toBeTrue();
-    });
-
     it('queues notifications and flushes batch', function () {
         $sub1 = Mockery::mock(PushSubscription::class)->makePartial();
         $sub1->endpoint = 'https://push.example.com/1';

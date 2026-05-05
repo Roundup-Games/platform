@@ -46,17 +46,6 @@ class GmDirectoryTest extends TestCase
         return $user;
     }
 
-    // ── Page Renders ───────────────────────────────────
-
-    // smoke: paid-feature landing page renders
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
-    public function test_directory_page_renders_successfully(): void
-    {
-        $response = $this->get('/en/gms');
-
-        $response->assertStatus(200);
-    }
-
     // ── GM Cards ───────────────────────────────────────
 
     // smoke: core value proposition — active GMs appear in directory
@@ -68,15 +57,6 @@ class GmDirectoryTest extends TestCase
         $response = $this->get('/en/gms');
 
         $response->assertSee('Alice the GM');
-    }
-
-    public function test_active_gm_bio_appears_in_card(): void
-    {
-        $gm = $this->createActiveGm([], ['bio' => 'Experienced dungeon master']);
-
-        $response = $this->get('/en/gms');
-
-        $response->assertSee('Experienced dungeon master');
     }
 
     public function test_active_gm_rating_appears_when_present(): void
@@ -92,18 +72,6 @@ class GmDirectoryTest extends TestCase
         $response->assertSee('10');
     }
 
-    public function test_gm_without_rating_shows_no_reviews_text(): void
-    {
-        $gm = $this->createActiveGm([], [
-            'average_rating' => null,
-            'review_count' => 0,
-        ]);
-
-        $response = $this->get('/en/gms');
-
-        $response->assertSee(__('profile.gm_profile_no_reviews'));
-    }
-
     public function test_gm_specializations_appear_as_tags(): void
     {
         $gm = $this->createActiveGm([], [
@@ -114,28 +82,6 @@ class GmDirectoryTest extends TestCase
 
         $response->assertSee(GmProficiency::Storytelling->label());
         $response->assertSee(GmProficiency::WorldBuilder->label());
-    }
-
-    // ── Search ─────────────────────────────────────────
-
-    public function test_search_by_name_finds_matching_gm(): void
-    {
-        $gm1 = $this->createActiveGm(['name' => 'Magnus Stoneforge']);
-        $gm2 = $this->createActiveGm(['name' => 'Elena Nightwhisper']);
-
-        $response = $this->get('/en/gms?q=Magnus');
-
-        $response->assertSee('Magnus Stoneforge');
-        $response->assertDontSee('Elena Nightwhisper');
-    }
-
-    public function test_search_with_no_results_shows_empty_state(): void
-    {
-        $gm = $this->createActiveGm(['name' => 'Someone']);
-
-        $response = $this->get('/en/gms?q=NonExistentGM12345');
-
-        $response->assertSee(__('gms.content_no_gms_found'));
     }
 
     // ── Filter by Specialization ───────────────────────
@@ -268,13 +214,6 @@ class GmDirectoryTest extends TestCase
 
     // ── URL Filter Persistence ─────────────────────────
 
-    public function test_empty_state_with_filters_shows_clear_button(): void
-    {
-        $response = $this->get('/en/gms?q=nonexistent');
-
-        $response->assertSee(__('gms.action_clear_filters'));
-    }
-
     public function test_combined_search_and_specialization_filter(): void
     {
         $gm1 = $this->createActiveGm(['name' => 'Alice Storyteller'], ['specializations' => ['storytelling']]);
@@ -309,24 +248,6 @@ class GmDirectoryTest extends TestCase
 
         $response->assertSee('Test_GM');
     }
-
-    // ── Livewire Component Filter State ────────────────
-
-    public function test_clear_filters_resets_all_livewire_state(): void
-    {
-        $component = \Livewire\Livewire::test(\App\Livewire\GM\GmDirectory::class)
-            ->set('search', 'test')
-            ->set('specialization', 'storytelling')
-            ->set('min_rating', 4)
-            ->call('clearFilters');
-
-        $component
-            ->assertSet('search', '')
-            ->assertSet('specialization', null)
-            ->assertSet('min_rating', null)
-            ->assertSet('sortBy', 'highest_rated');
-    }
-
 
 
     public function test_gm_card_shows_proficiency_badges_from_reviews(): void

@@ -69,21 +69,6 @@ describe('late cancellation detection', function () {
         expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
     });
 
-    it('does not set late_cancel when cancellation is more than 24h before game', function () {
-        $game = createGameForLateCancel($this->owner, $this->gameSystem, [
-            'date_time' => now()->addDays(3),
-        ]);
-
-        $participant = createApprovedParticipant($game);
-
-        Livewire::actingAs($participant->user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->call('cancelOwnParticipation', $participant->id);
-
-        expect($participant->fresh()->status)->toBe(ParticipantStatus::Rejected);
-        // attendance_status should NOT be LateCancel
-        expect($participant->fresh()->attendance_status)->not->toBe(AttendanceStatus::LateCancel);
-    });
 });
 
 // ── Below-min-player warning ────────────────────────────

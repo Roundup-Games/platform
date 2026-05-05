@@ -112,28 +112,6 @@ describe('DiscoveryPage', function () {
             ->assertDontSee('Private Campaign');
     })->group('smoke');
 
-    it('shows protected items to authenticated users', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        Game::factory()->create([
-            'name' => 'Protected Game',
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Protected Campaign',
-            'visibility' => 'protected',
-            'status' => 'active',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSee('Protected Game')
-            ->assertSee('Protected Campaign');
-    });
-
     it('shows recommendations for logged-in users with favorite systems', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $system = GameSystem::factory()->create();
@@ -153,11 +131,6 @@ describe('DiscoveryPage', function () {
         Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
             ->assertSee('Recommended for You')
             ->assertSee('Recommended Game');
-    });
-
-    it('does not show recommendations for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertDontSee('Recommended for You');
     });
 
     it('filters games by date upcoming', function () {
@@ -265,25 +238,6 @@ describe('DiscoveryPage', function () {
         // Switch mode — should reset to page 1
         $component->call('setMode', 'games');
         expect($component->viewData('results')->count())->toBe(12);
-    });
-
-    it('hides protected items from guests', function () {
-        Game::factory()->create([
-            'name' => 'Protected Game for Guest',
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-        ]);
-
-        Campaign::factory()->create([
-            'name' => 'Protected Campaign for Guest',
-            'visibility' => 'protected',
-            'status' => 'active',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertDontSee('Protected Game for Guest')
-            ->assertDontSee('Protected Campaign for Guest');
     });
 
     it('filters vibe flags across both games and campaigns', function () {

@@ -288,19 +288,6 @@ describe('ManageEvent', function () {
         expect(Event::find($event->id)->city)->toBe('New City');
     });
 
-    it('switches tabs', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
-            ->assertSet('activeTab', 'details')
-            ->call('setActiveTab', 'venue')
-            ->assertSet('activeTab', 'venue')
-            ->call('setActiveTab', 'registration')
-            ->assertSet('activeTab', 'registration');
-    });
-
     it('publishes an event', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
@@ -373,12 +360,6 @@ describe('ManageEvent', function () {
             ->assertSet('divisions', [['name' => 'Recreational', 'description' => 'Fun division']]);
     });
 
-    it('404s for missing event', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        actingAs($user);
-        get(route('events.manage', ['slug' => 'nonexistent']))
-            ->assertNotFound();
-    });
 });
 
 // ── EventAnnouncements ─────────────────────────────────

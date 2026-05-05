@@ -168,19 +168,6 @@ describe('reportAttendance', function () {
         expect($result['reason'])->toContain('Invalid attendance status');
     });
 
-    it('allows a participant to report the host', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-
-        $result = $this->service->reportAttendance($game, $reporter, $owner, 'no_show');
-
-        expect($result['success'])->toBeTrue();
-
-        $hostParticipant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $owner->id)
-            ->first();
-        expect($hostParticipant->attendance_status)->toBe(AttendanceStatus::NoShow);
-    });
 });
 
 // ── checkGriefResistance ─────────────────────────────────

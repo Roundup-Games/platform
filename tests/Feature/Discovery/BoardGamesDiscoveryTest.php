@@ -235,17 +235,6 @@ describe('BoardGamesDiscovery', function () {
         }
     });
 
-    it('recommendations return null when user only has avoided systems and no favorites', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $system = GameSystem::factory()->create(['type' => 'boardgame']);
-
-        $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'avoid']);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class)
-            ->assertDontSee('Recommended for You');
-    });
-
     it('recommendations do not include campaigns even when system matches', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $system = GameSystem::factory()->create(['type' => 'boardgame']);

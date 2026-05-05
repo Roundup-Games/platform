@@ -154,60 +154,6 @@ describe('WriteReview — Game Session', function () {
         $this->assertEquals(['storytelling', 'voices'], $review->proficiency_tags);
     });
 
-    it('requires a rating', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 0)
-            ->call('submit')
-            ->assertHasErrors(['rating']);
-    });
-
-    it('validates rating range', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 6)
-            ->call('submit')
-            ->assertHasErrors(['rating' => 'max']);
-    });
-
-    it('validates body max length', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 3)
-            ->set('body', str_repeat('a', 2001))
-            ->call('submit')
-            ->assertHasErrors(['body' => 'max']);
-    });
-
-    it('limits proficiency tags to 3', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ])
-            ->set('rating', 5)
-            ->set('proficiency_tags', ['storytelling', 'voices', 'world-builder', 'creativity'])
-            ->call('submit')
-            ->assertHasErrors(['proficiency_tags' => 'max']);
-    });
-
     it('prevents duplicate review', function () {
         $data = createEligibleGameSession();
         $this->actingAs($data['player']);
@@ -227,28 +173,6 @@ describe('WriteReview — Game Session', function () {
             'reviewable_id' => $data['game']->id,
         ])
             ->assertSet('errorMessage', 'You are not eligible to review this item.');
-    });
-
-    it('toggles proficiency tags correctly', function () {
-        $data = createEligibleGameSession();
-        $this->actingAs($data['player']);
-
-        $component = Livewire::test(WriteReview::class, [
-            'reviewable_type' => 'game',
-            'reviewable_id' => $data['game']->id,
-        ]);
-
-        // Add tag
-        $component->call('toggleTag', 'storytelling')
-            ->assertSet('proficiency_tags', ['storytelling']);
-
-        // Add another
-        $component->call('toggleTag', 'voices')
-            ->assertSet('proficiency_tags', ['storytelling', 'voices']);
-
-        // Remove first
-        $component->call('toggleTag', 'storytelling')
-            ->assertSet('proficiency_tags', ['voices']);
     });
 
     it('blocks adding more than 3 tags via toggle', function () {

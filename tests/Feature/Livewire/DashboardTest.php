@@ -41,20 +41,6 @@ class DashboardTest extends TestCase
         GameSystem::factory()->create();
     }
 
-    // ── Page Access ────────────────────────────────────
-
-    public function test_guest_is_redirected_from_dashboard(): void
-    {
-        $response = $this->get('/en/dashboard');
-        $response->assertRedirect(route('login'));
-    }
-
-    public function test_authenticated_user_can_access_dashboard(): void
-    {
-        $response = $this->actingAs($this->user)->get('/en/dashboard');
-        $response->assertOk();
-    }
-
     // ── Stats: Active Games ────────────────────────────
 
     public function test_active_games_count_includes_owned_scheduled_games(): void

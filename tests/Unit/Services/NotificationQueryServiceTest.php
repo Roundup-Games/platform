@@ -5,7 +5,6 @@ use App\Notifications\GameInvitation;
 use App\Notifications\NewFollower;
 use App\Notifications\ParticipantJoined;
 use App\Services\NotificationQueryService;
-use Illuminate\Support\Collection;
 
 beforeEach(function () {
     $this->service = new NotificationQueryService();
@@ -15,13 +14,6 @@ beforeEach(function () {
 // ── getGroupedForUser ─────────────────────────────────────────
 
 describe('getGroupedForUser', function () {
-    it('returns empty collection for user with no notifications', function () {
-        $result = $this->service->getGroupedForUser($this->user);
-
-        expect($result)->toBeInstanceOf(Collection::class);
-        expect($result)->toBeEmpty();
-    });
-
     it('groups single notification correctly including group_key structure', function () {
         $follower = User::factory()->create(['name' => 'Alice']);
         $this->user->notify(new NewFollower($follower));

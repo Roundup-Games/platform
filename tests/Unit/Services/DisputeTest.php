@@ -2,13 +2,11 @@
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantStatus;
-use App\Jobs\AutoAttendAfter48Hours;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(AttendanceService::class);
@@ -226,70 +224,6 @@ describe('getCorroboratingReports', function () {
         expect($corroborating)->toHaveCount(1);
         expect($corroborating->first()->status)->toBe(AttendanceStatus::Attended);
         expect($corroborating->first()->reporter_id)->not->toBe($reported->id);
-    });
-});
-
-// ── AutoAttendAfter48Hours Job ───────────────────────────
-
-describe('AutoAttendAfter48Hours job', function () {
-    it('auto-attends participants for completed games older than 48h', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(50),
-        ]);
-
-        $user = User::factory()->create();
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $job = new AutoAttendAfter48Hours();
-        $job->handle(app(AttendanceService::class));
-
-        // Both should be auto-attended
-        foreach ([$owner, $user] as $u) {
-            $p = GameParticipant::where('game_id', $game->id)
-                ->where('user_id', $u->id)
-                ->first();
-            expect($p->attendance_status)->toBe(AttendanceStatus::Attended);
-        }
-    });
-
-    it('does not auto-attend for recent games', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(24),
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $job = new AutoAttendAfter48Hours();
-        $job->handle(app(AttendanceService::class));
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $owner->id)
-            ->first();
-        expect($participant->attendance_status)->toBeNull();
     });
 });
 

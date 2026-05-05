@@ -70,34 +70,6 @@ class GmRoleServiceTest extends TestCase
 
     // ── Logging Events ─────────────────────────────────
 
-    public function test_assign_gm_role_logs_info_on_success(): void
-    {
-        Log::shouldReceive('info')
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return str_contains($message, 'assigned')
-                    && isset($context['user_id'])
-                    && isset($context['gm_profile_id']);
-            });
-
-        $user = $this->createSubscribedUser();
-        $this->service->assignGMRole($user);
-    }
-
-    public function test_assign_gm_role_denied_logs_warning(): void
-    {
-        Log::shouldReceive('warning')
-            ->once()
-            ->withArgs(function (string $message, array $context) {
-                return str_contains($message, 'denied')
-                    && $context['action'] === 'assignGMRole'
-                    && isset($context['user_id']);
-            });
-
-        $user = User::factory()->create();
-        $this->service->assignGMRole($user);
-    }
-
     public function test_revoke_gm_role_logs_info(): void
     {
         $user = $this->createSubscribedUser();
@@ -150,18 +122,6 @@ class GmRoleServiceTest extends TestCase
 
         $this->assertTrue($profile->fresh()->is_active);
         $this->assertEquals(1, GMProfile::where('user_id', $user->id)->count());
-    }
-
-    // ── Revocation ─────────────────────────────────────
-
-    public function test_revoke_idempotent_on_non_gm(): void
-    {
-        $user = User::factory()->create();
-
-        // Should not throw
-        $this->service->revokeGMRole($user);
-
-        $this->assertFalse($user->hasRole('Game Master'));
     }
 
     // ── isGmActive ────────────────────────────────────

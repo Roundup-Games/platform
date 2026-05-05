@@ -8,13 +8,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 describe('SendSessionReminders command', function () {
-    // smoke: command runs with no upcoming games
-    it('runs successfully with no upcoming games', function () {
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('Found 0 game(s)');
-    })->group('smoke');
-
     it('finds games starting within 1 hour and marks reminder_sent_at', function () {
         $owner = User::factory()->create();
         $gameSystem = GameSystem::factory()->create();

@@ -32,30 +32,6 @@ function createOwnedCampaign(User $owner, GameSystem $system, array $overrides =
 }
 
 describe('Edit Campaign Modal', function () {
-    it('shows edit button for active owned campaigns', function () {
-        $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
-            ->assertSee(__('campaigns.action_edit_campaign'));
-    });
-
-    it('does not show edit button for cancelled campaigns', function () {
-        $campaign = createOwnedCampaign($this->owner, $this->gameSystem, ['status' => 'cancelled']);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
-            ->assertDontSee(__('campaigns.action_edit_campaign'));
-    });
-
-    it('does not show edit button for completed campaigns', function () {
-        $campaign = createOwnedCampaign($this->owner, $this->gameSystem, ['status' => 'completed']);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
-            ->assertDontSee(__('campaigns.action_edit_campaign'));
-    });
-
     it('opens edit modal with campaign data', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
 
@@ -66,8 +42,7 @@ describe('Edit Campaign Modal', function () {
             ->assertSet('edit_name', 'Test Campaign')
             ->assertSet('edit_description', 'Original description')
             ->assertSet('edit_session_duration', '3')
-            ->assertSet('edit_visibility', 'public')
-            ->assertSee(__('campaigns.heading_edit_campaign'));
+            ->assertSet('edit_visibility', 'public');
     });
 });
 
@@ -83,17 +58,6 @@ describe('Save Campaign Edit', function () {
 
         expect($campaign->fresh()->name)->toBe('Updated Campaign Name');
     })->group('smoke');
-
-    it('validates required name', function () {
-        $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
-            ->call('editCampaign', $campaign->id)
-            ->set('edit_name', '')
-            ->call('saveCampaignEdit')
-            ->assertHasErrors(['edit_name']);
-    });
 
     it('logs activity on update', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);

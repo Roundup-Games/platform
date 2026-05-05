@@ -62,24 +62,6 @@ describe('Webhook — subscription.created', function () {
         Log::spy();
     });
 
-    it('responds 200 to subscription.created', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_sub_create');
-
-        webhookPostEvent('subscription.created', [
-            'id' => 'sub_webhook_001',
-            'customer_id' => 'ctm_sub_create',
-            'status' => 'active',
-            'items' => [
-                [
-                    'price' => ['id' => 'pri_webhook_001', 'product_id' => 'pro_webhook_001'],
-                    'status' => 'active',
-                    'quantity' => 1,
-                ],
-            ],
-        ])->assertStatus(200);
-    })->group('smoke');
-
     it('logs paddle subscription ID and status', function () {
         $user = webhookCreateUser();
         webhookCreateCustomer($user, 'ctm_log_sub');

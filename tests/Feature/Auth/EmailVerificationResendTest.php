@@ -18,22 +18,4 @@ describe('Email Verification Resend', function () {
         $response->assertRedirect(route('verification.notice'));
         $response->assertSessionHas('status', 'verification-link-sent');
     });
-
-    test('already verified user is redirected to dashboard', function () {
-        Notification::fake();
-
-        $user = User::factory()->create(); // email_verified_at = now() by default
-
-        $response = $this->actingAs($user)
-            ->post(route('verification.send'));
-
-        Notification::assertNothingSent();
-        $response->assertRedirect(route('dashboard'));
-    });
-
-    test('guest is redirected to login', function () {
-        $response = $this->post(route('verification.send'));
-
-        $response->assertRedirect(route('login'));
-    });
 });

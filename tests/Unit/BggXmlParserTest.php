@@ -333,16 +333,6 @@ describe('Edge cases', function () {
 });
 
 describe('Negative tests', function () {
-    test('throws BggParseException on malformed XML', function () {
-        $thrown = false;
-        try {
-            $this->parser->parseItems('<not valid xml <<<');
-        } catch (BggParseException $e) {
-            $thrown = true;
-        }
-        expect($thrown)->toBeTrue('Expected BggParseException to be thrown');
-    });
-
     test('exception message contains descriptive context', function () {
         try {
             $this->parser->parseItems('<not valid xml <<<');

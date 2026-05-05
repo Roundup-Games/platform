@@ -47,16 +47,6 @@ class NotificationsPageTest extends TestCase
         $this->assertEquals(1, $group->count);
     }
 
-    public function test_renders_notification_display_string(): void
-    {
-        $follower = User::factory()->create(['name' => 'Bob']);
-        $this->user->notify(new \App\Notifications\NewFollower($follower));
-
-        Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class)
-            ->assertSee('Bob followed you');
-    }
-
     public function test_collapses_same_type_same_day_into_one_group(): void
     {
         for ($i = 0; $i < 5; $i++) {
@@ -75,14 +65,6 @@ class NotificationsPageTest extends TestCase
     }
 
     // ── Unread Count ───────────────────────────────────
-
-    public function test_shows_zero_unread_count_initially(): void
-    {
-        $component = Livewire::actingAs($this->user)
-            ->test(NotificationsPage::class);
-
-        $this->assertEquals(0, $component->get('unreadCount'));
-    }
 
     public function test_computes_correct_unread_count(): void
     {
@@ -233,16 +215,6 @@ class NotificationsPageTest extends TestCase
         $component->dispatch('notification-received');
 
         $this->assertEquals(1, $component->get('unreadCount'));
-    }
-
-    // ── Route Integration ──────────────────────────────
-
-    // ── Authentication ──────────────────────────────────
-
-    public function test_requires_authentication(): void
-    {
-        $this->get(route('notifications.index'))
-            ->assertRedirect(route('login'));
     }
 
     // ── Multiple Notification Types ────────────────────

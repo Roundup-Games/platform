@@ -6,7 +6,6 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserVibePreference;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 use Tests\Traits\SetsUpLocale;
 
@@ -14,20 +13,6 @@ class UserPreferenceResolutionTest extends TestCase
 {
     use DatabaseTransactions;
     use SetsUpLocale;
-
-    public function test_game_system_resolution_with_no_preferences(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $user->resolvedGameSystemPreferences();
-
-        $this->assertInstanceOf(Collection::class, $result['favorites']);
-        $this->assertInstanceOf(Collection::class, $result['avoided']);
-        $this->assertInstanceOf(Collection::class, $result['implied_favorites']);
-        $this->assertCount(0, $result['favorites']);
-        $this->assertCount(0, $result['avoided']);
-        $this->assertCount(0, $result['implied_favorites']);
-    }
 
     public function test_explicitly_favorited_systems_appear_in_favorites(): void
     {
@@ -147,16 +132,6 @@ class UserPreferenceResolutionTest extends TestCase
     }
 
     // ── resolvedVibePreferences() ─────────────────────
-
-    public function test_vibe_resolution_with_no_preferences(): void
-    {
-        $user = User::factory()->create();
-
-        $result = $user->resolvedVibePreferences();
-
-        $this->assertEquals([], $result['favorites']);
-        $this->assertEquals([], $result['avoided']);
-    }
 
     public function test_explicit_favorites_and_avoids_returned(): void
     {

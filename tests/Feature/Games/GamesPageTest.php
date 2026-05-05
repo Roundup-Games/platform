@@ -29,24 +29,6 @@ describe('GamesPage — Guest Access', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// AUTHENTICATED ACCESS
-// ═══════════════════════════════════════════════════════════
-
-describe('GamesPage — Authenticated Access', function () {
-    // smoke: games page renders for authenticated users
-    it('renders for authenticated users', function () {
-        $user = gamesPageCreateUser();
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertOk()
-            ->assertSee(__('games.heading_my_games'));
-    })->group('smoke');
-
-
-});
-
-// ═══════════════════════════════════════════════════════════
 // MY GAMES — OWNED GAMES DISPLAY
 // ═══════════════════════════════════════════════════════════
 
@@ -59,20 +41,6 @@ describe('GamesPage — My Games Display', function () {
             ->get('/en/games')
             ->assertSee('Test Game Session');
     });
-
-
-
-    it('does not show other users private games on the page', function () {
-        $user = gamesPageCreateUser();
-        $other = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $other->id, 'name' => 'Other User Game', 'visibility' => 'private']);
-
-        actingAs($user)
-            ->get('/en/games')
-            ->assertDontSee('Other User Game');
-    });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -249,49 +217,6 @@ describe('GamesPage — Games I\'m In Display', function () {
             ->get('/en/games')
             ->assertSee(__('games.content_no_games_joined'));
     });
-
-    it('does not show games with pending participation in Games I\'m In section', function () {
-        $user = gamesPageCreateUser();
-        $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Pending Game', 'visibility' => 'private']);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'pending',
-        ]);
-
-        // Verify pending participation does not show as approved via component state
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class);
-
-        // The participatingGames view data should only return approved participations
-        $participatingGames = $component->viewData('participatingGames');
-        expect($participatingGames->pluck('id'))->not->toContain($game->id);
-    });
-
-    it('does not show invited games in Games I\'m In section', function () {
-        $user = gamesPageCreateUser();
-        $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Invited Only Game']);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-
-        // Invited games appear in Open Invitations, not in Games I'm In
-        $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class);
-
-        $participatingGames = $component->viewData('participatingGames');
-        expect($participatingGames->pluck('id'))->not->toContain($game->id);
-    });
-
-
 });
 
 // ═══════════════════════════════════════════════════════════

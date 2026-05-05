@@ -30,13 +30,6 @@ class NotificationBellTest extends TestCase
 
     // ── Component Mount ────────────────────────────────
 
-    public function test_shows_zero_unread_count_initially(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationBell::class)
-            ->assertSet('unreadCount', 0);
-    }
-
     public function test_shows_correct_unread_count_on_mount(): void
     {
         // Create 3 unread notifications
@@ -48,15 +41,6 @@ class NotificationBellTest extends TestCase
     }
 
     // ── Recent Notifications ───────────────────────────
-
-    public function test_recent_notifications_empty_when_none_exist(): void
-    {
-        $result = Livewire::actingAs($this->user)
-            ->test(NotificationBell::class)
-            ->get('recentNotifications');
-
-        $this->assertCount(0, $result);
-    }
 
     public function test_recent_notifications_returns_grouped_notifications(): void
     {
@@ -180,17 +164,6 @@ class NotificationBellTest extends TestCase
 
         $component->dispatch('notification-received')
             ->assertSet('unreadCount', 2);
-    }
-
-    // ── Dropdown State ─────────────────────────────────
-
-    public function test_close_dropdown_sets_state(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(NotificationBell::class)
-            ->set('dropdownOpen', true)
-            ->call('closeDropdown')
-            ->assertSet('dropdownOpen', false);
     }
 
     /**

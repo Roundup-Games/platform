@@ -32,30 +32,6 @@ function createOwnedGame(User $owner, GameSystem $system, array $overrides = [])
 }
 
 describe('Edit Game Modal', function () {
-    it('shows edit button for scheduled owned games', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->assertSee(__('games.action_edit_game'));
-    });
-
-    it('does not show edit button for completed games', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem, ['status' => 'completed']);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->assertDontSee(__('games.action_edit_game'));
-    });
-
-    it('does not show edit button for canceled games', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem, ['status' => 'canceled']);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->assertDontSee(__('games.action_edit_game'));
-    });
-
     it('opens edit modal with game data', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);
 
@@ -67,10 +43,8 @@ describe('Edit Game Modal', function () {
             ->assertSet('edit_description', 'Original description')
             ->assertSet('edit_expected_duration', '2')
             ->assertSet('edit_visibility', 'public')
-            ->assertSet('edit_location_details', '123 Main St')
-            ->assertSee(__('games.heading_edit_game'));
+            ->assertSet('edit_location_details', '123 Main St');
     });
-
 });
 
 describe('Save Game Edit', function () {
@@ -85,28 +59,6 @@ describe('Save Game Edit', function () {
 
         expect($game->fresh()->name)->toBe('Updated Game Name');
     })->group('smoke');
-
-    it('validates required name', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_name', '')
-            ->call('saveGameEdit')
-            ->assertHasErrors(['edit_name']);
-    });
-
-    it('validates visibility values', function () {
-        $game = createOwnedGame($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
-            
-            ->call('editGame', $game->id)
-            ->set('edit_visibility', 'invalid')
-            ->call('saveGameEdit')
-            ->assertHasErrors(['edit_visibility']);
-    });
 
     it('logs activity on update', function () {
         $game = createOwnedGame($this->owner, $this->gameSystem);

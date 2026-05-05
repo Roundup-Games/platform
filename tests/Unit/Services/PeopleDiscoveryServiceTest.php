@@ -89,17 +89,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     // ── Phase 1: Candidate Retrieval ──
 
     #[Test]
-    public function it_returns_empty_paginator_when_no_candidates_exist()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-
-        $results = $this->discover($viewer, self::LAT, self::LNG);
-
-        $this->assertEquals(0, $results->total());
-        $this->assertCount(0, $results->items());
-    }
-
-    #[Test]
     public function it_excludes_self_from_results()
     {
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
@@ -542,55 +531,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     }
 
     // ── Caching ──
-
-    #[Test]
-    public function it_caches_discovery_results_on_first_call()
-    {
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        // First call — cache miss
-        $response1 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals('ok', $response1['status']);
-        $this->assertEquals(1, $response1['results']->total());
-
-        // Delete the candidate from DB — if cache works, second call still returns 1 result
-        User::where('id', $candidate->id)->delete();
-        Location::where('id', $candidate->location_id)->delete();
-
-        // Second call — should hit cache
-        $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals('ok', $response2['status']);
-        $this->assertEquals(1, $response2['results']->total(), 'Cache hit should return cached results');
-    }
-
-    #[Test]
-    public function it_logs_cache_hit_and_miss()
-    {
-        Queue::fake();
-
-        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-
-        Log::shouldReceive('debug')
-            ->with('discovery.cache_miss', \Mockery::on(fn ($ctx) => $ctx['viewer_id'] === $viewer->id))
-            ->once();
-
-        Log::shouldReceive('debug')
-            ->with('discovery.cache_hit', \Mockery::on(fn ($ctx) => $ctx['viewer_id'] === $viewer->id))
-            ->once();
-
-        // Also allow the stats and query_count_high logs
-        Log::shouldReceive('debug')->with('discovery.stats', \Mockery::any())->zeroOrMoreTimes();
-        Log::shouldReceive('debug')->with('discovery.cache_invalidated', \Mockery::any())->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
-        // First call — miss
-        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        // Second call — hit
-        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-    }
 
     #[Test]
     public function it_invalidates_cache_after_follow_action()

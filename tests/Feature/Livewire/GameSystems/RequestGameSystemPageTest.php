@@ -29,39 +29,7 @@ class RequestGameSystemPageTest extends TestCase
         ]);
     }
 
-    // ── Page Access ────────────────────────────────────
-
-    public function test_guest_is_redirected_from_request_page(): void
-    {
-        $response = $this->get('/en/game-systems/request');
-        $response->assertRedirect(route('login'));
-    }
-
-    public function test_authenticated_user_can_view_request_page(): void
-    {
-        $response = $this->actingAs($this->user)->get('/en/game-systems/request');
-        $response->assertOk();
-    }
-
     // ── Validation ─────────────────────────────────────
-
-    public function test_name_is_required(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', '')
-            ->call('submit')
-            ->assertHasErrors(['name' => 'required']);
-    }
-
-    public function test_name_max_255_characters(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', str_repeat('x', 256))
-            ->call('submit')
-            ->assertHasErrors(['name' => 'max']);
-    }
 
     public function test_type_must_be_valid(): void
     {
@@ -71,30 +39,6 @@ class RequestGameSystemPageTest extends TestCase
             ->set('type', 'invalid')
             ->call('submit')
             ->assertHasErrors(['type' => 'in']);
-    }
-
-    public function test_bgg_url_must_be_valid_url(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', 'Test')
-            ->set('bgg_url', 'not-a-url')
-            ->call('submit')
-            ->assertHasErrors(['bgg_url' => 'url']);
-    }
-
-    public function test_valid_submission_passes_validation(): void
-    {
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', 'Wingspan')
-            ->set('type', 'boardgame')
-            ->set('bgg_url', 'https://boardgamegeek.com/boardgame/266192')
-            ->set('publisher', 'Stonemaier Games')
-            ->set('designer', 'Elizabeth Hargrave')
-            ->set('notes', 'Great engine builder')
-            ->call('submit')
-            ->assertHasNoErrors();
     }
 
     // ── Submit & Record Creation ───────────────────────

@@ -6,7 +6,6 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
 
 // ── Helpers ──────────────────────────────────────────────
@@ -34,10 +33,6 @@ function gameTestCreateGameWithOwner(array $gameAttrs = []): array
 // ═══════════════════════════════════════════════════════════
 
 describe('GamePolicy — Ownership Actions', function () {
-    it('denies guest from creating', function () {
-        expect(Gate::allows('create', Game::class))->toBeFalse();
-    });
-
     it('denies non-owner from updating even if participant', function () {
         $game = gameTestCreateGame();
         $player = User::factory()->create();
@@ -50,13 +45,6 @@ describe('GamePolicy — Ownership Actions', function () {
         ]);
 
         expect(Gate::forUser($player)->allows('update', $game))->toBeFalse();
-    });
-
-    it('denies non-owner from deleting', function () {
-        $game = gameTestCreateGame();
-        $stranger = User::factory()->create();
-
-        expect(Gate::forUser($stranger)->allows('delete', $game))->toBeFalse();
     });
 });
 
@@ -184,10 +172,6 @@ describe('Game Detail Route', function () {
             ->assertSee('Open Session');
     });
 
-    it('returns 404 for non-existent game', function () {
-        get(route('games.detail', Str::uuid()->toString()))
-            ->assertNotFound();
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

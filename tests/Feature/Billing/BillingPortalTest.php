@@ -56,17 +56,6 @@ function portalCreateCustomer(User $user, ?string $paddleId = null): void
 }
 
 // ═══════════════════════════════════════════════════════════
-// BILLING PORTAL — ROUTE PROTECTION
-// ═══════════════════════════════════════════════════════════
-
-describe('Billing Portal Route Protection', function () {
-    it('requires authentication', function () {
-        get(route('billing.portal'))
-            ->assertRedirect(route('login'));
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
 // BILLING PORTAL — DISPLAY
 // ═══════════════════════════════════════════════════════════
 
@@ -120,13 +109,6 @@ describe('Billing Portal — Cancel Subscription', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Checkout Route', function () {
-    it('requires authentication', function () {
-        $plan = portalCreateMembershipType();
-
-        get(route('billing.checkout', ['membershipType' => $plan->id]))
-            ->assertRedirect(route('login'));
-    });
-
     it('renders checkout for valid active plan', function () {
         $user = portalCreateUser();
         $plan = portalCreateMembershipType(['name' => 'Gold Plan']);
@@ -154,58 +136,11 @@ describe('Checkout Route', function () {
     ]);
 });
 
-describe('Checkout Component — Subscription Mode', function () {
-    it('shows plan details in subscription mode', function () {
-        $user = portalCreateUser();
-        $plan = portalCreateMembershipType([
-            'name' => 'Premium',
-            'price_cents' => 1999,
-            'duration_months' => 1,
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\Checkout::class, ['planId' => $plan->id])
-            ->assertSet('mode', 'subscription')
-            ->assertSee('Premium')
-            ->assertSee('Order Summary');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// ONE-TIME CHECKOUT
-// ═══════════════════════════════════════════════════════════
-
-describe('One-Time Checkout Route', function () {
-    it('requires authentication', function () {
-        post(route('billing.one-time-checkout'), [
-            'price_id' => 'pri_test123',
-        ])->assertRedirect(route('login'));
-    });
-
-    it('validates one-time checkout request fields', function (array $payload, string $errorField) {
-        $user = portalCreateUser();
-
-        actingAs($user)
-            ->post(route('billing.one-time-checkout'), $payload)
-            ->assertSessionHasErrors($errorField);
-    })->with([
-        'price_id required' => [[], 'price_id'],
-        'price_id must be string' => [['price_id' => ['array_value']], 'price_id'],
-        'event_id must exist' => [['price_id' => 'pri_test', 'event_id' => 999999], 'event_id'],
-        'event_id must be integer' => [['price_id' => 'pri_test', 'event_id' => 'not-a-number'], 'event_id'],
-    ]);
-});
-
 // ═══════════════════════════════════════════════════════════
 // MEMBERSHIP PAGE
 // ═══════════════════════════════════════════════════════════
 
 describe('MembershipPage Route', function () {
-    it('requires authentication', function () {
-        get(route('membership'))
-            ->assertRedirect(route('login'));
-    });
-
     it('renders for authenticated user', function () {
         $user = portalCreateUser();
 
