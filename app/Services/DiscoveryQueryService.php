@@ -308,11 +308,14 @@ class DiscoveryQueryService
      *
      * When radius > 0 and guest location is available, results are filtered
      * by proximity and sorted by distance instead of timestamp.
+     *
+     * @return array{results: LengthAwarePaginator, usingFallback: bool}
      */
-    public function getMergedResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence): LengthAwarePaginator
+    public function getMergedResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence): array
     {
         $perPage = 12;
         $page = (int) request()->get('page', 1);
+        $usingFallback = false;
 
         $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
         $campaignsQuery = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
@@ -330,8 +333,9 @@ class DiscoveryQueryService
         $merged = $games->merge($campaigns);
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
-            $result = $this->applyProximityFilter($merged, $lat, $lng, $radius);
-            $merged = $result['collection'];
+            $proxResult = $this->applyProximityFilter($merged, $lat, $lng, $radius);
+            $merged = $proxResult['collection'];
+            $usingFallback = $proxResult['usingFallback'];
         } else {
             $merged = $merged->sortByDesc('discoverable_sort_key')->values();
         }
@@ -339,10 +343,15 @@ class DiscoveryQueryService
         $total = $merged->count();
         $items = $merged->slice(($page - 1) * $perPage, $perPage)->values();
 
-        return new Paginator($items, $total, $perPage, $page, [
+        $paginator = new Paginator($items, $total, $perPage, $page, [
             'path' => request()->url(),
             'query' => request()->query(),
         ]);
+
+        return [
+            'results' => $paginator,
+            'usingFallback' => $usingFallback,
+        ];
     }
 
     /**

@@ -9,7 +9,6 @@ use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -23,69 +22,48 @@ class DiscoveryPage extends Component
     use HasGuestLocation;
     use WithPagination;
 
-    // ── Tab / mode filter ──────────────────────────────
-
+    // Mode
     #[Url]
-    public string $mode = 'all'; // 'all', 'games', 'campaigns'
+    public string $mode = 'all';
 
-    // ── Shared filters ─────────────────────────────────
-
+    // Shared filters
     #[Url(as: 'q')]
     public string $search = '';
-
     #[Url]
     public ?string $game_system_id = null;
-
     #[Url]
     public string $experience_level = '';
-
     #[Url]
     public array $vibe_flags = [];
-
-    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', for VibePreferencePicker */
+    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid' */
     public array $vibePreferences = [];
-
     #[Url]
     public array $safety_tools = [];
-
     #[Url]
     public string $language = '';
-
     #[Url]
     public ?string $complexity_min = null;
-
     #[Url]
     public ?string $complexity_max = null;
-
     #[Url]
     public string $price = '';
-
     #[Url]
     public array $category_ids = [];
-
     #[Url]
     public array $mechanic_ids = [];
 
-    // ── Proximity filter ───────────────────────────────
-
-    /** @var float Search radius in km (0 = no proximity filter) */
+    // Proximity
     #[Url(as: 'radius')]
     public float $radius = 0;
-
-    /** @var bool Whether results came from the wider fallback radius */
     public bool $usingFallbackRadius = false;
 
-    // ── Games-specific filters ─────────────────────────
-
+    // Entity-specific filters
     #[Url]
     public string $date = '';
-
-    // ── Campaigns-specific filters ─────────────────────
-
     #[Url]
     public string $recurrence = '';
 
-    // ── Lifecycle ──────────────────────────────────────
+    // Lifecycle
 
     public function mount(): void
     {
@@ -117,69 +95,14 @@ class DiscoveryPage extends Component
         }
     }
 
-    // ── Updating hooks ─────────────────────────────────
+    // Updating hooks
 
-    public function updatingMode(): void
+    public function updating(): void
     {
         $this->resetPage();
     }
 
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingGameSystemId(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingExperienceLevel(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingSafetyTools(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingLanguage(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPrice(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingDate(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingRecurrence(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingCategoryIds(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingMechanicIds(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingRadius(): void
-    {
-        $this->resetPage();
-    }
-
-    // ── Actions ────────────────────────────────────────
+    // Actions
 
     public function setMode(string $mode): void
     {
@@ -211,38 +134,28 @@ class DiscoveryPage extends Component
 
     public function toggleSafetyTool(string $tool): void
     {
-        $index = array_search($tool, $this->safety_tools, true);
-        if ($index !== false) {
-            unset($this->safety_tools[$index]);
-            $this->safety_tools = array_values($this->safety_tools);
-        } else {
-            $this->safety_tools[] = $tool;
-        }
-        $this->resetPage();
+        $this->safety_tools = $this->toggleArrayValue($this->safety_tools, $tool);
     }
 
     public function toggleCategory(string $categoryId): void
     {
-        $index = array_search($categoryId, $this->category_ids, true);
-        if ($index !== false) {
-            unset($this->category_ids[$index]);
-            $this->category_ids = array_values($this->category_ids);
-        } else {
-            $this->category_ids[] = $categoryId;
-        }
-        $this->resetPage();
+        $this->category_ids = $this->toggleArrayValue($this->category_ids, $categoryId);
     }
 
     public function toggleMechanic(string $mechanicId): void
     {
-        $index = array_search($mechanicId, $this->mechanic_ids, true);
+        $this->mechanic_ids = $this->toggleArrayValue($this->mechanic_ids, $mechanicId);
+    }
+
+    private function toggleArrayValue(array $array, string $value): array
+    {
+        $index = array_search($value, $array, true);
         if ($index !== false) {
-            unset($this->mechanic_ids[$index]);
-            $this->mechanic_ids = array_values($this->mechanic_ids);
-        } else {
-            $this->mechanic_ids[] = $mechanicId;
+            unset($array[$index]);
+            return array_values($array);
         }
-        $this->resetPage();
+        $array[] = $value;
+        return $array;
     }
 
     public function clearFilters(): void
@@ -260,7 +173,7 @@ class DiscoveryPage extends Component
         $this->resetPage();
     }
 
-    // ── Picker event listeners ─────────────────────────
+    // Event listeners
 
     #[On('value-updated')]
     public function onGameSystemUpdated($value): void
@@ -300,22 +213,24 @@ class DiscoveryPage extends Component
             || $this->radius > 0;
     }
 
-    // ── Render ─────────────────────────────────────────
+    // Render
 
     public function render()
     {
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
-        $filters = DiscoveryFilters::fromLivewire($this);
+        $filters = DiscoveryFilters::fromLivewire($this)->toArray();
         $hasLocation = $this->hasGuestLocation();
         $lat = $this->guestLat ?? null;
         $lng = $this->guestLng ?? null;
-        $filterArray = $filters->toArray();
 
         $results = match ($this->mode) {
-            'games' => $service->getGamesResults($filterArray, $user, $this->radius, $lat, $lng, $hasLocation, $this->date),
-            'campaigns' => $service->getCampaignsResults($filterArray, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence),
-            default => $this->getMergedResults($service, $filterArray, $user, $lat, $lng, $hasLocation),
+            'games' => $service->getGamesResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date),
+            'campaigns' => $service->getCampaignsResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence),
+            default => tap(
+                $service->getMergedResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->recurrence),
+                fn (array $r) => $this->usingFallbackRadius = $r['usingFallback'],
+            )['results'],
         };
 
         return view('livewire.discovery.discovery-page', [
@@ -329,50 +244,6 @@ class DiscoveryPage extends Component
             'curatedMechanics' => $service->getCuratedMechanics(),
             'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
             'hasLocation' => $hasLocation,
-        ]);
-    }
-
-    /**
-     * Merge games and campaigns into a unified, paginated collection.
-     *
-     * Delegates query building to DiscoveryQueryService but handles
-     * proximity filter fallback (usingFallbackRadius) locally since
-     * that is a UI state concern.
-     */
-    protected function getMergedResults(DiscoveryQueryService $service, array $filters, $user, ?float $lat, ?float $lng, bool $hasLocation): Paginator
-    {
-        $perPage = 12;
-        $page = (int) request()->get('page', 1);
-
-        $gamesQuery = $service->buildGamesQuery($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date);
-        $campaignsQuery = $service->buildCampaignsQuery($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence);
-
-        $games = $gamesQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'game',
-            $item->discoverable_sort_key = $item->date_time?->timestamp ?? 0,
-        ]);
-
-        $campaigns = $campaignsQuery->get()->each(fn ($item) => [
-            $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = $item->created_at?->timestamp ?? 0,
-        ]);
-
-        $merged = $games->merge($campaigns);
-
-        if ($this->radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
-            $proxResult = $service->applyProximityFilter($merged, $lat, $lng, $this->radius);
-            $merged = $proxResult['collection'];
-            $this->usingFallbackRadius = $proxResult['usingFallback'];
-        } else {
-            $merged = $merged->sortByDesc('discoverable_sort_key')->values();
-        }
-
-        $total = $merged->count();
-        $items = $merged->slice(($page - 1) * $perPage, $perPage)->values();
-
-        return new Paginator($items, $total, $perPage, $page, [
-            'path' => request()->url(),
-            'query' => request()->query(),
         ]);
     }
 }
