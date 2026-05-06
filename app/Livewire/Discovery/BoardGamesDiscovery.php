@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Discovery;
 
+use App\Dto\DiscoveryFilters;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
-use App\Traits\EscapesLikeWildcards;
+use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
-use App\Traits\DiscoveryUtilities;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -18,8 +18,6 @@ use Livewire\WithPagination;
 #[Layout('components.public-layout')]
 class BoardGamesDiscovery extends Component
 {
-    use DiscoveryUtilities;
-    use EscapesLikeWildcards;
     use HasGuestLocation;
     use WithPagination;
 
@@ -40,7 +38,7 @@ class BoardGamesDiscovery extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', for VibePreferencePicker */
     public array $vibePreferences = [];
 
-    /** @var array<string> Safety tools — kept empty for trait compatibility; not exposed in board game UI */
+    /** @var array<string> Safety tools — kept empty; not exposed in board game UI */
     public array $safety_tools = [];
 
     #[Url]
@@ -154,7 +152,7 @@ class BoardGamesDiscovery extends Component
         $this->resetPage();
     }
 
-    // ── Actions ────────────────────────────────────────
+    // ── Actions ────────────────────────────────
 
     public function setDate(string $date): void
     {
@@ -164,7 +162,7 @@ class BoardGamesDiscovery extends Component
 
     public function setRadius(float $radius): void
     {
-        if ($radius != 0 && !in_array($radius, self::RADIUS_OPTIONS, false)) {
+        if ($radius != 0 && !in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
             return;
         }
         $this->radius = $radius;
@@ -253,7 +251,14 @@ class BoardGamesDiscovery extends Component
 
     public function render()
     {
-        $results = $this->getBoardGameResults();
+        $service = app(DiscoveryQueryService::class);
+        $user = Auth::user();
+        $filters = DiscoveryFilters::fromLivewire($this);
+        $hasLocation = $this->hasGuestLocation();
+        $lat = $this->guestLat ?? null;
+        $lng = $this->guestLng ?? null;
+
+        $results = $this->getBoardGameResults($service, $filters, $user, $lat, $lng, $hasLocation);
 
         // Cross-track hint: count active public TTRPG campaigns
         $adventureCount = \App\Models\Campaign::where('status', 'active')
@@ -263,13 +268,13 @@ class BoardGamesDiscovery extends Component
 
         return view('livewire.discovery.board-games-discovery', [
             'results' => $results,
-            'recommendations' => $this->getRecommendations('boardgame'),
+            'recommendations' => $service->getRecommendations($user, 'boardgame'),
             'experienceLevels' => ExperienceLevel::cases(),
             'languages' => ContentLanguage::cases(),
-            'curatedCategories' => $this->getCuratedCategories(),
-            'curatedMechanics' => $this->getCuratedMechanics(),
-            'radiusOptions' => self::RADIUS_OPTIONS,
-            'hasLocation' => $this->hasGuestLocation(),
+            'curatedCategories' => $service->getCuratedCategories(),
+            'curatedMechanics' => $service->getCuratedMechanics(),
+            'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
+            'hasLocation' => $hasLocation,
             'adventureCount' => $adventureCount,
         ]);
     }
@@ -280,15 +285,22 @@ class BoardGamesDiscovery extends Component
      * Adds type=boardgame constraint so only board games appear
      * on the board games discovery page (no TTRPG bleed-through).
      */
-    protected function getBoardGameResults()
+    protected function getBoardGameResults(DiscoveryQueryService $service, DiscoveryFilters $filters, $user, ?float $lat, ?float $lng, bool $hasLocation)
     {
-        $query = $this->buildGamesQuery()
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'));
+        $query = $service->buildGamesQuery(
+            $filters->toArray(),
+            $user,
+            $this->radius,
+            $lat,
+            $lng,
+            $hasLocation,
+            $this->date,
+        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'));
 
         $paginator = $query->paginate(12)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
 
-        if ($this->radius > 0 && $this->hasGuestLocation()) {
-            $this->enrichWithDistance($paginator->getCollection(), 'game');
+        if ($this->radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
+            $service->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $this->radius, $this->usingFallbackRadius);
         }
 
         return $paginator;

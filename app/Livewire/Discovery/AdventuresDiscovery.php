@@ -2,15 +2,14 @@
 
 namespace App\Livewire\Discovery;
 
+use App\Dto\DiscoveryFilters;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\PlayStyle;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
-use App\Models\GameSystemCategory;
-use App\Traits\EscapesLikeWildcards;
+use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
-use App\Traits\DiscoveryUtilities;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -22,8 +21,6 @@ use Livewire\WithPagination;
 #[Layout('components.public-layout')]
 class AdventuresDiscovery extends Component
 {
-    use DiscoveryUtilities;
-    use EscapesLikeWildcards;
     use HasGuestLocation;
     use WithPagination;
 
@@ -58,14 +55,6 @@ class AdventuresDiscovery extends Component
 
     #[Url]
     public string $price = '';
-
-    // ── Trait-required stub properties (DiscoveryUtilities accesses these) ──
-
-    public string $date = '';
-
-    public array $category_ids = [];
-
-    public array $mechanic_ids = [];
 
     // ── Proximity filter ───────────────────────────────
 
@@ -212,7 +201,7 @@ class AdventuresDiscovery extends Component
 
     public function setRadius(float $radius): void
     {
-        if ($radius != 0 && !in_array($radius, self::RADIUS_OPTIONS, false)) {
+        if ($radius != 0 && !in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
             return;
         }
         $this->radius = $radius;
@@ -278,12 +267,22 @@ class AdventuresDiscovery extends Component
 
     public function render()
     {
-        // Build base queries from trait, then scope to TTRPG systems
-        $campaignsQuery = $this->buildCampaignsQuery()
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+        $service = app(DiscoveryQueryService::class);
+        $user = Auth::user();
+        $hasLocation = $this->hasGuestLocation();
+        $lat = $this->guestLat;
+        $lng = $this->guestLng;
 
-        $gamesQuery = $this->buildGamesQuery()
-            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+        $filters = DiscoveryFilters::fromLivewire($this);
+
+        // Build base queries via service, then scope to TTRPG systems
+        $campaignsQuery = $service->buildCampaignsQuery(
+            $filters->toArray(), $user, $this->radius, $lat, $lng, $hasLocation, null,
+        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
+
+        $gamesQuery = $service->buildGamesQuery(
+            $filters->toArray(), $user, $this->radius, $lat, $lng, $hasLocation, null,
+        )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
 
         // Apply session_type filter
         if ($this->session_type === 'campaign') {
@@ -333,8 +332,10 @@ class AdventuresDiscovery extends Component
         $merged = $campaigns->merge($games);
 
         // Apply proximity filtering if radius is set
-        if ($this->radius > 0 && $this->hasGuestLocation()) {
-            $merged = $this->applyProximityFilter($merged);
+        if ($this->radius > 0 && $hasLocation) {
+            $result = $service->applyProximityFilter($merged, $lat, $lng, $this->radius);
+            $merged = $result['collection'];
+            $this->usingFallbackRadius = $result['usingFallback'];
         } else {
             $merged = $merged->sortByDesc('discoverable_sort_key')->values();
         }
@@ -359,14 +360,14 @@ class AdventuresDiscovery extends Component
 
         return view('livewire.discovery.adventures-discovery', [
             'results' => $results,
-            'recommendations' => $this->getRecommendations('ttrpg'),
+            'recommendations' => $service->getRecommendations($user, 'ttrpg'),
             'experienceLevels' => ExperienceLevel::cases(),
             'safetyToolGroups' => SafetyTool::grouped(),
             'languages' => ContentLanguage::cases(),
-            'curatedCategories' => $this->getCuratedCategories('ttrpg'),
+            'curatedCategories' => $service->getCuratedCategories('ttrpg'),
             'playStyleGroups' => $this->getPlayStyleGroups(),
-            'radiusOptions' => self::RADIUS_OPTIONS,
-            'hasLocation' => $this->hasGuestLocation(),
+            'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
+            'hasLocation' => $hasLocation,
             'boardGameSessionCount' => $boardGameSessionCount,
         ]);
     }
