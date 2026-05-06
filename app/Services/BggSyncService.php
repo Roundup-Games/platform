@@ -144,6 +144,7 @@ class BggSyncService
                 'name' => $data['name'],
                 'slug' => $slug,
                 'description' => $data['description'],
+                'type' => $data['bgg_type'],
                 'bgg_type' => $data['bgg_type'],
                 'year_released' => $data['year_released'],
                 'min_players' => $data['min_players'],

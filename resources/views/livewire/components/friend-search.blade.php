@@ -16,7 +16,7 @@
                     <span class="font-medium">{{ $friend->name }}</span>
                     <button
                         type="button"
-                        wire:click="removeFriend({{ $friend->id }})"
+                        wire:click="removeFriend('{{ $friend->id }}')"
                         class="text-primary/60 hover:text-primary transition-colors"
                         aria-label="Remove {{ $friend->name }}"
                     >
@@ -73,7 +73,7 @@
                 @foreach($results as $index => $friend)
                     <button
                         type="button"
-                        wire:click="selectFriend({{ $friend->id }})"
+                        wire:click="selectFriend('{{ $friend->id }}')"
                         @mouseenter="activeIndex = {{ $index }}"
                         :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
                         class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"

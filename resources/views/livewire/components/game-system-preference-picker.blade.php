@@ -69,7 +69,7 @@
                     @php($alreadySelected = in_array($system->id, $selectedIds))
                     <button
                         type="button"
-                        wire:click="pickFromSearch({{ $system->id }})"
+                        wire:click="pickFromSearch('{{ $system->id }}')"
                         @mouseenter="activeIndex = {{ $index }}"
                         :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
                         class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high @if($alreadySelected) opacity-50 @endif"
@@ -146,7 +146,7 @@
                     @php($alreadySelected = in_array($option->id, $selectedIds))
                     <button
                         type="button"
-                        wire:click="pickExpansion({{ $option->id }})"
+                        wire:click="pickExpansion('{{ $option->id }}')"
                         @class([
                             'w-full text-left px-4 py-3 flex items-center gap-3 transition-colors',
                             'hover:bg-surface-container-high focus:outline-none focus:bg-surface-container-high',
@@ -245,7 +245,7 @@
 
                     <button
                         type="button"
-                        wire:click="remove({{ $system->id }})"
+                        wire:click="remove('{{ $system->id }}')"
                         class="text-on-surface-variant hover:text-error transition-colors ml-0.5"
                         aria-label="{{ __('common.action_remove_name', ['name' => $system->name]) }}"
                     >

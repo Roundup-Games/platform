@@ -6,7 +6,7 @@
     <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
         @foreach($visibleCategories as $category)
             @php($active = in_array($category->id, $category_ids))
-            <button wire:click="toggleCategory({{ $category->id }})"
+            <button wire:click="toggleCategory('{{ $category->id }}')"
                     class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
                 {{ $category->translatedName() }}
             </button>
@@ -49,7 +49,7 @@
     <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
         @foreach($visibleMechanics as $mechanic)
             @php($active = in_array($mechanic->id, $mechanic_ids))
-            <button wire:click="toggleMechanic({{ $mechanic->id }})"
+            <button wire:click="toggleMechanic('{{ $mechanic->id }}')"
                     class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 {{ $active ? 'bg-secondary-container text-on-secondary-container shadow-sm' : 'bg-surface-container-high text-on-surface-variant hover:bg-secondary-container/50 hover:text-on-secondary-container' }}">
                 {{ $mechanic->translatedName() }}
             </button>

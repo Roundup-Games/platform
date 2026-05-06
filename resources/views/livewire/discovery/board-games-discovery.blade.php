@@ -145,7 +145,7 @@
                         <div class="flex flex-wrap gap-1.5">
                             @foreach($curatedCategories as $category)
                                 <button
-                                    wire:click="toggleCategory({{ $category->id }})"
+                                    wire:click="toggleCategory('{{ $category->id }}')"
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
                                         {{ in_array($category->id, $category_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                                 >
@@ -163,7 +163,7 @@
                         <div class="flex flex-wrap gap-1.5">
                             @foreach($curatedMechanics as $mechanic)
                                 <button
-                                    wire:click="toggleMechanic({{ $mechanic->id }})"
+                                    wire:click="toggleMechanic('{{ $mechanic->id }}')"
                                     class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors
                                         {{ in_array($mechanic->id, $mechanic_ids) ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' }}"
                                 >

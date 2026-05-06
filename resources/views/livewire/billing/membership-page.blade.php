@@ -168,7 +168,7 @@
                                 {{-- CTA --}}
                                 <div class="mt-auto pt-6">
                                     @if($plan->paddle_price_id)
-                                        <button wire:click="initiateCheckout({{ $plan->id }})"
+                                        <button wire:click="initiateCheckout('{{ $plan->id }}')"
                                                 class="w-full px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all active:scale-95
                                                     {{ ($plan->metadata['popular'] ?? false)
                                                         ? 'bg-primary text-on-primary shadow-ambient hover:brightness-110'

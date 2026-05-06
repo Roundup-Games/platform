@@ -159,7 +159,7 @@
                             </div>
                             <div class="mt-auto pt-4">
                                 @if($plan->type === 'local')
-                                    <button wire:click="activateLocalPlan({{ $plan->id }})"
+                                    <button wire:click="activateLocalPlan('{{ $plan->id }}')"
                                        class="block w-full text-center px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
                                         {{ __('billing.action_activate') }}
                                     </button>

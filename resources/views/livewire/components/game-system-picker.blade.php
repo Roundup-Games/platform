@@ -95,7 +95,7 @@
                 @foreach($results as $index => $system)
                     <button
                         type="button"
-                        wire:click="pickFromSearch({{ $system->id }})"
+                        wire:click="pickFromSearch('{{ $system->id }}')"
                         @mouseenter="activeIndex = {{ $index }}"
                         :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
                         class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
@@ -153,7 +153,7 @@
                 @foreach($favorites as $system)
                     <button
                         type="button"
-                        wire:click="pickFavorite({{ $system->id }})"
+                        wire:click="pickFavorite('{{ $system->id }}')"
                         class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
                         role="option"
                     >
@@ -198,7 +198,7 @@
                 @foreach($expansionOptions as $option)
                     <button
                         type="button"
-                        wire:click="pickExpansion({{ $option->id }})"
+                        wire:click="pickExpansion('{{ $option->id }}')"
                         @class([
                             'w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors',
                             'bg-surface-container-high' => $value === $option->id,

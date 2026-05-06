@@ -73,12 +73,12 @@
                             </div>
 
                             {{-- Unfollow Button --}}
-                            <button wire:click="unfollow({{ $user->id }})"
+                            <button wire:click="unfollow('{{ $user->id }}')"
                                     wire:loading.attr="disabled"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
                                 <span class="material-symbols-outlined text-base">person_remove</span>
-                                <span wire:loading.remove wire:target="unfollow({{ $user->id }})">{{ __('common.action_unfollow') }}</span>
-                                <span wire:loading wire:target="unfollow({{ $user->id }})">...</span>
+                                <span wire:loading.remove wire:target="unfollow('{{ $user->id }}')">{{ __('common.action_unfollow') }}</span>
+                                <span wire:loading wire:target="unfollow('{{ $user->id }}')">...</span>
                             </button>
                         </div>
                     @endforeach
@@ -125,7 +125,7 @@
                             {{-- Action Button --}}
                             @if($isFollowingBack)
                                 {{-- Mutual: show remove --}}
-                                <button wire:click="removeFollower({{ $user->id }})"
+                                <button wire:click="removeFollower('{{ $user->id }}')"
                                         wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
                                     <span class="material-symbols-outlined text-base">person_remove</span>
@@ -133,7 +133,7 @@
                                 </button>
                             @else
                                 {{-- Not mutual: show follow back --}}
-                                <button wire:click="followBack({{ $user->id }})"
+                                <button wire:click="followBack('{{ $user->id }}')"
                                         wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors shrink-0">
                                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">person_add</span>
@@ -166,7 +166,7 @@
                             </div>
 
                             {{-- Unblock Button --}}
-                            <button wire:click="unblock({{ $user->id }})"
+                            <button wire:click="unblock('{{ $user->id }}')"
                                     wire:loading.attr="disabled"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-error-container text-on-error-container hover:brightness-110 transition-colors shrink-0">
                                 <span class="material-symbols-outlined text-base">lock_open</span>
@@ -261,12 +261,12 @@
                                 </div>
 
                                 {{-- Follow Button --}}
-                                <button wire:click="followFromNearby({{ $user->id }})"
+                                <button wire:click="followFromNearby('{{ $user->id }}')"
                                         wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-on-primary hover:brightness-110 transition-colors shrink-0">
                                     <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">person_add</span>
-                                    <span wire:loading.remove wire:target="followFromNearby({{ $user->id }})">{{ __('common.action_follow') }}</span>
-                                    <span wire:loading wire:target="followFromNearby({{ $user->id }})">...</span>
+                                    <span wire:loading.remove wire:target="followFromNearby('{{ $user->id }}')">{{ __('common.action_follow') }}</span>
+                                    <span wire:loading wire:target="followFromNearby('{{ $user->id }}')">...</span>
                                 </button>
                             </div>
 
