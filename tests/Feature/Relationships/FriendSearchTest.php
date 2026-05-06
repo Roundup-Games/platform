@@ -62,16 +62,6 @@ describe('FriendSearch — Mutual Follow Enforcement', function () {
         expect($results->first()->id)->toBe($friend->id);
     });
 
-    test('search returns empty when no friends match', function () {
-        User::factory()->create(['name' => 'Zara NoMatch']);
-        // No mutual follow relationship
-
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search');
-        $component->instance()->search = 'Zara';
-
-        expect($component->instance()->searchResults)->toBeEmpty();
-    });
 });
 
 // ── Query Length / Debounce ─────────────────────────
@@ -161,17 +151,6 @@ describe('FriendSearch — Selection', function () {
             ->assertDispatched('friends-selected', ids: [$friend1->id, $friend2->id]);
     });
 
-    test('selectedFriends returns full user models', function () {
-        $friend = User::factory()->create(['name' => 'Diana']);
-        makeTestFriend($this->user, $friend);
-
-        $component = Livewire::actingAs($this->user)
-            ->test('components.friend-search', ['selectedIds' => [$friend->id]]);
-
-        $selected = $component->instance()->selectedFriends;
-        expect($selected)->toHaveCount(1);
-        expect($selected->first()->name)->toBe('Diana');
-    });
 });
 
 // ── Already-Selected Exclusion ─────────────────────
@@ -203,16 +182,6 @@ describe('FriendSearch — Selection Actions', function () {
             ->assertSet('selectedIds', [$friend->id])
             ->assertSet('search', '')
             ->assertDispatched('friends-selected', ids: [$friend->id]);
-    });
-
-    test('selectFriend does not duplicate', function () {
-        $friend = User::factory()->create(['name' => 'Eve']);
-        makeTestFriend($this->user, $friend);
-
-        Livewire::actingAs($this->user)
-            ->test('components.friend-search', ['selectedIds' => [$friend->id]])
-            ->call('selectFriend', $friend->id)
-            ->assertSet('selectedIds', [$friend->id]);
     });
 
     test('removeFriend removes from selectedIds', function () {

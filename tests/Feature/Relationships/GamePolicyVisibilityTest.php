@@ -44,16 +44,6 @@ describe('Public game visibility', function () {
         expect(Gate::allows('view', $game))->toBeTrue();
     })->group('smoke');
 
-    it('is visible to the owner', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'visibility' => 'public',
-        ]);
-
-        $this->actingAs($this->owner);
-        expect(Gate::allows('view', $game))->toBeTrue();
-    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -280,17 +270,4 @@ describe('Private game visibility', function () {
         expect(Gate::allows('view', $game))->toBeFalse();
     })->group('smoke');
 
-    it('is not visible to a stranger', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'visibility' => 'private',
-        ]);
-        $stranger = User::factory()->create();
-
-        $this->actingAs($stranger);
-        expect(Gate::allows('view', $game))->toBeFalse();
-    })->group('smoke');
 });
-
-

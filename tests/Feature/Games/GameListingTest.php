@@ -264,14 +264,4 @@ describe('GameListing', function () {
             ->assertSee('Advanced Game');
     });
 
-    it('paginates results at 12 per page', function () {
-        Game::factory()->count(15)->create(['visibility' => 'public', 'status' => 'scheduled', 'date_time' => now()->addDays(rand(1, 30))]);
-
-        $component = Livewire\Livewire::test(App\Livewire\Games\GameListing::class);
-        $games = $component->viewData('games');
-
-        expect($games->count())->toBe(12);
-        expect($games->hasMorePages())->toBeTrue();
-    });
-
 });

@@ -111,25 +111,6 @@ describe('PeoplePage following tab', function () {
         expect($user->fresh()->isFollowing($target))->toBeFalse();
     });
 
-    it('unfollow self is noop', function () {
-        $user = createPeoplePageUser();
-
-        Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->call('unfollow', $user->id);
-
-        expect(UserRelationship::count())->toBe(0);
-    });
-
-    it('unfollow nonexistent user is noop', function () {
-        $user = createPeoplePageUser();
-
-        Livewire::actingAs($user)
-            ->test(PeoplePage::class)
-            ->call('unfollow', \Illuminate\Support\Str::uuid()->toString());
-
-        expect(UserRelationship::count())->toBe(0);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

@@ -58,13 +58,38 @@ describe('Visibility matrix: every field × every relationship level', function 
     });
 
     it('teammate sees "everyone" + "friends" fields (same as friend)', function () {
-        $this->owner->update([
-            'privacy_settings' => array_fill_keys(ProfileVisibilityResolver::FIELDS, 'nobody'),
+        $teammate = User::factory()->create();
+        $team = Team::factory()->create();
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id,
+            'user_id' => $this->owner->id,
+            'role' => 'player',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+        \App\Models\TeamMember::create([
+            'team_id' => $team->id,
+            'user_id' => $teammate->id,
+            'role' => 'player',
+            'status' => 'active',
+            'joined_at' => now(),
         ]);
 
-        $visible = $this->resolver->profileFieldsVisible($this->owner, $this->owner);
+        $this->owner->update([
+            'privacy_settings' => [
+                'location' => 'everyone',
+                'game_systems' => 'friends',
+                'vibes' => 'nobody',
+                'campaigns' => 'everyone',
+                'teams' => 'friends',
+                'friends_list' => 'nobody',
+                'stats' => 'nobody',
+            ],
+        ]);
 
-        expect($visible)->toBe(ProfileVisibilityResolver::FIELDS);
+        $visible = $this->resolver->profileFieldsVisible($teammate, $this->owner);
+
+        expect($visible)->toBe(['location', 'game_systems', 'campaigns', 'teams']);
     })->group('smoke');
 });
 

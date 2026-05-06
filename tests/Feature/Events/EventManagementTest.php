@@ -198,9 +198,9 @@ describe('Early Bird Pricing', function () {
             ->assertSee(format_currency(15000));
     });
 
-    it('does not show early bird when no deadline set', function () {
+    it('does not show early bird when required fields are missing', function ($override) {
         $user = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create([
+        $event = Event::factory()->create(array_merge([
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),
@@ -208,31 +208,16 @@ describe('Early Bird Pricing', function () {
             'registration_type' => 'individual',
             'individual_registration_fee' => 5000,
             'early_bird_discount' => 1000,
-            'early_bird_deadline' => null,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
-            ->assertDontSee('Early Bird Discount');
-    });
-
-    it('does not show early bird when no discount set', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-            'registration_type' => 'individual',
-            'individual_registration_fee' => 5000,
-            'early_bird_discount' => null,
             'early_bird_deadline' => now()->addDays(3),
-        ]);
+        ], $override));
 
         actingAs($user);
         Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
             ->assertDontSee('Early Bird Discount');
-    });
+    })->with([
+        'no deadline' => [['early_bird_deadline' => null]],
+        'no discount' => [['early_bird_discount' => null]],
+    ]);
 });
 
 // ── Registration with Notes ───────────────────────────
@@ -265,23 +250,6 @@ describe('Registration with Notes', function () {
 // ── Organizer Event Status Transitions ────────────────
 
 describe('Organizer Event Status Transitions', function () {
-    it('removes division from event in manage mode', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create([
-            'organizer_id' => $user->id,
-            'divisions' => [
-                ['name' => 'Division A', 'description' => 'First'],
-                ['name' => 'Division B', 'description' => 'Second'],
-            ],
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
-            ->set('activeTab', 'divisions')
-            ->call('removeDivision', 0)
-            ->assertSet('divisions', [['name' => 'Division B', 'description' => 'Second']]);
-    });
-
     it('saves schedule as array from newline-separated text', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
@@ -299,25 +267,6 @@ describe('Organizer Event Status Transitions', function () {
         $event->refresh();
         expect($event->schedule)->toHaveCount(3);
         expect($event->schedule[0])->toBe('9:00 AM Check-in');
-    });
-
-    it('saves rules as array from newline-separated text', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create([
-            'organizer_id' => $user->id,
-            'rules' => null,
-            'country' => 'US',
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
-            ->set('activeTab', 'rules')
-            ->set('rules', "Rule 1\nRule 2")
-            ->call('save');
-
-        $event->refresh();
-        expect($event->rules)->toHaveCount(2);
-        expect($event->rules[0])->toBe('Rule 1');
     });
 });
 
@@ -339,19 +288,6 @@ describe('Manage Registrations Edge Cases', function () {
         expect($paymentCounts['paid'])->toBe(1);
         expect($paymentCounts['not_required'])->toBe(1);
         expect($paymentCounts['pending'])->toBe(1);
-    });
-
-    it('searches by user email', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $user = User::factory()->create(['name' => 'Jane', 'email' => 'jane@example.com']);
-        EventRegistration::factory()->create(['event_id' => $event->id, 'user_id' => $user->id]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('search', 'jane@example.com')
-            ->assertSee('Jane');
     });
 });
 

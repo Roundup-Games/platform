@@ -216,20 +216,6 @@ class ReliabilityScoreServiceTest extends TestCase
         $this->assertEquals(-1.0, $weight); // Generic weight, not host weight
     }
 
-    public function test_resolve_weight_uses_generic_weight_for_host_attended(): void
-    {
-        $host = User::factory()->create();
-        $game = Game::factory()->create(['owner_id' => $host->id]);
-        $participant = GameParticipant::factory()->create([
-            'user_id' => $host->id,
-            'game_id' => $game->id,
-            'attendance_status' => AttendanceStatus::Attended,
-        ]);
-
-        $weight = $this->service->resolveWeight($participant, AttendanceStatus::Attended);
-        $this->assertEquals(1.0, $weight); // Host attended gets normal positive weight
-    }
-
     public function test_host_no_show_penalties_heavier_than_player(): void
     {
         $host = User::factory()->create();

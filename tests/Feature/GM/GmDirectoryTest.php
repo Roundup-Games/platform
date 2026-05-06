@@ -137,24 +137,20 @@ class GmDirectoryTest extends TestCase
 
     public function test_filter_by_min_rating(): void
     {
-        $gm1 = $this->createActiveGm([], ['average_rating' => 4.80, 'review_count' => 5]);
-        $gm2 = $this->createActiveGm([], ['average_rating' => 2.50, 'review_count' => 3]);
-
-        $response = $this->get('/en/gms?min_rating=4');
-
-        $response->assertSee($gm1->name);
-        $response->assertDontSee($gm2->name);
-    }
-
-    public function test_filter_by_min_rating_5(): void
-    {
         $gm1 = $this->createActiveGm([], ['average_rating' => 5.00, 'review_count' => 10]);
         $gm2 = $this->createActiveGm([], ['average_rating' => 4.90, 'review_count' => 8]);
+        $gm3 = $this->createActiveGm([], ['average_rating' => 2.50, 'review_count' => 3]);
 
-        $response = $this->get('/en/gms?min_rating=5');
-
+        // min_rating=4 should show gm1 and gm2 but not gm3
+        $response = $this->get('/en/gms?min_rating=4');
         $response->assertSee($gm1->name);
-        $response->assertDontSee($gm2->name);
+        $response->assertSee($gm2->name);
+        $response->assertDontSee($gm3->name);
+
+        // min_rating=5 boundary — only gm1 (exactly 5.0)
+        $response5 = $this->get('/en/gms?min_rating=5');
+        $response5->assertSee($gm1->name);
+        $response5->assertDontSee($gm2->name);
     }
 
     // ── Sort ───────────────────────────────────────────

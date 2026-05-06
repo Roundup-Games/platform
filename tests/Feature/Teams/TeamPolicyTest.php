@@ -47,7 +47,6 @@ beforeEach(function () {
 
 describe('view', function () {
     test('guest can view active team', function () {
-        expect($this->team->is_active)->toBeTrue();
         expect(Gate::allows('view', $this->team))->toBeTrue();
     })->group('smoke');
 

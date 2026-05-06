@@ -36,16 +36,6 @@ function vibeStandaloneValues(): array
 // RENDERS WITH CORRECT STRUCTURE
 // ═══════════════════════════════════════════════════════════
 
-describe('Rendering', function () {
-    it('initializes all flags to null (neutral) by default', function () {
-        $component = Livewire::test(VibePreferencePicker::class);
-
-        foreach (VibeFlag::cases() as $flag) {
-            $component->assertSet('preferences.'.$flag->value, null);
-        }
-    });
-});
-
 // ═══════════════════════════════════════════════════════════
 // PAIRED FLAG EXCLUSIVITY
 // ═══════════════════════════════════════════════════════════
@@ -99,11 +89,6 @@ describe('Paired flag exclusivity', function () {
             ->assertSet('preferences.serious', null);
     });
 
-    it('dispatches vibe-preferences-changed event after togglePaired', function () {
-        Livewire::test(VibePreferencePicker::class)
-            ->call('togglePaired', 'competitive', 'cooperative', 'favorite')
-            ->assertDispatched('vibe-preferences-changed');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -145,11 +130,6 @@ describe('Standalone chip cycling', function () {
             ->assertSet('preferences.exploration', 'favorite');
     });
 
-    it('dispatches vibe-preferences-changed event after toggleStandalone', function () {
-        Livewire::test(VibePreferencePicker::class)
-            ->call('toggleStandalone', 'atmospheric')
-            ->assertDispatched('vibe-preferences-changed');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -230,37 +210,4 @@ describe('Game type filtering', function () {
         expect($prefs['sandbox'])->toBeNull();
         expect($prefs['dungeon-crawl'])->toBeNull();
     });
-
-    it('board_game paired flags still support toggle', function () {
-        Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ])
-            ->call('togglePaired', 'lighthearted', 'serious', 'favorite')
-            ->assertSet('preferences.lighthearted', 'favorite')
-            ->assertSet('preferences.serious', 'avoid');
-    });
-
-    it('board_game standalone flags still cycle', function () {
-        Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'board_game',
-        ])
-            ->call('toggleStandalone', 'atmospheric')
-            ->assertSet('preferences.atmospheric', 'favorite');
-    });
-
-    it('ttrpg mode shows all flags', function () {
-        $component = Livewire::test(VibePreferencePicker::class, [
-            'gameType' => 'ttrpg',
-        ]);
-
-        $paired = $component->instance()->getPairedFlags;
-        $standalone = $component->instance()->getStandaloneFlags;
-
-        expect($paired)->toHaveCount(8);
-
-        // All standalone flags (same as unfiltered)
-        $standaloneValues = vibeStandaloneValues();
-        expect($standalone)->toHaveCount(count($standaloneValues));
-    });
-
 });

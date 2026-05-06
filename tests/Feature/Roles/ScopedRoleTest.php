@@ -56,17 +56,10 @@ describe('Global Admin', function () {
         expect($this->service->isGlobalAdmin($this->gamesAdmin))->toBeTrue();
     });
 
-    test('Team Admin is not global admin', function () {
-        expect($this->service->isGlobalAdmin($this->teamAdmin))->toBeFalse();
-    });
-
-    test('Event Admin is not global admin', function () {
-        expect($this->service->isGlobalAdmin($this->eventAdmin))->toBeFalse();
-    });
-
-    test('regular user is not global admin', function () {
-        expect($this->service->isGlobalAdmin($this->regularUser))->toBeFalse();
-    });
+    test('non-global-admin roles are not identified as global admin', function (string $role) {
+        $user = $$role;
+        expect($this->service->isGlobalAdmin($user))->toBeFalse();
+    })->with(['teamAdmin', 'eventAdmin', 'regularUser']);
 });
 
 describe('Team-Scoped Roles', function () {
@@ -117,10 +110,6 @@ describe('Event-Scoped Roles', function () {
 
     test('Event Admin can create event (global permission)', function () {
         expect($this->service->hasEventPermission($this->eventAdmin, 'create event', $this->eventA))->toBeTrue();
-    });
-
-    test('Event Admin cannot manage settings', function () {
-        expect($this->service->hasEventPermission($this->eventAdmin, 'manage settings', $this->eventA))->toBeFalse();
     });
 
     test('Platform Admin bypasses event scope for any event', function () {
@@ -281,30 +270,15 @@ describe('Policy Integration: Global Admin Bypass', function () {
 });
 
 describe('Ownership Checks', function () {
-    test('game owner can update their own game', function () {
+    test('entity owner can update and delete their own entity', function () {
         $game = Game::factory()->create(['owner_id' => $this->regularUser->id, 'visibility' => 'public']);
+        $campaign = Campaign::factory()->create(['owner_id' => $this->regularUser->id, 'visibility' => 'public']);
         $this->actingAs($this->regularUser);
         expect(Gate::allows('update', $game))->toBeTrue();
-    });
-
-    test('game owner can delete their own game', function () {
-        $game = Game::factory()->create(['owner_id' => $this->regularUser->id, 'visibility' => 'public']);
-        $this->actingAs($this->regularUser);
         expect(Gate::allows('delete', $game))->toBeTrue();
-    });
-
-    test('campaign owner can update their own campaign', function () {
-        $campaign = Campaign::factory()->create(['owner_id' => $this->regularUser->id, 'visibility' => 'public']);
-        $this->actingAs($this->regularUser);
         expect(Gate::allows('update', $campaign))->toBeTrue();
-    });
-
-    test('campaign owner can delete their own campaign', function () {
-        $campaign = Campaign::factory()->create(['owner_id' => $this->regularUser->id, 'visibility' => 'public']);
-        $this->actingAs($this->regularUser);
         expect(Gate::allows('delete', $campaign))->toBeTrue();
     });
-
 });
 
 describe('Multi-Team Isolation', function () {

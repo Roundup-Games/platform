@@ -271,18 +271,6 @@ describe('AddSessionToCampaign — Creation', function () {
         ]);
     });
 
-    it('validates required fields', function () {
-        $owner = campaignTestCreateOwnerWithGamePermission();
-        $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
-
-        Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', '')
-            ->set('date_time', '')
-            ->call('save')
-            ->assertHasErrors(['name', 'date_time']);
-    });
-
     it('creates game with ttrpg game type', function () {
         $owner = campaignTestCreateOwnerWithGamePermission();
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);

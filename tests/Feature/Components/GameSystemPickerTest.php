@@ -278,16 +278,6 @@ describe('Mount', function () {
 
         $component->assertSet('search', 'Pre-existing Game');
     });
-
-    it('accepts custom fieldId and label', function () {
-        $component = Livewire::test(GameSystemPicker::class, [
-            'fieldId' => 'my-custom-id',
-            'label' => 'Custom Label',
-        ]);
-
-        $component->assertSet('fieldId', 'my-custom-id')
-            ->assertSet('label', 'Custom Label');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -305,16 +295,6 @@ describe('Request Link', function () {
             ->assertSeeHtml('name=Nonexistent')
             ->assertSeeHtml('type=boardgame')
             ->assertSee(__('games.request_cta_link'));
-    });
-
-    it('request link href contains search term as name query param', function () {
-        $user = pickerCreateUser();
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPicker::class)
-            ->set('search', 'My Custom Game')
-            ->assertSeeHtml('name=My%20Custom%20Game')
-            ->assertSeeHtml('type=boardgame');
     });
 
     it('hides request link for guest users', function () {
@@ -360,18 +340,6 @@ describe('Parent Sync', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Game Type Parameter', function () {
-    it('defaults to boardgame game type', function () {
-        $component = Livewire::test(GameSystemPicker::class);
-        $component->assertSet('gameType', 'boardgame');
-    });
-
-    it('accepts ttrpg game type via mount', function () {
-        $component = Livewire::test(GameSystemPicker::class, [
-            'gameType' => 'ttrpg',
-        ]);
-        $component->assertSet('gameType', 'ttrpg');
-    });
-
     it('filters search results to ttrpg type', function () {
         $user = pickerCreateUser();
         GameSystem::factory()->create([

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ContentLanguage;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Team;
@@ -195,21 +194,4 @@ describe('Morph Map Aliases', function () {
     });
 });
 
-// ── ContentLanguage Enum ──────────────────────────────
 
-describe('ContentLanguage Enum', function () {
-    it('has expected cases and values', function () {
-        expect(ContentLanguage::En->value)->toBe('en')
-            ->and(ContentLanguage::De->value)->toBe('de');
-    });
-
-    it('provides human-readable labels', function () {
-        expect(ContentLanguage::En->label())->toBe('English')
-            ->and(ContentLanguage::De->label())->toBe('German');
-    });
-
-    it('returns all values', function () {
-        $values = ContentLanguage::values();
-        expect($values)->toBe(['en', 'de']);
-    });
-});

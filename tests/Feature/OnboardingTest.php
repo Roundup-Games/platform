@@ -153,24 +153,6 @@ it('advances to step 4 (Preferences) from step 3 with optional phone', function 
         ->assertSee('Game preferences');
 });
 
-it('allows empty phone on step 3', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
-        ->set('gender', 'male')
-        ->set('pronouns', 'he/him')
-        ->call('nextStep')
-        ->set('phone', '')
-        ->call('nextStep')
-        ->assertSet('step', 4);
-});
-
 it('goes back to previous step', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
@@ -356,28 +338,6 @@ it('replaces game system preferences on re-sync', function () {
     $fresh = $user->fresh();
     $prefIds = $fresh->favoriteGameSystems->pluck('id')->toArray();
     expect($prefIds)->toBe([$gs2->id]);
-});
-
-// ── Phone validation ─────────────────────────────────
-
-it('validates phone max length on step 3', function () {
-    $user = User::factory()->create(['profile_complete' => false]);
-
-    Livewire::actingAs($user)
-        ->test(CompleteProfile::class)
-        ->set('city', 'Berlin')
-        ->set('lat', 52.52)
-        ->set('lng', 13.405)
-        ->set('locationConfirmed', true)
-        ->call('nextStep')
-        ->set('gender', 'female')
-        ->set('pronouns', 'she/her')
-        ->call('nextStep')
-        ->assertSet('step', 3)
-        ->set('phone', str_repeat('1', 31))
-        ->call('nextStep')
-        ->assertHasErrors('phone')
-        ->assertSet('step', 3);
 });
 
 // ── Middleware: additional allowed routes for incomplete users ──

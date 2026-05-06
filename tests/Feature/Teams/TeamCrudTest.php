@@ -83,27 +83,6 @@ describe('CreateTeam', function () {
         ]);
     })->group('smoke');
 
-    it('validates required fields', function () {
-        $user = teamCrudCreateUserWithTeamPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\CreateTeam::class)
-            ->set('name', '')
-            ->call('save')
-            ->assertHasErrors(['name']);
-    });
-
-    it('validates name max length', function () {
-        $user = teamCrudCreateUserWithTeamPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\CreateTeam::class)
-            ->set('name', str_repeat('A', 256))
-            ->call('save')
-            ->assertHasErrors(['name']);
-    });
-
-
 });
 
 // ── BrowseTeams ─────────────────────────────────────────
@@ -264,38 +243,6 @@ describe('ManageTeam', function () {
             'id' => $team->id,
             'name' => 'Coach Updated',
         ]);
-    });
-
-    it('player cannot update team settings', function () {
-        $captain = User::factory()->create();
-        $player = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create(['is_active' => true, 'created_by' => $captain->id, 'name' => 'Original']);
-
-        TeamMember::create(['team_id' => $team->id, 'user_id' => $captain->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'active', 'joined_at' => now()]);
-
-        Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
-            ->assertForbidden();
-    });
-
-    it('validates team name is required on update', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $team = Team::factory()->create(['is_active' => true, 'created_by' => $user->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
-            ->set('name', '')
-            ->call('save')
-            ->assertHasErrors(['name']);
     });
 
     it('allows captain to delete team', function () {

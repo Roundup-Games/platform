@@ -86,12 +86,4 @@ describe('push subscription management', function () {
         ]);
     });
 
-    it('subscription count updates after saving notification settings', function () {
-        PushSubscription::factory()->create(['user_id' => $this->user->id]);
-
-        Livewire::test(Show::class)
-            ->assertSet('pushSubscriptionCount', 1)
-            ->call('saveNotificationSettings')
-            ->assertSet('pushSubscriptionCount', 1); // Still 1 after save
-    });
 });

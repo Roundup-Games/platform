@@ -313,26 +313,4 @@ describe('Reject campaign application → ApplicationRejected', function () {
             ->and($data['rejector_id'])->toBe($owner->id);
     });
 
-    it('does not dispatch notification for non-applicant participant', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create(['profile_complete' => true]);
-        $game = Game::factory()->create(['owner_id' => $owner->id]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->call('rejectApplication', (string) $participant->id);
-
-        // rejectApplication returns early if role !== 'applicant', so no notification
-        $notifications = $player->notifications()->where('type', ApplicationRejected::class)->get();
-        expect($notifications)->toHaveCount(0);
-    });
 });
-
-

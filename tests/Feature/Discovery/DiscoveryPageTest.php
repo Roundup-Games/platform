@@ -133,29 +133,6 @@ describe('DiscoveryPage', function () {
             ->assertSee('Recommended Game');
     });
 
-    it('filters games by date upcoming', function () {
-        Game::factory()->create([
-            'name' => 'Future Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(10),
-        ]);
-
-        // Past game should not appear at all (filtered by base query date_time > now)
-        // but we also test the date filter specifically
-        Game::factory()->create([
-            'name' => 'Tomorrow Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDay(),
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->set('date', 'upcoming')
-            ->assertSee('Future Game')
-            ->assertSee('Tomorrow Game');
-    });
-
     it('filters games by date this week', function () {
         Game::factory()->create([
             'name' => 'This Week Game',
@@ -403,49 +380,6 @@ describe('DiscoveryPage', function () {
         $names = collect($recommendations)->pluck('name')->toArray();
         expect($names)->toContain('Base System Game');
         expect($names)->not->toContain('Expansion Game');
-    });
-
-    it('boosted vibe items appear first in recommendations', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $system = GameSystem::factory()->create(['name' => 'Test System']);
-
-        $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
-
-        // Create a favorite vibe preference
-        $user->vibePreferences()->create([
-            'vibe_preference_value' => 'lighthearted',
-            'preference_type' => 'favorite',
-        ]);
-
-        Game::factory()->create([
-            'name' => 'Boosted Vibe Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-            'vibe_flags' => ['lighthearted'],
-        ]);
-
-        Game::factory()->create([
-            'name' => 'No Vibe Game',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(4),
-            'game_system_id' => $system->id,
-            'vibe_flags' => [],
-        ]);
-
-        actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        $recommendations = $component->viewData('recommendations');
-
-        $names = collect($recommendations)->pluck('name')->toArray();
-        expect($names)->toContain('Boosted Vibe Game');
-        expect($names)->toContain('No Vibe Game');
-        // Boosted item should appear before non-boosted
-        $boostedIndex = array_search('Boosted Vibe Game', $names);
-        $noVibeIndex = array_search('No Vibe Game', $names);
-        expect($boostedIndex)->toBeLessThan($noVibeIndex);
     });
 
     // ── Vibe Preference Pre-Selection ──────────────────

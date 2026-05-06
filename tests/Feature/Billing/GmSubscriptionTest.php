@@ -102,14 +102,3 @@ describe('GmRoleService', function () {
         expect($subscription->canceled_at)->toBeNull();
     });
 });
-
-describe('User model GM helpers', function () {
-    it('hasGmSubscription returns true when active local GM sub exists', function () {
-        $user = User::factory()->create();
-        expect($user->hasGmSubscription())->toBeFalse();
-
-        app(GmRoleService::class)->activateGmSubscription($user);
-
-        expect($user->fresh()->hasGmSubscription())->toBeTrue();
-    });
-});

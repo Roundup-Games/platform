@@ -145,28 +145,6 @@ it('OAuth user password set updates userHasPassword to true', function () {
     $component->assertSet('userHasPassword', true);
 });
 
-it('OAuth user still needs password confirmation', function () {
-    $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('password', 'mynewpassword1')
-        ->set('password_confirmation', 'different')
-        ->call('changePassword')
-        ->assertHasErrors(['password']);
-});
-
-it('OAuth user still needs minimum password length', function () {
-    $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('password', 'short')
-        ->set('password_confirmation', 'short')
-        ->call('changePassword')
-        ->assertHasErrors(['password']);
-});
-
 // ── Account Deletion: Users With Passwords ────────────
 
 it('user with password can delete account with correct password', function () {

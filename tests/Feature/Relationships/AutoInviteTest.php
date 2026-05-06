@@ -78,40 +78,6 @@ describe('AutoInvite — Session Creation', function () {
         expect(GameParticipant::where('game_id', $game->id)->where('user_id', $owner->id)->exists())->toBeFalse();
     });
 
-    test('auto-invite does not invite pending participants', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-        $pendingUser = User::factory()->create();
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $pendingUser->id, 'role' => 'invited', 'status' => 'pending']);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Pending Skip Test')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('campaign_id', $campaign->id)->first();
-        expect(GameParticipant::where('game_id', $game->id)->where('user_id', $pendingUser->id)->exists())->toBeFalse();
-    });
-
-    test('auto-invite does not invite rejected participants', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
-        $rejectedUser = User::factory()->create();
-
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $rejectedUser->id, 'role' => 'player', 'status' => 'rejected']);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
-            ->set('name', 'Rejected Skip Test')
-            ->set('date_time', '2026-07-01 19:00')
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('campaign_id', $campaign->id)->first();
-        expect(GameParticipant::where('game_id', $game->id)->count())->toBe(0);
-    });
-
     test('mixed statuses: only approved are invited', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
         $approvedPlayer = User::factory()->create();

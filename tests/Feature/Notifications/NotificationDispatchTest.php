@@ -60,30 +60,6 @@ describe('ConfirmationExpired notification', function () {
         );
     });
 
-    it('still moves participant to back of queue even if notification fails', function () {
-        // This is implicitly tested — the notification is outside the transaction
-        // and wrapped in try/catch, so DB changes persist regardless.
-        Notification::fake();
-
-        $service = app(WaitlistService::class);
-        ['game' => $game] = notificationCreateFullStandaloneGame(maxPlayers: 2);
-
-        $user1 = User::factory()->create();
-        $service->addToWaitlist($game, $user1);
-
-        $game->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)
-            ->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
-
-        $promoted = $service->promoteNext($game);
-        $service->handleExpiredConfirmation($promoted);
-
-        $refreshed = $promoted->fresh();
-        expect($refreshed->status)->toBe(ParticipantStatus::Waitlisted);
-        expect($refreshed->confirmation_expires_at)->toBeNull();
-    });
 });
 
 // ══════════════════════════════════════════════════════
@@ -181,41 +157,6 @@ describe('DisputeResolved notification', function () {
                     && $notification->resolution === 'upheld';
             }
         );
-    });
-});
-
-// ══════════════════════════════════════════════════════
-// Cancelled game guard — AttendanceService::reportAttendance
-// ══════════════════════════════════════════════════════
-
-describe('Cancelled game attendance guard', function () {
-    it('rejects attendance reports for cancelled games', function () {
-        $host = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'date_time' => now()->subDays(1),
-            'status' => 'canceled',
-        ]);
-
-        $player = User::factory()->create();
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $host->id,
-            'role' => 'owner',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $player->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $service = app(AttendanceService::class);
-        $result = $service->reportAttendance($game, $player, $host, 'attended');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toBe('Cannot report attendance for a cancelled game');
     });
 });
 

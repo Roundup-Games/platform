@@ -137,33 +137,19 @@ describe('Removal', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Conflict Detection', function () {
-    it('warns when adding to avoid list and system is in conflictIds (favorites)', function () {
+    it('warns when adding a system that is in conflictIds', function (string $preferenceType) {
         $user = prefCreateUser();
         $base = prefCreateBaseGame(['name' => 'Chess']);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, [
-                'preferenceType' => 'avoid',
+                'preferenceType' => $preferenceType,
                 'conflictIds' => [$base->id],
             ])
             ->call('add', $base->id);
 
         $component->assertSet('conflictMessage', fn ($msg) => str_contains($msg, 'Chess'));
-    });
-
-    it('warns when adding to favorites and system is in conflictIds (avoid list)', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class, [
-                'preferenceType' => 'favorite',
-                'conflictIds' => [$base->id],
-            ])
-            ->call('add', $base->id);
-
-        $component->assertSet('conflictMessage', fn ($msg) => str_contains($msg, 'Chess'));
-    });
+    })->with(['avoid', 'favorite']);
 
     it('warns when adding expansion to avoid whose base is favorited', function () {
         $user = prefCreateUser();

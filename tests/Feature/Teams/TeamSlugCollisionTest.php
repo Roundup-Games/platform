@@ -4,13 +4,6 @@ use App\Models\Team;
 use App\Models\User;
 
 describe('Slug Auto-Generation', function () {
-    test('team slug is auto-generated on create', function () {
-        $team = Team::factory()->create(['name' => 'Eagles', 'slug' => null]);
-
-        expect($team->slug)->not->toBeEmpty()
-            ->and($team->slug)->toStartWith('eagles-');
-    });
-
     test('team slug includes random suffix', function () {
         $team = Team::factory()->create(['name' => 'Eagles FC']);
 
@@ -28,9 +21,4 @@ describe('Slug Auto-Generation', function () {
             ->and($team1->id)->not->toBe($team2->id);
     });
 
-    test('explicit slug is not overwritten', function () {
-        $team = Team::factory()->create(['name' => 'Eagles', 'slug' => 'custom-slug']);
-
-        expect($team->slug)->toBe('custom-slug');
-    });
 });

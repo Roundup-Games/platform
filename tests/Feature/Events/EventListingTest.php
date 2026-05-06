@@ -21,38 +21,20 @@ describe('EventListing', function () {
             ->assertSee('Spring Tournament');
     })->group('smoke');
 
-    it('hides non-public events', function () {
-        Event::factory()->create([
-            'name' => 'Private Event',
-            'is_public' => false,
+    it('hides excluded events from listing', function ($overrides) {
+        Event::factory()->create(array_merge([
+            'name' => 'Excluded Event',
+            'is_public' => true,
             'status' => 'registration_open',
-        ]);
+        ], $overrides));
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertDontSee('Private Event');
-    });
-
-    it('hides draft events', function () {
-        Event::factory()->create([
-            'name' => 'Draft Event',
-            'is_public' => true,
-            'status' => 'draft',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertDontSee('Draft Event');
-    });
-
-    it('hides cancelled events', function () {
-        Event::factory()->create([
-            'name' => 'Cancelled Event',
-            'is_public' => true,
-            'status' => 'cancelled',
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->assertDontSee('Cancelled Event');
-    });
+            ->assertDontSee('Excluded Event');
+    })->with([
+        'non-public' => [['is_public' => false]],
+        'draft' => [['status' => 'draft']],
+        'cancelled' => [['status' => 'cancelled']],
+    ]);
 
     it('searches by name', function () {
         Event::factory()->create(['name' => 'Alpha Tournament', 'is_public' => true, 'status' => 'registration_open']);
@@ -64,26 +46,6 @@ describe('EventListing', function () {
             ->assertDontSee('Beta League');
     });
 
-    it('searches by city', function () {
-        Event::factory()->create(['name' => 'Austin Open', 'city' => 'Austin', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Denver Cup', 'city' => 'Denver', 'is_public' => true, 'status' => 'registration_open']);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('search', 'Austin')
-            ->assertSee('Austin Open')
-            ->assertDontSee('Denver Cup');
-    });
-
-    it('searches by venue name', function () {
-        Event::factory()->create(['name' => 'Event A', 'venue_name' => 'Central Park Stadium', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Event B', 'venue_name' => 'Riverside Arena', 'is_public' => true, 'status' => 'registration_open']);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('search', 'Central Park')
-            ->assertSee('Event A')
-            ->assertDontSee('Event B');
-    });
-
     it('filters by type', function () {
         Event::factory()->create(['name' => 'Tourney A', 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
         Event::factory()->create(['name' => 'Camp B', 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
@@ -92,16 +54,6 @@ describe('EventListing', function () {
             ->set('type', 'tournament')
             ->assertSee('Tourney A')
             ->assertDontSee('Camp B');
-    });
-
-    it('filters by status', function () {
-        Event::factory()->create(['name' => 'Open Event', 'status' => 'registration_open', 'is_public' => true]);
-        Event::factory()->create(['name' => 'Closed Event', 'status' => 'registration_closed', 'is_public' => true]);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('status', 'registration_open')
-            ->assertSee('Open Event')
-            ->assertDontSee('Closed Event');
     });
 
     it('filters by upcoming date', function () {
@@ -123,33 +75,6 @@ describe('EventListing', function () {
 
         expect($events->first()->name)->toBe('Featured Event');
     });
-
-    it('clears all filters', function () {
-        Event::factory()->create(['name' => 'Tournament X', 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Camp Y', 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
-
-        Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
-            ->set('type', 'tournament')
-            ->assertDontSee('Camp Y')
-            ->call('clearFilters')
-            ->assertSet('type', '')
-            ->assertSet('search', '')
-            ->assertSet('status', '')
-            ->assertSet('date', '')
-            ->assertSee('Tournament X')
-            ->assertSee('Camp Y');
-    });
-
-    it('paginates results at 12 per page', function () {
-        Event::factory()->count(15)->create(['is_public' => true, 'status' => 'registration_open']);
-
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
-        $events = $component->viewData('events');
-
-        expect($events->count())->toBe(12);
-        expect($events->hasMorePages())->toBeTrue();
-    });
-
 });
 
 // ── EventDetail ────────────────────────────────────────

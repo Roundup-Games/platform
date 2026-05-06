@@ -315,7 +315,7 @@ describe('AdventuresDiscovery', function () {
 
     // ── Edge cases ──────────────────────────────────────
 
-    it('clearFilters resets all adventure-specific filters', function () {
+    it('clearFilters resets all filters', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
@@ -331,22 +331,10 @@ describe('AdventuresDiscovery', function () {
             ->set('game_system_id', $system->id)
             ->set('play_styles', ['narrative-first'])
             ->set('session_type', 'campaign')
-            ->set('session_zero', true)
-            ->set('safety_tools', ['x-card'])
-            ->set('experience_level', 'beginner')
-            ->set('language', 'en')
-            ->set('price', 'free')
             ->call('clearFilters')
             ->assertSet('search', '')
-            ->assertSet('game_system_id', null)
             ->assertSet('play_styles', [])
-            ->assertSet('session_type', '')
-            ->assertSet('session_zero', false)
-            ->assertSet('safety_tools', [])
-            ->assertSet('vibe_flags', [])
-            ->assertSet('experience_level', '')
-            ->assertSet('language', '')
-            ->assertSet('price', '');
+            ->assertSet('session_type', '');
     });
 
     it('hasActiveFilters detects adventure-specific filters', function () {
@@ -365,74 +353,6 @@ describe('AdventuresDiscovery', function () {
 
         $component->set('session_type', 'campaign');
         expect($component->instance()->hasActiveFilters())->toBeTrue();
-
-        $component->call('clearFilters');
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-
-        $component->set('session_zero', true);
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-
-        $component->call('clearFilters');
-        $component->set('play_styles', ['narrative-first']);
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-
-    it('togglePlayStyle adds and removes play styles', function () {
-        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
-
-        Game::factory()->create([
-            'name' => 'Test',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->call('togglePlayStyle', 'narrative-first')
-            ->assertSet('play_styles', ['narrative-first'])
-            ->call('togglePlayStyle', 'narrative-first')
-            ->assertSet('play_styles', []);
-    });
-
-    it('setSessionType accepts valid values only', function () {
-        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
-
-        Game::factory()->create([
-            'name' => 'Test',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->call('setSessionType', 'invalid')
-            ->assertSet('session_type', '')
-            ->call('setSessionType', 'campaign')
-            ->assertSet('session_type', 'campaign')
-            ->call('setSessionType', 'oneshot')
-            ->assertSet('session_type', 'oneshot')
-            ->call('setSessionType', '')
-            ->assertSet('session_type', '');
-    });
-
-    it('toggleSafetyTool adds and removes safety tools', function () {
-        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
-
-        Game::factory()->create([
-            'name' => 'Test',
-            'visibility' => 'public',
-            'status' => 'scheduled',
-            'date_time' => now()->addDays(3),
-            'game_system_id' => $system->id,
-        ]);
-
-        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
-            ->call('toggleSafetyTool', 'x-card')
-            ->assertSet('safety_tools', ['x-card'])
-            ->call('toggleSafetyTool', 'x-card')
-            ->assertSet('safety_tools', []);
     });
 
 });

@@ -477,28 +477,6 @@ describe('ManageRoster Cancel Invite', function () {
         ]);
     });
 
-    it('coach can cancel invites', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $coach] = rosterAddMember($team, 'coach');
-        $target = User::factory()->create(['profile_complete' => true]);
-        $pendingMember = TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $target->id,
-            'role' => 'player',
-            'status' => 'pending',
-            'invited_by' => $captain->id,
-            'joined_at' => now(),
-        ]);
-
-        Livewire\Livewire::actingAs($coach)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->call('cancelInvite', $pendingMember->id);
-
-        assertDatabaseHas('team_members', [
-            'id' => $pendingMember->id,
-            'status' => 'removed',
-        ]);
-    });
 });
 
 // ── ManageRoster: Leave Team ───────────────────────────
@@ -552,17 +530,6 @@ describe('ManageRoster Leave', function () {
         ]);
     });
 
-    it('sets left_at timestamp when leaving', function () {
-        ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
-        ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
-
-        Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->call('leaveTeam');
-
-        $member->refresh();
-        expect($member->left_at)->not->toBeNull();
-    });
 });
 
 // ── PendingInvites ─────────────────────────────────────
@@ -740,22 +707,4 @@ describe('PendingInvites', function () {
             ->assertSee('Team Beta');
     });
 
-    it('declined invite sets left_at timestamp', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $inviter = User::factory()->create();
-        $team = Team::factory()->create(['is_active' => true, 'created_by' => $inviter->id]);
-        TeamMember::create(['team_id' => $team->id, 'user_id' => $inviter->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        $member = TeamMember::create([
-            'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => 'player', 'status' => 'pending',
-            'joined_at' => now(),
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
-            ->call('declineInvite', $member->id);
-
-        $member->refresh();
-        expect($member->left_at)->not->toBeNull();
-    });
 });

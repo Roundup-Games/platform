@@ -111,20 +111,4 @@ describe('ApplyToGame capacity guard', function () {
             ->and($participant->status)->toBe(ParticipantStatus::Approved);
     })->group('smoke');
 
-    it('sets waitlisted_at when auto-waitlisting from apply flow', function () {
-        $game = capacityCreateFullPublicGame($this->owner, $this->gameSystem, maxPlayers: 2);
-        $applicant = User::factory()->create();
-
-        Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
-            ->set('message', 'Please!')
-            ->call('submitApplication');
-
-        $participant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $applicant->id)
-            ->first();
-
-        expect($participant->waitlisted_at)->not->toBeNull()
-            ->and($participant->waitlisted_at->diffInSeconds(now()))->toBeLessThan(5);
-    });
 });

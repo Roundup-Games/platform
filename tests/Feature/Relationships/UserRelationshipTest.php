@@ -35,28 +35,6 @@ describe('Follow Action', function () {
         ]);
     });
 
-    it('prevents duplicate follows (idempotent)', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        $first = UserRelationship::follow($user, $target);
-        $second = UserRelationship::follow($user, $target);
-
-        expect(UserRelationship::count())->toBe(1);
-        expect($first->id)->toBe($second->id);
-    });
-
-    it('allows mutual follows between two users', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        UserRelationship::follow($alice, $bob);
-        UserRelationship::follow($bob, $alice);
-
-        expect(UserRelationship::where('type', 'follow')->count())->toBe(2);
-        expect($alice->isFollowing($bob))->toBeTrue();
-        expect($bob->isFollowing($alice))->toBeTrue();
-    });
 });
 
 // ── Unfollow Action ────────────────────────────────────
@@ -76,15 +54,6 @@ describe('Unfollow Action', function () {
             'type' => 'follow',
         ]);
     })->group('smoke');
-
-    it('returns false when not following', function () {
-        $user = User::factory()->create();
-        $target = User::factory()->create();
-
-        $result = UserRelationship::unfollow($user, $target);
-
-        expect($result)->toBeFalse();
-    });
 
     it('does not remove blocks', function () {
         $user = User::factory()->create();

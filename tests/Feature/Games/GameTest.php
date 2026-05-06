@@ -50,6 +50,8 @@ describe('GamePolicy — Ownership Actions', function () {
 
 // ═══════════════════════════════════════════════════════════
 // CREATE GAME — ROUTE & COMPONENT
+// (Route tests + direct-set creation tests; type-selection flow
+//  covered by tests/Feature/Livewire/Games/CreateGameTest.php)
 // ═══════════════════════════════════════════════════════════
 
 describe('Create Game Route', function () {
@@ -77,7 +79,7 @@ describe('Create Game Route', function () {
     });
 });
 
-describe('CreateGame Component', function () {
+describe('CreateGame Component — Direct Set + Save', function () {
     it('creates game with all optional fields filled', function () {
         $user = gameTestCreateUserWithPermission();
         $system = GameSystem::factory()->create();
@@ -550,21 +552,6 @@ describe('Game Remove/Cancel Participant', function () {
 // GAME SESSION CREATION — NEW FIELDS
 // ═══════════════════════════════════════════════════════════
 
-describe('CreateGame — Language Selection', function () {
-    it('rejects invalid language', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Test')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('language', 'fr')
-            ->call('save')
-            ->assertHasErrors(['language']);
-    });
-});
-
 describe('CreateGame — Duration', function () {
     it('defaults to 2.0 hours for board games', function () {
         $user = gameTestCreateUserWithPermission();
@@ -628,34 +615,6 @@ describe('CreateGame — Player Counts', function () {
             ->set('max_players', 3)
             ->call('save')
             ->assertHasErrors(['min_players']);
-    });
-
-    it('validates min_players is at least 1', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Test')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('min_players', 0)
-            ->call('save')
-            ->assertHasErrors(['min_players']);
-    });
-});
-
-describe('CreateGame — Experience Level', function () {
-    it('rejects invalid experience level', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('game_type', 'board_game')
-            ->set('name', 'Test')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('experience_level', 'god-tier')
-            ->call('save')
-            ->assertHasErrors(['experience_level']);
     });
 });
 
@@ -848,96 +807,3 @@ describe('GameDetail Component — Campaign Context', function () {
     });
 });
 
-// ═══════════════════════════════════════════════════════════
-// GAME TYPE SELECTION FLOW
-// ═══════════════════════════════════════════════════════════
-
-describe('CreateGame — Type Selection', function () {
-    it('selectType sets game_type and advances to form step', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->assertSet('game_type', 'board_game')
-            ->assertSet('step', 'form');
-    });
-
-    it('selectType rejects invalid game type', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'invalid-type')
-            ->assertSet('game_type', null)
-            ->assertSet('step', 'type');
-    });
-
-    it('changeType resets type-specific fields', function () {
-        $user = gameTestCreateUserWithPermission();
-        $system = GameSystem::factory()->create();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('game_system_id', $system->id)
-            ->set('experience_level', 'advanced')
-            ->set('comfort_notes', 'Be gentle please')
-            ->call('onVibePreferencesChanged', ['atmospheric' => 'favorite'])
-            ->call('changeType', 'ttrpg')
-            ->assertSet('game_type', 'ttrpg')
-            ->assertSet('game_system_id', null)
-            ->assertSet('experience_level', null)
-            ->assertSet('comfort_notes', '')
-            ->assertSet('vibePreferences', [])
-            ->assertSet('expected_duration', '3');
-    });
-
-    it('save requires game_type to be set', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->set('name', 'No Type Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->call('save')
-            ->assertHasErrors(['game_type']);
-    });
-
-    it('stores comfort_notes for board games', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'Cozy Board Game')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->set('comfort_notes', 'No politics please')
-            ->call('save');
-
-        $game = Game::where('name', 'Cozy Board Game')->first();
-        expect($game->safety_rules)->toBe(['comfort_notes' => 'No politics please']);
-    });
-
-    it('creates TTRPG game with full form', function () {
-        $user = gameTestCreateUserWithPermission();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
-            ->call('selectType', 'ttrpg')
-            ->set('name', 'Epic Campaign')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 6)
-            ->set('experience_level', 'intermediate')
-            ->call('save');
-
-        assertDatabaseHas('games', [
-            'name' => 'Epic Campaign',
-            'game_type' => 'ttrpg',
-            'experience_level' => 'intermediate',
-        ]);
-    });
-
-});

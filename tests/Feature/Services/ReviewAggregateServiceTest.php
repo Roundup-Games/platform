@@ -62,10 +62,10 @@ class ReviewAggregateServiceTest extends TestCase
     }
 
     
-    public function test_it_excludes_hidden_reviews(): void
+    public function test_it_excludes_non_published_reviews(string $status): void
     {
         $this->createPublishedReview(rating: 5);
-        $this->createReview(rating: 1, status: 'hidden');
+        $this->createReview(rating: 1, status: $status);
 
         $this->service->updateAggregates($this->gmProfile);
 
@@ -74,17 +74,12 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(1, $this->gmProfile->review_count);
     }
 
-    
-    public function test_it_excludes_reported_reviews(): void
+    public static function it_excludes_non_published_reviewsDataProvider(): array
     {
-        $this->createPublishedReview(rating: 4);
-        $this->createReview(rating: 1, status: 'reported');
-
-        $this->service->updateAggregates($this->gmProfile);
-
-        $this->gmProfile->refresh();
-        $this->assertEquals(4.00, (float) $this->gmProfile->average_rating);
-        $this->assertEquals(1, $this->gmProfile->review_count);
+        return [
+            'hidden' => ['hidden'],
+            'reported' => ['reported'],
+        ];
     }
 
     

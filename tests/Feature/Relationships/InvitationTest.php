@@ -132,11 +132,12 @@ describe('Invitation — Friend Validation', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Invitation — Duplicate Prevention', function () {
-    test('game duplicate invite skipped', function () {
+    test('existing participant is not re-invited regardless of status', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
         $friend = User::factory()->create(['profile_complete' => true]);
         inviteTestMakeFriend($owner, $friend);
 
+        // Pre-existing participant with 'pending' status
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
@@ -152,51 +153,7 @@ describe('Invitation — Duplicate Prevention', function () {
         expect(GameParticipant::where('game_id', $game->id)
             ->where('user_id', $friend->id)
             ->count())->toBe(1);
-    });
-
-    test('cannot re-invite approved player', function () {
-        ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        expect(GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $friend->id)
-            ->count())->toBe(1);
-    });
-
-    test('cannot re-invite rejected player', function () {
-        ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
-        $friend = User::factory()->create(['profile_complete' => true]);
-        inviteTestMakeFriend($owner, $friend);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'rejected',
-        ]);
-
-        Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
-            ->set('selectedFriendIds', [$friend->id])
-            ->call('inviteParticipants');
-
-        expect(GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $friend->id)
-            ->count())->toBe(1);
-    });
+    })->group('smoke');
 });
 
 // ═══════════════════════════════════════════════════════════

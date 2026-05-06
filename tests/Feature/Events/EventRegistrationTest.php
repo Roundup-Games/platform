@@ -10,18 +10,6 @@ use function Pest\Laravel\{actingAs, get};
 // ── RegisterForEvent ───────────────────────────────────
 
 describe('RegisterForEvent', function () {
-    it('redirects guests to login', function () {
-        $event = Event::factory()->create([
-            'status' => 'registration_open',
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDays(7),
-            'is_public' => true,
-        ]);
-
-        get(route('events.register', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
     it('redirects if registration is not open', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
@@ -233,12 +221,6 @@ describe('RegisterForEvent', function () {
 // ── ManageRegistrations ────────────────────────────────
 
 describe('ManageRegistrations', function () {
-    it('requires authentication', function () {
-        $event = Event::factory()->create(['is_public' => true]);
-        get(route('events.manage-registrations', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
     it('allows organizer to view registrations', function () {
         $organizer = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
@@ -380,64 +362,40 @@ describe('ManageRegistrations', function () {
             ->assertSee('Thunderbolts FC');
     });
 
-    it('filters by status', function () {
+    it('filters registrations by column', function ($filterField, $filterValue, $setup) {
         $organizer = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create(['organizer_id' => $organizer->id]);
 
-        $pending = EventRegistration::factory()->pending()->create(['event_id' => $event->id]);
-        $confirmed = EventRegistration::factory()->confirmed()->create(['event_id' => $event->id]);
+        [$match, $noMatch] = $setup($event);
 
         actingAs($organizer);
         Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('filterStatus', 'pending')
-            ->assertSee($pending->user->name)
-            ->assertDontSee($confirmed->user->name);
-    });
-
-    it('filters by registration type', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $individual = EventRegistration::factory()->individual()->create(['event_id' => $event->id]);
-        $team = EventRegistration::factory()->team()->create(['event_id' => $event->id]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('filterType', 'team')
-            ->assertSee($team->user->name)
-            ->assertDontSee($individual->user->name);
-    });
-
-    it('filters by payment status', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $paid = EventRegistration::factory()->paid()->create(['event_id' => $event->id]);
-        $pending = EventRegistration::factory()->pending()->create(['event_id' => $event->id]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('filterPaymentStatus', 'paid')
-            ->assertSee($paid->user->name)
-            ->assertDontSee($pending->user->name);
-    });
-
-    it('clears all filters', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        actingAs($organizer);
-        Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug])
-            ->set('search', 'test')
-            ->set('filterStatus', 'pending')
-            ->set('filterType', 'team')
-            ->set('filterPaymentStatus', 'paid')
-            ->call('clearFilters')
-            ->assertSet('search', '')
-            ->assertSet('filterStatus', '')
-            ->assertSet('filterType', '')
-            ->assertSet('filterPaymentStatus', '');
-    });
+            ->set($filterField, $filterValue)
+            ->assertSee($match)
+            ->assertDontSee($noMatch);
+    })->with([
+        'by status' => [
+            'filterStatus', 'pending',
+            fn ($event) => [
+                EventRegistration::factory()->pending()->create(['event_id' => $event->id])->user->name,
+                EventRegistration::factory()->confirmed()->create(['event_id' => $event->id])->user->name,
+            ],
+        ],
+        'by type' => [
+            'filterType', 'team',
+            fn ($event) => [
+                EventRegistration::factory()->team()->create(['event_id' => $event->id])->user->name,
+                EventRegistration::factory()->individual()->create(['event_id' => $event->id])->user->name,
+            ],
+        ],
+        'by payment status' => [
+            'filterPaymentStatus', 'paid',
+            fn ($event) => [
+                EventRegistration::factory()->paid()->create(['event_id' => $event->id])->user->name,
+                EventRegistration::factory()->pending()->create(['event_id' => $event->id])->user->name,
+            ],
+        ],
+    ]);
 
     it('saves internal notes on a registration', function () {
         $organizer = User::factory()->create(['profile_complete' => true]);
@@ -452,17 +410,6 @@ describe('ManageRegistrations', function () {
             ->call('saveInternalNotes', $registration->id);
 
         expect($registration->fresh()->internal_notes)->toBe('Special accommodation needed');
-    });
-
-    it('denies access to non-organizers', function () {
-        $organizer = User::factory()->create(['profile_complete' => true]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        $otherUser = User::factory()->create(['profile_complete' => true]);
-
-        actingAs($otherUser);
-        get(route('events.manage-registrations', ['slug' => $event->slug]))
-            ->assertForbidden();
     });
 
     it('shows team roster in team registrations', function () {

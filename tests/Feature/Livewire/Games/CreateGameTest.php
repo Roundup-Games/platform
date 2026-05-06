@@ -25,14 +25,8 @@ function createGameComponent(?User $user = null)
 // ═══════════════════════════════════════════════════════════
 // TYPE SELECTOR — INITIAL STATE
 // ═══════════════════════════════════════════════════════════
-
-describe('CreateGame — Type Selector', function () {
-    it('initializes with type selector step', function () {
-        createGameComponent()
-            ->assertSet('step', 'type')
-            ->assertSet('game_type', null);
-    });
-});
+// (Trivial init-state test removed — selectType tests below
+//  implicitly verify the starting state.)
 
 // ═══════════════════════════════════════════════════════════
 // TYPE SELECTION — BOARD GAME
@@ -210,9 +204,10 @@ describe('CreateGame — Analytics', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('CreateGame — Clone Source', function () {
-    it('pre-fills fields from a TTRPG clone source', function () {
+    it('pre-fills all fields from a TTRPG clone source except date_time', function () {
         $user = createGameTestUser();
         $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
+        $location = \App\Models\Location::factory()->create();
 
         $source = Game::factory()->create([
             'owner_id' => $user->id,
@@ -220,6 +215,7 @@ describe('CreateGame — Clone Source', function () {
             'name' => 'Epic Campaign',
             'description' => 'An epic adventure awaits',
             'game_system_id' => $system->id,
+            'location_id' => $location->id,
             'price' => 5.00,
             'language' => 'en',
             'visibility' => 'protected',
@@ -227,8 +223,11 @@ describe('CreateGame — Clone Source', function () {
             'max_players' => 6,
             'experience_level' => 'intermediate',
             'expected_duration' => 4.0,
+            'min_reliability_preference' => 75,
+            'complexity' => 3.5,
             'vibe_flags' => ['roleplay-heavy', 'story-rich'],
             'safety_rules' => ['tools' => ['x-card'], 'custom_note' => 'No gore'],
+            'date_time' => now()->addDays(7),
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -238,6 +237,7 @@ describe('CreateGame — Clone Source', function () {
             ->assertSet('name', 'Epic Campaign')
             ->assertSet('description', 'An epic adventure awaits')
             ->assertSet('game_system_id', $system->id)
+            ->assertSet('location_id', $location->id)
             ->assertSet('price', '5')
             ->assertSet('language', 'en')
             ->assertSet('visibility', 'protected')
@@ -245,12 +245,14 @@ describe('CreateGame — Clone Source', function () {
             ->assertSet('max_players', 6)
             ->assertSet('experience_level', 'intermediate')
             ->assertSet('expected_duration', '4')
-            ->assertSet('date_time', '')
+            ->assertSet('min_reliability_preference', '75.00')
+            ->assertSet('complexity', '3.50')
             ->assertSet('vibePreferences', ['roleplay-heavy' => 'favorite', 'story-rich' => 'favorite'])
-            ->assertSet('safety_rules', ['tools' => ['x-card'], 'custom_note' => 'No gore']);
+            ->assertSet('safety_rules', ['tools' => ['x-card'], 'custom_note' => 'No gore'])
+            ->assertSet('date_time', ''); // date_time never pre-filled
     });
 
-    it('pre-fills fields from a board game clone source with comfort notes', function () {
+    it('pre-fills board game clone with comfort notes and clears TTRPG fields on type switch', function () {
         $user = createGameTestUser();
         $system = GameSystem::factory()->create(['name' => 'Catan']);
 
@@ -266,27 +268,18 @@ describe('CreateGame — Clone Source', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('step', 'form')
             ->assertSet('game_type', 'board_game')
             ->assertSet('name', 'Board Night')
             ->assertSet('comfort_notes', 'Keep it light')
             ->assertSet('expected_duration', '1.5')
             ->assertSet('vibePreferences', ['cooperative' => 'favorite', 'new-player-friendly' => 'favorite'])
-            ->assertSet('date_time', '');
-    });
-
-    it('does not pre-fill date_time from source game', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-            'date_time' => now()->addDays(7),
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('date_time', '');
+            ->assertSet('date_time', '')
+            // Switch type clears board-game-specific fields
+            ->call('changeType', 'ttrpg')
+            ->assertSet('game_type', 'ttrpg')
+            ->assertSet('comfort_notes', '')
+            ->assertSet('safety_rules', [])
+            ->assertSet('vibePreferences', []);
     });
 
     it('aborts 403 when cloning someone elses game', function () {
@@ -310,7 +303,7 @@ describe('CreateGame — Clone Source', function () {
             ->test(CreateGame::class, ['clone' => '00000000-0000-0000-0000-000000000000']);
     })->throws(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
 
-    it('can save a cloned game with new date_time', function () {
+    it('can save a cloned game with new date_time creating a new record', function () {
         $user = createGameTestUser();
 
         $source = Game::factory()->create([
@@ -338,111 +331,3 @@ describe('CreateGame — Clone Source', function () {
     });
 
 });
-
-// ═══════════════════════════════════════════════════════════
-// REVIEW FIXES — ADDITIONAL TEST COVERAGE
-// ═══════════════════════════════════════════════════════════
-
-describe('CreateGame — Board Game Safety Rules Edge Cases', function () {
-    it('stores null safety_rules for board game without comfort notes', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'No Comfort Notes BG')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->set('comfort_notes', '')
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('name', 'No Comfort Notes BG')->first();
-        expect($game->safety_rules)->toBeNull();
-    });
-
-    it('stores null experience_level for board games', function () {
-        $user = createGameTestUser();
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class)
-            ->call('selectType', 'board_game')
-            ->set('name', 'BG Experience Check')
-            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
-            ->set('max_players', 4)
-            ->call('save')
-            ->assertRedirect();
-
-        $game = Game::where('name', 'BG Experience Check')->first();
-        expect($game->experience_level)->toBeNull();
-    });
-});
-
-describe('CreateGame — Clone Pre-fill Completeness', function () {
-    it('pre-fills location_id, expected_duration, min_reliability_preference, and complexity from clone source', function () {
-        $user = createGameTestUser();
-        $location = \App\Models\Location::factory()->create();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-            'location_id' => $location->id,
-            'expected_duration' => 4.5,
-            'min_reliability_preference' => 75,
-            'complexity' => 3.5,
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('location_id', $location->id)
-            ->assertSet('expected_duration', '4.5')
-            ->assertSet('min_reliability_preference', '75.00')
-            ->assertSet('complexity', '3.50');
-    });
-});
-
-describe('CreateGame — Clone to Different Type', function () {
-    it('clears TTRPG fields when switching cloned TTRPG to board game', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-            'experience_level' => 'advanced',
-            'safety_rules' => ['tools' => ['x-card'], 'custom_note' => 'No PVP'],
-            'vibe_flags' => ['roleplay-heavy', 'story-rich'],
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('game_type', 'ttrpg')
-            ->assertSet('experience_level', 'advanced')
-            ->call('changeType', 'board_game')
-            ->assertSet('game_type', 'board_game')
-            ->assertSet('experience_level', null)
-            ->assertSet('safety_rules', [])
-            ->assertSet('comfort_notes', '')
-            ->assertSet('vibePreferences', []);
-    });
-
-    it('clears board game fields when switching cloned board game to TTRPG', function () {
-        $user = createGameTestUser();
-
-        $source = Game::factory()->create([
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-            'safety_rules' => ['comfort_notes' => 'Be nice'],
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(CreateGame::class, ['clone' => $source->id])
-            ->assertSet('comfort_notes', 'Be nice')
-            ->call('changeType', 'ttrpg')
-            ->assertSet('game_type', 'ttrpg')
-            ->assertSet('comfort_notes', '')
-            ->assertSet('safety_rules', [])
-            ->assertSet('vibePreferences', []);
-    });
-});
-
-

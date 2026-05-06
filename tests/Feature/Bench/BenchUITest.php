@@ -47,17 +47,22 @@ test('host can promote benched player from campaign detail', function () {
     expect($benchedParticipant->benched_at)->toBeNull();
 })->group('smoke');
 
-test('non-host cannot promote from bench on campaign', function () {
+test('non-host cannot promote or see bench management on campaign', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
     ['participant' => $benchedParticipant] = $this->addBenchUser($campaign);
     $otherUser = User::factory()->create();
 
-    Livewire::actingAs($otherUser)
-        ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-        ->call('promoteFromBench', $benchedParticipant->id)
-        ->assertHasNoErrors();
+    // Non-host should NOT see bench management section or promote buttons
+    $component = Livewire::actingAs($otherUser)
+        ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id]);
 
-    // Verify NOT promoted
+    // UI is hidden
+    $component->assertDontSeeHtml('promoteFromBench')
+        ->assertDontSee(__('campaigns.action_promote_from_bench'));
+
+    // Action also fails
+    $component->call('promoteFromBench', $benchedParticipant->id);
+
     $benchedParticipant->refresh();
     expect($benchedParticipant->status)->toBe(ParticipantStatus::Benched);
 });
@@ -150,18 +155,6 @@ test('host does not see bench section on standalone game', function () {
         ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
         ->assertDontSeeHtml('promoteFromBench')
         ->assertDontSee(__('games.content_bench_description'));
-});
-
-test('non-host cannot see bench management on campaign', function () {
-    $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $this->addBenchUser($campaign);
-    $otherUser = User::factory()->create();
-
-    // Non-host should NOT see bench management section or promote buttons
-    Livewire::actingAs($otherUser)
-        ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
-        ->assertDontSeeHtml('promoteFromBench')
-        ->assertDontSee(__('campaigns.action_promote_from_bench'));
 });
 
 test('non-host cannot see bench management on campaign session', function () {

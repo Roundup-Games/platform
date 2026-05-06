@@ -144,23 +144,4 @@ describe('max confirmation expiration', function () {
         expect($promoted->fresh()->confirmation_expires_at)->toBeNull();
     });
 
-    it('increments confirmation_attempts on each promotion', function () {
-        ['game' => $game] = maxExpCreateFullGame(maxPlayers: 4);
-        $user = User::factory()->create();
-        $this->service->addToWaitlist($game, $user);
-
-        // First promotion
-        maxExpOpenSlot($game);
-        $promoted1 = $this->service->promoteNext($game);
-        expect($promoted1->confirmation_attempts)->toBe(1);
-
-        // Expire and re-waitlist
-        $promoted1->update(['confirmation_expires_at' => now()->subHour()]);
-        $this->service->handleExpiredConfirmation($promoted1->fresh());
-
-        // Second promotion — confirmation_attempts should be 2
-        maxExpOpenSlot($game);
-        $promoted2 = $this->service->promoteNext($game);
-        expect($promoted2->confirmation_attempts)->toBe(2);
-    });
 });

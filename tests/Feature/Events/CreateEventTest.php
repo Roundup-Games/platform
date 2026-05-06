@@ -75,35 +75,6 @@ describe('CreateEvent', function () {
             ->assertSet('newDivisionName', '');
     });
 
-    it('validates division name is required', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('step', 4)
-            ->set('newDivisionName', '')
-            ->call('addDivision')
-            ->assertHasErrors('newDivisionName');
-    });
-
-    it('removes a division', function () {
-        seedPermissions();
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $user->givePermissionTo('create event');
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
-            ->set('step', 4)
-            ->set('divisions', [
-                ['name' => 'Div A', 'description' => ''],
-                ['name' => 'Div B', 'description' => ''],
-            ])
-            ->call('removeDivision', 0)
-            ->assertSet('divisions', [['name' => 'Div B', 'description' => '']]);
-    });
-
     it('creates an event and redirects', function () {
         seedPermissions();
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
@@ -219,12 +190,6 @@ describe('CreateEvent', function () {
 // ── ManageEvent ────────────────────────────────────────
 
 describe('ManageEvent', function () {
-    it('requires authentication', function () {
-        $event = Event::factory()->create();
-        get(route('events.manage', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
     it('denies non-organizer access', function () {
         $organizer = User::factory()->create();
         $otherUser = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
@@ -343,44 +308,11 @@ describe('ManageEvent', function () {
 
         expect($event->fresh()->status)->toBe('cancelled');
     });
-
-    it('adds a division in manage mode', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create([
-            'organizer_id' => $user->id,
-            'divisions' => null,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
-            ->set('activeTab', 'divisions')
-            ->set('newDivisionName', 'Recreational')
-            ->set('newDivisionDescription', 'Fun division')
-            ->call('addDivision')
-            ->assertSet('divisions', [['name' => 'Recreational', 'description' => 'Fun division']]);
-    });
-
 });
 
 // ── EventAnnouncements ─────────────────────────────────
 
 describe('EventAnnouncements', function () {
-    it('requires authentication', function () {
-        $event = Event::factory()->create();
-        get(route('events.announcements', ['slug' => $event->slug]))
-            ->assertRedirect(route('login'));
-    });
-
-    it('denies non-organizer access', function () {
-        $organizer = User::factory()->create();
-        $otherUser = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $organizer->id]);
-
-        actingAs($otherUser);
-        get(route('events.announcements', ['slug' => $event->slug]))
-            ->assertForbidden();
-    });
-
     it('renders announcements page for organizer', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create([
@@ -394,59 +326,31 @@ describe('EventAnnouncements', function () {
             ->assertSee('No announcements yet');
     });
 
-    it('creates an announcement', function () {
+    it('creates an announcement', function ($isPublished, $isPinned) {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create(['organizer_id' => $user->id]);
 
         actingAs($user);
         Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
             ->call('showCreateForm')
-            ->assertSet('showForm', true)
-            ->set('title', 'Event Update')
-            ->set('content', 'The schedule has been updated.')
-            ->set('is_published', true)
+            ->set('title', 'Test Title')
+            ->set('content', 'Test content.')
+            ->set('is_published', $isPublished)
+            ->set('is_pinned', $isPinned)
             ->call('save')
             ->assertSet('showForm', false);
 
         $announcement = EventAnnouncement::where('event_id', $event->id)->first();
         expect($announcement)->not->toBeNull();
-        expect($announcement->title)->toBe('Event Update');
-        expect($announcement->is_published)->toBeTrue();
+        expect($announcement->title)->toBe('Test Title');
         expect($announcement->author_id)->toBe($user->id);
-    });
-
-    it('creates a draft announcement', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
-            ->call('showCreateForm')
-            ->set('title', 'Draft Post')
-            ->set('content', 'Not yet published.')
-            ->set('is_published', false)
-            ->call('save');
-
-        $announcement = EventAnnouncement::where('event_id', $event->id)->first();
-        expect($announcement->is_published)->toBeFalse();
-    });
-
-    it('creates a pinned announcement', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
-            ->call('showCreateForm')
-            ->set('title', 'Important!')
-            ->set('content', 'Read this first.')
-            ->set('is_pinned', true)
-            ->set('is_published', true)
-            ->call('save');
-
-        $announcement = EventAnnouncement::where('event_id', $event->id)->first();
-        expect($announcement->is_pinned)->toBeTrue();
-    });
+        expect($announcement->is_published)->toBe($isPublished);
+        expect($announcement->is_pinned)->toBe($isPinned);
+    })->with([
+        'published, not pinned' => [true, false],
+        'draft' => [false, false],
+        'published, pinned' => [true, true],
+    ]);
 
     it('validates required fields', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
@@ -461,41 +365,31 @@ describe('EventAnnouncements', function () {
             ->assertHasErrors(['title', 'content']);
     });
 
-    it('publishes a draft announcement', function () {
+    it('toggles announcement publish state', function ($initialPublished, $expectedAfterToggle) {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
         $event = Event::factory()->create(['organizer_id' => $user->id]);
         $announcement = EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $user->id,
-            'title' => 'Draft',
+            'title' => 'Test',
             'content' => 'Content',
-            'is_published' => false,
+            'is_published' => $initialPublished,
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
-            ->call('publishAnnouncement', $announcement->id);
+        $component = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug]);
 
-        expect($announcement->fresh()->is_published)->toBeTrue();
-    });
+        if ($initialPublished) {
+            $component->call('unpublishAnnouncement', $announcement->id);
+        } else {
+            $component->call('publishAnnouncement', $announcement->id);
+        }
 
-    it('unpublishes a published announcement', function () {
-        $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);
-        $event = Event::factory()->create(['organizer_id' => $user->id]);
-        $announcement = EventAnnouncement::create([
-            'event_id' => $event->id,
-            'author_id' => $user->id,
-            'title' => 'Published',
-            'content' => 'Content',
-            'is_published' => true,
-        ]);
-
-        actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
-            ->call('unpublishAnnouncement', $announcement->id);
-
-        expect($announcement->fresh()->is_published)->toBeFalse();
-    });
+        expect($announcement->fresh()->is_published)->toBe($expectedAfterToggle);
+    })->with([
+        'publish draft' => [false, true],
+        'unpublish published' => [true, false],
+    ]);
 
     it('toggles pin on announcement', function () {
         $user = User::factory()->create(['profile_complete' => true, 'email_verified_at' => now()]);

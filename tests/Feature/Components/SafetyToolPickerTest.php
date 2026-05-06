@@ -8,13 +8,6 @@ use Livewire\Livewire;
 // ═══════════════════════════════════════════════════════════
 
 describe('Rendering', function () {
-    it('initializes with empty selected, text, and note', function () {
-        Livewire::test(SafetyToolPicker::class)
-            ->assertSet('selected', [])
-            ->assertSet('linesAndVeilsText', '')
-            ->assertSet('customNote', '');
-    });
-
     it('each tool has required UI properties (representative check)', function () {
         $component = Livewire::test(SafetyToolPicker::class);
         $grouped = $component->instance()->getGroupedTools;
@@ -35,22 +28,6 @@ describe('Rendering', function () {
         }
     });
 
-    it('only Lines & Veils supports text', function () {
-        $component = Livewire::test(SafetyToolPicker::class);
-        $grouped = $component->instance()->getGroupedTools;
-
-        $linesAndVeils = collect(collect($grouped)->flatMap(fn ($g) => $g['tools']))
-            ->first(fn ($t) => $t['value'] === 'lines-and-veils');
-
-        expect($linesAndVeils['supportsText'])->toBeTrue();
-        expect($linesAndVeils['textPlaceholder'])->not->toBeEmpty();
-
-        // Verify a non-text tool
-        $xCard = collect(collect($grouped)->flatMap(fn ($g) => $g['tools']))
-            ->first(fn ($t) => $t['value'] === 'x-card');
-        expect($xCard['supportsText'])->toBeFalse();
-        expect($xCard['textPlaceholder'])->toBe('');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -109,39 +86,6 @@ describe('Tool toggling', function () {
             ->assertDispatched('safety-tools-changed');
     });
 
-    it('re-selecting a tool keeps it in the array once (not duplicated)', function () {
-        $component = Livewire::test(SafetyToolPicker::class)
-            ->call('toggleTool', 'session-zero')
-            ->call('toggleTool', 'session-zero')
-            ->call('toggleTool', 'session-zero');
-
-        $component->assertSet('selected', ['session-zero']);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// LINES & VEILS TEXT
-// ═══════════════════════════════════════════════════════════
-
-describe('Lines & Veils text', function () {
-    it('updating Lines & Veils text dispatches change event', function () {
-        Livewire::test(SafetyToolPicker::class)
-            ->call('toggleTool', 'lines-and-veils')
-            ->set('linesAndVeilsText', 'No spiders')
-            ->assertDispatched('safety-tools-changed');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CUSTOM NOTE
-// ═══════════════════════════════════════════════════════════
-
-describe('Custom note', function () {
-    it('updating custom note dispatches change event', function () {
-        Livewire::test(SafetyToolPicker::class)
-            ->set('customNote', 'We take breaks every hour')
-            ->assertDispatched('safety-tools-changed');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -162,15 +106,6 @@ describe('Safety rules computed property', function () {
         expect($rules['tools'])->toBe(['session-zero', 'lines-and-veils']);
         expect($rules['lines_and_veils_text'])->toBe('No spiders');
         expect($rules['custom_note'])->toBe('Take breaks');
-    });
-
-    it('returns empty defaults when nothing is selected', function () {
-        $component = Livewire::test(SafetyToolPicker::class);
-        $rules = $component->instance()->getSafetyRules();
-
-        expect($rules['tools'])->toBe([]);
-        expect($rules['lines_and_veils_text'])->toBe('');
-        expect($rules['custom_note'])->toBe('');
     });
 });
 

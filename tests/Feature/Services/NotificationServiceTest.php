@@ -36,31 +36,22 @@ describe('NotificationService', function () {
             expect($channels['mail'])->toBe(MailChannel::class);
         });
 
-        it('returns only database when mail is disabled', function () {
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'new_follower' => ['database' => true, 'mail' => false],
-                ],
-            ]);
+        it('returns single channel when the other is disabled', function (string $enabled, string $disabled) {
+            $settings = [
+                'game_invitation' => ['database' => true, 'mail' => true],
+            ];
+            $settings['game_invitation'][$disabled] = false;
 
-            $channels = $this->service->resolveChannels($user, NotificationCategory::NewFollower);
-
-            expect($channels)->toHaveKey('database');
-            expect($channels)->not->toHaveKey('mail');
-        });
-
-        it('returns only mail when database is disabled', function () {
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'game_invitation' => ['database' => false, 'mail' => true],
-                ],
-            ]);
+            $user = User::factory()->create(['notification_settings' => $settings]);
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            expect($channels)->not->toHaveKey('database');
-            expect($channels)->toHaveKey('mail');
-        });
+            expect($channels)->toHaveKey($enabled);
+            expect($channels)->not->toHaveKey($disabled);
+        })->with([
+            'database only' => ['database', 'mail'],
+            'mail only' => ['mail', 'database'],
+        ]);
 
         it('returns empty array when both channels are disabled', function () {
             $user = User::factory()->create([
@@ -127,32 +118,26 @@ describe('NotificationService', function () {
             expect($channels)->toHaveKey('database');
         });
 
-        it('includes push channel when push is enabled in settings', function () {
+        it('handles push channel based on settings', function (bool $pushEnabled, int $expectedCount) {
             $user = User::factory()->create([
                 'notification_settings' => [
-                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => true],
+                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => $pushEnabled],
                 ],
             ]);
 
             $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
 
-            expect($channels)->toHaveCount(3);
-            expect($channels)->toHaveKey('push');
-            expect($channels['push'])->toBe(PushChannel::class);
-        });
-
-        it('excludes push channel when push is disabled', function () {
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'game_invitation' => ['database' => true, 'mail' => true, 'push' => false],
-                ],
-            ]);
-
-            $channels = $this->service->resolveChannels($user, NotificationCategory::GameInvitation);
-
-            expect($channels)->toHaveCount(2);
-            expect($channels)->not->toHaveKey('push');
-        });
+            expect($channels)->toHaveCount($expectedCount);
+            if ($pushEnabled) {
+                expect($channels)->toHaveKey('push');
+                expect($channels['push'])->toBe(PushChannel::class);
+            } else {
+                expect($channels)->not->toHaveKey('push');
+            }
+        })->with([
+            'push enabled' => [true, 3],
+            'push disabled' => [false, 2],
+        ]);
     });
 
     // ── send ─────────────────────────────────────────────────────
@@ -261,20 +246,6 @@ describe('NotificationService', function () {
 
             // Should NOT throw
             $this->service->send($user, $notification, NotificationCategory::GameInvitation);
-        });
-
-        it('dispatches when actor exists but is not blocked', function () {
-            $actor = User::factory()->create();
-            $user = User::factory()->create([
-                'notification_settings' => [
-                    'game_invitation' => ['database' => true, 'mail' => true],
-                ],
-            ]);
-
-            $notification = new TestNotificationWithActor(['game_id' => 1], $actor);
-            $this->service->send($user, $notification, NotificationCategory::GameInvitation);
-
-            expect($user->notifications)->toHaveCount(1);
         });
     });
 

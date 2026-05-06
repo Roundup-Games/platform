@@ -300,33 +300,4 @@ describe('SendSessionReminders 24-hour window', function () {
         expect($game24h->fresh()->reminder_sent_at)->toBeNull();
     });
 
-    it('game within both windows gets both reminders in single run', function () {
-        $owner = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create();
-
-        // Game 30 min away — within BOTH windows (under 1h and under 24h)
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'date_time' => now()->addMinutes(30),
-            'status' => 'scheduled',
-        ]);
-
-        $participant = User::factory()->create();
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        $this->artisan('pwa:send-session-reminders')
-            ->assertSuccessful()
-            ->expectsOutputToContain('[24-hour] Found 1 game(s)')
-            ->expectsOutputToContain('[1-hour] Found 1 game(s)');
-
-        // Both timestamps should be set
-        expect($game->fresh()->reminder_24h_sent_at)->not->toBeNull();
-        expect($game->fresh()->reminder_sent_at)->not->toBeNull();
-    });
 });

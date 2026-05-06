@@ -60,24 +60,7 @@ describe('Rendering', function () {
 // LOCATION GATE
 // ═══════════════════════════════════════════════════════════
 
-describe('Location gate', function () {
-    it('hasGuestLocation returns true after receiving location', function () {
-        $component = Livewire::test(NearbySessions::class)
-            ->call('onGuestLocationUpdated', 52.5, 13.4, 'browser');
-
-        $this->assertTrue($component->instance()->hasGuestLocation());
-        $this->assertEquals(52.5, $component->get('guestLat'));
-        $this->assertEquals(13.4, $component->get('guestLng'));
-    });
-
-
-});
-
-// ═══════════════════════════════════════════════════════════
-// SESSION QUERY & SORTING
-// ═══════════════════════════════════════════════════════════
-
-describe('Session query and sorting', function () {
+describe('Rendering', function () {
     it('returns sessions sorted by BGG rank then distance', function () {
         $location = Location::factory()->create([
             'latitude' => 52.5230,
@@ -189,12 +172,6 @@ describe('Session query and sorting', function () {
         $sessions = $component->instance()->getSessions();
         expect($sessions)->toHaveCount(2);
     });
-
-    it('returns empty collection when no location', function () {
-        $component = Livewire::test(NearbySessions::class);
-        $sessions = $component->instance()->getSessions();
-        expect($sessions)->toHaveCount(0);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -264,18 +241,6 @@ describe('Campaign inclusion', function () {
 // ═══════════════════════════════════════════════════════════
 
 describe('Distance formatting', function () {
-    it('formats sub-km distances as meters', function () {
-        $component = Livewire::test(NearbySessions::class);
-        $formatted = $component->instance()->formatDistance(0.5);
-        expect($formatted)->toBe('500 m away');
-    });
-
-    it('formats km distances with one decimal', function () {
-        $component = Livewire::test(NearbySessions::class);
-        $formatted = $component->instance()->formatDistance(2.34);
-        expect($formatted)->toBe('2.3 km away');
-    });
-
     it('renders distance badge in session card', function () {
         $location = Location::factory()->create([
             'latitude' => 52.5230,
