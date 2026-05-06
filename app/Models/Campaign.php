@@ -81,6 +81,26 @@ class Campaign extends Model
         return $this->hasMany(CampaignApplication::class);
     }
 
+    // ── Scopes ─────────────────────────────────────────
+
+    /**
+     * Scope to campaigns visible to a given user (or guest).
+     *
+     * Guests see public only. Authenticated users see public + protected.
+     * Private campaigns are never included in listings (handled by policies).
+     */
+    public function scopeVisibleTo($query, ?User $viewer = null)
+    {
+        if ($viewer === null) {
+            return $query->where('visibility', 'public');
+        }
+
+        return $query->where(function ($q) {
+            $q->where('visibility', 'public')
+              ->orWhere('visibility', 'protected');
+        });
+    }
+
     // ── Bench ──────────────────────────────────────────
 
     /**

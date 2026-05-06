@@ -79,7 +79,7 @@ class CreateGame extends Component
             'price' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
             'location_id' => 'nullable|uuid|exists:locations,id',
-            'visibility' => 'required|in:public,protected,private',
+            'visibility' => Visibility::validationRule(),
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
             'safety_rules.tools' => 'nullable|array',

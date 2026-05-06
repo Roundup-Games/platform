@@ -67,7 +67,7 @@ class CreateCampaign extends Component
             'session_duration' => 'nullable|numeric|min:0.5|max:24',
             'price_per_session' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
-            'visibility' => 'required|in:public,protected,private',
+            'visibility' => Visibility::validationRule(),
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
             'min_players' => 'nullable|integer|min:1|max:99',

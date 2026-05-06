@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Role;
 
 class ScopedRoleService
@@ -235,7 +236,7 @@ class ScopedRoleService
      *
      * @return \Illuminate\Support\Collection
      */
-    public function getAdministeredTeams(User $user)
+    public function getAdministeredTeams(User $user): Collection
     {
         // Get all model_has_roles entries for this user with the Team Admin role
         // where team_id references a team
@@ -260,7 +261,7 @@ class ScopedRoleService
      *
      * @return \Illuminate\Support\Collection
      */
-    public function getAdministeredEvents(User $user)
+    public function getAdministeredEvents(User $user): Collection
     {
         $role = Role::where('name', 'Event Admin')->whereNull('team_id')->first();
 

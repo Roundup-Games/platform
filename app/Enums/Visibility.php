@@ -15,4 +15,14 @@ enum Visibility: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    /**
+     * Validation rule string for visibility fields.
+     *
+     * Usage: 'visibility' => Visibility::validationRule(),
+     */
+    public static function validationRule(): string
+    {
+        return 'required|in:' . implode(',', self::values());
+    }
 }

@@ -41,7 +41,7 @@ use Livewire\WithPagination;
  */
 trait DiscoveryUtilities
 {
-    // ── Constants ──────────────────────────────────────
+    // ── Constants (synced with config/discovery.php) ───
 
     /** Available radius options in km */
     public const RADIUS_OPTIONS = [10, 25, 50];

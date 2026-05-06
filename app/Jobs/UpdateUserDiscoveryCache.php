@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  *
  * The job does NOT return results — it writes to cache as a side effect.
  */
-class UpdateUserDiscoveryCache implements ShouldQueue
+class UpdateUserDiscoveryCache implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -30,6 +31,19 @@ class UpdateUserDiscoveryCache implements ShouldQueue
      * Maximum retry attempts before marking as failed.
      */
     public int $tries = 3;
+
+    /**
+     * Maximum time the job may run before timing out.
+     */
+    public int $timeout = 120;
+
+    /**
+     * Unique key per user — prevents duplicate cache updates stacking up.
+     */
+    public function uniqueId(): string
+    {
+        return $this->userId;
+    }
 
     /**
      * Discard the job on failure after all retries exhausted.

@@ -603,6 +603,9 @@ class GameDetail extends Component
             'userDebriefing' => $userDebriefing,
             'hostDebriefings' => $hostDebriefings,
             'debriefingSummary' => $debriefingSummary,
+            'comfortNotes' => $this->game->game_type?->value === 'board_game' && isset($this->game->safety_rules['comfort_notes'])
+                ? $this->game->safety_rules['comfort_notes']
+                : null,
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

@@ -85,7 +85,6 @@
                                 <input type="file" wire:model="avatar" accept="image/*" class="hidden" />
                             </label>
 
-                            @php $avatarMedia = auth()->user()->getFirstMedia('avatar'); @endphp
                             @if($avatarMedia)
                                 <button wire:click="removeAvatar" wire:loading.attr="disabled"
                                         class="inline-flex items-center gap-1.5 text-sm text-error hover:brightness-110 transition-colors">

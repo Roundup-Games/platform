@@ -15,50 +15,17 @@ use Illuminate\Support\Facades\Log;
 
 class AttendanceService
 {
-    /**
-     * Hours after game completion before auto-attend kicks in.
-     */
-    public const AUTO_ATTEND_HOURS = 48;
+    // ── Tunable thresholds (read from config/attendance.php) ────
 
-    /**
-     * Hours after game before report weight starts decaying.
-     */
-    public const TIMELINESS_THRESHOLD_HOURS = 72;
-
-    /**
-     * Maximum uncorroborated reports in 30 days before quarantine.
-     */
-    public const QUARANTINE_THRESHOLD = 3;
-
-    /**
-     * Quarantine lookback window in days.
-     */
-    public const QUARANTINE_LOOKBACK_DAYS = 30;
-
-    /**
-     * Reliability score below which reporter weight is reduced.
-     */
-    public const LOW_RELIABILITY_THRESHOLD = 50.0;
-
-    /**
-     * Weight multiplier for low-reliability reporters.
-     */
-    const LOW_RELIABILITY_MULTIPLIER = 0.5;
-
-    /**
-     * Weight multiplier for late reports (past timeliness threshold).
-     */
-    const LATE_REPORT_MULTIPLIER = 0.7;
-
-    /**
-     * Maximum players for a game to count as "small" (host cancel penalty threshold).
-     */
-    const HOST_CANCEL_MIN_ROSTER = 1;
-
-    /**
-     * Hours before game time for host cancellation to be considered "late".
-     */
-    const HOST_CANCEL_LATE_HOURS = 24;
+    public static function autoAttendHours(): int { return config('attendance.auto_attend_hours', 48); }
+    public static function timelinessThresholdHours(): int { return config('attendance.timeliness_threshold_hours', 72); }
+    public static function quarantineThreshold(): int { return config('attendance.quarantine_threshold', 3); }
+    public static function quarantineLookbackDays(): int { return config('attendance.quarantine_lookback_days', 30); }
+    public static function lowReliabilityThreshold(): float { return config('attendance.low_reliability_threshold', 50.0); }
+    public static function lowReliabilityMultiplier(): float { return config('attendance.low_reliability_multiplier', 0.5); }
+    public static function lateReportMultiplier(): float { return config('attendance.late_report_multiplier', 0.7); }
+    public static function hostCancelMinRoster(): int { return config('attendance.host_cancel_min_roster', 1); }
+    public static function hostCancelLateHours(): int { return config('attendance.host_cancel_late_hours', 24); }
 
     public function __construct(
         private readonly ReliabilityScoreService $reliabilityService,
@@ -204,8 +171,8 @@ class AttendanceService
         $reliabilityData = $reporter->reliability_score;
         $reporterScore = $reliabilityData['score'] ?? 100.0; // Default to full for newcomers
 
-        if ($reporterScore < self::LOW_RELIABILITY_THRESHOLD) {
-            $weightMultiplier *= self::LOW_RELIABILITY_MULTIPLIER;
+        if ($reporterScore < self::lowReliabilityThreshold()) {
+            $weightMultiplier *= self::lowReliabilityMultiplier();
 
             Log::info('Reduced report weight due to low reporter reliability', [
                 'reporter_id' => $reporter->id,
@@ -217,30 +184,30 @@ class AttendanceService
         // 2. Check volume: uncorroborated reports in last 30 days
         $uncorroboratedCount = AttendanceReport::where('reporter_id', $reporter->id)
             ->where('is_corroborated', false)
-            ->where('created_at', '>=', now()->subDays(self::QUARANTINE_LOOKBACK_DAYS))
+            ->where('created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
             ->count();
 
-        if ($uncorroboratedCount >= self::QUARANTINE_THRESHOLD) {
+        if ($uncorroboratedCount >= self::quarantineThreshold()) {
             $quarantined = true;
 
             Log::warning('Reporter quarantined for excessive uncorroborated reports', [
                 'reporter_id' => $reporter->id,
                 'uncorroborated_count' => $uncorroboratedCount,
-                'threshold' => self::QUARANTINE_THRESHOLD,
+                'threshold' => self::quarantineThreshold(),
             ]);
 
             return [
                 'allowed' => false,
                 'weight_multiplier' => 0.0,
                 'quarantined' => true,
-                'reason' => 'Quarantined: ' . $uncorroboratedCount . ' uncorroborated reports in ' . self::QUARANTINE_LOOKBACK_DAYS . ' days',
+                'reason' => 'Quarantined: ' . $uncorroboratedCount . ' uncorroborated reports in ' . self::quarantineLookbackDays() . ' days',
             ];
         }
 
         // 3. Check timeliness: reduce weight if >72h since game
         $hoursSinceGame = $game->date_time->diffInHours(now());
-        if ($hoursSinceGame > self::TIMELINESS_THRESHOLD_HOURS) {
-            $weightMultiplier *= self::LATE_REPORT_MULTIPLIER;
+        if ($hoursSinceGame > self::timelinessThresholdHours()) {
+            $weightMultiplier *= self::lateReportMultiplier();
 
             Log::info('Reduced report weight due to late reporting', [
                 'reporter_id' => $reporter->id,
@@ -292,7 +259,7 @@ class AttendanceService
      */
     public function autoAttendAfter48Hours(): int
     {
-        $cutoff = now()->subHours(self::AUTO_ATTEND_HOURS);
+        $cutoff = now()->subHours(self::autoAttendHours());
         $count = 0;
 
         Game::where('status', 'completed')
@@ -345,7 +312,7 @@ class AttendanceService
 
         // Check timing: was it cancelled within 24h of game time?
         $hoursUntilGame = now()->diffInHours($game->date_time, false);
-        if ($hoursUntilGame >= self::HOST_CANCEL_LATE_HOURS) {
+        if ($hoursUntilGame >= self::hostCancelLateHours()) {
             return;
         }
 
@@ -354,7 +321,7 @@ class AttendanceService
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
-        if ($approvedCount < self::HOST_CANCEL_MIN_ROSTER) {
+        if ($approvedCount < self::hostCancelMinRoster()) {
             return;
         }
 
@@ -405,7 +372,7 @@ class AttendanceService
     {
         Log::info('Game completion handled — auto-attend scheduled', [
             'game_id' => $game->id,
-            'auto_attend_at' => $game->date_time->addHours(self::AUTO_ATTEND_HOURS)->toIso8601String(),
+            'auto_attend_at' => $game->date_time->addHours(self::autoAttendHours())->toIso8601String(),
         ]);
 
         // The actual auto-attend will be triggered by a scheduled command or

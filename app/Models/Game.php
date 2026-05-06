@@ -184,6 +184,24 @@ class Game extends Model
         return $query->where('visibility', 'public');
     }
 
+    /**
+     * Scope to games visible to a given user (or guest).
+     *
+     * Guests see public only. Authenticated users see public + protected.
+     * Private games are never included in listings (handled by policies).
+     */
+    public function scopeVisibleTo($query, ?User $viewer = null)
+    {
+        if ($viewer === null) {
+            return $query->where('visibility', 'public');
+        }
+
+        return $query->where(function ($q) {
+            $q->where('visibility', 'public')
+              ->orWhere('visibility', 'protected');
+        });
+    }
+
     public function scopeScheduled($query)
     {
         return $query->where('status', 'scheduled');

@@ -169,7 +169,7 @@ class DebriefingService
     /**
      * Get debriefing submissions with responses for the host view.
      */
-    public function getHostDebriefings(Game $game)
+    public function getHostDebriefings(Game $game): \Illuminate\Database\Eloquent\Collection
     {
         return SessionDebriefing::where('game_id', $game->id)
             ->submitted()

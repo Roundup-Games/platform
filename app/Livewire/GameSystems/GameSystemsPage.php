@@ -167,10 +167,7 @@ class GameSystemsPage extends Component
                 'games as active_sessions_count' => function ($q) {
                     $q->where('status', 'scheduled')
                       ->where('date_time', '>', now())
-                      ->where(function ($q2) {
-                          $q2->where('visibility', 'public')
-                             ->orWhere('visibility', 'protected');
-                      });
+                      ->where(fn ($q2) => $q2->where('visibility', 'public')->orWhere('visibility', 'protected'));
                 },
                 'expansions as expansion_count',
             ]);

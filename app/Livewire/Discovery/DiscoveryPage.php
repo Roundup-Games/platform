@@ -30,13 +30,7 @@ class DiscoveryPage extends Component
     use HasGuestLocation;
     use WithPagination;
 
-    // ── Proximity constants ────────────────────────────
-
-    /** Available radius options in km */
-    public const RADIUS_OPTIONS = [10, 25, 50];
-
-    /** Fallback radius when primary radius returns empty */
-    private const FALLBACK_RADIUS = 100;
+    // Radius constants inherited from DiscoveryUtilities trait
 
     // ── Tab / mode filter ──────────────────────────────
 
@@ -362,12 +356,7 @@ class DiscoveryPage extends Component
         $user = Auth::user();
 
         $query = Game::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+            ->visibleTo($user)
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->with(['owner', 'gameSystem', 'campaign'])
@@ -393,12 +382,7 @@ class DiscoveryPage extends Component
         $user = Auth::user();
 
         $query = Campaign::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+            ->visibleTo($user)
             ->where('status', 'active')
             ->with(['owner', 'gameSystem'])
             ->withCount('sessions');
@@ -637,12 +621,7 @@ class DiscoveryPage extends Component
             return null;
         }
 
-        $visibilityClause = function ($q) use ($user) {
-            $q->where('visibility', 'public');
-            if ($user) {
-                $q->orWhere('visibility', 'protected');
-            }
-        };
+        $visibilityClause = fn ($q) => $q->visibleTo($user);
 
         // Helper to tag items with discoverable_type
         $tagItems = function ($items, string $type) {

@@ -466,6 +466,7 @@ class Show extends Component
         return view('livewire.profile.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
             'currentLocation' => $locationRecord,
+            'avatarMedia' => $user->getFirstMedia('avatar'),
         ]);
     }
 }

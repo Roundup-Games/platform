@@ -334,7 +334,6 @@
                 @endif
 
                 {{-- Comfort Notes (board games) --}}
-                @php($comfortNotes = $game->game_type?->value === 'board_game' && isset($game->safety_rules['comfort_notes']) ? $game->safety_rules['comfort_notes'] : null)
                 @if($comfortNotes)
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">

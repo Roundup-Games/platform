@@ -27,6 +27,11 @@ class AutoAttendAfter48Hours implements ShouldQueue
     public int $tries = 3;
 
     /**
+     * Maximum time the job may run before timing out.
+     */
+    public int $timeout = 120;
+
+    /**
      * Number of seconds to wait before retrying.
      */
     public int $backoff = 60;

@@ -353,7 +353,7 @@ class AdventuresDiscovery extends Component
         // Cross-track hint: count upcoming public board game sessions
         $boardGameSessionCount = \App\Models\Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->where('visibility', 'public')
+            ->visibleTo(null)
             ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'))
             ->count();
 

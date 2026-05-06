@@ -14,15 +14,15 @@ class DiscoveryPortal extends Component
     {
         $boardGameCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
-            ->where('visibility', 'public')
+            ->visibleTo(null)
             ->count();
 
         $adventureCount = Campaign::where('status', 'active')
-            ->where('visibility', 'public')
+            ->visibleTo(null)
             ->count()
             + Game::where('status', 'scheduled')
                 ->where('date_time', '>', now())
-                ->where('visibility', 'public')
+                ->visibleTo(null)
                 ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'))
                 ->count();
 

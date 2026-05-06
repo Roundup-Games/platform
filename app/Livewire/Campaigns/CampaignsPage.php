@@ -72,7 +72,7 @@ class CampaignsPage extends Component
             'edit_name' => 'required|string|max:255',
             'edit_description' => 'nullable|string|max:5000',
             'edit_session_duration' => 'nullable|numeric|min:0.5|max:24',
-            'edit_visibility' => 'required|in:public,protected,private',
+            'edit_visibility' => Visibility::validationRule(),
         ]);
 
         // Gate public visibility

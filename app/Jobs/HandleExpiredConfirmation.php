@@ -31,6 +31,11 @@ class HandleExpiredConfirmation implements ShouldQueue
     public int $tries = 3;
 
     /**
+     * Maximum time the job may run before timing out.
+     */
+    public int $timeout = 120;
+
+    /**
      * Discard the job if the participant was deleted between dispatch and execution.
      */
     public bool $deleteWhenMissingModels = true;
