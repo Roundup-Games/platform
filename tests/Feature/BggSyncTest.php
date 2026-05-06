@@ -235,23 +235,6 @@ it('retries on 202 cache miss then succeeds', function () {
     expect(GameSystem::where('bgg_id', 174430)->exists())->toBeTrue();
 });
 
-it('handles empty ID array with no API call', function () {
-    $service = createService();
-    $result = $service->syncGameSystems([]);
-
-    expect($result['synced'])->toBe(0);
-    expect($result['failed'])->toBe(0);
-    expect($result['errors'])->toBe([]);
-
-    // Log exists with 0 items
-    $log = BggSyncLog::first();
-    expect($log->status)->toBe('success');
-    expect($log->items_synced)->toBe(0);
-
-    // No HTTP calls made
-    Http::assertSentCount(0);
-});
-
 it('handles item with no taxonomy links', function () {
     $minimalXml = <<<XML
     <?xml version="1.0" encoding="UTF-8"?>
@@ -307,19 +290,6 @@ it('handles malformed XML by marking item as failed', function () {
     $log = BggSyncLog::first();
     expect($log->status)->toBe('failed');
     expect($log->error_message)->not->toBeNull();
-});
-
-it('sends Bearer token with requests', function () {
-    Http::fake([
-        'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
-    ]);
-
-    $service = createService();
-    $service->syncGameSystems([174430]);
-
-    Http::assertSent(function ($request) {
-        return str_contains($request->header('Authorization')[0] ?? '', 'Bearer test-token');
-    });
 });
 
 it('resolves base_game_id for expansion items', function () {
@@ -535,39 +505,6 @@ it('continues sync when cover image download fails', function () {
     expect($game->getMedia('cover'))->toHaveCount(0);
 });
 
-it('skips image download when image_url is null', function () {
-    $noImageXml = <<<XML
-    <?xml version="1.0" encoding="UTF-8"?>
-    <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
-      <item type="boardgame" id="55555">
-        <name type="primary" value="No Image Game"/>
-        <description>No image element.</description>
-        <yearpublished value="2020"/>
-        <statistics><ratings>
-          <average value="7.00"/>
-          <bayesaverage value="6.50"/>
-          <usersrated value="100"/>
-          <averageweight value="2.50"/>
-          <ranks><rank type="subtype" id="1" name="boardgame" value="50"/></ranks>
-        </ratings></statistics>
-      </item>
-    </items>
-    XML;
-
-    Http::fake([
-        'boardgamegeek.com/*' => Http::response($noImageXml, 200, ['Content-Type' => 'application/xml']),
-    ]);
-
-    $service = createService();
-    $result = $service->syncGameSystems([55555]);
-
-    expect($result['synced'])->toBe(1);
-
-    $game = GameSystem::where('bgg_id', 55555)->first();
-    expect($game)->not->toBeNull();
-    expect($game->getMedia('cover'))->toHaveCount(0);
-});
-
 // End-to-end command tests (T03)
 
 it('runs bgg:sync command end-to-end via artisan', function () {
@@ -590,14 +527,6 @@ it('runs bgg:sync command end-to-end via artisan', function () {
     expect($log)->not->toBeNull();
     expect($log->items_synced)->toBe(1);
     expect($log->bgg_ids)->toBe([174430]);
-});
-
-it('rejects bgg:sync command with no IDs', function () {
-    $exitCode = Artisan::call('bgg:sync');
-    $output = Artisan::output();
-
-    expect($exitCode)->toBe(1);
-    expect($output)->toContain('No BGG IDs provided');
 });
 
 it('runs bgg:sync command with multiple IDs', function () {

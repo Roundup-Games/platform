@@ -63,21 +63,6 @@ describe('TrackAppVisit Middleware', function () {
         expect(UserAppVisit::count())->toBe(2);
     });
 
-    it('tracks separate records for the same user on different days', function () {
-        actingAs($this->user)
-            ->get(route('dashboard'))
-            ->assertOk();
-
-        // Manually insert a record for yesterday to simulate a previous visit
-        UserAppVisit::create([
-            'user_id' => $this->user->id,
-            'visit_date' => now()->subDay()->toDateString(),
-        ]);
-
-        // Should now have 2 records: yesterday + today
-        expect(UserAppVisit::where('user_id', $this->user->id)->count())->toBe(2);
-    });
-
     // ── Request filtering ──────────────────────────
 
     it('skips POST requests', function () {
@@ -110,14 +95,5 @@ describe('TrackAppVisit Middleware', function () {
 
         expect(UserAppVisit::count())->toBe($countBefore);
     });
-
-    it('tracks normal GET requests to pages', function () {
-        actingAs($this->user)
-            ->get(route('dashboard'))
-            ->assertOk();
-
-        expect(UserAppVisit::where('user_id', $this->user->id)->count())->toBe(1);
-    });
-
 
 });

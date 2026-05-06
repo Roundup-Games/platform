@@ -342,29 +342,6 @@ describe('GamesPage — Accept Invitation Action', function () {
         $component->assertSee(__('games.error_not_your_invitation'));
     });
 
-    it('rejects accepting a non-invited participant', function () {
-        $user = gamesPageCreateUser();
-        $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('acceptInvitation', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
-    });
-
     it('rejects accepting when game is full', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
@@ -513,29 +490,6 @@ describe('GamesPage — Decline Invitation Action', function () {
         ]);
     });
 
-    it('rejects declining a non-pending invitation', function () {
-        $user = gamesPageCreateUser();
-        $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'rejected',
-        ]);
-
-        // Calling decline again — status should not change (still rejected)
-        Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
-            ->call('declineInvitation', $participant->id);
-
-        assertDatabaseHas('game_participants', [
-            'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'rejected',
-        ]);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

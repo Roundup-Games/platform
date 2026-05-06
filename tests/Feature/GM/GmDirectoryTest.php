@@ -97,15 +97,6 @@ class GmDirectoryTest extends TestCase
         $response->assertDontSee($gm2->name);
     }
 
-    public function test_filter_by_specialization_with_no_results(): void
-    {
-        $gm = $this->createActiveGm([], ['specializations' => ['voices']]);
-
-        $response = $this->get('/en/gms?specialization=creativity');
-
-        $response->assertSee(__('gms.content_no_gms_found'));
-    }
-
     // ── Filter by Game System ──────────────────────────
 
     public function test_filter_by_game_system(): void
@@ -188,23 +179,16 @@ class GmDirectoryTest extends TestCase
 
     // ── Non-active GMs Hidden ──────────────────────────
 
-    // smoke: gating works — inactive GMs are filtered out
+    // smoke: gating works — inactive GMs are filtered out; users without profiles too
     #[\PHPUnit\Framework\Attributes\Group('smoke')]
     public function test_inactive_gm_not_shown_in_directory(): void
     {
         $inactiveGm = $this->createInactiveGm(['name' => 'Inactive GM']);
-
-        $response = $this->get('/en/gms');
-
-        $response->assertDontSee('Inactive GM');
-    }
-
-    public function test_user_without_gm_profile_not_shown(): void
-    {
         $regularUser = User::factory()->create(['name' => 'Regular User']);
 
         $response = $this->get('/en/gms');
 
+        $response->assertDontSee('Inactive GM');
         $response->assertDontSee('Regular User');
     }
 

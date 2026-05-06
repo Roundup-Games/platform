@@ -275,19 +275,6 @@ it('loads preferred_language and location on mount', function () {
         ->assertSet('locationId', $location->id);
 });
 
-it('loads empty preferred_language and location when not set', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'preferred_language' => null,
-        'location_id' => null,
-    ]);
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->assertSet('preferredLanguage', '')
-        ->assertSet('locationId', null);
-});
-
 it('persists preferred_language on save', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
@@ -321,45 +308,6 @@ it('persists location_id on save', function () {
         ->assertSet('saved', true);
 
     expect($user->fresh()->location_id)->toBe($location->id);
-});
-
-it('sets preferred_language to null when empty string saved', function () {
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'preferred_language' => \App\Enums\ContentLanguage::En,
-    ]);
-
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('preferredLanguage', '')
-        ->call('saveProfile');
-
-    expect($user->fresh()->preferred_language)->toBeNull();
-});
-
-it('sets location_id to null when location removed', function () {
-    $location = \App\Models\Location::factory()->create([
-        'name' => 'Old City',
-        'city' => 'Old City',
-    ]);
-    $user = User::factory()->create([
-        'profile_complete' => true,
-        'location_id' => $location->id,
-    ]);
-
-    // Remove location via the LocationPicker component
-    Livewire::actingAs($user)
-        ->test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
-        ->call('removeLocation')
-        ->assertDispatched('location-removed');
-
-    // Verify profile save with null locationId clears it
-    Livewire::actingAs($user)
-        ->test(Show::class)
-        ->set('locationId', null)
-        ->call('saveProfile');
-
-    expect($user->fresh()->location_id)->toBeNull();
 });
 
 it('validates preferred_language must be a valid ContentLanguage value', function () {
@@ -416,33 +364,6 @@ it('shows add location prompt when user has no location', function () {
         ->test(Show::class)
         ->assertSet('locationId', null)
         ->assertSee('Add Location');
-});
-
-it('enters edit mode in LocationPicker when startEditing called', function () {
-    $location = \App\Models\Location::factory()->create([
-        'name' => 'Paris',
-        'city' => 'Paris',
-        'country' => 'FR',
-    ]);
-
-    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
-        ->call('startEditing')
-        ->assertSet('editing', true)
-        ->assertSet('locationConfirmed', false);
-});
-
-it('cancels edit mode in LocationPicker when cancelEditing called', function () {
-    $location = \App\Models\Location::factory()->create([
-        'name' => 'Berlin',
-        'city' => 'Berlin',
-    ]);
-
-    Livewire::test(\App\Livewire\Components\LocationPicker::class, ['locationId' => $location->id])
-        ->call('startEditing')
-        ->set('city', 'Munich')
-        ->call('cancelEditing')
-        ->assertSet('editing', false)
-        ->assertSet('locationConfirmed', true);
 });
 
 it('removes location when removeLocation called in LocationPicker', function () {

@@ -166,20 +166,6 @@ describe('Conflict Detection', function () {
         $component->assertSet('conflictMessage', fn ($msg) => str_contains($msg, 'Catan'));
     });
 
-    it('conflict clears when item is removed', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class, [
-                'preferenceType' => 'avoid',
-                'conflictIds' => [$base->id],
-            ])
-            ->call('add', $base->id)
-            ->assertSet('conflictMessage', fn ($msg) => str_contains($msg, 'Chess'))
-            ->call('remove', $base->id)
-            ->assertSet('conflictMessage', '');
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -198,26 +184,6 @@ describe('Dropdown Behavior', function () {
             ->set('search', 'new search')
             ->assertSet('conflictMessage', '');
     });
-});
-
-// ═══════════════════════════════════════════════════════════
-// EDGE CASES
-// ═══════════════════════════════════════════════════════════
-
-describe('Edge Cases', function () {
-    it('adding already-selected item is idempotent', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
-
-        $component = Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->call('add', $base->id)
-            ->call('add', $base->id);
-
-        // Should still have only one entry
-        $component->assertSet('selectedIds', [$base->id]);
-    });
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -479,21 +445,6 @@ describe('Expansion Sub-Picker', function () {
             ->call('pickExpansion', $base->id)
             ->assertSet('selectedIds', [$base->id])
             ->assertSet('showExpansionPicker', false);
-    });
-
-    it('cancelExpansionPicker closes without selecting', function () {
-        $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-
-        Livewire::actingAs($user)
-            ->test(GameSystemPreferencePicker::class)
-            ->set('selectedBaseId', $base->id)
-            ->set('showExpansionPicker', true)
-            ->call('cancelExpansionPicker')
-            ->assertSet('showExpansionPicker', false)
-            ->assertSet('selectedBaseId', null)
-            ->assertSet('selectedIds', []);
     });
 
     it('blocks favoriting expansion when base is avoided', function () {

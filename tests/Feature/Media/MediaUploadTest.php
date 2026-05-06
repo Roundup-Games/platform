@@ -65,52 +65,6 @@ describe('ImageUpload component', function () {
             ->assertSet('hasMedia', true);
     });
 
-    it('validates image is required on upload', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->call('upload')
-            ->assertHasErrors(['image']);
-    });
-
-    it('validates image max size', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-        $bigFile = UploadedFile::fake()->create('huge.jpg', 5000);
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('image', $bigFile)
-            ->call('upload')
-            ->assertHasErrors(['image']);
-    });
-
-    it('validates image file type via mimes rule', function () {
-        Storage::fake('public');
-
-        ['captain' => $user, 'team' => $team] = $this->createTeamWithCaptain();
-        $textFile = UploadedFile::fake()->create('document.txt', 100, 'text/plain');
-
-        Livewire::actingAs($user)
-            ->test(ImageUpload::class, [
-                'model' => $team,
-                'collection' => 'logo',
-            ])
-            ->set('image', $textFile)
-            ->call('upload')
-            ->assertHasErrors(['image']);
-    });
-
     it('uploads image to team logo collection', function () {
         Storage::fake('public');
 

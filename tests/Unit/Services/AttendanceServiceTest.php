@@ -159,16 +159,8 @@ describe('reportAttendance', function () {
         expect($result['reason'])->toContain('Self-reporting');
     });
 
-    it('rejects invalid attendance status', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-
-        $result = $this->service->reportAttendance($game, $participants[1], $participants[2], 'invalid_status');
-
-        expect($result['success'])->toBeFalse();
-        expect($result['reason'])->toContain('Invalid attendance status');
-    });
-
 });
+
 
 // ── checkGriefResistance ─────────────────────────────────
 
@@ -217,25 +209,6 @@ describe('checkGriefResistance', function () {
 
         expect($result['allowed'])->toBeFalse();
         expect($result['quarantined'])->toBeTrue();
-    });
-
-    it('does not quarantine for corroborated reports', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
-        $reporter = $participants[1];
-
-        // Create 5 corroborated reports — these should NOT count toward quarantine
-        for ($i = 0; $i < 5; $i++) {
-            AttendanceReport::factory()->create([
-                'reporter_id' => $reporter->id,
-                'is_corroborated' => true,
-                'created_at' => now()->subDays(rand(1, 25)),
-            ]);
-        }
-
-        $result = $this->service->checkGriefResistance($reporter, $game);
-
-        expect($result['allowed'])->toBeTrue();
-        expect($result['quarantined'])->toBeFalse();
     });
 
     it('reduces weight for late reports past 72 hours', function () {

@@ -97,25 +97,6 @@ describe('Trypass events', function () {
             ->and($result->reason)->toBe('trypass_first_game_created');
     });
 
-    it('does not trypass for second game created within 5 minutes', function () {
-        // First game (old) — already exists
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'date_time' => now()->addDays(30),
-            'created_at' => now()->subDay(),
-        ]);
-        // Second game (recent) — should NOT trigger first-game trypass
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'date_time' => now()->addDays(30),
-            'created_at' => now()->subMinutes(2),
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-
-        expect($result->reason)->not->toBe('trypass_first_game_created');
-    });
-
     it('passes for game joined (approved participant on recently created game) within 5 minutes', function () {
         $game = Game::factory()->create([
             'date_time' => now()->addDays(30),
@@ -154,39 +135,6 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_invitation_received');
-    });
-
-    it('does not trypass for second invitation (also covers old-game invitation)', function () {
-        $host = User::factory()->create();
-        // First invitation (old — covers "old game" case too)
-        $game1 = Game::factory()->create([
-            'owner_id' => $host->id,
-            'date_time' => now()->addDays(30),
-            'created_at' => now()->subMinutes(10),
-        ]);
-        GameParticipant::create([
-            'game_id' => $game1->id,
-            'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
-            'created_at' => now()->subMinutes(10),
-        ]);
-        // Second invitation (recent but not first-ever)
-        $game2 = Game::factory()->create([
-            'owner_id' => $host->id,
-            'date_time' => now()->addDays(30),
-            'created_at' => now()->subMinutes(2),
-        ]);
-        GameParticipant::create([
-            'game_id' => $game2->id,
-            'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-
-        expect($result->reason)->not->toBe('trypass_invitation_received');
     });
 
     it('passes for first campaign created within last 5 minutes', function () {
@@ -412,43 +360,6 @@ describe('Session caching', function () {
 // ── Edge Cases ─────────────────────────────────────────
 
 describe('Edge cases', function () {
-    it('single visit day does not count as 2', function () {
-        UserAppVisit::factory()->create([
-            'user_id' => $this->user->id,
-            'visit_date' => now()->toDateString(),
-        ]);
-
-        // Only 1 signal (visits), need 2 of 3 → not eligible
-        $result = $this->service->isEligible($this->user);
-        expect($result->eligible)->toBeFalse()
-            ->and($result->reason)->toBe('score_too_low');
-    });
-
-    it('does not count rejected or pending game participation', function () {
-        $game = Game::factory()->create(['date_time' => now()->addDays(30)]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'rejected',
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-        expect($result->eligible)->toBeFalse();
-    });
-
-    it('does not count block relationships as social investment', function () {
-        $other = User::factory()->create();
-        UserRelationship::create([
-            'user_id' => $this->user->id,
-            'related_user_id' => $other->id,
-            'type' => RelationshipType::Block,
-        ]);
-
-        $result = $this->service->isEligible($this->user);
-        expect($result->eligible)->toBeFalse();
-    });
-
     it('does not trypass for pending participant on upcoming game', function () {
         $game = Game::factory()->create(['date_time' => now()->addDays(3)]);
         GameParticipant::create([

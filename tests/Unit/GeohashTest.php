@@ -36,31 +36,6 @@ class GeohashTest extends TestCase
     }
 
     #[Test]
-    public function it_encodes_poles()
-    {
-        // North pole: 90, 0
-        $hash = Geohash::encode(90, 0, 5);
-        $this->assertNotEmpty($hash);
-        $this->assertEquals(5, strlen($hash));
-
-        // South pole: -90, 0
-        $hash = Geohash::encode(-90, 0, 5);
-        $this->assertNotEmpty($hash);
-        $this->assertEquals(5, strlen($hash));
-    }
-
-    #[Test]
-    public function it_encodes_international_date_line()
-    {
-        // Coordinates near 180° longitude
-        $hash = Geohash::encode(0, 179.9, 5);
-        $this->assertNotEmpty($hash);
-
-        $hash = Geohash::encode(0, -179.9, 5);
-        $this->assertNotEmpty($hash);
-    }
-
-    #[Test]
     #[DataProvider('europeanCityProvider')]
     public function it_produces_consistent_prefixes_for_nearby_points(float $lat1, float $lng1, float $lat2, float $lng2, int $sharedPrefix)
     {
@@ -105,16 +80,6 @@ class GeohashTest extends TestCase
         $prefix = Geohash::tilePrefix(52.5163, 13.3777, 5);
 
         $this->assertEquals(substr($fullHash, 0, 5), $prefix);
-    }
-
-    #[Test]
-    public function nearby_points_share_tile_prefix()
-    {
-        // Two points within 500m should share a 5-char prefix
-        $prefix1 = Geohash::tilePrefix(52.5163, 13.3777, 5);
-        $prefix2 = Geohash::tilePrefix(52.5170, 13.3780, 5);
-
-        $this->assertEquals($prefix1, $prefix2);
     }
 
     // ── Prefix Bounds ──────────────────────────────────

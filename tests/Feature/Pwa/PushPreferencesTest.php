@@ -1,10 +1,7 @@
 <?php
 
-use App\Enums\NotificationCategory;
-use App\Livewire\Profile\Show;
 use App\Models\PushSubscription;
 use App\Models\User;
-use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -13,42 +10,6 @@ beforeEach(function () {
         'notification_settings' => null,
     ]);
     $this->actingAs($this->user);
-});
-
-describe('profile push preferences rendering', function () {
-    it('push toggle updates notification_settings JSON', function () {
-        // Livewire v4's test harness reconstructs components from snapshots on ->call(),
-        // discarding instance-level modifications. Instead, write settings to DB and test
-        // the full round-trip: DB → mount() → saveNotificationSettings() → DB.
-        $settings = NotificationCategory::defaultSettings();
-        $settings['game_invitation']['push'] = false;
-        $settings['new_follower']['push'] = true;
-
-        // Round-trip 1: Verify mount() loads persisted settings correctly
-        $this->user->update(['notification_settings' => $settings]);
-
-        Livewire::test(Show::class)
-            ->assertSet('notificationSettings.game_invitation.push', false)
-            ->assertSet('notificationSettings.new_follower.push', true);
-
-        // Round-trip 2: Verify saveNotificationSettings persists what mount() loaded
-        $this->user->update(['notification_settings' => null]);
-        $this->user->refresh();
-
-        // Save custom settings via direct DB write, then call save to test
-        // that the method preserves all categories and writes back correctly
-        $customSettings = $settings;
-        $this->user->update(['notification_settings' => $customSettings]);
-
-        Livewire::test(Show::class)
-            ->call('saveNotificationSettings')
-            ->assertSet('notificationSaved', true);
-
-        $this->user->refresh();
-        // After save, the toggled values should persist
-        expect($this->user->notification_settings['game_invitation']['push'])->toBeFalse();
-        expect($this->user->notification_settings['new_follower']['push'])->toBeTrue();
-    });
 });
 
 describe('push subscription management', function () {

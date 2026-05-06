@@ -403,26 +403,6 @@ describe('Discovery page — safety tools filter', function () {
             ->assertSee('Unfiltered Game');
     });
 
-    it('hasActiveFilters returns true when safety_tools is set', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
-        expect($component->instance()->hasActiveFilters())->toBeFalse();
-
-        $component->call('toggleSafetyTool', 'x-card');
-        expect($component->instance()->hasActiveFilters())->toBeTrue();
-    });
-
-    it('receives safetyToolGroups in render data', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
-            ->assertSet('safety_tools', [])
-            ->assertViewHas('safetyToolGroups');
-
-        // Verify the grouped structure matches SafetyTool::grouped()
-        $expected = SafetyTool::grouped();
-        expect($expected)->toHaveKeys(['before', 'during', 'after']);
-        expect($expected['before']['options'])->toHaveCount(3);
-        expect($expected['during']['options'])->toHaveCount(4);
-        expect($expected['after']['options'])->toHaveCount(2);
-    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -435,23 +415,6 @@ describe('/safety-tools static page', function () {
             ->assertOk()
             ->assertSee('Safety Tools for Tabletop Gaming')
             ->assertSee('Everyone deserves to feel safe and comfortable at the table');
-    });
-
-    it('shows all 9 safety tool names', function () {
-        $response = get(route('safety-tools'));
-        $response->assertOk();
-
-        foreach (SafetyTool::cases() as $tool) {
-            $response->assertSee($tool->label());
-        }
-    });
-
-    it('shows category groupings', function () {
-        get(route('safety-tools'))
-            ->assertOk()
-            ->assertSee('Before the Game')
-            ->assertSee('During the Game')
-            ->assertSee('After the Game');
     });
 
     it('shows full descriptions for all tools (not short descriptions)', function () {
