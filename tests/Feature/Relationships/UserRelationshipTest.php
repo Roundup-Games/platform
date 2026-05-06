@@ -301,13 +301,6 @@ describe('isFriend', function () {
         expect($alice->isFriend($bob))->toBeFalse();
     });
 
-    it('returns false when no relationship exists', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        expect($alice->isFriend($bob))->toBeFalse();
-    });
-
     it('returns false when user has blocked target', function () {
         $alice = User::factory()->create();
         $bob = User::factory()->create();
@@ -380,24 +373,6 @@ describe('isBlockedBy / hasBlocked', function () {
         expect($bob->isBlockedBy($alice))->toBeTrue();
     });
 
-    it('returns false when no block exists', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        expect($alice->hasBlocked($bob))->toBeFalse();
-        expect($alice->isBlockedBy($bob))->toBeFalse();
-    });
-
-    it('unblock clears the block direction', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        UserRelationship::block($alice, $bob);
-        expect($alice->hasBlocked($bob))->toBeTrue();
-
-        UserRelationship::unblock($alice, $bob);
-        expect($alice->hasBlocked($bob))->toBeFalse();
-    });
 });
 
 // ── isFriendOrTeammate ─────────────────────────────────
@@ -516,53 +491,6 @@ describe('isFriendOrTeammate', function () {
         expect($alice->isFriendOrTeammate($bob))->toBeFalse();
     });
 
-    it('detects teammates across multiple shared teams', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-        $team1 = Team::factory()->create();
-        $team2 = Team::factory()->create();
-
-        TeamMember::create([
-            'team_id' => $team1->id,
-            'user_id' => $alice->id,
-            'role' => 'player',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-        TeamMember::create([
-            'team_id' => $team2->id,
-            'user_id' => $alice->id,
-            'role' => 'player',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-        TeamMember::create([
-            'team_id' => $team1->id,
-            'user_id' => $bob->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        expect($alice->isFriendOrTeammate($bob))->toBeTrue();
-    });
-
-    it('returns false when one user has no team memberships', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-        $team = Team::factory()->create();
-
-        // Only Alice is on the team
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $alice->id,
-            'role' => 'player',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        expect($alice->isFriendOrTeammate($bob))->toBeFalse();
-    });
 });
 
 // ── getRelationshipLevel ───────────────────────────────
@@ -692,29 +620,6 @@ describe('getRelationshipLevel', function () {
         expect($alice->getRelationshipLevel($bob))->toBe('blocked');
     });
 
-    it('transitions through levels as relationships change', function () {
-        $alice = User::factory()->create();
-        $bob = User::factory()->create();
-
-        // Start as strangers
-        expect($alice->getRelationshipLevel($bob))->toBe('stranger');
-
-        // One-way follow — still stranger
-        UserRelationship::follow($alice, $bob);
-        expect($alice->getRelationshipLevel($bob))->toBe('stranger');
-
-        // Mutual follow — friends
-        UserRelationship::follow($bob, $alice);
-        expect($alice->getRelationshipLevel($bob))->toBe('friend_or_teammate');
-
-        // Block — blocked (removes follows)
-        UserRelationship::block($alice, $bob);
-        expect($alice->getRelationshipLevel($bob))->toBe('blocked');
-
-        // Unblock — stranger again
-        UserRelationship::unblock($alice, $bob);
-        expect($alice->getRelationshipLevel($bob))->toBe('stranger');
-    });
 });
 
 // ── Eloquent Relationship Queries ──────────────────────

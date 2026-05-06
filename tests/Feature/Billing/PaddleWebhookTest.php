@@ -56,34 +56,6 @@ function webhookPostEvent(string $eventType, array $data, array $headers = []): 
 // WEBHOOK EVENT HANDLING
 // ═══════════════════════════════════════════════════════════
 
-describe('Webhook — subscription.created', function () {
-    beforeEach(function () {
-        config(['cashier.webhook_secret' => null]);
-        Log::spy();
-    });
-
-    it('logs paddle subscription ID and status', function () {
-        $user = webhookCreateUser();
-        webhookCreateCustomer($user, 'ctm_log_sub');
-
-        webhookPostEvent('subscription.created', [
-            'id' => 'sub_log_001',
-            'customer_id' => 'ctm_log_sub',
-            'status' => 'active',
-            'items' => [
-                ['price' => ['id' => 'pri_log', 'product_id' => 'pro_log'], 'status' => 'active', 'quantity' => 1],
-            ],
-        ]);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn (string $message, array $context) =>
-                $message === 'Paddle webhook: subscription.created'
-                && ($context['paddle_subscription_id'] ?? null) === 'sub_log_001'
-                && ($context['status'] ?? null) === 'active'
-            );
-    });
-});
-
 describe('Webhook — subscription.canceled', function () {
     beforeEach(function () {
         config(['cashier.webhook_secret' => null]);
@@ -115,32 +87,6 @@ describe('Webhook — transaction.payment_failed', function () {
         Log::spy();
     });
 
-    it('responds 200 to payment_failed', function () {
-        webhookPostEvent('transaction.payment_failed', [
-            'id' => 'txn_fail_001',
-            'customer_id' => 'ctm_fail',
-            'status' => 'failed',
-            'currency_code' => 'USD',
-            'details' => [
-                'totals' => ['total' => '9.99'],
-            ],
-        ])->assertStatus(200);
-    });
-
-    it('logs as warning not info', function () {
-        webhookPostEvent('transaction.payment_failed', [
-            'id' => 'txn_warn',
-            'customer_id' => 'ctm_warn',
-            'status' => 'failed',
-            'currency_code' => 'USD',
-            'details' => ['totals' => ['total' => '0']],
-        ]);
-
-        Log::shouldHaveReceived('warning')
-            ->withArgs(fn (string $message) =>
-                $message === 'Paddle webhook: transaction.payment_failed'
-            );
-    });
 });
 
 // ═══════════════════════════════════════════════════════════

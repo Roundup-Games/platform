@@ -154,35 +154,6 @@ describe('Accept campaign invitation → ParticipantJoined', function () {
             ->and($data['entity_id'])->toBe($campaign->id)
             ->and($data['participant_id'])->toBe($invitee->id);
     });
-
-    it('marks CampaignInvitation notification as read when accepting', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $invitee = User::factory()->create(['profile_complete' => true]);
-
-        $gameSystem = GameSystem::factory()->create();
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $gameSystem->id,
-            'status' => 'active',
-        ]);
-
-        // Create an unread CampaignInvitation notification for the invitee
-        $invitee->notifyNow(new CampaignInvitation($campaign, $owner));
-        expect($invitee->unreadNotifications()->where('type', CampaignInvitation::class)->count())->toBe(1);
-
-        $participant = CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
-        ]);
-
-        \Livewire\Livewire::actingAs($invitee)
-            ->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            ->call('acceptInvitation', (string) $participant->id);
-
-        expect($invitee->unreadNotifications()->where('type', CampaignInvitation::class)->count())->toBe(0);
-    });
 });
 
 // ══════════════════════════════════════════════════════

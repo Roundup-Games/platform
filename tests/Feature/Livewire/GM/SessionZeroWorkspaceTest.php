@@ -64,20 +64,6 @@ describe('GmWorkspace Session Zero Surveys', function () {
             ->assertSee('Dragon Heist');
     });
 
-    it('shows confirmation count for each survey', function () {
-        $gm = $this->createSubscribedGm();
-
-        SessionZeroSurvey::factory()->create([
-            'gm_profile_id' => $gm->gmProfile->id,
-            'title' => 'Survey with Confirmations',
-            'confirmation_count' => 4,
-        ]);
-
-        $this->actingAs($gm)
-            ->get(route('gm.workspace', 'en'))
-            ->assertOk();
-    });
-
     it('includes View link for each survey', function () {
         $gm = $this->createSubscribedGm();
         $survey = SessionZeroSurvey::factory()->create([

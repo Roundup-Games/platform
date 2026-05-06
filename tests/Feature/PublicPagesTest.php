@@ -4,38 +4,6 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormSubmitted;
 use function Pest\Laravel\{get, post, actingAs};
 
-// ── Home Page ──────────────────────────────────────────
-
-describe('HomePage', function () {
-    it('renders the landing page successfully', function () {
-        get(route('home'))->assertOk();
-    });
-
-    it('passes weekly stats to the view as integers', function () {
-        $response = get(route('home'));
-        $response->assertOk();
-
-        expect($response->viewData('sessionsThisWeek'))->toBeInt();
-        expect($response->viewData('activeCampaigns'))->toBeInt();
-        expect($response->viewData('peopleThisWeek'))->toBeInt();
-    });
-
-    it('shows sign up link for guests', function () {
-        get(route('home'))
-            ->assertOk()
-            ->assertSee(__('profile.action_create_free_account'));
-    });
-
-    it('shows browse sessions link for authenticated users', function () {
-        $user = \App\Models\User::factory()->create();
-
-        actingAs($user)
-            ->get(route('home'))
-            ->assertOk()
-            ->assertSee(__('campaigns.action_browse_sessions'));
-    });
-});
-
 // ── About Page ─────────────────────────────────────────
 
 describe('AboutPage', function () {

@@ -287,11 +287,11 @@ describe('AdventuresDiscovery', function () {
         $component = Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class);
         $recommendations = $component->viewData('recommendations');
 
-        if ($recommendations) {
-            $recNames = collect($recommendations)->pluck('name')->toArray();
-            expect($recNames)->toContain('Recommended TTRPG');
-            expect($recNames)->not->toContain('Boardgame System Game');
-        }
+        expect($recommendations)->not->toBeEmpty('Expected recommendations for TTRPG+boardgame user');
+
+        $recNames = collect($recommendations)->pluck('name')->toArray();
+        expect($recNames)->toContain('Recommended TTRPG');
+        expect($recNames)->not->toContain('Boardgame System Game');
     });
 
     it('excludes boardgame systems from recommendations', function () {

@@ -228,11 +228,11 @@ describe('BoardGamesDiscovery', function () {
         // but may still appear in main results
         $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
         $recommendations = $component->viewData('recommendations');
-        if ($recommendations) {
-            $recNames = collect($recommendations)->pluck('name')->toArray();
-            expect($recNames)->toContain('Fav Game');
-            expect($recNames)->not->toContain('Avoid Game');
-        }
+        expect($recommendations)->not->toBeEmpty('Expected recommendations for user with fav+avoid systems');
+
+        $recNames = collect($recommendations)->pluck('name')->toArray();
+        expect($recNames)->toContain('Fav Game');
+        expect($recNames)->not->toContain('Avoid Game');
     });
 
     it('recommendations do not include campaigns even when system matches', function () {
@@ -260,11 +260,11 @@ describe('BoardGamesDiscovery', function () {
         // Recommendations should only contain games, not campaigns
         $component = Livewire\Livewire::test(App\Livewire\Discovery\BoardGamesDiscovery::class);
         $recommendations = $component->viewData('recommendations');
-        if ($recommendations) {
-            $types = collect($recommendations)->pluck('discoverable_type')->toArray();
-            expect($types)->not->toContain('campaign');
-            expect($types)->toContain('game');
-        }
+        expect($recommendations)->not->toBeEmpty('Expected recommendations for user with favorite boardgame system');
+
+        $types = collect($recommendations)->pluck('discoverable_type')->toArray();
+        expect($types)->not->toContain('campaign');
+        expect($types)->toContain('game');
     });
 
     it('filters games by category_ids through gameSystem relationship', function () {

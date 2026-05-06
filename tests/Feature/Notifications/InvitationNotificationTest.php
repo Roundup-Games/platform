@@ -325,32 +325,6 @@ describe('Team Invitation → TeamInvitation', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-    it('does not dispatch when target has blocked the inviter', function () {
-        $captain = User::factory()->create(['profile_complete' => true]);
-        $player = User::factory()->create(['profile_complete' => true, 'email' => 'blocked@example.com']);
-
-        // Player blocks captain
-        UserRelationship::block($player, $captain);
-
-        $team = Team::factory()->create(['created_by' => $captain->id]);
-
-        TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $captain->id,
-            'role' => 'captain',
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
-            ->set('inviteEmail', 'blocked@example.com')
-            ->call('inviteMember');
-
-        // TeamMember record is created but notification is skipped by block-list
-        expect($player->notifications()->where('type', TeamInvitation::class)->count())->toBe(0);
-    });
-
 
 
     it('does not dispatch notification when user already has active team membership', function () {

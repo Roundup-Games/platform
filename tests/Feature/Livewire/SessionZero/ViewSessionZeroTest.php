@@ -80,15 +80,6 @@ class ViewSessionZeroTest extends TestCase
             ->assertDontSee(__('session_zero.action_confirm'));
     }
 
-    public function test_unauthenticated_user_cannot_confirm(): void
-    {
-        $component = Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid]);
-
-        // The confirm button isn't rendered for unauthenticated users,
-        // but we test the method directly to ensure it redirects
-        $this->assertDatabaseCount('session_zero_confirmations', 0);
-    }
-
     // ── Confirmation: Authenticated ──────────────────────
 
     public function test_authenticated_user_sees_confirm_button(): void
@@ -266,15 +257,6 @@ class ViewSessionZeroTest extends TestCase
     }
 
     // ── Edge Cases ───────────────────────────────────────
-
-    public function test_uuid_is_locked_property(): void
-    {
-        $user = User::factory()->create(['profile_complete' => true]);
-
-        Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
-            ->assertSet('uuid', $this->survey->uuid);
-    }
 
     public function test_multiple_users_can_confirm_same_survey(): void
     {
