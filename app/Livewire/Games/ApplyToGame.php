@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\Visibility;
 use App\Models\Game;
@@ -148,6 +149,7 @@ class ApplyToGame extends Component
                     'status' => $participantStatus,
                     'benched_at' => $benchedAt,
                     'waitlisted_at' => $waitlistedAt,
+                    'join_source' => JoinSource::Application,
                 ]);
             });
         } catch (\Illuminate\Database\QueryException $e) {

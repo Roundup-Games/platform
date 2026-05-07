@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\Visibility;
 use App\Models\Campaign;
@@ -128,6 +129,7 @@ class ApplyToCampaign extends Component
                     'role' => $participantRole,
                     'status' => $participantStatus,
                     'benched_at' => $benchedAt,
+                    'join_source' => JoinSource::Application,
                 ]);
             });
         } catch (\Illuminate\Database\QueryException $e) {

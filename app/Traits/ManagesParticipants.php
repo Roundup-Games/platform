@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
@@ -109,6 +110,7 @@ trait ManagesParticipants
                 'user_id' => $targetUser->id,
                 'role' => 'invited',
                 'status' => 'pending',
+                'join_source' => JoinSource::FriendInvite,
             ]);
 
             Log::info($this->getEntityName() . ' participant invited', [
@@ -173,6 +175,7 @@ trait ManagesParticipants
         $participant->update([
             'role' => 'player',
             'status' => 'approved',
+            'join_source' => JoinSource::Application,
         ]);
 
         $entity->applications()
