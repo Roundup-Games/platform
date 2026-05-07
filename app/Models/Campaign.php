@@ -21,6 +21,7 @@ class Campaign extends Model
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
+        'share_token', 'share_token_expires_at',
     ];
 
     protected function casts(): array
@@ -37,6 +38,8 @@ class Campaign extends Model
             'vibe_flags' => 'array',
             'visibility' => Visibility::class,
             'status' => CampaignStatus::class,
+            'share_token' => 'uuid',
+            'share_token_expires_at' => 'datetime',
         ];
     }
 

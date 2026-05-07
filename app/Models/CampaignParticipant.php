@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,11 +13,12 @@ class CampaignParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['campaign_id', 'user_id', 'role', 'status', 'benched_at'];
+    protected $fillable = ['campaign_id', 'user_id', 'role', 'status', 'benched_at', 'join_source'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,
         'benched_at' => 'datetime',
+        'join_source' => JoinSource::class,
     ];
 
     public $timestamps = false;

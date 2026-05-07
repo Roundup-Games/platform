@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ class GameParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['game_id', 'user_id', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at'];
+    protected $fillable = ['game_id', 'user_id', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,
@@ -28,6 +29,7 @@ class GameParticipant extends Model
         'waitlisted_at' => 'datetime',
         'confirmation_attempts' => 'integer',
         'benched_at' => 'datetime',
+        'join_source' => JoinSource::class,
     ];
 
     public $timestamps = false;

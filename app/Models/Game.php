@@ -23,6 +23,7 @@ class Game extends Model
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
+        'share_token', 'share_token_expires_at',
     ];
 
     protected function casts(): array
@@ -44,6 +45,8 @@ class Game extends Model
             'reminder_sent_at' => 'datetime',
             'reminder_24h_sent_at' => 'datetime',
             'min_reliability_preference' => 'decimal:2',
+            'share_token' => 'uuid',
+            'share_token_expires_at' => 'datetime',
         ];
     }
 
