@@ -39,6 +39,16 @@ Route::get('locale/switch/{locale}', [LocaleController::class, 'switch'])
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 
+// ── Legacy API Redirects (backward compatibility) ────
+// Old /api/* routes redirect to /api/v1/* equivalents.
+// Using 308 (permanent, preserves method) for POST/DELETE,
+// 301 (permanent) for GET.
+
+Route::permanentRedirect('/api/geocode', '/api/v1/geocode');
+Route::post('/api/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
+Route::delete('/api/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
+Route::permanentRedirect('/api/push/vapid-public-key', '/api/v1/push/vapid-public-key');
+
 // ── Locale-prefixed routes ─────────────────────────────
 
 Route::prefix('{locale}')

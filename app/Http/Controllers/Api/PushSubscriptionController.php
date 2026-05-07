@@ -14,7 +14,7 @@ class PushSubscriptionController extends Controller
     /**
      * Subscribe the authenticated user to push notifications.
      *
-     * POST /api/push/subscribe
+     * POST /api/v1/push/subscribe
      * Body: { endpoint, keys: { p256h, auth } }
      */
     public function subscribe(Request $request): JsonResponse
@@ -66,7 +66,7 @@ class PushSubscriptionController extends Controller
     /**
      * Unsubscribe the authenticated user from push notifications.
      *
-     * DELETE /api/push/subscribe
+     * DELETE /api/v1/push/subscribe
      * Body: { endpoint }
      */
     public function unsubscribe(Request $request): JsonResponse
@@ -98,7 +98,7 @@ class PushSubscriptionController extends Controller
     /**
      * Return the VAPID public key for the browser's PushManager.
      *
-     * GET /api/push/vapid-public-key
+     * GET /api/v1/push/vapid-public-key
      */
     public function vapidPublicKey(): JsonResponse
     {

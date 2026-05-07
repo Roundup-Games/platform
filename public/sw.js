@@ -4,7 +4,7 @@
  * Caching strategies:
  *  - Static assets (hashed JS/CSS, icons, manifest): cache-first
  *  - HTML/page requests: network-first (3 s timeout)
- *  - Public API (/api/geocode): stale-while-revalidate
+ *  - Public API (/api/v1/geocode): stale-while-revalidate
  *  - Other API requests (/api/*): network-only
  *  - Cross-origin requests: bypass
  */
@@ -110,9 +110,9 @@ self.addEventListener('fetch', (event) => {
 
     // API requests — network only (never cache authenticated responses)
     if (url.pathname.startsWith('/api/')) {
-        // Exception: geocode and session-count are unauthenticated public endpoints.
+        // Exception: geocode is an unauthenticated public endpoint.
         // Stale-while-revalidate: serve cached response immediately, update cache in background.
-        if (url.pathname === '/api/geocode') {
+        if (url.pathname === '/api/v1/geocode') {
             event.respondWith(staleWhileRevalidate(request));
             return;
         }
