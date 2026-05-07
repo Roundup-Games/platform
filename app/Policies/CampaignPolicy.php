@@ -6,6 +6,7 @@ use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Services\ScopedRoleService;
+use Illuminate\Support\Facades\Log;
 
 class CampaignPolicy
 {
@@ -37,6 +38,17 @@ class CampaignPolicy
     public function view(?User $user, Campaign $campaign): bool
     {
         if ($campaign->visibility === Visibility::Public) {
+            return true;
+        }
+
+        // Share token bypass: valid token grants access regardless of visibility
+        if ($campaign->hasValidShareToken()) {
+            Log::info('Share token granted access', [
+                'entity_type' => 'campaign',
+                'entity_id' => $campaign->id,
+                'share_token' => substr($campaign->share_token, 0, 8) . '…',
+            ]);
+
             return true;
         }
 

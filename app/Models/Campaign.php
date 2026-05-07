@@ -38,7 +38,7 @@ class Campaign extends Model
             'vibe_flags' => 'array',
             'visibility' => Visibility::class,
             'status' => CampaignStatus::class,
-            'share_token' => 'uuid',
+            'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
         ];
     }
@@ -82,6 +82,31 @@ class Campaign extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(CampaignApplication::class);
+    }
+
+    // ── Share Token ────────────────────────────────────
+
+    /**
+     * Check whether the current request carries a valid share token for this entity.
+     * Validates that: the query param 'share' matches the stored token AND the token hasn't expired.
+     */
+    public function hasValidShareToken(): bool
+    {
+        $token = request()->query('share');
+
+        if ($token === null || $this->share_token === null) {
+            return false;
+        }
+
+        if ($token !== $this->share_token) {
+            return false;
+        }
+
+        if ($this->share_token_expires_at !== null && $this->share_token_expires_at->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 
     // ── Scopes ─────────────────────────────────────────

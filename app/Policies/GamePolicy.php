@@ -6,6 +6,7 @@ use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
+use Illuminate\Support\Facades\Log;
 
 class GamePolicy
 {
@@ -37,6 +38,17 @@ class GamePolicy
     public function view(?User $user, Game $game): bool
     {
         if ($game->visibility === Visibility::Public) {
+            return true;
+        }
+
+        // Share token bypass: valid token grants access regardless of visibility
+        if ($game->hasValidShareToken()) {
+            Log::info('Share token granted access', [
+                'entity_type' => 'game',
+                'entity_id' => $game->id,
+                'share_token' => substr($game->share_token, 0, 8) . '…',
+            ]);
+
             return true;
         }
 

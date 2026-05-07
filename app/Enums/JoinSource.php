@@ -15,4 +15,13 @@ enum JoinSource: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::FriendInvite => 'Friend Invite',
+            self::ShareLink => 'Share Link',
+            self::Application => 'Application',
+        };
+    }
 }
