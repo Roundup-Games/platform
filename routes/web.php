@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\GeocodeController;
-use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
@@ -10,22 +8,6 @@ use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
-
-// ── API Endpoints (no locale prefix) ──────────────────
-
-Route::post('api/geocode', [GeocodeController::class, 'geocode'])
-    ->name('api.geocode');
-
-Route::post('api/push/subscribe', [PushSubscriptionController::class, 'subscribe'])
-    ->middleware('auth')
-    ->name('api.push.subscribe');
-
-Route::delete('api/push/subscribe', [PushSubscriptionController::class, 'unsubscribe'])
-    ->middleware('auth')
-    ->name('api.push.unsubscribe');
-
-Route::get('api/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
-    ->name('api.push.vapid-public-key');
 
 // ── Root Redirect ──────────────────────────────────────
 // Bare "/" detects preferred locale and redirects.

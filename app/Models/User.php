@@ -18,6 +18,7 @@ use Filament\Panel;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -52,6 +53,7 @@ use App\Traits\StringMorphMediaKey;
 class User extends Authenticatable implements FilamentUser, HasMedia
 {
     use Billable;
+    use HasApiTokens;
     use HasFactory;
     use HasRoles;
     use InteractsWithMedia;

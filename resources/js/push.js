@@ -10,9 +10,9 @@
  *   initPushSubscriptions();
  */
 
-const API_SUBSCRIBE = '/api/push/subscribe';
-const API_UNSUBSCRIBE = '/api/push/subscribe';
-const API_VAPID_KEY = '/api/push/vapid-public-key';
+const API_SUBSCRIBE = '/api/v1/push/subscribe';
+const API_UNSUBSCRIBE = '/api/v1/push/subscribe';
+const API_VAPID_KEY = '/api/v1/push/vapid-public-key';
 
 /**
  * Check if push notifications are supported and allowed.
