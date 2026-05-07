@@ -22,7 +22,7 @@ describe('push subscription management', function () {
             ],
         ];
 
-        $response = $this->postJson('/api/push/subscribe', $payload);
+        $response = $this->postJson('/api/v1/push/subscribe', $payload);
 
         $response->assertCreated();
         $this->assertDatabaseHas('push_subscriptions', [
@@ -37,7 +37,7 @@ describe('push subscription management', function () {
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/test-unsub-001',
         ]);
 
-        $response = $this->deleteJson('/api/push/subscribe', [
+        $response = $this->deleteJson('/api/v1/push/subscribe', [
             'endpoint' => $sub->endpoint,
         ]);
 

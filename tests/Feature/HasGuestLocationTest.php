@@ -81,7 +81,7 @@ describe('GeocodeApiTest', function () {
 
         $this->app->instance(GeocodingService::class, $mock);
 
-        $response = postJson('/api/geocode', ['query' => 'Berlin, Germany']);
+        $response = postJson('/api/v1/geocode', ['query' => 'Berlin, Germany']);
 
         $response->assertOk()
             ->assertJson([
@@ -102,25 +102,25 @@ describe('GeocodeApiTest', function () {
 
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'zzzznonexistent'])
+        postJson('/api/v1/geocode', ['query' => 'zzzznonexistent'])
             ->assertStatus(404)
             ->assertJson(['message' => 'No results found for the given query.']);
     });
 
     it('validates query is required', function () {
-        postJson('/api/geocode', [])
+        postJson('/api/v1/geocode', [])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
     });
 
     it('validates query min length', function () {
-        postJson('/api/geocode', ['query' => 'a'])
+        postJson('/api/v1/geocode', ['query' => 'a'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
     });
 
     it('validates query max length', function () {
-        postJson('/api/geocode', ['query' => str_repeat('x', 201)])
+        postJson('/api/v1/geocode', ['query' => str_repeat('x', 201)])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
     });
@@ -138,11 +138,11 @@ describe('GeocodeApiTest', function () {
 
         // Make 10 successful requests
         for ($i = 0; $i < 10; $i++) {
-            postJson('/api/geocode', ['query' => "query {$i}"])->assertOk();
+            postJson('/api/v1/geocode', ['query' => "query {$i}"])->assertOk();
         }
 
         // 11th should be rate limited
-        postJson('/api/geocode', ['query' => 'one more'])
+        postJson('/api/v1/geocode', ['query' => 'one more'])
             ->assertStatus(429)
             ->assertJson(['message' => 'Too many geocoding requests. Please try again later.']);
     });
@@ -166,7 +166,7 @@ describe('GeocodeApiTest', function () {
 
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Small Town'])
+        postJson('/api/v1/geocode', ['query' => 'Small Town'])
             ->assertOk()
             ->assertJson(['city' => 'Small Town', 'country' => 'Germany']);
     });
@@ -192,7 +192,7 @@ describe('GeocodeApiTest', function () {
         ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Berlin']);
+        postJson('/api/v1/geocode', ['query' => 'Berlin']);
     });
 
     it('caches repeated geocode queries (cache hit)', function () {
@@ -218,7 +218,7 @@ describe('GeocodeApiTest', function () {
         $this->app->instance(GeocodingService::class, $mock);
 
         // First request — hits the service
-        $r1 = postJson('/api/geocode', ['query' => 'Paris, France']);
+        $r1 = postJson('/api/v1/geocode', ['query' => 'Paris, France']);
         $r1->assertOk()
             ->assertJson(['lat' => 48.8566, 'lng' => 2.3522, 'city' => 'Paris']);
 
@@ -245,7 +245,7 @@ describe('GeocodeApiTest', function () {
             ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Winterthur Village'])
+        postJson('/api/v1/geocode', ['query' => 'Winterthur Village'])
             ->assertOk()
             ->assertJson(['city' => 'Winterthur Village', 'country' => 'Switzerland']);
     });
@@ -268,7 +268,7 @@ describe('GeocodeApiTest', function () {
             ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Municipality Area'])
+        postJson('/api/v1/geocode', ['query' => 'Municipality Area'])
             ->assertOk()
             ->assertJson(['city' => 'Geneva Municipality']);
     });
@@ -291,7 +291,7 @@ describe('GeocodeApiTest', function () {
             ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Tokyo'])
+        postJson('/api/v1/geocode', ['query' => 'Tokyo'])
             ->assertOk()
             ->assertJson(['city' => null, 'country' => 'Japan']);
     });
@@ -313,7 +313,7 @@ describe('GeocodeApiTest', function () {
             ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'Unknown Place'])
+        postJson('/api/v1/geocode', ['query' => 'Unknown Place'])
             ->assertOk()
             ->assertJson(['city' => 'SomeCity', 'country' => null]);
     });
@@ -332,7 +332,7 @@ describe('GeocodeApiTest', function () {
             ]);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => '  Berlin  '])
+        postJson('/api/v1/geocode', ['query' => '  Berlin  '])
             ->assertOk()
             ->assertJson(['city' => 'Berlin']);
     });
@@ -350,18 +350,18 @@ describe('GeocodeApiTest', function () {
 
         // Exhaust rate limit
         for ($i = 0; $i < 10; $i++) {
-            postJson('/api/geocode', ['query' => "query {$i}"])->assertOk();
+            postJson('/api/v1/geocode', ['query' => "query {$i}"])->assertOk();
         }
 
         // Verify retry_after_seconds is present and positive
-        $response = postJson('/api/geocode', ['query' => 'one more']);
+        $response = postJson('/api/v1/geocode', ['query' => 'one more']);
         $response->assertStatus(429);
         expect($response->json('retry_after_seconds'))->toBeInt();
         expect($response->json('retry_after_seconds'))->toBeGreaterThan(0);
     });
 
     it('rejects non-string query type', function () {
-        postJson('/api/geocode', ['query' => 12345])
+        postJson('/api/v1/geocode', ['query' => 12345])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
     });
@@ -374,12 +374,12 @@ describe('GeocodeApiTest', function () {
             ->andReturn(null);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'US'])
+        postJson('/api/v1/geocode', ['query' => 'US'])
             ->assertStatus(404); // Valid input, just no results
     });
 
     it('rejects query over 200 characters', function () {
-        postJson('/api/geocode', ['query' => str_repeat('a', 201)])
+        postJson('/api/v1/geocode', ['query' => str_repeat('a', 201)])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
     });
@@ -391,7 +391,7 @@ describe('GeocodeApiTest', function () {
             ->andReturn(null);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => str_repeat('a', 200)])
+        postJson('/api/v1/geocode', ['query' => str_repeat('a', 200)])
             ->assertStatus(404); // Valid input, just no results
     });
 
@@ -408,7 +408,7 @@ describe('GeocodeApiTest', function () {
         $mock->shouldReceive('geocode')->andReturn(null);
         $this->app->instance(GeocodingService::class, $mock);
 
-        postJson('/api/geocode', ['query' => 'nonexistent'])
+        postJson('/api/v1/geocode', ['query' => 'nonexistent'])
             ->assertStatus(404);
     });
 });

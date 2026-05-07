@@ -20,7 +20,7 @@ describe('POST /api/push/subscribe', function () {
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/push/subscribe', $payload);
+        $response = $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', $payload);
 
         $response->assertCreated()
             ->assertJsonStructure(['id']);
@@ -45,7 +45,7 @@ describe('POST /api/push/subscribe', function () {
             ],
         ];
 
-        $response = $this->actingAs($this->user)->postJson('/api/push/subscribe', $payload);
+        $response = $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', $payload);
 
         $response->assertOk()
             ->assertJson(['id' => $existing->id]);
@@ -55,7 +55,7 @@ describe('POST /api/push/subscribe', function () {
     });
 
     it('requires authentication', function () {
-        $this->postJson('/api/push/subscribe', [
+        $this->postJson('/api/v1/push/subscribe', [
             'endpoint' => 'https://example.com',
             'keys' => ['p256h' => 'a', 'auth' => 'b'],
         ])->assertUnauthorized();
@@ -63,14 +63,14 @@ describe('POST /api/push/subscribe', function () {
 
     it('validates required fields', function () {
         $this->actingAs($this->user)
-            ->postJson('/api/push/subscribe', [])
+            ->postJson('/api/v1/push/subscribe', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['endpoint', 'keys.p256h', 'keys.auth']);
     });
 
     it('validates endpoint is a URL', function () {
         $this->actingAs($this->user)
-            ->postJson('/api/push/subscribe', [
+            ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => 'not-a-url',
                 'keys' => ['p256h' => 'a', 'auth' => 'b'],
             ])
@@ -80,13 +80,13 @@ describe('POST /api/push/subscribe', function () {
 
     it('rate limits after 10 attempts', function () {
         for ($i = 0; $i < 10; $i++) {
-            $this->actingAs($this->user)->postJson('/api/push/subscribe', [
+            $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', [
                 'endpoint' => "https://fcm.googleapis.com/fcm/send/ep-{$i}",
                 'keys' => ['p256h' => "key-{$i}", 'auth' => "auth-{$i}"],
             ]);
         }
 
-        $response = $this->actingAs($this->user)->postJson('/api/push/subscribe', [
+        $response = $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/ep-11',
             'keys' => ['p256h' => 'key-11', 'auth' => 'auth-11'],
         ]);
@@ -97,7 +97,7 @@ describe('POST /api/push/subscribe', function () {
     it('captures user agent', function () {
         $this->actingAs($this->user)
             ->withHeaders(['User-Agent' => 'TestBrowser/1.0'])
-            ->postJson('/api/push/subscribe', [
+            ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => 'https://fcm.googleapis.com/fcm/send/ua-test',
                 'keys' => ['p256h' => 'a', 'auth' => 'b'],
             ]);
@@ -116,7 +116,7 @@ describe('POST /api/push/subscribe', function () {
 
         // User A subscribes
         $this->actingAs($userA)
-            ->postJson('/api/push/subscribe', [
+            ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => $endpoint,
                 'keys' => ['p256h' => 'key-a', 'auth' => 'auth-a'],
             ])
@@ -124,7 +124,7 @@ describe('POST /api/push/subscribe', function () {
 
         // User B subscribes with the same endpoint (same device)
         $this->actingAs($userB)
-            ->postJson('/api/push/subscribe', [
+            ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => $endpoint,
                 'keys' => ['p256h' => 'key-b', 'auth' => 'auth-b'],
             ])
@@ -144,7 +144,7 @@ describe('DELETE /api/push/subscribe', function () {
         ]);
 
         $response = $this->actingAs($this->user)
-            ->deleteJson('/api/push/subscribe', [
+            ->deleteJson('/api/v1/push/subscribe', [
                 'endpoint' => $subscription->endpoint,
             ]);
 
@@ -157,7 +157,7 @@ describe('DELETE /api/push/subscribe', function () {
 
     it('returns 404 for non-existent subscription', function () {
         $this->actingAs($this->user)
-            ->deleteJson('/api/push/subscribe', [
+            ->deleteJson('/api/v1/push/subscribe', [
                 'endpoint' => 'https://fcm.googleapis.com/fcm/send/nonexistent',
             ])
             ->assertNotFound();
@@ -170,7 +170,7 @@ describe('DELETE /api/push/subscribe', function () {
         ]);
 
         $this->actingAs($this->user)
-            ->deleteJson('/api/push/subscribe', [
+            ->deleteJson('/api/v1/push/subscribe', [
                 'endpoint' => $subscription->endpoint,
             ])
             ->assertNotFound();
@@ -181,14 +181,14 @@ describe('DELETE /api/push/subscribe', function () {
     });
 
     it('requires authentication', function () {
-        $this->deleteJson('/api/push/subscribe', [
+        $this->deleteJson('/api/v1/push/subscribe', [
             'endpoint' => 'https://example.com',
         ])->assertUnauthorized();
     });
 
     it('validates endpoint is required', function () {
         $this->actingAs($this->user)
-            ->deleteJson('/api/push/subscribe', [])
+            ->deleteJson('/api/v1/push/subscribe', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['endpoint']);
     });
@@ -198,7 +198,7 @@ describe('GET /api/push/vapid-public-key', function () {
     it('returns the VAPID public key', function () {
         Config::set('services.vapid.public_key', 'test-public-key-value');
 
-        $this->getJson('/api/push/vapid-public-key')
+        $this->getJson('/api/v1/push/vapid-public-key')
             ->assertOk()
             ->assertJson(['public_key' => 'test-public-key-value']);
     });
@@ -206,14 +206,14 @@ describe('GET /api/push/vapid-public-key', function () {
     it('does not require authentication', function () {
         Config::set('services.vapid.public_key', 'test-key');
 
-        $this->getJson('/api/push/vapid-public-key')
+        $this->getJson('/api/v1/push/vapid-public-key')
             ->assertOk();
     });
 
     it('returns 503 when VAPID is not configured', function () {
         Config::set('services.vapid.public_key', null);
 
-        $this->getJson('/api/push/vapid-public-key')
+        $this->getJson('/api/v1/push/vapid-public-key')
             ->assertStatus(503);
     });
 });

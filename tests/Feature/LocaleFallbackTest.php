@@ -81,10 +81,10 @@ describe('Protected paths not caught by fallback', function () {
         $response->assertStatus(302); // redirect to login
     })->group('smoke');
 
-    test('api geocode returns 404 on GET', function () {
-        $response = $this->get('/api/geocode');
+    test('api geocode returns 404 on GET via new path', function () {
+        $response = $this->get('/api/v1/geocode');
 
-        // POST-only endpoint; GET is caught by locale fallback as 404
+        // POST-only endpoint; GET returns 404
         $response->assertStatus(404);
     })->group('smoke');
 

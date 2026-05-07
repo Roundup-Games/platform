@@ -17,8 +17,10 @@ use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
@@ -85,6 +87,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // API rate limiter — used by throttle:api middleware on routes/api.php
+        RateLimiter::for('api', function (Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Register custom notification channels
         Notification::extend('push', function ($app) {
             return $app->make(PushChannel::class);

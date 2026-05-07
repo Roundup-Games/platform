@@ -81,7 +81,7 @@ describe('TrackAppVisit Middleware', function () {
         $countBefore = UserAppVisit::count();
 
         actingAs($this->user)
-            ->getJson('/api/geocode?q=Berlin');
+            ->getJson('/api/v1/geocode?q=Berlin');
 
         expect(UserAppVisit::count())->toBe($countBefore);
     });
