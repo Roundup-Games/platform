@@ -6,6 +6,8 @@ use App\Enums\ContentLanguage;
 use App\Enums\RelationshipType;
 use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
+use App\Services\SocialGraphService;
+use App\Services\UserPreferenceResolver;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -237,118 +239,14 @@ class User extends Authenticatable implements FilamentUser, HasMedia
 
     // ── Preference Resolution ─────────────────────────
 
-    /**
-     * Resolved game-system preferences including base/expansion implications.
-     *
-     * Rules:
-     *  - Favorited base games imply all their expansions as 'implied_favorites'.
-     *  - If a system is both favorited (or implied) AND explicitly avoided,
-     *    the explicit avoid wins.
-     *  - Handles circular safety: a system can be both a base (has expansions)
-     *    and an expansion (has base_game_id).
-     *
-     * @return array{favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, avoided: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, implied_favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>}
-     */
     public function resolvedGameSystemPreferences(): array
     {
-        $favorites = $this->favoriteGameSystems()->get();
-        $avoided = $this->avoidedGameSystems()->get();
-        $avoidedIds = $avoided->pluck('id')->flip();
-
-        // Collect implied favorites from expansions of favorited base games
-        // Only include expansions that are NOT explicitly avoided (avoid wins)
-        $impliedIds = collect();
-        foreach ($favorites as $system) {
-            foreach ($system->expansions as $expansion) {
-                if (! $avoidedIds->has($expansion->id)) {
-                    $impliedIds->put($expansion->id, $expansion);
-                }
-            }
-        }
-
-        $impliedFavorites = $impliedIds;
-
-        // Remove any favorites that are explicitly avoided
-        $resolvedFavorites = $favorites->reject(
-            fn (GameSystem $sys) => $avoidedIds->has($sys->id),
-        );
-
-        // Collect implied avoids from expansions of avoided base games
-        $impliedAvoidIds = collect();
-        foreach ($avoided as $system) {
-            foreach ($system->expansions as $expansion) {
-                $impliedAvoidIds->put($expansion->id, $expansion);
-            }
-        }
-
-        // Merge explicit avoids with implied avoids (implied only if not explicitly favorited)
-        $allAvoided = $avoided->keyBy('id');
-        foreach ($impliedAvoidIds as $id => $expansion) {
-            if (! $resolvedFavorites->keyBy('id')->has($id) && ! $impliedFavorites->has($id)) {
-                $allAvoided->put($id, $expansion);
-            }
-        }
-
-        return [
-            'favorites' => $resolvedFavorites,
-            'avoided' => $allAvoided->values(),
-            'implied_favorites' => $impliedFavorites,
-        ];
+        return app(UserPreferenceResolver::class)->resolvedGameSystemPreferences($this);
     }
 
-    /**
-     * Resolved vibe preferences with mutual-exclusivity enforcement.
-     *
-     * Rules:
-     *  - For each favorite, its exclusive partner is auto-avoided.
-     *  - For each avoid, its exclusive partner is NOT auto-favorited.
-     *  - Deduplication: if a flag is both explicitly favorite and auto-avoided,
-     *    explicit favorite wins (the partner goes to avoided instead).
-     *
-     * @return array{favorites: string[], avoided: string[]}
-     */
     public function resolvedVibePreferences(): array
     {
-        $explicitFavorites = $this->favoriteVibes()
-            ->pluck('vibe_preference_value')
-            ->map(fn (VibeFlag $flag) => $flag->value)
-            ->unique()
-            ->values()
-            ->all();
-
-        $explicitAvoids = $this->avoidedVibes()
-            ->pluck('vibe_preference_value')
-            ->map(fn (VibeFlag $flag) => $flag->value)
-            ->unique()
-            ->values()
-            ->all();
-
-        $favoriteSet = array_flip($explicitFavorites);
-        $avoidSet = array_flip($explicitAvoids);
-
-        // Build a lookup: flag value => partner flag value
-        $partnerLookup = [];
-        foreach (VibeFlag::mutuallyExclusivePairs() as [$a, $b]) {
-            $partnerLookup[$a->value] = $b->value;
-            $partnerLookup[$b->value] = $a->value;
-        }
-
-        // Auto-avoid partners of favorites
-        foreach ($explicitFavorites as $fav) {
-            if (isset($partnerLookup[$fav]) && ! isset($favoriteSet[$partnerLookup[$fav]])) {
-                $avoidSet[$partnerLookup[$fav]] = true;
-            }
-        }
-
-        // Remove from avoid set anything that's explicitly favorited (favorite wins)
-        foreach ($explicitFavorites as $fav) {
-            unset($avoidSet[$fav]);
-        }
-
-        return [
-            'favorites' => array_values(array_keys($favoriteSet)),
-            'avoided' => array_values(array_keys($avoidSet)),
-        ];
+        return app(UserPreferenceResolver::class)->resolvedVibePreferences($this);
     }
 
     // ── Spatie Media Library ──────────────────────────
@@ -447,124 +345,44 @@ class User extends Authenticatable implements FilamentUser, HasMedia
 
     // ── Relationship Resolution ──────────────────────
 
-    /**
-     * Check if this user follows the given user.
-     */
     public function isFollowing(self $user): bool
     {
-        return $this->followings()
-            ->where('related_user_id', $user->id)
-            ->exists();
+        return app(SocialGraphService::class)->isFollowing($this, $user);
     }
 
-    /**
-     * Check if this user is followed by the given user.
-     */
     public function isFollowedBy(self $user): bool
     {
-        return $this->followers()
-            ->where('user_id', $user->id)
-            ->exists();
+        return app(SocialGraphService::class)->isFollowedBy($this, $user);
     }
 
-    /**
-     * Check if two users are friends (mutual follow with no blocks either direction).
-     */
     public function isFriend(self $user): bool
     {
-        return $this->isFollowing($user)
-            && $this->isFollowedBy($user)
-            && ! $this->hasBlocked($user)
-            && ! $this->isBlockedBy($user);
+        return app(SocialGraphService::class)->isFriend($this, $user);
     }
 
-    /**
-     * Check if this user has been blocked by the given user.
-     */
     public function isBlockedBy(self $user): bool
     {
-        return $this->blockedBy()
-            ->where('user_id', $user->id)
-            ->exists();
+        return app(SocialGraphService::class)->isBlockedBy($this, $user);
     }
 
-    /**
-     * Check if this user has blocked the given user.
-     */
     public function hasBlocked(self $user): bool
     {
-        return $this->blocks()
-            ->where('related_user_id', $user->id)
-            ->exists();
+        return app(SocialGraphService::class)->hasBlocked($this, $user);
     }
 
-    /**
-     * Get user IDs whose protected content this user can see: self + friends + teammates.
-     *
-     * Friends are mutual follows (I follow them AND they follow me, no blocks).
-     * Teammates are users sharing an active team membership.
-     */
     public function getAllowedOwnerIdsForProtectedContent(): array
     {
-        $ids = [$this->id];
-
-        // Friend IDs: mutual follows (user follows X AND X follows user)
-        $iFollow = $this->followings()->pluck('related_user_id');
-        $followsMe = $this->followers()->pluck('user_id');
-        $friendIds = $iFollow->intersect($followsMe)->toArray();
-        $ids = array_merge($ids, $friendIds);
-
-        // Teammate user IDs: users who share an active team membership
-        $myActiveTeamIds = $this->teams()
-            ->wherePivot('status', 'active')
-            ->pluck('teams.id');
-
-        if ($myActiveTeamIds->isNotEmpty()) {
-            $teammateUserIds = \DB::table('team_members')
-                ->whereIn('team_id', $myActiveTeamIds)
-                ->where('status', 'active')
-                ->where('user_id', '!=', $this->id)
-                ->distinct()
-                ->pluck('user_id')
-                ->toArray();
-            $ids = array_merge($ids, $teammateUserIds);
-        }
-
-        return array_values(array_unique($ids));
+        return app(SocialGraphService::class)->getAllowedOwnerIdsForProtectedContent($this);
     }
 
-    /**
-     * Check if two users are friends or teammates on an active team.
-     */
     public function isFriendOrTeammate(self $user): bool
     {
-        if ($this->isFriend($user)) {
-            return true;
-        }
-
-        return $this->hasSharedActiveTeamWith($user);
+        return app(SocialGraphService::class)->isFriendOrTeammate($this, $user);
     }
 
-    /**
-     * Get the relationship level between this user and another user.
-     *
-     * Returns one of: 'self', 'friend_or_teammate', 'blocked', 'stranger'.
-     */
     public function getRelationshipLevel(self $user): string
     {
-        if ($this->is($user)) {
-            return 'self';
-        }
-
-        if ($this->isBlockedBy($user) || $this->hasBlocked($user)) {
-            return 'blocked';
-        }
-
-        if ($this->isFriendOrTeammate($user)) {
-            return 'friend_or_teammate';
-        }
-
-        return 'stranger';
+        return app(SocialGraphService::class)->getRelationshipLevel($this, $user);
     }
 
     // ── Helpers ────────────────────────────────────────
@@ -574,18 +392,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
      */
     private function hasSharedActiveTeamWith(self $user): bool
     {
-        $myTeamIds = $this->teams()
-            ->wherePivot('status', 'active')
-            ->pluck('teams.id');
-
-        if ($myTeamIds->isEmpty()) {
-            return false;
-        }
-
-        return $user->teams()
-            ->wherePivot('status', 'active')
-            ->whereIn('teams.id', $myTeamIds)
-            ->exists();
+        return app(SocialGraphService::class)->hasSharedActiveTeamWith($this, $user);
     }
 
     public function hasActiveMembership(): bool
