@@ -39,7 +39,7 @@
                         >
                             {{ $category->translatedName() }}
                         </button>
-                    @endforeach>
+                    @endforeach
                 </div>
             </div>
         @endif
@@ -57,7 +57,7 @@
                         >
                             {{ $mechanic->translatedName() }}
                         </button>
-                    @endforeach>
+                    @endforeach
                 </div>
             </div>
         @endif
@@ -86,10 +86,10 @@
                                 >
                                     {{ $toolLabel }}
                                 </button>
-                            @endforeach>
+                            @endforeach
                         </div>
                     </div>
-                @endforeach>
+                @endforeach
             </div>
         @endif
 

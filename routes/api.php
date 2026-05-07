@@ -14,6 +14,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// ── Legacy Redirects (POST/DELETE — outside CSRF) ────
+// Service workers can't send CSRF tokens, so these must live
+// in the api middleware group, not web.
+
+Route::post('/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
+Route::delete('/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
+
 Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
 
     // ── Public Endpoints (no auth required) ────────────

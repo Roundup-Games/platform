@@ -135,16 +135,19 @@ class DiscoveryPage extends Component
     public function toggleSafetyTool(string $tool): void
     {
         $this->safety_tools = $this->toggleArrayValue($this->safety_tools, $tool);
+        $this->resetPage();
     }
 
     public function toggleCategory(string $categoryId): void
     {
         $this->category_ids = $this->toggleArrayValue($this->category_ids, $categoryId);
+        $this->resetPage();
     }
 
     public function toggleMechanic(string $mechanicId): void
     {
         $this->mechanic_ids = $this->toggleArrayValue($this->mechanic_ids, $mechanicId);
+        $this->resetPage();
     }
 
     private function toggleArrayValue(array $array, string $value): array
@@ -244,6 +247,7 @@ class DiscoveryPage extends Component
             'curatedMechanics' => $service->getCuratedMechanics(),
             'radiusOptions' => DiscoveryQueryService::RADIUS_OPTIONS,
             'hasLocation' => $hasLocation,
+            'activeFilters' => $this->hasActiveFilters(),
         ]);
     }
 }

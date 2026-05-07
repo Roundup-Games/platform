@@ -14,7 +14,10 @@ use Livewire\Component;
 
 class WriteReview extends Component
 {
+    #[\Livewire\Attributes\Locked]
     public string $reviewableType;
+
+    #[\Livewire\Attributes\Locked]
     public string $reviewableId;
 
     public int $rating = 0;
@@ -26,6 +29,11 @@ class WriteReview extends Component
 
     public function mount(string $reviewable_type, string $reviewable_id): void
     {
+        if (! Auth::check()) {
+            $this->redirect(route('login'));
+            return;
+        }
+
         $this->reviewableType = $reviewable_type;
         $this->reviewableId = $reviewable_id;
 
@@ -65,6 +73,21 @@ class WriteReview extends Component
         if (! $reviewable) {
             return;
         }
+
+        // Re-verify eligibility at submit time (not just mount) to prevent TOCTOU attacks
+        if ($reviewable instanceof Game) {
+            if (! Gate::allows('canReviewSession', [Review::class, $reviewable])) {
+                $this->errorMessage = __('reviews.error_not_eligible');
+                return;
+            }
+        } elseif ($reviewable instanceof Campaign) {
+            if (! Gate::allows('canReviewCampaign', [Review::class, $reviewable])) {
+                $this->errorMessage = __('reviews.error_not_eligible');
+                return;
+            }
+        }
+
+        Gate::authorize('create', Review::class);
 
         $gmProfile = $this->resolveGmProfile($reviewable);
 

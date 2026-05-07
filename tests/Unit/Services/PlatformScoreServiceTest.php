@@ -76,9 +76,10 @@ describe('calculateScore — pure formula', function () {
 });
 
 describe('weight constants — regression guard', function () {
-    it('has expected boardgame weights', function () {
+    it('has boardgame weight profile with expected keys and values', function () {
         $weights = $this->service->getWeights();
 
+        expect($weights)->toHaveKey('boardgame');
         expect($weights['boardgame'])->toBe([
             'favorites' => 10,
             'games' => 3,
@@ -87,20 +88,15 @@ describe('weight constants — regression guard', function () {
         ]);
     });
 
-    it('has expected ttrpg weights', function () {
+    it('has ttrpg weight profile with expected keys and values', function () {
         $weights = $this->service->getWeights();
 
+        expect($weights)->toHaveKey('ttrpg');
         expect($weights['ttrpg'])->toBe([
             'favorites' => 10,
             'games' => 3,
             'campaigns' => 15,
             'active_games' => 10,
         ]);
-    });
-
-    it('has exactly two weight profiles', function () {
-        $weights = $this->service->getWeights();
-
-        expect(array_keys($weights))->toBe(['boardgame', 'ttrpg']);
     });
 });

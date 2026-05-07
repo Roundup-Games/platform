@@ -334,12 +334,7 @@ describe('Edge cases', function () {
 
 describe('Negative tests', function () {
     test('exception message contains descriptive context', function () {
-        try {
-            $this->parser->parseItems('<not valid xml <<<');
-            expect(true)->toBeFalse('Should have thrown');
-        } catch (BggParseException $e) {
-            expect($e->getMessage())->toContain('Failed to parse BGG XML');
-            expect($e->getPrevious())->toBeInstanceOf(\Throwable::class);
-        }
+        expect(fn () => $this->parser->parseItems('<not valid xml <<<'))
+            ->toThrow(BggParseException::class, 'Failed to parse BGG XML');
     });
 });

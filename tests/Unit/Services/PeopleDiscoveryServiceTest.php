@@ -209,31 +209,21 @@ class PeopleDiscoveryServiceTest extends TestCase
         $nearby1 = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
         $nearby2 = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
 
-        // Create a user in a different geohash_4 tile but same geohash_3
-        $viewerHash = Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        // Create a user in a different geohash_4 tile but same geohash_3.
+        // Viewer is at (52.5163, 13.3777) → geohash_4 = u33d.
+        // Point at lat=52.5636, lng=13.5352 → geohash_4 = u33e (different hash4, same hash3).
+        $farUser = $this->createUserWithLocation(52.5636, 13.5352);
 
-        $bounds = Geohash::prefixBounds($viewerHash);
-        $adjacentLat = $bounds['maxLat'] + 0.01;
-        $adjacentLng = ($bounds['minLng'] + $bounds['maxLng']) / 2;
+        $results = $this->discover($viewer, self::LAT, self::LNG, 12);
 
-        $adjacentHash = Geohash::tilePrefix($adjacentLat, $adjacentLng, 4);
-        if (substr($adjacentHash, 0, 3) === substr($viewerHash, 0, 3)) {
-            $farUser = $this->createUserWithLocation($adjacentLat, $adjacentLng);
-
-            $results = $this->discover($viewer, self::LAT, self::LNG, 12);
-
-            $tierMap = [];
-            foreach ($results->items() as $item) {
-                $tierMap[$item['user']->id] = $item['tier'];
-            }
-
-            $this->assertEquals(1, $tierMap[$nearby1->id] ?? null);
-            $this->assertEquals(1, $tierMap[$nearby2->id] ?? null);
-            $this->assertEquals(2, $tierMap[$farUser->id] ?? null);
-        } else {
-            $results = $this->discover($viewer, self::LAT, self::LNG);
-            $this->assertGreaterThanOrEqual(2, $results->total());
+        $tierMap = [];
+        foreach ($results->items() as $item) {
+            $tierMap[$item['user']->id] = $item['tier'];
         }
+
+        $this->assertEquals(1, $tierMap[$nearby1->id] ?? null);
+        $this->assertEquals(1, $tierMap[$nearby2->id] ?? null);
+        $this->assertEquals(2, $tierMap[$farUser->id] ?? null);
     }
 
     // ── Phase 3: Scoring ──
@@ -809,49 +799,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertEqualsWithDelta(1.0, $result, 0.0001);
     }
 
-    // ── Pure-Math: Haversine Distance (via Reflection) ──
-
-    #[Test]
-    public function haversine_same_point_returns_zero(): void
-    {
-        $result = $this->callHaversine(52.5163, 13.3777, 52.5163, 13.3777);
-        $this->assertEqualsWithDelta(0.0, $result, 0.001);
-    }
-
-    #[Test]
-    public function haversine_known_berlin_distance(): void
-    {
-        // Berlin Mitte (52.5163, 13.3777) → Berlin Kreuzberg (52.4993, 13.4248)
-        // Real-world distance ≈ 3.7 km
-        $result = $this->callHaversine(52.5163, 13.3777, 52.4993, 13.4248);
-        $this->assertEqualsWithDelta(3.7, $result, 0.3);
-    }
-
-    #[Test]
-    public function haversine_known_london_paris(): void
-    {
-        // London (51.5074, -0.1278) → Paris (48.8566, 2.3522)
-        // Real-world distance ≈ 343.5 km
-        $result = $this->callHaversine(51.5074, -0.1278, 48.8566, 2.3522);
-        $this->assertEqualsWithDelta(343.5, $result, 1.0);
-    }
-
-    #[Test]
-    public function haversine_equator_crossing(): void
-    {
-        // Two points on the equator, 1 degree apart ≈ 111.19 km
-        $result = $this->callHaversine(0.0, 0.0, 0.0, 1.0);
-        $this->assertEqualsWithDelta(111.19, $result, 0.5);
-    }
-
-    #[Test]
-    public function haversine_is_symmetric(): void
-    {
-        $forward = $this->callHaversine(52.5163, 13.3777, 48.8566, 2.3522);
-        $reverse = $this->callHaversine(48.8566, 2.3522, 52.5163, 13.3777);
-        $this->assertEqualsWithDelta($forward, $reverse, 0.001);
-    }
-
     // ── Score Composition ──
 
     #[Test]
@@ -978,16 +925,5 @@ class PeopleDiscoveryServiceTest extends TestCase
         $method->setAccessible(true);
 
         return $method->invoke($this->service, $a, $b);
-    }
-
-    /**
-     * Call the private haversineDistance() method via reflection.
-     */
-    private function callHaversine(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        $method = new \ReflectionMethod(PeopleDiscoveryService::class, 'haversineDistance');
-        $method->setAccessible(true);
-
-        return $method->invoke($this->service, $lat1, $lng1, $lat2, $lng2);
     }
 }

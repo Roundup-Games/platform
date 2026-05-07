@@ -41,12 +41,12 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index']);
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.
-// Using 308 (permanent, preserves method) for POST/DELETE,
-// 301 (permanent) for GET.
+// Registered here only for GET routes (permanentRedirect).
+// POST/DELETE legacy redirects live in routes/api.php
+// (outside CSRF-protected web middleware) so service workers
+// can still reach them.
 
 Route::permanentRedirect('/api/geocode', '/api/v1/geocode');
-Route::post('/api/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
-Route::delete('/api/push/subscribe', fn () => redirect('/api/v1/push/subscribe', 308));
 Route::permanentRedirect('/api/push/vapid-public-key', '/api/v1/push/vapid-public-key');
 
 // ── Locale-prefixed routes ─────────────────────────────

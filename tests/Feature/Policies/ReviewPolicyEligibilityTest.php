@@ -152,5 +152,9 @@ describe('ReviewPolicy — eligibility methods', function () {
             $this->actingAs($this->admin);
             expect(Gate::allows('viewEligibility', Review::class))->toBeTrue();
         });
+
+        test('guest cannot view eligibility', function () {
+            expect(Gate::allows('viewEligibility', Review::class))->toBeFalse();
+        });
     });
 });

@@ -111,6 +111,32 @@ describe('SessionDebriefingPolicy', function () {
 
             expect($this->policy->create($this->participant, $game))->toBeFalse();
         });
+
+        test('game owner without participant record cannot create debriefing', function () {
+            $game = Game::factory()->create([
+                'owner_id' => $this->gameOwner->id,
+                'status' => 'completed',
+            ]);
+            // Owner has no GameParticipant record — they ran the game, not played in it
+
+            expect($this->policy->create($this->gameOwner, $game))->toBeFalse();
+        });
+
+        test('game owner who is also an approved participant can create debriefing', function () {
+            $game = Game::factory()->create([
+                'owner_id' => $this->gameOwner->id,
+                'status' => 'completed',
+            ]);
+
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->gameOwner->id,
+                'role' => 'player',
+                'status' => 'approved',
+            ]);
+
+            expect($this->policy->create($this->gameOwner, $game))->toBeTrue();
+        });
     });
 
     describe('view', function () {

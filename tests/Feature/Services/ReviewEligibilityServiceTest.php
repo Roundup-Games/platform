@@ -297,4 +297,54 @@ class ReviewEligibilityServiceTest extends TestCase
         $this->assertCount(0, $eligible);
         $this->assertTrue($eligible->isEmpty());
     }
+
+    /** Scenario: game owner who is also an approved participant can review */
+    public function test_can_review_session_owner_is_approved_participant(): void
+    {
+        $owner = User::factory()->create();
+        $gm = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'date_time' => now()->subDay(),
+        ]);
+        // Owner plays in their own game as a participant
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        $this->assertTrue($this->service->canReviewSession($owner, $game));
+    }
+
+    /** Scenario: game owner who is NOT a participant cannot review */
+    public function test_can_review_session_owner_not_participant(): void
+    {
+        $owner = User::factory()->create();
+        $gm = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $gm->id,
+            'date_time' => now()->subDay(),
+        ]);
+        // Owner has no participant record at all
+
+        $this->assertFalse($this->service->canReviewSession($owner, $game));
+    }
+
+    /** Scenario: campaign owner who is also an approved participant can review */
+    public function test_can_review_campaign_owner_is_approved_participant(): void
+    {
+        $owner = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'status' => 'active',
+        ]);
+        CampaignParticipant::factory()->create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $owner->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        $this->assertTrue($this->service->canReviewCampaign($owner, $campaign));
+    }
 }
