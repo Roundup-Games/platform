@@ -42,7 +42,6 @@ class PlatformScoreService
     public function computeScore(GameSystem $system): int
     {
         $type = $system->type ?? 'boardgame';
-        $weights = self::WEIGHTS[$type] ?? self::WEIGHTS['boardgame'];
 
         $favorites = $system->favoredByUsers()->count();
         $games = $system->games()->count();
@@ -52,10 +51,35 @@ class PlatformScoreService
             ->where('date_time', '>', now())
             ->count();
 
+        return $this->calculateScore($favorites, $games, $campaigns, $activeGames, $type);
+    }
+
+    /**
+     * Pure scoring formula — no DB queries.
+     *
+     * Score = (favorites × w_favorites) + (games × w_games)
+     *       + (campaigns × w_campaigns) + (active_games × w_active_games)
+     *
+     * Falls back to 'boardgame' weights for unknown types.
+     */
+    public function calculateScore(int $favorites, int $games, int $campaigns, int $activeGames, ?string $type = null): int
+    {
+        $weights = self::WEIGHTS[$type ?? 'boardgame'] ?? self::WEIGHTS['boardgame'];
+
         return ($favorites * $weights['favorites'])
             + ($games * $weights['games'])
             + ($campaigns * $weights['campaigns'])
             + ($activeGames * $weights['active_games']);
+    }
+
+    /**
+     * Expose weight constants for testing.
+     *
+     * @return array<string, array<string, int>>
+     */
+    public function getWeights(): array
+    {
+        return self::WEIGHTS;
     }
 
     /**
