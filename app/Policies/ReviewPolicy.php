@@ -2,12 +2,18 @@
 
 namespace App\Policies;
 
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\ReviewEligibilityService;
 use App\Services\ScopedRoleService;
 
 class ReviewPolicy
 {
+    public function __construct(
+        private ReviewEligibilityService $eligibilityService,
+    ) {}
     /**
      * Global admin bypass.
      */
@@ -63,5 +69,32 @@ class ReviewPolicy
     public function report(User $user, Review $review): bool
     {
         return $review->reviewer_id !== $user->id;
+    }
+
+    /**
+     * Can the user review a specific game session?
+     * Delegates to ReviewEligibilityService for participant/date/duplicate checks.
+     */
+    public function canReviewSession(User $user, Game $game): bool
+    {
+        return $this->eligibilityService->canReviewSession($user, $game);
+    }
+
+    /**
+     * Can the user review a specific campaign?
+     * Delegates to ReviewEligibilityService for participant/date/duplicate checks.
+     */
+    public function canReviewCampaign(User $user, Campaign $campaign): bool
+    {
+        return $this->eligibilityService->canReviewCampaign($user, $campaign);
+    }
+
+    /**
+     * Can the user view their eligible reviews?
+     * Any authenticated user can view their own eligibility.
+     */
+    public function viewEligibility(User $user): bool
+    {
+        return true;
     }
 }
