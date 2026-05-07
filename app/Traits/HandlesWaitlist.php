@@ -177,7 +177,7 @@ trait HandlesWaitlist
     /**
      * Find a participant by ID scoped to the current entity, or throw 404.
      */
-    private function findParticipantOrFail(string $participantId)
+    protected function findParticipantOrFail(string $participantId)
     {
         $model = $this->getParticipantModel();
         $entity = $this->getEntity();
