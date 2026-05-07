@@ -7,6 +7,9 @@ use App\Models\Campaign;
 use App\Services\BenchService;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class CampaignDetail extends Component
@@ -52,6 +55,83 @@ class CampaignDetail extends Component
     public function getBackRoute(): string
     {
         return route('campaigns.detail', $this->campaign->id);
+    }
+
+    // ── Share Link Management ──────────────────────────
+
+    public function generateShareLink(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->campaign->update(['share_token' => Str::uuid()->toString()]);
+
+        Log::info('Share link generated', [
+            'entity_type' => 'campaign',
+            'entity_id' => $this->campaign->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_share_link_generated'));
+    }
+
+    public function revokeShareLink(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->campaign->update(['share_token' => null, 'share_token_expires_at' => null]);
+
+        Log::info('Share link revoked', [
+            'entity_type' => 'campaign',
+            'entity_id' => $this->campaign->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_share_link_revoked'));
+    }
+
+    public function regenerateShareLink(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->revokeShareLink();
+        $this->generateShareLink();
+
+        Log::info('Share link regenerated', [
+            'entity_type' => 'campaign',
+            'entity_id' => $this->campaign->id,
+            'user_id' => Auth::id(),
+        ]);
+    }
+
+    #[Computed]
+    public function hasShareLink(): bool
+    {
+        return $this->campaign->share_token !== null;
+    }
+
+    #[Computed]
+    public function shareLinkUrl(): ?string
+    {
+        if ($this->campaign->share_token === null) {
+            return null;
+        }
+
+        return route('campaigns.detail', $this->campaign->id) . '?share=' . $this->campaign->share_token;
     }
 
     // ── Bench Actions ──────────────────────────────────
@@ -156,6 +236,8 @@ class CampaignDetail extends Component
             'canReview' => $canReview,
             'benchedPlayers' => $benchedPlayers,
             'userBenchParticipant' => $userBenchParticipant,
+            'hasShareLink' => $this->hasShareLink(),
+            'shareLinkUrl' => $this->shareLinkUrl(),
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

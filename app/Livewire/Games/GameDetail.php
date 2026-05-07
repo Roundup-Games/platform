@@ -23,6 +23,7 @@ use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -98,6 +99,77 @@ class GameDetail extends Component
 
         $this->checkBelowMinPlayersAndNotify();
         session()->flash('success', __('common.flash_participant_removed'));
+    }
+
+    // ── Share Link Management ──────────────────────────
+
+    public function generateShareLink(): void
+    {
+        if (! $this->isOwner()) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->game->update(['share_token' => Str::uuid()->toString()]);
+
+        Log::info('Share link generated', [
+            'entity_type' => 'game',
+            'entity_id' => $this->game->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_share_link_generated'));
+    }
+
+    public function revokeShareLink(): void
+    {
+        if (! $this->isOwner()) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->game->update(['share_token' => null, 'share_token_expires_at' => null]);
+
+        Log::info('Share link revoked', [
+            'entity_type' => 'game',
+            'entity_id' => $this->game->id,
+            'user_id' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_share_link_revoked'));
+    }
+
+    public function regenerateShareLink(): void
+    {
+        if (! $this->isOwner()) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $this->revokeShareLink();
+        $this->generateShareLink();
+
+        Log::info('Share link regenerated', [
+            'entity_type' => 'game',
+            'entity_id' => $this->game->id,
+            'user_id' => Auth::id(),
+        ]);
+    }
+
+    #[Computed]
+    public function hasShareLink(): bool
+    {
+        return $this->game->share_token !== null;
+    }
+
+    #[Computed]
+    public function shareLinkUrl(): ?string
+    {
+        if ($this->game->share_token === null) {
+            return null;
+        }
+
+        return route('games.detail', $this->game->id) . '?share=' . $this->game->share_token;
     }
 
     // ── Computed viewer state (cached per request-cycle) ──
@@ -301,6 +373,8 @@ class GameDetail extends Component
             'comfortNotes' => $this->game->game_type?->value === 'board_game'
                 && isset($this->game->safety_rules['comfort_notes'])
                     ? $this->game->safety_rules['comfort_notes'] : null,
+            'hasShareLink' => $this->hasShareLink(),
+            'shareLinkUrl' => $this->shareLinkUrl(),
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

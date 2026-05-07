@@ -284,6 +284,10 @@ return [
     'flash_user_blocked' => 'You blocked :name.',
     'flash_user_unblocked' => 'You unblocked :name.',
 
+    // Share link management
+    'flash_share_link_generated' => 'Share link generated.',
+    'flash_share_link_revoked' => 'Share link revoked.',
+
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Participants',
     'content_count_participants' => '{1} :count participant|[2,*] :count participants',
