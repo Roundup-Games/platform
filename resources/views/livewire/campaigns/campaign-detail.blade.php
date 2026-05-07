@@ -263,9 +263,26 @@
             {{-- Sidebar --}}
             <aside class="space-y-6">
 
+                {{-- Join via Share Link CTA --}}
+                @auth
+                    @if($canJoinViaShareLink)
+                        <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                            <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
+                                <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">link</span>
+                                {{ __('campaigns.action_join_via_share_link') }}
+                            </h3>
+                            <button wire:click="joinViaShareLink"
+                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
+                                {{ __('campaigns.action_join_campaign') }}
+                            </button>
+                        </div>
+                    @endif
+                @endauth
+
                 {{-- Join / Apply CTA --}}
                 @auth
-                    @if($canApply)
+                    @if($canApply && !$canJoinViaShareLink)
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
@@ -354,7 +371,15 @@
 
     {{-- Mobile sticky CTA --}}
     @auth
-        @if($canApply)
+        @if($canJoinViaShareLink)
+            <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
+                <button wire:click="joinViaShareLink"
+                   class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
+                    {{ __('campaigns.action_join_campaign') }}
+                </button>
+            </div>
+        @elseif($canApply)
             <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
                 <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">

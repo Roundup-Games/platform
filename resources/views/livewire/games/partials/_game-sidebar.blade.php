@@ -1,9 +1,33 @@
 {{-- Game detail sidebar: join CTA, host, applications, waitlist/bench management --}}
 <aside class="space-y-6">
 
+    {{-- Join via Share Link CTA --}}
+    @auth
+        @if($canJoinViaShareLink)
+            <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
+                <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">link</span>
+                    {{ __('games.action_join_via_share_link') }}
+                </h3>
+                @if($isGameFull)
+                    <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_game_full_join_waitlist') }}</p>
+                @endif
+                <button wire:click="joinViaShareLink"
+                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">login</span>
+                    @if($isGameFull)
+                        {{ __('games.action_join_waitlist') }}
+                    @else
+                        {{ __('games.action_join_game') }}
+                    @endif
+                </button>
+            </div>
+        @endif
+    @endauth
+
     {{-- Join / Apply CTA --}}
     @auth
-        @if($canApply)
+        @if($canApply && !$canJoinViaShareLink)
             <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                 <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">

@@ -92,6 +92,9 @@ return [
     // New keys for entity domain migration
     // Moved from events domain — game-specific
     'action_apply_to_join' => 'Beitritt beantragen',
+    'action_join_via_share_link' => 'Über Link beitreten',
+    'flash_joined_via_share_link' => 'Du bist dem Spiel beigetreten!',
+    'error_join_via_share_link_failed' => 'Beitritt zum Spiel fehlgeschlagen. Bitte versuche es erneut.',
     'content_you_are_already_a_participant_of_this_game' => 'Du bist bereits Teilnehmer dieses Spiels.',
     'action_choose_base_game_or_expansion' => 'Basispiel oder Erweiterung wählen',
     'action_create_a_game' => 'Spielsitzung erstellen',

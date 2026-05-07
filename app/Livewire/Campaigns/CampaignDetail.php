@@ -2,11 +2,16 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\JoinSource;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Services\BenchService;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -18,11 +23,28 @@ class CampaignDetail extends Component
 
     public Campaign $campaign;
 
+    /** @var string|null Validated share token captured on mount, persists across Livewire updates */
+    public ?string $validatedShareToken = null;
+
     public function mount(string $id): void
     {
         $campaign = Campaign::findOrFail($id);
         $this->authorize('view', $campaign);
         $this->campaign = $campaign;
+
+        // Capture valid share token on initial page load (query params don't persist across Livewire updates)
+        if ($campaign->hasValidShareToken()) {
+            $this->validatedShareToken = request()->query('share');
+        }
+
+        // Set share_intent cookie for guests visiting via share link
+        if (Auth::guest() && $this->validatedShareToken !== null) {
+            Cookie::queue('share_intent', encrypt(json_encode([
+                'entity_type' => 'campaign',
+                'entity_id' => $campaign->id,
+                'share_token' => $this->validatedShareToken,
+            ])), 7 * 24 * 60);
+        }
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -134,6 +156,120 @@ class CampaignDetail extends Component
         return route('campaigns.detail', $this->campaign->id) . '?share=' . $this->campaign->share_token;
     }
 
+    // ── Join via Share Link ────────────────────────────
+
+    public function joinViaShareLink(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || ! $this->canJoinViaShareLink()) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($viewer) {
+                $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
+
+                $approvedCount = $campaign->participants()
+                    ->where('status', ParticipantStatus::Approved->value)
+                    ->count();
+
+                $isFull = $campaign->max_players !== null && $approvedCount >= $campaign->max_players;
+
+                if ($isFull) {
+                    // Full campaign: bench the player
+                    CampaignParticipant::create([
+                        'campaign_id' => $campaign->id,
+                        'user_id' => $viewer->id,
+                        'role' => 'player',
+                        'status' => ParticipantStatus::Benched->value,
+                        'benched_at' => now(),
+                        'join_source' => JoinSource::ShareLink->value,
+                    ]);
+
+                    Log::info('Player benched via share link (campaign full)', [
+                        'campaign_id' => $campaign->id,
+                        'user_id' => $viewer->id,
+                    ]);
+                } else {
+                    // Direct join
+                    CampaignParticipant::create([
+                        'campaign_id' => $campaign->id,
+                        'user_id' => $viewer->id,
+                        'role' => 'player',
+                        'status' => ParticipantStatus::Approved->value,
+                        'join_source' => JoinSource::ShareLink->value,
+                    ]);
+
+                    Log::info('Player joined campaign via share link', [
+                        'campaign_id' => $campaign->id,
+                        'user_id' => $viewer->id,
+                    ]);
+                }
+            });
+
+            // Clear the share_intent cookie since the user has now joined
+            Cookie::queue(Cookie::forget('share_intent'));
+
+            // Reload campaign to reflect new participant
+            $this->campaign->load('participants.user');
+
+            session()->flash('success', __('campaigns.flash_joined_via_share_link'));
+        } catch (\Throwable $e) {
+            Log::error('Failed to join campaign via share link', [
+                'campaign_id' => $this->campaign->id,
+                'user_id' => $viewer->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', __('campaigns.error_join_via_share_link_failed'));
+        }
+    }
+
+    #[Computed]
+    public function canJoinViaShareLink(): bool
+    {
+        $viewer = Auth::user();
+        if (! $viewer) {
+            return false;
+        }
+
+        // Must have a valid share token captured on mount
+        if ($this->validatedShareToken === null) {
+            return false;
+        }
+
+        // Token must still match the campaign's current share token
+        if ($this->validatedShareToken !== $this->campaign->share_token) {
+            return false;
+        }
+
+        // Token must not be expired
+        if ($this->campaign->share_token_expires_at !== null && $this->campaign->share_token_expires_at->isPast()) {
+            return false;
+        }
+
+        // Cannot be the owner
+        if ($this->campaign->owner_id === $viewer->id) {
+            return false;
+        }
+
+        // Cannot already be a participant
+        $existingParticipant = $this->campaign->participants
+            ->first(fn ($p) => $p->user_id === $viewer->id
+                && in_array($p->status->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Benched->value,
+                ]));
+
+        if ($existingParticipant) {
+            return false;
+        }
+
+        return true;
+    }
+
     // ── Bench Actions ──────────────────────────────────
 
     /**
@@ -238,6 +374,7 @@ class CampaignDetail extends Component
             'userBenchParticipant' => $userBenchParticipant,
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
+            'canJoinViaShareLink' => $this->canJoinViaShareLink(),
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }

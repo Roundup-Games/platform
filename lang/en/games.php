@@ -91,6 +91,9 @@ return [
 
     // Moved from events domain — game-specific
     'action_apply_to_join' => 'Apply to Join',
+    'action_join_via_share_link' => 'Join via Link',
+    'flash_joined_via_share_link' => 'You\'ve joined the game!',
+    'error_join_via_share_link_failed' => 'Something went wrong joining the game. Please try again.',
     'content_you_are_already_a_participant_of_this_game' => 'You are already a participant of this game.',
     'action_choose_base_game_or_expansion' => 'Choose base game or expansion',
     'action_create_a_game' => 'Create a Game',

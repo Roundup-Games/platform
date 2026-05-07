@@ -4,6 +4,7 @@ namespace App\Livewire\Games;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
+use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
@@ -22,8 +23,11 @@ use App\Traits\HandlesSessionEnd;
 use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -39,11 +43,28 @@ class GameDetail extends Component
     /** @var string|null Recap content for host write-recap form */
     public ?string $recapContent = null;
 
+    /** @var string|null Validated share token captured on mount, persists across Livewire updates */
+    public ?string $validatedShareToken = null;
+
     public function mount(string $id): void
     {
         $game = Game::findOrFail($id);
         $this->authorize('view', $game);
         $this->game = $game;
+
+        // Capture valid share token on initial page load (query params don't persist across Livewire updates)
+        if ($game->hasValidShareToken()) {
+            $this->validatedShareToken = request()->query('share');
+        }
+
+        // Set share_intent cookie for guests visiting via share link
+        if (Auth::guest() && $this->validatedShareToken !== null) {
+            Cookie::queue('share_intent', encrypt(json_encode([
+                'entity_type' => 'game',
+                'entity_id' => $game->id,
+                'share_token' => $this->validatedShareToken,
+            ])), 7 * 24 * 60);
+        }
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -170,6 +191,144 @@ class GameDetail extends Component
         }
 
         return route('games.detail', $this->game->id) . '?share=' . $this->game->share_token;
+    }
+
+    // ── Join via Share Link ────────────────────────────
+
+    public function joinViaShareLink(): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || ! $this->canJoinViaShareLink()) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($viewer) {
+                $game = Game::lockForUpdate()->find($this->game->id);
+
+                $approvedCount = $game->participants()
+                    ->where('status', ParticipantStatus::Approved->value)
+                    ->count();
+
+                $isFull = $game->max_players !== null && $approvedCount >= $game->max_players;
+
+                if ($isFull && $game->campaign_id !== null) {
+                    // Campaign session: bench the player
+                    GameParticipant::create([
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                        'role' => 'player',
+                        'status' => ParticipantStatus::Benched->value,
+                        'benched_at' => now(),
+                        'join_source' => JoinSource::ShareLink->value,
+                    ]);
+
+                    Log::info('Player benched via share link (campaign session full)', [
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                    ]);
+                } elseif ($isFull) {
+                    // Standalone game: waitlist
+                    GameParticipant::create([
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                        'role' => 'player',
+                        'status' => ParticipantStatus::Waitlisted->value,
+                        'waitlisted_at' => now(),
+                        'join_source' => JoinSource::ShareLink->value,
+                    ]);
+
+                    Log::info('Player waitlisted via share link (game full)', [
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                    ]);
+                } else {
+                    // Direct join
+                    GameParticipant::create([
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                        'role' => 'player',
+                        'status' => ParticipantStatus::Approved->value,
+                        'join_source' => JoinSource::ShareLink->value,
+                    ]);
+
+                    Log::info('Player joined via share link', [
+                        'game_id' => $game->id,
+                        'user_id' => $viewer->id,
+                    ]);
+                }
+            });
+
+            // Clear the share_intent cookie since the user has now joined
+            Cookie::queue(Cookie::forget('share_intent'));
+
+            // Reload game to reflect new participant
+            $this->game->load('participants.user');
+            unset($this->isParticipant, $this->isGameFull, $this->canApply, $this->canJoinWaitlist);
+
+            session()->flash('success', __('games.flash_joined_via_share_link'));
+        } catch (\Throwable $e) {
+            Log::error('Failed to join via share link', [
+                'game_id' => $this->game->id,
+                'user_id' => $viewer->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw ValidationException::withMessages([
+                'share_link' => [__('games.error_join_via_share_link_failed')],
+            ]);
+        }
+    }
+
+    #[Computed]
+    public function canJoinViaShareLink(): bool
+    {
+        $viewer = Auth::user();
+        if (! $viewer) {
+            return false;
+        }
+
+        // Must have a valid share token captured on mount
+        if ($this->validatedShareToken === null) {
+            return false;
+        }
+
+        // Token must still match the game's current share token
+        if ($this->validatedShareToken !== $this->game->share_token) {
+            return false;
+        }
+
+        // Token must not be expired
+        if ($this->game->share_token_expires_at !== null && $this->game->share_token_expires_at->isPast()) {
+            return false;
+        }
+
+        // Cannot be the owner
+        if ($this->game->owner_id === $viewer->id) {
+            return false;
+        }
+
+        // Cannot already be a participant
+        $existingParticipant = $this->game->participants
+            ->first(fn ($p) => $p->user_id === $viewer->id
+                && in_array($p->status->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                ]));
+
+        if ($existingParticipant) {
+            return false;
+        }
+
+        // Game must not be completed or canceled
+        if (in_array($this->game->status->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
+            return false;
+        }
+
+        return true;
     }
 
     // ── Computed viewer state (cached per request-cycle) ──
@@ -375,6 +534,7 @@ class GameDetail extends Component
                     ? $this->game->safety_rules['comfort_notes'] : null,
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
+            'canJoinViaShareLink' => $this->canJoinViaShareLink(),
         ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
     }
 }
