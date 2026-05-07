@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class GameDetail extends Component
@@ -44,6 +45,7 @@ class GameDetail extends Component
     public ?string $recapContent = null;
 
     /** @var string|null Validated share token captured on mount, persists across Livewire updates */
+    #[Locked]
     public ?string $validatedShareToken = null;
 
     public function mount(string $id): void
@@ -63,7 +65,7 @@ class GameDetail extends Component
                 'entity_type' => 'game',
                 'entity_id' => $game->id,
                 'share_token' => $this->validatedShareToken,
-            ])), 7 * 24 * 60);
+            ])), 24 * 60);
         }
     }
 

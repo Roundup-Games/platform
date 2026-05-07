@@ -52,7 +52,7 @@ describe('ProcessShareIntent — game share link', function () {
             ->first();
 
         expect($participant)->not->toBeNull();
-        expect($participant->role)->toBe(ParticipantRole::Invited);
+        expect($participant->role)->toBe(ParticipantRole::Player->value);
         expect($participant->status)->toBe(ParticipantStatus::Approved);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
@@ -119,7 +119,7 @@ describe('ProcessShareIntent — campaign share link', function () {
             ->first();
 
         expect($participant)->not->toBeNull();
-        expect($participant->role)->toBe(ParticipantRole::Invited);
+        expect($participant->role)->toBe(ParticipantRole::Player->value);
         expect($participant->status)->toBe(ParticipantStatus::Approved);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });

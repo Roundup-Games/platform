@@ -41,8 +41,8 @@ describe('share_intent cookie on guest visit', function () {
         $cookie = collect(cookie()->getQueuedCookies())->last();
         expect($cookie)->not->toBeNull();
         expect($cookie->getName())->toBe('share_intent');
-        // Cookie was queued with 7-day TTL
-        expect($cookie->getExpiresTime())->toBeGreaterThan(time() + 6 * 24 * 60 * 60);
+        // Cookie was queued with 24-hour TTL
+        expect($cookie->getExpiresTime())->toBeGreaterThan(time() + 23 * 60 * 60);
     });
 
     it('sets share_intent cookie when guest visits campaign via valid share link', function () {

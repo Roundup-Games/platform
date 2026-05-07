@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class CampaignDetail extends Component
@@ -24,6 +25,7 @@ class CampaignDetail extends Component
     public Campaign $campaign;
 
     /** @var string|null Validated share token captured on mount, persists across Livewire updates */
+    #[Locked]
     public ?string $validatedShareToken = null;
 
     public function mount(string $id): void
@@ -43,7 +45,7 @@ class CampaignDetail extends Component
                 'entity_type' => 'campaign',
                 'entity_id' => $campaign->id,
                 'share_token' => $this->validatedShareToken,
-            ])), 7 * 24 * 60);
+            ])), 24 * 60);
         }
     }
 
@@ -251,6 +253,12 @@ class CampaignDetail extends Component
 
         // Cannot be the owner
         if ($this->campaign->owner_id === $viewer->id) {
+            return false;
+        }
+
+        // Campaign must not be completed or cancelled
+        if ($this->campaign->status->value === \App\Enums\CampaignStatus::Cancelled->value
+            || $this->campaign->status->value === \App\Enums\CampaignStatus::Completed->value) {
             return false;
         }
 

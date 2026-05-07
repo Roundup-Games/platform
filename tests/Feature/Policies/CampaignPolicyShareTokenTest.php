@@ -169,11 +169,11 @@ describe('Share token without expiry', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// LOGGING
+// LOGGING (policy is side-effect-free — no logging)
 // ═══════════════════════════════════════════════════════════
 
 describe('Share token logging', function () {
-    it('logs when share token grants access', function () {
+    it('does not log when share token grants access', function () {
         Log::spy();
 
         $token = (string) Str::uuid();
@@ -189,12 +189,60 @@ describe('Share token logging', function () {
 
         Gate::allows('view', $campaign);
 
-        $tokenPrefix = substr($token, 0, 8);
-        Log::shouldHaveReceived('info')
-            ->with('Share token granted access', \Mockery::on(function ($context) use ($campaign, $tokenPrefix) {
-                return $context['entity_type'] === 'campaign'
-                    && $context['entity_id'] === $campaign->id
-                    && str_starts_with($context['share_token'], $tokenPrefix);
-            }));
+        Log::shouldNotHaveReceived('info');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// STATUS CHECK — completed/cancelled campaigns deny share token bypass
+// ═══════════════════════════════════════════════════════════
+
+describe('Share token status guard', function () {
+    it('denies access via share token for completed campaign', function () {
+        $token = (string) Str::uuid();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'completed',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $campaign))->toBeFalse();
+    });
+
+    it('denies access via share token for cancelled campaign', function () {
+        $token = (string) Str::uuid();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'cancelled',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $campaign))->toBeFalse();
+    });
+
+    it('grants access via share token for active campaign', function () {
+        $token = (string) Str::uuid();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'active',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $campaign))->toBeTrue();
     });
 });

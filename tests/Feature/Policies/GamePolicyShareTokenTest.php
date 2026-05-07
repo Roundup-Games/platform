@@ -169,11 +169,11 @@ describe('Share token without expiry', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// LOGGING
+// LOGGING (policy is side-effect-free — no logging)
 // ═══════════════════════════════════════════════════════════
 
 describe('Share token logging', function () {
-    it('logs when share token grants access', function () {
+    it('does not log when share token grants access', function () {
         Log::spy();
 
         $token = (string) Str::uuid();
@@ -189,12 +189,60 @@ describe('Share token logging', function () {
 
         Gate::allows('view', $game);
 
-        $tokenPrefix = substr($token, 0, 8);
-        Log::shouldHaveReceived('info')
-            ->with('Share token granted access', \Mockery::on(function ($context) use ($game, $tokenPrefix) {
-                return $context['entity_type'] === 'game'
-                    && $context['entity_id'] === $game->id
-                    && str_starts_with($context['share_token'], $tokenPrefix);
-            }));
+        Log::shouldNotHaveReceived('info');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// STATUS CHECK — completed/canceled games deny share token bypass
+// ═══════════════════════════════════════════════════════════
+
+describe('Share token status guard', function () {
+    it('denies access via share token for completed game', function () {
+        $token = (string) Str::uuid();
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'completed',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $game))->toBeFalse();
+    });
+
+    it('denies access via share token for canceled game', function () {
+        $token = (string) Str::uuid();
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'canceled',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $game))->toBeFalse();
+    });
+
+    it('grants access via share token for scheduled game', function () {
+        $token = (string) Str::uuid();
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'visibility' => 'private',
+            'share_token' => $token,
+            'share_token_expires_at' => now()->addDays(7),
+            'status' => 'scheduled',
+        ]);
+
+        request()->merge(['share' => $token]);
+
+        expect(Gate::allows('view', $game))->toBeTrue();
     });
 });

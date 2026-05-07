@@ -2,15 +2,19 @@
 
 namespace App\Http\Middleware;
 
+use App\Dto\ShareIntentResult;
+use App\Enums\CampaignStatus;
+use App\Enums\GameStatus;
 use App\Enums\JoinSource;
-use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use Closure;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -65,20 +69,15 @@ class ProcessShareIntent
             Log::warning('share_intent.invalid_payload', [
                 'user_id' => $user->id,
             ]);
-            $response = $next($request);
 
-            return $this->clearCookie($response);
+            return $this->clearCookie($next($request));
         }
 
-        // Process the share intent
+        // Process the share intent BEFORE running $next($request) so we can
+        // redirect immediately without wasting a full controller/render cycle.
         $result = $this->processShareIntent($payload, $user);
 
-        $response = $next($request);
-
-        // Always clear the cookie after processing attempt (success, failure, or skip)
-        $response = $this->clearCookie($response);
-
-        // If we created a participant, redirect to the entity detail page
+        // If we created a participant (or user was already one), redirect now
         if ($result->shouldRedirect && $result->redirectRoute) {
             Log::info('share_intent.redirecting', [
                 'user_id' => $user->id,
@@ -92,7 +91,8 @@ class ProcessShareIntent
             ])->withCookie(cookie()->forget('share_intent'));
         }
 
-        return $response;
+        // No redirect needed — run the normal request pipeline and clear cookie
+        return $this->clearCookie($next($request));
     }
 
     /**
@@ -133,7 +133,7 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null);
         }
 
-        // Check if user is already a participant
+        // Check if user is already a participant (before acquiring lock)
         $existing = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $user->id)
             ->first();
@@ -150,24 +150,73 @@ class ProcessShareIntent
             return new ShareIntentResult(true, 'games.detail');
         }
 
-        // Determine status based on capacity
-        $status = $this->determineStatus($game, 'game');
+        // Wrap participant creation in a transaction with lockForUpdate to prevent
+        // race conditions (concurrent share-link joins, double-clicks, etc.)
+        try {
+            $status = null;
 
-        // Create participant
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Invited->value,
-            'status' => $status,
-            'join_source' => JoinSource::ShareLink,
-        ]);
+            DB::transaction(function () use ($game, $user, &$status) {
+                $lockedGame = Game::lockForUpdate()->find($game->id);
 
-        Log::info('share_intent.participant_created', [
-            'user_id' => $user->id,
-            'entity_type' => 'game',
-            'entity_id' => $entityId,
-            'status' => $status->value,
-        ]);
+                // Check game is still active (not completed/cancelled)
+                if (in_array($lockedGame->status, [GameStatus::Completed, GameStatus::Canceled], true)) {
+                    Log::warning('share_intent.game_inactive', [
+                        'user_id' => $user->id,
+                        'entity_id' => $game->id,
+                        'status' => $lockedGame->status->value,
+                    ]);
+
+                    return; // exits transaction early — $status stays null
+                }
+
+                // Re-check under lock that user hasn't been added by a concurrent request
+                $alreadyExists = GameParticipant::where('game_id', $lockedGame->id)
+                    ->where('user_id', $user->id)
+                    ->exists();
+
+                if ($alreadyExists) {
+                    // Race lost — another request already added the participant.
+                    // Set status so we still redirect.
+                    $status = ParticipantStatus::Approved;
+
+                    return;
+                }
+
+                // Determine status based on capacity (under lock)
+                $status = $this->determineStatus($lockedGame, 'game');
+
+                GameParticipant::create([
+                    'game_id' => $lockedGame->id,
+                    'user_id' => $user->id,
+                    'role' => 'player',
+                    'status' => $status,
+                    'join_source' => JoinSource::ShareLink,
+                ]);
+
+                Log::info('share_intent.participant_created', [
+                    'user_id' => $user->id,
+                    'entity_type' => 'game',
+                    'entity_id' => $lockedGame->id,
+                    'status' => $status->value,
+                ]);
+            });
+        } catch (QueryException $e) {
+            // Unique constraint violation — participant already exists from a
+            // concurrent request. The outcome is correct, so log and redirect.
+            Log::warning('share_intent.duplicate_participant', [
+                'user_id' => $user->id,
+                'entity_type' => 'game',
+                'entity_id' => $entityId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return new ShareIntentResult(true, 'games.detail');
+        }
+
+        // If status is null the game was inactive — don't redirect, just clear cookie
+        if ($status === null) {
+            return new ShareIntentResult(false, null);
+        }
 
         return new ShareIntentResult(true, 'games.detail');
     }
@@ -194,7 +243,7 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null);
         }
 
-        // Check if user is already a participant
+        // Check if user is already a participant (before acquiring lock)
         $existing = CampaignParticipant::where('campaign_id', $campaign->id)
             ->where('user_id', $user->id)
             ->first();
@@ -210,24 +259,73 @@ class ProcessShareIntent
             return new ShareIntentResult(true, 'campaigns.detail');
         }
 
-        // Determine status based on capacity
-        $status = $this->determineStatus($campaign, 'campaign');
+        // Wrap participant creation in a transaction with lockForUpdate to prevent
+        // race conditions (concurrent share-link joins, double-clicks, etc.)
+        try {
+            $status = null;
 
-        // Create participant
-        CampaignParticipant::create([
-            'campaign_id' => $campaign->id,
-            'user_id' => $user->id,
-            'role' => ParticipantRole::Invited->value,
-            'status' => $status,
-            'join_source' => JoinSource::ShareLink,
-        ]);
+            DB::transaction(function () use ($campaign, $user, &$status) {
+                $lockedCampaign = Campaign::lockForUpdate()->find($campaign->id);
 
-        Log::info('share_intent.participant_created', [
-            'user_id' => $user->id,
-            'entity_type' => 'campaign',
-            'entity_id' => $entityId,
-            'status' => $status->value,
-        ]);
+                // Check campaign is still active (not cancelled/completed)
+                if (in_array($lockedCampaign->status, [CampaignStatus::Cancelled, CampaignStatus::Completed], true)) {
+                    Log::warning('share_intent.campaign_inactive', [
+                        'user_id' => $user->id,
+                        'entity_id' => $campaign->id,
+                        'status' => $lockedCampaign->status->value,
+                    ]);
+
+                    return; // exits transaction early — $status stays null
+                }
+
+                // Re-check under lock that user hasn't been added by a concurrent request
+                $alreadyExists = CampaignParticipant::where('campaign_id', $lockedCampaign->id)
+                    ->where('user_id', $user->id)
+                    ->exists();
+
+                if ($alreadyExists) {
+                    // Race lost — another request already added the participant.
+                    // Set status so we still redirect.
+                    $status = ParticipantStatus::Approved;
+
+                    return;
+                }
+
+                // Determine status based on capacity (under lock)
+                $status = $this->determineStatus($lockedCampaign, 'campaign');
+
+                CampaignParticipant::create([
+                    'campaign_id' => $lockedCampaign->id,
+                    'user_id' => $user->id,
+                    'role' => 'player',
+                    'status' => $status,
+                    'join_source' => JoinSource::ShareLink,
+                ]);
+
+                Log::info('share_intent.participant_created', [
+                    'user_id' => $user->id,
+                    'entity_type' => 'campaign',
+                    'entity_id' => $lockedCampaign->id,
+                    'status' => $status->value,
+                ]);
+            });
+        } catch (QueryException $e) {
+            // Unique constraint violation — participant already exists from a
+            // concurrent request. The outcome is correct, so log and redirect.
+            Log::warning('share_intent.duplicate_participant', [
+                'user_id' => $user->id,
+                'entity_type' => 'campaign',
+                'entity_id' => $entityId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return new ShareIntentResult(true, 'campaigns.detail');
+        }
+
+        // If status is null the campaign was inactive — don't redirect, just clear cookie
+        if ($status === null) {
+            return new ShareIntentResult(false, null);
+        }
 
         return new ShareIntentResult(true, 'campaigns.detail');
     }
@@ -327,7 +425,6 @@ class ProcessShareIntent
      */
     private function clearCookie(Response $response): Response
     {
-        $response->headers->removeCookie('share_intent');
         $response->withCookie(cookie()->forget('share_intent'));
 
         return $response;
@@ -356,15 +453,4 @@ class ProcessShareIntent
             && ! $request->is('api/*')
             && ! $request->header('X-Livewire');
     }
-}
-
-/**
- * Internal result object for share intent processing.
- */
-class ShareIntentResult
-{
-    public function __construct(
-        public readonly bool $shouldRedirect,
-        public readonly ?string $redirectRoute,
-    ) {}
 }
