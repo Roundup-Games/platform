@@ -7,7 +7,6 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
-use App\Services\ReviewEligibilityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -39,16 +38,13 @@ class WriteReview extends Component
 
         $this->reviewableName = $reviewable->name;
 
-        $user = Auth::user();
-        $eligibility = app(ReviewEligibilityService::class);
-
         if ($reviewable instanceof Game) {
-            if (! $eligibility->canReviewSession($user, $reviewable)) {
+            if (! Gate::allows('canReviewSession', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
                 return;
             }
         } elseif ($reviewable instanceof Campaign) {
-            if (! $eligibility->canReviewCampaign($user, $reviewable)) {
+            if (! Gate::allows('canReviewCampaign', [Review::class, $reviewable])) {
                 $this->errorMessage = __('reviews.error_not_eligible');
                 return;
             }
