@@ -79,6 +79,25 @@
                                 {{ $participant->role === 'owner' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                 {{ strtoupper($participant->role) }}
                             </span>
+                            @if($participant->join_source)
+                                @php
+                                    $joinSourceEnum = $participant->join_source;
+                                    if ($joinSourceEnum instanceof \App\Enums\JoinSource) {
+                                        $joinSourceBadge = $joinSourceEnum;
+                                    } else {
+                                        $joinSourceBadge = \App\Enums\JoinSource::tryFrom($joinSourceEnum);
+                                    }
+                                @endphp
+                                @if($joinSourceBadge)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                        {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'bg-tertiary/10 text-tertiary' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'bg-primary/10 text-primary' : 'bg-secondary-container text-on-secondary-container') }}">
+                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">
+                                            {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'link' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'person_add' : 'edit_note') }}
+                                        </span>
+                                        {{ $joinSourceBadge->label() }}
+                                    </span>
+                                @endif
+                            @endif
                             @if($participant->role !== 'owner')
                                 <button wire:click="removeParticipant('{{ $participant->id }}')"
                                     wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"

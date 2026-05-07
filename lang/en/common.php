@@ -287,6 +287,18 @@ return [
     // Share link management
     'flash_share_link_generated' => 'Share link generated.',
     'flash_share_link_revoked' => 'Share link revoked.',
+    'share_link_title' => 'Share Link',
+    'share_link_description' => 'Generate a shareable link to invite players directly.',
+    'share_link_generate' => 'Generate Link',
+    'share_link_copy' => 'Copy Link',
+    'share_link_copied' => 'Copied!',
+    'share_link_regenerate' => 'Regenerate',
+    'share_link_revoke' => 'Revoke Link',
+    'share_link_confirm_regenerate' => 'Are you sure? This will invalidate the current link.',
+    'share_link_confirm_revoke' => 'Are you sure? This will disable the share link permanently.',
+    'join_source_friend_invite' => 'Friend Invite',
+    'join_source_share_link' => 'Share Link',
+    'join_source_application' => 'Application',
 
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Participants',

@@ -341,6 +341,13 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- Share Link Management (owner only) --}}
+                @if($isOwner)
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        @include('livewire.partials.share-link', ['hasShareLink' => $hasShareLink, 'shareLinkUrl' => $shareLinkUrl])
+                    </div>
+                @endif
             </aside>
         </div>
     </div>
