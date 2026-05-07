@@ -18,7 +18,7 @@ class GeocodeController extends Controller
     /**
      * Geocode a city/address query to coordinates.
      *
-     * POST /api/geocode
+     * POST /api/v1/geocode
      * Body: { query: string }
      * Rate limited: 10 requests per minute per IP.
      */
