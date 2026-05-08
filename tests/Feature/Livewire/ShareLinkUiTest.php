@@ -30,8 +30,8 @@ describe('Game share link UI', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('common.share_link_title'))
-            ->assertSee(__('common.share_link_generate'));
+            ->assertSee(__('common.title_share_link'))
+            ->assertSee(__('common.action_generate_link'));
     });
 
     it('does not show share link section to non-owner', function () {
@@ -43,7 +43,7 @@ describe('Game share link UI', function () {
 
         Livewire::actingAs($this->nonOwner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('common.share_link_title'));
+            ->assertDontSee(__('common.title_share_link'));
     });
 
     it('shows active share link with URL when token exists', function () {
@@ -59,10 +59,10 @@ describe('Game share link UI', function () {
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee($expectedUrl)
-            ->assertSee(__('common.share_link_copy'))
-            ->assertSee(__('common.share_link_regenerate'))
-            ->assertSee(__('common.share_link_revoke'))
-            ->assertDontSee(__('common.share_link_generate'));
+            ->assertSee(__('common.action_copy_link'))
+            ->assertSee(__('common.action_regenerate_link'))
+            ->assertSee(__('common.action_revoke_link'))
+            ->assertDontSee(__('common.action_generate_link'));
     });
 
     it('does not show generate button when link already exists', function () {
@@ -74,7 +74,7 @@ describe('Game share link UI', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('common.share_link_generate'));
+            ->assertDontSee(__('common.action_generate_link'));
     });
 
     it('shows generate button when no link exists', function () {
@@ -86,10 +86,10 @@ describe('Game share link UI', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('common.share_link_generate'))
-            ->assertDontSee(__('common.share_link_copy'))
-            ->assertDontSee(__('common.share_link_regenerate'))
-            ->assertDontSee(__('common.share_link_revoke'));
+            ->assertSee(__('common.action_generate_link'))
+            ->assertDontSee(__('common.action_copy_link'))
+            ->assertDontSee(__('common.action_regenerate_link'))
+            ->assertDontSee(__('common.action_revoke_link'));
     });
 
     it('copyable URL contains correct share token after generation', function () {
@@ -119,10 +119,10 @@ describe('Game share link UI', function () {
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('generateShareLink')
-            ->assertDontSee(__('common.share_link_generate'))
-            ->assertSee(__('common.share_link_copy'))
-            ->assertSee(__('common.share_link_regenerate'))
-            ->assertSee(__('common.share_link_revoke'));
+            ->assertDontSee(__('common.action_generate_link'))
+            ->assertSee(__('common.action_copy_link'))
+            ->assertSee(__('common.action_regenerate_link'))
+            ->assertSee(__('common.action_revoke_link'));
     });
 
     it('switches to generate state after revoking a link', function () {
@@ -135,10 +135,10 @@ describe('Game share link UI', function () {
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('revokeShareLink')
-            ->assertSee(__('common.share_link_generate'))
-            ->assertDontSee(__('common.share_link_copy'))
-            ->assertDontSee(__('common.share_link_regenerate'))
-            ->assertDontSee(__('common.share_link_revoke'));
+            ->assertSee(__('common.action_generate_link'))
+            ->assertDontSee(__('common.action_copy_link'))
+            ->assertDontSee(__('common.action_regenerate_link'))
+            ->assertDontSee(__('common.action_revoke_link'));
     });
 });
 
@@ -154,8 +154,8 @@ describe('Campaign share link UI', function () {
 
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee(__('common.share_link_title'))
-            ->assertSee(__('common.share_link_generate'));
+            ->assertSee(__('common.title_share_link'))
+            ->assertSee(__('common.action_generate_link'));
     });
 
     it('does not show share link section to non-owner', function () {
@@ -167,7 +167,7 @@ describe('Campaign share link UI', function () {
 
         Livewire::actingAs($this->nonOwner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertDontSee(__('common.share_link_title'));
+            ->assertDontSee(__('common.title_share_link'));
     });
 
     it('shows active share link with URL when token exists', function () {
@@ -183,8 +183,8 @@ describe('Campaign share link UI', function () {
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee($expectedUrl)
-            ->assertSee(__('common.share_link_copy'))
-            ->assertDontSee(__('common.share_link_generate'));
+            ->assertSee(__('common.action_copy_link'))
+            ->assertDontSee(__('common.action_generate_link'));
     });
 
     it('copyable URL contains correct share token after generation', function () {
@@ -214,8 +214,8 @@ describe('Campaign share link UI', function () {
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->call('revokeShareLink')
-            ->assertSee(__('common.share_link_generate'))
-            ->assertDontSee(__('common.share_link_copy'));
+            ->assertSee(__('common.action_generate_link'))
+            ->assertDontSee(__('common.action_copy_link'));
     });
 });
 

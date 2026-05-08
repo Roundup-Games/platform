@@ -6,7 +6,7 @@ return [
     'label_tier_active' => 'Aktiv',
     'label_tier_newcomer' => 'Neu dabei',
     'content_tier_description_reliable' => 'Du warst schon bei über 5 Spielen dabei — weiter so!',
-    'content_tier_active' => 'Du spielst regelmäßig, es geht bergauf.',
+    'content_tier_description_active' => 'Du spielst regelmäßig, es geht bergauf.',
     'content_tier_description_newcomer' => 'Neu hier — je öfter du mitspielst, desto besser kennen dich die anderen.',
 
     // Statistiken
