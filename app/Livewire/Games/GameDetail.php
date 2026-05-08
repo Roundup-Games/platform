@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -164,19 +165,23 @@ class GameDetail extends Component
 
     public function regenerateShareLink(): void
     {
-        if (! $this->isOwner()) {
+        $viewer = Auth::user();
+        if (! $viewer || $this->game->owner_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
             return;
         }
 
-        $this->revokeShareLink();
-        $this->generateShareLink();
+        $this->game->update([
+            'share_token' => Str::uuid()->toString(),
+            'share_token_expires_at' => now()->addDays(30),
+        ]);
 
         Log::info('Share link regenerated', [
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
-            'user_id' => Auth::id(),
+            'user_id' => $viewer->id,
         ]);
+        session()->flash('success', __('common.flash_share_link_generated'));
     }
 
     #[Computed]
@@ -205,6 +210,13 @@ class GameDetail extends Component
             session()->flash('error', __('common.error_not_authorized'));
             return;
         }
+
+        $rateLimitKey = 'share-join:' . $viewer->id . ':' . $this->game->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            session()->flash('error', __('common.error_rate_limit'));
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 60);
 
         try {
             DB::transaction(function () use ($viewer) {

@@ -133,6 +133,17 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null);
         }
 
+        // Owner is already a participant — skip with redirect
+        if ($game->owner_id === $user->id) {
+            Log::debug('share_intent.is_owner', [
+                'entity_type' => 'game',
+                'entity_id' => $game->id,
+                'user_id' => $user->id,
+            ]);
+
+            return new ShareIntentResult(true, 'games.detail');
+        }
+
         // Check if user is already a participant (before acquiring lock)
         $existing = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $user->id)
@@ -185,13 +196,21 @@ class ProcessShareIntent
                 // Determine status based on capacity (under lock)
                 $status = $this->determineStatus($lockedGame, 'game');
 
-                GameParticipant::create([
+                $participantData = [
                     'game_id' => $lockedGame->id,
                     'user_id' => $user->id,
                     'role' => 'player',
                     'status' => $status,
                     'join_source' => JoinSource::ShareLink,
-                ]);
+                ];
+
+                if ($status === ParticipantStatus::Waitlisted) {
+                    $participantData['waitlisted_at'] = now();
+                } elseif ($status === ParticipantStatus::Benched) {
+                    $participantData['benched_at'] = now();
+                }
+
+                GameParticipant::create($participantData);
 
                 Log::info('share_intent.participant_created', [
                     'user_id' => $user->id,
@@ -241,6 +260,17 @@ class ProcessShareIntent
         // Validate share token
         if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, $user->id)) {
             return new ShareIntentResult(false, null);
+        }
+
+        // Owner is already a participant — skip with redirect
+        if ($campaign->owner_id === $user->id) {
+            Log::debug('share_intent.is_owner', [
+                'entity_type' => 'campaign',
+                'entity_id' => $campaign->id,
+                'user_id' => $user->id,
+            ]);
+
+            return new ShareIntentResult(true, 'campaigns.detail');
         }
 
         // Check if user is already a participant (before acquiring lock)
@@ -294,13 +324,21 @@ class ProcessShareIntent
                 // Determine status based on capacity (under lock)
                 $status = $this->determineStatus($lockedCampaign, 'campaign');
 
-                CampaignParticipant::create([
+                $participantData = [
                     'campaign_id' => $lockedCampaign->id,
                     'user_id' => $user->id,
                     'role' => 'player',
                     'status' => $status,
                     'join_source' => JoinSource::ShareLink,
-                ]);
+                ];
+
+                if ($status === ParticipantStatus::Waitlisted) {
+                    $participantData['waitlisted_at'] = now();
+                } elseif ($status === ParticipantStatus::Benched) {
+                    $participantData['benched_at'] = now();
+                }
+
+                CampaignParticipant::create($participantData);
 
                 Log::info('share_intent.participant_created', [
                     'user_id' => $user->id,
@@ -362,7 +400,8 @@ class ProcessShareIntent
     /**
      * Determine participant status based on entity capacity.
      *
-     * Games → waitlisted when full. Campaigns → benched when full.
+     * Games → benched when full + campaign session, waitlisted when full + standalone.
+     * Campaigns → benched when full.
      */
     private function determineStatus($entity, string $entityType): ParticipantStatus
     {
@@ -371,9 +410,14 @@ class ProcessShareIntent
             ->count();
 
         if ($entity->max_players && $approvedCount >= $entity->max_players) {
-            return $entityType === 'game'
-                ? ParticipantStatus::Waitlisted
-                : ParticipantStatus::Benched;
+            if ($entityType === 'campaign') {
+                return ParticipantStatus::Benched;
+            }
+
+            // Game: bench if it belongs to a campaign, waitlist otherwise
+            return $entity->campaign_id !== null
+                ? ParticipantStatus::Benched
+                : ParticipantStatus::Waitlisted;
         }
 
         return ParticipantStatus::Approved;

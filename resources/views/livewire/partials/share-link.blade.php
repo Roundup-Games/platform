@@ -1,16 +1,5 @@
 @props(['hasShareLink', 'shareLinkUrl'])
 
-@section('share-link-styles')
-<style>
-    .share-link-url {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 0.75rem;
-        line-height: 1rem;
-        word-break: break-all;
-    }
-</style>
-@endsection
-
 <div x-data="{
     copied: false,
     copyToClipboard() {
@@ -33,7 +22,7 @@
         <div class="space-y-3">
             <div class="flex items-center gap-2 p-3 bg-surface-container-high rounded-lg">
                 <span class="material-symbols-outlined text-lg text-primary shrink-0" aria-hidden="true">link</span>
-                <span x-ref="shareUrl" class="share-link-url text-on-surface flex-1 min-w-0 truncate">{{ $shareLinkUrl }}</span>
+                <span x-ref="shareUrl" class="font-mono text-xs break-all text-on-surface flex-1 min-w-0 truncate">{{ $shareLinkUrl }}</span>
             </div>
 
             <div class="flex flex-wrap gap-2">

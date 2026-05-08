@@ -90,15 +90,11 @@ class Campaign extends Model
      * Check whether the current request carries a valid share token for this entity.
      * Validates that: the query param 'share' matches the stored token AND the token hasn't expired.
      */
-    public function hasValidShareToken(): bool
+    public function hasValidShareToken(?string $token = null): bool
     {
-        $token = request()->query('share');
+        $token = $token ?? request()->query('share');
 
-        if ($token === null || $this->share_token === null) {
-            return false;
-        }
-
-        if ($token !== $this->share_token) {
+        if (! $token || ! $this->share_token) {
             return false;
         }
 
@@ -106,7 +102,7 @@ class Campaign extends Model
             return false;
         }
 
-        return true;
+        return hash_equals($this->share_token, $token);
     }
 
     // ── Scopes ─────────────────────────────────────────

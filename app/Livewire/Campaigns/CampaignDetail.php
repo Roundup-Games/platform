@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -126,20 +128,22 @@ class CampaignDetail extends Component
     public function regenerateShareLink(): void
     {
         $viewer = Auth::user();
-
         if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
             return;
         }
 
-        $this->revokeShareLink();
-        $this->generateShareLink();
+        $this->campaign->update([
+            'share_token' => Str::uuid()->toString(),
+            'share_token_expires_at' => now()->addDays(30),
+        ]);
 
         Log::info('Share link regenerated', [
             'entity_type' => 'campaign',
             'entity_id' => $this->campaign->id,
-            'user_id' => Auth::id(),
+            'user_id' => $viewer->id,
         ]);
+        session()->flash('success', __('common.flash_share_link_generated'));
     }
 
     #[Computed]
@@ -168,6 +172,13 @@ class CampaignDetail extends Component
             session()->flash('error', __('common.error_not_authorized'));
             return;
         }
+
+        $rateLimitKey = 'share-join:' . $viewer->id . ':' . $this->campaign->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            session()->flash('error', __('common.error_rate_limit'));
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 60);
 
         try {
             DB::transaction(function () use ($viewer) {
@@ -257,8 +268,8 @@ class CampaignDetail extends Component
         }
 
         // Campaign must not be completed or cancelled
-        if ($this->campaign->status->value === \App\Enums\CampaignStatus::Cancelled->value
-            || $this->campaign->status->value === \App\Enums\CampaignStatus::Completed->value) {
+        if ($this->campaign->status->value === CampaignStatus::Cancelled->value
+            || $this->campaign->status->value === CampaignStatus::Completed->value) {
             return false;
         }
 
@@ -327,7 +338,7 @@ class CampaignDetail extends Component
             $userInvitation = $this->campaign->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
                     && $p->role === 'invited'
-                    && $p->status === \App\Enums\ParticipantStatus::Pending);
+                    && $p->status === ParticipantStatus::Pending);
 
             $hasExistingApplication = $this->campaign->applications()
                 ->where('user_id', $viewer->id)
@@ -336,7 +347,7 @@ class CampaignDetail extends Component
             // Check if the viewer is on the bench
             $userBenchParticipant = $this->campaign->participants
                 ->first(fn ($p) => $p->user_id === $viewer->id
-                    && $p->status === \App\Enums\ParticipantStatus::Benched);
+                    && $p->status === ParticipantStatus::Benched);
         }
 
         $canApply = $viewer
@@ -350,7 +361,7 @@ class CampaignDetail extends Component
         $benchedPlayers = collect();
         if ($isOwner) {
             $benchedPlayers = $this->campaign->participants
-                ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Benched);
+                ->filter(fn ($p) => $p->status === ParticipantStatus::Benched);
         }
 
         $canReview = false;
