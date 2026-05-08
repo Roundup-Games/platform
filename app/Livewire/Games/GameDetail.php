@@ -62,11 +62,11 @@ class GameDetail extends Component
 
         // Set share_intent cookie for guests visiting via share link
         if (Auth::guest() && $this->validatedShareToken !== null) {
-            Cookie::queue('share_intent', encrypt(json_encode([
+            Cookie::queue('share_intent', json_encode([
                 'entity_type' => 'game',
                 'entity_id' => $game->id,
                 'share_token' => $this->validatedShareToken,
-            ])), 24 * 60);
+            ]), 24 * 60);
         }
     }
 

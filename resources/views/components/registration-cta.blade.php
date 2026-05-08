@@ -6,7 +6,7 @@
 @guest
 <div class="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-6">
     <div class="flex items-center gap-4">
-        <span class="material-symbols-rounded text-3xl text-primary">{{ $icon }}</span>
+        <span class="material-symbols-outlined text-3xl text-primary">{{ $icon }}</span>
         <div class="flex-1 min-w-0">
             <p class="text-sm sm:text-base text-on-surface">{{ $message }}</p>
         </div>

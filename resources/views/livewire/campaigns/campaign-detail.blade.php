@@ -334,6 +334,21 @@
                     </div>
                 </div>
 
+                {{-- Manage Participants (owner only) --}}
+                @if($isOwner)
+                    <a href="{{ route('campaigns.manage-participants', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
+                       class="block bg-surface-container-low rounded-xl shadow-ambient p-4 hover:bg-surface-container-high transition-colors group">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-xl text-on-surface-variant group-hover:text-primary transition-colors" aria-hidden="true">group_manage</span>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-sm font-medium text-on-surface">{{ __('events.action_manage_participants') }}</span>
+                                <p class="text-xs text-on-surface-variant">{{ __('common.content_count_participants', ['count' => $campaign->participants->count()]) }}</p>
+                            </div>
+                            <span class="material-symbols-outlined text-lg text-on-surface-variant" aria-hidden="true">chevron_right</span>
+                        </div>
+                    </a>
+                @endif
+
                 {{-- Bench Management (owner only) --}}
                 @if($isOwner && $benchedPlayers->count())
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
