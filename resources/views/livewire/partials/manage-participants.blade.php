@@ -17,7 +17,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
         <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
             <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-2xl" aria-hidden="true">group_manage</span>
+                <span class="material-symbols-outlined text-2xl" aria-hidden="true">group</span>
                 {{ __('events.action_manage_participants') }}
             </h1>
             <p class="mt-1 text-sm text-on-surface-variant">{{ $entity->name }}</p>
