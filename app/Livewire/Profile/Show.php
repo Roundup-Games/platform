@@ -221,6 +221,21 @@ class Show extends Component
         // Dispatch discovery cache refresh if location changed
         if ($user->location_id !== ($oldLocationId ?? null)) {
             UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
+
+            // Invalidate dashboard caches affected by location change
+            $dashboardCache = app(\App\Services\DashboardCacheService::class);
+            $dashboardCache->invalidateForUser($user->id, ['opportunities']);
+
+            // Invalidate trending for old and new geohash tiles
+            if ($oldLocationId) {
+                $oldLocation = \App\Models\Location::find($oldLocationId);
+                if ($oldLocation && $oldLocation->geohash_4) {
+                    $dashboardCache->invalidateTrendingForGeohash($oldLocation->geohash_4);
+                }
+            }
+            if ($user->linkedLocation && $user->linkedLocation->geohash_4) {
+                $dashboardCache->invalidateTrendingForGeohash($user->linkedLocation->geohash_4);
+            }
         }
 
         $this->saved = true;
@@ -303,6 +318,13 @@ class Show extends Component
         }
         if ($gameSystemsChanged) {
             UpdateUserDiscoveryCache::dispatch($user->id, 'game_system_change');
+        }
+
+        // Invalidate dashboard opportunities cache when preferences change
+        if ($vibesChanged || $gameSystemsChanged) {
+            app(\App\Services\DashboardCacheService::class)->invalidateForUser(
+                $user->id, ['opportunities'],
+            );
         }
 
         $this->preferencesSaved = true;

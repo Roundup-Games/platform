@@ -53,6 +53,9 @@ class RecapService
             'content_length' => mb_strlen($content),
         ]);
 
+        // Dashboard cache invalidation is handled by GameObserver::saved()
+        // when it detects $game->wasChanged('recap').
+
         // Log activity
         $this->activityLogService->log(
             ActivityType::SessionRecapped,

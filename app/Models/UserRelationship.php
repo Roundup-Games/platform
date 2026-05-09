@@ -77,6 +77,8 @@ class UserRelationship extends Model
         PeopleDiscoveryService::invalidateCacheFor($initiator->id);
         UpdateUserDiscoveryCache::dispatch($initiator->id, 'follow');
 
+        // Dashboard feed cache invalidation is handled by UserRelationshipObserver
+
         // Dispatch NewFollower notification to the target user
         if ($rel->wasRecentlyCreated) {
             try {
@@ -109,17 +111,23 @@ class UserRelationship extends Model
             'action' => 'unfollow',
         ]);
 
-        $deleted = static::where('user_id', $initiator->id)
+        $rel = static::where('user_id', $initiator->id)
             ->where('related_user_id', $target->id)
             ->where('type', RelationshipType::Follow)
-            ->delete() > 0;
+            ->first();
 
-        if ($deleted) {
-            PeopleDiscoveryService::invalidateCacheFor($initiator->id);
-            UpdateUserDiscoveryCache::dispatch($initiator->id, 'unfollow');
+        if (! $rel) {
+            return false;
         }
 
-        return $deleted;
+        $rel->delete();
+
+        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
+        UpdateUserDiscoveryCache::dispatch($initiator->id, 'unfollow');
+
+        // Dashboard feed cache invalidation is handled by UserRelationshipObserver (deleted event)
+
+        return true;
     }
 
     /**

@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Dto\FeedItem;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -329,5 +331,53 @@ class GameActivityFeedService
                     'created_at' => $game->created_at,
                 ];
             });
+    }
+
+    /**
+     * Convert the raw (object) activity items from getFeed()/getCampaignFeed()
+     * into serializable FeedItem DTOs safe for cache storage.
+     *
+     * @param  \Illuminate\Support\Collection<int, object>  $activities
+     * @return \Illuminate\Support\Collection<int, FeedItem>
+     */
+    public function toFeedItems(Collection $activities): Collection
+    {
+        return $activities->map(function (object $item): FeedItem {
+            $entity = $item->entity;
+            $user = $item->user;
+
+            $gameSystemName = $entity->gameSystem?->name;
+            $participantCount = $entity->participants_count ?? null;
+            $maxPlayers = $entity->max_players ?? null;
+            $imageUrl = $this->resolveImageUrl($entity);
+
+            return new FeedItem(
+                id: $item->id,
+                type: $item->type,
+                entityType: $item->entity_type,
+                entityId: (string) $entity->id,
+                entityName: $entity->name,
+                userName: $user?->name ?? 'Unknown',
+                userId: (string) ($user?->id ?? ''),
+                createdAt: Carbon::parse($item->created_at),
+                gameSystemName: $gameSystemName,
+                participantCount: $participantCount,
+                maxPlayers: $maxPlayers,
+                imageUrl: $imageUrl,
+            );
+        });
+    }
+
+    /**
+     * Resolve an image URL from a game or campaign entity.
+     */
+    protected function resolveImageUrl(Game|Campaign $entity): ?string
+    {
+        // Campaigns store images as a JSON array
+        if ($entity instanceof Campaign && filled($entity->images)) {
+            return $entity->images[0] ?? null;
+        }
+
+        return null;
     }
 }

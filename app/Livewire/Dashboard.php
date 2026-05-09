@@ -2,15 +2,14 @@
 
 namespace App\Livewire;
 
-use App\Enums\AttendanceStatus;
+use App\Dto\FeedItem;
 use App\Enums\ParticipantStatus;
-use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GMProfile;
-use App\Models\UserRelationship;
-use App\Services\ActivityLogService;
+use App\Models\User;
+use App\Services\DashboardCacheService;
+use App\Services\DashboardSmartPromptService;
+use App\Services\Geohash;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -21,99 +20,51 @@ class Dashboard extends Component
 {
     public function render()
     {
+        $user = Auth::user();
         $gamesThisWeek = $this->gamesThisWeek();
 
+        $smartPrompt = app(DashboardSmartPromptService::class)->getPrompt($user);
+        $weekData = app(DashboardCacheService::class)->getWeekData($user);
+
+        // Community Feed: blend friends activity with trending nearby
+        $communityFeed = $this->getCommunityFeed($user);
+
+        // Opportunities & Contributions from cache service
+        $opportunities = $this->getOpportunities($user);
+        $contributions = app(DashboardCacheService::class)->getContributions($user);
+
+        // Quick actions derived from smart prompt state
+        $quickActions = $this->deriveQuickActions($user, $smartPrompt);
+
         return view('livewire.dashboard', [
-            'upcomingSessionsCount' => $this->upcomingSessionsCount(),
-            'activeGamesCount' => $this->activeGamesCount(),
-            'activeCampaignsCount' => $this->activeCampaignsCount(),
-            'pendingInvitationsCount' => $this->pendingInvitationsCount(),
-            'followersCount' => $this->followersCount(),
-            'followingCount' => $this->followingCount(),
-            'unreadNotificationsCount' => $this->unreadNotificationsCount(),
-            'gmAverageRating' => $this->gmAverageRating(),
-            'gmReviewCount' => $this->gmReviewCount(),
-            'gmUpcomingSessionsCount' => $this->gmUpcomingSessionsCount(),
-            'recentActivity' => $this->recentActivity(),
+            // New dashboard sections
+            'smartPrompt' => $smartPrompt,
+            'weekData' => $weekData,
             'gamesThisWeek' => $gamesThisWeek,
             'gamesThisWeekCount' => $gamesThisWeek->count(),
-            'gamesThisWeekSummary' => $this->gamesThisWeekSummary($gamesThisWeek),
-            'newRecaps' => $this->newRecaps(),
+            'unreadNotificationsCount' => $this->unreadNotificationsCount(),
+
+            // Community Feed
+            'communityFeed' => $communityFeed['friends'],
+            'trendingItems' => $communityFeed['trending'],
+            'hasTrendingSection' => $communityFeed['show_trending'],
+
+            // GM Stats
+            'gmAverageRating' => $this->gmAverageRating(),
+
+            // Recaps
+            'newRecaps' => collect(app(DashboardCacheService::class)->getRecaps($user))->map(fn ($r) => (object) $r),
+
+            // Opportunities & Contributions
+            'opportunities' => $opportunities,
+            'contributions' => $contributions,
+
+            // Quick Actions
+            'quickActions' => $quickActions,
         ]);
     }
 
-    #[Computed]
-    public function upcomingSessionsCount(): int
-    {
-        $user = Auth::user();
 
-        // Games the user owns that are upcoming
-        $ownedCount = Game::where('owner_id', $user->id)
-            ->where('date_time', '>', now())
-            ->where('status', 'scheduled')
-            ->count();
-
-        // Games the user is a participant in (approved) that are upcoming
-        $participantCount = GameParticipant::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->whereHas('game', fn ($q) => $q
-                ->where('date_time', '>', now())
-                ->where('status', 'scheduled')
-            )
-            ->count();
-
-        return $ownedCount + $participantCount;
-    }
-
-    #[Computed]
-    public function activeGamesCount(): int
-    {
-        return Game::where('owner_id', Auth::id())
-            ->where('status', 'scheduled')
-            ->count();
-    }
-
-    #[Computed]
-    public function activeCampaignsCount(): int
-    {
-        return Campaign::where('owner_id', Auth::id())
-            ->where('status', 'active')
-            ->count();
-    }
-
-    #[Computed]
-    public function pendingInvitationsCount(): int
-    {
-        $user = Auth::user();
-
-        $gameInvitations = GameParticipant::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->count();
-
-        $campaignInvitations = CampaignParticipant::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->count();
-
-        return $gameInvitations + $campaignInvitations;
-    }
-
-    #[Computed]
-    public function followersCount(): int
-    {
-        return UserRelationship::where('related_user_id', Auth::id())
-            ->where('type', 'follow')
-            ->count();
-    }
-
-    #[Computed]
-    public function followingCount(): int
-    {
-        return UserRelationship::where('user_id', Auth::id())
-            ->where('type', 'follow')
-            ->count();
-    }
-
-    #[Computed]
     public function unreadNotificationsCount(): int
     {
         return Auth::user()->unreadNotifications()->count();
@@ -129,34 +80,164 @@ class Dashboard extends Component
         return Auth::user()->gmProfile?->average_rating;
     }
 
-    #[Computed]
-    public function gmReviewCount(): int
+    /**
+     * Build the blended community feed: friends' activity + trending nearby.
+     *
+     * Returns:
+     *  - friends: FeedItem[] — max 10 items from social circle activity
+     *  - trending: FeedItem[] — max 5 trending items (shown when friends < 5)
+     *  - show_trending: bool — whether to show the trending subsection
+     */
+    private function getCommunityFeed(User $user): array
     {
-        if (! Auth::user()->isGM()) {
-            return 0;
+        // Read feed data from cache service (avoids double-computation)
+        $feedData = app(DashboardCacheService::class)->getFeedData($user);
+
+        $friendsItems = collect($feedData['items'] ?? [])
+            ->map(fn (array $item) => FeedItem::fromArray($item))
+            ->take(10);
+
+        // Get trending nearby games
+        $trendingItems = collect();
+        $showTrending = $friendsItems->count() < 5;
+
+        if ($showTrending) {
+            $trendingItems = $this->getTrendingFeedItems($user);
         }
 
-        return Auth::user()->gmProfile?->review_count ?? 0;
+        return [
+            'friends' => $friendsItems,
+            'trending' => $trendingItems,
+            'show_trending' => $showTrending && $trendingItems->isNotEmpty(),
+        ];
     }
 
-    #[Computed]
-    public function gmUpcomingSessionsCount(): int
+    /**
+     * Get trending nearby games as FeedItem DTOs.
+     *
+     * Uses DashboardCacheService trending cache for the user's geohash tile.
+     * Converts raw cached arrays into FeedItem instances.
+     */
+    private function getTrendingFeedItems(User $user): \Illuminate\Support\Collection
     {
-        if (! Auth::user()->isGM()) {
-            return 0;
+        $location = $user->linkedLocation;
+        if (! $location || ! $location->latitude || ! $location->longitude) {
+            return collect();
         }
 
-        return Game::where('owner_id', Auth::id())
-            ->where('date_time', '>', now())
-            ->where('status', 'scheduled')
-            ->count();
+        $geohash4 = Geohash::tilePrefix(
+            (float) $location->latitude,
+            (float) $location->longitude,
+            4,
+        );
+
+        $trendingData = app(DashboardCacheService::class)->getTrendingNearby($geohash4);
+        $games = $trendingData['games'] ?? [];
+
+        return collect($games)->map(function (array $gameData): FeedItem {
+            $participantCount = (int) ($gameData['participant_count'] ?? 0);
+            $maxPlayers = $gameData['max_players'] ?? null;
+
+            return new FeedItem(
+                id: 'trending_' . $gameData['id'],
+                type: 'trending',
+                entityType: 'game',
+                entityId: (string) $gameData['id'],
+                entityName: $gameData['name'],
+                userName: null,
+                userId: null,
+                createdAt: \Carbon\Carbon::parse($gameData['date_time']),
+                gameSystemName: null,
+                participantCount: $participantCount,
+                maxPlayers: $maxPlayers !== null ? (int) $maxPlayers : null,
+                imageUrl: null,
+            );
+        })->take(5);
     }
 
-    #[Computed]
-    public function recentActivity()
+    /**
+     * Get open-game opportunities for the user.
+     *
+     * Requires a geohash-4 prefix derived from the user's location.
+     * Returns empty array if no location is set.
+     */
+    private function getOpportunities(User $user): array
     {
-        return app(ActivityLogService::class)
-            ->getRecentForUser(Auth::user(), 20);
+        $location = $user->linkedLocation;
+        if (! $location || ! $location->latitude || ! $location->longitude) {
+            return ['games' => [], 'campaigns' => [], 'total_available' => 0];
+        }
+
+        $geohash4 = Geohash::tilePrefix(
+            (float) $location->latitude,
+            (float) $location->longitude,
+            4,
+        );
+
+        return app(DashboardCacheService::class)->getOpportunities($user, $geohash4);
+    }
+
+    /**
+     * Derive 2-3 quick action buttons from the smart prompt state.
+     *
+     * Priority chain mirrors smart prompt checks but produces action buttons.
+     * Each action has: label, url, style (primary|secondary), icon.
+     */
+    private function deriveQuickActions(User $user, array $smartPrompt): array
+    {
+        $actions = [];
+
+        // 1. If there are pending invitations, show that first
+        if ($smartPrompt['type'] === 'pending_invitations') {
+            $actions[] = [
+                'label' => __('profile.dashboard_prompt_view_invitations'),
+                'url' => route('games.index'),
+                'style' => 'primary',
+                'icon' => 'mail',
+            ];
+        }
+
+        // 2. If a session just completed, show write-recap action
+        if ($smartPrompt['type'] === 'just_completed') {
+            $actions[] = [
+                'label' => __('profile.dashboard_prompt_write_recap'),
+                'url' => $smartPrompt['action_url'] ?? route('games.index'),
+                'style' => 'primary',
+                'icon' => 'auto_stories',
+            ];
+        }
+
+        // 3. Create game is always a useful action for GMs
+        if ($user->isGM()) {
+            $actions[] = [
+                'label' => __('profile.dashboard_opportunities_create_cta'),
+                'url' => route('games.create'),
+                'style' => count($actions) === 0 ? 'primary' : 'secondary',
+                'icon' => 'add_circle',
+            ];
+        }
+
+        // 4. Discover / find games — always useful as secondary
+        if (count($actions) < 3) {
+            $actions[] = [
+                'label' => __('discovery.action_discover'),
+                'url' => route('discover'),
+                'style' => count($actions) === 0 ? 'primary' : 'secondary',
+                'icon' => 'explore',
+            ];
+        }
+
+        // 5. View schedule if user has upcoming games
+        if (count($actions) < 3 && ($smartPrompt['metadata']['upcoming_count'] ?? 0) > 0) {
+            $actions[] = [
+                'label' => __('profile.dashboard_prompt_view_schedule'),
+                'url' => route('games.index'),
+                'style' => 'secondary',
+                'icon' => 'schedule',
+            ];
+        }
+
+        return array_slice($actions, 0, 3);
     }
 
     /**
@@ -192,62 +273,4 @@ class Dashboard extends Component
             ->get();
     }
 
-    /**
-     * Build attendance summary for the week's games.
-     *
-     * @return array{attended: int, pending: int, total: int}
-     */
-    public function gamesThisWeekSummary($gamesThisWeek): array
-    {
-        $user = Auth::user();
-        $attended = 0;
-        $pending = 0;
-
-        foreach ($gamesThisWeek as $game) {
-            // Owner games are implicitly attended
-            if ($game->owner_id === $user->id) {
-                $attended++;
-                continue;
-            }
-
-            $participant = $game->participants->first();
-            if ($participant && $participant->attendance_status !== null) {
-                if ($participant->attendance_status === AttendanceStatus::Attended) {
-                    $attended++;
-                }
-                // no-show, late_cancel, excused are not "attended"
-            } else {
-                // Game hasn't happened yet or attendance not reported
-                $pending++;
-            }
-        }
-
-        return [
-            'attended' => $attended,
-            'pending' => $pending,
-            'total' => $gamesThisWeek->count(),
-        ];
-    }
-
-    /**
-     * Get games the user participated in (not owned) that have new recaps.
-     */
-    public function newRecaps()
-    {
-        $user = Auth::user();
-
-        return Game::whereHas('participants', fn ($q) => $q
-            ->where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved)
-        )
-            ->where('owner_id', '!=', $user->id)
-            ->whereNotNull('recap')
-            ->where('recap', '!=', '')
-            ->where('status', 'completed')
-            ->where('updated_at', '>', now()->subDays(7))
-            ->with('owner')
-            ->orderByDesc('updated_at')
-            ->limit(3)
-            ->get();
-    }
 }

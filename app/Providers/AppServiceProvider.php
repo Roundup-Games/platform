@@ -115,6 +115,11 @@ class AppServiceProvider extends ServiceProvider
 
         Review::observe(\App\Observers\ReviewObserver::class);
 
+        // Dashboard cache invalidation observers
+        Game::observe(\App\Observers\GameObserver::class);
+        GameParticipant::observe(\App\Observers\GameParticipantObserver::class);
+        UserRelationship::observe(\App\Observers\UserRelationshipObserver::class);
+
         // Activity logging observers — resilient, never block primary actions
         $activityObserver = $this->app->make(ActivityLogObserver::class);
         Game::observe($activityObserver);

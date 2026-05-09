@@ -42,6 +42,7 @@ class GameParticipant extends Model
             }
             $participant->created_at = $participant->created_at ?? now();
         });
+
     }
 
     public function game(): BelongsTo

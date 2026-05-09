@@ -127,7 +127,87 @@ return [
     'dashboard_stats_gm_reviews' => 'Reviews',
     'dashboard_stats_gm_upcoming' => 'Upcoming GM Sessions',
     'dashboard_recent_activity' => 'Recent Activity',
+
+    // Community Feed
+    'dashboard_feed_heading' => 'What\'s happening',
+    'dashboard_feed_empty_title' => 'Follow players to see their activity',
+    'dashboard_feed_empty_desc' => 'When you follow people, their game activity will appear here.',
+    'dashboard_feed_find_people' => 'Find People',
+    'dashboard_feed_trending_heading' => 'Also happening near you',
+    'dashboard_feed_action_created_game' => 'started a game',
+    'dashboard_feed_action_joined_game' => 'joined',
+    'dashboard_feed_action_completed_game' => 'completed',
+    'dashboard_feed_action_recapped_game' => 'posted a recap of',
+    'dashboard_feed_action_created_campaign' => 'started a campaign',
+    'dashboard_feed_action_joined_campaign' => 'joined',
+    'dashboard_feed_action_completed_campaign' => 'completed',
+    'dashboard_feed_action_scheduled_session' => 'scheduled a new session for',
+    'dashboard_feed_spots_left' => ':count spot left|:count spots left',
+    'dashboard_feed_players' => ':current/:max players',
+    'dashboard_feed_trending_badge' => 'Trending',
+    'dashboard_feed_view_details' => 'View details',
     'dashboard_gm_overview' => 'GM Overview',
+
+    // Smart prompt action labels (also used by DashboardSmartPromptService)
+    'dashboard_prompt_view_invitations' => 'View invitations',
+    'dashboard_prompt_view_details' => 'View details',
+    'dashboard_prompt_write_recap' => 'Write recap',
+    'dashboard_prompt_browse_nearby' => 'Browse :count nearby games',
+    'dashboard_prompt_find_game' => 'Find a game',
+    'dashboard_prompt_view_profile' => 'View profile',
+    'dashboard_prompt_view_schedule' => 'View schedule',
+
+    // Smart prompt messages
+    'dashboard_prompt_msg_invited_single' => ':name invited you to :game',
+    'dashboard_prompt_msg_invited_multiple' => 'You have :count pending invitation|You have :count pending invitations',
+    'dashboard_prompt_msg_upcoming' => 'Your next session is :time — :game',
+    'dashboard_prompt_msg_hours' => ':count hour|:count hours',
+    'dashboard_prompt_msg_minutes' => ':count minute|:count minutes',
+    'dashboard_prompt_msg_time_now' => 'starting now',
+    'dashboard_prompt_msg_from_now' => ':time from now',
+    'dashboard_prompt_msg_completed_recap' => 'How\'d :game go? Write a recap',
+    'dashboard_prompt_msg_empty_week' => 'Nothing on your calendar yet',
+    'dashboard_prompt_msg_browse_nearby' => 'Browse :count nearby games',
+    'dashboard_prompt_msg_new_follower' => ':name started following you',
+    'dashboard_prompt_msg_new_follower_shared' => ':name started following you — you share :count game system|:name started following you — you share :count game systems',
+    'dashboard_prompt_msg_greeting' => 'Good :time_of_day, :name',
+    'dashboard_prompt_msg_upcoming_suffix' => ' — you have :count upcoming session| — you have :count upcoming sessions',
+    'dashboard_prompt_msg_welcome' => 'Welcome to Roundup Games — find your first game',
+    'dashboard_prompt_msg_time_morning' => 'morning',
+    'dashboard_prompt_msg_time_afternoon' => 'afternoon',
+    'dashboard_prompt_msg_time_evening' => 'evening',
+
+    // Opportunities section
+    'dashboard_opportunities_heading' => 'Games you might like',
+    'dashboard_opportunities_empty' => 'No games matching your preferences right now',
+    'dashboard_opportunities_create_cta' => 'Create a game',
+    'dashboard_opportunities_spots' => ':current/:max players',
+    'dashboard_opportunities_spots_available' => ':count spot available|:count spots available',
+    'dashboard_opportunities_recurring' => 'Recurring',
+    'dashboard_opportunities_km_away' => ':count km',
+
+    // Contributions section
+    'dashboard_contributions_heading' => 'Your contributions',
+    'dashboard_contributions_hosted' => 'You\'ve hosted :count game|You\'ve hosted :count games',
+    'dashboard_contributions_hosted_detail' => ':hours hours for :players player|:hours hours for :players players',
+    'dashboard_contributions_played' => 'You\'ve played :count game|You\'ve played :count games',
+    'dashboard_contributions_played_detail' => 'across :count system|across :count systems',
+    'dashboard_contributions_campaign' => 'Your longest campaign: :name',
+    'dashboard_contributions_campaign_detail' => ':count session completed|:count sessions completed',
+    'dashboard_contributions_recaps' => 'You\'ve written :count recap|You\'ve written :count recaps',
+    'dashboard_contributions_reviews' => 'You\'ve given :count review|You\'ve given :count reviews',
+    'dashboard_contributions_followers' => 'You have :count follower|You have :count followers',
+    'dashboard_contributions_gm_rating' => 'Your GM rating: :rating / 5',
+
+    // Quick Actions
+    'dashboard_quick_actions_heading' => 'Quick Actions',
+
+    // Your Week section
+    'dashboard_hosting_indicator' => 'Hosting',
+    'dashboard_your_week' => 'Your Week',
+    'dashboard_your_week_empty' => 'No games this week. Time to find your next adventure!',
+    'dashboard_your_week_find_game' => 'Find Your Next Game',
+    'dashboard_your_week_today' => 'Today',
 
     // Reliability tier labels
     'label_reliability_tier_reliable' => 'Reliable',
