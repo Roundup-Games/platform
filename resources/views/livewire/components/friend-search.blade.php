@@ -27,7 +27,7 @@
         </div>
     @endif
 
-    {{-- Search Input --}}
+    {{-- Search Input + Dropdown wrapper --}}
     <div class="relative">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" aria-hidden="true">search</span>
         <input
@@ -54,49 +54,49 @@
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
         @endif
+
+        {{-- Dropdown: Search Results — inside relative container so it positions below the input --}}
+        @if($isOpen && strlen($search) >= 2)
+            @php($results = $this->searchResults)
+
+            <div
+                class="absolute top-full left-0 right-0 z-50 mt-1 bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
+                role="listbox"
+                aria-label="{{ __('people.content_friends') }}"
+            >
+                @if($results->isEmpty())
+                    <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
+                        {{ __('people.content_no_friends_found') }}
+                    </div>
+                @else
+                    @foreach($results as $index => $friend)
+                        <button
+                            type="button"
+                            wire:click="selectFriend('{{ $friend->id }}')"
+                            @mouseenter="activeIndex = {{ $index }}"
+                            :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
+                            class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
+                            role="option"
+                            :aria-selected="activeIndex === {{ $index }}"
+                        >
+                            <x-user-avatar :user="$friend" size="w-10 h-10" />
+
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-on-surface truncate">
+                                    {{ $friend->name }}
+                                </div>
+                                <div class="text-xs text-on-surface-variant truncate">
+                                    {{ $friend->email }}
+                                </div>
+                            </div>
+
+                            @if(in_array($friend->id, $selectedIds))
+                                <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">check_circle</span>
+                            @endif
+                        </button>
+                    @endforeach
+                @endif
+            </div>
+        @endif
     </div>
-
-    {{-- Dropdown: Search Results --}}
-    @if($isOpen && strlen($search) >= 2)
-        @php($results = $this->searchResults)
-
-        <div
-            class="absolute z-50 mt-1 w-full bg-surface-container-low rounded-lg shadow-lg border border-outline/20 max-h-80 overflow-y-auto"
-            role="listbox"
-            aria-label="{{ __('people.content_friends') }}"
-        >
-            @if($results->isEmpty())
-                <div class="px-4 py-3 text-sm text-on-surface-variant text-center">
-                    {{ __('people.content_no_friends_found') }}
-                </div>
-            @else
-                @foreach($results as $index => $friend)
-                    <button
-                        type="button"
-                        wire:click="selectFriend('{{ $friend->id }}')"
-                        @mouseenter="activeIndex = {{ $index }}"
-                        :class="activeIndex === {{ $index }} ? 'bg-surface-container-high' : ''"
-                        class="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors focus:outline-none focus:bg-surface-container-high"
-                        role="option"
-                        :aria-selected="activeIndex === {{ $index }}"
-                    >
-                        <x-user-avatar :user="$friend" size="w-10 h-10" />
-
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium text-on-surface truncate">
-                                {{ $friend->name }}
-                            </div>
-                            <div class="text-xs text-on-surface-variant truncate">
-                                {{ $friend->email }}
-                            </div>
-                        </div>
-
-                        @if(in_array($friend->id, $selectedIds))
-                            <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">check_circle</span>
-                        @endif
-                    </button>
-                @endforeach
-            @endif
-        </div>
-    @endif
 </div>

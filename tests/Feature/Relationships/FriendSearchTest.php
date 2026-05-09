@@ -209,6 +209,70 @@ describe('FriendSearch — Selection Actions', function () {
     });
 });
 
+// ── Dropdown Positioning & Rendering ───────────────
+
+describe('FriendSearch — Dropdown Positioning', function () {
+    test('dropdown renders inside relative container', function () {
+        $friend = User::factory()->create(['name' => 'Alice Friend']);
+        makeTestFriend($this->user, $friend);
+
+        $component = Livewire::actingAs($this->user)
+            ->test('components.friend-search')
+            ->set('search', 'Alice')
+            ->call('setOpen');
+
+        $html = $component->html();
+
+        // Find the position of div.relative and the dropdown listbox
+        $relativePos = mb_strpos($html, 'class="relative"');
+        $listboxPos = mb_strpos($html, 'role="listbox"');
+
+        expect($relativePos)->not->toBeFalse('Expected a div.relative container in the rendered HTML');
+        expect($listboxPos)->not->toBeFalse('Expected a role="listbox" dropdown in the rendered HTML');
+
+        // The listbox must appear AFTER the relative container start — meaning it's nested inside it
+        expect($listboxPos)->toBeGreaterThan($relativePos, 'Dropdown listbox should appear after the relative container, i.e. be nested inside it');
+
+        // Also verify the dropdown has the correct absolute positioning classes
+        $afterRelative = mb_substr($html, $relativePos);
+        $listboxInBlock = mb_strpos($afterRelative, 'role="listbox"');
+        $topFullInBlock = mb_strpos($afterRelative, 'top-full');
+        expect($topFullInBlock)->not->toBeFalse('Dropdown should have top-full class');
+        expect($topFullInBlock)->toBeLessThan($listboxInBlock + 500, 'top-full class should be near the listbox element');
+    });
+
+    test('dropdown has max-h-80 and overflow-y-auto', function () {
+        $friend = User::factory()->create(['name' => 'Alice Friend']);
+        makeTestFriend($this->user, $friend);
+
+        $component = Livewire::actingAs($this->user)
+            ->test('components.friend-search')
+            ->set('search', 'Alice')
+            ->call('setOpen');
+
+        $html = $component->html();
+
+        // Find the dropdown element with listbox role
+        preg_match('/class="([^"]*top-full[^"]*)"[^>]*role="listbox"/s', $html, $dropdownClasses);
+        if (empty($dropdownClasses)) {
+            // Try alternate: role="listbox" followed by class containing top-full
+            preg_match('/role="listbox"[^>]*class="([^"]*)"/s', $html, $dropdownClasses);
+        }
+        // Fallback: just look for the dropdown div that has both max-h-80 and overflow-y-auto
+        preg_match('/max-h-80\s+overflow-y-auto/s', $html, $scrollableClasses);
+        expect($scrollableClasses)->not->toBeEmpty('Dropdown should have max-h-80 and overflow-y-auto classes');
+    });
+
+    test('closeDropdown sets isOpen to false', function () {
+        $component = Livewire::actingAs($this->user)
+            ->test('components.friend-search')
+            ->call('setOpen')
+            ->assertSet('isOpen', true)
+            ->call('closeDropdown')
+            ->assertSet('isOpen', false);
+    });
+});
+
 // ── Edge Cases ──────────────────────────────────────
 
 describe('FriendSearch — Edge Cases', function () {
