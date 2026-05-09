@@ -31,9 +31,9 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-heading font-semibold text-on-surface">{{ __('campaigns.heading_my_campaigns') }}</h2>
                 <a href="{{ route('campaigns.create') }}" wire:navigate
-                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary text-on-secondary text-sm font-medium hover:bg-secondary/90 transition-colors">
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold shadow-sm hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                    {{ __('campaigns.action_create_campaign') }}
+                    {{ __('common.action_create') }}
                 </a>
             </div>
 
@@ -42,22 +42,20 @@
                     <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-2 block" aria-hidden="true">campaign</span>
                     <p class="text-on-surface-variant text-sm">{{ __('campaigns.content_no_owned_campaigns') }}</p>
                     <a href="{{ route('campaigns.create') }}" wire:navigate
-                       class="mt-3 inline-flex items-center gap-1 text-sm text-secondary hover:text-secondary/80 transition-colors">
+                       class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary shadow-sm hover:opacity-90 active:scale-[0.98] transition ease-in-out duration-150 whitespace-nowrap">
                         <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
-                        {{ __('campaigns.action_create_campaign') }}
+                        {{ __('common.action_create') }}
                     </a>
                 </div>
             @else
                 <div class="space-y-3">
                     @foreach($ownedCampaigns as $campaign)
-                        <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                            {{-- Campaign Info --}}
-                            <div class="flex-1 min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <h3 class="text-base font-medium text-on-surface truncate">
-                                        <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="hover:text-secondary transition-colors">
-                                            {{ $campaign->name }}
-                                        </a>
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
+                            {{-- Info area: clickable to detail --}}
+                            <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <h3 class="text-base font-medium text-on-surface">
+                                        {{ $campaign->name }}
                                     </h3>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                         {{ $campaign->status->value === 'active' ? 'bg-primary-container text-on-primary-container' : ($campaign->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
@@ -81,34 +79,32 @@
                                         {{ $campaign->participants->count() }}/{{ $campaign->max_players ?? '∞' }}
                                     </span>
                                 </div>
-                            </div>
+                            </a>
 
-                            {{-- Actions --}}
-                            <div class="flex items-center gap-2 shrink-0">
-                                @if($campaign->status->value === 'active')
+                            {{-- Actions footer --}}
+                            @if($campaign->status->value === 'active')
+                                <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
                                     <button wire:click="editCampaign('{{ $campaign->id }}')"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                                            aria-label="{{ __('campaigns.action_edit_campaign') }}">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
-                                        {{ __('campaigns.action_edit_campaign') }}
+                                        <span class="hidden sm:inline">{{ __('campaigns.action_edit_campaign') }}</span>
+                                    </button>
+                                    <button wire:click="completeCampaign('{{ $campaign->id }}')"
+                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
+                                            aria-label="{{ __('campaigns.action_complete_campaign') }}">
+                                        <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+                                        <span class="hidden sm:inline">{{ __('campaigns.action_complete_campaign') }}</span>
                                     </button>
                                     <button wire:click="cancelCampaign('{{ $campaign->id }}')"
                                             wire:confirm="{{ __('campaigns.confirm_cancel_campaign') }}"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-error hover:bg-error/10 transition-colors">
+                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                            aria-label="{{ __('campaigns.action_cancel_campaign') }}">
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">cancel</span>
-                                        {{ __('campaigns.action_cancel_campaign') }}
+                                        <span class="hidden sm:inline">{{ __('campaigns.action_cancel_campaign') }}</span>
                                     </button>
-                                    <button wire:click="completeCampaign('{{ $campaign->id }}')"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-secondary hover:bg-secondary/10 transition-colors">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
-                                        {{ __('campaigns.action_complete_campaign') }}
-                                    </button>
-                                @endif
-                                <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate
-                                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                                    {{ __('campaigns.action_view_campaign') }}
-                                </a>
-                            </div>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -127,51 +123,37 @@
             @else
                 <div class="space-y-3">
                     @foreach($participatingCampaigns as $campaign)
-                        <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                            {{-- Campaign Info --}}
-                            <div class="flex-1 min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <h3 class="text-base font-medium text-on-surface truncate">
-                                        <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="hover:text-secondary transition-colors">
-                                            {{ $campaign->name }}
-                                        </a>
-                                    </h3>
-                                    @if($campaign->gameSystem)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                            {{ $campaign->gameSystem->name }}
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-                                    @if($campaign->recurrence)
-                                        <span class="flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">repeat</span>
-                                            {{ __('campaigns.content_' . $campaign->recurrence) }}
-                                        </span>
-                                    @endif
-                                    @if($campaign->owner)
-                                        <span class="flex items-center gap-1">
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                                            {{ $campaign->owner->name }}
-                                        </span>
-                                    @endif
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                        {{ $campaign->participants->count() }}/{{ $campaign->max_players ?? '∞' }}
+                        <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 class="text-base font-medium text-on-surface">
+                                    {{ $campaign->name }}
+                                </h3>
+                                @if($campaign->gameSystem)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                        {{ $campaign->gameSystem->name }}
                                     </span>
-                                </div>
+                                @endif
                             </div>
-
-                            {{-- Actions --}}
-                            <div class="flex items-center gap-2 shrink-0">
-                                <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate
-                                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                                    {{ __('campaigns.action_view_campaign') }}
-                                </a>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
+                                @if($campaign->recurrence)
+                                    <span class="flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">repeat</span>
+                                        {{ __('campaigns.content_' . $campaign->recurrence) }}
+                                    </span>
+                                @endif
+                                @if($campaign->owner)
+                                    <span class="flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
+                                        {{ $campaign->owner->name }}
+                                    </span>
+                                @endif
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                    {{ $campaign->participants->count() }}/{{ $campaign->max_players ?? '∞' }}
+                                </span>
                             </div>
-                        </div>
-                    @endforeach
+                        </a>
+                    @endforeach>
                 </div>
             @endif
         </section>
@@ -184,11 +166,11 @@
             <div class="space-y-3">
                 @foreach($pendingInvitations as $invitation)
                     @php $campaign = $invitation->campaign; @endphp
-                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 border-l-4 border-primary">
-                        {{-- Campaign Info --}}
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
-                                <h3 class="text-base font-medium text-on-surface truncate">
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden border-l-4 border-primary">
+                        {{-- Info area --}}
+                        <div class="p-4 sm:p-5">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 class="text-base font-medium text-on-surface">
                                     {{ $campaign->name }}
                                 </h3>
                                 @if($campaign->gameSystem)
@@ -213,17 +195,19 @@
                             </div>
                         </div>
 
-                        {{-- Actions --}}
-                        <div class="flex items-center gap-2 shrink-0">
+                        {{-- Actions footer --}}
+                        <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">
                             <button wire:click="acceptInvitation('{{ $invitation->id }}')"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-secondary hover:bg-secondary/10 transition-colors">
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-secondary hover:bg-secondary/10 transition-colors"
+                                    aria-label="{{ __('campaigns.action_accept_invitation') }}">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
-                                {{ __('campaigns.action_accept_invitation') }}
+                                <span class="hidden sm:inline">{{ __('campaigns.action_accept_invitation') }}</span>
                             </button>
                             <button wire:click="declineInvitation('{{ $invitation->id }}')"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-error hover:bg-error/10 transition-colors">
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                    aria-label="{{ __('campaigns.action_decline_invitation') }}">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
-                                {{ __('campaigns.action_decline_invitation') }}
+                                <span class="hidden sm:inline">{{ __('campaigns.action_decline_invitation') }}</span>
                             </button>
                         </div>
                     </div>

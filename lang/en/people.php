@@ -20,9 +20,14 @@ return [
     'error_no_valid_friends_to_invite' => 'None of the selected users could be invited. They may already be participants or not on your friend list.',
     'error_not_your_invitation' => 'This invitation is not yours to accept.',
     'error_select_at_least_one_friend' => 'Please select at least one friend to invite.',
+    'error_invalid_email' => 'Please enter a valid email address.',
+    'error_cannot_invite_self' => 'You cannot invite yourself.',
+    'error_user_already_participant' => 'This person is already a participant.',
+    'error_email_invite_already_sent' => 'An invitation has already been sent to this email address.',
     'flash_confirm_decline_invitation' => 'Are you sure you want to decline this invitation?',
     'flash_friends_invited' => '{1} :count friend invited.|[2,*] :count friends invited.',
     'flash_invitation_accepted' => 'Invitation accepted! You\'re now a participant.',
+    'flash_email_invite_sent' => 'Invitation sent!',
 
     // Nearby tab
     'tab_nearby' => 'Nearby',
@@ -37,4 +42,11 @@ return [
     'nearby_no_location' => 'Set your location to discover nearby players.',
     'nearby_no_results' => 'No nearby players found yet. Try expanding your search area.',
     'nearby_action_set_location' => 'Set Location',
+
+    // Email invitations
+    'field_invite_by_email' => 'Invite by email',
+    'placeholder_enter_email_address' => 'Enter email address',
+    'action_send_invite' => 'Send Invite',
+    'content_pending_account_creation' => 'Pending account creation',
+    'flash_email_invite_failed' => 'Could not send invitation email, but invite is tracked.',
 ];

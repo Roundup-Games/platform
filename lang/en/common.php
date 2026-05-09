@@ -240,6 +240,7 @@ return [
     'field_maximum_players' => 'Maximum players',
     'field_min' => 'Min',
     'field_min_count_players' => '{1} Min :count player|[2,*] Min :count players',
+    'field_location' => 'Location',
     'field_minimum_players' => 'Minimum players',
     'field_name' => 'Name',
     'field_name_a_z' => 'Name A–Z',
@@ -351,4 +352,7 @@ return [
     // Languages
     'label_language_en' => 'English',
     'label_language_de' => 'German',
+
+    // Email invitations
+    'content_or' => 'or',
 ];

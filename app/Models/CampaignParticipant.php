@@ -13,7 +13,7 @@ class CampaignParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['campaign_id', 'user_id', 'role', 'status', 'benched_at', 'join_source'];
+    protected $fillable = ['campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,

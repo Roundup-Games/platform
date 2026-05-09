@@ -20,9 +20,14 @@ return [
     'error_no_valid_friends_to_invite' => 'Keine der ausgewählten Personen konnte eingeladen werden. Sie sind möglicherweise bereits Teilnehmer oder nicht in deiner Freundesliste.',
     'error_not_your_invitation' => 'Diese Einladung gehört dir nicht.',
     'error_select_at_least_one_friend' => 'Bitte wähle mindestens einen Freund aus, um ihn einzuladen.',
+    'error_invalid_email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
+    'error_cannot_invite_self' => 'Du kannst dich nicht selbst einladen.',
+    'error_user_already_participant' => 'Diese Person ist bereits Teilnehmer.',
+    'error_email_invite_already_sent' => 'An diese E-Mail-Adresse wurde bereits eine Einladung gesendet.',
     'flash_confirm_decline_invitation' => 'Bist du sicher, dass du diese Einladung ablehnen möchtest?',
     'flash_friends_invited' => '{1} :count Freund eingeladen.|[2,*] :count Freunde eingeladen.',
     'flash_invitation_accepted' => 'Einladung angenommen! Du bist jetzt Teilnehmer.',
+    'flash_email_invite_sent' => 'Einladung gesendet!',
 
     // Nearby tab
     'tab_nearby' => 'In der Nähe',
@@ -37,4 +42,11 @@ return [
     'nearby_no_location' => 'Lege deinen Standort fest, um Spieler in deiner Nähe zu entdecken.',
     'nearby_no_results' => 'Keine Spieler in der Nähe gefunden. Versuche, dein Suchgebiet zu erweitern.',
     'nearby_action_set_location' => 'Standort festlegen',
+
+    // E-Mail-Einladungen
+    'field_invite_by_email' => 'Per E-Mail einladen',
+    'placeholder_enter_email_address' => 'E-Mail-Adresse eingeben',
+    'action_send_invite' => 'Einladung senden',
+    'content_pending_account_creation' => 'Warten auf Kontoerstellung',
+    'flash_email_invite_failed' => 'Einladungs-E-Mail konnte nicht gesendet werden, die Einladung wird jedoch verfolgt.',
 ];

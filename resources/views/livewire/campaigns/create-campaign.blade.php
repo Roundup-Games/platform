@@ -30,6 +30,7 @@
                             :fieldId="'campaign-system'"
                             :label="__('games.content_game_system')"
                             :error="$errors->first('game_system_id')"
+                            :gameType="'ttrpg'"
                             wire:model.live="game_system_id"
                         />
                     </div>

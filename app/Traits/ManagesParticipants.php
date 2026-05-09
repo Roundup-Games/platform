@@ -4,6 +4,8 @@ namespace App\Traits;
 
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantStatus;
+use App\Mail\EntityInvitationEmail;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
@@ -14,6 +16,8 @@ use App\Notifications\ParticipantRemoved;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\On;
 
 /**
@@ -31,6 +35,19 @@ trait ManagesParticipants
 {
     /** @var int[] User IDs selected from FriendSearch component */
     public array $selectedFriendIds = [];
+
+    /** @var string Email address for email-based invitations */
+    public string $inviteEmail = '';
+
+    /**
+     * Livewire validation rules (v4 pattern — no #[Validate] attributes).
+     */
+    public function rules(): array
+    {
+        return [
+            'inviteEmail' => ['nullable', 'email', 'max:255'],
+        ];
+    }
 
     // ── Abstract contracts ─────────────────────────────
 
@@ -148,6 +165,180 @@ trait ManagesParticipants
         } elseif ($skippedCount > 0) {
             session()->flash('error', __('people.error_no_valid_friends_to_invite'));
         }
+    }
+
+    /**
+     * Invite someone by email address.
+     *
+     * Three code paths:
+     *  1. Invalid email → error, return
+     *  2. Self-invite → error, return
+     *  3. Existing user → friend-invite path (participant + notification)
+     *  4. No account → email-invite path (participant with invitee_email, send mailable)
+     */
+    public function inviteByEmail(): void
+    {
+        $email = trim($this->inviteEmail);
+
+        // Validate email format
+        $validator = Validator::make(
+            ['email' => $email],
+            ['email' => ['required', 'email', 'max:255']]
+        );
+
+        if ($validator->fails()) {
+            $this->addError('inviteEmail', __('people.error_invalid_email'));
+
+            return;
+        }
+
+        $normalizedEmail = strtolower($email);
+        $authUser = Auth::user();
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+        $participantModel = $this->getParticipantModel();
+
+        // Self-invite check
+        if ($normalizedEmail === strtolower($authUser->email)) {
+            $this->addError('inviteEmail', __('people.error_cannot_invite_self'));
+
+            return;
+        }
+
+        // Check if the email belongs to an existing user
+        $existingUser = User::where('email', $normalizedEmail)->first();
+
+        if ($existingUser) {
+            // ── Path 3: Existing user → friend-invite-style path ──
+
+            // Already a participant?
+            if ($entity->participants()->where('user_id', $existingUser->id)->exists()) {
+                $this->addError('inviteEmail', __('people.error_user_already_participant'));
+
+                return;
+            }
+
+            // Capacity check
+            if ($entity->max_players) {
+                $currentCount = $entity->participants()
+                    ->where('status', ParticipantStatus::Approved)
+                    ->count();
+
+                if ($currentCount >= $entity->max_players) {
+                    $this->addError('inviteEmail', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
+
+                    return;
+                }
+            }
+
+            $participantModel::create([
+                $entityIdColumn => $entity->id,
+                'user_id' => $existingUser->id,
+                'role' => 'invited',
+                'status' => 'pending',
+                'join_source' => JoinSource::EmailInvite,
+            ]);
+
+            Log::info($this->getEntityName() . ' email invite: existing user invited', [
+                $entityIdColumn => $entity->id,
+                'invited_user_id' => $existingUser->id,
+                'invited_by' => $authUser->id,
+                'join_source' => 'email_invite',
+            ]);
+
+            // Send in-app notification (same as friend invite)
+            try {
+                $notificationClass = $this->getEntityName() === 'Game'
+                    ? new GameInvitation($entity, $authUser)
+                    : new CampaignInvitation($entity, $authUser);
+                $category = $this->getEntityName() === 'Game'
+                    ? NotificationCategory::GameInvitation
+                    : NotificationCategory::CampaignInvitation;
+
+                app(NotificationService::class)->send($existingUser, $notificationClass, $category);
+            } catch (\Throwable $e) {
+                Log::error('notification.email_invite_dispatch_failed', [
+                    'entity_type' => $this->getEntityName(),
+                    $entityIdColumn => $entity->id,
+                    'target_user_id' => $existingUser->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $this->reset('inviteEmail');
+            session()->flash('success', __('people.flash_email_invite_sent'));
+
+            return;
+        }
+
+        // ── Path 4: No existing user → email-invite path ──
+
+        // Duplicate check: pending invite already sent to this email
+        $existingInvite = $participantModel::where($entityIdColumn, $entity->id)
+            ->where('invitee_email', $normalizedEmail)
+            ->where('status', ParticipantStatus::Pending)
+            ->first();
+
+        if ($existingInvite) {
+            $this->addError('inviteEmail', __('people.error_email_invite_already_sent'));
+
+            return;
+        }
+
+        // Capacity check
+        if ($entity->max_players) {
+            $currentCount = $entity->participants()
+                ->where('status', ParticipantStatus::Approved)
+                ->count();
+
+            if ($currentCount >= $entity->max_players) {
+                $this->addError('inviteEmail', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
+
+                return;
+            }
+        }
+
+        // Create participant with null user_id and invitee_email
+        $participantModel::create([
+            $entityIdColumn => $entity->id,
+            'user_id' => null,
+            'invitee_email' => $normalizedEmail,
+            'role' => 'invited',
+            'status' => 'pending',
+            'join_source' => JoinSource::EmailInvite,
+        ]);
+
+        Log::info($this->getEntityName() . ' email invite: external email invited', [
+            $entityIdColumn => $entity->id,
+            'invitee_email' => $normalizedEmail,
+            'invited_by' => $authUser->id,
+            'join_source' => 'email_invite',
+        ]);
+
+        // Send invitation email
+        try {
+            $mailable = new EntityInvitationEmail(
+                entityType: strtolower($this->getEntityName()),
+                entityName: $entity->name ?? $entity->title,
+                entityDateTime: $entity->date_time ?? null,
+                entityLocation: $entity->linkedLocation?->address ?? null,
+                inviterName: $authUser->name,
+                inviteeEmail: $normalizedEmail,
+                signupUrl: url('/register'),
+            );
+            Mail::to($normalizedEmail)->send($mailable);
+        } catch (\Throwable $e) {
+            Log::error('email.invite_delivery_failed', [
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'invitee_email' => $normalizedEmail,
+                'error' => $e->getMessage(),
+            ]);
+            // Keep the participant record even if email fails
+        }
+
+        $this->reset('inviteEmail');
+        session()->flash('success', __('people.flash_email_invite_sent'));
     }
 
     /**
@@ -314,11 +505,15 @@ trait ManagesParticipants
             ->where('status', 'pending')
             ->firstOrFail();
 
+        $inviteeEmail = $participant->invitee_email;
+        $userId = $participant->user_id;
+
         $participant->update(['status' => 'rejected']);
 
         Log::info($this->getEntityName() . ' invite cancelled', [
             $this->getEntityIdColumn() => $entity->id,
-            'user_id' => $participant->user_id,
+            'user_id' => $userId,
+            'invitee_email' => $inviteeEmail,
             'cancelled_by' => Auth::id(),
         ]);
 

@@ -29,4 +29,13 @@ return [
     'field_or_sign_up_with_email' => 'oder mit E-Mail registrieren',
     'field_resend_verification_email' => 'Bestätigungsmail erneut senden',
     'field_verify_email' => 'E-Mail bestätigen',
+
+    // Entity invitation email (email invites to non-users)
+    'action_create_account_to_join' => 'Konto erstellen und beitreten',
+    'content_invitation_sent_to_email' => 'Diese Einladung wurde an :email gesendet. Falls du diese nicht erwartet hast, kannst du diese E-Mail einfach ignorieren.',
+    'content_inviter_has_invited_you_to_join_campaign' => '**:inviter** hat dich eingeladen, an der Kampagne **:entity** auf Roundup Games teilzunehmen.',
+    'content_inviter_has_invited_you_to_join_game' => '**:inviter** hat dich eingeladen, am Spiel **:entity** auf Roundup Games teilzunehmen.',
+    'content_you_re_invited_to_a_campaign' => 'Du wurdest zu einer Kampagne eingeladen!',
+    'content_you_re_invited_to_a_game' => 'Du wurdest zu einem Spiel eingeladen!',
+    'entity_invitation_subject' => ':inviter hat dich zu :entity eingeladen',
 ];

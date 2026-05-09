@@ -40,7 +40,7 @@
         @endif
 
         {{-- Invite Form --}}
-        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+        <section class="bg-surface-container-low rounded-xl shadow-ambient p-6 overflow-visible">
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span>
                 {{ __('teams.content_invite_player') }}
@@ -55,6 +55,40 @@
                         <p class="mt-1 text-sm text-error">{{ $message }}</p>
                     @enderror
                 </div>
+
+                {{-- Divider --}}
+                <div class="relative flex items-center my-4">
+                    <div class="flex-grow border-t border-outline-variant/30"></div>
+                    <span class="flex-shrink mx-3 text-xs text-on-surface-variant uppercase tracking-wider">{{ __('common.content_or') }}</span>
+                    <div class="flex-grow border-t border-outline-variant/30"></div>
+                </div>
+
+                {{-- Email invite --}}
+                <div>
+                    <label for="invite-email" class="block text-sm font-medium text-on-surface mb-1">
+                        {{ __('people.field_invite_by_email') }}
+                    </label>
+                    <div class="flex gap-2">
+                        <input
+                            type="email"
+                            id="invite-email"
+                            wire:model="inviteEmail"
+                            class="flex-1 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+                            placeholder="{{ __('people.placeholder_enter_email_address') }}"
+                            autocomplete="off"
+                        />
+                        <button type="button"
+                            wire:click="inviteByEmail"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">mail</span>
+                            {{ __('people.action_send_invite') }}
+                        </button>
+                    </div>
+                    @error('inviteEmail')
+                        <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <button type="submit"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
@@ -164,8 +198,24 @@
                     @foreach($pendingInvites as $invite)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <div class="flex-1 min-w-0">
-                                <x-user-link :user="$invite->user" avatar-size="w-10 h-10" :truncate="true" />
-                                <p class="text-xs text-on-surface-variant ml-12">{{ $invite->user?->email ?? '' }}</p>
+                                @if($invite->user)
+                                    <x-user-link :user="$invite->user" avatar-size="w-10 h-10" :truncate="true" />
+                                    <p class="text-xs text-on-surface-variant ml-12">{{ $invite->user->email }}</p>
+                                @else
+                                    {{-- Email invitee without account --}}
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-on-surface-variant text-lg" aria-hidden="true">mail</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-on-surface">{{ $invite->invitee_email }}</div>
+                                            <span class="inline-flex items-center gap-1 text-xs text-on-surface-variant">
+                                                <span class="material-symbols-outlined text-xs" aria-hidden="true">schedule</span>
+                                                {{ __('people.content_pending_account_creation') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                             <button wire:click="cancelInvite('{{ $invite->id }}')"
                                 wire:confirm="{{ __('common.flash_cancel_this_invite') }}"
