@@ -184,7 +184,7 @@ return [
     'dashboard_opportunities_spots' => ':current/:max Spieler',
     'dashboard_opportunities_spots_available' => ':count Platz frei|:count Plätze frei',
     'dashboard_opportunities_recurring' => 'Wiederkehrend',
-    'dashboard_opportunities_km_away' => ':count km',
+    'dashboard_opportunities_km_away' => ':count km entfernt',
 
     // Deine Beiträge
     'dashboard_contributions_heading' => 'Deine Beiträge',

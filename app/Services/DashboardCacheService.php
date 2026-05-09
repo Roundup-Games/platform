@@ -59,12 +59,6 @@ class DashboardCacheService
 
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
-            Log::debug('dashboard.cache_hit', [
-                'section' => 'week',
-                'user_id' => $user->id,
-                'cache_key' => $cacheKey,
-            ]);
-
             return $cached;
         }
 
@@ -94,12 +88,6 @@ class DashboardCacheService
 
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
-            Log::debug('dashboard.cache_hit', [
-                'section' => 'feed',
-                'user_id' => $user->id,
-                'cache_key' => $cacheKey,
-            ]);
-
             return $cached;
         }
 
@@ -129,12 +117,6 @@ class DashboardCacheService
 
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
-            Log::debug('dashboard.cache_hit', [
-                'section' => 'trending',
-                'geohash_4' => $geohash4,
-                'cache_key' => $cacheKey,
-            ]);
-
             return $cached;
         }
 
@@ -158,13 +140,6 @@ class DashboardCacheService
 
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
-            Log::debug('dashboard.cache_hit', [
-                'section' => 'opportunities',
-                'user_id' => $user->id,
-                'geohash_4' => $geohash4,
-                'cache_key' => $cacheKey,
-            ]);
-
             return $cached;
         }
 
@@ -196,12 +171,6 @@ class DashboardCacheService
 
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
-            Log::debug('dashboard.cache_hit', [
-                'section' => 'contributions',
-                'user_id' => $user->id,
-                'cache_key' => $cacheKey,
-            ]);
-
             return $cached;
         }
 
@@ -742,14 +711,15 @@ class DashboardCacheService
                     });
             })
             ->with(['gameSystem', 'owner'])
+            ->withCount(['participants as approved_participant_count' => function ($query) {
+                $query->where('status', ParticipantStatus::Approved->value);
+            }])
             ->orderByDesc('created_at')
             ->limit(2)
             ->get();
 
         $campaignResults = $campaigns->map(function ($campaign) {
-            $participantCount = CampaignParticipant::where('campaign_id', $campaign->id)
-                ->where('status', ParticipantStatus::Approved->value)
-                ->count();
+            $participantCount = $campaign->approved_participant_count;
 
             $spotsAvailable = $campaign->max_players
                 ? max(0, $campaign->max_players - $participantCount)
@@ -904,8 +874,10 @@ class DashboardCacheService
         }
 
         // Merge game + campaign activity, take top 10
-        $gameActivities = $feedService->getFeed($user, 50);
-        $campaignActivities = $feedService->getCampaignFeed($user, 50);
+        // Fetch 20 each — enough for a fair merge while avoiding
+        // hydrating 100 items only to discard 90.
+        $gameActivities = $feedService->getFeed($user, 20);
+        $campaignActivities = $feedService->getCampaignFeed($user, 20);
 
         // Convert both to FeedItem DTOs
         $gameItems = $feedService->toFeedItems($gameActivities->getCollection());

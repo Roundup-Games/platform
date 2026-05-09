@@ -84,7 +84,7 @@ class DashboardSmartPromptService
             'type' => 'pending_invitations',
             'message' => $message,
             'action_url' => route('games.index'),
-            'action_label' => 'View invitations',
+            'action_label' => __('profile.dashboard_prompt_view_invitations'),
             'metadata' => [
                 'count' => $total,
                 'game_id' => $game?->id,
@@ -115,7 +115,7 @@ class DashboardSmartPromptService
                 'game' => $game->name,
             ]),
             'action_url' => route('games.detail', $game),
-            'action_label' => 'View details',
+            'action_label' => __('profile.dashboard_prompt_view_details'),
             'metadata' => [
                 'game_id' => $game->id,
                 'game_name' => $game->name,
@@ -150,7 +150,7 @@ class DashboardSmartPromptService
             'type' => 'just_completed',
             'message' => __('profile.dashboard_prompt_msg_completed_recap', ['game' => $game->name]),
             'action_url' => route('games.detail', $game),
-            'action_label' => 'Write recap',
+            'action_label' => __('profile.dashboard_prompt_write_recap'),
             'metadata' => [
                 'game_id' => $game->id,
                 'game_name' => $game->name,
@@ -229,7 +229,7 @@ class DashboardSmartPromptService
             'type' => 'new_follower',
             'message' => $message,
             'action_url' => route('profile.public', $followerUser),
-            'action_label' => 'View profile',
+            'action_label' => __('profile.dashboard_prompt_view_profile'),
             'metadata' => [
                 'follower_id' => $followerUser?->id,
                 'follower_name' => $followerUser?->name,
@@ -268,7 +268,7 @@ class DashboardSmartPromptService
                 'name' => $firstName,
             ]) . $suffix,
             'action_url' => $upcomingCount > 0 ? route('games.index') : null,
-            'action_label' => $upcomingCount > 0 ? 'View schedule' : null,
+            'action_label' => $upcomingCount > 0 ? __('profile.dashboard_prompt_view_schedule') : null,
             'metadata' => [
                 'time_of_day' => $timeOfDay,
                 'upcoming_count' => $upcomingCount,
@@ -284,7 +284,7 @@ class DashboardSmartPromptService
             'type' => 'fallback_new',
             'message' => __('profile.dashboard_prompt_msg_welcome'),
             'action_url' => route('games.index'),
-            'action_label' => 'Find a game',
+            'action_label' => __('profile.dashboard_prompt_find_game'),
             'metadata' => [
                 'user_created_at' => $user->created_at->toIso8601String(),
             ],
