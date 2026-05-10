@@ -345,7 +345,7 @@
                     @else
                         @include('livewire.discovery.partials.game-card', ['game' => $item])
                     @endif
-                @endforeach>
+                @endforeach
             </div>
 
             <div class="mt-6">

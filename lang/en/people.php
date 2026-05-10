@@ -24,6 +24,8 @@ return [
     'error_cannot_invite_self' => 'You cannot invite yourself.',
     'error_user_already_participant' => 'This person is already a participant.',
     'error_email_invite_already_sent' => 'An invitation has already been sent to this email address.',
+    'error_too_many_invite_attempts' => 'Too many invitation attempts. Please try again later.',
+    'error_entity_no_longer_available' => 'This game or campaign is no longer available.',
     'flash_confirm_decline_invitation' => 'Are you sure you want to decline this invitation?',
     'flash_friends_invited' => '{1} :count friend invited.|[2,*] :count friends invited.',
     'flash_invitation_accepted' => 'Invitation accepted! You\'re now a participant.',
@@ -49,4 +51,8 @@ return [
     'action_send_invite' => 'Send Invite',
     'content_pending_account_creation' => 'Pending account creation',
     'flash_email_invite_failed' => 'Could not send invitation email, but invite is tracked.',
+    'flash_email_invite_waitlisted' => 'Game is full — invitee added to waitlist.',
+    'flash_email_invite_benched' => 'Session is full — invitee added to bench.',
+    'flash_accepted_waitlisted' => 'Game is full — you\'ve been added to the waitlist and will be notified when a spot opens.',
+    'flash_accepted_benched' => 'Session is full — you\'ve been added to the bench and will be notified when a spot opens.',
 ];

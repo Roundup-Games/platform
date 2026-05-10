@@ -181,7 +181,7 @@
                                 </button>
                             </div>
                         </div>
-                    @endforeach>
+                    @endforeach
                 </div>
             </section>
         @endif
@@ -224,7 +224,7 @@
                                 {{ __('common.action_cancel') }}
                             </button>
                         </div>
-                    @endforeach>
+                    @endforeach
                 </div>
             </section>
         @endif

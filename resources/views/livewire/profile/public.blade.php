@@ -322,7 +322,7 @@
                                        wire:navigate class="text-sm text-primary hover:underline ml-3 shrink-0">{{ __('common.action_view') }}</a>
                                 @endcan
                             </div>
-                        @endforeach>
+                        @endforeach
                     </div>
                 </section>
             @endif
@@ -350,7 +350,7 @@
                                     <a href="{{ route('teams.detail', ['locale' => app()->getLocale(), 'slug' => $membership->team->slug]) }}"
                                        wire:navigate class="text-sm text-primary hover:underline">{{ __('common.action_view') }}</a>
                                 </div>
-                            @endforeach>
+                            @endforeach
                         </div>
                     </section>
                 @endif

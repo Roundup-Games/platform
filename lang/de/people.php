@@ -24,6 +24,8 @@ return [
     'error_cannot_invite_self' => 'Du kannst dich nicht selbst einladen.',
     'error_user_already_participant' => 'Diese Person ist bereits Teilnehmer.',
     'error_email_invite_already_sent' => 'An diese E-Mail-Adresse wurde bereits eine Einladung gesendet.',
+    'error_too_many_invite_attempts' => 'Zu viele Einladungsversuche. Bitte versuche es später erneut.',
+    'error_entity_no_longer_available' => 'Dieses Spiel oder diese Kampagne ist nicht mehr verfügbar.',
     'flash_confirm_decline_invitation' => 'Bist du sicher, dass du diese Einladung ablehnen möchtest?',
     'flash_friends_invited' => '{1} :count Freund eingeladen.|[2,*] :count Freunde eingeladen.',
     'flash_invitation_accepted' => 'Einladung angenommen! Du bist jetzt Teilnehmer.',
@@ -49,4 +51,8 @@ return [
     'action_send_invite' => 'Einladung senden',
     'content_pending_account_creation' => 'Warten auf Kontoerstellung',
     'flash_email_invite_failed' => 'Einladungs-E-Mail konnte nicht gesendet werden, die Einladung wird jedoch verfolgt.',
+    'flash_email_invite_waitlisted' => 'Spiel ist voll — Eingeladener wurde zur Warteliste hinzugefügt.',
+    'flash_email_invite_benched' => 'Sitzung ist voll — Eingeladener wurde zur Bank hinzugefügt.',
+    'flash_accepted_waitlisted' => 'Spiel ist voll — Du wurdest zur Warteliste hinzugefügt und wirst benachrichtigt, wenn ein Platz frei wird.',
+    'flash_accepted_benched' => 'Sitzung ist voll — Du wurdest zur Bank hinzugefügt und wirst benachrichtigt, wenn ein Platz frei wird.',
 ];

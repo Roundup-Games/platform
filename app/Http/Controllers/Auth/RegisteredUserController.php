@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -73,7 +74,16 @@ class RegisteredUserController extends Controller
             ->get();
 
         foreach ($gameMatches as $participant) {
-            $participant->update(['user_id' => $user->id]);
+            try {
+                $participant->update(['user_id' => $user->id]);
+            } catch (QueryException $e) {
+                Log::warning('registration.game_invite_match_conflict', [
+                    'user_id' => $user->id,
+                    'game_id' => $participant->game_id,
+                    'invitee_email' => $email,
+                ]);
+                continue;
+            }
             Log::info('registration.matched_game_invite', [
                 'user_id' => $user->id,
                 'game_id' => $participant->game_id,
@@ -89,7 +99,16 @@ class RegisteredUserController extends Controller
             ->get();
 
         foreach ($campaignMatches as $participant) {
-            $participant->update(['user_id' => $user->id]);
+            try {
+                $participant->update(['user_id' => $user->id]);
+            } catch (QueryException $e) {
+                Log::warning('registration.campaign_invite_match_conflict', [
+                    'user_id' => $user->id,
+                    'campaign_id' => $participant->campaign_id,
+                    'invitee_email' => $email,
+                ]);
+                continue;
+            }
             Log::info('registration.matched_campaign_invite', [
                 'user_id' => $user->id,
                 'campaign_id' => $participant->campaign_id,

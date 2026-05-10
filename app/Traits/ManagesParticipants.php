@@ -14,9 +14,12 @@ use App\Notifications\GameInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Services\NotificationService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\On;
 
@@ -136,24 +139,7 @@ trait ManagesParticipants
                 'invited_by' => $authUser->id,
             ]);
 
-            // Dispatch invitation notification
-            try {
-                $notificationClass = $this->getEntityName() === 'Game'
-                    ? new GameInvitation($entity, $authUser)
-                    : new CampaignInvitation($entity, $authUser);
-                $category = $this->getEntityName() === 'Game'
-                    ? NotificationCategory::GameInvitation
-                    : NotificationCategory::CampaignInvitation;
-
-                app(NotificationService::class)->send($targetUser, $notificationClass, $category);
-            } catch (\Throwable $e) {
-                Log::error('notification.invite_dispatch_failed', [
-                    'entity_type' => $this->getEntityName(),
-                    $entityIdColumn => $entity->id,
-                    'target_user_id' => $targetUser->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->sendInvitationNotification($targetUser);
 
             $invitedCount++;
         }
@@ -178,6 +164,8 @@ trait ManagesParticipants
      */
     public function inviteByEmail(): void
     {
+        $this->authorize('update', $this->getEntity());
+
         $email = trim($this->inviteEmail);
 
         // Validate email format
@@ -193,6 +181,15 @@ trait ManagesParticipants
         }
 
         $normalizedEmail = strtolower($email);
+
+        $rateLimitKey = 'email-invite:' . Auth::id() . ':' . $this->getEntity()->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
+            $this->addError('inviteEmail', __('people.error_too_many_invite_attempts'));
+
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 3600);
+
         $authUser = Auth::user();
         $entity = $this->getEntity();
         $entityIdColumn = $this->getEntityIdColumn();
@@ -218,17 +215,11 @@ trait ManagesParticipants
                 return;
             }
 
-            // Capacity check
-            if ($entity->max_players) {
-                $currentCount = $entity->participants()
-                    ->where('status', ParticipantStatus::Approved)
-                    ->count();
+            if ($this->isAtCapacity()) {
+                // Full entity — add to waitlist or bench instead of refusing
+                $this->addEmailInviteeToOverflow($entity, $participantModel, $entityIdColumn, $normalizedEmail, $authUser, $existingUser->id);
 
-                if ($currentCount >= $entity->max_players) {
-                    $this->addError('inviteEmail', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
-
-                    return;
-                }
+                return;
             }
 
             $participantModel::create([
@@ -246,24 +237,7 @@ trait ManagesParticipants
                 'join_source' => 'email_invite',
             ]);
 
-            // Send in-app notification (same as friend invite)
-            try {
-                $notificationClass = $this->getEntityName() === 'Game'
-                    ? new GameInvitation($entity, $authUser)
-                    : new CampaignInvitation($entity, $authUser);
-                $category = $this->getEntityName() === 'Game'
-                    ? NotificationCategory::GameInvitation
-                    : NotificationCategory::CampaignInvitation;
-
-                app(NotificationService::class)->send($existingUser, $notificationClass, $category);
-            } catch (\Throwable $e) {
-                Log::error('notification.email_invite_dispatch_failed', [
-                    'entity_type' => $this->getEntityName(),
-                    $entityIdColumn => $entity->id,
-                    'target_user_id' => $existingUser->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->sendInvitationNotification($existingUser);
 
             $this->reset('inviteEmail');
             session()->flash('success', __('people.flash_email_invite_sent'));
@@ -273,7 +247,8 @@ trait ManagesParticipants
 
         // ── Path 4: No existing user → email-invite path ──
 
-        // Duplicate check: pending invite already sent to this email
+        // Duplicate check: pending invite already sent to this email.
+        // Application-level check first, with DB unique constraint as safety net.
         $existingInvite = $participantModel::where($entityIdColumn, $entity->id)
             ->where('invitee_email', $normalizedEmail)
             ->where('status', ParticipantStatus::Pending)
@@ -285,28 +260,35 @@ trait ManagesParticipants
             return;
         }
 
-        // Capacity check
-        if ($entity->max_players) {
-            $currentCount = $entity->participants()
-                ->where('status', ParticipantStatus::Approved)
-                ->count();
+        if ($this->isAtCapacity()) {
+            // Full entity — add to waitlist or bench instead of refusing
+            $this->addEmailInviteeToOverflow($entity, $participantModel, $entityIdColumn, $normalizedEmail, $authUser);
 
-            if ($currentCount >= $entity->max_players) {
-                $this->addError('inviteEmail', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
-
-                return;
-            }
+            return;
         }
 
-        // Create participant with null user_id and invitee_email
-        $participantModel::create([
-            $entityIdColumn => $entity->id,
-            'user_id' => null,
-            'invitee_email' => $normalizedEmail,
-            'role' => 'invited',
-            'status' => 'pending',
-            'join_source' => JoinSource::EmailInvite,
-        ]);
+        // Create participant — catch QueryException for the race condition
+        // where two requests pass the app-level check simultaneously.
+        // The partial unique index on (entity_id, invitee_email) is the final guard.
+        try {
+            $participantModel::create([
+                $entityIdColumn => $entity->id,
+                'user_id' => null,
+                'invitee_email' => $normalizedEmail,
+                'role' => 'invited',
+                'status' => 'pending',
+                'join_source' => JoinSource::EmailInvite,
+            ]);
+        } catch (QueryException $e) {
+            Log::warning('email_invite.duplicate_detected', [
+                'invitee_email' => $normalizedEmail,
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+            ]);
+            $this->addError('inviteEmail', __('people.error_email_invite_already_sent'));
+
+            return;
+        }
 
         Log::info($this->getEntityName() . ' email invite: external email invited', [
             $entityIdColumn => $entity->id,
@@ -319,14 +301,14 @@ trait ManagesParticipants
         try {
             $mailable = new EntityInvitationEmail(
                 entityType: strtolower($this->getEntityName()),
-                entityName: $entity->name ?? $entity->title,
+                entityName: $entity->name,
                 entityDateTime: $entity->date_time ?? null,
                 entityLocation: $entity->linkedLocation?->address ?? null,
                 inviterName: $authUser->name,
                 inviteeEmail: $normalizedEmail,
-                signupUrl: url('/register'),
+                signupUrl: route('register', ['locale' => app()->getLocale()]),
             );
-            Mail::to($normalizedEmail)->send($mailable);
+            Mail::to($normalizedEmail)->queue($mailable);
         } catch (\Throwable $e) {
             Log::error('email.invite_delivery_failed', [
                 'entity_type' => $this->getEntityName(),
@@ -533,6 +515,14 @@ trait ManagesParticipants
         $entityIdColumn = $this->getEntityIdColumn();
         $authUser = Auth::user();
 
+        // Guard: entity must not be cancelled/canceled or completed
+        $inactiveStatuses = ['canceled', 'cancelled', 'completed'];
+        if ($entity->status && in_array($entity->status->value, $inactiveStatuses)) {
+            session()->flash('error', __('people.error_entity_no_longer_available'));
+
+            return;
+        }
+
         // Must be the invited user
         if ($participant->user_id !== $authUser->id) {
             session()->flash('error', __('people.error_not_your_invitation'));
@@ -553,7 +543,8 @@ trait ManagesParticipants
             ->count();
 
         if ($entity->max_players && $currentCount >= $entity->max_players) {
-            session()->flash('error', __('people.error_entity_full', ['entity' => strtolower($this->getEntityName())]));
+            // Full entity — add to waitlist or bench instead of rejecting
+            $this->addAcceptedInviteeToOverflow($participant, $entity);
 
             return;
         }
@@ -642,6 +633,180 @@ trait ManagesParticipants
     }
 
     // ── Helpers ────────────────────────────────────────
+
+    /**
+     * Returns true if the entity has reached max_players capacity.
+     * Counts only approved participants.
+     */
+    private function isAtCapacity(): bool
+    {
+        $entity = $this->getEntity();
+
+        if (! $entity->max_players) {
+            return false;
+        }
+
+        return $entity->participants()
+            ->where('status', ParticipantStatus::Approved)
+            ->count() >= $entity->max_players;
+    }
+
+    /**
+     * Sends an in-app invitation notification to the given user.
+     * Swallows errors and logs them so a notification failure never breaks the invite flow.
+     */
+    private function sendInvitationNotification(User $user): void
+    {
+        $entity = $this->getEntity();
+        $authUser = Auth::user();
+
+        try {
+            $notificationClass = $this->getEntityName() === 'Game'
+                ? new GameInvitation($entity, $authUser)
+                : new CampaignInvitation($entity, $authUser);
+            $category = $this->getEntityName() === 'Game'
+                ? NotificationCategory::GameInvitation
+                : NotificationCategory::CampaignInvitation;
+
+            app(NotificationService::class)->send($user, $notificationClass, $category);
+        } catch (\Throwable $e) {
+            Log::error('notification.invite_dispatch_failed', [
+                'entity_type' => $this->getEntityName(),
+                $this->getEntityIdColumn() => $entity->id,
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Determine the overflow status for a full entity.
+     *
+     * Standalone games (no campaign) use waitlist.
+     * Campaign sessions and campaigns use bench.
+     *
+     * @return array{status: string, timestamp_column: string, timestamp_value: \Carbon\Carbon}
+     */
+    private function resolveOverflowStatus(): array
+    {
+        $entity = $this->getEntity();
+        $isStandaloneGame = $this->getEntityName() === 'Game' && empty($entity->campaign_id);
+
+        if ($isStandaloneGame) {
+            return [
+                'status' => ParticipantStatus::Waitlisted->value,
+                'timestamp_column' => 'waitlisted_at',
+            ];
+        }
+
+        return [
+            'status' => ParticipantStatus::Benched->value,
+            'timestamp_column' => 'benched_at',
+        ];
+    }
+
+    /**
+     * Add an email invitee to the waitlist or bench when the entity is full.
+     * Handles both existing-user and non-existing-user paths.
+     *
+     * For standalone games: creates a waitlisted participant.
+     * For campaigns/campaign sessions: creates a benched participant.
+     */
+    private function addEmailInviteeToOverflow(
+        $entity,
+        string $participantModel,
+        string $entityIdColumn,
+        string $normalizedEmail,
+        $authUser,
+        ?string $existingUserId = null,
+    ): void {
+        $overflow = $this->resolveOverflowStatus();
+
+        $data = [
+            $entityIdColumn => $entity->id,
+            'user_id' => $existingUserId,
+            'invitee_email' => $existingUserId ? null : $normalizedEmail,
+            'role' => 'invited',
+            'status' => $overflow['status'],
+            'join_source' => JoinSource::EmailInvite,
+            $overflow['timestamp_column'] => now(),
+        ];
+
+        $participantModel::create($data);
+
+        $logContext = [
+            'entity_type' => $this->getEntityName(),
+            $entityIdColumn => $entity->id,
+            'invitee_email' => $normalizedEmail,
+            'invited_by' => $authUser->id,
+            'overflow_status' => $overflow['status'],
+        ];
+        if ($existingUserId) {
+            $logContext['invited_user_id'] = $existingUserId;
+        }
+        Log::info($this->getEntityName() . ' email invite added to ' . $overflow['status'], $logContext);
+
+        // Still send the invitation email/notification so the person knows they've been invited
+        // (they'll be notified when promoted from waitlist/bench later)
+        if ($existingUserId) {
+            $existingUser = User::find($existingUserId);
+            if ($existingUser) {
+                $this->sendInvitationNotification($existingUser);
+            }
+        } else {
+            try {
+                $mailable = new EntityInvitationEmail(
+                    entityType: strtolower($this->getEntityName()),
+                    entityName: $entity->name,
+                    entityDateTime: $entity->date_time ?? null,
+                    entityLocation: $entity->linkedLocation?->address ?? null,
+                    inviterName: $authUser->name,
+                    inviteeEmail: $normalizedEmail,
+                    signupUrl: route('register', ['locale' => app()->getLocale()]),
+                );
+                Mail::to($normalizedEmail)->queue($mailable);
+            } catch (\Throwable $e) {
+                Log::error('email.invite_delivery_failed', [
+                    'entity_type' => $this->getEntityName(),
+                    $entityIdColumn => $entity->id,
+                    'invitee_email' => $normalizedEmail,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->reset('inviteEmail');
+
+        $messageKey = $overflow['status'] === ParticipantStatus::Waitlisted->value
+            ? 'people.flash_email_invite_waitlisted'
+            : 'people.flash_email_invite_benched';
+        session()->flash('success', __($messageKey));
+    }
+
+    /**
+     * Move an accepted invitee to waitlist or bench when the entity is full.
+     * Called from acceptInvitation() when capacity check fails.
+     */
+    private function addAcceptedInviteeToOverflow($participant, $entity): void
+    {
+        $overflow = $this->resolveOverflowStatus();
+
+        $participant->update([
+            'status' => $overflow['status'],
+            $overflow['timestamp_column'] => now(),
+        ]);
+
+        Log::info($this->getEntityName() . ' invitation accepted but entity full — moved to ' . $overflow['status'], [
+            $this->getEntityIdColumn() => $entity->id,
+            'user_id' => $participant->user_id,
+            'overflow_status' => $overflow['status'],
+        ]);
+
+        $messageKey = $overflow['status'] === ParticipantStatus::Waitlisted->value
+            ? 'people.flash_accepted_waitlisted'
+            : 'people.flash_accepted_benched';
+        session()->flash('success', __($messageKey));
+    }
 
     private function findParticipant(string $participantId)
     {

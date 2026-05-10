@@ -153,7 +153,7 @@
                                 </span>
                             </div>
                         </a>
-                    @endforeach>
+                    @endforeach
                 </div>
             @endif
         </section>

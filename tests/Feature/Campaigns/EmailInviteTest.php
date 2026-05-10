@@ -119,3 +119,134 @@ test('cancel invite works for email invite on campaign', function () {
         'status' => ParticipantStatus::Rejected->value,
     ]);
 });
+
+// ═══════════════════════════════════════════════════════════
+// 5. INVITE BY EMAIL FOR EXISTING USER CREATES NORMAL INVITE
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email for existing user creates normal invite on campaign', function () {
+    $existingUser = User::factory()->create([
+        'email' => 'existing@example.com',
+        'profile_complete' => true,
+    ]);
+
+    Mail::fake();
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(CampaignManageParticipants::class, ['id' => $this->campaign->id])
+        ->set('inviteEmail', 'existing@example.com')
+        ->call('inviteByEmail')
+        ->assertHasNoErrors();
+
+    // Should create participant with user_id set (not null)
+    $this->assertDatabaseHas('campaign_participants', [
+        'campaign_id' => $this->campaign->id,
+        'user_id' => $existingUser->id,
+        'invitee_email' => null,
+        'role' => 'invited',
+        'status' => ParticipantStatus::Pending->value,
+        'join_source' => JoinSource::EmailInvite->value,
+    ]);
+
+    // Should NOT send EntityInvitationEmail — sends in-app notification instead
+    Mail::assertNotQueued(EntityInvitationEmail::class);
+});
+
+// ═══════════════════════════════════════════════════════════
+// 6. INVITE BY EMAIL REJECTS INVALID EMAIL
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email rejects invalid email on campaign', function () {
+    Mail::fake();
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(CampaignManageParticipants::class, ['id' => $this->campaign->id])
+        ->set('inviteEmail', 'not-an-email')
+        ->call('inviteByEmail')
+        ->assertHasErrors('inviteEmail');
+
+    // No participant should be created
+    $this->assertDatabaseMissing('campaign_participants', [
+        'campaign_id' => $this->campaign->id,
+        'invitee_email' => 'not-an-email',
+    ]);
+
+    Mail::assertNothingQueued();
+});
+
+// ═══════════════════════════════════════════════════════════
+// 7. INVITE BY EMAIL REJECTS SELF-INVITE
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email rejects self-invite on campaign', function () {
+    Mail::fake();
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(CampaignManageParticipants::class, ['id' => $this->campaign->id])
+        ->set('inviteEmail', $this->owner->email)
+        ->call('inviteByEmail')
+        ->assertHasErrors('inviteEmail');
+
+    Mail::assertNothingQueued();
+});
+
+// ═══════════════════════════════════════════════════════════
+// 8. INVITE BY EMAIL ADDS TO BENCH WHEN AT CAPACITY FOR CAMPAIGN
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email adds to bench when at capacity on campaign', function () {
+    Mail::fake();
+
+    ['owner' => $fullOwner, 'campaign' => $fullCampaign] = $this->createCampaignWithOwner(['max_players' => 1]);
+
+    // Fill the one slot with an approved participant
+    CampaignParticipant::create([
+        'campaign_id' => $fullCampaign->id,
+        'user_id' => $fullOwner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    Livewire\Livewire::actingAs($fullOwner)
+        ->test(CampaignManageParticipants::class, ['id' => $fullCampaign->id])
+        ->set('inviteEmail', 'full@example.com')
+        ->call('inviteByEmail')
+        ->assertHasNoErrors();
+
+    // Should create a benched participant, not an error
+    $this->assertDatabaseHas('campaign_participants', [
+        'campaign_id' => $fullCampaign->id,
+        'user_id' => null,
+        'invitee_email' => 'full@example.com',
+        'status' => ParticipantStatus::Benched->value,
+        'join_source' => JoinSource::EmailInvite->value,
+    ]);
+
+    // Should still send the invitation email
+    Mail::assertQueued(EntityInvitationEmail::class);
+});
+
+// ═══════════════════════════════════════════════════════════
+// 9. INVITE BY EMAIL LOGS STRUCTURED CONTEXT
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email logs structured context on campaign', function () {
+    Log::spy();
+    Mail::fake();
+
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(CampaignManageParticipants::class, ['id' => $this->campaign->id])
+        ->set('inviteEmail', 'logged@example.com')
+        ->call('inviteByEmail')
+        ->assertHasNoErrors();
+
+    Log::shouldHaveReceived('info')
+        ->withArgs(function ($message, $context) {
+            return str_contains($message, 'email invite')
+                && isset($context['campaign_id'])
+                && $context['campaign_id'] === $this->campaign->id
+                && isset($context['invitee_email'])
+                && $context['invitee_email'] === 'logged@example.com';
+        })
+        ->once();
+});

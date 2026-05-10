@@ -4,6 +4,7 @@ use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Mail\EntityInvitationEmail;
+use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -187,11 +188,10 @@ test('invite by email rejects duplicate', function () {
 // 8. INVITE BY EMAIL REJECTS WHEN AT CAPACITY
 // ═══════════════════════════════════════════════════════════
 
-test('invite by email rejects when at capacity', function () {
+test('invite by email adds to waitlist when at capacity for standalone game', function () {
     Mail::fake();
 
-    // Create a game with max_players=1 (owner is already an approved participant from createGameWithOwner)
-    // But actually, createGameWithOwner doesn't create the owner participant — let's create a full game
+    // Create a standalone game (no campaign_id) with max_players=1
     ['owner' => $fullOwner, 'game' => $fullGame] = $this->createGameWithOwner(['max_players' => 1]);
 
     // Add approved participant to fill capacity
@@ -206,9 +206,19 @@ test('invite by email rejects when at capacity', function () {
         ->test(GameManageParticipants::class, ['id' => $fullGame->id])
         ->set('inviteEmail', 'full@example.com')
         ->call('inviteByEmail')
-        ->assertHasErrors('inviteEmail');
+        ->assertHasNoErrors();
 
-    Mail::assertNothingQueued();
+    // Should create a waitlisted participant, not an error
+    $this->assertDatabaseHas('game_participants', [
+        'game_id' => $fullGame->id,
+        'user_id' => null,
+        'invitee_email' => 'full@example.com',
+        'status' => ParticipantStatus::Waitlisted->value,
+        'join_source' => JoinSource::EmailInvite->value,
+    ]);
+
+    // Should still send the invitation email
+    Mail::assertQueued(EntityInvitationEmail::class);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -268,4 +278,122 @@ test('invite by email logs structured context', function () {
                 && $context['invitee_email'] === 'logged@example.com';
         })
         ->once();
+});
+
+// ═══════════════════════════════════════════════════════════
+// 11. INVITE BY EMAIL RATE LIMITS AFTER THRESHOLD
+// ═══════════════════════════════════════════════════════════
+
+test('invite by email rate limits after threshold', function () {
+    Mail::fake();
+
+    // Send 10 invites to distinct emails — all should succeed
+    for ($i = 0; $i < 10; $i++) {
+        Livewire\Livewire::actingAs($this->owner)
+            ->test(GameManageParticipants::class, ['id' => $this->game->id])
+            ->set('inviteEmail', "user{$i}@example.com")
+            ->call('inviteByEmail')
+            ->assertHasNoErrors();
+    }
+
+    // 11th invite should be rejected by the rate limiter
+    Livewire\Livewire::actingAs($this->owner)
+        ->test(GameManageParticipants::class, ['id' => $this->game->id])
+        ->set('inviteEmail', 'onemore@example.com')
+        ->call('inviteByEmail')
+        ->assertHasErrors('inviteEmail');
+
+    // No participant should be created for the rate-limited attempt
+    $this->assertDatabaseMissing('game_participants', [
+        'game_id' => $this->game->id,
+        'invitee_email' => 'onemore@example.com',
+    ]);
+});
+
+// ═══════════════════════════════════════════════════════════
+// 12. ACCEPT INVITATION REJECTS WHEN GAME IS CANCELLED
+// ═══════════════════════════════════════════════════════════
+
+test('accept invitation rejects when game is cancelled', function () {
+    Mail::fake();
+
+    // Use a fresh game to avoid transaction state pollution from prior tests
+    ['owner' => $freshOwner, 'game' => $freshGame] = $this->createGameWithOwner();
+
+    // Send an email invite to a future invitee
+    Livewire\Livewire::actingAs($freshOwner)
+        ->test(GameManageParticipants::class, ['id' => $freshGame->id])
+        ->set('inviteEmail', 'invited@example.com')
+        ->call('inviteByEmail')
+        ->assertHasNoErrors();
+
+    // Cancel the game — use saveQuietly to bypass GameObserver which triggers
+    // a pre-existing activity_log UUID bug when user_id is empty string
+    $freshGame->status = \App\Enums\GameStatus::Canceled;
+    $freshGame->saveQuietly();
+    expect($freshGame->fresh()->status->value)->toBe('canceled');
+
+    // Simulate the invitee creating an account and getting matched to the participant
+    $invitee = User::factory()->create([
+        'email' => 'invited@example.com',
+        'profile_complete' => true,
+    ]);
+
+    $participant = GameParticipant::where('game_id', $freshGame->id)
+        ->where('invitee_email', 'invited@example.com')
+        ->first();
+    $participant->update(['user_id' => $invitee->id]);
+
+    // Try to accept — guard should block this because the game is cancelled
+    Livewire\Livewire::actingAs($invitee)
+        ->test(GameManageParticipants::class, ['id' => $freshGame->id])
+        ->call('acceptInvitation', $participant->id);
+
+    // Guard uses session flash, so no Livewire errors — check status directly
+    // Status must remain pending — approval must not happen on a cancelled game
+    expect($participant->fresh()->status->value)->not->toBe('approved');
+});
+
+// ═══════════════════════════════════════════════════════════
+// 13. ACCEPT INVITATION ADDS TO WAITLIST WHEN STANDALONE GAME IS FULL
+// ═══════════════════════════════════════════════════════════
+
+test('accept invitation adds to waitlist when standalone game is full', function () {
+    Mail::fake();
+
+    ['owner' => $fullOwner, 'game' => $fullGame] = $this->createGameWithOwner(['max_players' => 1]);
+
+    // Fill the slot
+    GameParticipant::create([
+        'game_id' => $fullGame->id,
+        'user_id' => $fullOwner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Invite someone
+    Livewire\Livewire::actingAs($fullOwner)
+        ->test(GameManageParticipants::class, ['id' => $fullGame->id])
+        ->set('inviteEmail', 'invited@example.com')
+        ->call('inviteByEmail')
+        ->assertHasNoErrors();
+
+    // The invitee exists and matches
+    $invitee = User::factory()->create([
+        'email' => 'invited@example.com',
+        'profile_complete' => true,
+    ]);
+
+    $participant = GameParticipant::where('game_id', $fullGame->id)
+        ->where('invitee_email', 'invited@example.com')
+        ->first();
+    $participant->update(['user_id' => $invitee->id]);
+
+    // Accept — game is full so should go to waitlist, not approved
+    Livewire\Livewire::actingAs($invitee)
+        ->test(GameManageParticipants::class, ['id' => $fullGame->id])
+        ->call('acceptInvitation', $participant->id);
+
+    expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
+    expect($participant->fresh()->role)->toBe('invited');
 });

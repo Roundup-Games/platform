@@ -1,7 +1,9 @@
 @component('mail::message')
 # {{ __($entityType === 'game' ? 'emails.content_you_re_invited_to_a_game' : 'emails.content_you_re_invited_to_a_campaign') }} 🎲
 
-{{ __('emails.content_inviter_has_invited_you_to_join_' . $entityType, ['inviter' => $inviterName, 'entity' => $entityName]) }}
+{{ $entityType === 'game'
+    ? __('emails.content_inviter_has_invited_you_to_join_game', ['inviter' => $inviterName, 'entity' => $entityName])
+    : __('emails.content_inviter_has_invited_you_to_join_campaign', ['inviter' => $inviterName, 'entity' => $entityName]) }}
 
 **{{ __('common.field_name') }}:** {{ $entityName }}
 @if($entityDateTime)
