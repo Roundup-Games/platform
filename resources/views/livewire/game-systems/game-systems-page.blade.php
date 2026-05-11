@@ -168,11 +168,9 @@
                                class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-lg transition-all duration-200 overflow-hidden group">
                                 {{-- Cover Image --}}
                                 <div class="aspect-[4/3] bg-surface-container-high relative overflow-hidden">
-                                    @php($coverUrl = $system->getFirstMediaUrl('cover', 'thumb'))
+                                    @php($coverUrl = $system->coverImageUrl('thumb'))
                                     @if($coverUrl)
-                                        <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
-                                    @elseif($system->thumbnail_url)
-                                        <img src="{{ $system->thumbnail_url }}" alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
+                                        <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center bg-primary/5">
                                             <span class="material-symbols-outlined text-5xl text-primary/30" aria-hidden="true">casino</span>

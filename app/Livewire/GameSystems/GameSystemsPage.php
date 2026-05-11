@@ -230,28 +230,42 @@ class GameSystemsPage extends Component
     {
         $systems = $this->buildQuery()->paginate(self::PER_PAGE);
 
-        // Load categories with game count for filter display, scoped to selected type
-        $categoryQuery = GameSystemCategory::query()
-            ->withCount(['gameSystems' => function ($q) {
-                if ($this->type !== 'all') {
-                    $q->where('type', $this->type);
-                }
-            }])
-            ->orderByDesc('game_systems_count')
-            ->orderBy('name');
+        // Cache categories and mechanics per type — these rarely change.
+        // Store as arrays to avoid Eloquent collection serialization issues.
+        $cacheKey = 'game-systems:filters:' . $this->type;
+        $filters = \Illuminate\Support\Facades\Cache::remember(
+            $cacheKey,
+            now()->addHours(6),
+            function () {
+                $categories = GameSystemCategory::query()
+                    ->withCount(['gameSystems' => function ($q) {
+                        if ($this->type !== 'all') {
+                            $q->where('type', $this->type);
+                        }
+                    }])
+                    ->orderByDesc('game_systems_count')
+                    ->orderBy('name')
+                    ->get();
 
-        $allCategories = $categoryQuery->get();
+                $mechanics = GameSystemMechanic::query()
+                    ->withCount(['gameSystems' => function ($q) {
+                        if ($this->type !== 'all') {
+                            $q->where('type', $this->type);
+                        }
+                    }])
+                    ->orderByDesc('game_systems_count')
+                    ->orderBy('name')
+                    ->get();
 
-        $mechanicQuery = GameSystemMechanic::query()
-            ->withCount(['gameSystems' => function ($q) {
-                if ($this->type !== 'all') {
-                    $q->where('type', $this->type);
-                }
-            }])
-            ->orderByDesc('game_systems_count')
-            ->orderBy('name');
+                return [
+                    $categories->toArray(),
+                    $mechanics->toArray(),
+                ];
+            }
+        );
 
-        $allMechanics = $mechanicQuery->get();
+        $allCategories = GameSystemCategory::hydrate($filters[0]);
+        $allMechanics = GameSystemMechanic::hydrate($filters[1]);
 
         return view('livewire.game-systems.game-systems-page', [
             'systems' => $systems,

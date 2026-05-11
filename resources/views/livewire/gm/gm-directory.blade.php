@@ -90,13 +90,7 @@
                         <div class="p-5">
                             {{-- Avatar + Name --}}
                             <div class="flex items-center gap-3 mb-3">
-                                <div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-heading font-bold text-lg shrink-0 overflow-hidden">
-                                    @if($gmProfile->user->avatar_url)
-                                        <img src="{{ $gmProfile->user->avatar_url }}" alt="{{ $gmProfile->user->name }}" class="w-full h-full object-cover" />
-                                    @else
-                                        {{ Str::substr($gmProfile->user->name, 0, 1) }}
-                                    @endif
-                                </div>
+                                <x-user-avatar :user="$gmProfile->user" size="w-12 h-12" text-size="text-lg" />
                                 <div class="min-w-0">
                                     <h3 class="font-heading font-semibold text-on-surface group-hover:text-primary transition-colors truncate">{{ $gmProfile->user->name }}</h3>
                                     @if($gmProfile->average_rating)

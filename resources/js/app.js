@@ -1,6 +1,7 @@
 import './bootstrap';
 import './guest-location';
 import './offline-queue';
+import './image-fallback';
 import { initPushSubscriptions } from './push';
 import { showOfflineToast as showOfflineActionToast } from './offline-queue';
 

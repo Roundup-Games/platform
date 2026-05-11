@@ -7,10 +7,14 @@
 @if($user)
     @php $avatarUrl = $user->avatar_url ?? null @endphp
     @if($avatarUrl)
-        <img src="{{ $avatarUrl }}"
-             alt=""
-             class="{{ $size }} rounded-full object-cover shrink-0"
-             aria-hidden="true" />
+        <div class="{{ $size }} rounded-full bg-primary/10 flex items-center justify-center text-primary font-heading font-bold {{ $textSize }} shrink-0 overflow-hidden"
+             data-initial="{{ strtoupper(\Illuminate\Support\Str::substr($user->name, 0, 1)) }}">
+            <img src="{{ $avatarUrl }}"
+                 alt=""
+                 class="w-full h-full object-cover"
+                 aria-hidden="true"
+                 data-fallback="initial" />
+        </div>
     @else
         <span class="{{ $size }} rounded-full bg-primary/10 flex items-center justify-center text-primary font-heading font-bold {{ $textSize }} shrink-0"
               aria-hidden="true">

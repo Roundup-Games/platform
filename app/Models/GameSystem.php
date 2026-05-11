@@ -111,6 +111,31 @@ class GameSystem extends Model implements HasMedia
             ->sharpen(10);
     }
 
+    /**
+     * Resolved cover image URL — prefers local media, falls back to BGG thumbnail_url.
+     *
+     * Validates that the media file actually exists on disk before returning its URL,
+     * avoiding broken <img> src attributes when conversion files are missing.
+     */
+    public function coverImageUrl(string $conversionName = ''): ?string
+    {
+        $media = $this->getFirstMedia('cover');
+
+        if ($media) {
+            $path = $conversionName
+                ? $media->getPath($conversionName)
+                : $media->getPath();
+
+            if ($path && file_exists($path)) {
+                return $conversionName
+                    ? $media->getUrl($conversionName)
+                    : $media->getUrl();
+            }
+        }
+
+        return $this->thumbnail_url;
+    }
+
     // ── Relationships ──────────────────────────────────
 
     public function categories(): BelongsToMany

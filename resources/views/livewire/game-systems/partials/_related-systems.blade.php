@@ -4,11 +4,9 @@
                 <h2 class="text-sm font-heading font-bold text-primary uppercase tracking-wide mb-3">{{ __('games.content_base_game_quick_info') }}</h2>
                 <a href="{{ route('game-systems.show', $system->baseGame->slug) }}" wire:navigate class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:bg-primary/5 transition-colors group">
                     <div class="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high">
-                        @php($baseCover = $system->baseGame->getFirstMediaUrl('cover', 'thumb'))
+                        @php($baseCover = $system->baseGame->coverImageUrl('thumb'))
                         @if($baseCover)
-                            <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover">
-                        @elseif($system->baseGame->thumbnail_url)
-                            <img src="{{ $system->baseGame->thumbnail_url }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover">
+                            <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" data-fallback="placeholder">
                         @else
                             <div class="w-full h-full flex items-center justify-center">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
@@ -44,11 +42,9 @@
                     @foreach($system->expansions as $expansion)
                         <a href="{{ route('game-systems.show', $expansion->slug) }}" wire:navigate class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                             <div class="aspect-square bg-surface-container-high relative overflow-hidden">
-                                @php($expCover = $expansion->getFirstMediaUrl('cover', 'thumb'))
+                                @php($expCover = $expansion->coverImageUrl('thumb'))
                                 @if($expCover)
-                                    <img src="{{ $expCover }}" alt="{{ $expansion->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
-                                @elseif($expansion->thumbnail_url)
-                                    <img src="{{ $expansion->thumbnail_url }}" alt="{{ $expansion->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
+                                    <img src="{{ $expCover }}" alt="{{ $expansion->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
                                 @else
                                     <div class="w-full h-full flex items-center justify-center">
                                         <span class="material-symbols-outlined text-3xl text-on-surface-variant/30" aria-hidden="true">extension</span>
