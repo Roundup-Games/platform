@@ -17,6 +17,9 @@ class Game extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    // bench_mode is GM-gated on create (CreateGame).
+    // If an edit/update flow is added later, it MUST also gate bench_mode to GM users.
+    // See CreateGame::save() for the reference implementation.
     protected $attributes = [
         'bench_mode' => false,
     ];
@@ -247,9 +250,10 @@ class Game extends Model
      * Check if this entity uses bench mode (overflow to bench) vs waitlist (FIFO queue).
      * Reads from the bench_mode column. Campaign sessions inherit from their campaign.
      *
-     * Note: For campaign sessions with bench_mode=false, this falls back to checking
-     * the parent campaign's isBenchMode(). Callers in listing contexts (discovery cards,
-     * etc.) must eager-load the 'campaign' relationship to avoid N+1 queries.
+     * Callers in listing contexts (discovery cards, etc.) must eager-load the
+     * 'campaign' relationship to avoid N+1 queries and ensure correct behavior.
+     * When campaign is not loaded, falls back to false (waitlist) — the safer default
+     * that avoids silent overflow-mode mismatches.
      */
     public function isBenchMode(): bool
     {
@@ -259,9 +263,19 @@ class Game extends Model
 
         // Campaign sessions inherit bench_mode from their campaign
         if ($this->campaign_id !== null) {
-            // Use getRelationValue to leverage already-loaded relationships
-            // and avoid N+1 in listing contexts
-            return ($this->getRelationValue('campaign')?->isBenchMode()) ?? true;
+            $campaign = $this->getRelationValue('campaign');
+
+            if ($campaign === null) {
+                \Illuminate\Support\Facades\Log::warning('game.is_bench_mode.campaign_not_loaded', [
+                    'game_id' => $this->id,
+                    'campaign_id' => $this->campaign_id,
+                    'message' => 'Campaign relationship not loaded — defaulting to waitlist mode. Eager-load campaign to avoid this.',
+                ]);
+
+                return false;
+            }
+
+            return $campaign->isBenchMode();
         }
 
         return false;

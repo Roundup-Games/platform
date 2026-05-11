@@ -36,6 +36,7 @@ class CampaignFactory extends Factory
             'experience_level' => null,
             'complexity' => null,
             'vibe_flags' => null,
+            'bench_mode' => false,
         ];
     }
 }

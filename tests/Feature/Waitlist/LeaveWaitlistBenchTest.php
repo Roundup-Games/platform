@@ -73,6 +73,7 @@ function createFullBenchGameForLeave(User $owner, GameSystem $system, int $maxPl
         'session_duration' => 3,
         'min_players' => 2,
         'max_players' => $maxPlayers,
+        'bench_mode' => true,
     ]);
 
     $game = Game::create([

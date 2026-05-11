@@ -32,6 +32,7 @@ function benchCreateFullCampaign(User $owner, GameSystem $system, int $maxPlayer
         'session_duration' => 3,
         'min_players' => 2,
         'max_players' => $maxPlayers,
+        'bench_mode' => true,
     ]);
 
     // Fill with approved participants (including owner)
@@ -351,7 +352,7 @@ test('game isBenchMode returns false for standalone game', function () {
     expect($game->isBenchMode())->toBeFalse();
 });
 
-test('campaign isBenchMode defaults to true', function () {
+test('campaign isBenchMode returns true when explicitly enabled', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
 
     expect($campaign->isBenchMode())->toBeTrue();

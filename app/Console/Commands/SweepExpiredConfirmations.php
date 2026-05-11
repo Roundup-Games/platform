@@ -70,11 +70,10 @@ class SweepExpiredConfirmations extends Command
 
         if ($dryRun) {
             foreach ($expired as $participant) {
-                $entityType = $participant instanceof CampaignParticipant ? 'campaign' : 'game';
-                $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+                $meta = $participant->entityMeta();
 
                 $this->line("  Would process participant {$participant->id} " .
-                    "({$entityType}: {$participant->{$foreignKey}}, expired at: " .
+                    "({$meta['type']}: {$participant->{$meta['foreignKey']}}, expired at: " .
                     $participant->confirmation_expires_at->toIso8601String() . ")");
             }
             $processedCount = $count;
@@ -87,11 +86,11 @@ class SweepExpiredConfirmations extends Command
                     $processedCount++;
                 } catch (\Throwable $e) {
                     $errorCount++;
-                    $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+                    $meta = $participant->entityMeta();
 
                     Log::error('waitlist.sweep.process_failed', [
                         'participant_id' => $participant->id,
-                        $foreignKey => $participant->{$foreignKey},
+                        $meta['foreignKey'] => $participant->{$meta['foreignKey']},
                         'exception' => $e->getMessage(),
                     ]);
                     $this->warn("  Failed to process participant {$participant->id}: {$e->getMessage()}");

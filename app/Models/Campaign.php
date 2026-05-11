@@ -16,8 +16,11 @@ class Campaign extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    // bench_mode is GM-gated on create (CreateGame/CreateCampaign).
+    // If an edit/update flow is added later, it MUST also gate bench_mode to GM users.
+    // See CreateGame::save() and CreateCampaign::save() for the reference implementation.
     protected $attributes = [
-        'bench_mode' => true,
+        'bench_mode' => false,
     ];
 
     protected $fillable = [

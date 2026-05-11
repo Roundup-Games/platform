@@ -59,4 +59,22 @@ class GameParticipant extends Model
     {
         return $this->belongsTo(User::class, 'attendance_reported_by');
     }
+
+    /**
+     * Resolve entity metadata from a participant instance.
+     *
+     * Centralizes the repeated instanceof checks used in commands, jobs,
+     * and services for logging, locking, and querying.
+     *
+     * @return array{type: string, foreignKey: string, entityClass: class-string<Game>, participantClass: class-string<self>}
+     */
+    public static function entityMeta(): array
+    {
+        return [
+            'type' => 'game',
+            'foreignKey' => 'game_id',
+            'entityClass' => Game::class,
+            'participantClass' => self::class,
+        ];
+    }
 }

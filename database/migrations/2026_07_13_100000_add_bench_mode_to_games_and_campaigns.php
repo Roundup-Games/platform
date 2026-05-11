@@ -13,7 +13,7 @@ return new class extends Migration
         });
 
         Schema::table('campaigns', function (Blueprint $table) {
-            $table->boolean('bench_mode')->default(true)->after('max_players');
+            $table->boolean('bench_mode')->default(false)->after('max_players');
         });
     }
 

@@ -55,7 +55,7 @@ class CreateCampaign extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
     public array $vibePreferences = [];
 
-    public bool $bench_mode = true;
+    public bool $bench_mode = false;
 
     public function rules(): array
     {

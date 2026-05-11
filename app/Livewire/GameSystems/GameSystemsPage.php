@@ -264,6 +264,8 @@ class GameSystemsPage extends Component
             }
         );
 
+        // Hydrated models are attribute-only — no relationships or media loaded.
+        // Accessing relationships on these will trigger lazy-loaded queries per row.
         $allCategories = GameSystemCategory::hydrate($filters[0]);
         $allMechanics = GameSystemMechanic::hydrate($filters[1]);
 

@@ -49,4 +49,22 @@ class CampaignParticipant extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Resolve entity metadata from a participant instance.
+     *
+     * Centralizes the repeated instanceof checks used in commands, jobs,
+     * and services for logging, locking, and querying.
+     *
+     * @return array{type: string, foreignKey: string, entityClass: class-string<Campaign>, participantClass: class-string<self>}
+     */
+    public static function entityMeta(): array
+    {
+        return [
+            'type' => 'campaign',
+            'foreignKey' => 'campaign_id',
+            'entityClass' => Campaign::class,
+            'participantClass' => self::class,
+        ];
+    }
 }

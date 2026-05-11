@@ -59,7 +59,7 @@ test('game isBenchMode returns true when bench_mode is true', function () {
     expect($game->isBenchMode())->toBeTrue();
 });
 
-test('campaign isBenchMode reads from bench_mode column - default true', function () {
+test('campaign isBenchMode reads from bench_mode column - default false', function () {
     $campaign = Campaign::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
@@ -75,7 +75,7 @@ test('campaign isBenchMode reads from bench_mode column - default true', functio
         'max_players' => 4,
     ]);
 
-    expect($campaign->isBenchMode())->toBeTrue();
+    expect($campaign->isBenchMode())->toBeFalse();
 });
 
 test('campaign isBenchMode returns false when bench_mode is false', function () {
@@ -1153,7 +1153,7 @@ describe('Bench mode toggle matrix', function () {
     it('campaign session inherits campaign bench_mode=false', function () {
         $gm = toggleMatrixCreateGMUser();
 
-        // Create campaign with bench_mode=false (overriding the default true)
+        // Create campaign with bench_mode=false (explicit)
         $campaign = Campaign::create([
             'owner_id' => $gm->id,
             'game_system_id' => $this->gameSystem->id,

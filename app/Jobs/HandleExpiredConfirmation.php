@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Services\WaitlistService;
 use Illuminate\Bus\Queueable;
@@ -21,6 +20,11 @@ use Illuminate\Support\Facades\Log;
  * Dispatched with a delay matching the confirmation deadline so it
  * auto-fires as a fallback when no response comes in time. The sweep
  * command (SweepExpiredConfirmations) serves as an additional safety net.
+ *
+ * DEPLOY NOTE: Old queued jobs (before campaign support) default to
+ * GameParticipant. Run `waitlist:sweep-expired-confirmations` after
+ * deployment to catch any campaign confirmations orphaned by the
+ * class-default mismatch during the transition window.
  */
 class HandleExpiredConfirmation implements ShouldQueue
 {
@@ -90,11 +94,11 @@ class HandleExpiredConfirmation implements ShouldQueue
             return;
         }
 
-        $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+        $meta = $participant->entityMeta();
 
         Log::info('waitlist.expired_confirmation_job.processing', [
             'participant_id' => $participant->id,
-            $foreignKey => $participant->{$foreignKey},
+            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
             'expired_at' => $participant->confirmation_expires_at?->toIso8601String(),
         ]);
 
