@@ -480,7 +480,6 @@ class DiscoveryQueryService
         };
 
         // Primary query: favorite systems AND favorite vibes (boosted)
-        $boostedIds = collect();
         $boostedGames = collect();
         $boostedCampaigns = collect();
         if (!empty($favoriteVibes)) {

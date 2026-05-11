@@ -59,14 +59,16 @@ describe('addToWaitlist', function () {
         expect($participant->user_id)->toBe($user->id);
     });
 
-    it('throws for campaign games', function () {
+    it('throws for bench-mode campaign sessions (delegates to campaign)', function () {
         $owner = User::factory()->create();
-        $campaign = \App\Models\Campaign::factory()->create(['owner_id' => $owner->id]);
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $owner->id,
+            'bench_mode' => true,
+        ]);
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'campaign_id' => $campaign->id,
             'max_players' => 1,
-            'bench_mode' => true,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
@@ -77,7 +79,7 @@ describe('addToWaitlist', function () {
         $user = User::factory()->create();
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'Waitlist is not available for this game (bench mode is enabled).');
+            ->toThrow(\LogicException::class, 'Waitlist is not available for this');
     });
 
     it('throws when game is not full', function () {

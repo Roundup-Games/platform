@@ -450,11 +450,14 @@ class WaitlistService
 
     /**
      * Promote next waitlisted player by entity ID and class.
-     * Used within transactions where we already have the entity locked
-     * and want to avoid re-locking via the model.
      *
-     * Adds lockForUpdate on the participant row to prevent races with
-     * concurrent confirmation or leave actions.
+     * MUST be called within a DB::transaction() where the caller already holds
+     * a lockForUpdate() on the entity row. This method does NOT re-lock the entity,
+     * which prevents deadlocks from nested locking. It DOES lockForUpdate() on the
+     * participant row to prevent races with concurrent confirmation or leave actions
+     * (e.g., user confirming via web while this promotion runs).
+     *
+     * @see self::handleExpiredConfirmation() — caller that holds the entity lock
      */
     private function promoteNextFromEntityId(string $entityId, string $entityClass, ?string $excludeParticipantId = null): CampaignParticipant|GameParticipant|null
     {

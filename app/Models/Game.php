@@ -248,7 +248,11 @@ class Game extends Model
 
     /**
      * Check if this entity uses bench mode (overflow to bench) vs waitlist (FIFO queue).
-     * Reads from the bench_mode column. Campaign sessions inherit from their campaign.
+     *
+     * - Standalone games: reads from the bench_mode column.
+     * - Campaign sessions: always delegates to the parent campaign's bench_mode.
+     *   The game's own bench_mode column is ignored — the campaign owner controls
+     *   overflow behavior for all sessions uniformly.
      *
      * IMPORTANT: Callers in listing/card contexts MUST eager-load the 'campaign'
      * relationship (e.g., ->with('campaign')) before calling this method.
@@ -259,11 +263,7 @@ class Game extends Model
      */
     public function isBenchMode(): bool
     {
-        if ((bool) $this->bench_mode) {
-            return true;
-        }
-
-        // Campaign sessions inherit bench_mode from their campaign
+        // Campaign sessions: always delegate to the campaign
         if ($this->campaign_id !== null) {
             $campaign = $this->getRelationValue('campaign');
 
@@ -280,6 +280,7 @@ class Game extends Model
             return $campaign->isBenchMode();
         }
 
-        return false;
+        // Standalone games: read from own column
+        return (bool) $this->bench_mode;
     }
 }

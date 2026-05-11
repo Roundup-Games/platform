@@ -300,6 +300,20 @@ class CampaignDetail extends Component
         return Auth::id();
     }
 
+    /**
+     * Find the current viewer's participant record from the loaded participants collection.
+     *
+     * Single-pass replacement for 5 separate ->first(fn ($p) => $p->user_id === $id)
+     * calls that each scanned the full collection.
+     */
+    private function viewerParticipant(): ?CampaignParticipant
+    {
+        $id = $this->viewerId();
+        return $id
+            ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id)
+            : null;
+    }
+
     #[Computed]
     public function isOwner(): bool
     {
@@ -309,22 +323,22 @@ class CampaignDetail extends Component
     #[Computed]
     public function isParticipant(): bool
     {
-        $id = $this->viewerId();
-        return $id && $this->campaign->participants
-            ->contains(fn ($p) => $p->user_id === $id && in_array($p->status->value, [
-                ParticipantStatus::Approved->value,
-                ParticipantStatus::Pending->value,
-                ParticipantStatus::Waitlisted->value,
-                ParticipantStatus::Benched->value,
-            ]));
+        $vp = $this->viewerParticipant();
+        return $vp && in_array($vp->status->value, [
+            ParticipantStatus::Approved->value,
+            ParticipantStatus::Pending->value,
+            ParticipantStatus::Waitlisted->value,
+            ParticipantStatus::Benched->value,
+        ]);
     }
 
     #[Computed]
     public function userInvitation(): ?CampaignParticipant
     {
-        $id = $this->viewerId();
-        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
-            && $p->role === 'invited' && $p->status === ParticipantStatus::Pending) : null;
+        $vp = $this->viewerParticipant();
+        return $vp && $vp->role === 'invited' && $vp->status === ParticipantStatus::Pending
+            ? $vp
+            : null;
     }
 
     #[Computed]
@@ -362,9 +376,8 @@ class CampaignDetail extends Component
     #[Computed]
     public function userWaitlistParticipant(): ?CampaignParticipant
     {
-        $id = $this->viewerId();
-        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
-            && $p->status === ParticipantStatus::Waitlisted) : null;
+        $vp = $this->viewerParticipant();
+        return $vp && $vp->status === ParticipantStatus::Waitlisted ? $vp : null;
     }
 
     #[Computed]
@@ -377,17 +390,17 @@ class CampaignDetail extends Component
     #[Computed]
     public function userPendingParticipant(): ?CampaignParticipant
     {
-        $id = $this->viewerId();
-        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
-            && $p->status === ParticipantStatus::Pending && $p->confirmation_expires_at !== null) : null;
+        $vp = $this->viewerParticipant();
+        return $vp && $vp->status === ParticipantStatus::Pending && $vp->confirmation_expires_at !== null
+            ? $vp
+            : null;
     }
 
     #[Computed]
     public function userBenchParticipant(): ?CampaignParticipant
     {
-        $id = $this->viewerId();
-        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
-            && $p->status === ParticipantStatus::Benched) : null;
+        $vp = $this->viewerParticipant();
+        return $vp && $vp->status === ParticipantStatus::Benched ? $vp : null;
     }
 
     #[Computed]

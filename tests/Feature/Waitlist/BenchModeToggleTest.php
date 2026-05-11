@@ -591,7 +591,7 @@ describe('Campaign session inherits bench_mode from campaign', function () {
             ->and($participant->benched_at)->not->toBeNull();
     });
 
-    it('routes to waitlist when session has bench_mode=true but campaign has bench_mode=false', function () {
+    it('campaign bench_mode=false overrides session bench_mode=true', function () {
         // Campaign has bench_mode=false
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
@@ -609,14 +609,13 @@ describe('Campaign session inherits bench_mode from campaign', function () {
             'bench_mode' => false,
         ]);
 
-        // Session game has bench_mode=true but is overridden by campaign's false
+        // Session game has bench_mode=true on its own row, but campaign delegates
         $game = benchRouteCreateFullGame($this->owner, $this->gameSystem, benchMode: true, maxPlayers: 2, campaignId: $campaign->id);
         $applicant = User::factory()->create();
 
-        // Game's own bench_mode is true, but since own bench_mode is truthy, isBenchMode() returns true
-        // (Game::isBenchMode checks own bench_mode FIRST, then falls through to campaign)
+        // Campaign sessions always delegate to campaign — game's own bench_mode is ignored
         expect($game->bench_mode)->toBeTrue()
-            ->and($game->isBenchMode())->toBeTrue();
+            ->and($game->isBenchMode())->toBeFalse(); // delegates to campaign which is false
 
         \Livewire\Livewire::actingAs($applicant)
             ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
@@ -628,10 +627,10 @@ describe('Campaign session inherits bench_mode from campaign', function () {
             ->where('user_id', $applicant->id)
             ->first();
 
-        // Game's own bench_mode=true takes precedence over campaign
+        // Campaign controls overflow — bench_mode=false → waitlisted
         expect($participant)->not->toBeNull()
-            ->and($participant->status)->toBe(ParticipantStatus::Benched)
-            ->and($participant->benched_at)->not->toBeNull();
+            ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
+            ->and($participant->waitlisted_at)->not->toBeNull();
     });
 
     it('routes to waitlist when both session and campaign have bench_mode=false', function () {

@@ -128,6 +128,7 @@ describe('GameCard overflow indicators', function () {
             'session_duration' => 3,
             'min_players' => 2,
             'max_players' => 2,
+            'bench_mode' => true,
         ]);
 
         $game = Game::create([
@@ -144,7 +145,6 @@ describe('GameCard overflow indicators', function () {
             'location' => ['details' => 'Online'],
             'min_players' => 2,
             'max_players' => 2,
-            'bench_mode' => true,
         ]);
 
         GameParticipant::create([
