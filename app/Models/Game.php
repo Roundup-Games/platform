@@ -266,21 +266,4 @@ class Game extends Model
 
         return false;
     }
-
-    /**
-     * Mutator: Only GM users can enable bench_mode.
-     * Provides defense-in-depth beyond form-level gating.
-     */
-    public function setBenchModeAttribute($value): void
-    {
-        $this->attributes['bench_mode'] = (bool) $value;
-
-        // Allow during factory creation (no auth context) or if user is a GM
-        if ((bool) $value && auth()->check() && ! auth()->user()->isGM()) {
-            $this->attributes['bench_mode'] = false;
-            \Illuminate\Support\Facades\Log::warning('Non-GM user attempted to enable bench_mode on game', [
-                'user_id' => auth()->id(),
-            ]);
-        }
-    }
 }

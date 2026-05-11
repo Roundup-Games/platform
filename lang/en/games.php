@@ -74,6 +74,8 @@ return [
     'flash_promote_from_bench_success' => 'Player promoted from the bench.',
     'flash_left_bench' => 'You have left the bench.',
     'flash_left_waitlist' => 'You have left the waitlist.',
+    'flash_confirm_leave_waitlist' => 'Are you sure you want to leave the waitlist? You will lose your position.',
+    'flash_confirm_leave_bench' => 'Are you sure you want to leave the bench?',
     'action_leave_bench' => 'Leave Bench',
     'content_waitlisted_count' => '{0} |{1} waitlisted|[2,*] waitlisted',
     'content_benched_count' => '{0} |{1} benched|[2,*] benched',

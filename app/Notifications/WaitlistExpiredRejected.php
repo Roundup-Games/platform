@@ -77,7 +77,7 @@ class WaitlistExpiredRejected extends Notification
             ]),
             icon: '/icons/pwa-192x192.png',
             url: route('games.index', ['locale' => $locale]),
-            tag: "waitlist-rejected-{$this->entity->id}",
+            tag: "waitlist-rejected-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 }

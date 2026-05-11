@@ -117,7 +117,7 @@ class GameDetail extends Component
             ]);
         }
 
-        if ($entity->campaign_id === null) {
+        if (!$entity->isBenchMode()) {
             app(WaitlistService::class)->promoteAllOnCancel($entity);
         }
 
@@ -228,8 +228,8 @@ class GameDetail extends Component
 
                 $isFull = $game->max_players !== null && $approvedCount >= $game->max_players;
 
-                if ($isFull && $game->campaign_id !== null) {
-                    // Campaign session: bench the player
+                if ($isFull && $game->isBenchMode()) {
+                    // Bench-mode entity: bench the player
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
@@ -239,12 +239,12 @@ class GameDetail extends Component
                         'join_source' => JoinSource::ShareLink->value,
                     ]);
 
-                    Log::info('Player benched via share link (campaign session full)', [
+                    Log::info('Player benched via share link (bench mode, full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
                     ]);
                 } elseif ($isFull) {
-                    // Standalone game: waitlist
+                    // Waitlist-mode entity: waitlist the player
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
@@ -428,7 +428,7 @@ class GameDetail extends Component
         return ($id = $this->viewerId())
             && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
             && $this->game->visibility !== Visibility::Private
-            && (!$this->isGameFull() || $this->game->campaign_id !== null);
+            && (!$this->isGameFull() || $this->game->isBenchMode());
     }
 
     #[Computed]
@@ -436,14 +436,14 @@ class GameDetail extends Component
     {
         return ($id = $this->viewerId())
             && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
-            && $this->game->campaign_id === null && $this->isGameFull()
+            && !$this->game->isBenchMode() && $this->isGameFull()
             && $this->game->visibility !== Visibility::Private;
     }
 
     #[Computed]
     public function waitlistedPlayers()
     {
-        return ($this->isOwner() && $this->game->campaign_id === null)
+        return ($this->isOwner() && !$this->game->isBenchMode())
             ? $this->game->participants->where('status', ParticipantStatus::Waitlisted->value)->sortBy('waitlisted_at')
             : collect();
     }
@@ -451,7 +451,7 @@ class GameDetail extends Component
     #[Computed]
     public function benchedPlayers()
     {
-        return ($this->isOwner() && $this->game->campaign_id !== null)
+        return ($this->isOwner() && $this->game->isBenchMode())
             ? $this->game->participants->filter(fn ($p) => $p->status === ParticipantStatus::Benched)
             : collect();
     }

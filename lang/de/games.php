@@ -357,6 +357,8 @@ return [
     'action_leave_bench' => 'Bank verlassen',
     'flash_left_waitlist' => 'Du hast die Warteliste verlassen.',
     'flash_left_bench' => 'Du hast die Bank verlassen.',
+    'flash_confirm_leave_waitlist' => 'Bist du sicher, dass du die Warteliste verlassen möchtest? Dein Platz geht verloren.',
+    'flash_confirm_leave_bench' => 'Bist du sicher, dass du die Bank verlassen möchtest?',
     'content_waitlisted_count' => '{0} |{1} auf Warteliste|[2,*] auf Warteliste',
     'content_benched_count' => '{0} |{1} auf der Bank|[2,*] auf der Bank',
 

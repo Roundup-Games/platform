@@ -87,7 +87,7 @@ class WaitlistPromoted extends Notification
             ]),
             icon: '/icons/pwa-192x192.png',
             url: $this->getEntityRoute($locale),
-            tag: "waitlist-promoted-{$this->entity->id}",
+            tag: "waitlist-promoted-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 }

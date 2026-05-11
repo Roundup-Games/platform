@@ -83,7 +83,7 @@ class ConfirmationExpired extends Notification
             ]),
             icon: '/icons/pwa-192x192.png',
             url: $this->getEntityRoute($locale),
-            tag: "confirmation-expired-{$this->entity->id}",
+            tag: "confirmation-expired-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
 }

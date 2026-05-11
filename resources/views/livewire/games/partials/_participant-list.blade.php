@@ -1,8 +1,8 @@
 {{-- Approved participants list --}}
 @php
-    $approved = $game->participants->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved);
-    $waitlistedCount = $game->participants->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Waitlisted)->count();
-    $benchedCount = $game->participants->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Benched)->count();
+    $approved = $game->participants->filter(fn ($p) => $p->status->value === 'approved');
+    $waitlistedCount = $game->participants->filter(fn ($p) => $p->status->value === 'waitlisted')->count();
+    $benchedCount = $game->participants->filter(fn ($p) => $p->status->value === 'benched')->count();
     $hasOverflow = $waitlistedCount > 0 || $benchedCount > 0;
 @endphp
 

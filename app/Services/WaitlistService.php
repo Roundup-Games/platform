@@ -55,13 +55,9 @@ class WaitlistService
         $isCampaign = $subject instanceof Campaign
             || $subject instanceof CampaignParticipant;
 
-        return [
-            'type' => $isCampaign ? 'campaign' : 'game',
-            'foreignKey' => $isCampaign ? 'campaign_id' : 'game_id',
-            'class' => $isCampaign ? Campaign::class : Game::class,
-            'participantClass' => $isCampaign ? CampaignParticipant::class : GameParticipant::class,
-            'isCampaign' => $isCampaign,
-        ];
+        return $this->entityMetaFromClass(
+            $isCampaign ? Campaign::class : Game::class
+        );
     }
 
     // ── Public API (supports both Game and Campaign) ───
@@ -83,7 +79,7 @@ class WaitlistService
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
-        if ($approvedCount < $entity->max_players) {
+        if ($entity->max_players === null || $approvedCount < $entity->max_players) {
             throw new \LogicException('Cannot add to waitlist: entity is not full.');
         }
 
@@ -364,6 +360,11 @@ class WaitlistService
      */
     public function promoteAllOnCancel(Campaign|Game $entity): void
     {
+        // No capacity limit means no waitlist to promote from
+        if ($entity->max_players === null) {
+            return;
+        }
+
         $openSlots = $entity->max_players - $entity->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
