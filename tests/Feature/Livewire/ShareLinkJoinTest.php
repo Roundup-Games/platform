@@ -304,6 +304,7 @@ describe('GameDetail joinViaShareLink', function () {
     it('benches when campaign session is full', function () {
         $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
+            'bench_mode' => true,
         ]);
 
         $token = (string) Str::uuid();
@@ -416,6 +417,7 @@ describe('CampaignDetail joinViaShareLink', function () {
             'share_token' => $token,
             'visibility' => 'protected',
             'max_players' => 1,
+            'bench_mode' => true,
         ]);
 
         // Fill the campaign

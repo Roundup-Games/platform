@@ -238,10 +238,10 @@
                 </h2>
 
                 <div class="divide-y divide-outline-variant/30">
-                    @foreach($waitlistedParticipants as $loopIndex => $participant)
+                    @foreach($waitlistedParticipants as $participant)
                         <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                             <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex-shrink-0">
-                                #{{ $loopIndex + 1 }}
+                                #{{ $loop->iteration }}
                             </span>
                             <div class="flex-1 min-w-0">
                                 <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />

@@ -367,6 +367,7 @@ class GameDetail extends Component
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Pending->value,
                 ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
             ]));
     }
 

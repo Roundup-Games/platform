@@ -149,7 +149,7 @@ describe('AutoInvite — Accept', function () {
     });
 
     test('accept invitation respects capacity', function () {
-        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign(['max_players' => 2]);
+        ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign(['max_players' => 2, 'bench_mode' => true]);
         $player1 = User::factory()->create(['profile_complete' => true]);
         $player2 = User::factory()->create(['profile_complete' => true]);
 

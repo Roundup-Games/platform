@@ -197,7 +197,7 @@ test('invite by email rejects self-invite on campaign', function () {
 test('invite by email adds to bench when at capacity on campaign', function () {
     Mail::fake();
 
-    ['owner' => $fullOwner, 'campaign' => $fullCampaign] = $this->createCampaignWithOwner(['max_players' => 1]);
+    ['owner' => $fullOwner, 'campaign' => $fullCampaign] = $this->createCampaignWithOwner(['max_players' => 1, 'bench_mode' => true]);
 
     // Fill the one slot with an approved participant
     CampaignParticipant::create([

@@ -59,14 +59,18 @@ trait HandlesBench
 
         $didLeave = false;
         DB::transaction(function () use ($participant, &$didLeave) {
-            // Lock to prevent concurrent promotion while leaving
-            $participant->lockForUpdate()->firstOrFail();
+            // Lock the participant row to prevent concurrent status changes
+            // (e.g., host promoting while this leave action runs)
+            $locked = $participant->newQuery()
+                ->where('id', $participant->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if ($participant->status !== ParticipantStatus::Benched) {
+            if ($locked->status !== ParticipantStatus::Benched) {
                 return;
             }
 
-            $participant->update(['status' => ParticipantStatus::Rejected]);
+            $locked->update(['status' => ParticipantStatus::Rejected]);
             $didLeave = true;
         });
 

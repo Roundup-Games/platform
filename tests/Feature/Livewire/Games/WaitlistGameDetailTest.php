@@ -426,8 +426,11 @@ describe('UI state rendering', function () {
             ->assertDontSee(__('games.action_manual_promote'));
     });
 
-    it('does not show waitlist UI for campaign games', function () {
-        $campaign = \App\Models\Campaign::factory()->create(['owner_id' => $this->owner->id]);
+    it('does not show waitlist UI for bench-mode campaign games', function () {
+        $campaign = \App\Models\Campaign::factory()->create([
+            'owner_id' => $this->owner->id,
+            'bench_mode' => true,
+        ]);
 
         // Create a standalone game first, then override to campaign
         $game = Game::create([

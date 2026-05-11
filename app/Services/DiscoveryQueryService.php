@@ -497,7 +497,7 @@ class DiscoveryQueryService
                 ->with(['owner', 'gameSystem', 'campaign'])
                 ->withCount('participants');
 
-            $games = $this->withOverflowCounts($games)
+            $boostedGames = $this->withOverflowCounts($boostedGames)
                 ->orderBy('date_time')
                 ->limit(6)
                 ->get();
@@ -525,7 +525,6 @@ class DiscoveryQueryService
                 $tagItems($boostedCampaigns, 'campaign');
             }
 
-            $boostedIds = $boostedGames->merge($boostedCampaigns)->pluck('id', 'discoverable_type');
         }
 
         // Fallback: favorite systems regardless of vibes
