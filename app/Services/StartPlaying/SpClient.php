@@ -105,7 +105,7 @@ class SpClient
 
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'RoundupGamesBot/1.0 (+https://roundup.games)',
+                'User-Agent' => config('app.name') . 'Bot/1.0 (+' . config('app.url') . ')',
                 'Accept' => 'text/html',
             ])
                 ->timeout(self::TIMEOUT)

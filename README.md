@@ -19,7 +19,7 @@ Roundup Games connects tabletop gaming communities. Players discover nearby sess
 - **GM System** — Game Master profiles with specializations, star ratings, and proficiency-tagged reviews. Subscriber-only GM workspace. Public GM directory with search and filters.
 - **Waitlists & Benching** — Urgency-scaled waitlist for standalone games (FIFO with confirmation windows). Bench mechanics for campaigns and sessions.
 - **Attendance & Reliability** — Peer-reported attendance with grief resistance (weight stacking, corroboration, volume quarantine). Reliability scores and tier badges on public profiles.
-- **Notifications** — 30 notification types across 6 channels (database, mail, push). Preference-aware routing. Block-list filtering. Unsubscribe support.
+- **Notifications** — 33 notification types across 6 channels (database, mail, push). Preference-aware routing. Block-list filtering. Unsubscribe support.
 - **PWA** — Installable with service worker, offline support, web push notifications, session reminders.
 - **Admin Panel** — Filament-powered admin with 8 resources, BGG sync management, event attendance reports, membership reports, export capabilities.
 - **Bilingual (EN/DE)** — Full i18n with `/{locale}/` routing, 22 PHP domain translation files per locale, entity content translation for events/announcements/teams, locale-aware date/currency formatting, localized emails.
@@ -32,14 +32,14 @@ Roundup Games connects tabletop gaming communities. Players discover nearby sess
 app/
 ├── Console/Commands/       # Artisan commands (BGG sync, geocoding, scheduled sweeps)
 ├── Dto/                    # Data transfer objects (PushPayload, PwaEligibilityResult)
-├── Enums/                  # 20 backed string enums (EventStatus, Visibility, VibeFlag, etc.)
+├── Enums/                  # 22 backed string enums (EventStatus, Visibility, VibeFlag, etc.)
 ├── Exceptions/             # BggApiException, BggParseException
 ├── Filament/               # Admin panel resources, pages, relation managers, reports
 ├── Http/
 │   ├── Controllers/        # PageController, PaddleBillingController, SitemapController
 │   └── Middleware/         # SetLocale, EnsureProfileComplete
 ├── Jobs/                   # Queued jobs (UpdateUserDiscoveryCache, HandleExpiredConfirmation, etc.)
-├── Livewire/               # ~40 full-page components + reusable widgets
+├── Livewire/               # 58 full-page components + reusable widgets
 │   ├── Billing/            # BillingPortal, MembershipPage
 │   ├── Campaigns/          # CampaignsPage (hub), CreateCampaign, CampaignDetail
 │   ├── Components/         # Reusable widgets (NearbySessions, SafetyToolPicker)
@@ -52,12 +52,12 @@ app/
 │   ├── Reviews/            # WriteReview, ReportReview
 │   └── Teams/              # BrowseTeams, TeamDetail, ManageTeam, ManageRoster, PendingInvites
 ├── Mail/                   # ContactFormSubmitted, localized mailables
-├── Models/                 # 37 Eloquent models
-├── Notifications/          # 30 notification classes + custom PushChannel
+├── Models/                 # 39 Eloquent models
+├── Notifications/          # 33 notification classes + custom PushChannel
 ├── Observers/              # ActivityLogObserver, ReviewObserver
-├── Policies/               # 7 policies (User, Team, Game, Campaign, Event, Review, MembershipType)
+├── Policies/               # 11 policies (User, Team, Game, Campaign, Event, Review, MembershipType, etc.)
 ├── Relations/              # Custom StringKeyMorphMany for UUID morph relationships
-├── Services/               # 25+ service classes (business logic layer)
+├── Services/               # 33 service classes (business logic layer)
 ├── Traits/                 # HasTranslations, ManagesParticipants, HasGuestLocation, EscapesLikeWildcards
 └── Translation/            # HasTranslations trait implementation
 
@@ -75,14 +75,14 @@ lang/
 └── de/                     # Matching German translations
 
 database/
-└── migrations/             # 76 migrations
+└── migrations/             # 96 migrations
 ```
 
 ### Design Patterns
 
 - **Service Layer** — Business logic lives in dedicated services (AttendanceService, WaitlistService, BenchService, PeopleDiscoveryService, etc.). Controllers and Livewire components orchestrate services, never contain business rules.
 - **Trait Deduplication** — Shared patterns extracted to traits: `ManagesParticipants` (game + campaign invitations), `HasGuestLocation` (browser location bridge), `HasTranslations` (entity content translation), `EscapesLikeWildcards` (search query safety).
-- **Policy-Based Authorization** — 7 model policies with `before()` global admin bypass, scoped role checks via `ScopedRoleService`, and ownership fallback. Visibility enforcement at both policy level (single-entity) and listing level (query-time).
+- **Policy-Based Authorization** — 11 model policies with `before()` global admin bypass, scoped role checks via `ScopedRoleService`, and ownership fallback. Visibility enforcement at both policy level (single-entity) and listing level (query-time).
 - **Event-Driven Side Effects** — Observers for activity logging and review aggregate computation. Event dispatch for social actions (follow/block triggers discovery cache invalidation).
 - **Grief-Resistant Scoring** — Attendance reliability uses multiplicative weight stacking (low reliability × volume quarantine × timeliness decay) with auto-corroboration from independent reporters.
 - **Enum-Driven State Machines** — `EventStatus::VALID_TRANSITIONS`, `ParticipantStatus` lifecycle (approved/rejected/pending/waitlisted/benched), `AttendanceStatus` tracking. Enums are the single source of truth.
@@ -97,14 +97,14 @@ database/
 | **Frontend** | Livewire 4, Alpine.js, Blade templates |
 | **Styling** | Tailwind CSS 3 with ~35 Material Design color tokens |
 | **Typography** | Noto Serif (headings), Inter (body), Material Symbols Outlined (icons) |
-| **Database** | PostgreSQL (76 migrations, 37 models, 20 enums) |
+| **Database** | PostgreSQL (96 migrations, 39 models, 22 enums) |
 | **Cache/Queue** | Redis (predis 3.4) |
 | **Auth** | Laravel Breeze (Blade stack), Socialite (Google OAuth) |
 | **Billing** | Laravel Cashier (Paddle) — subscriptions, one-time charges, webhooks |
 | **Admin** | Filament v5 — 8 resources, 5 relation managers, reports, exports |
 | **Media** | Spatie Media Library (avatars, BGG cover images) |
 | **Permissions** | Spatie Permission (4 roles, 32 permissions, team + event scoping) |
-| **Testing** | Pest 4 (258 test files, ~5,000+ tests) |
+| **Testing** | Pest 4 (213 test files, ~5,000+ tests) |
 | **Email** | Resend |
 | **PWA** | Web Push (minishlink/web-push), service worker, install prompt |
 | **Infrastructure** | Docker, Vite 8 |
@@ -132,15 +132,30 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# Database
+# Database (PostgreSQL 15+ required)
 createdb roundup_games
 php artisan migrate
+
+# Seed with sample data (roles, permissions, membership plans)
+php artisan db:seed
 
 # Frontend assets
 npm run build
 ```
 
 Configure `.env` with your PostgreSQL, Redis, Paddle, Google OAuth, and Resend credentials.
+
+### Running Locally
+
+```bash
+# Start the dev server (includes Vite, queue worker, and log tail)
+composer dev
+
+# Or start services individually:
+php artisan serve                  # Web server
+php artisan queue:listen           # Process queued jobs (email, push, cache)
+npm run dev                        # Vite dev server with HMR
+```
 
 ### Key Environment Variables
 
@@ -184,7 +199,7 @@ Run the critical-path suite before every commit:
 composer smoke
 ```
 
-87 tests covering: authentication, registration, OAuth, billing, games, campaigns, events, teams, notifications, discovery, safety tools, and visibility policies. If `composer smoke` is green, you're safe to commit — the full suite is CI's job.
+168 tests covering: authentication, registration, OAuth, billing, games, campaigns, events, teams, notifications, discovery, safety tools, and visibility policies. If `composer smoke` is green, you're safe to commit — the full suite is CI's job.
 
 **Adding a smoke test:** Tag any Pest test with `->group('smoke')` and add a `// smoke:` comment explaining why it's on the critical path:
 
@@ -200,7 +215,7 @@ test('guest can view public game', function () {
 php artisan test
 ```
 
-~5,000+ tests across 258 files. Takes 10+ minutes. Some pre-existing failures exist in areas under active development.
+~5,000+ tests across 213 files. Takes 10+ minutes. Some pre-existing failures exist in areas under active development.
 
 ### Running Specific Tests
 

@@ -33,7 +33,7 @@ class GeocodingService
         ?int $timeout = null,
     ) {
         $this->baseUrl = $baseUrl ?? config('services.nominatim.base_url', 'https://nominatim.openstreetmap.org');
-        $this->userAgent = $userAgent ?? config('services.nominatim.user_agent', 'RoundupGames/1.0');
+        $this->userAgent = $userAgent ?? config('services.nominatim.user_agent', config('app.name') . '/' . app()->version());
         $this->cacheTtl = $cacheTtl ?? 3600; // 1 hour default
         $this->timeout = $timeout ?? 10;
     }

@@ -1,13 +1,29 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "roundup-games/platform",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Community gaming platform — find tabletop sessions, join campaigns, and discover players near you.",
     "keywords": [
         "laravel",
-        "framework"
+        "tabletop",
+        "ttrpg",
+        "gaming",
+        "community",
+        "livewire"
     ],
-    "license": "MIT",
+    "license": "AGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Vasile Burghelea",
+            "homepage": "https://github.com/vburghelea"
+        }
+    ],
+    "homepage": "https://github.com/Roundup-Games/platform",
+    "support": {
+        "issues": "https://github.com/Roundup-Games/platform/issues",
+        "source": "https://github.com/Roundup-Games/platform",
+        "docs": "https://github.com/Roundup-Games/platform#readme"
+    },
     "require": {
         "php": "^8.3",
         "doctrine/dbal": "^4.4",
