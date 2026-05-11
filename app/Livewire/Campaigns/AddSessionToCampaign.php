@@ -83,6 +83,7 @@ class AddSessionToCampaign extends Component
                 'experience_level' => $campaign->experience_level,
                 'complexity' => $campaign->complexity,
                 'vibe_flags' => $campaign->vibe_flags,
+                'bench_mode' => $campaign->bench_mode,
             ]);
 
             // Auto-invite approved campaign participants as invited to this session

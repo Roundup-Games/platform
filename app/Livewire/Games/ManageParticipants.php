@@ -78,6 +78,8 @@ class ManageParticipants extends Component
             'approvedParticipants' => $approvedParticipants,
             'pendingApplicants' => $pendingApplicants,
             'pendingInvites' => $pendingInvites,
+            'waitlistedParticipants' => $this->getWaitlistedParticipants(),
+            'benchedParticipants' => $this->getBenchedParticipants(),
         ]);
     }
 }

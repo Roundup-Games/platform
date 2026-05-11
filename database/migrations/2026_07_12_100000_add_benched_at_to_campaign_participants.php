@@ -16,7 +16,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('campaign_participants', function (Blueprint $table) {
-            $table->timestamp('benched_at')->nullable()->after('status');
+            if (! Schema::hasColumn('campaign_participants', 'benched_at')) {
+                $table->timestamp('benched_at')->nullable()->after('status');
+            }
         });
     }
 

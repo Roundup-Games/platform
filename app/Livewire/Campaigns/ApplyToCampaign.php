@@ -103,23 +103,34 @@ class ApplyToCampaign extends Component
                 $participantStatus = 'pending';
                 $participantRole = 'applicant';
                 $benchedAt = null;
+                $waitlistedAt = null;
 
                 if ($isPublic) {
-                    if ($isFull) {
-                        // Public campaign is full → bench the applicant
+                    if ($isFull && $campaign->isBenchMode()) {
+                        // Full campaign with bench_mode → bench the applicant
                         $participantStatus = 'benched';
                         $participantRole = 'player';
                         $benchedAt = now();
+                    } elseif ($isFull) {
+                        // Full campaign without bench_mode → waitlist the applicant
+                        $participantStatus = 'waitlisted';
+                        $participantRole = 'player';
+                        $waitlistedAt = now();
                     } else {
                         $participantStatus = 'approved';
                         $participantRole = 'player';
                     }
                 }
 
+                // Application status tracks the application review state:
+                // - 'approved' for public campaigns that auto-approve (with or without overflow)
+                // - 'pending' for protected campaigns that require host review
+                $applicationStatus = $isPublic ? 'approved' : 'pending';
+
                 CampaignApplication::create([
                     'campaign_id' => $campaignId,
                     'user_id' => $userId,
-                    'status' => $isPublic && ! $isFull ? 'approved' : ($isPublic && $isFull ? 'benched' : 'pending'),
+                    'status' => $applicationStatus,
                     'message' => $message ?: null,
                 ]);
 
@@ -129,6 +140,7 @@ class ApplyToCampaign extends Component
                     'role' => $participantRole,
                     'status' => $participantStatus,
                     'benched_at' => $benchedAt,
+                    'waitlisted_at' => $waitlistedAt,
                     'join_source' => JoinSource::Application,
                 ]);
             });
@@ -158,7 +170,8 @@ class ApplyToCampaign extends Component
             'campaign_id' => $this->campaign->id,
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic && ! $isFull,
-            'benched' => $isPublic && $isFull,
+            'benched' => $isPublic && $isFull && $this->campaign->isBenchMode(),
+            'waitlisted' => $isPublic && $isFull && ! $this->campaign->isBenchMode(),
         ]);
 
         // Notify campaign owner of new application (protected campaigns only)
@@ -181,8 +194,10 @@ class ApplyToCampaign extends Component
             }
         }
 
-        if ($isPublic && $isFull) {
+        if ($isPublic && $isFull && $this->campaign->isBenchMode()) {
             session()->flash('success', __('campaigns.content_you_have_been_placed_on_the_bench'));
+        } elseif ($isPublic && $isFull) {
+            session()->flash('success', __('campaigns.content_you_have_been_placed_on_the_waitlist'));
         } elseif ($isPublic) {
             session()->flash('success', __('campaigns.content_you_have_joined_the_campaign'));
         } else {

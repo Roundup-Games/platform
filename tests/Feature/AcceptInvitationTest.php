@@ -97,7 +97,7 @@ describe('Game AcceptInvitation', function () {
         ]);
     })->group('smoke');
 
-    test('cannot accept when game is full', function () {
+    test('full game routes to waitlist on accept', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['max_players' => 2]);
         $invitedUser = User::factory()->create(['profile_complete' => true]);
 
@@ -126,14 +126,13 @@ describe('Game AcceptInvitation', function () {
 
         Livewire\Livewire::actingAs($invitedUser)
             ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->call('acceptInvitation', $participant->id)
-            ->assertSee('already full');
+            ->call('acceptInvitation', $participant->id);
 
-        // Should remain pending
+        // Should be moved to waitlist (bench_mode=false by default for standalone games)
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'user_id' => $invitedUser->id,
+            'status' => 'waitlisted',
         ]);
     })->group('smoke');
 

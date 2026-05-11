@@ -228,5 +228,80 @@
                 </div>
             </section>
         @endif
+
+        {{-- Waitlisted Players --}}
+        @if($waitlistedParticipants->count())
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">schedule</span>
+                    {{ __('games.content_waitlist_management') }} <span class="text-tertiary font-normal text-base">({{ $waitlistedParticipants->count() }})</span>
+                </h2>
+
+                <div class="divide-y divide-outline-variant/30">
+                    @foreach($waitlistedParticipants as $loopIndex => $participant)
+                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex-shrink-0">
+                                #{{ $loopIndex + 1 }}
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
+                                @if($participant->waitlisted_at)
+                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->waitlisted_at->format('M j, Y') }}</p>
+                                @endif
+                            </div>
+                            <div class="flex gap-2">
+                                <button wire:click="managePromoteFromWaitlist('{{ $participant->id }}')"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
+                                    {{ __('games.action_promote_from_bench') }}
+                                </button>
+                                <button wire:click="manageRemoveFromWaitlist('{{ $participant->id }}')"
+                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
+                                    {{ __('common.action_remove') }}
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Benched Players --}}
+        @if($benchedParticipants->count())
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl" aria-hidden="true">event_seat</span>
+                    {{ __('games.content_bench') }} <span class="text-on-surface-variant font-normal text-base">({{ $benchedParticipants->count() }})</span>
+                </h2>
+
+                <div class="divide-y divide-outline-variant/30">
+                    @foreach($benchedParticipants as $participant)
+                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                            <div class="flex-1 min-w-0">
+                                <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
+                                @if($participant->benched_at)
+                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->benched_at->format('M j, Y') }}</p>
+                                @endif
+                            </div>
+                            <div class="flex gap-2">
+                                <button wire:click="managePromoteFromBench('{{ $participant->id }}')"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
+                                    {{ __('games.action_promote_from_bench') }}
+                                </button>
+                                <button wire:click="manageRemoveFromBench('{{ $participant->id }}')"
+                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
+                                    {{ __('common.action_remove') }}
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
     </div>
 </div>

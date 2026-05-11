@@ -67,6 +67,8 @@ class CreateGame extends Component
 
     public ?string $min_reliability_preference = null;
 
+    public bool $bench_mode = false;
+
     public function rules(): array
     {
         return [
@@ -92,6 +94,7 @@ class CreateGame extends Component
             'comfort_notes' => 'nullable|string|max:1000',
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
             'complexity' => 'nullable|numeric|min:0|max:5',
+            'bench_mode' => 'boolean',
         ];
     }
 
@@ -332,6 +335,16 @@ class CreateGame extends Component
             $safetyRules = ! empty($this->comfort_notes) ? ['comfort_notes' => $this->comfort_notes] : null;
         }
 
+        // Gate bench_mode to GM users only (defense-in-depth; UI disables toggle for non-GMs)
+        $benchMode = $this->bench_mode;
+        if ($benchMode && ! Auth::user()->isGM()) {
+            Log::warning('Non-GM user attempted to enable bench_mode on game creation', [
+                'user_id' => Auth::id(),
+                'attempted_bench_mode' => true,
+            ]);
+            $benchMode = false;
+        }
+
         $game = Game::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
@@ -354,6 +367,7 @@ class CreateGame extends Component
             'complexity' => $this->complexity ?: null,
             'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
             'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+            'bench_mode' => $benchMode,
         ]);
 
         $logContext = [
@@ -376,7 +390,9 @@ class CreateGame extends Component
 
     public function render()
     {
-        return view('livewire.games.create-game');
+        return view('livewire.games.create-game', [
+            'isGM' => Auth::user()?->isGM() ?? false,
+        ]);
     }
 
     // ── Private Helpers ──────────────────────────────────

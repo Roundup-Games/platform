@@ -29,8 +29,8 @@ class BenchService
         $isCampaign = $entity instanceof Campaign;
 
         // Verify entity supports benching
-        if (! $isCampaign && $entity->campaign_id === null) {
-            throw new \LogicException('Bench is only available for campaigns and campaign sessions.');
+        if (! $isCampaign && ! $entity->isBenchMode()) {
+            throw new \LogicException('Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
         }
 
         // Wrap in transaction with lock for concurrency safety
@@ -129,5 +129,28 @@ class BenchService
         return $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
             ->get();
+    }
+
+    /**
+     * Handle entity cancellation — reject all benched participants.
+     */
+    public function handleEntityCancellation(Campaign|Game $entity): void
+    {
+        $benched = $entity->participants()
+            ->where('status', ParticipantStatus::Benched->value)
+            ->get();
+
+        foreach ($benched as $participant) {
+            $participant->update(['status' => ParticipantStatus::Rejected->value]);
+        }
+
+        $entityType = $entity instanceof Campaign ? 'campaign' : 'game';
+        $foreignKey = $entity instanceof Campaign ? 'campaign_id' : 'game_id';
+
+        Log::info('bench.entity_cancelled', [
+            'entity_type' => $entityType,
+            $foreignKey => $entity->id,
+            'affected_count' => $benched->count(),
+        ]);
     }
 }

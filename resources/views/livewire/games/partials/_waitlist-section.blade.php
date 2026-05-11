@@ -8,6 +8,12 @@
             <div class="flex-1">
                 <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.action_join_waitlist') }}</h2>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
+                <button wire:click="leaveWaitlist('{{ $userWaitlistParticipant->id }}')"
+                    wire:confirm="{{ __('people.flash_confirm_decline_invitation') }}"
+                    class="mt-3 inline-flex items-center gap-1 text-sm text-error hover:text-error/80 underline underline-offset-2 transition-colors">
+                    <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>
+                    {{ __('games.action_leave_waitlist') }}
+                </button>
             </div>
         </div>
     </section>

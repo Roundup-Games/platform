@@ -105,7 +105,8 @@ describe('game cancellation', function () {
             'status' => ParticipantStatus::Benched->value,
         ]);
 
-        $this->service->handleGameCancellation($game);
+        // Benched participants are resolved by BenchService, not WaitlistService
+        app(\App\Services\BenchService::class)->handleEntityCancellation($game);
 
         expect($bp1->fresh()->status)->toBe(ParticipantStatus::Rejected);
         expect($bp2->fresh()->status)->toBe(ParticipantStatus::Rejected);

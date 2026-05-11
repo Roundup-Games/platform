@@ -280,6 +280,12 @@ return [
 
     // Shared by ManageParticipants trait (games + campaigns)
     'flash_participant_removed' => 'Participant removed.',
+    'flash_waitlist_promoted' => 'Player promoted from waitlist.',
+    'flash_waitlist_removed' => 'Player removed from waitlist.',
+    'flash_bench_promoted' => 'Player promoted from bench.',
+    'flash_bench_removed' => 'Player removed from bench.',
+    'error_participant_not_waitlisted' => 'This participant is not on the waitlist.',
+    'error_participant_not_benched' => 'This participant is not on the bench.',
     'flash_now_following' => 'You are now following :name.',
     'flash_unfollowed' => 'You unfollowed :name.',
     'flash_follower_removed' => 'You removed :name from your followers.',
@@ -355,4 +361,8 @@ return [
 
     // Email invitations
     'content_or' => 'or',
+
+    // Overflow indicators
+    'content_n_waitlisted' => '{1} 1 waitlisted|[2,*] :count waitlisted',
+    'content_n_on_bench' => '{1} 1 on bench|[2,*] :count on bench',
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Services\WaitlistService;
 use Illuminate\Bus\Queueable;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Log;
  * Queued job that checks if a promoted participant's confirmation window
  * has expired and, if so, moves them to the back of the waitlist and
  * promotes the next player.
+ *
+ * Supports both GameParticipant and CampaignParticipant.
  *
  * Dispatched with a delay matching the confirmation deadline so it
  * auto-fires as a fallback when no response comes in time. The sweep
@@ -41,10 +44,12 @@ class HandleExpiredConfirmation implements ShouldQueue
     public bool $deleteWhenMissingModels = true;
 
     /**
-     * @param  string  $participantId  The game_participant ID to check.
+     * @param  string  $participantId  The participant ID to check.
+     * @param  string  $participantClass  The participant model class (GameParticipant or CampaignParticipant).
      */
     public function __construct(
         public string $participantId,
+        public string $participantClass = GameParticipant::class,
     ) {}
 
     /**
@@ -52,7 +57,9 @@ class HandleExpiredConfirmation implements ShouldQueue
      */
     public function handle(WaitlistService $waitlistService): void
     {
-        $participant = GameParticipant::find($this->participantId);
+        // Resolve participant using the explicit class to avoid cross-type lookups
+        $participantClass = $this->participantClass;
+        $participant = $participantClass::find($this->participantId);
 
         if ($participant === null) {
             Log::info('waitlist.expired_confirmation_job.participant_not_found', [
@@ -83,9 +90,11 @@ class HandleExpiredConfirmation implements ShouldQueue
             return;
         }
 
+        $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+
         Log::info('waitlist.expired_confirmation_job.processing', [
             'participant_id' => $participant->id,
-            'game_id' => $participant->game_id,
+            $foreignKey => $participant->{$foreignKey},
             'expired_at' => $participant->confirmation_expires_at?->toIso8601String(),
         ]);
 
@@ -99,6 +108,7 @@ class HandleExpiredConfirmation implements ShouldQueue
     {
         Log::error('waitlist.expired_confirmation_job.failed', [
             'participant_id' => $this->participantId,
+            'participant_class' => $this->participantClass,
             'exception' => $exception?->getMessage(),
             'exception_class' => $exception ? get_class($exception) : null,
         ]);

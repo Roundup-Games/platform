@@ -70,6 +70,7 @@ function benchCreateFullCampaignSession(User $owner, GameSystem $system, Campaig
         'location' => ['details' => 'Online'],
         'min_players' => 2,
         'max_players' => $maxPlayers,
+        'bench_mode' => true,
     ]);
 
     // Fill with approved participants (including owner)
@@ -151,7 +152,7 @@ test('add to bench throws for standalone game', function () {
     $applicant = User::factory()->create();
 
     $this->service->addToBench($game, $applicant);
-})->throws(\LogicException::class, 'Bench is only available for campaigns and campaign sessions.');
+})->throws(\LogicException::class, 'Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
 
 test('add to bench throws when entity is not full', function () {
     $campaign = Campaign::create([
@@ -298,9 +299,35 @@ test('bench list is unordered — returns all benched regardless of order', func
 
 // ── isBenchMode ──────────────────────────────────────────
 
-test('game isBenchMode returns true when it has campaign_id', function () {
-    $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
-    $game = benchCreateFullCampaignSession($this->owner, $this->gameSystem, $campaign, maxPlayers: 2);
+test('game isBenchMode returns true when bench_mode column is true', function () {
+    $game = Game::create([
+        'owner_id' => $this->owner->id,
+        'game_system_id' => $this->gameSystem->id,
+        'name' => 'Bench Mode Game',
+        'date_time' => now()->addDays(10),
+        'description' => 'Test',
+        'expected_duration' => 3,
+        'visibility' => 'public',
+        'status' => 'scheduled',
+        'language' => 'en',
+        'location' => ['details' => 'Online'],
+        'min_players' => 2,
+        'max_players' => 2,
+        'bench_mode' => true,
+    ]);
+
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $this->owner->id,
+        'role' => 'player',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => User::factory()->create()->id,
+        'role' => 'player',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
 
     expect($game->isBenchMode())->toBeTrue();
 });
@@ -324,7 +351,7 @@ test('game isBenchMode returns false for standalone game', function () {
     expect($game->isBenchMode())->toBeFalse();
 });
 
-test('campaign isBenchMode always returns true', function () {
+test('campaign isBenchMode defaults to true', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
 
     expect($campaign->isBenchMode())->toBeTrue();

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
 use App\Models\Game;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -14,9 +15,14 @@ class WaitlistExpiredRejected extends Notification
     use HasUnsubscribeLink;
 
     public function __construct(
-        public Game $game,
+        public Game|Campaign $entity,
         public int $confirmationAttempts,
     ) {}
+
+    protected function getEntityType(): string
+    {
+        return $this->entity instanceof Campaign ? 'campaign' : 'game';
+    }
 
     /**
      * @return array<int, string>
@@ -32,11 +38,11 @@ class WaitlistExpiredRejected extends Notification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_waitlist_expired_rejected', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_waitlist_expired_rejected', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
                 'attempts' => $this->confirmationAttempts,
             ]))
             ->action(__('notifications.action_browse_games'), route('games.index', ['locale' => $locale]))
@@ -52,9 +58,9 @@ class WaitlistExpiredRejected extends Notification
 
         return [
             'type' => 'waitlist_expired_rejected',
-            'entity_type' => 'game',
-            'entity_id' => $this->game->id,
-            'entity_name' => $this->game->name,
+            'entity_type' => $this->getEntityType(),
+            'entity_id' => $this->entity->id,
+            'entity_name' => $this->entity->name,
             'confirmation_attempts' => $this->confirmationAttempts,
             'action_url' => route('games.index', ['locale' => $locale]),
         ];
@@ -67,11 +73,11 @@ class WaitlistExpiredRejected extends Notification
         return new PushPayload(
             title: __('notifications.push_title_waitlist_expired_rejected'),
             body: __('notifications.push_body_waitlist_expired_rejected', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
             url: route('games.index', ['locale' => $locale]),
-            tag: "waitlist-rejected-{$this->game->id}",
+            tag: "waitlist-rejected-{$this->entity->id}",
         );
     }
 }

@@ -9,6 +9,9 @@ use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Services\BenchService;
+use App\Services\WaitlistService;
+use App\Traits\HandlesBench;
+use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -22,7 +25,7 @@ use Livewire\Component;
 
 class CampaignDetail extends Component
 {
-    use ManagesParticipants;
+    use HandlesBench, HandlesWaitlist, ManagesParticipants;
 
     public Campaign $campaign;
 
@@ -279,6 +282,7 @@ class CampaignDetail extends Component
                 && in_array($p->status->value, [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Pending->value,
+                    ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
                 ]));
 
@@ -289,28 +293,120 @@ class CampaignDetail extends Component
         return true;
     }
 
-    // ── Bench Actions ──────────────────────────────────
+    // ── Computed Viewer State ───────────────────────────
 
-    /**
-     * Promote a benched player to approved status.
-     */
-    public function promoteFromBench(string $participantId): void
+    private function viewerId(): ?string
     {
-        $viewer = Auth::user();
-
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
-            session()->flash('error', __('common.error_not_authorized'));
-
-            return;
-        }
-
-        try {
-            app(BenchService::class)->promoteFromBench($participantId, 'campaign');
-            session()->flash('success', __('campaigns.flash_promote_from_bench_success'));
-        } catch (\LogicException $e) {
-            session()->flash('error', $e->getMessage());
-        }
+        return Auth::id();
     }
+
+    #[Computed]
+    public function isOwner(): bool
+    {
+        return ($id = $this->viewerId()) && $this->campaign->owner_id === $id;
+    }
+
+    #[Computed]
+    public function isParticipant(): bool
+    {
+        $id = $this->viewerId();
+        return $id && $this->campaign->participants
+            ->contains(fn ($p) => $p->user_id === $id && in_array($p->status->value, [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Pending->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+            ]));
+    }
+
+    #[Computed]
+    public function userInvitation(): ?CampaignParticipant
+    {
+        $id = $this->viewerId();
+        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
+            && $p->role === 'invited' && $p->status === ParticipantStatus::Pending) : null;
+    }
+
+    #[Computed]
+    public function hasExistingApplication(): bool
+    {
+        return ($id = $this->viewerId()) && $this->campaign->applications()->where('user_id', $id)->exists();
+    }
+
+    #[Computed]
+    public function isCampaignFull(): bool
+    {
+        return $this->campaign->max_players !== null
+            && $this->campaign->participants->where('status', ParticipantStatus::Approved->value)->count() >= $this->campaign->max_players;
+    }
+
+    #[Computed]
+    public function canApplyDirectly(): bool
+    {
+        return ($id = $this->viewerId())
+            && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
+            && $this->campaign->visibility !== Visibility::Private
+            && (!$this->isCampaignFull() || $this->campaign->isBenchMode());
+    }
+
+    #[Computed]
+    public function canJoinWaitlist(): bool
+    {
+        return ($id = $this->viewerId())
+            && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
+            && !$this->campaign->isBenchMode()
+            && $this->isCampaignFull()
+            && $this->campaign->visibility !== Visibility::Private;
+    }
+
+    #[Computed]
+    public function userWaitlistParticipant(): ?CampaignParticipant
+    {
+        $id = $this->viewerId();
+        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
+            && $p->status === ParticipantStatus::Waitlisted) : null;
+    }
+
+    #[Computed]
+    public function waitlistPosition(): ?int
+    {
+        $wl = $this->userWaitlistParticipant();
+        return $wl ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
+    }
+
+    #[Computed]
+    public function userPendingParticipant(): ?CampaignParticipant
+    {
+        $id = $this->viewerId();
+        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
+            && $p->status === ParticipantStatus::Pending && $p->confirmation_expires_at !== null) : null;
+    }
+
+    #[Computed]
+    public function userBenchParticipant(): ?CampaignParticipant
+    {
+        $id = $this->viewerId();
+        return $id ? $this->campaign->participants->first(fn ($p) => $p->user_id === $id
+            && $p->status === ParticipantStatus::Benched) : null;
+    }
+
+    #[Computed]
+    public function waitlistedPlayers()
+    {
+        return ($this->isOwner() && !$this->campaign->isBenchMode())
+            ? $this->campaign->participants->where('status', ParticipantStatus::Waitlisted->value)->sortBy('waitlisted_at')
+            : collect();
+    }
+
+    #[Computed]
+    public function benchedPlayers()
+    {
+        return ($this->isOwner() && $this->campaign->isBenchMode())
+            ? $this->campaign->participants->filter(fn ($p) => $p->status === ParticipantStatus::Benched)
+            : collect();
+    }
+
+    // ── Render ─────────────────────────────────────────
 
     public function render()
     {
@@ -327,45 +423,8 @@ class CampaignDetail extends Component
         ]);
 
         $viewer = Auth::user();
-        $isOwner = $viewer && $this->campaign->owner_id === $viewer->id;
-        $isParticipant = $viewer && $this->campaign->participants
-            ->contains(fn ($p) => $p->user_id === $viewer->id);
-
-        $userInvitation = null;
-        $hasExistingApplication = false;
-        $userBenchParticipant = null;
-        if ($viewer) {
-            $userInvitation = $this->campaign->participants
-                ->first(fn ($p) => $p->user_id === $viewer->id
-                    && $p->role === 'invited'
-                    && $p->status === ParticipantStatus::Pending);
-
-            $hasExistingApplication = $this->campaign->applications()
-                ->where('user_id', $viewer->id)
-                ->exists();
-
-            // Check if the viewer is on the bench
-            $userBenchParticipant = $this->campaign->participants
-                ->first(fn ($p) => $p->user_id === $viewer->id
-                    && $p->status === ParticipantStatus::Benched);
-        }
-
-        $canApply = $viewer
-            && ! $isOwner
-            && ! $isParticipant
-            && ! $hasExistingApplication
-            && $this->campaign->visibility !== Visibility::Private;
-        // Note: campaigns allow applying even when full (applicant gets benched)
-
-        // Bench data for host view
-        $benchedPlayers = collect();
-        if ($isOwner) {
-            $benchedPlayers = $this->campaign->participants
-                ->filter(fn ($p) => $p->status === ParticipantStatus::Benched);
-        }
 
         $canReview = false;
-
         if ($viewer) {
             $canReview = app(\App\Services\ReviewEligibilityService::class)
                 ->canReviewCampaign($viewer, $this->campaign);
@@ -381,16 +440,22 @@ class CampaignDetail extends Component
 
         return view('livewire.campaigns.campaign-detail', [
             'campaign' => $this->campaign,
-            'isOwner' => $isOwner,
-            'isParticipant' => $isParticipant,
-            'userInvitation' => $userInvitation,
-            'canApply' => $canApply,
-            'hasExistingApplication' => $hasExistingApplication,
+            'isOwner' => $this->isOwner(),
+            'isParticipant' => $this->isParticipant(),
+            'userInvitation' => $this->userInvitation(),
+            'canApplyDirectly' => $this->canApplyDirectly(),
+            'hasExistingApplication' => $this->hasExistingApplication(),
             'isGuest' => Auth::guest(),
             'reviews' => $reviews,
             'canReview' => $canReview,
-            'benchedPlayers' => $benchedPlayers,
-            'userBenchParticipant' => $userBenchParticipant,
+            'isCampaignFull' => $this->isCampaignFull(),
+            'canJoinWaitlist' => $this->canJoinWaitlist(),
+            'userWaitlistParticipant' => $this->userWaitlistParticipant(),
+            'userPendingParticipant' => $this->userPendingParticipant(),
+            'waitlistPosition' => $this->waitlistPosition(),
+            'waitlistedPlayers' => $this->waitlistedPlayers(),
+            'benchedPlayers' => $this->benchedPlayers(),
+            'userBenchParticipant' => $this->userBenchParticipant(),
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),

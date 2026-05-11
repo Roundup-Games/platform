@@ -100,7 +100,6 @@ class ApplyToGame extends Component
                 // For public games, auto-approve; for protected games, require approval
                 $game = Game::find($gameId);
                 $isPublic = $game->visibility === Visibility::Public;
-                $isCampaignSession = $game->campaign_id !== null;
 
                 // Check if game is full (applies to both standalone and campaign sessions)
                 $approvedCount = GameParticipant::where('game_id', $gameId)
@@ -115,13 +114,13 @@ class ApplyToGame extends Component
                 $waitlistedAt = null;
 
                 if ($isPublic) {
-                    if ($isCampaignSession && $isFull) {
-                        // Campaign session is full → bench the applicant
+                    if ($isFull && $game->isBenchMode()) {
+                        // Game with bench_mode → bench the applicant
                         $participantStatus = 'benched';
                         $participantRole = 'player';
                         $benchedAt = now();
-                    } elseif (! $isCampaignSession && $isFull) {
-                        // Standalone public game is full → auto-waitlist
+                    } elseif ($isFull) {
+                        // Game without bench_mode → auto-waitlist
                         $participantStatus = 'waitlisted';
                         $participantRole = 'player';
                         $waitlistedAt = now();
@@ -170,7 +169,6 @@ class ApplyToGame extends Component
         }
 
         $isPublic = $this->game->visibility === Visibility::Public;
-        $isCampaignSession = $this->game->campaign_id !== null;
         $approvedCount = GameParticipant::where('game_id', $this->game->id)
             ->where('status', 'approved')
             ->count();
@@ -180,8 +178,8 @@ class ApplyToGame extends Component
             'game_id' => $this->game->id,
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic && ! $isFull,
-            'benched' => $isPublic && $isCampaignSession && $isFull,
-            'waitlisted' => $isPublic && ! $isCampaignSession && $isFull,
+            'benched' => $isPublic && $isFull && $this->game->isBenchMode(),
+            'waitlisted' => $isPublic && $isFull && ! $this->game->isBenchMode(),
         ]);
 
         // Notify game owner of new application (protected games only)
@@ -204,9 +202,9 @@ class ApplyToGame extends Component
             }
         }
 
-        if ($isPublic && $isCampaignSession && $isFull) {
+        if ($isPublic && $isFull && $this->game->isBenchMode()) {
             session()->flash('success', __('games.content_you_have_been_placed_on_the_bench'));
-        } elseif ($isPublic && ! $isCampaignSession && $isFull) {
+        } elseif ($isPublic && $isFull) {
             session()->flash('success', __('games.content_added_to_waitlist'));
         } elseif ($isPublic) {
             session()->flash('success', __('games.content_you_have_joined_the_game'));

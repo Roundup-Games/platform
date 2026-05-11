@@ -280,6 +280,12 @@ return [
 
     // Shared by ManageParticipants trait (games + campaigns)
     'flash_participant_removed' => 'Teilnehmer entfernt.',
+    'flash_waitlist_promoted' => 'Spieler von der Warteliste befördert.',
+    'flash_waitlist_removed' => 'Spieler von der Warteliste entfernt.',
+    'flash_bench_promoted' => 'Spieler von der Bank befördert.',
+    'flash_bench_removed' => 'Spieler von der Bank entfernt.',
+    'error_participant_not_waitlisted' => 'Dieser Teilnehmer ist nicht auf der Warteliste.',
+    'error_participant_not_benched' => 'Dieser Teilnehmer ist nicht auf der Bank.',
     'flash_now_following' => 'Du folgst jetzt :name.',
     'flash_unfollowed' => 'Du folgst :name nicht mehr.',
     'flash_follower_removed' => 'Du hast :name aus deinen Followern entfernt.',
@@ -355,4 +361,8 @@ return [
 
     // E-Mail-Einladungen
     'content_or' => 'oder',
+
+    // Discovery card overflow indicators
+    'content_n_waitlisted' => '{1} 1 auf Warteliste|[2,*] :count auf Warteliste',
+    'content_n_on_bench' => '{1} 1 auf der Bank|[2,*] :count auf der Bank',
 ];

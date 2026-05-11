@@ -17,13 +17,17 @@ class Game extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected $attributes = [
+        'bench_mode' => false,
+    ];
+
     protected $fillable = [
         'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
         'description', 'expected_duration', 'price', 'language', 'location', 'location_id',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
-        'share_token', 'share_token_expires_at',
+        'share_token', 'share_token_expires_at', 'bench_mode',
     ];
 
     protected function casts(): array
@@ -47,6 +51,7 @@ class Game extends Model
             'min_reliability_preference' => 'decimal:2',
             'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
+            'bench_mode' => 'boolean',
         ];
     }
 
@@ -239,11 +244,43 @@ class Game extends Model
     // ── Bench ──────────────────────────────────────────
 
     /**
-     * Campaign sessions support bench mode.
-     * Standalone games use waitlist instead.
+     * Check if this entity uses bench mode (overflow to bench) vs waitlist (FIFO queue).
+     * Reads from the bench_mode column. Campaign sessions inherit from their campaign.
+     *
+     * Note: For campaign sessions with bench_mode=false, this falls back to checking
+     * the parent campaign's isBenchMode(). Callers in listing contexts (discovery cards,
+     * etc.) must eager-load the 'campaign' relationship to avoid N+1 queries.
      */
     public function isBenchMode(): bool
     {
-        return $this->campaign_id !== null;
+        if ((bool) $this->bench_mode) {
+            return true;
+        }
+
+        // Campaign sessions inherit bench_mode from their campaign
+        if ($this->campaign_id !== null) {
+            // Use getRelationValue to leverage already-loaded relationships
+            // and avoid N+1 in listing contexts
+            return ($this->getRelationValue('campaign')?->isBenchMode()) ?? true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Mutator: Only GM users can enable bench_mode.
+     * Provides defense-in-depth beyond form-level gating.
+     */
+    public function setBenchModeAttribute($value): void
+    {
+        $this->attributes['bench_mode'] = (bool) $value;
+
+        // Allow during factory creation (no auth context) or if user is a GM
+        if ((bool) $value && auth()->check() && ! auth()->user()->isGM()) {
+            $this->attributes['bench_mode'] = false;
+            \Illuminate\Support\Facades\Log::warning('Non-GM user attempted to enable bench_mode on game', [
+                'user_id' => auth()->id(),
+            ]);
+        }
     }
 }

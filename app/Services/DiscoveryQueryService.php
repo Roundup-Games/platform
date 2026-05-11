@@ -111,6 +111,8 @@ class DiscoveryQueryService
             ->with(['owner', 'gameSystem', 'campaign'])
             ->withCount('participants');
 
+        $query = $this->withOverflowCounts($query);
+
         $this->applySharedFilters($query, 'price', $filters);
 
         // Games-specific: date range
@@ -150,7 +152,10 @@ class DiscoveryQueryService
             })
             ->where('status', 'active')
             ->with(['owner', 'gameSystem'])
-            ->withCount('sessions');
+            ->withCount('sessions')
+            ->withCount('participants');
+
+        $query = $this->withOverflowCounts($query);
 
         $this->applySharedFilters($query, 'price_per_session', $filters);
 
@@ -490,7 +495,9 @@ class DiscoveryQueryService
                     }
                 })
                 ->with(['owner', 'gameSystem', 'campaign'])
-                ->withCount('participants')
+                ->withCount('participants');
+
+            $games = $this->withOverflowCounts($games)
                 ->orderBy('date_time')
                 ->limit(6)
                 ->get();
@@ -509,6 +516,9 @@ class DiscoveryQueryService
                     })
                     ->with(['owner', 'gameSystem'])
                     ->withCount('sessions')
+                    ->withCount('participants');
+
+                $boostedCampaigns = $this->withOverflowCounts($boostedCampaigns)
                     ->orderBy('created_at', 'desc')
                     ->limit(6)
                     ->get();
@@ -525,7 +535,9 @@ class DiscoveryQueryService
             ->where('date_time', '>', now())
             ->whereIn('game_system_id', $allowedSystemIds)
             ->with(['owner', 'gameSystem', 'campaign'])
-            ->withCount('participants')
+            ->withCount('participants');
+
+        $fallbackGames = $this->withOverflowCounts($fallbackGames)
             ->orderBy('date_time')
             ->limit(6)
             ->get();
@@ -539,6 +551,9 @@ class DiscoveryQueryService
                 ->whereIn('game_system_id', $allowedSystemIds)
                 ->with(['owner', 'gameSystem'])
                 ->withCount('sessions')
+                ->withCount('participants');
+
+            $fallbackCampaigns = $this->withOverflowCounts($fallbackCampaigns)
                 ->orderBy('created_at', 'desc')
                 ->limit(6)
                 ->get();
@@ -631,6 +646,17 @@ class DiscoveryQueryService
     }
 
     // ── SQL helpers (inlined from EscapesLikeWildcards trait) ──
+
+    /**
+     * Apply overflow (waitlist + bench) count subqueries to a game or campaign query.
+     * Consolidates the repeated withCount calls for waitlisted_count and benched_count.
+     */
+    private function withOverflowCounts($query)
+    {
+        return $query
+            ->withCount(['participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted')])
+            ->withCount(['participants as benched_count' => fn ($q) => $q->where('status', 'benched')]);
+    }
 
     /**
      * Escape SQL LIKE wildcard characters (%, _) in user-provided search strings.

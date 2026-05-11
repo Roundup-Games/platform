@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\ParticipantStatus;
+use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Services\WaitlistService;
 use Illuminate\Console\Command;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Periodic sweep that detects and handles expired confirmation windows
- * for promoted waitlisted participants.
+ * for promoted waitlisted participants (both games and campaigns).
  *
  * Serves as a safety net for cases where the delayed HandleExpiredConfirmation
  * job was missed (e.g., queue worker restart, job failure after retries).
@@ -33,13 +34,23 @@ class SweepExpiredConfirmations extends Command
             'dry_run' => $dryRun,
         ]);
 
-        $expired = GameParticipant::query()
+        // Sweep game participants
+        $expiredGames = GameParticipant::query()
             ->where('status', ParticipantStatus::Pending->value)
             ->whereNotNull('confirmation_expires_at')
             ->where('confirmation_expires_at', '<', now())
             ->with('game')
             ->get();
 
+        // Sweep campaign participants
+        $expiredCampaigns = CampaignParticipant::query()
+            ->where('status', ParticipantStatus::Pending->value)
+            ->whereNotNull('confirmation_expires_at')
+            ->where('confirmation_expires_at', '<', now())
+            ->with('campaign')
+            ->get();
+
+        $expired = $expiredGames->merge($expiredCampaigns);
         $count = $expired->count();
         $this->info("Found {$count} expired confirmation(s).");
 
@@ -59,8 +70,11 @@ class SweepExpiredConfirmations extends Command
 
         if ($dryRun) {
             foreach ($expired as $participant) {
+                $entityType = $participant instanceof CampaignParticipant ? 'campaign' : 'game';
+                $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+
                 $this->line("  Would process participant {$participant->id} " .
-                    "(game: {$participant->game_id}, expired at: " .
+                    "({$entityType}: {$participant->{$foreignKey}}, expired at: " .
                     $participant->confirmation_expires_at->toIso8601String() . ")");
             }
             $processedCount = $count;
@@ -73,9 +87,11 @@ class SweepExpiredConfirmations extends Command
                     $processedCount++;
                 } catch (\Throwable $e) {
                     $errorCount++;
+                    $foreignKey = $participant instanceof CampaignParticipant ? 'campaign_id' : 'game_id';
+
                     Log::error('waitlist.sweep.process_failed', [
                         'participant_id' => $participant->id,
-                        'game_id' => $participant->game_id,
+                        $foreignKey => $participant->{$foreignKey},
                         'exception' => $e->getMessage(),
                     ]);
                     $this->warn("  Failed to process participant {$participant->id}: {$e->getMessage()}");

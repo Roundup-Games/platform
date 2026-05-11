@@ -109,6 +109,12 @@
                     {{ trans_choice('campaigns.content_count_sessions', $campaign->sessions_count) }}
                 </span>
             @endif
+            @if(($campaign->waitlisted_count ?? 0) > 0 || ($campaign->benched_count ?? 0) > 0)
+                @php($isBench = $campaign->isBenchMode())
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-tertiary">
+                    {{ trans_choice($isBench ? 'common.content_n_on_bench' : 'common.content_n_waitlisted', $isBench ? ($campaign->benched_count ?? 0) : ($campaign->waitlisted_count ?? 0)) }}
+                </span>
+            @endif
         </div>
     </div>
 </a>

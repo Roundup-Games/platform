@@ -107,6 +107,12 @@
                     {{ trans_choice('common.content_joined', $game->participants_count) }}
                 </span>
             @endif
+            @if(($game->waitlisted_count ?? 0) > 0 || ($game->benched_count ?? 0) > 0)
+                @php($isBench = $game->isBenchMode())
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-tertiary">
+                    {{ trans_choice($isBench ? 'common.content_n_on_bench' : 'common.content_n_waitlisted', $isBench ? ($game->benched_count ?? 0) : ($game->waitlisted_count ?? 0)) }}
+                </span>
+            @endif
         </div>
     </div>
 </a>

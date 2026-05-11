@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -16,7 +18,7 @@ class WaitlistService
 {
     /**
      * Maximum number of times a player's confirmation can expire
-     * before they are permanently rejected from this game's waitlist.
+     * before they are permanently rejected from this entity's waitlist.
      */
     public const MAX_CONFIRMATION_EXPIRATIONS = 2;
 
@@ -36,40 +38,71 @@ class WaitlistService
         'imminent' => 0.5,  // < 4h before game (30 minutes)
     ];
 
+    // ── Entity metadata helper ─────────────────────────
+
     /**
-     * Add a user to the waitlist for a standalone game.
+     * Resolve metadata for a Game|Campaign or CampaignParticipant|GameParticipant.
      *
-     * @throws \LogicException if the game is not standalone, not full, or user is already a participant
+     * Centralizes the repeated `instanceof` checks used throughout this service
+     * for logging, locking, and querying. Accepts either an entity or a participant
+     * and returns a consistent metadata array.
+     *
+     * @param  Campaign|Game|CampaignParticipant|GameParticipant  $subject
+     * @return array{type: string, foreignKey: string, class: class-string<Campaign|Game>, participantClass: class-string<CampaignParticipant|GameParticipant>, isCampaign: bool}
      */
-    public function addToWaitlist(Game $game, User $user): GameParticipant
+    private function entityMeta(Campaign|Game|CampaignParticipant|GameParticipant $subject): array
     {
-        if ($game->campaign_id !== null) {
-            throw new \LogicException('Waitlist is only available for standalone games.');
+        $isCampaign = $subject instanceof Campaign
+            || $subject instanceof CampaignParticipant;
+
+        return [
+            'type' => $isCampaign ? 'campaign' : 'game',
+            'foreignKey' => $isCampaign ? 'campaign_id' : 'game_id',
+            'class' => $isCampaign ? Campaign::class : Game::class,
+            'participantClass' => $isCampaign ? CampaignParticipant::class : GameParticipant::class,
+            'isCampaign' => $isCampaign,
+        ];
+    }
+
+    // ── Public API (supports both Game and Campaign) ───
+
+    /**
+     * Add a user to the waitlist for a game or campaign (when bench_mode=false).
+     *
+     * @throws \LogicException if entity uses bench mode, is not full, or user is already a participant
+     */
+    public function addToWaitlist(Campaign|Game $entity, User $user): CampaignParticipant|GameParticipant
+    {
+        $meta = $this->entityMeta($entity);
+
+        if ($entity->isBenchMode()) {
+            throw new \LogicException("Waitlist is not available for this {$meta['type']} (bench mode is enabled).");
         }
 
-        $approvedCount = $game->participants()
+        $approvedCount = $entity->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
-        if ($approvedCount < $game->max_players) {
-            throw new \LogicException('Cannot add to waitlist: game is not full.');
+        if ($approvedCount < $entity->max_players) {
+            throw new \LogicException('Cannot add to waitlist: entity is not full.');
         }
 
-        $existing = $game->participants()->where('user_id', $user->id)->first();
+        $existing = $entity->participants()->where('user_id', $user->id)->first();
         if ($existing !== null) {
-            throw new \LogicException('User is already a participant of this game.');
+            throw new \LogicException('User is already a participant of this entity.');
         }
 
-        $participant = $game->participants()->create([
-            'user_id'      => $user->id,
-            'role'         => 'player',
-            'status'       => ParticipantStatus::Waitlisted->value,
+        $participant = $entity->participants()->create([
+            'user_id' => $user->id,
+            'role' => 'player',
+            'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
 
         Log::info('waitlist.added', [
-            'game_id'      => $game->id,
-            'user_id'      => $user->id,
+            'entity_type' => $meta['type'],
+            $meta['foreignKey'] => $entity->id,
+            'user_id' => $user->id,
             'participant_id' => $participant->id,
             'queue_position' => $this->getWaitlistPosition($participant),
         ]);
@@ -80,51 +113,52 @@ class WaitlistService
     /**
      * Promote the next waitlisted participant to pending-confirmation status.
      *
-     * Uses lockForUpdate on the game row to serialize concurrent promotions.
+     * Uses lockForUpdate on the entity row to serialize concurrent promotions.
      *
-     * @return GameParticipant|null The promoted participant, or null if waitlist is empty
+     * @return CampaignParticipant|GameParticipant|null The promoted participant, or null if waitlist is empty
      */
-    public function promoteNext(Game $game): ?GameParticipant
+    public function promoteNext(Campaign|Game $entity): CampaignParticipant|GameParticipant|null
     {
-        return DB::transaction(function () use ($game) {
-            // Lock the game row to serialize concurrent cancel → promote chains
-            $lockedGame = Game::lockForUpdate()->findOrFail($game->id);
+        return DB::transaction(function () use ($entity) {
+            $meta = $this->entityMeta($entity);
+            $lockedEntity = $meta['class']::lockForUpdate()->findOrFail($entity->id);
 
-            $next = $lockedGame->participants()
+            $next = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Waitlisted->value)
                 ->orderBy('waitlisted_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->lockForUpdate()
                 ->first();
 
             if ($next === null) {
                 Log::debug('waitlist.promote_next_empty', [
-                    'game_id' => $lockedGame->id,
+                    'entity_id' => $lockedEntity->id,
                 ]);
 
                 return null;
             }
 
-            $confirmationHours = $this->computeConfirmationWindow($lockedGame);
+            $confirmationHours = $this->computeConfirmationWindow($lockedEntity);
             $expiresAt = now()->addMinutes((int) round($confirmationHours * 60));
 
             $next->update([
-                'status'                 => ParticipantStatus::Pending->value,
+                'status' => ParticipantStatus::Pending->value,
                 'confirmation_expires_at' => $expiresAt,
-                'confirmation_attempts'  => ($next->confirmation_attempts ?? 0) + 1,
+                'confirmation_attempts' => ($next->confirmation_attempts ?? 0) + 1,
             ]);
 
             Log::info('waitlist.promoted', [
-                'game_id'               => $lockedGame->id,
-                'participant_id'        => $next->id,
-                'user_id'               => $next->user_id,
-                'confirmation_hours'    => $confirmationHours,
+                'entity_type' => $meta['type'],
+                $meta['foreignKey'] => $lockedEntity->id,
+                'participant_id' => $next->id,
+                'user_id' => $next->user_id,
+                'confirmation_hours' => $confirmationHours,
                 'confirmation_expires_at' => $expiresAt->toIso8601String(),
             ]);
 
-            // Dispatch notification via NotificationService
-            $this->notifyPromotion($next, $lockedGame, $expiresAt);
+            $this->notifyPromotion($next, $lockedEntity, $expiresAt);
 
-            // Dispatch delayed job to auto-handle expiration if no response
-            HandleExpiredConfirmation::dispatch($next->id)->delay($expiresAt);
+            HandleExpiredConfirmation::dispatch($next->id, get_class($next))->delay($expiresAt);
 
             return $next->fresh();
         });
@@ -135,28 +169,30 @@ class WaitlistService
      *
      * @throws \LogicException if the confirmation window has expired
      */
-    public function confirmPromotion(GameParticipant $participant): void
+    public function confirmPromotion(CampaignParticipant|GameParticipant $participant): void
     {
+        $meta = $this->entityMeta($participant);
+
         if ($participant->confirmation_expires_at !== null && now()->isAfter($participant->confirmation_expires_at)) {
             Log::warning('waitlist.confirm_expired', [
-                'game_id'        => $participant->game_id,
+                $meta['foreignKey'] => $participant->{$meta['foreignKey']},
                 'participant_id' => $participant->id,
-                'user_id'        => $participant->user_id,
-                'expired_at'     => $participant->confirmation_expires_at->toIso8601String(),
+                'user_id' => $participant->user_id,
+                'expired_at' => $participant->confirmation_expires_at->toIso8601String(),
             ]);
 
             throw new \LogicException('Confirmation window has expired.');
         }
 
         $participant->update([
-            'status'                 => ParticipantStatus::Approved->value,
+            'status' => ParticipantStatus::Approved->value,
             'confirmation_expires_at' => null,
         ]);
 
         Log::info('waitlist.confirmed', [
-            'game_id'        => $participant->game_id,
+            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
             'participant_id' => $participant->id,
-            'user_id'        => $participant->user_id,
+            'user_id' => $participant->user_id,
         ]);
     }
 
@@ -164,36 +200,39 @@ class WaitlistService
      * Decline a promotion — the participant rejects the spot.
      * Automatically promotes the next waitlisted player.
      */
-    public function declinePromotion(GameParticipant $participant): void
+    public function declinePromotion(CampaignParticipant|GameParticipant $participant): void
     {
+        $meta = $this->entityMeta($participant);
+
         Log::info('waitlist.declined', [
-            'game_id'        => $participant->game_id,
+            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
             'participant_id' => $participant->id,
-            'user_id'        => $participant->user_id,
+            'user_id' => $participant->user_id,
         ]);
 
         $participant->update([
-            'status'                 => ParticipantStatus::Rejected->value,
+            'status' => ParticipantStatus::Rejected->value,
             'confirmation_expires_at' => null,
         ]);
 
-        // Promote the next in line
-        $game = $participant->game;
-        $this->promoteNext($game);
+        $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+
+        $this->promoteNext($entity);
     }
 
     /**
      * Handle an expired confirmation — move participant to back of queue
      * and promote the next waitlisted player.
      */
-    public function handleExpiredConfirmation(GameParticipant $participant): void
+    public function handleExpiredConfirmation(CampaignParticipant|GameParticipant $participant): void
     {
-        $gameId = $participant->game_id;
+        $meta = $this->entityMeta($participant);
+        $entityId = $participant->{$meta['foreignKey']};
 
-        DB::transaction(function () use ($participant, $gameId) {
-            // Lock the game row to serialize concurrent expired-confirmation
-            // handlers for the same game (e.g., two participants expire simultaneously).
-            Game::lockForUpdate()->findOrFail($gameId);
+        DB::transaction(function () use ($participant, $entityId, $meta) {
+            // Lock the entity row to serialize concurrent expired-confirmation
+            // handlers for the same entity.
+            $meta['class']::lockForUpdate()->findOrFail($entityId);
 
             // Refresh participant within the locked transaction
             $participant->refresh();
@@ -204,10 +243,10 @@ class WaitlistService
             }
 
             Log::warning('waitlist.confirmation_expired', [
-                'game_id'        => $gameId,
+                $meta['foreignKey'] => $entityId,
                 'participant_id' => $participant->id,
-                'user_id'        => $participant->user_id,
-                'expired_at'     => $participant->confirmation_expires_at?->toIso8601String(),
+                'user_id' => $participant->user_id,
+                'expired_at' => $participant->confirmation_expires_at?->toIso8601String(),
             ]);
 
             $confirmationAttempts = $participant->confirmation_attempts ?? 0;
@@ -215,31 +254,27 @@ class WaitlistService
             if ($confirmationAttempts >= self::MAX_CONFIRMATION_EXPIRATIONS) {
                 // Max expirations exceeded — reject permanently
                 $participant->update([
-                    'status'                 => ParticipantStatus::Rejected->value,
+                    'status' => ParticipantStatus::Rejected->value,
                     'confirmation_expires_at' => null,
                 ]);
 
                 Log::info('waitlist.rejected_max_expirations', [
-                    'game_id'               => $gameId,
-                    'participant_id'        => $participant->id,
-                    'user_id'               => $participant->user_id,
+                    $meta['foreignKey'] => $entityId,
+                    'participant_id' => $participant->id,
+                    'user_id' => $participant->user_id,
                     'confirmation_attempts' => $confirmationAttempts,
                 ]);
-
-                // Notify the rejected player (outside transaction)
-                // We dispatch the notification after the transaction commits
-                // by capturing the data and sending after the closure.
             } else {
                 // Move to back of queue
                 $participant->update([
-                    'status'                 => ParticipantStatus::Waitlisted->value,
-                    'waitlisted_at'          => now(),
+                    'status' => ParticipantStatus::Waitlisted->value,
+                    'waitlisted_at' => now(),
                     'confirmation_expires_at' => null,
                 ]);
             }
 
-            // Promote the next in line using game ID to avoid stale model
-            $this->promoteNextFromGameId($gameId, $participant->id);
+            // Promote the next in line using entity ID to avoid stale model
+            $this->promoteNextFromEntityId($entityId, $meta['class'], $participant->id);
         });
 
         // Send notification outside the transaction
@@ -249,55 +284,76 @@ class WaitlistService
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
 
+            $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+
             if ($participant->status === ParticipantStatus::Rejected) {
                 $notificationService->send(
                     $user,
-                    new \App\Notifications\WaitlistExpiredRejected($participant->game, $participant->confirmation_attempts),
+                    new \App\Notifications\WaitlistExpiredRejected($entity, $participant->confirmation_attempts),
                     \App\Enums\NotificationCategory::ConfirmationExpired
                 );
             } else {
                 $notificationService->send(
                     $user,
-                    new ConfirmationExpired($participant->game),
+                    new ConfirmationExpired($entity),
                     \App\Enums\NotificationCategory::ConfirmationExpired
                 );
             }
         } catch (\Throwable $e) {
             Log::error('waitlist.confirmation_expired_notification_failed', [
-                'game_id'        => $gameId,
+                'entity_id' => $entityId,
                 'participant_id' => $participant->id,
-                'user_id'        => $participant->user_id,
-                'error'          => $e->getMessage(),
+                'user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
             ]);
         }
     }
 
     /**
-     * Manually promote a waitlisted participant (host override, skips FIFO).
+     * Manually promote a waitlisted participant to approved status.
+     *
+     * Intentional host override — capacity (max_players) is not enforced.
+     * The host explicitly decides to exceed the roster limit. This is by
+     * design: the host knows their table better than the software does.
+     *
+     * Downstream capacity checks (invitation acceptance, discovery counts)
+     * must tolerate approved_count > max_players when manual promotions exist.
      */
-    public function manuallyPromote(GameParticipant $participant): void
+    public function manuallyPromote(CampaignParticipant|GameParticipant $participant): void
     {
+        $meta = $this->entityMeta($participant);
+
         Log::info('waitlist.manually_promoted', [
-            'game_id'        => $participant->game_id,
+            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
             'participant_id' => $participant->id,
-            'user_id'        => $participant->user_id,
+            'user_id' => $participant->user_id,
         ]);
 
         $participant->update([
-            'status'                 => ParticipantStatus::Approved->value,
+            'status' => ParticipantStatus::Approved->value,
             'confirmation_expires_at' => null,
-            'waitlisted_at'          => null,
+            'waitlisted_at' => null,
         ]);
     }
 
     /**
      * Get the 1-based position of a waitlisted participant in the queue.
+     * Uses (waitlisted_at, id) ordering to break ties when timestamps collide.
      */
-    public function getWaitlistPosition(GameParticipant $participant): int
+    public function getWaitlistPosition(CampaignParticipant|GameParticipant $participant): int
     {
-        return $participant->game->participants()
+        $meta = $this->entityMeta($participant);
+        $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
+
+        return $entity->participants()
             ->where('status', ParticipantStatus::Waitlisted->value)
-            ->where('waitlisted_at', '<', $participant->waitlisted_at)
+            ->where(function ($q) use ($participant) {
+                $q->where('waitlisted_at', '<', $participant->waitlisted_at)
+                    ->orWhere(function ($q2) use ($participant) {
+                        $q2->where('waitlisted_at', '=', $participant->waitlisted_at)
+                            ->where('id', '<', $participant->id);
+                    });
+            })
             ->count() + 1;
     }
 
@@ -306,21 +362,20 @@ class WaitlistService
      * after a cancellation. This is the entry point called by
      * cancellation handlers.
      */
-    public function promoteAllOnCancel(Game $game): void
+    public function promoteAllOnCancel(Campaign|Game $entity): void
     {
-        $openSlots = $game->max_players - $game->participants()
+        $openSlots = $entity->max_players - $entity->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
         for ($i = 0; $i < $openSlots; $i++) {
-            $promoted = $this->promoteNext($game);
+            $promoted = $this->promoteNext($entity);
             if ($promoted === null) {
                 break;
             }
         }
 
-        // Check below-min-player warning
-        $this->checkBelowMinPlayers($game);
+        $this->checkBelowMinPlayers($entity);
     }
 
     /**
@@ -328,17 +383,40 @@ class WaitlistService
      */
     public function handleGameCancellation(Game $game): void
     {
-        $affected = $game->participants()
-            ->whereIn('status', [ParticipantStatus::Waitlisted->value, ParticipantStatus::Benched->value])
+        $this->handleEntityCancellation($game);
+    }
+
+    /**
+     * Handle campaign cancellation — reject all waitlisted/benched participants.
+     */
+    public function handleCampaignCancellation(Campaign $campaign): void
+    {
+        $this->handleEntityCancellation($campaign);
+    }
+
+    /**
+     * Handle entity (game or campaign) cancellation — reject all waitlisted participants.
+     *
+     * Only handles Waitlisted participants. Benched participants are the responsibility
+     * of BenchService::handleEntityCancellation(), which should be called separately.
+     * This avoids double-processing of benched participants.
+     */
+    public function handleEntityCancellation(Campaign|Game $entity): void
+    {
+        $meta = $this->entityMeta($entity);
+
+        $affected = $entity->participants()
+            ->where('status', ParticipantStatus::Waitlisted->value)
             ->get();
 
         foreach ($affected as $participant) {
             $participant->update(['status' => ParticipantStatus::Rejected->value]);
         }
 
-        Log::info('waitlist.game_cancelled', [
-            'game_id'         => $game->id,
-            'affected_count'  => $affected->count(),
+        Log::info('waitlist.entity_cancelled', [
+            'entity_type' => $meta['type'],
+            $meta['foreignKey'] => $entity->id,
+            'affected_count' => $affected->count(),
             'affected_status' => 'rejected',
         ]);
     }
@@ -346,47 +424,76 @@ class WaitlistService
     // ── Internal helpers ────────────────────────────────
 
     /**
-     * Promote next waitlisted player by game ID.
-     * Used within transactions where we already have the game locked
-     * and want to avoid re-locking via the Game model.
+     * Resolve entity metadata from a class string (used when only the class
+     * is available, not an entity/participant instance).
+     *
+     * @param  class-string<Campaign|Game>  $entityClass
+     * @return array{type: string, foreignKey: string, class: class-string<Campaign|Game>, participantClass: class-string<CampaignParticipant|GameParticipant>, isCampaign: bool}
      */
-    private function promoteNextFromGameId(string $gameId, ?string $excludeParticipantId = null): ?GameParticipant
+    private function entityMetaFromClass(string $entityClass): array
     {
-        $query = GameParticipant::where('game_id', $gameId)
-            ->where('status', ParticipantStatus::Waitlisted->value);
+        $isCampaign = $entityClass === Campaign::class;
+
+        return [
+            'type' => $isCampaign ? 'campaign' : 'game',
+            'foreignKey' => $isCampaign ? 'campaign_id' : 'game_id',
+            'class' => $entityClass,
+            'participantClass' => $isCampaign ? CampaignParticipant::class : GameParticipant::class,
+            'isCampaign' => $isCampaign,
+        ];
+    }
+
+    /**
+     * Promote next waitlisted player by entity ID and class.
+     * Used within transactions where we already have the entity locked
+     * and want to avoid re-locking via the model.
+     *
+     * Adds lockForUpdate on the participant row to prevent races with
+     * concurrent confirmation or leave actions.
+     */
+    private function promoteNextFromEntityId(string $entityId, string $entityClass, ?string $excludeParticipantId = null): CampaignParticipant|GameParticipant|null
+    {
+        $meta = $this->entityMetaFromClass($entityClass);
+
+        $query = $meta['participantClass']::where($meta['foreignKey'], $entityId)
+            ->where('status', ParticipantStatus::Waitlisted->value)
+            ->orderBy('waitlisted_at', 'asc')
+            ->orderBy('id', 'asc');
 
         if ($excludeParticipantId !== null) {
             $query->where('id', '!=', $excludeParticipantId);
         }
 
-        $next = $query->orderBy('waitlisted_at', 'asc')->first();
+        // Lock the participant row to prevent concurrent status changes
+        // (e.g., user confirming via web while this promotion runs)
+        $next = $query->lockForUpdate()->first();
 
         if ($next === null) {
             return null;
         }
 
-        $game = Game::find($gameId);
-        $confirmationHours = $this->computeConfirmationWindow($game);
+        $entity = $entityClass::find($entityId);
+        $confirmationHours = $this->computeConfirmationWindow($entity);
         $expiresAt = now()->addMinutes((int) round($confirmationHours * 60));
 
         $next->update([
-            'status'                 => ParticipantStatus::Pending->value,
+            'status' => ParticipantStatus::Pending->value,
             'confirmation_expires_at' => $expiresAt,
-            'confirmation_attempts'  => ($next->confirmation_attempts ?? 0) + 1,
+            'confirmation_attempts' => ($next->confirmation_attempts ?? 0) + 1,
         ]);
 
         Log::info('waitlist.promoted', [
-            'game_id'               => $gameId,
-            'participant_id'        => $next->id,
-            'user_id'               => $next->user_id,
-            'confirmation_hours'    => $confirmationHours,
+            'entity_type' => $meta['type'],
+            $meta['foreignKey'] => $entityId,
+            'participant_id' => $next->id,
+            'user_id' => $next->user_id,
+            'confirmation_hours' => $confirmationHours,
             'confirmation_expires_at' => $expiresAt->toIso8601String(),
         ]);
 
-        $this->notifyPromotion($next, $game, $expiresAt);
+        $this->notifyPromotion($next, $entity, $expiresAt);
 
-        // Dispatch delayed job to auto-handle expiration if no response
-        HandleExpiredConfirmation::dispatch($next->id)->delay($expiresAt);
+        HandleExpiredConfirmation::dispatch($next->id, get_class($next))->delay($expiresAt);
 
         return $next->fresh();
     }
@@ -395,19 +502,25 @@ class WaitlistService
      * Compute the absolute confirmation deadline (Carbon) for a promoted participant.
      * Returns now() + urgency-scaled window based on time until game start.
      */
-    public function computeConfirmationDeadline(Game $game): \Carbon\Carbon
+    public function computeConfirmationDeadline(Campaign|Game $entity): \Carbon\Carbon
     {
-        $hours = $this->computeConfirmationWindow($game);
+        $hours = $this->computeConfirmationWindow($entity);
 
         return now()->addMinutes((int) round($hours * 60));
     }
 
     /**
      * Compute urgency-scaled confirmation window in hours based on time until game.
+     * Campaigns don't have date_time, so they default to 'far' (12h).
      */
-    private function computeConfirmationWindow(Game $game): float
+    private function computeConfirmationWindow(Campaign|Game $entity): float
     {
-        $dateTime = $game->date_time;
+        // Campaigns don't have a date_time field
+        if ($entity instanceof Campaign) {
+            return self::CONFIRMATION_WINDOWS['far'];
+        }
+
+        $dateTime = $entity->date_time;
 
         if ($dateTime === null) {
             return self::CONFIRMATION_WINDOWS['far'];
@@ -416,34 +529,34 @@ class WaitlistService
         $hoursUntil = now()->diffInHours($dateTime, false);
 
         return match (true) {
-            $hoursUntil <= 4   => self::CONFIRMATION_WINDOWS['imminent'],
-            $hoursUntil <= 24  => self::CONFIRMATION_WINDOWS['near'],
-            $hoursUntil <= 48  => self::CONFIRMATION_WINDOWS['medium'],
-            default            => self::CONFIRMATION_WINDOWS['far'],
+            $hoursUntil <= 4 => self::CONFIRMATION_WINDOWS['imminent'],
+            $hoursUntil <= 24 => self::CONFIRMATION_WINDOWS['near'],
+            $hoursUntil <= 48 => self::CONFIRMATION_WINDOWS['medium'],
+            default => self::CONFIRMATION_WINDOWS['far'],
         };
     }
 
     /**
      * Dispatch the WaitlistPromoted notification through NotificationService.
      */
-    private function notifyPromotion(GameParticipant $participant, Game $game, $expiresAt): void
+    private function notifyPromotion(CampaignParticipant|GameParticipant $participant, Campaign|Game $entity, $expiresAt): void
     {
         try {
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
 
             $notification = new WaitlistPromoted(
-                game: $game,
+                entity: $entity,
                 confirmationDeadline: $expiresAt->isoFormat('LLL'),
             );
 
             $notificationService->send($user, $notification, \App\Enums\NotificationCategory::ParticipantJoined);
         } catch (\Throwable $e) {
             Log::error('waitlist.notification_failed', [
-                'game_id'        => $game->id,
+                'entity_id' => $entity->id,
                 'participant_id' => $participant->id,
-                'user_id'        => $participant->user_id,
-                'error'          => $e->getMessage(),
+                'user_id' => $participant->user_id,
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -451,17 +564,19 @@ class WaitlistService
     /**
      * Log a warning if the roster is below min_players after a promotion chain.
      */
-    private function checkBelowMinPlayers(Game $game): void
+    private function checkBelowMinPlayers(Campaign|Game $entity): void
     {
-        $approvedCount = $game->participants()
+        $meta = $this->entityMeta($entity);
+
+        $approvedCount = $entity->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
 
-        if ($game->min_players !== null && $approvedCount < $game->min_players) {
+        if ($entity->min_players !== null && $approvedCount < $entity->min_players) {
             Log::warning('waitlist.below_min_players', [
-                'game_id'         => $game->id,
-                'current_roster'  => $approvedCount,
-                'min_players'     => $game->min_players,
+                $meta['foreignKey'] => $entity->id,
+                'current_roster' => $approvedCount,
+                'min_players' => $entity->min_players,
             ]);
         }
     }

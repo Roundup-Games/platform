@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
 use App\Models\Game;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
@@ -14,8 +15,22 @@ class ConfirmationExpired extends Notification
     use HasUnsubscribeLink;
 
     public function __construct(
-        public Game $game,
+        public Game|Campaign $entity,
     ) {}
+
+    protected function getEntityType(): string
+    {
+        return $this->entity instanceof Campaign ? 'campaign' : 'game';
+    }
+
+    protected function getEntityRoute(string $locale): string
+    {
+        if ($this->entity instanceof Campaign) {
+            return route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+        }
+
+        return route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+    }
 
     /**
      * @return array<int, string>
@@ -31,13 +46,13 @@ class ConfirmationExpired extends Notification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_confirmation_expired', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_confirmation_expired', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_view_game', ['game' => $this->entity->name]), $this->getEntityRoute($locale))
             ->line($this->unsubscribeLine($notifiable, 'confirmation_expired'));
     }
 
@@ -50,10 +65,10 @@ class ConfirmationExpired extends Notification
 
         return [
             'type' => 'confirmation_expired',
-            'entity_type' => 'game',
-            'entity_id' => $this->game->id,
-            'entity_name' => $this->game->name,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'entity_type' => $this->getEntityType(),
+            'entity_id' => $this->entity->id,
+            'entity_name' => $this->entity->name,
+            'action_url' => $this->getEntityRoute($locale),
         ];
     }
 
@@ -64,11 +79,11 @@ class ConfirmationExpired extends Notification
         return new PushPayload(
             title: __('notifications.push_title_confirmation_expired'),
             body: __('notifications.push_body_confirmation_expired', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
-            tag: "confirmation-expired-{$this->game->id}",
+            url: $this->getEntityRoute($locale),
+            tag: "confirmation-expired-{$this->entity->id}",
         );
     }
 }

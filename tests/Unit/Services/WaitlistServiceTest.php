@@ -66,6 +66,7 @@ describe('addToWaitlist', function () {
             'owner_id' => $owner->id,
             'campaign_id' => $campaign->id,
             'max_players' => 1,
+            'bench_mode' => true,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
@@ -76,7 +77,7 @@ describe('addToWaitlist', function () {
         $user = User::factory()->create();
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'Waitlist is only available for standalone games.');
+            ->toThrow(\LogicException::class, 'Waitlist is not available for this game (bench mode is enabled).');
     });
 
     it('throws when game is not full', function () {
@@ -89,14 +90,14 @@ describe('addToWaitlist', function () {
         $user = User::factory()->create();
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'Cannot add to waitlist: game is not full.');
+            ->toThrow(\LogicException::class, 'Cannot add to waitlist: entity is not full.');
     });
 
     it('throws when user is already a participant', function () {
         ['game' => $game, 'owner' => $owner] = createFullStandaloneGame();
 
         expect(fn () => $this->service->addToWaitlist($game, $owner))
-            ->toThrow(\LogicException::class, 'User is already a participant of this game.');
+            ->toThrow(\LogicException::class, 'User is already a participant of this entity.');
     });
 
     it('maintains FIFO order — first added is first in queue', function () {
@@ -365,13 +366,25 @@ describe('promoteAllOnCancel', function () {
 // ── handleGameCancellation ───────────────────────────────
 
 describe('handleGameCancellation', function () {
-    it('rejects all waitlisted and benched participants', function () {
+    it('rejects all waitlisted participants', function () {
         ['game' => $game] = createFullStandaloneGame();
 
         $waitUser = User::factory()->create();
-        $benchUser = User::factory()->create();
 
         $this->service->addToWaitlist($game, $waitUser);
+
+        $this->service->handleGameCancellation($game);
+
+        $waitlisted = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $waitUser->id)->first();
+
+        expect($waitlisted->status)->toBe(ParticipantStatus::Rejected);
+    });
+
+    it('does not reject benched participants (BenchService responsibility)', function () {
+        ['game' => $game] = createFullStandaloneGame();
+
+        $benchUser = User::factory()->create();
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -382,13 +395,11 @@ describe('handleGameCancellation', function () {
 
         $this->service->handleGameCancellation($game);
 
-        $waitlisted = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $waitUser->id)->first();
+        // WaitlistService only handles waitlisted — benched should remain unchanged
         $benched = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $benchUser->id)->first();
 
-        expect($waitlisted->status)->toBe(ParticipantStatus::Rejected);
-        expect($benched->status)->toBe(ParticipantStatus::Rejected);
+        expect($benched->status)->toBe(ParticipantStatus::Benched);
     });
 
     it('does not affect approved participants', function () {
@@ -414,6 +425,7 @@ describe('structured logging', function () {
 
         Log::shouldReceive('info')->with('waitlist.added', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['user_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->addToWaitlist($game, $user);
     });

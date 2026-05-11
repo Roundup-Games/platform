@@ -72,6 +72,14 @@ return [
     'content_bench_description' => 'These players are on the bench. Promote them when a spot opens up.',
     'action_promote_from_bench' => 'Promote',
     'flash_promote_from_bench_success' => 'Player promoted from the bench.',
+    'flash_left_bench' => 'You have left the bench.',
+    'flash_left_waitlist' => 'You have left the waitlist.',
+    'action_leave_bench' => 'Leave Bench',
+    'content_waitlisted_count' => '{0} |{1} waitlisted|[2,*] waitlisted',
+    'content_benched_count' => '{0} |{1} benched|[2,*] benched',
+    'label_bench_mode' => 'Bench Mode',
+    'content_bench_mode_requires_gm' => 'Only Game Masters can enable bench mode.',
+    'content_bench_mode_description' => 'Overflow players are placed on a bench instead of a waitlist.',
     'content_application_pending' => 'Application Pending',
     'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',
     'content_you_ve_got_the_game' => 'You\'ve got the game. We\'ll help you find the right players — and handle the logistics so you can focus on what you do best: hosting unforgettable sessions.',
@@ -290,6 +298,7 @@ return [
 
     // Waitlist
     'action_join_waitlist' => 'Join Waitlist',
+    'action_leave_waitlist' => 'Leave Waitlist',
     'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
     'content_waitlist_position' => 'You are #:position on the waitlist.',
     'content_comfort_notes' => 'Comfort Notes',

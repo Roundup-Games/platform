@@ -16,12 +16,16 @@ class Campaign extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected $attributes = [
+        'bench_mode' => true,
+    ];
+
     protected $fillable = [
         'owner_id', 'game_system_id', 'location_id', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
-        'share_token', 'share_token_expires_at',
+        'share_token', 'share_token_expires_at', 'bench_mode',
     ];
 
     protected function casts(): array
@@ -40,6 +44,7 @@ class Campaign extends Model
             'status' => CampaignStatus::class,
             'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
+            'bench_mode' => 'boolean',
         ];
     }
 
@@ -128,10 +133,28 @@ class Campaign extends Model
     // ── Bench ──────────────────────────────────────────
 
     /**
-     * Campaigns always support bench mode.
+     * Check if this entity uses bench mode (overflow to bench) vs waitlist (FIFO queue).
+     * Reads from the bench_mode column.
      */
     public function isBenchMode(): bool
     {
-        return true;
+        return (bool) $this->bench_mode;
+    }
+
+    /**
+     * Mutator: Only GM users can enable bench_mode.
+     * Provides defense-in-depth beyond form-level gating.
+     */
+    public function setBenchModeAttribute($value): void
+    {
+        $this->attributes['bench_mode'] = (bool) $value;
+
+        // Allow during factory creation (no auth context) or if user is a GM
+        if ((bool) $value && auth()->check() && ! auth()->user()->isGM()) {
+            $this->attributes['bench_mode'] = false;
+            \Illuminate\Support\Facades\Log::warning('Non-GM user attempted to enable bench_mode on campaign', [
+                'user_id' => auth()->id(),
+            ]);
+        }
     }
 }

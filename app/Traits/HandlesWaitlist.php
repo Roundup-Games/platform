@@ -9,6 +9,7 @@ use App\Notifications\BelowMinPlayersWarning;
 use App\Services\NotificationService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 trait HandlesWaitlist
@@ -124,8 +125,8 @@ trait HandlesWaitlist
             return;
         }
 
-        // Attendance status based on cancellation timing
-        if ($entity->date_time && $entity->date_time->isFuture()) {
+        // Attendance status based on cancellation timing (games only — campaigns have no date_time)
+        if ($entity instanceof \App\Models\Game && $entity->date_time && $entity->date_time->isFuture()) {
             $hoursUntilGame = now()->diffInHours($entity->date_time, false);
 
             if ($hoursUntilGame < 24) {
@@ -156,20 +157,70 @@ trait HandlesWaitlist
         // Remove the participant
         $participant->update(['status' => ParticipantStatus::Rejected]);
 
-        Log::info('Game participant self-cancelled', [
-            'game_id' => $entity->id,
+        $entityType = $entity instanceof \App\Models\Campaign ? 'campaign' : 'game';
+        $entityIdColumn = $this->getEntityIdColumn();
+
+        Log::info(ucfirst($entityType) . ' participant self-cancelled', [
+            $entityIdColumn => $entity->id,
             'user_id' => $viewer->id,
         ]);
 
-        // Promote from waitlist if applicable
-        if ($entity->campaign_id === null) {
-            app(WaitlistService::class)->promoteAllOnCancel($entity);
-        }
+        // Promote from waitlist for all entity types
+        app(WaitlistService::class)->promoteAllOnCancel($entity);
 
         // Check below-min-players
         $this->checkBelowMinPlayersAndNotify();
 
         session()->flash('success', __('common.flash_participant_removed'));
+    }
+
+    /**
+     * Leave the waitlist as a waitlisted participant.
+     *
+     * After leaving, triggers promotion of the next waitlisted player
+     * if there are open approved slots (typically a no-op when still at capacity).
+     */
+    public function leaveWaitlist(string $participantId): void
+    {
+        $participant = $this->findParticipantOrFail($participantId);
+        $viewer = Auth::user();
+
+        if ($participant->user_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+
+            return;
+        }
+
+        $entity = $this->getEntity();
+        $entityType = strtolower($this->getEntityName());
+
+        $didLeave = false;
+        DB::transaction(function () use ($participant, &$didLeave) {
+            // Lock to prevent concurrent promotion while leaving
+            $participant->lockForUpdate()->firstOrFail();
+
+            if ($participant->status !== ParticipantStatus::Waitlisted) {
+                return;
+            }
+
+            $participant->update(['status' => ParticipantStatus::Rejected]);
+            $didLeave = true;
+        });
+
+        if ($didLeave) {
+            Log::info('waitlist.participant_left', [
+                'entity_type' => $entityType,
+                'entity_id' => $entity->id,
+                'user_id' => $viewer->id,
+                'participant_id' => $participant->id,
+            ]);
+
+            // Promote from waitlist if there are open approved slots.
+            // This is a no-op when the entity is still at capacity (most common case).
+            app(WaitlistService::class)->promoteAllOnCancel($entity);
+
+            session()->flash('success', __('games.flash_left_waitlist'));
+        }
     }
 
     // ── Private Helpers ────────────────────────────────
@@ -203,8 +254,11 @@ trait HandlesWaitlist
             ->count();
 
         if ($approvedCount < $entity->min_players) {
-            Log::warning('waitlist.below_min_players', [
-                'game_id' => $entity->id,
+            $entityIdColumn = $this->getEntityIdColumn();
+            $entityName = strtolower($this->getEntityName());
+
+            Log::warning("{$entityName}.below_min_players", [
+                $entityIdColumn => $entity->id,
                 'current_roster' => $approvedCount,
                 'min_players' => $entity->min_players,
             ]);
@@ -220,7 +274,7 @@ trait HandlesWaitlist
                 }
             } catch (\Throwable $e) {
                 Log::error('notification.below_min_players_dispatch_failed', [
-                    'game_id' => $entity->id,
+                    $entityIdColumn => $entity->id,
                     'error' => $e->getMessage(),
                 ]);
             }

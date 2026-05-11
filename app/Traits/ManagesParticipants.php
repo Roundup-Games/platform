@@ -17,6 +17,8 @@ use App\Services\NotificationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 
+use App\Services\BenchService;
+use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -632,6 +634,160 @@ trait ManagesParticipants
         session()->flash('success', __('common.flash_invite_declined'));
     }
 
+    // ── Waitlist / Bench Getters ───────────────────────
+
+    /**
+     * Get all waitlisted participants ordered by queue position.
+     */
+    public function getWaitlistedParticipants()
+    {
+        $entity = $this->getEntity();
+
+        return $entity->participants()
+            ->where('status', ParticipantStatus::Waitlisted->value)
+            ->orderBy('waitlisted_at', 'asc')
+            ->with('user')
+            ->get();
+    }
+
+    /**
+     * Get all benched participants ordered by bench time.
+     */
+    public function getBenchedParticipants()
+    {
+        $entity = $this->getEntity();
+
+        return $entity->participants()
+            ->where('status', ParticipantStatus::Benched->value)
+            ->orderBy('benched_at', 'asc')
+            ->with('user')
+            ->get();
+    }
+
+    // ── Waitlist / Bench Actions ───────────────────────
+    // Prefixed with "manage" to avoid collisions with HandlesBench::promoteFromBench()
+    // and HandlesWaitlist::manualPromote() used by GameDetail.
+
+    /**
+     * Promote a waitlisted participant to approved status.
+     * Delegates to WaitlistService::manuallyPromote().
+     */
+    public function managePromoteFromWaitlist(string $participantId): void
+    {
+        $this->authorize('update', $this->getEntity());
+
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+
+        if ($participant->status !== ParticipantStatus::Waitlisted) {
+            session()->flash('error', __('common.error_participant_not_waitlisted'));
+
+            return;
+        }
+
+        app(WaitlistService::class)->manuallyPromote($participant);
+
+        Log::info($this->getEntityName() . ' waitlist participant promoted', [
+            $entityIdColumn => $entity->id,
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'promoted_by' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_waitlist_promoted'));
+    }
+
+    /**
+     * Remove a waitlisted participant (sets status to Rejected).
+     */
+    public function manageRemoveFromWaitlist(string $participantId): void
+    {
+        $this->authorize('update', $this->getEntity());
+
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+
+        if ($participant->status !== ParticipantStatus::Waitlisted) {
+            session()->flash('error', __('common.error_participant_not_waitlisted'));
+
+            return;
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
+
+        Log::info($this->getEntityName() . ' waitlist participant removed', [
+            $entityIdColumn => $entity->id,
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'removed_by' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_waitlist_removed'));
+    }
+
+    /**
+     * Promote a benched participant to approved status.
+     * Delegates to BenchService::promoteFromBench().
+     */
+    public function managePromoteFromBench(string $participantId): void
+    {
+        $this->authorize('update', $this->getEntity());
+
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+
+        if ($participant->status !== ParticipantStatus::Benched) {
+            session()->flash('error', __('common.error_participant_not_benched'));
+
+            return;
+        }
+
+        $entityType = $this->getEntityName() === 'Game' ? 'game' : 'campaign';
+
+        app(BenchService::class)->promoteFromBench($participantId, $entityType);
+
+        Log::info($this->getEntityName() . ' bench participant promoted', [
+            $entityIdColumn => $entity->id,
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'promoted_by' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_bench_promoted'));
+    }
+
+    /**
+     * Remove a benched participant (sets status to Rejected).
+     */
+    public function manageRemoveFromBench(string $participantId): void
+    {
+        $this->authorize('update', $this->getEntity());
+
+        $participant = $this->findParticipant($participantId);
+        $entity = $this->getEntity();
+        $entityIdColumn = $this->getEntityIdColumn();
+
+        if ($participant->status !== ParticipantStatus::Benched) {
+            session()->flash('error', __('common.error_participant_not_benched'));
+
+            return;
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
+
+        Log::info($this->getEntityName() . ' bench participant removed', [
+            $entityIdColumn => $entity->id,
+            'participant_id' => $participant->id,
+            'user_id' => $participant->user_id,
+            'removed_by' => Auth::id(),
+        ]);
+
+        session()->flash('success', __('common.flash_bench_removed'));
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     /**
@@ -682,17 +838,16 @@ trait ManagesParticipants
     /**
      * Determine the overflow status for a full entity.
      *
-     * Standalone games (no campaign) use waitlist.
-     * Campaign sessions and campaigns use bench.
+     * Non-bench-mode entities (traditional waitlist): overflow to Waitlisted (FIFO queue).
+     * Bench-mode entities: overflow to Benched (host-controlled promotion).
      *
      * @return array{status: string, timestamp_column: string, timestamp_value: \Carbon\Carbon}
      */
     private function resolveOverflowStatus(): array
     {
         $entity = $this->getEntity();
-        $isStandaloneGame = $this->getEntityName() === 'Game' && empty($entity->campaign_id);
 
-        if ($isStandaloneGame) {
+        if (! $entity->isBenchMode()) {
             return [
                 'status' => ParticipantStatus::Waitlisted->value,
                 'timestamp_column' => 'waitlisted_at',

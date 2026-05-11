@@ -174,15 +174,15 @@ describe('AutoInvite — Accept', function () {
             ->call('acceptInvitation', $participant1->id)
             ->assertHasNoErrors();
 
-        // Player2 tries to accept — game full
+        // Player2 tries to accept — game full, routes to bench
         $participant2 = GameParticipant::where('game_id', $game->id)->where('user_id', $player2->id)->first();
         Livewire::actingAs($player2)
             ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant2->id)
-            ->assertSee('already full');
+            ->assertHasNoErrors();
 
         assertDatabaseHas('game_participants', [
-            'id' => $participant2->id, 'role' => 'invited', 'status' => 'pending',
+            'id' => $participant2->id, 'user_id' => $player2->id, 'status' => 'benched',
         ]);
     });
 

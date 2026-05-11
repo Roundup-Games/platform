@@ -55,6 +55,8 @@ class CreateCampaign extends Component
     /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', from VibePreferencePicker */
     public array $vibePreferences = [];
 
+    public bool $bench_mode = true;
+
     public function rules(): array
     {
         return [
@@ -74,6 +76,7 @@ class CreateCampaign extends Component
             'max_players' => 'nullable|integer|min:1|max:99',
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
+            'bench_mode' => 'boolean',
         ];
     }
 
@@ -186,6 +189,16 @@ class CreateCampaign extends Component
         // Extract favorite vibe flags for storage
         $vibeFlags = $this->selectedVibeFlags();
 
+        // Gate bench_mode to GM users only (defense-in-depth; UI disables toggle for non-GMs)
+        $benchMode = $this->bench_mode;
+        if ($benchMode && ! Auth::user()->isGM()) {
+            Log::warning('Non-GM user attempted to enable bench_mode on campaign creation', [
+                'user_id' => Auth::id(),
+                'attempted_bench_mode' => true,
+            ]);
+            $benchMode = false;
+        }
+
         $campaign = Campaign::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
@@ -206,6 +219,7 @@ class CreateCampaign extends Component
             'experience_level' => $validated['experience_level'],
             'complexity' => $validated['complexity'] ?: null,
             'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
+            'bench_mode' => $benchMode,
         ]);
 
         Log::info('Campaign created', [
@@ -221,7 +235,9 @@ class CreateCampaign extends Component
 
     public function render()
     {
-        return view('livewire.campaigns.create-campaign');
+        return view('livewire.campaigns.create-campaign', [
+            'isGM' => Auth::user()?->isGM() ?? false,
+        ]);
     }
 
     // ── Private Helpers ──────────────────────────────────

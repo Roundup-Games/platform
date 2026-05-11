@@ -110,6 +110,37 @@
                         </div>
                     </div>
 
+                    {{-- Bench Mode Toggle --}}
+                    <div class="mt-2">
+                        <div class="flex items-center gap-3">
+                            <button type="button"
+                                    @if(!$isGM) disabled @else wire:click="$toggle('bench_mode')" @endif
+                                    @class([
+                                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
+                                        'bg-primary' => $bench_mode,
+                                        'bg-surface-container-highest' => !$bench_mode,
+                                        'opacity-50 cursor-not-allowed' => !$isGM,
+                                    ])
+                                    role="switch"
+                                    aria-label="{{ __('games.label_bench_mode') }}"
+                                    aria-checked="{{ $bench_mode ? 'true' : 'false' }}">
+                                <span @class([
+                                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                                    'translate-x-6' => $bench_mode,
+                                    'translate-x-1' => !$bench_mode,
+                                ])></span>
+                            </button>
+                            <div>
+                                <span class="text-sm font-medium text-on-surface">{{ __('games.label_bench_mode') }}</span>
+                                @if(!$isGM)
+                                    <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_requires_gm') }}</p>
+                                @else
+                                    <p class="text-xs text-on-surface-variant">{{ __('games.content_bench_mode_description') }}</p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-sm font-medium text-on-surface mb-1">{{ __('location.content_location') }}</label>
                         <livewire:components.location-picker :location-id="$location_id" />

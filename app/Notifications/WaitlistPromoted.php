@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
 use App\Models\Game;
-use App\Models\User;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,9 +15,23 @@ class WaitlistPromoted extends Notification
     use HasUnsubscribeLink;
 
     public function __construct(
-        public Game $game,
-        public string $confirmationDeadline,
+        public Game|Campaign $entity,
+        public string $confirmationDeadline = '',
     ) {}
+
+    protected function getEntityType(): string
+    {
+        return $this->entity instanceof Campaign ? 'campaign' : 'game';
+    }
+
+    protected function getEntityRoute(string $locale): string
+    {
+        if ($this->entity instanceof Campaign) {
+            return route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+        }
+
+        return route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+    }
 
     /**
      * @return array<int, string>
@@ -33,14 +47,14 @@ class WaitlistPromoted extends Notification
 
         return (new MailMessage)
             ->subject(__('notifications.subject_waitlist_promoted', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_waitlist_promoted', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
                 'deadline' => $this->confirmationDeadline,
             ]))
-            ->action(__('notifications.action_waitlist_promoted'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_waitlist_promoted'), $this->getEntityRoute($locale))
             ->line($this->unsubscribeLine($notifiable, 'waitlist_promoted'));
     }
 
@@ -53,11 +67,11 @@ class WaitlistPromoted extends Notification
 
         return [
             'type' => 'waitlist_promoted',
-            'entity_type' => 'game',
-            'entity_id' => $this->game->id,
-            'entity_name' => $this->game->name,
+            'entity_type' => $this->getEntityType(),
+            'entity_id' => $this->entity->id,
+            'entity_name' => $this->entity->name,
             'confirmation_deadline' => $this->confirmationDeadline,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => $this->getEntityRoute($locale),
         ];
     }
 
@@ -68,12 +82,12 @@ class WaitlistPromoted extends Notification
         return new PushPayload(
             title: __('notifications.push_title_waitlist_promoted'),
             body: __('notifications.push_body_waitlist_promoted', [
-                'game' => $this->game->name,
+                'game' => $this->entity->name,
                 'deadline' => $this->confirmationDeadline,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
-            tag: "waitlist-promoted-{$this->game->id}",
+            url: $this->getEntityRoute($locale),
+            tag: "waitlist-promoted-{$this->entity->id}",
         );
     }
 }

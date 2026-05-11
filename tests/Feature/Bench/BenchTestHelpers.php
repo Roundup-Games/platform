@@ -64,6 +64,7 @@ trait BenchTestHelpers
             'location' => ['details' => 'Online'],
             'min_players' => 2,
             'max_players' => $maxPlayers,
+            'bench_mode' => true,
         ]);
 
         GameParticipant::create([

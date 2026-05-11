@@ -72,6 +72,9 @@ return [
     'content_bench_description' => 'Diese Spieler sitzen auf der Bank. Befördere sie, wenn ein Platz frei wird.',
     'action_promote_from_bench' => 'Befördern',
     'flash_promote_from_bench_success' => 'Spieler wurde von der Bank befördert.',
+    'label_bench_mode' => 'Bankmodus',
+    'content_bench_mode_requires_gm' => 'Nur Spielleiter können den Bankmodus aktivieren.',
+    'content_bench_mode_description' => 'Überschüssige Spieler werden auf die Bank gesetzt statt auf die Warteliste.',
     'content_application_pending' => 'Bewerbung ausstehend',
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
     'content_you_ve_got_the_game' => 'Du hast das Spiel. Wir helfen dir, die richtigen Spieler zu finden — und kümmern uns um die Logistik, damit du dich auf das konzentrieren kannst, was du am besten kannst: unvergessliche Sessions ausrichten.',
@@ -350,6 +353,12 @@ return [
     'content_late_cancel_warning' => 'Achtung: Du stornierst weniger als 24 Stunden vor Spielbeginn. Dies wird als späte Stornierung erfasst.',
     'content_below_min_players_warning' => 'Achtung: Die Spielerzahl ist unter das Minimum gefallen.',
     'flash_manual_promote_success' => 'Spieler wurde von der Warteliste befördert.',
+    'action_leave_waitlist' => 'Warteliste verlassen',
+    'action_leave_bench' => 'Bank verlassen',
+    'flash_left_waitlist' => 'Du hast die Warteliste verlassen.',
+    'flash_left_bench' => 'Du hast die Bank verlassen.',
+    'content_waitlisted_count' => '{0} |{1} auf Warteliste|[2,*] auf Warteliste',
+    'content_benched_count' => '{0} |{1} auf der Bank|[2,*] auf der Bank',
 
     // Sichtbarkeitsbezeichnungen
     'visibility_public' => 'Öffentlich',
