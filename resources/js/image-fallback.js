@@ -26,7 +26,9 @@ document.addEventListener('error', (e) => {
         img.replaceWith(placeholder);
     } else if (mode === 'initial' && img.parentElement) {
         const initial = img.parentElement.dataset.initial || '?';
-        img.parentElement.innerHTML = initial;
+        const span = document.createElement('span');
+        span.textContent = initial;
+        img.replaceWith(span);
     } else {
         img.style.display = 'none';
     }

@@ -250,10 +250,12 @@ class Game extends Model
      * Check if this entity uses bench mode (overflow to bench) vs waitlist (FIFO queue).
      * Reads from the bench_mode column. Campaign sessions inherit from their campaign.
      *
-     * Callers in listing contexts (discovery cards, etc.) must eager-load the
-     * 'campaign' relationship to avoid N+1 queries and ensure correct behavior.
-     * When campaign is not loaded, falls back to false (waitlist) — the safer default
-     * that avoids silent overflow-mode mismatches.
+     * IMPORTANT: Callers in listing/card contexts MUST eager-load the 'campaign'
+     * relationship (e.g., ->with('campaign')) before calling this method.
+     * Without it, campaign sessions fall back to false (waitlist) and log a warning.
+     *
+     * @see DiscoveryQueryService::buildGamesQuery() — eager-loads 'campaign' for cards
+     * @see GameDetail::canApply() / GameDetail::canJoinWaitlist() — single-entity, safe
      */
     public function isBenchMode(): bool
     {

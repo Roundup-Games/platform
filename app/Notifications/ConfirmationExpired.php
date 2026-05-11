@@ -12,25 +12,11 @@ use Illuminate\Notifications\Notification;
 
 class ConfirmationExpired extends Notification
 {
-    use HasUnsubscribeLink;
+    use HasUnsubscribeLink, RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
     ) {}
-
-    protected function getEntityType(): string
-    {
-        return $this->entity instanceof Campaign ? 'campaign' : 'game';
-    }
-
-    protected function getEntityRoute(string $locale): string
-    {
-        if ($this->entity instanceof Campaign) {
-            return route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]);
-        }
-
-        return route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]);
-    }
 
     /**
      * @return array<int, string>

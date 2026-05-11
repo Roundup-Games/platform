@@ -70,7 +70,7 @@ class SweepExpiredConfirmations extends Command
 
         if ($dryRun) {
             foreach ($expired as $participant) {
-                $meta = $participant->entityMeta();
+                $meta = $participant::entityMeta();
 
                 $this->line("  Would process participant {$participant->id} " .
                     "({$meta['type']}: {$participant->{$meta['foreignKey']}}, expired at: " .
@@ -86,7 +86,7 @@ class SweepExpiredConfirmations extends Command
                     $processedCount++;
                 } catch (\Throwable $e) {
                     $errorCount++;
-                    $meta = $participant->entityMeta();
+                    $meta = $participant::entityMeta();
 
                     Log::error('waitlist.sweep.process_failed', [
                         'participant_id' => $participant->id,

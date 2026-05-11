@@ -12,17 +12,12 @@ use Illuminate\Notifications\Notification;
 
 class WaitlistExpiredRejected extends Notification
 {
-    use HasUnsubscribeLink;
+    use HasUnsubscribeLink, RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
         public int $confirmationAttempts,
     ) {}
-
-    protected function getEntityType(): string
-    {
-        return $this->entity instanceof Campaign ? 'campaign' : 'game';
-    }
 
     /**
      * @return array<int, string>

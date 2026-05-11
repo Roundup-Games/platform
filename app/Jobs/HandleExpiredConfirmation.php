@@ -94,7 +94,7 @@ class HandleExpiredConfirmation implements ShouldQueue
             return;
         }
 
-        $meta = $participant->entityMeta();
+        $meta = $participant::entityMeta();
 
         Log::info('waitlist.expired_confirmation_job.processing', [
             'participant_id' => $participant->id,

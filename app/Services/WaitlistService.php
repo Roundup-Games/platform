@@ -211,6 +211,8 @@ class WaitlistService
             'confirmation_expires_at' => null,
         ]);
 
+        // Load the entity relationship if not already eager-loaded
+        $participant->loadMissing($meta['isCampaign'] ? 'campaign' : 'game');
         $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
 
         $this->promoteNext($entity);
@@ -280,6 +282,8 @@ class WaitlistService
             $notificationService = app(NotificationService::class);
             $user = $participant->user;
 
+            // Ensure entity relationship is loaded for notification routing
+            $participant->loadMissing($meta['isCampaign'] ? 'campaign' : 'game');
             $entity = $meta['isCampaign'] ? $participant->campaign : $participant->game;
 
             if ($participant->status === ParticipantStatus::Rejected) {
