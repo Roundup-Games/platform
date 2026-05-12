@@ -7,11 +7,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | The complete list of Material Symbols Outlined icon names used across the
-    | application. This drives the Google Fonts URL with icon subsetting, which
-    | reduces the font payload from ~982KB (full set) to ~40KB.
+    | application. This drives the font subsetting in build-tools/subset-icons.sh,
+    | which reduces the font payload from ~1.1 MB (full set) to ~160 KB.
     |
-    | When adding new icons, append them here and run `php artisan fonts:url`
-    | (or check the generated URL in the layouts).
+    | When adding new icons, append them here and re-run:
+    |   bash build-tools/subset-icons.sh
+    |
+    | The build script also auto-discovers icons from templates/enums/JS, so icons
+    | not yet registered here will still be included (with a warning).
     |
     | Icon names use snake_case as defined by Google:
     | https://fonts.google.com/icons?icon.style=Outlined
@@ -74,7 +77,10 @@ return [
         'volunteer_activism', 'how_to_reg',
 
         // Icons only in dynamic PHP code
-        'pause_circle', 'search_off',
+        'pause_circle', 'search_off', 'inbox',
+
+        // Icons only in JS
+        'system_update',
     ],
 
     /*

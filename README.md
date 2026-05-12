@@ -303,6 +303,71 @@ __('common.action_cancel')           // Shared button text
 
 ---
 
+## Deployment
+
+### Icon Font Subsetting
+
+Material Symbols Outlined is subset to only the ~170 icons used across templates, enums, and JS. This reduces the font from ~1.1 MB (full set) to ~160 KB.
+
+```bash
+# Rebuild the subset (run after adding new icons to templates)
+bash build-tools/subset-icons.sh
+
+# Audit icon usage vs config/fonts.php
+php artisan fonts:audit          # report gaps
+php artisan fonts:audit --fix    # auto-add missing icons to config
+```
+
+When adding a new `material-symbols-outlined` icon to any Blade template, PHP enum, or JS file, run `bash build-tools/subset-icons.sh` to regenerate the subset. The build script also auto-discovers icons not yet in `config/fonts.php`.
+
+### Frontend Assets
+
+```bash
+npm run build
+```
+
+### Cloudflare Cache Rules
+
+Cache rules are derived from Laravel routes and synced to Cloudflare automatically. Two rules are managed:
+
+| Rule | What | Edge TTL |
+|---|---|---|
+| Static assets (`/build/`, `/fonts/`, `/icons/`) | Immutable hashed assets | 1 year |
+| Public pages (anonymous visitors) | All locale-prefixed routes without auth middleware | 5 min |
+
+Authenticated users (session cookie present) always bypass cache. The `CachePublicPages` middleware controls origin headers.
+
+```bash
+# Preview what would change (no API calls)
+php artisan cloudflare:cache-rules --dry-run
+
+# Apply rules to Cloudflare
+php artisan cloudflare:cache-rules
+
+# Force re-apply
+php artisan cloudflare:cache-rules --force
+```
+
+**Setup:** Create a Cloudflare API token with **Zone → Cache Rules → Edit** and **Zone → Cache Purge → Purge** permissions. Add to `.env`:
+
+```
+CF_ZONE_ID=your_zone_id
+CF_API_TOKEN=your_api_token
+```
+
+Rules prefixed `[roundup-auto]` are managed by the command. Manual rules in the Cloudflare dashboard are preserved.
+
+When adding a new public route, just redeploy and run `php artisan cloudflare:cache-rules` — the expression regenerates from current routes.
+
+### Composer Deploy Shortcuts
+
+```bash
+composer deploy:assets   # subset icons + vite build
+composer deploy:cdn      # sync cloudflare cache rules
+```
+
+---
+
 ## Docker
 
 ```bash

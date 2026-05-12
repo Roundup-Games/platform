@@ -16,14 +16,8 @@
             })();
         </script>
 
-        {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) via @font-face in app.css --}}
-        @php
-            $iconFontUrl = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap';
-        @endphp
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="preload" href="{{ $iconFontUrl }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link href="{{ $iconFontUrl }}" rel="stylesheet"></noscript>
+        {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
+        <link rel="preload" href="/fonts/material-symbols-subset.woff2" as="font" type="font/woff2" crossorigin>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])

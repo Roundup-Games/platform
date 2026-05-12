@@ -88,6 +88,13 @@
         "smoke": [
             "@php artisan test --group=smoke"
         ],
+        "deploy:assets": [
+            "bash build-tools/subset-icons.sh",
+            "npm run build"
+        ],
+        "deploy:cdn": [
+            "@php artisan cloudflare:cache-rules"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",

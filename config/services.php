@@ -53,4 +53,9 @@ return [
         'subject' => env('APP_URL'),
     ],
 
+    'cloudflare' => [
+        'zone_id' => env('CF_ZONE_ID'),
+        'api_token' => env('CF_API_TOKEN'),
+    ],
+
 ];

@@ -54,3 +54,8 @@ tmp/
 # ── GSD baseline (auto-generated) ──
 .mcp.json
 storage/logs/i18n-missing.jsonl
+
+# Build tools (font subsetting)
+build-tools/.venv/
+build-tools/MaterialSymbolsOutlined.woff2
+build-tools/material-symbols.codepoints

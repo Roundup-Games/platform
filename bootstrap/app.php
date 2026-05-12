@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->append(\App\Http\Middleware\EnsureUserNotDisabled::class);
         $middleware->append(\App\Http\Middleware\EnsureLocaleDefaults::class);
+        $middleware->append(\App\Http\Middleware\CachePublicPages::class);
         $middleware->append(\App\Http\Middleware\TrackAppVisit::class);
         $middleware->append(\App\Http\Middleware\ProcessShareIntent::class);
 
