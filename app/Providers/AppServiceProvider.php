@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
+use App\Observers\SeoModelObserver;
 use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
@@ -21,7 +22,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use App\SEO\BreadcrumbBuilder;
+use RalphJSmit\Laravel\SEO\Facades\SEOManager;
+use RalphJSmit\Laravel\SEO\Support\AlternateTag;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
 
@@ -87,6 +93,48 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // SEO: inject locale alternates (en/de/x-default) and canonical URL on every page
+        // Bind TagManager as a singleton so seo()->for($model) in components persists to {!! seo() !!} in layout
+        $this->app->singleton(\RalphJSmit\Laravel\SEO\TagManager::class);
+        SEOManager::SEODataTransformer(function (SEOData $SEOData): SEOData {
+            // Canonical URL — derive from config to respect scheme/host behind proxies
+            if ($SEOData->canonical_url === null) {
+                $SEOData->canonical_url = URL::to(request()->path());
+            }
+
+            // Locale alternates for hreflang tags
+            if ($SEOData->alternates === null) {
+                $currentPath = request()->path();
+                $segments = explode('/', $currentPath);
+                // Strip the locale prefix from the path
+                $pathWithoutLocale = implode('/', array_slice($segments, 1));
+
+                $locales = config('app.available_locales', ['en']);
+                $defaultLocale = $locales[0];
+
+                $alternates = [];
+                foreach ($locales as $locale) {
+                    $alternates[] = new AlternateTag($locale, url("{$locale}/{$pathWithoutLocale}"));
+                }
+                $alternates[] = new AlternateTag('x-default', url("{$defaultLocale}/{$pathWithoutLocale}"));
+
+                $SEOData->alternates = $alternates;
+            }
+
+            // BreadcrumbList JSON-LD — automatically injected on all pages
+            $breadcrumbCollection = app(BreadcrumbBuilder::class)->buildSchemaCollection($SEOData->title);
+            if ($SEOData->schema === null) {
+                $SEOData->schema = $breadcrumbCollection;
+            } else {
+                // Merge breadcrumb markup into existing schema collection
+                foreach ($breadcrumbCollection->markup as $class => $builders) {
+                    $SEOData->schema->markup[$class] = $builders;
+                }
+            }
+
+            return $SEOData;
+        });
+
         // API rate limiter — used by throttle:api middleware on routes/api.php
         RateLimiter::for('api', function (Request $request) {
             return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
@@ -119,6 +167,15 @@ class AppServiceProvider extends ServiceProvider
         Game::observe(\App\Observers\GameObserver::class);
         GameParticipant::observe(\App\Observers\GameParticipantObserver::class);
         UserRelationship::observe(\App\Observers\UserRelationshipObserver::class);
+
+        // SEO sitemap cache invalidation observer
+        $seoObserver = $this->app->make(SeoModelObserver::class);
+        GameSystem::observe($seoObserver);
+        Event::observe($seoObserver);
+        Game::observe($seoObserver);
+        Campaign::observe($seoObserver);
+        Team::observe($seoObserver);
+        \App\Models\User::observe($seoObserver);
 
         // Activity logging observers — resilient, never block primary actions
         $activityObserver = $this->app->make(ActivityLogObserver::class);
