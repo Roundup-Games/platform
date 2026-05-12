@@ -69,7 +69,7 @@
                         <span class="text-sm text-on-surface-variant">{{ __('campaigns.field_visibility') }}</span>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                             {{ $campaign->visibility->value === 'public' ? 'bg-tertiary/10 text-tertiary' : ($campaign->visibility->value === 'protected' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant') }}">
-                            {{ __(ucfirst($campaign->visibility->value ?? 'private')) }}
+                            {{ $campaign->visibility->label() }}
                         </span>
                     </div>
 

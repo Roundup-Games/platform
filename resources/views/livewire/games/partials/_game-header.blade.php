@@ -27,7 +27,7 @@
             @endif
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                 {{ $game->visibility->value === 'public' ? 'bg-on-primary/20 text-on-primary' : ($game->visibility->value === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                {{ __('games.visibility_' . $game->visibility->value) }}
+                {{ $game->visibility->label() }}
             </span>
         </div>
 

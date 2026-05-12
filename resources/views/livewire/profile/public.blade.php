@@ -36,6 +36,11 @@
                         <p class="text-sm text-on-surface-variant mt-0.5">{{ $profileUser->pronouns }}</p>
                     @endif
 
+                    {{-- Bio --}}
+                    @if($profileUser->bio && !$isBlockedBy)
+                        <p class="text-sm text-on-surface-variant mt-2 whitespace-pre-line">{{ $profileUser->bio }}</p>
+                    @endif
+
                     {{-- Follower/Following Counts --}}
                     <div class="flex gap-4 mt-2 text-sm text-on-surface-variant">
                         <span>

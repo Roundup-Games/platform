@@ -38,8 +38,8 @@
             @endif
             @if($campaign->visibility->value === 'protected')
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                    <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                    {{ __('teams.content_members_only') }}
+                    <span class="material-symbols-outlined text-xs" aria-hidden="true">group</span>
+                    {{ $campaign->visibility->label() }}
                 </span>
             @endif
             @if($campaign->experience_level)
@@ -51,18 +51,26 @@
             <x-language-chip :language="$campaign->language" />
         </div>
 
-        {{-- Recurrence & Duration --}}
-        @if($campaign->recurrence)
+        {{-- Next Session / Recurrence & Duration --}}
+        @if($campaign->relationLoaded('sessions') && $campaign->sessions->isNotEmpty())
+            @php($nextSession = $campaign->sessions->first())
+            <p class="text-sm text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">calendar_today</span>
+                {{ format_date($nextSession->date_time, 'datetime') }}
+            </p>
+        @elseif($campaign->recurrence)
             <p class="text-sm text-on-surface-variant flex items-center gap-1">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">repeat</span>
                 {{ __(ucfirst(str_replace('-', ' ', $campaign->recurrence))) }}
             </p>
         @endif
-        @if($campaign->session_duration)
-            <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
-                <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
-                {{ $campaign->session_duration }}h {{ __('campaigns.content_per_session') }}
-            </p>
+        @if(!$campaign->relationLoaded('sessions') || $campaign->sessions->isEmpty())
+            @if($campaign->session_duration)
+                <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
+                    {{ $campaign->session_duration }}h {{ __('campaigns.content_per_session') }}
+                </p>
+            @endif
         @endif
 
         {{-- Description --}}

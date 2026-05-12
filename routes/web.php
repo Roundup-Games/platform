@@ -111,7 +111,21 @@ Route::prefix('{locale}')
 
         // ── Public Profile ────────────────────────────
 
-        Route::get('/u/{user}', App\Livewire\Profile\PublicProfile::class)->name('profile.public');
+        // UUID fallback for backward compatibility — redirect to canonical slug URL
+        Route::get('/u/{uuid}', function (\Illuminate\Http\Request $request) {
+            $uuid = $request->route('uuid');
+            $user = \App\Models\User::where('id', $uuid)->firstOrFail();
+
+            return redirect()->route('profile.public', [
+                'locale' => app()->getLocale(),
+                'user' => $user,
+            ], 301);
+        })->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+        // Slug-based profile URL (primary)
+        Route::get('/u/{user}', App\Livewire\Profile\PublicProfile::class)
+            ->where('user', '[a-zA-Z0-9][a-zA-Z0-9._-]*')
+            ->name('profile.public');
 
         // ── Teams ─────────────────────────────────────
 

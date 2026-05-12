@@ -38,8 +38,8 @@
             @endif
             @if($game->visibility->value === 'protected')
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/10 text-on-tertiary-container">
-                    <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
-                    {{ __('teams.content_members_only') }}
+                    <span class="material-symbols-outlined text-xs" aria-hidden="true">group</span>
+                    {{ $game->visibility->label() }}
                 </span>
             @endif
             @if($game->experience_level)

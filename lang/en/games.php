@@ -59,7 +59,7 @@ return [
     'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
     'content_the_best_adventures_start_with' => 'The best adventures start with "what if?" We celebrate trying new games, exploring unfamiliar mechanics, and stepping outside your comfort zone. That\'s where the magic happens.',
-    'content_this_is_a_protected_game' => 'This is a protected game. Your application will be reviewed by the game owner before you can join.',
+    'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the game owner before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',
     'content_unlimited_games' => 'Unlimited Games',
     'content_use_stars_wishes_or_a' => 'Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.',
@@ -363,7 +363,7 @@ return [
 
     // Visibility labels
     'visibility_public' => 'Public',
-    'visibility_protected' => 'Protected',
+    'visibility_protected' => 'Connections Only',
     'visibility_private' => 'Private',
 
     // Participant role labels

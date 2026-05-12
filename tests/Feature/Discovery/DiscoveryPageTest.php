@@ -442,4 +442,83 @@ describe('DiscoveryPage', function () {
             ->assertSet('usingFallbackRadius', false);
     });
 
+    it('uses user saved location as fallback when guest location unavailable', function () {
+        // User's saved location: Berlin center
+        $userLocation = \App\Models\Location::factory()->create([
+            'latitude' => 52.5200,
+            'longitude' => 13.4050,
+        ]);
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $userLocation->id,
+        ]);
+
+        // Game nearby in Berlin (< 5km away)
+        $nearbyLocation = \App\Models\Location::factory()->create([
+            'latitude' => 52.5300,
+            'longitude' => 13.4100,
+        ]);
+        Game::factory()->create([
+            'name' => 'Nearby Berlin Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'location_id' => $nearbyLocation->id,
+        ]);
+
+        // Game far away in Munich (~500km)
+        $farLocation = \App\Models\Location::factory()->create([
+            'latitude' => 48.1351,
+            'longitude' => 11.5820,
+        ]);
+        Game::factory()->create([
+            'name' => 'Far Munich Game',
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'location_id' => $farLocation->id,
+        ]);
+
+        actingAs($user);
+
+        // Use games mode so results go through getGamesResults (simpler path)
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('mode', 'games');
+
+        // Without radius filter, both games show
+        $component->assertSee('Nearby Berlin Game')
+            ->assertSee('Far Munich Game');
+
+        // With radius=25 (and no guest location), user's saved location is used as fallback
+        $component->set('radius', 25);
+
+        // Verify hasLocation is true (user location fallback active)
+        expect($component->viewData('hasLocation'))->toBeTrue();
+
+        // Only the nearby game should appear
+        $component->assertSee('Nearby Berlin Game')
+            ->assertDontSee('Far Munich Game');
+    });
+
+    it('prefers guest location over user saved location', function () {
+        $userLocation = \App\Models\Location::factory()->create([
+            'latitude' => 52.5200,
+            'longitude' => 13.4050,
+        ]);
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'location_id' => $userLocation->id,
+        ]);
+
+        actingAs($user);
+
+        // Simulate guest location being set (browser geolocation)
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->set('guestLat', 48.1351)
+            ->set('guestLng', 11.5820);
+
+        // hasLocation should be true from guest location, not user saved
+        $component->assertSet('guestLat', 48.1351);
+    });
+
 });

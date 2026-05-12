@@ -22,7 +22,7 @@ return [
     'content_invite_member' => 'Invite Member',
     'content_invite_player' => 'Invite Player',
     'content_member_removed_from_team' => 'Member removed from team.',
-    'content_members_only' => 'Members Only',
+    'content_members_only' => 'Connections Only',
     'content_most_members' => 'Most Members',
     'content_no_teams_found' => 'No teams found',
     'content_non_captain' => 'Non-captain',

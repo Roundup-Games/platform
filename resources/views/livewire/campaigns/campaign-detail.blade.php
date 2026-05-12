@@ -36,7 +36,7 @@
                 @endif
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                     {{ $campaign->visibility->value === 'public' ? 'bg-on-primary/20 text-on-primary' : ($campaign->visibility->value === 'protected' ? 'bg-on-primary/30 text-on-primary' : 'bg-on-primary/10 text-on-primary') }}">
-                    {{ __(ucfirst($campaign->visibility->value)) }}
+                    {{ $campaign->visibility->label() }}
                 </span>
             </div>
 

@@ -59,7 +59,7 @@ return [
     'content_start_a_campaign_organize_a' => '**Starte eine Kampagne** — Organisiere ein wiederkehrendes Spiel mit deiner Gruppe.',
     'content_step_outside_your_comfort_zone' => 'Verlass deine Komfortzone. Probier ein neues System aus, schließ dich einer anderen Gruppe an oder verliebe dich in ein Spiel, von dem du nie gehört hast.',
     'content_the_best_adventures_start_with' => 'Die besten Abenteuer beginnen mit „Was wäre, wenn?“ Wir feiern das Ausprobieren neuer Spiele, das Entdecken unbekannter Mechaniken und den Schritt aus der Komfortzone. Genau da passiert die Magie.',
-    'content_this_is_a_protected_game' => 'Dies ist ein geschütztes Spiel. Deine Anmeldung wird vom Besitzer geprüft, bevor du beitreten kannst.',
+    'content_this_is_a_protected_game' => 'Dies ist ein Spiel nur für Verbindungen. Deine Anmeldung wird vom Besitzer geprüft, bevor du beitreten kannst.',
     'content_three_steps_to_your_next_game_night' => 'Drei Schritte zu deinem nächsten Spieleabend',
     'content_unlimited_games' => 'Unbegrenzte Spiele',
     'content_use_stars_wishes_or_a' => 'Nutze Sterne & Wünsche oder ein Debriefing nach Sitzungen. Regelmäßige Check-ins bauen eine Vertrauenskultur auf und verbessern deine Spiele mit der Zeit.',
@@ -364,7 +364,7 @@ return [
 
     // Sichtbarkeitsbezeichnungen
     'visibility_public' => 'Öffentlich',
-    'visibility_protected' => 'Geschützt',
+    'visibility_protected' => 'Nur für Verbindungen',
     'visibility_private' => 'Privat',
 
     // Teilnehmerrollenbezeichnungen

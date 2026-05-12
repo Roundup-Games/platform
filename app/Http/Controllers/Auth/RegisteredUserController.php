@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\QueryException;
+use App\Rules\ValidUserName;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -33,17 +34,20 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $sanitizedName = ValidUserName::sanitize($request->name);
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $sanitizedName,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'password_set_at' => now(),
             'profile_complete' => false,
+            'slug' => User::generateUniqueSlug($sanitizedName),
         ]);
 
         event(new Registered($user));

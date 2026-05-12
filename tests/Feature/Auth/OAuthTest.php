@@ -286,7 +286,7 @@ it('uses email prefix as name when OAuth provider returns no name', function () 
 
     $user = User::where('email', 'john.doe@gmail.com')->first();
     expect($user)->not->toBeNull();
-    expect($user->name)->toBe('john.doe');
+    expect($user->name)->toBe('johndoe'); // sanitized: dots stripped by ValidUserName
 });
 
 it('redirects new OAuth user to onboarding (not dashboard)', function () {

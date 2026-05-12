@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Models\LinkedAccount;
 use App\Models\User;
+use App\Rules\ValidUserName;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -128,13 +129,17 @@ class OAuthController
         }
 
         // New user — register and link (no password — OAuth-only until they set one)
+        $rawName = $socialiteUser->getName() ?? Str::before($socialiteUser->getEmail(), '@');
+        $sanitizedName = ValidUserName::sanitize($rawName);
+
         $user = User::create([
-            'name' => $socialiteUser->getName() ?? Str::before($socialiteUser->getEmail(), '@'),
+            'name' => $sanitizedName,
             'email' => $socialiteUser->getEmail(),
             'password' => null,
             'email_verified_at' => now(),
             'avatar_url' => $socialiteUser->getAvatar(),
             'profile_complete' => false,
+            'slug' => User::generateUniqueSlug($sanitizedName),
         ]);
 
         $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);

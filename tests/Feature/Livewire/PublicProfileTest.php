@@ -418,3 +418,33 @@ describe('Game session visibility on profile', function () {
             ->assertViewHas('games', fn ($games) => $games->count() === 1);
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// BIO DISPLAY
+// ═══════════════════════════════════════════════════════════
+
+describe('Bio display on public profile', function () {
+    it('shows bio when set', function () {
+        $user = createProfileUser(['bio' => 'I love tabletop RPGs!']);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertSee('I love tabletop RPGs!');
+    });
+
+    it('does not show bio section when bio is empty', function () {
+        $user = createProfileUser(['bio' => null]);
+
+        Livewire::test(PublicProfile::class, ['user' => $user])
+            ->assertDontSee('I love');
+    });
+
+    it('preserves line breaks in bio', function () {
+        $user = createProfileUser(['bio' => "Line one\nLine two"]);
+
+        $html = Livewire::test(PublicProfile::class, ['user' => $user])
+            ->html();
+
+        expect($html)->toContain('Line one');
+        expect($html)->toContain('Line two');
+    });
+});

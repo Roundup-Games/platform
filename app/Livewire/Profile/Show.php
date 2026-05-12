@@ -7,6 +7,7 @@ use App\Enums\NotificationCategory;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
+use App\Rules\ValidUserName;
 use App\Services\ProfileVisibilityResolver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -26,11 +27,14 @@ class Show extends Component
     // Profile fields
     public string $name = '';
     public string $email = '';
+    public string $slug = '';
     public string $gender = '';
     public string $pronouns = '';
     public string $phone = '';
 
     public string $preferredLanguage = '';
+
+    public string $bio = '';
 
     public ?string $locationId = null;
 
@@ -79,10 +83,12 @@ class Show extends Component
         $user = Auth::user();
         $this->name = $user->name;
         $this->email = $user->email;
+        $this->slug = $user->slug ?? '';
         $this->gender = $user->gender ?? '';
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language?->value ?? '';
+        $this->bio = $user->bio ?? '';
         $this->locationId = $user->location_id;
         $this->userHasPassword = $user->hasPasswordSet();
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
@@ -167,12 +173,13 @@ class Show extends Component
         $user = Auth::user();
 
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'gender' => ['nullable', 'string', 'max:50'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
             'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
+            'bio' => ['nullable', 'string', 'max:500'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -181,12 +188,13 @@ class Show extends Component
         $oldLocationId = $user->location_id;
 
         $user->update([
-            'name' => $validated['name'],
+            'name' => ValidUserName::sanitize($validated['name']),
             'email' => $validated['email'],
             'gender' => $validated['gender'],
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] ?: null,
+            'bio' => $validated['bio'] ? trim(strip_tags($validated['bio'])) : null,
             'location_id' => $this->locationId,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),

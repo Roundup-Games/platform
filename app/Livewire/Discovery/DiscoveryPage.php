@@ -7,6 +7,7 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
+use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
@@ -226,6 +227,16 @@ class DiscoveryPage extends Component
         $hasLocation = $this->hasGuestLocation();
         $lat = $this->guestLat ?? null;
         $lng = $this->guestLng ?? null;
+
+        // Fallback to the logged-in user's saved location when browser geolocation is unavailable
+        if (! $hasLocation && $user && $user->location_id) {
+            $userLocation = Location::find($user->location_id);
+            if ($userLocation) {
+                $lat = (float) $userLocation->latitude;
+                $lng = (float) $userLocation->longitude;
+                $hasLocation = true;
+            }
+        }
 
         $results = match ($this->mode) {
             'games' => $service->getGamesResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date),

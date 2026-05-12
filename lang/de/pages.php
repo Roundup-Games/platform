@@ -21,7 +21,7 @@ return [
     'content_our_mission' => 'Unsere Mission',
     'content_see_how_it_works' => 'So funktioniert\'s ansehen',
     'content_sign_up_for_a_free' => 'Registriere dich kostenlos und klicke dann auf „Veranstaltung erstellen" in deinem Dashboard oder auf der Veranstaltungsseite.',
-    'content_trust_is_earned_through_transparency' => 'Vertrauen entsteht durch Transparenz. Jede Session ist für die Community sichtbar. Organisatoren-Profile sind öffentlich. Geschützte Sessions erfordern eine Mitgliedschaft. Wir geben dir die Werkzeuge, um sicher zu spielen.',
+    'content_trust_is_earned_through_transparency' => 'Vertrauen entsteht durch Transparenz. Jede Session ist für die Community sichtbar. Organisatoren-Profile sind öffentlich. Sessions nur für Verbindungen erfordern eine Mitgliedschaft. Wir geben dir die Werkzeuge, um sicher zu spielen.',
     'content_we_believe_everyone_deserves_a' => 'Wir glauben, dass jeder einen Platz am Tisch verdient. So machen wir das möglich — ohne Vorkenntnisse.',
     'content_we_re_a_small_team' => 'Wir sind ein kleines Team aus leidenschaftlichen Spielern und Entwicklern, die glauben, dass organisierter Wettbewerb das Spielen für alle besser macht. Wir arbeiten ständig daran, die Plattform zu verbessern und freuen uns über dein Feedback.',
     'content_we_take_trust_seriously_here' => 'Wir nehmen Vertrauen ernst. So halten wir die Community sicher und transparent.',

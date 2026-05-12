@@ -152,6 +152,7 @@ class DiscoveryQueryService
             })
             ->where('status', 'active')
             ->with(['owner', 'gameSystem'])
+            ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
             ->withCount('sessions')
             ->withCount('participants');
 
@@ -332,7 +333,7 @@ class DiscoveryQueryService
 
         $campaigns = $campaignsQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = $item->created_at?->timestamp ?? 0,
+            $item->discoverable_sort_key = $item->sessions->first()?->date_time?->timestamp ?? $item->created_at?->timestamp ?? 0,
         ]);
 
         $merged = $games->merge($campaigns);

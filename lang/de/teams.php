@@ -22,7 +22,7 @@ return [
     'content_invite_member' => 'Mitglied einladen',
     'content_invite_player' => 'Spieler einladen',
     'content_member_removed_from_team' => 'Mitglied aus dem Team entfernt.',
-    'content_members_only' => 'Nur Mitglieder',
+    'content_members_only' => 'Nur für Verbindungen',
     'content_most_members' => 'Meiste Mitglieder',
     'content_no_teams_found' => 'Keine Teams gefunden',
     'content_non_captain' => 'Nicht-Kapitän',

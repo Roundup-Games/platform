@@ -21,7 +21,7 @@ return [
     'content_our_mission' => 'Our Mission',
     'content_see_how_it_works' => 'See How It Works',
     'content_sign_up_for_a_free' => 'Sign up for a free account, then click "Create Event" from your dashboard or the events page.',
-    'content_trust_is_earned_through_transparency' => 'Trust is earned through transparency. Every session is visible to the community. Organizer profiles are public. Protected sessions require membership. We give you the tools to play safe.',
+    'content_trust_is_earned_through_transparency' => 'Trust is earned through transparency. Every session is visible to the community. Organizer profiles are public. Connections-only sessions require membership. We give you the tools to play safe.',
     'content_we_believe_everyone_deserves_a' => 'We believe everyone deserves a seat at the table. Here\'s how we make that happen — no experience required.',
     'content_we_re_a_small_team' => 'We\'re a small team of passionate gamers and developers who believe that organized competition makes gaming better for everyone. We\'re constantly working to improve the platform and would love to hear your feedback.',
     'content_we_take_trust_seriously_here' => 'We take trust seriously. Here\'s how we keep the community safe and transparent.',

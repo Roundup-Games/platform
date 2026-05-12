@@ -149,6 +149,20 @@
                     </select>
                     @error('pronouns') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
+
+                <div>
+                    <label for="slug" class="block text-sm font-medium text-on-surface mb-1">
+                        {{ __('profile.field_username') }} <span class="text-error">*</span>
+                    </label>
+                    <div class="flex items-center rounded-md bg-surface-container-high border border-transparent shadow-sm overflow-hidden focus-within:border-secondary/20 focus-within:ring-1 focus-within:ring-secondary/20">
+                        <span class="pl-3 text-sm text-on-surface-variant select-none">roundup.games/u/</span>
+                        <input type="text" id="slug" wire:model="slug"
+                               class="flex-1 bg-transparent border-0 px-2 py-2.5 text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:border-0 focus:outline-none"
+                               placeholder="{{ __('profile.placeholder_username') }}" />
+                    </div>
+                    <p class="mt-1 text-xs text-on-surface-variant">{{ __('profile.hint_username_onboarding') }}</p>
+                    @error('slug') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                </div>
             </div>
         @endif
 

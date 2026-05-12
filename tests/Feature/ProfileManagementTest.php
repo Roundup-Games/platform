@@ -763,5 +763,72 @@ describe('Privacy Settings', function () {
             ->assertSee('Friends')
             ->assertSee('Nobody');
     });
+
+    it('can save bio field', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Show::class)
+            ->set('name', 'Valid Test Name')
+            ->set('email', $user->email)
+            ->set('bio', 'Hello, I am a tabletop gaming enthusiast!')
+            ->call('saveProfile')
+            ->assertSet('saved', true);
+
+        expect($user->fresh()->bio)->toBe('Hello, I am a tabletop gaming enthusiast!');
+    });
+
+    it('strips HTML tags from bio on save', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Show::class)
+            ->set('name', 'Valid Test Name')
+            ->set('email', $user->email)
+            ->set('bio', 'Hello <b>world</b> <i>italic</i>')
+            ->call('saveProfile')
+            ->assertSet('saved', true);
+
+        expect($user->fresh()->bio)->toBe('Hello world italic');
+    });
+
+    it('rejects bio exceeding 500 characters', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Show::class)
+            ->set('name', 'Valid Test Name')
+            ->set('email', $user->email)
+            ->set('bio', str_repeat('a', 501))
+            ->call('saveProfile')
+            ->assertHasErrors(['bio' => 'max']);
+    });
+
+    it('allows null bio to clear the field', function () {
+        $user = User::factory()->create([
+            'profile_complete' => true,
+            'email_verified_at' => now(),
+            'bio' => 'Old bio text',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(Show::class)
+            ->set('name', 'Valid Test Name')
+            ->set('email', $user->email)
+            ->set('bio', '')
+            ->call('saveProfile')
+            ->assertSet('saved', true);
+
+        expect($user->fresh()->bio)->toBeNull();
+    });
 });
 

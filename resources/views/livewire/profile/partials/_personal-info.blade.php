@@ -15,6 +15,15 @@
         </div>
 
         <div>
+            <label for="profile-slug" class="block text-sm font-medium text-on-surface mb-1">{{ __('profile.field_username') }}</label>
+            <div class="flex items-center rounded-lg bg-surface-container-highest/50 border border-transparent px-4 py-2.5 shadow-sm">
+                <span class="text-sm text-on-surface-variant select-none">roundup.games/u/</span>
+                <span id="profile-slug" class="text-sm text-on-surface">{{ $slug }}</span>
+            </div>
+            <p class="mt-1 text-xs text-on-surface-variant">{{ __('profile.hint_username_readonly') }}</p>
+        </div>
+
+        <div>
             <label for="profile-email" class="block text-sm font-medium text-on-surface mb-1">{{ __('emails.field_email') }}</label>
             <input type="email" id="profile-email" wire:model="email"
                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface" />
@@ -54,6 +63,15 @@
             <input type="tel" id="profile-phone" wire:model="phone" placeholder="+49 151 1234567"
                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant/50" />
             @error('phone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label for="profile-bio" class="block text-sm font-medium text-on-surface mb-1">{{ __('profile.field_bio') }}</label>
+            <textarea id="profile-bio" wire:model="bio" rows="3" maxlength="500"
+                      placeholder="{{ __('profile.placeholder_bio') }}"
+                      class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant/50 resize-y"></textarea>
+            <p class="mt-1 text-xs text-on-surface-variant"><span x-text="$wire.bio?.length || 0"></span>/500</p>
+            @error('bio') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
         </div>
     </div>
 </section>

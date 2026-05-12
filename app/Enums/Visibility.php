@@ -9,6 +9,18 @@ enum Visibility: string
     case Private = 'private';
 
     /**
+     * User-facing label for the visibility level.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Public => 'Public',
+            self::Protected => 'Connections Only',
+            self::Private => 'Private',
+        };
+    }
+
+    /**
      * @return string[]
      */
     public static function values(): array

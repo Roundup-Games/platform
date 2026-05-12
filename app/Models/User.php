@@ -48,6 +48,8 @@ use App\Traits\StringMorphMediaKey;
     'preferred_language',
     'location',
     'location_id',
+    'bio',
+    'slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
 class User extends Authenticatable implements FilamentUser, HasMedia
@@ -68,6 +70,9 @@ class User extends Authenticatable implements FilamentUser, HasMedia
         static::creating(function (User $user) {
             if (empty($user->id)) {
                 $user->id = (string) Str::orderedUuid();
+            }
+            if (empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name);
             }
         });
     }
@@ -385,6 +390,96 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function getRelationshipLevel(self $user): string
     {
         return app(SocialGraphService::class)->getRelationshipLevel($this, $user);
+    }
+
+    // ── Route Model Binding ────────────────────────────
+
+    /**
+     * Use slug for route model binding so profiles resolve via /u/{slug}.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
+     * Resolve route binding by slug first, then fall back to UUID for backward compatibility.
+     * Old /u/{uuid} URLs will still resolve while new URLs use /u/{slug}.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if ($field) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        // Try slug first (primary resolution)
+        $user = $this->where('slug', $value)->first();
+
+        if ($user) {
+            return $user;
+        }
+
+        // UUID fallback for backward compatibility with old /u/{uuid} URLs
+        if (Str::isUuid($value)) {
+            return $this->where('id', $value)->first();
+        }
+
+        return null;
+    }
+
+    // ── Slug Generation ────────────────────────────────
+
+    /**
+     * Generate a URL-friendly slug from a name.
+     * Strips emojis and special characters, lowercases, replaces spaces with hyphens.
+     * Allows letters, numbers, hyphens, underscores, and dots.
+     */
+    public static function generateSlug(string $name): string
+    {
+        // Remove emojis and special characters, keep letters, numbers, spaces
+        $slug = preg_replace('/[^\p{L}\p{N}\s]/u', '', $name);
+        // Replace spaces with hyphens, collapse multiples
+        $slug = preg_replace('/\s+/', '-', trim($slug));
+        // Lowercase
+        $slug = mb_strtolower($slug);
+        // Trim leading/trailing hyphens
+        $slug = trim($slug, '-');
+
+        return $slug;
+    }
+
+    /**
+     * Generate a unique slug for the given name, appending incremental digits on collision.
+     */
+    public static function generateUniqueSlug(string $name, ?string $ignoreId = null): string
+    {
+        $baseSlug = static::generateSlug($name);
+
+        if ($baseSlug === '') {
+            $baseSlug = 'user';
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        $query = static::where('slug', $slug);
+
+        if ($ignoreId !== null) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        while ($query->exists()) {
+            $counter++;
+            $slug = $baseSlug . '-' . $counter;
+
+            $query = static::where('slug', $slug);
+
+            if ($ignoreId !== null) {
+                $query->where('id', '!=', $ignoreId);
+            }
+        }
+
+        return $slug;
     }
 
     // ── Helpers ────────────────────────────────────────

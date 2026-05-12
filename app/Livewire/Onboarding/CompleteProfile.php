@@ -10,6 +10,7 @@ use App\Services\ProfileVisibilityResolver;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
@@ -53,6 +54,8 @@ class CompleteProfile extends Component
     #[Validate(['required', 'string', 'max:50'])]
     public string $pronouns = '';
 
+    public string $slug = '';
+
     // Step 3: Contact properties
     #[Validate(['nullable', 'string', 'max:30'])]
     public string $phone = '';
@@ -66,6 +69,7 @@ class CompleteProfile extends Component
     {
         return [
             'favoriteGameSystemIds.*' => ['uuid', 'exists:game_systems,id'],
+            'slug' => ['required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', Rule::unique('users', 'slug')->ignore(Auth::id())],
         ];
     }
 
@@ -83,6 +87,7 @@ class CompleteProfile extends Component
         $this->gender = $user->gender ?? '';
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
+        $this->slug = $user->slug ?? User::generateSlug($user->name);
 
         // Pre-fill location from existing user location
         if ($user->location_id && $user->linkedLocation) {
@@ -286,7 +291,7 @@ class CompleteProfile extends Component
         // Resolve or create the Location record
         $locationId = $this->resolveLocationId();
 
-        $user->update([
+        $updateData = [
             'gender' => $this->gender,
             'pronouns' => $this->pronouns,
             'phone' => $this->phone ?: null,
@@ -299,7 +304,15 @@ class CompleteProfile extends Component
             'profile_complete' => true,
             'profile_version' => ($user->profile_version ?? 0) + 1,
             'profile_updated_at' => now(),
+        ];
+
+        // Use the user-provided slug — re-validate uniqueness at submit time
+        $this->validate([
+            'slug' => ['required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', Rule::unique('users', 'slug')->ignore(Auth::id())],
         ]);
+        $updateData['slug'] = $this->slug;
+
+        $user->update($updateData);
 
         // Sync favorite game systems using syncWithPivotValues for idempotency
         $syncData = collect($this->favoriteGameSystemIds)->mapWithKeys(fn ($id) => [
@@ -398,6 +411,9 @@ class CompleteProfile extends Component
             2 => (function () {
                 $this->validateOnly('gender');
                 $this->validateOnly('pronouns');
+                $this->validate([
+                    'slug' => ['required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', Rule::unique('users', 'slug')->ignore(Auth::id())],
+                ]);
             })(),
             3 => $this->validateOnly('phone'),
             default => null,

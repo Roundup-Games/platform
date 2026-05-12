@@ -41,7 +41,7 @@
                         {{-- Actor line --}}
                         <div class="flex items-center gap-2 mb-1">
                             @if($user)
-                                <a href="{{ route('profile.public', ['locale' => app()->getLocale(), 'user' => $user->id]) }}" wire:navigate
+                                <a href="{{ route('profile.public', ['locale' => app()->getLocale(), 'user' => $user]) }}" wire:navigate
                                    class="text-sm font-medium text-secondary hover:text-secondary/80 transition-colors">
                                     {{ $user->name }}
                                 </a>
