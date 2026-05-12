@@ -395,7 +395,7 @@ describe('Game ApplyToGame', function () {
             ->set('message', 'Excited to play!')
             ->call('submitApplication')
             ->assertHasNoErrors()
-            ->assertRedirect(route('games.detail', $game->id));
+            ->assertRedirect(route('games.show', $game->id));
 
         // Application record is always pending; participant record carries resolved status
         assertDatabaseHas('game_applications', [
@@ -426,7 +426,7 @@ describe('Game ApplyToGame', function () {
             ->set('message', 'Please let me join')
             ->call('submitApplication')
             ->assertHasNoErrors()
-            ->assertRedirect(route('games.detail', $game->id));
+            ->assertRedirect(route('games.show', $game->id));
 
         // Application should be pending
         assertDatabaseHas('game_applications', [

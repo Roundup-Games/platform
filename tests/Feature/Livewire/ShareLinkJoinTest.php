@@ -4,6 +4,7 @@ use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
+use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -34,7 +35,7 @@ describe('share_intent cookie on guest visit', function () {
         ]);
 
         Livewire::withQueryParams(['share' => $token])
-            ->test(GameDetail::class, ['id' => $game->id])
+            ->test(\App\Livewire\Games\PublicGameDetail::class, ['id' => $game->id])
             ->assertHasNoErrors();
 
         // Cookie should have been queued
@@ -54,7 +55,7 @@ describe('share_intent cookie on guest visit', function () {
         ]);
 
         Livewire::withQueryParams(['share' => $token])
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->test(PublicCampaignDetail::class, ['id' => $campaign->id])
             ->assertHasNoErrors();
 
         $cookie = collect(cookie()->getQueuedCookies())->last();

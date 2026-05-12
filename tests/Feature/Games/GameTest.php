@@ -306,7 +306,7 @@ describe('Game Application — ApplyToGame', function () {
             ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Let me in!')
             ->call('submitApplication')
-            ->assertRedirect(route('games.detail', $game->id));
+            ->assertRedirect(route('games.show', $game->id));
 
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,

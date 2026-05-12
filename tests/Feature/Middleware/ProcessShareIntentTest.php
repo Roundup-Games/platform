@@ -207,7 +207,7 @@ describe('ProcessShareIntent — edge cases', function () {
             ->get('/en/dashboard');
 
         // Should still redirect to game detail (user is a participant)
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
 
         // Should NOT create a duplicate participant
         expect(GameParticipant::where('game_id', $game->id)
@@ -418,7 +418,7 @@ describe('ProcessShareIntent — auth transition simulations', function () {
             ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
             ->get('/en/dashboard');
 
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
 
         expect(GameParticipant::where('game_id', $game->id)
             ->where('user_id', $user->id)
@@ -440,7 +440,7 @@ describe('ProcessShareIntent — auth transition simulations', function () {
             ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
             ->get('/en/dashboard');
 
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
     });
 
     it('simulates onboarding completion with pending cookie', function () {
@@ -458,7 +458,7 @@ describe('ProcessShareIntent — auth transition simulations', function () {
             ->withUnencryptedCookie('share_intent', json_encode(shareIntentPayload('game', $game->id, $shareToken)))
             ->get('/en/dashboard');
 
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
 
         expect(GameParticipant::where('game_id', $game->id)
             ->where('user_id', $user->id)

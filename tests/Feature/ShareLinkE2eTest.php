@@ -456,7 +456,7 @@ describe('Scenario 8: Already participant', function () {
             ->get('/en/dashboard');
 
         // Still redirects to game detail (good UX — they see the game)
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
 
         // Exactly 1 participant (no duplicate)
         expect(GameParticipant::where('game_id', $game->id)
@@ -489,7 +489,7 @@ describe('Scenario 8: Already participant', function () {
             ->withUnencryptedCookie('share_intent', e2eShareIntentPayload('campaign', $campaign->id, $token))
             ->get('/en/dashboard');
 
-        $response->assertRedirect(route('campaigns.detail', ['id' => $campaign->id]));
+        $response->assertRedirect(route('campaigns.show', ['id' => $campaign->id]));
         expect(CampaignParticipant::where('campaign_id', $campaign->id)
             ->where('user_id', $user->id)
             ->count())->toBe(1);
@@ -702,7 +702,7 @@ describe('Owner visits own share link', function () {
             ->get('/en/dashboard');
 
         // Owner gets redirected to their game
-        $response->assertRedirect(route('games.detail', ['id' => $game->id]));
+        $response->assertRedirect(route('games.show', ['id' => $game->id]));
 
         // No participant record for the owner via this path
         expect(GameParticipant::where('game_id', $game->id)

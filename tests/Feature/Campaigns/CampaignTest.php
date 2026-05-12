@@ -119,17 +119,17 @@ describe('Campaign Detail Route', function () {
     it('shows public campaign via Livewire component', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => 'Open Campaign']);
 
-        Livewire\Livewire::test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+        Livewire\Livewire::test(\App\Livewire\Campaigns\PublicCampaignDetail::class, ['id' => $campaign->id])
             ->assertOk()
             ->assertSee('Open Campaign');
     });
 
     it('shows protected campaign to owner', function () {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
         $campaign = campaignTestCreateCampaign(['visibility' => 'protected', 'owner_id' => $owner->id]);
 
         actingAs($owner)
-            ->get(route('campaigns.detail', $campaign->id))
+            ->get(route('campaigns.show', $campaign->id))
             ->assertOk();
     });
 
@@ -154,15 +154,16 @@ describe('Campaign Detail Route', function () {
 
     it('shows private campaign to owner', function () {
         ['owner' => $owner, 'campaign' => $campaign] = campaignTestCreateWithOwner(['visibility' => 'private']);
+        $owner->update(['profile_complete' => true]);
 
         actingAs($owner)
-            ->get(route('campaigns.detail', $campaign->id))
+            ->get(route('campaigns.show', $campaign->id))
             ->assertOk();
     });
 
     it('shows private campaign to participant', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'private']);
-        $player = User::factory()->create();
+        $player = User::factory()->create(['profile_complete' => true]);
 
         \App\Models\CampaignParticipant::create([
             'campaign_id' => $campaign->id,
@@ -172,7 +173,7 @@ describe('Campaign Detail Route', function () {
         ]);
 
         actingAs($player)
-            ->get(route('campaigns.detail', $campaign->id))
+            ->get(route('campaigns.show', $campaign->id))
             ->assertOk();
     });
 });

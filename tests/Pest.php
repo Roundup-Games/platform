@@ -37,6 +37,13 @@ pest()->extend(TestCase::class)
     ->beforeEach(function () {
         URL::defaults(['locale' => 'en']);
     })
+    ->in('Unit/SEO');
+
+pest()->extend(TestCase::class)
+    ->use(DatabaseTransactions::class)
+    ->beforeEach(function () {
+        URL::defaults(['locale' => 'en']);
+    })
     ->in('Unit/Services');
 
 /*
@@ -185,4 +192,106 @@ function openSlot(Game $game): void
         ->where('user_id', '!=', $game->owner_id)
         ->first()
         ->update(['status' => ParticipantStatus::Rejected->value]);
+}
+
+// ── SEO Test Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Assert that the response contains a <title> tag with the expected name.
+ * Only asserts the name portion — does not couple to the title suffix format
+ * (separator, site name), so title template changes don't break tests.
+ */
+function assertPageTitle(\Illuminate\Testing\TestResponse $response, string $expectedName): void
+{
+    $content = $response->content();
+    preg_match('/<title>(.*?)<\/title>/', $content, $matches);
+    $actual = html_entity_decode($matches[1] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    test()->assertStringContainsString($expectedName, $actual,
+        "Expected page title to contain '{$expectedName}', got '{$actual}'");
+}
+
+/**
+ * Assert that the response contains an OG meta tag with the expected property and content.
+ * Verifies property and value are in the same <meta> element.
+ */
+function assertOgMetaTag(\Illuminate\Testing\TestResponse $response, string $property, string $expectedContent): void
+{
+    $content = $response->content();
+    // Match <meta property="og:xxx" content="yyy"> or <meta content="yyy" property="og:xxx">
+    $pattern = '/<meta\s[^>]*property=["\']' . preg_quote($property, '/') . '["\'][^>]*content=["\']([^"\']*)["\'][^>]*>/';
+    if (! preg_match($pattern, $content, $matches)) {
+        // Try reversed attribute order
+        $pattern2 = '/<meta\s[^>]*content=["\']([^"\']*)["\'][^>]*property=["\']' . preg_quote($property, '/') . '["\'][^>]*>/';
+        preg_match($pattern2, $content, $matches);
+    }
+    $actual = $matches[1] ?? '';
+    test()->assertStringContainsString($expectedContent, $actual,
+        "Expected OG {$property} content to contain '{$expectedContent}', got '{$actual}'");
+}
+
+/**
+ * Assert that the response contains an OG meta tag property (content value not checked).
+ */
+function assertOgMetaTagPresent(\Illuminate\Testing\TestResponse $response, string $property): void
+{
+    $content = $response->content();
+    test()->assertStringContainsString("property=\"{$property}\"", $content,
+        "Expected to find meta tag with property=\"{$property}\"");
+}
+
+/**
+ * Extract the content attribute from a <meta name="description" content="..."> tag.
+ */
+function extractMetaDescription(string $html): string
+{
+    // Handle both attribute orders: name before content and content before name
+    preg_match('/<meta\s+name="description"\s+content="([^"]*)"/', $html, $matches)
+        || preg_match('/<meta\s+content="([^"]*)"\s+name="description"/', $html, $matches);
+
+    return html_entity_decode($matches[1] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/**
+ * Extract all JSON-LD schemas from <script type="application/ld+json"> blocks.
+ *
+ * @return array<int, array>
+ */
+function extractJsonLdSchemas(string $html): array
+{
+    preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $html, $matches);
+    $schemas = [];
+    foreach ($matches[1] as $json) {
+        $decoded = json_decode($json, true);
+        expect(json_last_error())->toBe(JSON_ERROR_NONE, 'JSON-LD parse error: ' . json_last_error_msg());
+        $schemas[] = $decoded;
+    }
+
+    return $schemas;
+}
+
+/**
+ * Find a specific JSON-LD schema by @type from an array of schemas.
+ */
+function findSchemaByType(array $schemas, string $type): ?array
+{
+    foreach ($schemas as $schema) {
+        // Handle both single @type and @type arrays (e.g., ["Product", "AggregateRating"])
+        $types = $schema['@type'] ?? [];
+        $types = is_array($types) ? $types : [$types];
+        if (in_array($type, $types)) {
+            return $schema;
+        }
+        // Also check inside @graph arrays
+        if (isset($schema['@graph'])) {
+            foreach ($schema['@graph'] as $node) {
+                $nodeTypes = $node['@type'] ?? [];
+                $nodeTypes = is_array($nodeTypes) ? $nodeTypes : [$nodeTypes];
+                if (in_array($type, $nodeTypes)) {
+                    return $node;
+                }
+            }
+        }
+    }
+
+    return null;
 }

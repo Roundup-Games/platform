@@ -54,7 +54,7 @@ describe('Game share link UI', function () {
             'share_token' => $token,
         ]);
 
-        $expectedUrl = route('games.detail', $game->id) . '?share=' . $token;
+        $expectedUrl = route('games.show', $game->id) . '?share=' . $token;
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])

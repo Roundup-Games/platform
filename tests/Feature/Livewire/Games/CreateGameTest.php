@@ -189,6 +189,10 @@ describe('CreateGame — Analytics', function () {
                     && isset($context['name']);
             }));
 
+        \Illuminate\Support\Facades\Log::shouldReceive('debug')->andReturn(null);
+        \Illuminate\Support\Facades\Log::shouldReceive('warning')->andReturn(null);
+        \Illuminate\Support\Facades\Log::shouldReceive('error')->andReturn(null);
+
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
             ->call('selectType', 'board_game')

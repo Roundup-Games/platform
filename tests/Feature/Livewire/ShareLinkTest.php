@@ -170,6 +170,10 @@ describe('GameDetail share links', function () {
             ->with('Share link generated', \Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'game' && $ctx['entity_id'] === $game->id))
             ->once();
 
+        Log::shouldReceive('debug')->andReturn(null);
+        Log::shouldReceive('warning')->andReturn(null);
+        Log::shouldReceive('error')->andReturn(null);
+
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('generateShareLink');
