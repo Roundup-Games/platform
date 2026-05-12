@@ -6,7 +6,7 @@
                     <div class="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high">
                         @php($baseCover = $system->baseGame->coverImageUrl('thumb'))
                         @if($baseCover)
-                            <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" data-fallback="placeholder">
+                            <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy" data-fallback="placeholder">
                         @else
                             <div class="w-full h-full flex items-center justify-center">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>

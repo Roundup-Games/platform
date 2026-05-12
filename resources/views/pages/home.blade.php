@@ -43,7 +43,7 @@
                     {{ __('games.content_share_your_location_to_see') }}
                 </p>
             </div>
-            <div id="nearby-sessions">
+            <div id="nearby-sessions" class="min-h-[420px]">
                 @livewire('components.nearby-sessions', ['radius' => 10, 'limit' => 4])
             </div>
         </div>

@@ -14,7 +14,7 @@
         @php($coverUrl = $system->coverImageUrl())
         @if($coverUrl)
             <div class="absolute inset-0">
-                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" data-fallback="hide">
+                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">
             </div>
             <div class="absolute inset-0 bg-gradient-to-b from-primary/85 via-primary/95 to-primary"></div>
         @endif
@@ -23,7 +23,7 @@
             {{-- Small centered thumbnail --}}
             <div class="mx-auto w-32 h-32 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-lg bg-on-primary/10 mb-5">
                 @if($coverUrl)
-                    <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" data-fallback="hide">
+                    <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" loading="lazy" data-fallback="hide">
                 @else
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-4xl text-on-primary/40" aria-hidden="true">casino</span>

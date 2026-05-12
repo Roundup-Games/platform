@@ -24,6 +24,13 @@ const PRE_CACHE_URLS = [
     '/icons/pwa-192x192.png',
     '/icons/pwa-512x512.png',
     '/offline.html',
+    // Self-hosted fonts (latin + latin-ext for en/de coverage)
+    '/fonts/inter-latin-var.woff2',
+    '/fonts/inter-latin-ext-var.woff2',
+    '/fonts/noto-serif-latin-var.woff2',
+    '/fonts/noto-serif-latin-ext-var.woff2',
+    '/fonts/noto-serif-italic-latin-var.woff2',
+    '/fonts/noto-serif-italic-latin-ext-var.woff2',
 ];
 
 /**

@@ -13,6 +13,8 @@
                  alt=""
                  class="w-full h-full object-cover"
                  aria-hidden="true"
+                 width="32"
+                 height="32"
                  data-fallback="initial" />
         </div>
     @else

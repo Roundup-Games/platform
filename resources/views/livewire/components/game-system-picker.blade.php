@@ -60,7 +60,7 @@
         @if($selectedSystem)
             <div class="mt-2 flex items-center gap-2 px-3 py-2 bg-surface-container rounded-lg">
                 @if($selectedSystem->thumbnail_url)
-                    <img src="{{ $selectedSystem->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover" aria-hidden="true">
+                    <img src="{{ $selectedSystem->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover" loading="lazy" aria-hidden="true">
                 @else
                     <span class="material-symbols-outlined text-on-surface-variant text-lg" aria-hidden="true">casino</span>
                 @endif
@@ -103,7 +103,7 @@
                         :aria-selected="activeIndex === {{ $index }}"
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
                         @else
                             <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
@@ -158,7 +158,7 @@
                         role="option"
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
                         @else
                             <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>

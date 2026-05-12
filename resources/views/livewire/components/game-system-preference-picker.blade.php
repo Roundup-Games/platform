@@ -78,7 +78,7 @@
                         @if($alreadySelected) disabled @endif
                     >
                         @if($system->thumbnail_url)
-                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" aria-hidden="true">
+                            <img src="{{ $system->thumbnail_url }}" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
                         @else
                             <div class="w-10 h-10 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
@@ -155,7 +155,7 @@
                         @if($alreadySelected) disabled @endif
                     >
                         @if($option->thumbnail_url)
-                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover flex-shrink-0" aria-hidden="true">
+                            <img src="{{ $option->thumbnail_url }}" alt="" class="w-8 h-8 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
                         @else
                             <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center flex-shrink-0">
                                 <span class="material-symbols-outlined text-on-surface-variant text-sm" aria-hidden="true">
@@ -210,7 +210,7 @@
             @foreach($systems as $system)
                 <div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full border border-outline/10 group">
                     @if($system->thumbnail_url)
-                        <img src="{{ $system->thumbnail_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0" aria-hidden="true">
+                        <img src="{{ $system->thumbnail_url }}" alt="" class="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" aria-hidden="true">
                     @else
                         <span class="material-symbols-outlined text-on-surface-variant text-sm flex-shrink-0" aria-hidden="true">casino</span>
                     @endif

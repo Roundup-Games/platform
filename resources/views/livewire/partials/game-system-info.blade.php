@@ -29,7 +29,7 @@
     <div class="p-5 sm:p-6 flex items-center gap-4">
         @if($coverUrl)
             <div class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shadow-md bg-surface-container-high">
-                <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover">
+                <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" loading="lazy">
             </div>
         @else
             <div class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -183,9 +183,9 @@
                                 @php($baseCover = $system->baseGame->getFirstMediaUrl('cover', 'thumb'))
                                 <div class="shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-surface-container-high">
                                     @if($baseCover)
-                                        <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover">
+                                        <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy">
                                     @elseif($system->baseGame->thumbnail_url)
-                                        <img src="{{ $system->baseGame->thumbnail_url }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover">
+                                        <img src="{{ $system->baseGame->thumbnail_url }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center">
                                             <span class="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">casino</span>
