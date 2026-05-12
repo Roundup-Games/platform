@@ -7,6 +7,10 @@
 
     {!! seo() !!}
 
+    {{-- Favicons --}}
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+
     {{-- Dark mode: apply class before paint to prevent flash --}}
     <script>
         (function() {
@@ -47,8 +51,8 @@
             <nav class="flex justify-between items-center w-full px-6 sm:px-8 py-4 max-w-screen-2xl mx-auto" aria-label="Main navigation">
 
                 {{-- Logo --}}
-                <a href="{{ route('home') }}" wire:navigate class="text-2xl font-heading font-bold text-primary tracking-tight">
-                    Roundup Games
+                <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
+                    @include('partials.logo', ['class' => 'h-10 w-auto'])
                 </a>
 
                 {{-- Desktop Nav Links --}}
@@ -160,7 +164,9 @@
             <div class="flex flex-col md:flex-row justify-between items-center px-8 sm:px-12 py-12 w-full max-w-screen-2xl mx-auto border-t border-outline-variant/10">
                 {{-- Logo & tagline --}}
                 <div class="space-y-4 mb-8 md:mb-0">
-                    <div class="font-heading font-semibold text-primary text-xl tracking-tight">Roundup Games</div>
+                    <a href="{{ route('home') }}" wire:navigate class="inline-block">
+                        @include('partials.logo', ['class' => 'h-8 w-auto'])
+                    </a>
                     <p class="text-sm text-on-surface-variant max-w-xs">
                         &copy; {{ date('Y') }} Roundup Games. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
                     </p>
@@ -222,4 +228,4 @@
     <x-offline-indicator />
 </body>
 </html>
-ml>
+

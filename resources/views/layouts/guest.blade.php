@@ -7,6 +7,10 @@
 
         <title>{{ config('app.name', 'Roundup Games') }}</title>
 
+        {{-- Favicons --}}
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+
         {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>
             (function() {
@@ -30,7 +34,7 @@
             {{-- Brand Header --}}
             <div class="mb-2">
                 <a href="/" wire:navigate class="flex items-center gap-2">
-                    <span class="text-3xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
+                    @include('partials.logo', ['class' => 'h-14 w-auto'])
                 </a>
             </div>
 

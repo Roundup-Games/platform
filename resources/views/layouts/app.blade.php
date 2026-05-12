@@ -5,7 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Roundup Games') }} — @yield('title', __('profile.content_dashboard'))</title>
+        <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', 'Roundup Games') }}</title>
+
+        {{-- Favicons --}}
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
 
         {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>
@@ -49,7 +53,7 @@
             <div class="lg:hidden bg-surface border-b border-outline-variant/15" x-data="{ open: false }">
                 <div class="flex items-center justify-between px-4 py-3">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
-                        <span class="text-xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
+                        @include('partials.logo', ['class' => 'h-10 w-auto'])
                     </a>
                     <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.aria_toggle_navigation_menu') }}" :aria-expanded="open.toString()">
                         <span class="material-symbols-outlined text-2xl" :class="{'hidden': open, 'block': !open}">menu</span>
@@ -140,7 +144,7 @@
                     {{-- Logo area --}}
                     <div class="flex items-center h-16 px-6 border-b border-outline-variant/15">
                         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
-                            <span class="text-xl font-heading italic font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
+                            @include('partials.logo', ['class' => 'h-10 w-auto'])
                         </a>
                         @php
                             $otherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
