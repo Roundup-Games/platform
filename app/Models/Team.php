@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\SchemaOrg\Organization as SchemaOrganization;
+use Spatie\SchemaOrg\PostalAddress;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Traits\HasTranslations;
@@ -15,6 +20,7 @@ use App\Traits\StringMorphMediaKey;
 class Team extends Model implements HasMedia
 {
     use HasFactory;
+    use HasSEO;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use HasTranslations;
@@ -122,5 +128,81 @@ class Team extends Model implements HasMedia
             ->where('user_id', $user->id)
             ->where('status', 'active')
             ->exists();
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    public function getDynamicSEOData(): SEOData
+    {
+        $description = $this->description
+            ? Str::limit(strip_tags($this->description), 160)
+            : trim("{$this->name}" . ($this->city ? " — {$this->city}" : '') . ($this->country ? ", {$this->country}" : ''));
+
+        $image = $this->getFirstMediaUrl('logo', 'large') ?: asset('images/og-default.jpg');
+
+        $robots = $this->is_active
+            ? 'index, follow'
+            : 'noindex, nofollow';
+
+        $schema = null;
+
+        // Only generate Organization schema for active teams
+        if ($this->is_active) {
+            $schema = SchemaCollection::initialize();
+
+            $org = (new SchemaOrganization)
+                ->name($this->name)
+                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
+                ->url(route('teams.detail', $this->slug));
+
+            // Logo
+            $logoUrl = $this->getFirstMediaUrl('logo', 'large');
+            if ($logoUrl) {
+                $org->logo($logoUrl);
+            }
+
+            // Address
+            if ($this->city || $this->country) {
+                $address = (new PostalAddress);
+                if ($this->city) {
+                    $address->addressLocality($this->city);
+                }
+                if ($this->country) {
+                    $address->addressCountry($this->country);
+                }
+                $org->address($address);
+            }
+
+            // Founding date
+            if ($this->founded_year) {
+                $org->foundingDate((string) $this->founded_year);
+            }
+
+            // SameAs social links
+            $sameAs = [];
+            if ($this->website) {
+                $sameAs[] = $this->website;
+            }
+            if (! empty($this->social_links) && is_array($this->social_links)) {
+                foreach ($this->social_links as $link) {
+                    if (is_string($link) && filter_var($link, FILTER_VALIDATE_URL)) {
+                        $sameAs[] = $link;
+                    }
+                }
+            }
+            if (! empty($sameAs)) {
+                $org->sameAs($sameAs);
+            }
+
+            $schema->push($org->toArray());
+        }
+
+        return new SEOData(
+            title: $this->name,
+            description: $description ?: null,
+            image: $image,
+            robots: $robots,
+            schema: $schema,
+        );
     }
 }

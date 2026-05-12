@@ -24,6 +24,10 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 use App\Traits\StringMorphMediaKey;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\SchemaOrg\Person as SchemaPerson;
 
 #[Fillable([
     'name',
@@ -58,6 +62,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     use HasApiTokens;
     use HasFactory;
     use HasRoles;
+    use HasSEO;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use Notifiable;
@@ -535,5 +540,73 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     {
         return app(ScopedRoleService::class)->isGlobalAdmin($this)
             || $this->hasRole('Platform Admin');
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    public function getDynamicSEOData(): SEOData
+    {
+        $title = $this->name;
+
+        $description = $this->bio
+            ? Str::limit(strip_tags($this->bio), 160)
+            : "View {$this->name}'s profile on Roundup Games.";
+
+        $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
+
+        // Determine if profile is publicly indexable
+        // A profile is indexable if the viewer is a stranger and can still see fields
+        $resolver = app(\App\Services\ProfileVisibilityResolver::class);
+        $guestVisibleFields = $resolver->profileFieldsVisible(null, $this);
+        $robots = count($guestVisibleFields) > 0
+            ? 'index, follow'
+            : 'noindex, nofollow';
+
+        $schema = null;
+
+        // Only generate Person schema for publicly indexable profiles
+        if (str_starts_with($robots, 'index')) {
+            $schema = SchemaCollection::initialize();
+
+            $person = (new SchemaPerson)
+                ->name($this->name)
+                ->url(route('profile.public', $this->slug));
+
+            if ($description) {
+                $person->description($description);
+            }
+
+            // Avatar image
+            $avatarUrl = $this->getFirstMediaUrl('avatar', 'thumb') ?: $this->avatar_url;
+            if ($avatarUrl) {
+                $person->image($avatarUrl);
+            }
+
+            // GM jobTitle
+            if ($this->isGM()) {
+                $person->jobTitle('Game Master');
+            }
+
+            // knowsAbout from game systems they favor/run
+            $gameSystemNames = $this->favoriteGameSystems()
+                ->pluck('game_systems.name')
+                ->unique()
+                ->values()
+                ->toArray();
+
+            if (! empty($gameSystemNames)) {
+                $person->knowsAbout($gameSystemNames);
+            }
+
+            $schema->push($person->toArray());
+        }
+
+        return new SEOData(
+            title: $title,
+            description: $description,
+            image: $image,
+            robots: $robots,
+            schema: $schema,
+        );
     }
 }

@@ -10,10 +10,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use Spatie\SchemaOrg\Event as SchemaEvent;
+use Spatie\SchemaOrg\Place;
+use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\Offer;
+use Spatie\SchemaOrg\Person as SchemaPerson;
+use Spatie\SchemaOrg\EventStatusType;
 
 class Game extends Model
 {
     use HasFactory;
+    use HasSEO;
     protected $keyType = 'string';
     public $incrementing = false;
 
@@ -282,5 +292,121 @@ class Game extends Model
 
         // Standalone games: read from own column
         return (bool) $this->bench_mode;
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    public function getDynamicSEOData(): SEOData
+    {
+        $description = $this->description
+            ? Str::limit(strip_tags($this->description), 160)
+            : null;
+
+        $image = $this->gameSystem?->coverImageUrl() ?: asset('images/og-default.jpg');
+
+        $isPublic = $this->visibility === Visibility::Public;
+        $robots = $isPublic
+            ? 'index, follow'
+            : 'noindex, nofollow';
+
+        $schema = null;
+
+        // Only generate Event schema for public-visibility records
+        if ($isPublic && $this->date_time) {
+            $schema = SchemaCollection::initialize();
+
+            $event = (new SchemaEvent)
+                ->name($this->name)
+                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
+                ->startDate($this->date_time->toISOString())
+                ->eventStatus(EventStatusType::EventScheduled)
+                ->eventAttendanceMode('OfflineEventAttendanceMode');
+
+            // Cancelled events
+            if ($this->status === GameStatus::Canceled) {
+                $event->eventStatus(EventStatusType::EventCancelled);
+            }
+
+            // End date from expected_duration
+            if ($this->expected_duration) {
+                $event->endDate($this->date_time->copy()->addHours((float) $this->expected_duration)->toISOString());
+            }
+
+            // Location
+            $place = $this->buildEventPlace();
+            if ($place) {
+                $event->location($place);
+            }
+
+            // Organizer (owner as Person)
+            if ($this->owner) {
+                $organizer = (new SchemaPerson)
+                    ->name($this->owner->name);
+                if ($this->owner->username) {
+                    $organizer->url(route('profile.public', $this->owner->username));
+                }
+                $event->organizer($organizer);
+            }
+
+            // Maximum attendees
+            if ($this->max_players) {
+                $event->maximumAttendees($this->max_players);
+            }
+
+            // Free/paid
+            $event->isAccessibleForFree(empty($this->price));
+
+            // Offers
+            if ($this->price && $this->price > 0) {
+                $event->offers(
+                    (new Offer)
+                        ->price($this->price)
+                        ->priceCurrency('EUR')
+                        ->availability('InStock')
+                );
+            }
+
+            $schema->push($event->toArray());
+        }
+
+        return new SEOData(
+            title: $this->name,
+            description: $description,
+            image: $image,
+            robots: $robots,
+            schema: $schema,
+        );
+    }
+
+    /**
+     * Build a schema.org Place from the game's location data.
+     */
+    private function buildEventPlace(): ?Place
+    {
+        // Prefer linked location relationship (has city, address, etc.)
+        if ($this->linkedLocation) {
+            $address = (new PostalAddress);
+            if ($this->linkedLocation->address) {
+                $address->streetAddress($this->linkedLocation->address);
+            }
+            if ($this->linkedLocation->city) {
+                $address->addressLocality($this->linkedLocation->city);
+            }
+            if ($this->linkedLocation->country) {
+                $address->addressCountry($this->linkedLocation->country);
+            }
+
+            return (new Place)
+                ->name($this->linkedLocation->name)
+                ->address($address);
+        }
+
+        // Fallback to location JSON array
+        if ($this->location && ! empty($this->location['details'])) {
+            return (new Place)
+                ->name($this->location['details']);
+        }
+
+        return null;
     }
 }

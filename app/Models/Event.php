@@ -7,7 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use Spatie\MediaLibrary\HasMedia;
+use Spatie\SchemaOrg\Event as SchemaEvent;
+use Spatie\SchemaOrg\Offer;
+use Spatie\SchemaOrg\Place;
+use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\Person as SchemaPerson;
+use Spatie\SchemaOrg\EventStatusType;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Traits\HasTranslations;
 use App\Traits\StringMorphMediaKey;
@@ -15,6 +24,7 @@ use App\Traits\StringMorphMediaKey;
 class Event extends Model implements HasMedia
 {
     use HasFactory;
+    use HasSEO;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use HasTranslations;
@@ -211,5 +221,135 @@ class Event extends Model implements HasMedia
         }
 
         return true;
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    public function getDynamicSEOData(): SEOData
+    {
+        $description = $this->short_description
+            ?? Str::limit(strip_tags($this->description ?? ''), 160)
+            ?: null;
+
+        $image = $this->getFirstMediaUrl('banner', 'large') ?: asset('images/og-default.jpg');
+
+        $isPublic = $this->is_public && in_array($this->status, ['published', 'registration_open', 'registration_closed', 'in_progress']);
+        $robots = $isPublic
+            ? 'index, follow'
+            : 'noindex, nofollow';
+
+        $schema = null;
+
+        // Only generate Event schema for publicly visible events
+        if ($isPublic) {
+            $schema = SchemaCollection::initialize();
+
+            $event = (new SchemaEvent)
+                ->name($this->name)
+                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
+                ->eventStatus(EventStatusType::EventScheduled)
+                ->eventAttendanceMode('OfflineEventAttendanceMode');
+
+            // Start/end dates
+            if ($this->start_date) {
+                $event->startDate($this->start_date->toDateString());
+            }
+            if ($this->end_date) {
+                $event->endDate($this->end_date->toDateString());
+            }
+
+            // Cancelled events
+            if ($this->status === 'cancelled') {
+                $event->eventStatus(EventStatusType::EventCancelled);
+            }
+
+            // Location
+            $place = $this->buildEventPlace();
+            if ($place) {
+                $event->location($place);
+            }
+
+            // Organizer
+            if ($this->organizer) {
+                $organizer = (new SchemaPerson)
+                    ->name($this->organizer->name);
+                if ($this->organizer->username) {
+                    $organizer->url(route('profile.public', $this->organizer->username));
+                }
+                $event->organizer($organizer);
+            }
+
+            // Attendance capacity
+            if ($this->max_participants) {
+                $event->maximumAttendees($this->max_participants);
+            }
+
+            // Offers — individual or team registration fees
+            $fee = $this->individual_registration_fee ?: $this->team_registration_fee;
+            $event->isAccessibleForFree(empty($fee));
+
+            if ($fee && $fee > 0) {
+                $event->offers(
+                    (new Offer)
+                        ->price($fee)
+                        ->priceCurrency('EUR')
+                        ->availability('InStock')
+                );
+            }
+
+            $schema->push($event->toArray());
+        }
+
+        return new SEOData(
+            title: $this->name,
+            description: $description,
+            image: $image,
+            robots: $robots,
+            schema: $schema,
+        );
+    }
+
+    /**
+     * Build a schema.org Place from the event's location data.
+     */
+    private function buildEventPlace(): ?Place
+    {
+        // Prefer linked location relationship
+        if ($this->linkedLocation) {
+            $address = (new PostalAddress);
+            if ($this->linkedLocation->address) {
+                $address->streetAddress($this->linkedLocation->address);
+            }
+            if ($this->linkedLocation->city) {
+                $address->addressLocality($this->linkedLocation->city);
+            }
+            if ($this->linkedLocation->country) {
+                $address->addressCountry($this->linkedLocation->country);
+            }
+
+            return (new Place)
+                ->name($this->linkedLocation->name)
+                ->address($address);
+        }
+
+        // Fallback to venue fields on the event itself
+        if ($this->venue_name || $this->city) {
+            $address = new PostalAddress;
+            if ($this->venue_address) {
+                $address->streetAddress($this->venue_address);
+            }
+            if ($this->city) {
+                $address->addressLocality($this->city);
+            }
+            if ($this->country) {
+                $address->addressCountry($this->country);
+            }
+
+            return (new Place)
+                ->name($this->venue_name ?: $this->city)
+                ->address($address);
+        }
+
+        return null;
     }
 }

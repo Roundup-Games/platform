@@ -8,13 +8,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\SchemaOrg\Product;
+use Spatie\SchemaOrg\AggregateRating;
 use App\Traits\StringMorphMediaKey;
 
 class GameSystem extends Model implements HasMedia
 {
     use HasFactory;
+    use HasSEO;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
@@ -192,5 +198,65 @@ class GameSystem extends Model implements HasMedia
     public function bggSyncLogs(): HasMany
     {
         return $this->hasMany(BggSyncLog::class);
+    }
+
+    // ── SEO ────────────────────────────────────────────
+
+    public function getDynamicSEOData(): SEOData
+    {
+        $schema = SchemaCollection::initialize();
+
+        // Product schema
+        $product = (new Product)
+            ->name($this->name)
+            ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null);
+
+        if ($imageUrl = $this->coverImageUrl()) {
+            $product->image($imageUrl);
+        }
+
+        if ($this->id) {
+            $product->sku((string) $this->id);
+        }
+
+        if ($this->creator) {
+            $product->brand($this->creator);
+        }
+
+        // AggregateRating (conditional — only if ratings exist)
+        $ratingValue = $this->sp_rating ?? $this->bgg_average_rating;
+        $reviewCount = $this->sp_review_count ?? $this->bgg_users_rated;
+
+        if ($ratingValue && $ratingValue > 0) {
+            $bestRating = $this->sp_rating ? 5 : 10; // Platform scale is 5, BGG scale is 10
+            $product->aggregateRating(
+                (new AggregateRating)
+                    ->ratingValue((float) $ratingValue)
+                    ->bestRating($bestRating)
+                    ->worstRating(1)
+                    ->reviewCount(max(1, (int) ($reviewCount ?? 1)))
+            );
+        }
+
+        $schema->push($product->toArray());
+
+        // FAQPage (conditional — only if FAQ content exists)
+        if (! empty($this->faq_content) && is_array($this->faq_content)) {
+            $schema->addFaqPage(function ($faqSchema) {
+                foreach ($this->faq_content as $faq) {
+                    if (isset($faq['question']) && isset($faq['answer'])) {
+                        $faqSchema->addQuestion($faq['question'], $faq['answer']);
+                    }
+                }
+            });
+        }
+
+        return new SEOData(
+            title: $this->name,
+            description: Str::limit(strip_tags($this->description ?? ''), 160) ?: null,
+            image: $this->coverImageUrl() ?: asset('images/og-default.jpg'),
+            robots: 'index, follow',
+            schema: $schema,
+        );
     }
 }
