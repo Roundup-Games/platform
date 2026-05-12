@@ -1,5 +1,4 @@
 <x-public-layout>
-@section('title', __('pages.content_about'))
 
     <x-hero :title="__('pages.content_about_roundup_games')" :subtitle="__('events.content_building_community_through_competitive_gaming')" />
 

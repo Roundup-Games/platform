@@ -385,4 +385,8 @@ return [
     'content_experience_intermediate' => 'Intermediate',
     'content_experience_advanced' => 'Advanced',
     'content_experience_all' => 'All Levels',
+
+    // SEO
+    'seo_title_my_games' => 'My Games',
+    'seo_description_my_games' => 'View and manage your games, invitations, and activity feed on Roundup Games.',
 ];

@@ -168,6 +168,8 @@ class GameSystemDetail extends Component
             abort(404);
         }
 
+        seo()->for($system);
+
         return view('livewire.game-systems.game-system-detail', [
             'system' => $system,
         ]);

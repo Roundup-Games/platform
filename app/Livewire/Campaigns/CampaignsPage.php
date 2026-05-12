@@ -152,6 +152,12 @@ class CampaignsPage extends Component
 
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('campaigns.seo_title_my_campaigns'),
+            description: __('campaigns.seo_description_my_campaigns'),
+            robots: 'noindex, nofollow',
+        ));
+
         $user = Auth::user();
 
         // My Campaigns — owned by the user

@@ -251,6 +251,11 @@ class BoardGamesDiscovery extends Component
 
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('discovery.seo_title_browse_board_games'),
+            description: __('discovery.seo_description_browse_board_games'),
+        ));
+
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
         $filters = DiscoveryFilters::fromLivewire($this);

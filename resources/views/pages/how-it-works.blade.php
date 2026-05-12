@@ -1,5 +1,4 @@
 <x-public-layout>
-@section('title', __('pages.content_how_it_works'))
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">

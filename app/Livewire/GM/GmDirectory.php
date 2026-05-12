@@ -89,6 +89,11 @@ class GmDirectory extends Component
 
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('gms.seo_title_gm_directory'),
+            description: __('gms.seo_description_gm_directory'),
+        ));
+
         $query = GMProfile::where('is_active', true)
             ->with('user')
             ->withCount('reviews');

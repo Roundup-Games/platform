@@ -16,4 +16,8 @@ return [
     'action_clear_filters' => 'Filter zurücksetzen',
     'content_no_gms_found' => 'Keine Game Master gefunden',
     'content_try_adjusting_filters' => 'Versuche, deine Suche oder Filter anzupassen.',
+
+    // SEO
+    'seo_title_gm_directory' => 'Game-Master-Verzeichnis',
+    'seo_description_gm_directory' => 'Durchsuche und verbinde dich mit erfahrenen Game Mastern für deine Tabletop-RPG-Sessions. Finde GMs nach Spezialisierung, Bewertung und Spielsystem.',
 ];

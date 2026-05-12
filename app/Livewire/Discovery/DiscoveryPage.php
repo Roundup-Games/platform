@@ -221,6 +221,17 @@ class DiscoveryPage extends Component
 
     public function render()
     {
+        $title = match ($this->mode) {
+            'games' => __('discovery.seo_title_browse_games'),
+            'campaigns' => __('discovery.seo_title_browse_campaigns'),
+            default => __('discovery.seo_title_browse_all'),
+        };
+
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: $title,
+            description: __('discovery.seo_description_browse'),
+        ));
+
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
         $filters = DiscoveryFilters::fromLivewire($this)->toArray();

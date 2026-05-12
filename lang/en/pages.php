@@ -31,4 +31,12 @@ return [
     'field_send_us_a_message' => 'Send Us a Message',
     'field_start_hosting_it_s_free' => 'Start Hosting — It\'s Free',
     'field_your_next_adventure_starts_here' => 'Your next adventure starts here',
+
+    // SEO
+    'seo_title_how_it_works' => 'How It Works',
+    'seo_description_how_it_works' => 'Learn how Roundup Games helps you find, join, and organize board games and tabletop RPG sessions near you.',
+    'seo_title_for_organizers' => 'For Organizers',
+    'seo_description_for_organizers' => 'Tools and features for game organizers — schedule sessions, manage players, and grow your tabletop gaming community.',
+    'seo_title_contact' => 'Contact',
+    'seo_description_contact' => 'Get in touch with the Roundup Games team. We\'d love to hear from you.',
 ];

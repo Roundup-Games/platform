@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
+#[Layout('components.public-layout')]
 class TeamDetail extends Component
 {
     public Team $team;
@@ -22,6 +22,8 @@ class TeamDetail extends Component
     public function render()
     {
         $this->team->load(['activeMembers.user', 'activeMembers' => fn ($q) => $q->orderBy('role')->orderBy('jersey_number')]);
+
+        seo()->for($this->team);
 
         return view('livewire.teams.team-detail', [
             'team' => $this->team,

@@ -1,5 +1,4 @@
 <x-public-layout>
-@section('title', __('pages.content_contact'))
 
     <x-hero :title="__('pages.content_contact_us')" :subtitle="__('common.content_have_a_question_suggestion_or')" />
 

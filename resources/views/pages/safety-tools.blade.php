@@ -1,5 +1,4 @@
 <x-public-layout>
-@section('title', __('safety.content_safety_tools'))
 
     {{-- Hero --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">

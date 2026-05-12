@@ -267,6 +267,11 @@ class AdventuresDiscovery extends Component
 
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('discovery.seo_title_browse_adventures'),
+            description: __('discovery.seo_description_browse_adventures'),
+        ));
+
         $service = app(DiscoveryQueryService::class);
         $user = Auth::user();
         $hasLocation = $this->hasGuestLocation();

@@ -59,4 +59,8 @@ return [
 
     // ── Safety Tool Placeholders ────────────────────────────────────
     'tool_lines_and_veils_placeholder' => 'z.B. Keine Spinnen, Ausblenden bei Romantik',
+
+    // SEO
+    'seo_title_safety_tools' => 'Safety-Tools',
+    'seo_description_safety_tools' => 'Entdecke Safety-Tools für Tabletop-RPGs, die ein angenehmes und respektvolles Spielerlebnis für alle gewährleisten.',
 ];

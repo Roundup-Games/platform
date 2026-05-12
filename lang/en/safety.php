@@ -59,4 +59,8 @@ return [
 
     // ── Safety Tool Placeholders ────────────────────────────────────
     'tool_lines_and_veils_placeholder' => 'e.g. No spiders, fade-to-black for romance',
+
+    // SEO
+    'seo_title_safety_tools' => 'Safety Tools',
+    'seo_description_safety_tools' => 'Explore safety tools used in tabletop RPGs to ensure a comfortable and respectful gaming experience for everyone.',
 ];

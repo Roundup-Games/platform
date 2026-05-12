@@ -12,6 +12,11 @@ class DiscoveryPortal extends Component
 {
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('discovery.seo_title_discover'),
+            description: __('discovery.seo_description_discover'),
+        ));
+
         $boardGameCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->visibleTo(null)

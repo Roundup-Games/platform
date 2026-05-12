@@ -31,4 +31,12 @@ return [
     'field_send_us_a_message' => 'Sende uns eine Nachricht',
     'field_start_hosting_it_s_free' => 'Jetzt anfangen — kostenlos',
     'field_your_next_adventure_starts_here' => 'Dein nächstes Abenteuer beginnt hier',
+
+    // SEO
+    'seo_title_how_it_works' => 'So funktioniert\'s',
+    'seo_description_how_it_works' => 'Erfahre, wie Roundup Games dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden und zu organisieren.',
+    'seo_title_for_organizers' => 'Für Organisatoren',
+    'seo_description_for_organizers' => 'Werkzeuge und Funktionen für Spielorganisatoren — plane Sessions, verwalte Spieler und baue deine Tabletop-Community auf.',
+    'seo_title_contact' => 'Kontakt',
+    'seo_description_contact' => 'Nimm Kontakt mit dem Roundup Games Team auf. Wir freuen uns auf deine Nachricht.',
 ];

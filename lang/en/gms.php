@@ -16,4 +16,8 @@ return [
     'action_clear_filters' => 'Clear Filters',
     'content_no_gms_found' => 'No Game Masters found',
     'content_try_adjusting_filters' => 'Try adjusting your search or filters.',
+
+    // SEO
+    'seo_title_gm_directory' => 'Game Master Directory',
+    'seo_description_gm_directory' => 'Browse and connect with experienced Game Masters for your tabletop RPG sessions. Find GMs by specialization, rating, and game system.',
 ];

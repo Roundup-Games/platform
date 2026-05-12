@@ -162,6 +162,12 @@ class GamesPage extends Component
 
     public function render()
     {
+        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+            title: __('games.seo_title_my_games'),
+            description: __('games.seo_description_my_games'),
+            robots: 'noindex, nofollow',
+        ));
+
         $user = Auth::user();
 
         $ownedGames = Game::where('owner_id', $user->id)

@@ -181,4 +181,8 @@ return [
     'label_bench_mode' => 'Bench Mode',
     'content_bench_mode_requires_gm' => 'Only Game Masters can enable bench mode.',
     'content_bench_mode_description' => 'Overflow players are placed on a bench instead of a waitlist.',
+
+    // SEO
+    'seo_title_my_campaigns' => 'My Campaigns',
+    'seo_description_my_campaigns' => 'View and manage your campaigns, invitations, and activity feed on Roundup Games.',
 ];

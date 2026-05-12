@@ -145,4 +145,16 @@ return [
     'field_tabletop_adventures' => 'Tabletop Adventures',
     'content_join_campaigns_oneshots' => 'Join campaigns, one-shots, and everything in between.',
     'content_looking_for_players' => 'looking for players',
+
+    // SEO
+    'seo_title_discover' => 'Discover',
+    'seo_description_discover' => 'Find board games and tabletop RPG sessions near you. Browse games, campaigns, and events in your area.',
+    'seo_title_browse_games' => 'Browse Games',
+    'seo_title_browse_campaigns' => 'Browse Campaigns',
+    'seo_title_browse_all' => 'Browse Games & Campaigns',
+    'seo_description_browse' => 'Search and filter board games and tabletop RPG campaigns by game system, vibe, experience level, and more.',
+    'seo_title_browse_board_games' => 'Browse Board Games',
+    'seo_description_browse_board_games' => 'Find board game sessions near you. Filter by game system, experience level, vibe, and availability.',
+    'seo_title_browse_adventures' => 'Browse Adventures',
+    'seo_description_browse_adventures' => 'Find tabletop RPG campaigns and one-shot adventures near you. Filter by game system, play style, and experience level.',
 ];

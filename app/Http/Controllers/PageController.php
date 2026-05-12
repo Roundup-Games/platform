@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 class PageController extends Controller
 {
@@ -47,6 +48,11 @@ class PageController extends Controller
 
     public function howItWorks()
     {
+        seo(new SEOData(
+            title: __('pages.seo_title_how_it_works'),
+            description: __('pages.seo_description_how_it_works'),
+        ));
+
         return view('pages.how-it-works');
     }
 
@@ -55,11 +61,21 @@ class PageController extends Controller
         $organizerCount = User::has('ownedGames')->count();
         $displayCount = $organizerCount >= 10 ? $organizerCount : 50;
 
+        seo(new SEOData(
+            title: __('pages.seo_title_for_organizers'),
+            description: __('pages.seo_description_for_organizers'),
+        ));
+
         return view('pages.for-organizers', compact('displayCount'));
     }
 
     public function contact()
     {
+        seo(new SEOData(
+            title: __('pages.seo_title_contact'),
+            description: __('pages.seo_description_contact'),
+        ));
+
         return view('pages.contact');
     }
 
@@ -67,6 +83,11 @@ class PageController extends Controller
     {
         $tools = \App\Enums\SafetyTool::cases();
         $categories = \App\Enums\SafetyToolCategory::cases();
+
+        seo(new SEOData(
+            title: __('safety.seo_title_safety_tools'),
+            description: __('safety.seo_description_safety_tools'),
+        ));
 
         return view('pages.safety-tools', compact('tools', 'categories'));
     }

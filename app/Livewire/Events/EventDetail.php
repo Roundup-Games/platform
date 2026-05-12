@@ -16,6 +16,8 @@ class EventDetail extends Component
         $event = Event::where('slug', $slug)->firstOrFail();
         $this->authorize('view', $event);
         $this->event = $event;
+
+        seo()->for($event);
     }
 
     public function render()

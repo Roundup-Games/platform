@@ -181,4 +181,8 @@ return [
     'label_bench_mode' => 'Bankmodus',
     'content_bench_mode_requires_gm' => 'Nur Spielleiter können den Bankmodus aktivieren.',
     'content_bench_mode_description' => 'Überschüssige Spieler werden auf die Bank gesetzt statt auf die Warteliste.',
+
+    // SEO
+    'seo_title_my_campaigns' => 'Meine Kampagnen',
+    'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf Roundup Games.',
 ];

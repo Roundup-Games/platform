@@ -1,5 +1,4 @@
 <x-public-layout>
-@section('title', __('common.content_for_organizers'))
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
