@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\GameResource\Pages;
 use App\Filament\Resources\GameResource\RelationManagers\ParticipantsRelationManager;
 use App\Models\Game;
@@ -118,6 +119,9 @@ class GameResource extends Resource
                                     ->required(),
                             ]),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 

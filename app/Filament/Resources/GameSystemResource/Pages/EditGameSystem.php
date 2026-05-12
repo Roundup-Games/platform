@@ -5,6 +5,7 @@ namespace App\Filament\Resources\GameSystemResource\Pages;
 use App\Exceptions\BggApiException;
 use App\Filament\Resources\GameSystemResource;
 use App\Services\BggSyncService;
+use App\Services\SeoCacheService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -14,6 +15,11 @@ use Filament\Support\Icons\Heroicon;
 class EditGameSystem extends EditRecord
 {
     protected static string $resource = GameSystemResource::class;
+
+    protected function afterSave(): void
+    {
+        app(SeoCacheService::class)->forgetByModel($this->record);
+    }
 
     protected function getHeaderActions(): array
     {

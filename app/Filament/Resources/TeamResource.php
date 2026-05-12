@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\TeamResource\Pages;
 use App\Filament\Resources\TeamResource\RelationManagers\MembersRelationManager;
 use App\Models\Team;
@@ -75,6 +76,9 @@ class TeamResource extends Resource
                             ->rows(3)
                             ->maxLength(1000),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 

@@ -3,12 +3,18 @@
 namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
+use App\Services\SeoCacheService;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Log;
 
 class EditUser extends EditRecord
 {
     protected static string $resource = UserResource::class;
+
+    protected function afterSave(): void
+    {
+        app(SeoCacheService::class)->forgetByModel($this->record);
+    }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {

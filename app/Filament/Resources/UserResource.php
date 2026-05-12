@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\ContentLanguage;
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\LinkedAccountsRelationManager;
 use App\Models\User;
@@ -198,6 +199,9 @@ class UserResource extends Resource
                             ->preload()
                             ->searchable(),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 

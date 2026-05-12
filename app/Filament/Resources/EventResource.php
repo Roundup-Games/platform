@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\EventResource\Pages;
 use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
@@ -188,6 +189,9 @@ class EventResource extends Resource
                                     ->maxLength(255),
                             ]),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 

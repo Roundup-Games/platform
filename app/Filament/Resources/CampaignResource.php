@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\CampaignResource\Pages;
 use App\Filament\Resources\CampaignResource\RelationManagers\ParticipantsRelationManager;
 use App\Enums\CampaignStatus;
@@ -128,6 +129,9 @@ class CampaignResource extends Resource
                                     ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),                            ]),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 

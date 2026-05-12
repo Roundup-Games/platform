@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Components\SeoFields;
 use App\Filament\Resources\GameSystemResource\Pages;
 use App\Models\GameSystem;
 use BackedEnum;
@@ -307,6 +308,9 @@ class GameSystemResource extends Resource
                                     ->preload(),
                             ]),
                     ]),
+
+                // ── SEO Overrides ─────────────────────────────
+                SeoFields::make(),
             ]);
     }
 
