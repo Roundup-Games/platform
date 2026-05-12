@@ -6,6 +6,7 @@ use App\Enums\ContentLanguage;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\LinkedAccountsRelationManager;
 use App\Models\User;
+use App\Rules\ValidUserName;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
@@ -33,6 +34,32 @@ class UserResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    /**
+     * Override route binding to resolve by UUID 'id' column.
+     *
+     * The User model uses 'slug' as its route key for public URLs (/u/{slug}),
+     * but Filament URLs are built using getRouteKey() which returns the slug.
+     * We resolve by UUID 'id' — URLs will contain slugs but we look up by id.
+     * This requires overriding resolveRecordRouteBinding to handle slug-to-id
+     * resolution, since we can't change the model's getRouteKey() globally.
+     */
+    public static function resolveRecordRouteBinding(int | string $key, ?\Closure $modifyQuery = null): ?\Illuminate\Database\Eloquent\Model
+    {
+        $query = static::getRecordRouteBindingEloquentQuery();
+
+        if ($modifyQuery) {
+            $query = $modifyQuery($query) ?? $query;
+        }
+
+        // If the key looks like a UUID, resolve by id directly
+        if (\Illuminate\Support\Str::isUuid($key)) {
+            return $query->where('id', $key)->first();
+        }
+
+        // Otherwise it's a slug — resolve by slug then return the model
+        return $query->where('slug', $key)->first();
+    }
+
     public static function getNavigationIcon(): string | BackedEnum | null
     {
         return Heroicon::OutlinedUsers;
@@ -48,7 +75,22 @@ class UserResource extends Resource
                             ->schema([
                                 TextInput::make('name')
                                     ->required()
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->rules([new ValidUserName])
+                                    ->dehydrateStateUsing(fn (string $state): string => ValidUserName::sanitize($state)),
+                                TextInput::make('slug')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->minLength(3)
+                                    ->rules(['regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/'])
+                                    ->unique(ignoreRecord: true)
+                                    ->suffixAction(
+                                        \Filament\Actions\Action::make('view_profile')
+                                            ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                                            ->url(fn (?User $record): ?string => $record ? route('profile.public', $record->slug) : null)
+                                            ->openUrlInNewTab()
+                                    )
+                                    ->helperText('Used in profile URL /u/{slug}. Letters, numbers, dots, hyphens, underscores.'),
                                 TextInput::make('email')
                                     ->email()
                                     ->required()
@@ -66,6 +108,10 @@ class UserResource extends Resource
                                     ]),
                                 TextInput::make('pronouns')
                                     ->maxLength(50),
+                                \Filament\Forms\Components\Textarea::make('bio')
+                                    ->maxLength(500)
+                                    ->rows(3)
+                                    ->columnSpanFull(),
                                 Select::make('preferred_language')
                                     ->label('Preferred Language')
                                     ->options(
@@ -167,6 +213,12 @@ class UserResource extends Resource
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('slug')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->copyable()
+                    ->copyMessage('Slug copied')
+                    ->formatStateUsing(fn (string $state): string => "/u/{$state}"),
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
