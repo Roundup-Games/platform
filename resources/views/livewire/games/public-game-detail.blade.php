@@ -2,9 +2,9 @@
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+            <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                {{ __('profile.action_back_to_dashboard') }}
+                {{ __('games.action_back_to_discover') }}
             </a>
         </div>
     </div>
@@ -26,8 +26,6 @@
     {{-- Content --}}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
-        <x-language-mismatch-banner :entity-language="$game->language" />
-
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"
                  class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
@@ -45,10 +43,6 @@
 
         <x-registration-cta :message="__('games.guest_nudge_game_detail')" />
 
-        @include('livewire.games.partials._invitation-banner')
-        @include('livewire.games.partials._waitlist-section')
-        @include('livewire.games.partials._bench-section')
-
         @if($game->gameSystem)
             @include('livewire.partials.game-system-info', ['entity' => $game])
         @endif
@@ -59,37 +53,22 @@
             {{-- Main column --}}
             <div class="lg:col-span-2 space-y-6">
 
-                @include('livewire.games.partials._participant-list')
-
-                {{-- Session Zero --}}
-                @if($activeSessionZero && ($isParticipant || $isOwner))
-                    <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
-                        <div class="flex items-center justify-between flex-wrap gap-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                    <span class="material-symbols-outlined text-primary" aria-hidden="true">assignment</span>
-                                </div>
-                                <div>
-                                    <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('session_zero.title_session_zero') }}</h2>
-                                    <p class="text-sm text-on-surface-variant">{{ $activeSessionZero->title }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                @if($isSessionZeroConfirmed)
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-secondary-container text-on-secondary-container">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
-                                        {{ __('session_zero.confirmation_confirmed') }}
-                                    </span>
-                                @endif
-                                <a href="{{ route('session-zero.view', ['locale' => app()->getLocale(), 'uuid' => $activeSessionZero->uuid]) }}" wire:navigate
-                                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
-                                    {{ __('session_zero.action_view_session_zero') }}
-                                </a>
-                            </div>
+                {{-- Participants (public: count only) --}}
+                <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
+                        {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
+                    </h2>
+                    @if($approvedParticipantsCount > 0)
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($game->participants->where('status', \App\Enums\ParticipantStatus::Approved->value) as $participant)
+                                <x-user-link :user="$participant->user" avatar-size="w-9 h-9" :truncate="true" />
+                            @endforeach
                         </div>
-                    </section>
-                @endif
+                    @else
+                        <p class="text-sm text-on-surface-variant italic">{{ __('games.content_no_participants_yet') }}</p>
+                    @endif
+                </section>
 
                 {{-- Discovery Meta --}}
                 @if($game->complexity || ($game->vibe_flags && count($game->vibe_flags)))
@@ -130,6 +109,7 @@
                 @endif
 
                 {{-- Comfort Notes --}}
+                @php($comfortNotes = $game->game_type?->value === 'board_game' && isset($game->safety_rules['comfort_notes']) ? $game->safety_rules['comfort_notes'] : null)
                 @if($comfortNotes)
                     <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                         <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
@@ -147,21 +127,10 @@
 
                 {{-- Reviews --}}
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface flex items-center gap-2">
-                            <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
-                            {{ __('reviews.title_reviews') }}
-                        </h2>
-                        @auth
-                            @if($canReview)
-                                <a href="{{ route('reviews.write', ['reviewable_type' => 'game', 'reviewable_id' => $game->id]) }}" wire:navigate
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
-                                    {{ __('reviews.action_write_review') }}
-                                </a>
-                            @endif
-                        @endauth
-                    </div>
+                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
+                        {{ __('reviews.title_reviews') }}
+                    </h2>
                     @if($reviews->count())
                         <div class="divide-y divide-outline-variant/30">
                             @foreach($reviews as $review)
@@ -172,21 +141,36 @@
                         <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
                     @endif
                 </section>
-
-                @include('livewire.games.partials._session-end')
             </div>
 
             {{-- Sidebar --}}
-            @include('livewire.games.partials._game-sidebar')
+            <aside class="space-y-6">
+                {{-- Join CTA for guests --}}
+                @guest
+                    <x-registration-cta :message="__('games.guest_nudge_join_game')" />
+                @endguest
 
-            {{-- Share Link Management (owner only) --}}
-            @if($isOwner)
+                {{-- Host --}}
                 <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                    @include('livewire.partials.share-link', ['hasShareLink' => $hasShareLink, 'shareLinkUrl' => $shareLinkUrl])
+                    <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">person</span>
+                        {{ __('common.content_hosted_by') }}
+                    </h3>
+                    <div class="flex items-center gap-3">
+                        <x-user-link :user="$game->owner" avatar-size="w-11 h-11" />
+                        @if($game->owner->isGM())
+                            <x-gm-badge size="sm" />
+                        @endif
+                    </div>
                 </div>
-            @endif
+            </aside>
         </div>
     </div>
 
-    @include('livewire.games.partials._mobile-cta')
+    {{-- Mobile CTA for guests --}}
+    @guest
+        <div class="lg:hidden sticky bottom-0 z-30 bg-surface/95 backdrop-blur-md border-t border-outline-variant px-4 py-3">
+            <x-registration-cta :message="__('games.guest_nudge_join_game')" />
+        </div>
+    @endguest
 </div>

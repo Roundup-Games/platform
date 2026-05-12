@@ -38,6 +38,8 @@ Route::get('locale/switch/{locale}', [LocaleController::class, 'switch'])
 // ── Sitemap ──────────────────────────────────────────
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index']);
+Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
+    ->where('type', 'static|game-systems|events|games|campaigns|teams|profiles');
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.
@@ -105,6 +107,11 @@ Route::prefix('{locale}')
             // People page (following/followers/blocked)
             Route::get('/people', App\Livewire\People\PeoplePage::class)->name('people');
 
+            // Authenticated profile view (always app-layout)
+            Route::get('/dashboard/u/{user}', App\Livewire\Profile\AuthenticatedProfile::class)
+                ->where('user', '[a-zA-Z0-9][a-zA-Z0-9._-]*')
+                ->name('profile.show-authenticated');
+
             // Notifications page (full paginated history)
             Route::get('/notifications', App\Livewire\Notifications\NotificationsPage::class)->name('notifications.index');
         });
@@ -163,6 +170,7 @@ Route::prefix('{locale}')
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/games/create', App\Livewire\Games\CreateGame::class)->name('games.create');
+            Route::get('/dashboard/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/games/{id}/manage-participants', App\Livewire\Games\ManageParticipants::class)->name('games.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/games/{id}/apply', App\Livewire\Games\ApplyToGame::class)->name('games.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         });
@@ -173,12 +181,13 @@ Route::prefix('{locale}')
         Route::get('/near', fn () => redirect()->route('discover', app()->getLocale(), 301))->name('near');
 
         Route::get('/games', App\Livewire\Games\GamesPage::class)->name('games.index');
-        Route::get('/games/{id}', App\Livewire\Games\GameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::get('/games/{id}', App\Livewire\Games\PublicGameDetail::class)->name('games.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Campaigns ─────────────────────────────────
 
         Route::middleware(['auth', 'profile.complete'])->group(function () {
             Route::get('/campaigns/create', App\Livewire\Campaigns\CreateCampaign::class)->name('campaigns.create');
+            Route::get('/dashboard/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.show')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/apply', App\Livewire\Campaigns\ApplyToCampaign::class)->name('campaigns.apply')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/manage-participants', App\Livewire\Campaigns\ManageParticipants::class)->name('campaigns.manage-participants')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
             Route::get('/campaigns/{id}/add-session', App\Livewire\Campaigns\AddSessionToCampaign::class)->name('campaigns.add-session')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -187,7 +196,7 @@ Route::prefix('{locale}')
         });
 
         Route::get('/campaigns', App\Livewire\Campaigns\CampaignsPage::class)->name('campaigns.index');
-        Route::get('/campaigns/{id}', App\Livewire\Campaigns\CampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::get('/campaigns/{id}', App\Livewire\Campaigns\PublicCampaignDetail::class)->name('campaigns.detail')->where('id', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // ── Billing (authenticated) ───────────────────
 

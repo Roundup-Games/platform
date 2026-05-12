@@ -41,7 +41,7 @@ class CampaignInvitation extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
-        $actionUrl = route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]);
+        $actionUrl = route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_campaign_invitation', [
@@ -71,7 +71,7 @@ class CampaignInvitation extends Notification
             'campaign_name' => $this->campaign->name,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
+            'action_url' => route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]),
         ];
     }
 
@@ -97,7 +97,7 @@ class CampaignInvitation extends Notification
                 'campaign' => $this->campaign->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('campaigns.detail', ['locale' => $locale, 'id' => $this->campaign->id]),
+            url: route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]),
             tag: "campaign-invitation-{$this->campaign->id}",
         );
     }

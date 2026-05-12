@@ -151,7 +151,7 @@ class ApplyToCampaign extends Component
                 'error' => $e->getMessage(),
             ]);
             session()->flash('info', __('campaigns.content_you_have_already_applied_to_this_campaign'));
-            $this->redirect(route('campaigns.detail', $this->campaign->id), navigate: true);
+            $this->redirect(route('campaigns.show', $this->campaign->id), navigate: true);
 
             return;
         } catch (\RuntimeException $e) {
@@ -204,7 +204,7 @@ class ApplyToCampaign extends Component
             session()->flash('success', __('campaigns.content_application_submitted_the_campaign_owner'));
         }
 
-        $this->redirect(route('campaigns.detail', $this->campaign->id), navigate: true);
+        $this->redirect(route('campaigns.show', $this->campaign->id), navigate: true);
     }
 
     public function render()

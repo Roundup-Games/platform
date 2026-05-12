@@ -1,5 +1,5 @@
 @include('livewire.partials.manage-participants', [
     'getEntityVar' => fn () => 'game',
     'getEntityName' => fn () => 'Game',
-    'getBackRoute' => fn () => route('games.detail', $game->id),
+    'getBackRoute' => fn () => route('games.show', $game->id),
 ])

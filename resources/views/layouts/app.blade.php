@@ -36,9 +36,6 @@
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-        {{-- SEO hreflang alternate tags --}}
-        @include('partials.hreflang')
     </head>
     <body class="font-sans text-on-surface antialiased bg-surface">
         {{-- Skip to content link --}}

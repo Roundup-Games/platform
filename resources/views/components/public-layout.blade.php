@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', __('games.action_explore_game_systems')) — {{ config('app.name', 'Roundup Games') }}</title>
+    {!! seo() !!}
 
     {{-- Dark mode: apply class before paint to prevent flash --}}
     <script>
@@ -35,9 +35,6 @@
     <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.content_update_available')) }}',action:'{{ addslashes(__('pwa.action_update')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    {{-- SEO hreflang alternate tags --}}
-    @include('partials.hreflang')
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}

@@ -49,7 +49,7 @@ class RecapPosted extends Notification
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_view_recap'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_view_recap'), route('games.show', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'recap_posted'));
     }
 
@@ -68,7 +68,7 @@ class RecapPosted extends Notification
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'actor_id' => $this->author->id,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -94,7 +94,7 @@ class RecapPosted extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "recap-{$this->game->id}",
         );
     }

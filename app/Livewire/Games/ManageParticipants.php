@@ -51,7 +51,7 @@ class ManageParticipants extends Component
 
     public function getBackRoute(): string
     {
-        return route('games.detail', $this->game->id);
+        return route('games.show', $this->game->id);
     }
 
     // ── Render ─────────────────────────────────────────

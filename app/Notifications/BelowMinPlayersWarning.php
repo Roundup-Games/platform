@@ -42,7 +42,7 @@ class BelowMinPlayersWarning extends Notification
                 'current' => $this->currentCount,
                 'min' => $this->minPlayers,
             ]))
-            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.show', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'below_min_players'));
     }
 
@@ -60,7 +60,7 @@ class BelowMinPlayersWarning extends Notification
             'entity_name' => $this->game->name,
             'current_count' => $this->currentCount,
             'min_players' => $this->minPlayers,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -81,7 +81,7 @@ class BelowMinPlayersWarning extends Notification
                 'min' => $this->minPlayers,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "below-min-players-{$this->game->id}",
         );
     }

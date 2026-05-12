@@ -51,7 +51,7 @@ class ManageParticipants extends Component
 
     public function getBackRoute(): string
     {
-        return route('campaigns.detail', $this->campaign->id);
+        return route('campaigns.show', $this->campaign->id);
     }
 
     // ── Render ─────────────────────────────────────────

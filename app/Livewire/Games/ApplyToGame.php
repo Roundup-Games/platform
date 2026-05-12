@@ -159,7 +159,7 @@ class ApplyToGame extends Component
                 'error' => $e->getMessage(),
             ]);
             session()->flash('info', __('games.content_you_have_already_applied_to_this_game'));
-            $this->redirect(route('games.detail', $this->game->id), navigate: true);
+            $this->redirect(route('games.show', $this->game->id), navigate: true);
 
             return;
         } catch (\RuntimeException $e) {
@@ -212,7 +212,7 @@ class ApplyToGame extends Component
             session()->flash('success', __('games.content_application_submitted_the_game_owner'));
         }
 
-        $this->redirect(route('games.detail', $this->game->id), navigate: true);
+        $this->redirect(route('games.show', $this->game->id), navigate: true);
     }
 
     public function render()

@@ -46,7 +46,7 @@ class DebriefingAvailable extends Notification
             ->line(__('notifications.body_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_submit_debriefing'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_submit_debriefing'), route('games.show', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'debriefing_available'));
     }
 
@@ -64,7 +64,7 @@ class DebriefingAvailable extends Notification
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 
@@ -90,7 +90,7 @@ class DebriefingAvailable extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "debriefing-{$this->game->id}",
         );
     }

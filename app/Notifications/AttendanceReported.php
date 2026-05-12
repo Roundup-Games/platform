@@ -54,7 +54,7 @@ class AttendanceReported extends Notification
                 'date' => $date,
                 'status' => $status,
             ]))
-            ->action(__('notifications.action_dispute_attendance'), route('games.detail', [
+            ->action(__('notifications.action_dispute_attendance'), route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]))
@@ -78,7 +78,7 @@ class AttendanceReported extends Notification
             'report_id' => $this->report->id,
             'attendance_status' => $this->report->status->value,
             'date_time' => $this->game->date_time?->toIso8601String(),
-            'action_url' => route('games.detail', [
+            'action_url' => route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]),
@@ -109,7 +109,7 @@ class AttendanceReported extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', [
+            url: route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]),

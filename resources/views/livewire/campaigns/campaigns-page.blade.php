@@ -52,7 +52,7 @@
                     @foreach($ownedCampaigns as $campaign)
                         <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
                             {{-- Info area: clickable to detail --}}
-                            <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                            <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
                                     <h3 class="text-base font-medium text-on-surface">
                                         {{ $campaign->name }}
@@ -123,7 +123,7 @@
             @else
                 <div class="space-y-3">
                     @foreach($participatingCampaigns as $campaign)
-                        <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                        <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="block bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
                             <div class="flex flex-wrap items-center gap-2 mb-2">
                                 <h3 class="text-base font-medium text-on-surface">
                                     {{ $campaign->name }}

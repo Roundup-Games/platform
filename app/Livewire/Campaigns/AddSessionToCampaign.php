@@ -163,7 +163,7 @@ class AddSessionToCampaign extends Component
 
         session()->flash('success', __('campaigns.flash_session_name_added_to_campaign', ['name' => $game->name]));
 
-        $this->redirect(route('games.detail', $game->id), navigate: true);
+        $this->redirect(route('games.show', $game->id), navigate: true);
     }
 
     public function render()

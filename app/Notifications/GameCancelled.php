@@ -95,7 +95,7 @@ class GameCancelled extends Notification
                 'game' => $this->game->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            url: route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
             tag: "game-cancelled-{$this->game->id}",
         );
     }

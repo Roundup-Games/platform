@@ -3,13 +3,13 @@
     <div class="bg-surface-container-low border-b border-outline-variant">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
             @if($reviewableType === 'game' || $reviewableType === 'App\\Models\\Game')
-                <a href="{{ route('games.detail', $reviewableId) }}" wire:navigate
+                <a href="{{ route('games.show', $reviewableId) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                     {{ __('reviews.action_back_to_game') }}
                 </a>
             @else
-                <a href="{{ route('campaigns.detail', $reviewableId) }}" wire:navigate
+                <a href="{{ route('campaigns.show', $reviewableId) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                     {{ __('reviews.action_back_to_campaign') }}
@@ -24,12 +24,12 @@
                 <span class="material-symbols-outlined text-3xl text-on-error-container mb-2" aria-hidden="true">error</span>
                 <p class="text-on-error-container font-medium">{{ $errorMessage }}</p>
                 @if($reviewableType === 'game' || $reviewableType === 'App\\Models\\Game')
-                    <a href="{{ route('games.detail', $reviewableId) }}" wire:navigate
+                    <a href="{{ route('games.show', $reviewableId) }}" wire:navigate
                        class="mt-4 inline-flex items-center gap-1 text-sm text-on-error-container underline hover:no-underline">
                         {{ __('reviews.action_go_back') }}
                     </a>
                 @else
-                    <a href="{{ route('campaigns.detail', $reviewableId) }}" wire:navigate
+                    <a href="{{ route('campaigns.show', $reviewableId) }}" wire:navigate
                        class="mt-4 inline-flex items-center gap-1 text-sm text-on-error-container underline hover:no-underline">
                         {{ __('reviews.action_go_back') }}
                     </a>

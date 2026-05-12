@@ -48,7 +48,7 @@ class GameCompleted extends Notification
             ->line(__('notifications.body_game_completed', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('notifications.action_game_completed'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_game_completed'), route('games.show', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'game_completed'));
     }
 
@@ -66,7 +66,7 @@ class GameCompleted extends Notification
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 

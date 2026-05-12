@@ -114,7 +114,7 @@ class DashboardSmartPromptService
                 'time' => $timePhrase,
                 'game' => $game->name,
             ]),
-            'action_url' => route('games.detail', $game),
+            'action_url' => route('games.show', $game),
             'action_label' => __('profile.dashboard_prompt_view_details'),
             'metadata' => [
                 'game_id' => $game->id,
@@ -149,7 +149,7 @@ class DashboardSmartPromptService
         return [
             'type' => 'just_completed',
             'message' => __('profile.dashboard_prompt_msg_completed_recap', ['game' => $game->name]),
-            'action_url' => route('games.detail', $game),
+            'action_url' => route('games.show', $game),
             'action_label' => __('profile.dashboard_prompt_write_recap'),
             'metadata' => [
                 'game_id' => $game->id,
@@ -228,7 +228,7 @@ class DashboardSmartPromptService
         return [
             'type' => 'new_follower',
             'message' => $message,
-            'action_url' => route('profile.public', $followerUser),
+            'action_url' => route('profile.show-authenticated', $followerUser),
             'action_label' => __('profile.dashboard_prompt_view_profile'),
             'metadata' => [
                 'follower_id' => $followerUser?->id,

@@ -21,9 +21,9 @@ trait RoutesGameOrCampaign
     protected function getEntityRoute(string $locale): string
     {
         if ($this->entity instanceof Campaign) {
-            return route('campaigns.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+            return route('campaigns.show', ['locale' => $locale, 'id' => $this->entity->id]);
         }
 
-        return route('games.detail', ['locale' => $locale, 'id' => $this->entity->id]);
+        return route('games.show', ['locale' => $locale, 'id' => $this->entity->id]);
     }
 }

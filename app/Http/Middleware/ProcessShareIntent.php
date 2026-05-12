@@ -141,7 +141,7 @@ class ProcessShareIntent
                 'user_id' => $user->id,
             ]);
 
-            return new ShareIntentResult(true, 'games.detail');
+            return new ShareIntentResult(true, 'games.show');
         }
 
         // Check if user is already a participant (before acquiring lock)
@@ -158,7 +158,7 @@ class ProcessShareIntent
             ]);
 
             // Still redirect to the entity so user sees it
-            return new ShareIntentResult(true, 'games.detail');
+            return new ShareIntentResult(true, 'games.show');
         }
 
         // Wrap participant creation in a transaction with lockForUpdate to prevent
@@ -229,7 +229,7 @@ class ProcessShareIntent
                 'error' => $e->getMessage(),
             ]);
 
-            return new ShareIntentResult(true, 'games.detail');
+            return new ShareIntentResult(true, 'games.show');
         }
 
         // If status is null the game was inactive — don't redirect, just clear cookie
@@ -237,7 +237,7 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null);
         }
 
-        return new ShareIntentResult(true, 'games.detail');
+        return new ShareIntentResult(true, 'games.show');
     }
 
     /**
@@ -270,7 +270,7 @@ class ProcessShareIntent
                 'user_id' => $user->id,
             ]);
 
-            return new ShareIntentResult(true, 'campaigns.detail');
+            return new ShareIntentResult(true, 'campaigns.show');
         }
 
         // Check if user is already a participant (before acquiring lock)
@@ -286,7 +286,7 @@ class ProcessShareIntent
                 'existing_status' => $existing->status->value,
             ]);
 
-            return new ShareIntentResult(true, 'campaigns.detail');
+            return new ShareIntentResult(true, 'campaigns.show');
         }
 
         // Wrap participant creation in a transaction with lockForUpdate to prevent
@@ -357,7 +357,7 @@ class ProcessShareIntent
                 'error' => $e->getMessage(),
             ]);
 
-            return new ShareIntentResult(true, 'campaigns.detail');
+            return new ShareIntentResult(true, 'campaigns.show');
         }
 
         // If status is null the campaign was inactive — don't redirect, just clear cookie
@@ -365,7 +365,7 @@ class ProcessShareIntent
             return new ShareIntentResult(false, null);
         }
 
-        return new ShareIntentResult(true, 'campaigns.detail');
+        return new ShareIntentResult(true, 'campaigns.show');
     }
 
     /**

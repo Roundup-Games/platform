@@ -298,7 +298,7 @@ class LangFileParser
             'hint_', 'unsubscribe_', 'entity_', 'visibility_',
             'manifest_', 'price_', 'link_', 'bell_',
             'dropdown_', 'empty_', 'page_', 'back_',
-            'unknown_',
+            'unknown_', 'seo_',
         ];
         $hasValidPrefix = false;
 

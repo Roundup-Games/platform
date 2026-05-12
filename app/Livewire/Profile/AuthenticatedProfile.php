@@ -12,8 +12,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-#[Layout('components.public-layout')]
-class PublicProfile extends Component
+#[Layout('layouts.app')]
+class AuthenticatedProfile extends Component
 {
     #[Locked]
     public User $profileUser;
@@ -191,10 +191,7 @@ class PublicProfile extends Component
         $reliabilityGameCount = $reliabilityData['game_count'] ?? 0;
         $showReliabilityDetails = in_array('stats', $this->visibleFields);
 
-        // Set SEO metadata from model
-        seo()->for($this->profileUser);
-
-        return view('livewire.profile.public', [
+        return view('livewire.profile.authenticated-profile', [
             'profileUser' => $this->profileUser,
             'teamMemberships' => $teamMemberships,
             'visibleFields' => $this->visibleFields,

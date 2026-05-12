@@ -2,7 +2,7 @@
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3">
-            <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+            <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                 {{ __('campaigns.action_back_to_campaign') }}
             </a>
@@ -41,7 +41,7 @@
                         {{ __('campaigns.content_you_have_already_applied_to_this_campaign') }}
                     @endif
                 </p>
-                <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">visibility</span>
                     {{ __('campaigns.action_view_campaign') }}
                 </a>

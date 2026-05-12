@@ -104,7 +104,7 @@
                                         $playerCount = $game->participants_count ?? $game->participants->count();
                                         $maxPlayers = $game->max_players;
                                     @endphp
-                                    <a href="{{ route('games.detail', $game->id) }}" wire:navigate
+                                    <a href="{{ route('games.show', $game->id) }}" wire:navigate
                                        class="block p-2 rounded-lg {{ $isPast ? 'bg-surface-container-low opacity-60' : 'bg-primary/5 hover:bg-primary/10' }} transition-colors group">
                                         <p class="text-xs font-medium {{ $isPast ? 'text-on-surface-variant' : 'text-on-surface group-hover:text-primary' }} truncate leading-tight">
                                             @if($isHost)<span class="sr-only">{{ __('profile.dashboard_hosting_indicator') }}</span><span aria-hidden="true">★ </span>@endif{{ Str::limit($game->name, 18) }}
@@ -146,7 +146,7 @@
                                             $isHost = $game->owner_id === Auth::id();
                                             $isPast = $day['is_past'];
                                         @endphp
-                                        <a href="{{ route('games.detail', $game->id) }}" wire:navigate
+                                        <a href="{{ route('games.show', $game->id) }}" wire:navigate
                                            class="flex items-center justify-between p-3 rounded-lg {{ $isPast ? 'bg-surface-container-low opacity-60' : 'bg-primary/5 hover:bg-primary/10' }} transition-colors group">
                                             <div class="min-w-0 flex-1">
                                                 <p class="text-sm font-medium {{ $isPast ? 'text-on-surface-variant' : 'text-on-surface group-hover:text-primary' }} truncate">
@@ -208,7 +208,7 @@
                 <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list">
                     @foreach($opportunityItems as $item)
                         @php
-                            $routeName = ($item['entity_type'] ?? 'game') === 'campaign' ? 'campaigns.detail' : 'games.detail';
+                            $routeName = ($item['entity_type'] ?? 'game') === 'campaign' ? 'campaigns.show' : 'games.show';
                             $spotsAvailable = $item['spots_available'] ?? null;
                             $spotsText = $spotsAvailable !== null
                                 ? trans_choice('profile.dashboard_opportunities_spots_available', $spotsAvailable, ['count' => $spotsAvailable])
@@ -419,7 +419,7 @@
                 <ul class="space-y-2" role="list">
                     @foreach($newRecaps as $game)
                         <li>
-                        <a href="{{ route('games.detail', $game->id) }}" wire:navigate
+                        <a href="{{ route('games.show', $game->id) }}" wire:navigate
                            class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-low transition-colors group">
                             <div class="min-w-0 flex-1">
                                 <p class="text-sm font-medium text-on-surface group-hover:text-primary transition-colors truncate">
@@ -448,7 +448,7 @@
                 <ul class="space-y-1" role="list">
                     @foreach($communityFeed as $item)
                         @php
-                            $routeName = $item->entityType === 'campaign' ? 'campaigns.detail' : 'games.detail';
+                            $routeName = $item->entityType === 'campaign' ? 'campaigns.show' : 'games.show';
                             $actionKey = match($item->type) {
                                 'game_created' => 'profile.dashboard_feed_action_created_game',
                                 'player_joined' => $item->entityType === 'campaign'
@@ -517,7 +517,7 @@
                                         : null;
                                 @endphp
                                 <li>
-                                <a href="{{ route('games.detail', $item->entityId) }}" wire:navigate
+                                <a href="{{ route('games.show', $item->entityId) }}" wire:navigate
                                    class="flex items-center gap-3 py-2.5 {{ !$loop->last ? 'border-b border-outline-variant/20' : '' }} hover:bg-surface-container-low transition-colors rounded-lg px-2 -mx-2 group">
                                     <div class="w-8 h-8 rounded-full bg-tertiary/10 flex items-center justify-center flex-shrink-0">
                                         <span class="material-symbols-outlined text-tertiary text-base" style="font-variation-settings: 'FILL' 1" aria-hidden="true">local_fire_department</span>

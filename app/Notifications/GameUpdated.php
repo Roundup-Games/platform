@@ -52,7 +52,7 @@ class GameUpdated extends Notification
                 'game' => $this->game->name,
                 'fields' => $fields,
             ]))
-            ->action(__('notifications.action_view_game'), route('games.detail', ['locale' => $locale, 'id' => $this->game->id]))
+            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game->id]))
             ->line($this->unsubscribeLine($notifiable, 'game_updated'));
     }
 
@@ -71,7 +71,7 @@ class GameUpdated extends Notification
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
             'changed_fields' => $this->changedFields,
-            'action_url' => route('games.detail', ['locale' => $locale, 'id' => $this->game->id]),
+            'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
 

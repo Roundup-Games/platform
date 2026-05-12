@@ -385,7 +385,7 @@ class CreateGame extends Component
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
-        $this->redirect(route('games.detail', $game->id), navigate: true);
+        $this->redirect(route('games.show', $game->id), navigate: true);
     }
 
     public function render()

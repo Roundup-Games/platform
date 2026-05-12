@@ -2,17 +2,10 @@
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-            @guest
-                <a href="{{ route('discover') }}" class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                    {{ __('campaigns.action_back_to_discover') }}
-                </a>
-            @else
-                <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                    {{ __('profile.action_back_to_dashboard') }}
-                </a>
-            @endguest
+            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                {{ __('profile.action_back_to_dashboard') }}
+            </a>
         </div>
     </div>
 
@@ -235,7 +228,7 @@
                             @foreach($campaign->sessions as $session)
                                 <div class="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                                     <div>
-                                        <a href="{{ route('games.detail', $session->id) }}" wire:navigate class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
+                                        <a href="{{ route('games.show', $session->id) }}" wire:navigate class="text-sm font-medium text-on-surface hover:text-primary transition-colors">
                                             {{ $session->name }}
                                         </a>
                                         <p class="text-xs text-on-surface-variant">{{ format_date($session->date_time, 'datetime') }}</p>

@@ -54,7 +54,7 @@ class DisputeResolved extends Notification
             ->subject($subject)
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line($body)
-            ->action(__('notifications.action_view_game'), route('games.detail', [
+            ->action(__('notifications.action_view_game'), route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]))
@@ -77,7 +77,7 @@ class DisputeResolved extends Notification
             'entity_name' => $this->game->name,
             'resolution' => $this->resolution,
             'date_time' => $this->game->date_time?->toIso8601String(),
-            'action_url' => route('games.detail', [
+            'action_url' => route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]),
@@ -113,7 +113,7 @@ class DisputeResolved extends Notification
             title: $title,
             body: $body,
             icon: '/icons/pwa-192x192.png',
-            url: route('games.detail', [
+            url: route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
             ]),

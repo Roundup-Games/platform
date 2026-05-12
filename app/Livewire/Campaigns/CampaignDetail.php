@@ -20,9 +20,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+#[Layout('layouts.app')]
 class CampaignDetail extends Component
 {
     use HandlesBench, HandlesWaitlist, ManagesParticipants;
@@ -42,15 +44,6 @@ class CampaignDetail extends Component
         // Capture valid share token on initial page load (query params don't persist across Livewire updates)
         if ($campaign->hasValidShareToken()) {
             $this->validatedShareToken = request()->query('share');
-        }
-
-        // Set share_intent cookie for guests visiting via share link
-        if (Auth::guest() && $this->validatedShareToken !== null) {
-            Cookie::queue('share_intent', json_encode([
-                'entity_type' => 'campaign',
-                'entity_id' => $campaign->id,
-                'share_token' => $this->validatedShareToken,
-            ]), 24 * 60);
         }
     }
 
@@ -83,7 +76,7 @@ class CampaignDetail extends Component
 
     public function getBackRoute(): string
     {
-        return route('campaigns.detail', $this->campaign->id);
+        return route('campaigns.show', $this->campaign->id);
     }
 
     // ── Share Link Management ──────────────────────────
@@ -458,7 +451,7 @@ class CampaignDetail extends Component
             'userInvitation' => $this->userInvitation(),
             'canApplyDirectly' => $this->canApplyDirectly(),
             'hasExistingApplication' => $this->hasExistingApplication(),
-            'isGuest' => Auth::guest(),
+            'isGuest' => false,
             'reviews' => $reviews,
             'canReview' => $canReview,
             'isCampaignFull' => $this->isCampaignFull(),
@@ -472,6 +465,6 @@ class CampaignDetail extends Component
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
-        ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
+        ])->layout('layouts.app');
     }
 }

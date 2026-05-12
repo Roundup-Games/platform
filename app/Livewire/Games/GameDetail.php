@@ -30,9 +30,11 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+#[Layout('layouts.app')]
 class GameDetail extends Component
 {
     use HandlesBench, HandlesSessionEnd, HandlesWaitlist, ManagesParticipants;
@@ -59,15 +61,6 @@ class GameDetail extends Component
         if ($game->hasValidShareToken()) {
             $this->validatedShareToken = request()->query('share');
         }
-
-        // Set share_intent cookie for guests visiting via share link
-        if (Auth::guest() && $this->validatedShareToken !== null) {
-            Cookie::queue('share_intent', json_encode([
-                'entity_type' => 'game',
-                'entity_id' => $game->id,
-                'share_token' => $this->validatedShareToken,
-            ]), 24 * 60);
-        }
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -77,7 +70,7 @@ class GameDetail extends Component
     public function getParticipantModel(): string { return GameParticipant::class; }
     public function getEntityName(): string { return 'Game'; }
     public function getEntityVar(): string { return 'game'; }
-    public function getBackRoute(): string { return route('games.detail', $this->game->id); }
+    public function getBackRoute(): string { return route('games.show', $this->game->id); }
 
     // ── Host-initiated removal (game-specific override) ──
 
@@ -197,7 +190,7 @@ class GameDetail extends Component
             return null;
         }
 
-        return route('games.detail', $this->game->id) . '?share=' . $this->game->share_token;
+        return route('games.show', $this->game->id) . '?share=' . $this->game->share_token;
     }
 
     // ── Join via Share Link ────────────────────────────
@@ -526,7 +519,7 @@ class GameDetail extends Component
             'userInvitation' => $this->userInvitation(),
             'canApply' => $this->canApply(),
             'hasExistingApplication' => $this->hasExistingApplication(),
-            'isGuest' => Auth::guest(),
+            'isGuest' => false,
             'reviews' => $this->reviews(),
             'canReview' => $this->canReview(),
             'activeSessionZero' => $sz['active'],
@@ -550,6 +543,6 @@ class GameDetail extends Component
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
-        ])->layout(Auth::guest() ? 'components.public-layout' : 'layouts.app');
+        ]);
     }
 }

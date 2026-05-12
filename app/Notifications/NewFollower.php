@@ -35,7 +35,7 @@ class NewFollower extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
-        $actionUrl = route('profile.public', ['locale' => $locale, 'user' => $this->follower]);
+        $actionUrl = route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
@@ -58,7 +58,7 @@ class NewFollower extends Notification
             'type' => 'new_follower',
             'follower_id' => $this->follower->id,
             'follower_name' => $this->follower->name,
-            'action_url' => route('profile.public', ['locale' => $locale, 'user' => $this->follower]),
+            'action_url' => route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]),
         ];
     }
 
@@ -83,7 +83,7 @@ class NewFollower extends Notification
                 'follower' => $this->follower->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('profile.public', ['locale' => $locale, 'user' => $this->follower]),
+            url: route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]),
             tag: "new-follower-{$this->follower->id}",
         );
     }
