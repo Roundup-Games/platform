@@ -46,7 +46,7 @@ describe('AboutPage', function () {
     it('includes the SEO title and description', function () {
         get(route('about'))
             ->assertOk()
-            ->assertSee('About Roundup Games', false)
+            ->assertSee(__('pages.seo_title_about'))
             ->assertSee(__('pages.seo_description_about'), false);
     });
 

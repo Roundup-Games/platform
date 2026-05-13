@@ -60,7 +60,7 @@ export function getGuestLocation() {
 export function setGuestLocation(lat, lng, source) {
     try {
         const payload = { lat, lng, source, timestamp: Date.now() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); // lgtm [js/cleartext-storage-of-sensitive-information]
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); // CodeQL [js/cleartext-storage-of-sensitive-information]
     } catch (_e) {
         // localStorage may be full or disabled — fail silently.
     }
