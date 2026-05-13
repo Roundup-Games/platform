@@ -3,7 +3,16 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        {{-- CSRF Token --}}
         <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        {{-- PostHog Analytics meta tags (shared partial for consistent config/exclusion logic) --}}
+        @include('partials.posthog-meta')
+        @if($posthogEnabled ?? false)
+            @isset($posthogIdentifyData)
+            <script>window.__posthogUser={{ Illuminate\Support\Js::from($posthogIdentifyData) }}</script>
+            @endisset
+        @endif
 
         <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', 'Roundup Games') }}</title>
 
@@ -39,6 +48,7 @@
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.posthog-script')
     </head>
     <body class="font-sans text-on-surface antialiased bg-surface">
         {{-- Skip to content link --}}
@@ -204,8 +214,8 @@
                         <div class="flex items-center gap-3">
                             <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate">{{ Auth::user()->name }}</p>
-                                <p class="text-xs text-on-surface-variant truncate">{{ Auth::user()->email }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate" data-ph-mask>{{ Auth::user()->name }}</p>
+                                <p class="text-xs text-on-surface-variant truncate" data-ph-mask>{{ Auth::user()->email }}</p>
                             </div>
                         </div>
                         <div class="mt-3 flex items-center justify-between">

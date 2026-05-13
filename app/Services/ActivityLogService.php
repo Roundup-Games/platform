@@ -19,9 +19,34 @@ use Illuminate\Support\Str;
  * All write operations are resilient: failures are logged with structured
  * context but never throw, so primary actions (game creation, follows, etc.)
  * are never blocked by activity logging failures.
+ *
+ * Activity events are automatically forwarded to PostHog via PostHogEventBridge
+ * after successful DB writes. PostHog failures are caught and logged separately.
  */
 class ActivityLogService
 {
+    /**
+     * Forward an activity event to PostHog after successful DB write.
+     *
+     * Uses app() resolution for resilience — if the container cannot resolve
+     * the bridge, the error is caught and logged without affecting the caller.
+     */
+    protected function forwardToPostHog(
+        ActivityType $type,
+        User $user,
+        ?Model $subject = null,
+        array $properties = [],
+    ): void {
+        try {
+            app(PostHogEventBridge::class)->forwardEvent($type, $user, $subject, $properties);
+        } catch (\Throwable $e) {
+            Log::warning('PostHog event forwarding failed', [
+                'event_type' => $type->value,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
     /**
      * Record an activity log entry for a user.
      *
@@ -34,7 +59,7 @@ class ActivityLogService
         array $properties = [],
     ): ?ActivityLog {
         try {
-            return ActivityLog::create([
+            $entry = ActivityLog::create([
                 'user_id' => $user->id,
                 'subject_type' => $subject ? get_class($subject) : null,
                 'subject_id' => $subject?->getKey(),
@@ -42,6 +67,10 @@ class ActivityLogService
                 'properties' => !empty($properties) ? $properties : null,
                 'created_at' => now(),
             ]);
+
+            $this->forwardToPostHog($type, $user, $subject, $properties);
+
+            return $entry;
         } catch (\Throwable $e) {
             Log::warning('Activity log write failed', [
                 'event_type' => $type->value,
@@ -101,6 +130,9 @@ class ActivityLogService
             collect($rows)->chunk(500)->each(function (Collection $chunk) {
                 DB::table('activity_logs')->insert($chunk->all());
             });
+
+            // Forward to PostHog for the subject owner (the person who triggered the event)
+            $this->forwardParticipantEventToPostHog($type, $subject, $properties);
         } catch (\Throwable $e) {
             Log::warning('Bulk activity log write failed', [
                 'event_type' => $type->value,
@@ -109,6 +141,34 @@ class ActivityLogService
                 'participant_count' => count($userIds),
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Forward a participant-scoped event to PostHog for the subject owner.
+     *
+     * Games and Campaigns have an owner who is the actor behind participant-
+     * scoped events (e.g. game_created, campaign_created). We forward only
+     * for the owner to avoid duplicate events — the owner is the actor,
+     * participants are passive recipients of the log entry.
+     */
+    protected function forwardParticipantEventToPostHog(
+        ActivityType $type,
+        Model $subject,
+        array $properties = [],
+    ): void {
+        $owner = null;
+
+        if ($subject instanceof Game || $subject instanceof Campaign) {
+            // Eager-load owner to avoid a lazy-load query on every call
+            if (! $subject->relationLoaded('owner')) {
+                $subject->load('owner');
+            }
+            $owner = $subject->owner;
+        }
+
+        if ($owner) {
+            $this->forwardToPostHog($type, $owner, $subject, $properties);
         }
     }
 

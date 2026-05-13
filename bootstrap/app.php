@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\SetLocale;
+use App\Services\PostHogExceptionReporter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\EnsureLocaleDefaults::class);
         $middleware->append(\App\Http\Middleware\CachePublicPages::class);
         $middleware->append(\App\Http\Middleware\TrackAppVisit::class);
+        $middleware->append(\App\Http\Middleware\PostHogIdentifyUsers::class);
         $middleware->append(\App\Http\Middleware\ProcessShareIntent::class);
 
         $middleware->alias([
@@ -39,6 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->reportable(function (Throwable $e) {
+            app(PostHogExceptionReporter::class)->report($e);
+        });
+
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
             if ($e->getStatusCode() === 403 && $request->is('admin*') && $request->acceptsHtml()) {
                 return response()->view('errors.403', [], 403);

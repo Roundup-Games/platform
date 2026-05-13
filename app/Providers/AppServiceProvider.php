@@ -14,11 +14,14 @@ use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
 use App\Observers\ActivityLogObserver;
 use App\Observers\SeoModelObserver;
+use App\Services\PostHogClient;
+use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
@@ -30,6 +33,7 @@ use RalphJSmit\Laravel\SEO\Support\AlternateTag;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
+use PostHog\Posthog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -73,6 +77,21 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(\App\Services\AttendanceService::class);
 
+        // Centralized PostHog SDK wrapper — single point for enabled checks and SDK delegation.
+        $this->app->singleton(PostHogClient::class);
+
+        // Feature flag evaluation — singleton so per-request static cache is shared.
+        // Clear the static cache at request end so long-running processes
+        // (Octane, queue workers) don't serve stale flag decisions.
+        $this->app->singleton(PostHogFeatureFlag::class);
+        $this->app->terminating(function () {
+            try {
+                app(PostHogFeatureFlag::class)->clearCache();
+            } catch (\Throwable) {
+                // Graceful — tests may mock the singleton without clearCache expectations
+            }
+        });
+
         $this->app->extend('translator', function ($translator, $app) {
             if (! $app->environment('local')) {
                 return $translator;
@@ -93,6 +112,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Feature flag Blade directives
+        // Blade::if creates @featureFlag / @else / @endfeatureFlag automatically.
+        // Closing tags @endfeatureFlag and @endfeatureFlagVariant are auto-generated.
+        Blade::if('featureFlag', fn (string $key) => app(PostHogFeatureFlag::class)->isOn($key));
+
+        Blade::if('featureFlagVariant', fn (string $key, string $variant) => app(PostHogFeatureFlag::class)->getVariant($key) === $variant);
+
+        // PostHog PHP SDK — initialize when API key is configured
+        if (config('posthog.enabled', true) && config('posthog.api_key')) {
+            Posthog::init(
+                config('posthog.api_key'),
+                [
+                    'host' => config('posthog.host', 'https://eu.i.posthog.com'),
+                ],
+            );
+        }
         // SEO: inject locale alternates (en/de/x-default) and canonical URL on every page
         // Bind TagManager as a singleton so seo()->for($model) in components persists to {!! seo() !!} in layout
         $this->app->singleton(\RalphJSmit\Laravel\SEO\TagManager::class);
