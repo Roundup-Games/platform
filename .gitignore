@@ -59,3 +59,4 @@ storage/logs/i18n-missing.jsonl
 build-tools/.venv/
 build-tools/MaterialSymbolsOutlined.woff2
 build-tools/material-symbols.codepoints
+build-tools/_subset_material.py

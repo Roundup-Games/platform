@@ -1,109 +1,149 @@
 <x-public-layout>
 
-    <x-hero :title="__('pages.content_about_roundup_games')" :subtitle="__('events.content_building_community_through_competitive_gaming')" />
-
-    {{-- Mission Section --}}
-    <section class="py-16 sm:py-20 bg-surface">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="max-w-3xl mx-auto">
-                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('pages.content_our_mission') }}</h2>
-                <div class="mt-6 space-y-4 text-on-surface-variant text-base leading-relaxed">
-                    <p>
-                        {{ __('events.content_roundup_games_was_born_from') }}
-                    </p>
-                    <p>
-                        {{ __('events.content_our_platform_makes_it_easy') }}
-                    </p>
-                    <p>
-                        {{ __("events.content_we_believe_that_everyone_should") }}
-                    </p>
-                </div>
-            </div>
+    {{-- ── Hero ─────────────────────────────────────────────── --}}
+    <section class="relative bg-primary text-on-primary overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-0 right-0 w-72 h-72 bg-on-primary rounded-full -translate-y-1/2 translate-x-1/3"></div>
+            <div class="absolute bottom-0 left-0 w-56 h-56 bg-on-primary rounded-full translate-y-1/2 -translate-x-1/3"></div>
+        </div>
+        <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
+                {{ __('pages.about_heading_vision') }}
+            </h1>
+            <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
+                {{ __('pages.about_intro') }}
+            </p>
         </div>
     </section>
 
-    {{-- Values Section — editorial shadows, Material Symbols --}}
-    <section class="py-16 sm:py-20 bg-surface-container-low">
+    {{-- ── What Drives Us ───────────────────────────────────── --}}
+    <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface text-center mb-12">{{ __('pages.content_what_we_stand_for') }}</h2>
+            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-12">
+                {{ __('pages.about_what_drives_us') }}
+            </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">groups</span>
+                {{-- Transparency --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">visibility</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_transparency_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_transparency_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('pages.content_community_first') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('events.content_everything_we_build_starts_with') }}</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">shield</span>
+                {{-- Safety --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_safety_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_safety_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.content_fair_play') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("discovery.content_we_re_committed_to_creating") }}</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">bolt</span>
+                {{-- Inclusivity & Diversity --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_inclusivity_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_inclusivity_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{!! __('common.content_simple_fast') !!}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("pages.content_from_creating_an_event_to") }}</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">public</span>
+                {{-- Investing in Community --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">favorite</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_community_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_community_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.action_open_to_all') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("events.content_whether_you_re_a_seasoned") }}</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">assignment</span>
+                {{-- Try Something New --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">auto_awesome</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_experiment_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_experiment_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('common.content_organizer_empowerment') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __('events.content_we_give_organizers_the_tools') }}</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="material-symbols-outlined text-primary text-3xl" aria-hidden="true">favorite</span>
+                {{-- Open Source --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">code</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_open_source_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('pages.about_open_source_body') }}
+                            </p>
+                        </div>
                     </div>
-                    <h3 class="font-heading font-semibold text-on-surface text-lg">{{ __('games.content_passion_for_games') }}</h3>
-                    <p class="mt-2 text-sm text-on-surface-variant">{{ __("games.content_we_re_gamers_ourselves_that") }}</p>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- Team Section --}}
-    <section class="py-16 sm:py-20 bg-surface">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="max-w-3xl mx-auto text-center">
-                <h2 class="text-3xl font-heading font-bold tracking-tight text-on-surface">{{ __('teams.content_our_team') }}</h2>
-                <p class="mt-4 text-on-surface-variant text-base leading-relaxed">
-                    {{ __("pages.content_we_re_a_small_team") }}
-                </p>
-            </div>
-        </div>
-    </section>
-
-    {{-- Community CTA — warm amber gradient --}}
+    {{-- ── CTA ─────────────────────────────────────────────────── --}}
     <section class="py-16 sm:py-20 bg-primary text-on-primary">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-3xl font-heading font-bold tracking-tight">{{ __('common.action_join_our_community') }}</h2>
+            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight">
+                {{ __('common.content_ready_to_find_your_table') }}
+            </h2>
             <p class="mt-4 text-on-primary/80 max-w-xl mx-auto">
-                {{ __("events.content_whether_you_want_to_organize") }}
+                {{ __('campaigns.content_create_a_free_account_set') }}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-                <a href="{{ route('events.index') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
-                    {{ __('events.action_browse_events') }}
-                </a>
-                <a href="{{ route('contact') }}" wire:navigate class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
-                    {{ __('pages.action_get_in_touch') }}
-                </a>
+                @guest
+                    <a href="{{ route('register') }}" wire:navigate
+                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
+                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
+                        {{ __('auth.content_sign_up_free') }}
+                    </a>
+                    <a href="{{ route('discover') }}" wire:navigate
+                       class="inline-flex items-center px-6 py-3 bg-on-primary/20 text-on-primary rounded-xl font-semibold hover:bg-on-primary/30 transition-colors text-sm border border-on-primary/30">
+                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
+                        {{ __('campaigns.action_browse_sessions') }}
+                    </a>
+                @else
+                    <a href="{{ route('discover') }}" wire:navigate
+                       class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
+                        <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">explore</span>
+                        {{ __('campaigns.action_browse_sessions') }}
+                    </a>
+                @endguest
             </div>
         </div>
     </section>

@@ -77,7 +77,7 @@ return [
         'volunteer_activism', 'how_to_reg',
 
         // Icons only in dynamic PHP code
-        'pause_circle', 'search_off', 'inbox',
+        'pause_circle', 'search_off', 'inbox', 'code', 'dashboard',
 
         // Icons only in JS
         'system_update',

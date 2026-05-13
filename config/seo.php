@@ -82,7 +82,7 @@ return [
          * so you'll need to add the suffix manually if you want that. If set to null, we'll determine the title
          * just like the other pages.
          */
-        'homepage_title' => 'Roundup Games — Find Board and Tabletop RPG Games, Events & Campaigns Near You',
+        'homepage_title' => 'Discover Tabletop Game Sessions Near You — Roundup Games',
     ],
 
     'description' => [
@@ -91,7 +91,7 @@ return [
          * where we don't have a description set via an associated ->seo model or via
          * the ->getDynamicSEOData() method.
          */
-        'fallback' => 'Find and join board and tabletop RPG games, events, and campaigns near you.',
+        'fallback' => 'Find board games, tabletop RPG sessions, and campaigns near you. Discover local game events, join a welcoming community, and start playing today.',
     ],
 
     'image' => [

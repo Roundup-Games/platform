@@ -7,9 +7,11 @@ use App\Models\Campaign;
 use App\Models\ContactMessage;
 use App\Models\Game;
 use App\Models\User;
+use App\SEO\OrganizationSchema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 class PageController extends Controller
@@ -38,12 +40,26 @@ class PageController extends Controller
             ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
             ->count();
 
+        $schema = SchemaCollection::initialize();
+        $schema->markup[OrganizationSchema::class][] = fn (OrganizationSchema $s) => $s;
+
+        seo(new SEOData(
+            title: __('pages.seo_title_home'),
+            description: __('pages.seo_description_home'),
+            schema: $schema,
+        ));
+
         return view('pages.home', compact('sessionsThisWeek', 'activeCampaigns', 'peopleThisWeek'));
     }
 
     public function about()
     {
-        return redirect()->route('how-it-works', app()->getLocale(), 301);
+        seo(new SEOData(
+            title: __('pages.seo_title_about'),
+            description: __('pages.seo_description_about'),
+        ));
+
+        return view('pages.about');
     }
 
     public function howItWorks()

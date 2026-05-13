@@ -1,0 +1,56 @@
+# Roundup Games
+
+> Roundup Games is a platform for finding, joining, and organizing board games, tabletop RPG sessions, events, and campaigns.
+
+## What is Roundup Games?
+
+Roundup Games helps tabletop gaming enthusiasts discover game sessions, campaigns, and events near them. Whether you play board games, Dungeons & Dragons, Pathfinder, or any tabletop RPG, Roundup Games connects you with players and game masters in your area.
+
+## Key Features
+
+- **Session Discovery**: Find board game and tabletop RPG sessions happening near you, filtered by game system, distance, and availability.
+- **Campaign Management**: Join or organize ongoing campaigns with scheduling, player management, and session tracking.
+- **Event Organization**: Create and manage gaming events with registration, announcements, and participant coordination.
+- **Game Master Directory**: Browse GM profiles with session history, reviews, and game system specialties.
+- **Safety Tools**: Built-in safety tools including Session Zero support, lines & veils, and the X-Card for comfortable gaming experiences.
+- **Game Systems Knowledge Base**: Browse a comprehensive library of game systems with descriptions, mechanics, and categories.
+- **Multi-language**: Available in English and German.
+
+## For Players
+
+- Discover game sessions and campaigns near you
+- Browse GM profiles and read community reviews
+- Join games with built-in safety tools
+- Track your gaming history and preferences
+
+## For Organizers / Game Masters
+
+- Schedule sessions and manage player rosters
+- Run campaigns with automatic session scheduling
+- Build your reputation with public GM profiles
+- Manage events with registration and announcements
+
+## Getting Started
+
+1. Create a free account at roundupgames.com
+2. Set your location to find nearby sessions
+3. Browse available games, campaigns, or events
+4. Join a session or create your own
+
+## Pricing
+
+Roundup Games is free to get started. Core features — finding sessions, joining games, creating events — are free. Subscription plans for advanced organizer tools (GM workspace, seat filling, promotion) are available. Revenue from subscriptions is reinvested into the platform, community events, game organizer education, and promoting tabletop gaming.
+
+## Technical
+
+- Built with Laravel, Livewire, and Tailwind CSS
+- Progressive Web App (PWA) support for mobile
+- Available in English (en) and German (de)
+- Sitemap available at /sitemap.xml
+
+## Contact
+
+- Website: https://roundupgames.com
+- About: https://roundupgames.com/en/about
+- Contact form: https://roundupgames.com/en/contact
+- Open source: https://github.com/Roundup-Games/

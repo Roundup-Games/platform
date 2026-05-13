@@ -4,13 +4,44 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormSubmitted;
 use function Pest\Laravel\{get, post, actingAs};
 
+// ── Homepage SEO ────────────────────────────────────────
+
+describe('HomepageSEO', function () {
+    it('renders the correct SEO title and description', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee(__('pages.seo_title_home'), false)
+            ->assertSee(__('pages.seo_description_home'), false);
+    });
+
+    it('includes Organization schema markup', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee('"@type":"Organization"', false)
+            ->assertSee('"name":"Roundup Games"', false);
+    });
+
+    it('includes BreadcrumbList schema markup', function () {
+        get(route('home'))
+            ->assertOk()
+            ->assertSee('"@type":"BreadcrumbList"', false);
+    });
+});
+
 // ── About Page ─────────────────────────────────────────
 
 describe('AboutPage', function () {
-    it('redirects /about to /how-it-works with 301', function () {
+    it('renders the about page successfully', function () {
         get(route('about'))
-            ->assertRedirect(route('how-it-works'))
-            ->assertStatus(301);
+            ->assertOk()
+            ->assertSee(__('pages.about_heading_vision'));
+    });
+
+    it('includes the SEO title and description', function () {
+        get(route('about'))
+            ->assertOk()
+            ->assertSee('About Roundup Games', false)
+            ->assertSee(__('pages.seo_description_about'), false);
     });
 
     it('renders how-it-works page successfully', function () {
