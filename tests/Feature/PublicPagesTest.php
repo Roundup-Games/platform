@@ -4,6 +4,12 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactFormSubmitted;
 use function Pest\Laravel\{get, post, actingAs};
 
+// Max lengths must be one character over the validation rules
+// (name: max:255, subject: max:255, message: max:5000)
+const MAX_NAME_LENGTH = 256;
+const MAX_SUBJECT_LENGTH = 256;
+const MAX_MESSAGE_LENGTH = 5001;
+
 // ── Homepage SEO ────────────────────────────────────────
 
 describe('HomepageSEO', function () {
@@ -96,8 +102,14 @@ describe('ContactPage', function () {
             'status' => 'new',
         ]);
 
-        // Verify email was queued
-        Mail::assertQueued(ContactFormSubmitted::class);
+        // Verify email was queued with correct data
+        Mail::assertQueued(function (ContactFormSubmitted $mail) {
+            $contact = $mail->contactMessage;
+            return $contact->name === 'John Doe'
+                && $contact->email === 'john@example.com'
+                && $contact->subject === 'Question about events'
+                && $contact->message === 'I have a question about upcoming events.';
+        });
     });
 
     it('works without a subject', function () {
@@ -118,8 +130,15 @@ describe('ContactPage', function () {
     });
 
     it('validates required fields', function () {
-        post(route('contact.submit'), [])
-            ->assertSessionHasErrors(['name', 'email', 'message']);
+        $response = post(route('contact.submit'), []);
+
+        $response->assertSessionHasErrors(['name', 'email', 'message']);
+
+        // Verify specific error messages are user-friendly
+        $errors = session('errors')->getBag('default');
+        expect($errors->first('name'))->toContain('required');
+        expect($errors->first('email'))->toContain('required');
+        expect($errors->first('message'))->toContain('required');
     });
 
     it('validates email format', function () {
@@ -133,10 +152,10 @@ describe('ContactPage', function () {
 
     it('validates max lengths', function () {
         post(route('contact.submit'), [
-            'name' => str_repeat('a', 256),
+            'name' => str_repeat('a', MAX_NAME_LENGTH),       // max:255 + 1
             'email' => 'test@example.com',
-            'subject' => str_repeat('a', 256),
-            'message' => str_repeat('a', 5001),
+            'subject' => str_repeat('a', MAX_SUBJECT_LENGTH), // max:255 + 1
+            'message' => str_repeat('a', MAX_MESSAGE_LENGTH), // max:5000 + 1
         ])
             ->assertSessionHasErrors(['name', 'subject', 'message']);
     });
@@ -158,14 +177,6 @@ describe('ContactPage', function () {
             ->assertSee(__('common.content_thank_you_for_your_message'));
     });
 
-    it('shows validation errors on invalid input', function () {
-        post(route('contact.submit'), [
-            'name' => '',
-            'email' => '',
-            'message' => '',
-        ])
-            ->assertSessionHasErrors(['name', 'email', 'message']);
-    });
 });
 
 // ── Navigation Integration ─────────────────────────────

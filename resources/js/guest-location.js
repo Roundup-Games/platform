@@ -11,6 +11,7 @@
 
 const STORAGE_KEY = 'rg_location';
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const MAX_CACHE_AGE_MS = 300_000; // 5 minutes -- reuse cached position within this window
 
 /**
  * Read cached guest location from localStorage.
@@ -101,7 +102,7 @@ export function requestBrowserLocation({ timeout = 10000 } = {}) {
                         reject(new Error('Unknown geolocation error.'));
                 }
             },
-            { enableHighAccuracy: false, timeout, maximumAge: 300_000 },
+            { enableHighAccuracy: false, timeout, maximumAge: MAX_CACHE_AGE_MS },
         );
     });
 }
@@ -112,11 +113,10 @@ export function requestBrowserLocation({ timeout = 10000 } = {}) {
  * Livewire components listen with `@listener('guest-location-updated')` or
  * `#[On('guest-location-updated')]` on the PHP side.
  *
- * @param {string} _component — reserved for targeted dispatch (currently broadcasts globally)
  * @param {number} lat
  * @param {number} lng
  */
-export function dispatchToLivewire(_component, lat, lng) {
+export function dispatchToLivewire(lat, lng) {
     window.dispatchEvent(
         new CustomEvent('guest-location-updated', { detail: { lat, lng } }),
     );
@@ -125,12 +125,11 @@ export function dispatchToLivewire(_component, lat, lng) {
 /**
  * Convenience: request browser location, persist, and notify Livewire in one call.
  *
- * @param {string} component — Livewire component name / id for dispatchToLivewire
  * @returns {Promise<{lat: number, lng: number}>}
  */
-export async function locateAndDispatch(component) {
+export async function locateAndDispatch() {
     const { lat, lng } = await requestBrowserLocation();
-    dispatchToLivewire(component, lat, lng);
+    dispatchToLivewire(lat, lng);
     return { lat, lng };
 }
 
