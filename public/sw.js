@@ -448,5 +448,18 @@ self.addEventListener('message', (event) => {
                 }
             })
         );
+        return;
+    }
+
+    if (event.data?.type === 'CLEAR_QUEUE') {
+        event.waitUntil(
+            clearQueue().then(() => {
+                if (event.ports && event.ports[0]) {
+                    event.ports[0].postMessage({ type: 'QUEUE_CLEARED' });
+                }
+                console.log('[SW] Offline action queue cleared');
+            })
+        );
+        return;
     }
 });

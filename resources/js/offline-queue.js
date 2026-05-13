@@ -106,3 +106,32 @@ function showToast(message, icon) {
     document.body.appendChild(toast);
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
 }
+
+/**
+ * Clear all queued offline actions (e.g. on logout).
+ * @returns {Promise<boolean>} true if cleared successfully
+ */
+export async function clearQueue() {
+    if (!('serviceWorker' in navigator)) return false;
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        if (!registration.active) return false;
+
+        await new Promise((resolve, reject) => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = (event) => {
+                if (event.data?.type === 'QUEUE_CLEARED') resolve();
+                else reject(new Error('Unexpected SW response'));
+            };
+            channel.port1.onmessageerror = () => reject(new Error('Message port error'));
+            registration.active.postMessage({ type: 'CLEAR_QUEUE' }, [channel.port2]);
+            setTimeout(() => reject(new Error('SW response timeout')), 3000);
+        });
+
+        return true;
+    } catch (error) {
+        console.warn('[OfflineQueue] Failed to clear queue:', error);
+        return false;
+    }
+}
