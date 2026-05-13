@@ -87,11 +87,12 @@ describe('ContactPage', function () {
             ->assertRedirect(route('contact'))
             ->assertSessionHas('success');
 
-        // Verify stored in DB
+        // Verify stored in DB with all fields including message content
         $this->assertDatabaseHas('contact_messages', [
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'subject' => 'Question about events',
+            'message' => 'I have a question about upcoming events.',
             'status' => 'new',
         ]);
 
@@ -143,12 +144,15 @@ describe('ContactPage', function () {
     it('displays success message after submission', function () {
         Mail::fake();
 
-        $response = post(route('contact.submit'), [
+        post(route('contact.submit'), [
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'message' => 'Test message.',
-        ]);
+        ])
+            ->assertRedirect(route('contact'))
+            ->assertSessionHas('success');
 
+        // Follow the redirect to verify the success message is displayed
         get(route('contact'))
             ->assertOk()
             ->assertSee(__('common.content_thank_you_for_your_message'));
