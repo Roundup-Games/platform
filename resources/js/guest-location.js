@@ -51,10 +51,15 @@ export function getGuestLocation() {
  * @param {number} lng
  * @param {string} source — e.g. 'browser', 'manual'
  */
+// CodeQL [js/cleartext-storage-of-sensitive-information] is a false positive here:
+// these are the user's own coarse city-level coordinates (enableHighAccuracy: false),
+// stored client-side because guests have no server session. The Geolocation API already
+// exposes these values to all JS on the page. Encrypting would be security theater
+// since the decryption key would also be client-side.
 export function setGuestLocation(lat, lng, source) {
     try {
         const payload = { lat, lng, source, timestamp: Date.now() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); // lgtm [js/cleartext-storage-of-sensitive-information]
     } catch (_e) {
         // localStorage may be full or disabled — fail silently.
     }
