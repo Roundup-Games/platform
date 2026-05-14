@@ -37,6 +37,8 @@ return [
     // ── Errors ─────────────────────────────────────────────────────
     'error_rate_limit' => 'You\'ve submitted too many reports. Please try again in :minutes minutes.',
     'error_entity_not_found' => 'The reported content could not be found.',
+    'error_self_report' => 'You cannot report your own content.',
+    'error_already_reported' => 'You have already reported this content. Our team is reviewing it.',
 
     // ── Flash ──────────────────────────────────────────────────────
     'flash_report_submitted' => 'Thank you. Your report has been submitted to our moderation team.',

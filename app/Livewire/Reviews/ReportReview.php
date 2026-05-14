@@ -7,7 +7,6 @@ use App\Models\Review;
 use App\Models\User;
 use App\Notifications\ReviewReported;
 use App\Services\NotificationService;
-use App\Services\ScopedRoleService;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -17,6 +16,7 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
@@ -67,6 +67,16 @@ class ReportReview extends Component
         }
 
         $reporter = Auth::user();
+
+        // Rate limit: 5 review reports per user per hour
+        $rateLimitKey = "review-reports:{$reporter->id}";
+        if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 3600)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            $minutes = ceil($seconds / 60);
+            $this->addError('reason', __('reports.error_rate_limit', ['minutes' => $minutes]));
+
+            return;
+        }
 
         $review->report($reporter->id, $this->reason);
 
@@ -183,12 +193,10 @@ class ReportReview extends Component
      */
     private function notifyAdmins(Review $review, $reporter): void
     {
-        $adminService = app(ScopedRoleService::class);
         $notificationService = app(NotificationService::class);
 
-        $admins = \App\Models\User::all()->filter(
-            fn ($user) => $adminService->isGlobalAdmin($user)
-        );
+        // Query only Platform Admin users instead of loading all users
+        $admins = User::role('Platform Admin')->get();
 
         foreach ($admins as $admin) {
             $notificationService->send(

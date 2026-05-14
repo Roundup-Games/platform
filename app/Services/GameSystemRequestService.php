@@ -10,6 +10,7 @@ use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -166,27 +167,29 @@ class GameSystemRequestService
         $name = $this->extractName($ticket);
         $type = $metadata['game_system_type'] ?? 'boardgame';
 
-        $gameSystem = GameSystem::create([
-            'name' => $name,
-            'slug' => Str::slug($name),
-            'description' => $ticket->description ?? '',
-            'type' => $type,
-            'year_released' => null,
-            'source' => 'manual',
-        ]);
+        return DB::transaction(function () use ($ticket, $metadata, $name, $type) {
+            $gameSystem = GameSystem::create([
+                'name' => $name,
+                'slug' => Str::slug($name),
+                'description' => $ticket->description ?? '',
+                'type' => $type,
+                'year_released' => null,
+                'source' => 'manual',
+            ]);
 
-        // Update ticket metadata with game_system_id
-        // Use updateQuietly to avoid re-triggering model events (e.g. ticket listeners).
-        $metadata['game_system_id'] = $gameSystem->id;
-        $ticket->updateQuietly(['metadata' => $metadata]);
+            // Update ticket metadata with game_system_id
+            // Use updateQuietly to avoid re-triggering model events (e.g. ticket listeners).
+            $metadata['game_system_id'] = $gameSystem->id;
+            $ticket->updateQuietly(['metadata' => $metadata]);
 
-        Log::info('Manual GameSystem created from ticket', [
-            'ticket_id' => $ticket->id,
-            'game_system_id' => $gameSystem->id,
-            'game_system_name' => $gameSystem->name,
-        ]);
+            Log::info('Manual GameSystem created from ticket', [
+                'ticket_id' => $ticket->id,
+                'game_system_id' => $gameSystem->id,
+                'game_system_name' => $gameSystem->name,
+            ]);
 
-        return $gameSystem;
+            return $gameSystem;
+        });
     }
 
     /**

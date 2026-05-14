@@ -79,6 +79,10 @@ class HandleGameSystemTicketResolved
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
+            // Re-throw so the event dispatcher knows the listener failed.
+            // The ticket will remain in its current status for manual review.
+            throw $e;
         }
     }
 

@@ -25,13 +25,15 @@
                     {{ __('support.field_issue_type') }} <span class="text-error">*</span>
                 </label>
                 <select wire:model="issueType" id="issueType"
+                        aria-invalid="@error('issueType') true @else false @enderror"
+                        aria-describedby="issueType-error"
                         class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
                     @foreach($issueTypes as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
                 @error('issueType')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="issueType-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -41,10 +43,12 @@
                     {{ __('support.field_subject') }} <span class="text-error">*</span>
                 </label>
                 <input type="text" wire:model="subject" id="subject"
+                       aria-invalid="@error('subject') true @else false @enderror"
+                       aria-describedby="subject-error"
                        class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                        placeholder="{{ __('support.placeholder_subject') }}" />
                 @error('subject')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="subject-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -54,10 +58,12 @@
                     {{ __('support.field_description') }} <span class="text-error">*</span>
                 </label>
                 <textarea wire:model="description" id="description" rows="6"
+                          aria-invalid="@error('description') true @else false @enderror"
+                          aria-describedby="description-error"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                           placeholder="{{ __('support.placeholder_description') }}"></textarea>
                 @error('description')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="description-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 

@@ -3,7 +3,7 @@
         {{-- Page Header --}}
         <div class="mb-6 sm:mb-8">
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ route('game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors" aria-label="{{ __('games.action_back_to_game_systems') }}">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
                 <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.heading_my_requests') }}</h1>

@@ -131,6 +131,19 @@ class PaddleWebhookController extends BaseWebhookController
                 return;
             }
 
+            $transactionId = $data['id'] ?? null;
+
+            // Deduplicate: skip if a ticket already exists for this transaction
+            if ($transactionId && Ticket::where('ticket_type', 'billing_support')
+                ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
+                ->exists()) {
+                Log::info('support.payment_failure_ticket_skipped_duplicate', [
+                    'paddle_transaction_id' => $transactionId,
+                ]);
+
+                return;
+            }
+
             $department = Department::where('name', 'Billing')->first();
             if (! $department) {
                 Log::warning('Cannot create payment failure ticket: Billing department not found');
@@ -204,7 +217,9 @@ class PaddleWebhookController extends BaseWebhookController
                 'payload_id' => $request->input('data.id'),
             ]);
 
-            return new Response('Webhook Error', 500);
+            // Return 200 to prevent Paddle from retrying indefinitely.
+            // The error is logged for manual investigation.
+            return new Response('Webhook processed with errors', 200);
         }
     }
 

@@ -107,6 +107,20 @@ class ReportContent extends Component
             return;
         }
 
+        // Prevent self-reporting: users should not report their own content
+        if ($this->isSelfReport($entity, $reporter)) {
+            $this->addError('reason', __('reports.error_self_report'));
+
+            return;
+        }
+
+        // Prevent duplicate reports: check for existing open ticket on the same entity
+        if ($this->hasExistingReport($entity, $reporter)) {
+            $this->addError('reason', __('reports.error_already_reported'));
+
+            return;
+        }
+
         // Create Safety department ticket
         $this->createSafetyTicket($entity, $reporter);
 
@@ -168,6 +182,37 @@ class ReportContent extends Component
     /**
      * Create an Escalated ticket in the Safety department for the reported entity.
      */
+    /**
+     * Check if the reporter is the owner of the entity being reported.
+     */
+    private function isSelfReport($entity, User $reporter): bool
+    {
+        // User profiles: check if reporter is the profile owner
+        if ($entity instanceof User) {
+            return $entity->id === $reporter->id;
+        }
+
+        // Games and campaigns: check ownership
+        if (method_exists($entity, 'owner') && isset($entity->owner_id)) {
+            return $entity->owner_id === $reporter->id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an open ticket already exists for this entity from this reporter.
+     */
+    private function hasExistingReport($entity, User $reporter): bool
+    {
+        return Ticket::where('ticket_type', 'content_report')
+            ->where('status', '!=', TicketStatus::Closed->value)
+            ->where('requester_id', $reporter->id)
+            ->whereJsonContains('metadata->entity_type', $this->entityType)
+            ->whereJsonContains('metadata->entity_id', $this->entityId)
+            ->exists();
+    }
+
     private function createSafetyTicket($entity, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();

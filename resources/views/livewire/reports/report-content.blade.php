@@ -17,8 +17,9 @@
              role="dialog"
              aria-modal="true"
              aria-labelledby="report-content-title"
-             wire:click.self="closeModal">
-            <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 w-full max-w-md mx-4">
+             wire:click.self="closeModal"
+             wire:keydown.escape="closeModal">
+            <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 w-full max-w-md mx-4" wire:ignore>
                 <h3 id="report-content-title" class="text-lg font-heading font-semibold text-on-surface mb-4">
                     {{ __('reports.title_report_content', ['type' => $this->getEntityTypeLabel()]) }}
                 </h3>

@@ -26,6 +26,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
@@ -200,6 +201,7 @@ class ViewTicket extends BaseViewTicket
                         ->label('Clear Selection')
                         ->color('gray')
                         ->visible(fn () => $this->selectedBggId !== null)
+                        ->closeModalAfterClicking(false)
                         ->action(function () {
                             $this->selectedBggId = null;
                             $this->selectedBggName = null;
@@ -420,14 +422,16 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            // Restore review to published status before closing
-            $this->restoreReviewStatus($ticket, 'published');
+            DB::transaction(function () use ($ticket, $user, $ticketService) {
+                // Restore review to published status before closing
+                $this->restoreReviewStatus($ticket, 'published');
 
-            // Add internal note after review update succeeds
-            $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
+                // Add internal note after review update succeeds
+                $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
 
-            // Close the ticket
-            $ticketService->close($ticket, $user);
+                // Close the ticket
+                $ticketService->close($ticket, $user);
+            });
 
             Log::info('review.report.dismissed', [
                 'ticket_id' => $ticket->id,
@@ -465,14 +469,16 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            // Hide the review before closing
-            $this->restoreReviewStatus($ticket, 'hidden');
+            DB::transaction(function () use ($ticket, $user, $ticketService) {
+                // Hide the review before closing
+                $this->restoreReviewStatus($ticket, 'hidden');
 
-            // Add internal note after review update succeeds
-            $ticketService->addNote($ticket, $user, 'Review removed by admin');
+                // Add internal note after review update succeeds
+                $ticketService->addNote($ticket, $user, 'Review removed by admin');
 
-            // Close the ticket
-            $ticketService->close($ticket, $user);
+                // Close the ticket
+                $ticketService->close($ticket, $user);
+            });
 
             Log::info('review.report.removed', [
                 'ticket_id' => $ticket->id,
@@ -528,25 +534,30 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            // Add internal note
-            $ticketService->addNote($ticket, $user, "Escalated by {$user->name}");
+            DB::transaction(function () use ($ticket, $user, $ticketService) {
+                // Add internal note
+                $ticketService->addNote($ticket, $user, "Escalated by {$user->name}");
 
-            // Increase priority to Urgent
-            $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
+                // Increase priority to Urgent
+                $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
-            // Find a Platform Admin to assign to
+                // Find a Platform Admin to assign to
+                ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+
+                if ($platformAdmin->id !== $user->id) {
+                    // Update assigned_to directly to avoid TicketAssigned event type mismatch
+                    // (vendor event expects int agentId but our User model uses UUID)
+                    $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
+                    $ticket->logActivity(
+                        \Escalated\Laravel\Enums\ActivityType::Assigned,
+                        $user,
+                        ['agent_id' => $platformAdmin->id]
+                    );
+                }
+            });
+
+            // Extract assignment info for notification (outside transaction)
             ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
-
-            if ($platformAdmin->id !== $user->id) {
-                // Update assigned_to directly to avoid TicketAssigned event type mismatch
-                // (vendor event expects int agentId but our User model uses UUID)
-                $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
-                $ticket->logActivity(
-                    \Escalated\Laravel\Enums\ActivityType::Assigned,
-                    $user,
-                    ['agent_id' => $platformAdmin->id]
-                );
-            }
 
             Log::info('review.report.escalated', [
                 'ticket_id' => $ticket->id,
@@ -620,8 +631,10 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            $ticketService->addNote($ticket, $user, 'Content report dismissed by admin — no action taken.');
-            $ticketService->close($ticket, $user);
+            DB::transaction(function () use ($ticket, $user, $ticketService) {
+                $ticketService->addNote($ticket, $user, 'Content report dismissed by admin — no action taken.');
+                $ticketService->close($ticket, $user);
+            });
 
             Log::info('content_report.dismissed', [
                 'ticket_id' => $ticket->id,
@@ -675,7 +688,9 @@ class ViewTicket extends BaseViewTicket
             if ($note) {
                 $noteBody .= ' Note: ' . $note;
             }
-            $ticketService->addNote($ticket, $admin, $noteBody);
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $noteBody) {
+                $ticketService->addNote($ticket, $admin, $noteBody);
+            });
 
             // Send warning notification to the reported user before closing
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
@@ -686,7 +701,9 @@ class ViewTicket extends BaseViewTicket
             ));
 
             // Close the ticket only after notification succeeds
-            $ticketService->close($ticket, $admin);
+            DB::transaction(function () use ($ticket, $admin, $ticketService) {
+                $ticketService->close($ticket, $admin);
+            });
 
             Log::info('content_report.user_warned', [
                 'ticket_id' => $ticket->id,
@@ -729,16 +746,19 @@ class ViewTicket extends BaseViewTicket
             $entityId = $ticket->metadata['entity_id'] ?? null;
             $removed = false;
 
+            // Remove the content first (outside transaction — hard to roll back)
             match ($entityType) {
                 'game' => $removed = $this->removeGame($entityId),
                 'campaign' => $removed = $this->removeCampaign($entityId),
                 default => $removed = false,
             };
 
-            $ticketService->addNote($ticket, $admin, $removed
-                ? ucfirst($entityType ?? 'content') . ' removed by admin.'
-                : 'Removal attempted but entity not found or already removed.');
-            $ticketService->close($ticket, $admin);
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $entityType, $removed) {
+                $ticketService->addNote($ticket, $admin, $removed
+                    ? ucfirst($entityType ?? 'content') . ' removed by admin.'
+                    : 'Removal attempted but entity not found or already removed.');
+                $ticketService->close($ticket, $admin);
+            });
 
             // Notify the content owner
             if ($removed) {
@@ -804,16 +824,18 @@ class ViewTicket extends BaseViewTicket
                 return;
             }
 
-            // Suspend the user
-            $reportedUser->update([
-                'is_disabled' => true,
-                'disabled_at' => now(),
-            ]);
+            // Suspend the user, note, and close — all atomic
+            DB::transaction(function () use ($reportedUser, $ticket, $admin, $ticketService) {
+                $reportedUser->update([
+                    'is_disabled' => true,
+                    'disabled_at' => now(),
+                ]);
 
-            $ticketService->addNote($ticket, $admin, "User account suspended ({$reportedUser->name}, ID: {$reportedUser->id}).");
-            $ticketService->close($ticket, $admin);
+                $ticketService->addNote($ticket, $admin, "User account suspended ({$reportedUser->name}, ID: {$reportedUser->id}).");
+                $ticketService->close($ticket, $admin);
+            });
 
-            // Send suspension notification
+            // Send suspension notification after transaction commits
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
             $reportedUser->notify(new AccountSuspended($reason));
 
@@ -854,19 +876,24 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            $ticketService->addNote($ticket, $user, "Content report escalated by {$user->name}.");
-            $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
+            DB::transaction(function () use ($ticket, $user, $ticketService) {
+                $ticketService->addNote($ticket, $user, "Content report escalated by {$user->name}.");
+                $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
+                ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+
+                if ($platformAdmin->id !== $user->id) {
+                    $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
+                    $ticket->logActivity(
+                        \Escalated\Laravel\Enums\ActivityType::Assigned,
+                        $user,
+                        ['agent_id' => $platformAdmin->id]
+                    );
+                }
+            });
+
+            // Extract assignment info for notification (outside transaction)
             ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
-
-            if ($platformAdmin->id !== $user->id) {
-                $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
-                $ticket->logActivity(
-                    \Escalated\Laravel\Enums\ActivityType::Assigned,
-                    $user,
-                    ['agent_id' => $platformAdmin->id]
-                );
-            }
 
             Log::info('content_report.escalated', [
                 'ticket_id' => $ticket->id,

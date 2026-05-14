@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->validateCsrfTokens(except: [
+            'paddle/webhook',
         ]);
 
         $middleware->append(\App\Http\Middleware\EnsureUserNotDisabled::class);
