@@ -78,6 +78,7 @@ class EscalatedSetupSeeder extends Seeder
             ['name' => 'spam', 'color' => '#D97706'],
             ['name' => 'misleading', 'color' => '#EA580C'],
             ['name' => 'dispute', 'color' => '#7C3AED'],
+            ['name' => 'attendance-dispute', 'color' => '#8B5CF6'],
             ['name' => 'bgg-sync', 'color' => '#059669'],
             ['name' => 'review-report', 'color' => '#E11D48'],
             ['name' => 'user-report', 'color' => '#BE185D'],

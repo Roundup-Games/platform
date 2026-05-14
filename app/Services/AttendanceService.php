@@ -11,6 +11,12 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\AttendanceReported;
 use App\Notifications\DisputeResolved;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Log;
 
 class AttendanceService
@@ -522,6 +528,9 @@ class AttendanceService
             ]);
 
             $outcome = 'upheld';
+
+            // Auto-create an Escalated ticket for manual review
+            $this->createDisputeTicket($participant, $corroboratingReports);
         }
 
         // Notify the disputing user
@@ -588,6 +597,181 @@ class AttendanceService
                 'reported_id' => $reported->id,
                 'status' => $status,
                 'corroboration_count' => $reportCount,
+            ]);
+        }
+    }
+
+    /**
+     * Create an Escalated ticket for an unresolved attendance dispute.
+     *
+     * Called when auto-corroboration fails (outcome = 'upheld').
+     * Creates a ticket in the Events department tagged 'attendance-dispute'
+     * so staff can manually review the dispute.
+     */
+    private function createDisputeTicket(GameParticipant $participant, $corroboratingReports): void
+    {
+        $game = $participant->game;
+        $user = $participant->user;
+
+        $department = Department::where('name', 'Events')->first();
+
+        if (! $department) {
+            Log::warning('Events department not found — cannot create dispute ticket', [
+                'participant_id' => $participant->id,
+                'game_id' => $game->id,
+            ]);
+
+            return;
+        }
+
+        $description = sprintf(
+            "An attendance dispute could not be auto-resolved.\n\n" .
+            "Game: %s (ID: %s)\n" .
+            "Date: %s\n" .
+            "Disputed status: %s\n" .
+            "Dispute reason: %s\n" .
+            "Corroborating reports: %d\n" .
+            "Current weight: %.2f\n\n" .
+            "Please review the attendance reports and resolve manually.",
+            $game->name ?? 'Unknown',
+            $game->id,
+            $game->date_time?->format('Y-m-d H:i') ?? 'N/A',
+            $participant->attendance_status?->value ?? 'unknown',
+            $participant->attendance_dispute_reason ?? 'No reason provided',
+            $corroboratingReports->count(),
+            $participant->attendance_weight ?? 0.0,
+        );
+
+        $disputeReports = AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $user->id)
+            ->whereNotNull('dispute_reason')
+            ->get();
+
+        $metadata = [
+            'attendance_dispute' => true,
+            'game_id' => $game->id,
+            'participant_id' => $participant->id,
+            'user_id' => $user->id,
+            'dispute_reason' => $participant->attendance_dispute_reason,
+            'disputed_status' => $participant->attendance_status?->value,
+            'corroborating_count' => $corroboratingReports->count(),
+            'attendance_report_ids' => $disputeReports->pluck('id')->toArray(),
+        ];
+
+        $ticket = Ticket::create([
+            'requester_type' => User::class,
+            'requester_id' => $user->id,
+            'subject' => 'Attendance Dispute: ' . ($game->name ?? 'Game ' . $game->id),
+            'description' => $description,
+            'status' => TicketStatus::Open->value,
+            'priority' => TicketPriority::Medium->value,
+            'department_id' => $department->id,
+            'ticket_type' => 'attendance_dispute',
+            'channel' => TicketChannel::Web->value,
+            'metadata' => $metadata,
+        ]);
+
+        // Apply attendance-dispute tag
+        $tag = Tag::where('name', 'attendance-dispute')->first();
+        if ($tag) {
+            $ticket->tags()->syncWithoutDetaching([$tag->id]);
+        }
+
+        Log::info('Attendance dispute ticket created', [
+            'ticket_id' => $ticket->id,
+            'ticket_reference' => $ticket->reference,
+            'participant_id' => $participant->id,
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    /**
+     * Resolve a dispute from a ticket resolution (manual staff review).
+     *
+     * When an Events department ticket with ticket_type=attendance_dispute is
+     * resolved by staff, this method applies the resolution to the underlying
+     * attendance dispute:
+     * - resolved_favor: clears no_show, sets attended, full weight
+     * - upheld: keeps current status (already upheld by auto-resolution)
+     *
+     * Sends DisputeResolved notification to the disputing user.
+     */
+    public function resolveDisputeFromTicket(Ticket $ticket): void
+    {
+        $metadata = $ticket->metadata ?? [];
+
+        if (($metadata['attendance_dispute'] ?? false) !== true) {
+            return;
+        }
+
+        $participantId = $metadata['participant_id'] ?? null;
+        $gameId = $metadata['game_id'] ?? null;
+
+        if (! $participantId || ! $gameId) {
+            Log::warning('Attendance dispute ticket missing participant/game ID', [
+                'ticket_id' => $ticket->id,
+            ]);
+
+            return;
+        }
+
+        $participant = GameParticipant::find($participantId);
+
+        if (! $participant) {
+            Log::warning('Participant not found for dispute ticket resolution', [
+                'ticket_id' => $ticket->id,
+                'participant_id' => $participantId,
+            ]);
+
+            return;
+        }
+
+        $game = $participant->game;
+        $user = $participant->user;
+
+        // Determine outcome from metadata — default to resolved_favor when staff resolves
+        // (staff resolving a ticket means they found in favor of the player)
+        $outcome = $metadata['staff_resolution'] ?? 'resolved_favor';
+
+        if ($outcome === 'resolved_favor') {
+            $participant->forceFill([
+                'attendance_status' => AttendanceStatus::Attended,
+                'attendance_weight' => 1.0,
+            ])->save();
+
+            AttendanceReport::where('game_id', $game->id)
+                ->where('reported_id', $user->id)
+                ->whereNotNull('dispute_reason')
+                ->update([
+                    'dispute_resolution' => 'resolved_favor',
+                    'dispute_resolved_at' => now(),
+                ]);
+
+            $this->reliabilityService->recomputeAfterAttendance($participant);
+
+            Log::info('Dispute resolved from ticket in player favor', [
+                'ticket_id' => $ticket->id,
+                'participant_id' => $participant->id,
+                'game_id' => $game->id,
+                'user_id' => $user->id,
+            ]);
+        }
+
+        // Notify the disputing user
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $notificationService->send(
+                $user,
+                new DisputeResolved($game, $outcome),
+                \App\Enums\NotificationCategory::DisputeResolved,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send dispute resolved notification from ticket', [
+                'ticket_id' => $ticket->id,
+                'game_id' => $game->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
             ]);
         }
     }
