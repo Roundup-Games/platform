@@ -8,10 +8,10 @@
         </div>
         <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center">
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight leading-tight">
-                {{ __('pages.about_heading_vision') }}
+                {{ __('pages.content_about_heading_vision') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
-                {{ __('pages.about_intro') }}
+                {{ __('pages.content_about_intro') }}
             </p>
         </div>
     </section>
@@ -20,7 +20,7 @@
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-12">
-                {{ __('pages.about_what_drives_us') }}
+                {{ __('pages.content_about_what_drives_us') }}
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {{-- Transparency --}}
@@ -30,9 +30,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">visibility</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_transparency_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_transparency_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_transparency_body') }}
+                                {{ __('pages.content_about_transparency_body') }}
                             </p>
                         </div>
                     </div>
@@ -45,9 +45,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_safety_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_safety_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_safety_body') }}
+                                {{ __('pages.content_about_safety_body') }}
                             </p>
                         </div>
                     </div>
@@ -60,9 +60,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_inclusivity_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_inclusivity_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_inclusivity_body') }}
+                                {{ __('pages.content_about_inclusivity_body') }}
                             </p>
                         </div>
                     </div>
@@ -75,9 +75,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">favorite</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_community_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_community_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_community_body') }}
+                                {{ __('pages.content_about_community_body') }}
                             </p>
                         </div>
                     </div>
@@ -90,9 +90,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">auto_awesome</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_experiment_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_experiment_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_experiment_body') }}
+                                {{ __('pages.content_about_experiment_body') }}
                             </p>
                         </div>
                     </div>
@@ -105,9 +105,9 @@
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">code</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.about_open_source_title') }}</h3>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_open_source_title') }}</h3>
                             <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.about_open_source_body') }}
+                                {{ __('pages.content_about_open_source_body') }}
                             </p>
                         </div>
                     </div>

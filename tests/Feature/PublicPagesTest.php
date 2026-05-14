@@ -40,7 +40,7 @@ describe('AboutPage', function () {
     it('renders the about page successfully', function () {
         get(route('about'))
             ->assertOk()
-            ->assertSee(__('pages.about_heading_vision'));
+            ->assertSee(__('pages.content_about_heading_vision'));
     });
 
     it('includes the SEO title and description', function () {
