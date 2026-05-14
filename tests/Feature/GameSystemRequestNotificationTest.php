@@ -1,8 +1,9 @@
 <?php
 
 use App\Enums\NotificationCategory;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
@@ -41,7 +42,7 @@ function createGameSystemRequestTicket(User $user, Department $department, array
         'priority' => TicketPriority::Medium->value,
         'department_id' => $department->id,
         'ticket_type' => 'game_system_request',
-        'channel' => 'web',
+        'channel' => TicketChannel::Web->value,
         'metadata' => [
             'game_system_request' => true,
             'bgg_url' => null,

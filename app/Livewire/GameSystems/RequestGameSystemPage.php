@@ -34,7 +34,7 @@ class RequestGameSystemPage extends Component
     {
         // Redirect unauthenticated users
         if (! Auth::check()) {
-            redirect()->route('login');
+            $this->redirectRoute('login');
         }
     }
 
