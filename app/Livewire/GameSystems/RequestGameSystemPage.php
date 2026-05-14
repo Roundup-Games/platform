@@ -2,7 +2,7 @@
 
 namespace App\Livewire\GameSystems;
 
-use App\Models\GameSystemRequest;
+use App\Services\GameSystemRequestService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -59,16 +59,10 @@ class RequestGameSystemPage extends Component
         $this->validate();
 
         $user = Auth::user();
-        $normalizedName = mb_strtolower(trim($this->name));
+        $service = app(GameSystemRequestService::class);
 
         // Check for duplicate pending request from same user
-        $duplicate = GameSystemRequest::query()
-            ->where('user_id', $user->id)
-            ->whereRaw('LOWER(name) = ?', [$normalizedName])
-            ->whereIn('status', ['pending', 'in_review'])
-            ->exists();
-
-        if ($duplicate) {
+        if ($service->hasPendingRequest($user, $this->name)) {
             $this->addError('name', __('games.request_error_duplicate'));
             logger()->info('Game system request duplicate attempt', [
                 'user_id' => $user->id,
@@ -90,20 +84,13 @@ class RequestGameSystemPage extends Component
             return;
         }
 
-        GameSystemRequest::create([
-            'user_id' => $user->id,
+        $service->createRequest($user, [
             'name' => trim($this->name),
             'type' => $this->type,
             'bgg_url' => $this->bgg_url,
             'publisher' => $this->publisher,
             'designer' => $this->designer,
             'notes' => $this->notes,
-            'status' => 'pending',
-        ]);
-
-        logger()->info('Game system request submitted', [
-            'user_id' => $user->id,
-            'name' => trim($this->name),
         ]);
 
         $this->reset(['name', 'bgg_url', 'publisher', 'designer', 'notes']);

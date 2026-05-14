@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Livewire\GameSystems;
 
-use App\Models\GameSystemRequest;
 use App\Models\User;
+use App\Services\GameSystemRequestService;
+use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
@@ -23,10 +27,15 @@ class RequestGameSystemPageTest extends TestCase
     {
         $this->setUpLocale();
 
+        parent::setUp();
+
         $this->user = User::factory()->create([
             'profile_complete' => true,
             'email_verified_at' => now(),
         ]);
+
+        // Seed Escalated departments and tags needed for ticket creation
+        $this->seed(EscalatedSetupSeeder::class);
     }
 
     // ── Validation ─────────────────────────────────────
@@ -41,9 +50,9 @@ class RequestGameSystemPageTest extends TestCase
             ->assertHasErrors(['type' => 'in']);
     }
 
-    // ── Submit & Record Creation ───────────────────────
+    // ── Submit & Ticket Creation ───────────────────────
 
-    public function test_submit_creates_game_system_request(): void
+    public function test_submit_creates_escalated_ticket(): void
     {
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
@@ -52,13 +61,14 @@ class RequestGameSystemPageTest extends TestCase
             ->set('publisher', 'Stonemaier Games')
             ->call('submit');
 
-        $this->assertDatabaseHas('game_system_requests', [
-            'user_id' => $this->user->id,
-            'name' => 'Wingspan',
-            'type' => 'boardgame',
-            'publisher' => 'Stonemaier Games',
-            'status' => 'pending',
-        ]);
+        $ticket = Ticket::where('requester_id', $this->user->id)
+            ->where('ticket_type', 'game_system_request')
+            ->first();
+
+        $this->assertNotNull($ticket, 'Expected an Escalated ticket to be created');
+        $this->assertEquals('Game System Request: Wingspan', $ticket->subject);
+        $this->assertEquals('Stonemaier Games', $ticket->metadata['publisher']);
+        $this->assertEquals('boardgame', $ticket->metadata['game_system_type']);
     }
 
     public function test_submit_sets_submitted_flag(): void
@@ -69,11 +79,8 @@ class RequestGameSystemPageTest extends TestCase
             ->call('submit')
             ->assertSet('submitted', true);
 
-        // Verify the record was created (substantive success check)
-        $this->assertDatabaseHas('game_system_requests', [
-            'user_id' => $this->user->id,
-            'name' => 'Wingspan',
-        ]);
+        // Verify the ticket was created
+        $this->assertEquals(1, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     public function test_submit_trims_name(): void
@@ -83,19 +90,102 @@ class RequestGameSystemPageTest extends TestCase
             ->set('name', '  Wingspan  ')
             ->call('submit');
 
-        $this->assertDatabaseHas('game_system_requests', [
-            'name' => 'Wingspan',
+        $this->assertDatabaseHas('escalated_tickets', [
+            'subject' => 'Game System Request: Wingspan',
         ]);
+    }
+
+    public function test_submit_sets_department_to_game_systems(): void
+    {
+        $department = Department::where('name', 'Game Systems')->first();
+
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+        $this->assertEquals($department->id, $ticket->department_id);
+    }
+
+    public function test_submit_stores_custom_fields_in_metadata(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->set('type', 'boardgame')
+            ->set('bgg_url', 'https://boardgamegeek.com/boardgame/266192')
+            ->set('publisher', 'Stonemaier Games')
+            ->set('designer', 'Elizabeth Hargrave')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+
+        $this->assertEquals('boardgame', $ticket->metadata['game_system_type']);
+        $this->assertEquals('https://boardgamegeek.com/boardgame/266192', $ticket->metadata['bgg_url']);
+        $this->assertEquals('Stonemaier Games', $ticket->metadata['publisher']);
+        $this->assertEquals('Elizabeth Hargrave', $ticket->metadata['designer']);
+    }
+
+    public function test_submit_applies_bgg_sync_tag_when_bgg_url_provided(): void
+    {
+        $bggTag = Tag::where('name', 'bgg-sync')->first();
+
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->set('bgg_url', 'https://boardgamegeek.com/boardgame/266192')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+        $this->assertTrue($ticket->tags->contains($bggTag));
+    }
+
+    public function test_submit_does_not_apply_bgg_sync_tag_when_no_bgg_url(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+        $this->assertCount(0, $ticket->tags);
+    }
+
+    public function test_submit_sets_metadata_flag(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+        $this->assertTrue($ticket->metadata['game_system_request'] ?? false);
+    }
+
+    public function test_submit_stores_null_fields_as_null_in_metadata(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
+            ->set('name', 'Wingspan')
+            ->set('type', 'boardgame')
+            ->call('submit');
+
+        $ticket = Ticket::where('ticket_type', 'game_system_request')->first();
+        $this->assertNull($ticket->metadata['bgg_url']);
+        $this->assertNull($ticket->metadata['publisher']);
+        $this->assertNull($ticket->metadata['designer']);
+        $this->assertNull($ticket->metadata['game_system_id']);
     }
 
     // ── Duplicate Check ────────────────────────────────
 
     public function test_duplicate_pending_request_is_rejected(): void
     {
-        GameSystemRequest::factory()->create([
-            'user_id' => $this->user->id,
+        $service = app(GameSystemRequestService::class);
+        $service->createRequest($this->user, [
             'name' => 'Wingspan',
-            'status' => 'pending',
+            'type' => 'boardgame',
         ]);
 
         Livewire::actingAs($this->user)
@@ -104,16 +194,16 @@ class RequestGameSystemPageTest extends TestCase
             ->call('submit')
             ->assertHasErrors(['name']);
 
-        // Only the factory-created record should exist
-        $this->assertEquals(1, GameSystemRequest::count());
+        // Only the first ticket should exist
+        $this->assertEquals(1, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     public function test_duplicate_case_insensitive(): void
     {
-        GameSystemRequest::factory()->create([
-            'user_id' => $this->user->id,
+        $service = app(GameSystemRequestService::class);
+        $service->createRequest($this->user, [
             'name' => 'Wingspan',
-            'status' => 'pending',
+            'type' => 'boardgame',
         ]);
 
         Livewire::actingAs($this->user)
@@ -123,28 +213,16 @@ class RequestGameSystemPageTest extends TestCase
             ->assertHasErrors(['name']);
     }
 
-    public function test_duplicate_in_review_is_rejected(): void
-    {
-        GameSystemRequest::factory()->create([
-            'user_id' => $this->user->id,
-            'name' => 'Wingspan',
-            'status' => 'in_review',
-        ]);
-
-        Livewire::actingAs($this->user)
-            ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', 'Wingspan')
-            ->call('submit')
-            ->assertHasErrors(['name']);
-    }
-
     public function test_approved_request_allows_resubmission(): void
     {
-        GameSystemRequest::factory()->create([
-            'user_id' => $this->user->id,
+        $service = app(GameSystemRequestService::class);
+        $ticket = $service->createRequest($this->user, [
             'name' => 'Wingspan',
-            'status' => 'approved',
+            'type' => 'boardgame',
         ]);
+
+        // Resolve (approve) the ticket
+        $ticket->markResolved($this->user);
 
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
@@ -152,17 +230,16 @@ class RequestGameSystemPageTest extends TestCase
             ->call('submit')
             ->assertHasNoErrors();
 
-        $this->assertEquals(2, GameSystemRequest::count());
+        $this->assertEquals(2, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     public function test_different_user_can_request_same_name(): void
     {
         $otherUser = User::factory()->create(['profile_complete' => true]);
-
-        GameSystemRequest::factory()->create([
-            'user_id' => $otherUser->id,
+        $service = app(GameSystemRequestService::class);
+        $service->createRequest($otherUser, [
             'name' => 'Wingspan',
-            'status' => 'pending',
+            'type' => 'boardgame',
         ]);
 
         Livewire::actingAs($this->user)
@@ -171,7 +248,7 @@ class RequestGameSystemPageTest extends TestCase
             ->call('submit')
             ->assertHasNoErrors();
 
-        $this->assertEquals(2, GameSystemRequest::count());
+        $this->assertEquals(2, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     // ── Rate Limiting ──────────────────────────────────
@@ -196,17 +273,17 @@ class RequestGameSystemPageTest extends TestCase
             ->call('submit')
             ->assertHasErrors(['name']);
 
-        $this->assertEquals(3, GameSystemRequest::count());
+        $this->assertEquals(3, Ticket::where('ticket_type', 'game_system_request')->count());
     }
 
     // ── Observability ──────────────────────────────────
 
     public function test_duplicate_attempt_is_logged(): void
     {
-        GameSystemRequest::factory()->create([
-            'user_id' => $this->user->id,
+        $service = app(GameSystemRequestService::class);
+        $service->createRequest($this->user, [
             'name' => 'Wingspan',
-            'status' => 'pending',
+            'type' => 'boardgame',
         ]);
 
         $this->actingAs($this->user);
@@ -230,9 +307,10 @@ class RequestGameSystemPageTest extends TestCase
 
         // Exhaust the limit
         for ($i = 0; $i < 3; $i++) {
-            GameSystemRequest::factory()->create([
-                'user_id' => $this->user->id,
+            $service = app(GameSystemRequestService::class);
+            $service->createRequest($this->user, [
                 'name' => "Game $i",
+                'type' => 'boardgame',
             ]);
             RateLimiter::hit('game-system-request:' . $this->user->id);
         }
