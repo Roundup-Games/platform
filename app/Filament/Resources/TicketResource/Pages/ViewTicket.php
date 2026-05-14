@@ -3,8 +3,14 @@
 namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Review;
+use App\Models\User;
+use App\Notifications\AccountSuspended;
+use App\Notifications\ContentRemoved;
+use App\Notifications\ContentReportWarning;
 use App\Services\BggClient;
 use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
@@ -15,6 +21,7 @@ use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -35,6 +42,14 @@ use Livewire\Attributes\On;
  *
  * - "Dismiss Report" — closes ticket, keeps review published
  * - "Remove Review" — closes ticket, hides review
+ * - "Escalate" — reassigns to Platform Admin, increases priority to Urgent
+ *
+ * Adds content moderation actions for Safety department content_report tickets:
+ *
+ * - "Dismiss" — closes ticket, no action taken on reported content
+ * - "Warn User" — closes ticket, sends warning notification to content owner
+ * - "Remove Content" — closes ticket, removes/hides the reported entity
+ * - "Suspend User" — closes ticket, suspends the reported user account
  * - "Escalate" — reassigns to Platform Admin, increases priority to Urgent
  */
 class ViewTicket extends BaseViewTicket
@@ -66,6 +81,12 @@ class ViewTicket extends BaseViewTicket
     protected function getHeaderActions(): array
     {
         $actions = parent::getHeaderActions();
+
+        // Insert content moderation actions for Safety department content_report tickets
+        $contentReportActions = $this->getContentReportActions();
+        if (! empty($contentReportActions)) {
+            array_splice($actions, 0, 0, $contentReportActions);
+        }
 
         // Insert review moderation actions for Safety department review_report tickets
         $reviewActions = $this->getReviewModerationActions();
@@ -291,6 +312,104 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Check if the ticket is a content report in the Safety department.
+     */
+    protected function isContentReport(Ticket $ticket): bool
+    {
+        return ($ticket->ticket_type ?? null) === 'content_report'
+            && ($ticket->department?->name ?? null) === 'Safety';
+    }
+
+    /**
+     * Get content moderation actions. Only visible on Safety department content_report tickets
+     * that are still open (not closed/resolved).
+     */
+    protected function getContentReportActions(): array
+    {
+        $ticket = $this->getRecord();
+
+        if (! $ticket || ! $this->isContentReport($ticket)) {
+            return [];
+        }
+
+        $entityType = $ticket->metadata['entity_type'] ?? null;
+        $entityName = $ticket->metadata['entity_name'] ?? 'this content';
+
+        return [
+            Action::make('dismissContentReport')
+                ->label('Dismiss')
+                ->icon(Heroicon::OutlinedShieldCheck)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Dismiss Content Report')
+                ->modalDescription('This will close the ticket with no action taken on the reported content.')
+                ->modalSubmitActionLabel('Dismiss')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performDismissContentReport($ticket);
+                }),
+
+            Action::make('warnUser')
+                ->label('Warn User')
+                ->icon(Heroicon::OutlinedExclamationTriangle)
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Warn User')
+                ->modalDescription("This will close the ticket and send a warning notification to the content owner about community guidelines.")
+                ->schema([
+                    Textarea::make('warning_note')
+                        ->label('Admin note (internal)')
+                        ->placeholder('Optional internal note about this warning')
+                        ->maxLength(1000),
+                ])
+                ->modalSubmitActionLabel('Send Warning')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function (array $data) use ($ticket, $entityType, $entityName) {
+                    $this->performWarnUser($ticket, $entityType, $entityName, $data['warning_note'] ?? null);
+                }),
+
+            Action::make('removeContent')
+                ->label('Remove Content')
+                ->icon(Heroicon::OutlinedTrash)
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Remove Content')
+                ->modalDescription("This will close the ticket, remove/hide the reported {$entityType}, and notify the content owner.")
+                ->modalSubmitActionLabel('Remove')
+                ->visible(fn () => $ticket->isOpen() && $entityType !== 'user')
+                ->action(function () use ($ticket, $entityType, $entityName) {
+                    $this->performRemoveContent($ticket, $entityType, $entityName);
+                }),
+
+            Action::make('suspendUser')
+                ->label('Suspend User')
+                ->icon(Heroicon::OutlinedNoSymbol)
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Suspend User Account')
+                ->modalDescription('This will close the ticket, suspend the user account (is_disabled = true), and notify the user.')
+                ->modalSubmitActionLabel('Suspend')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket, $entityType, $entityName) {
+                    $this->performSuspendUser($ticket, $entityType, $entityName);
+                }),
+
+            Action::make('escalateContentReport')
+                ->label('Escalate')
+                ->icon(Heroicon::OutlinedArrowTrendingUp)
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Escalate Content Report')
+                ->modalDescription('This will reassign the ticket to a Platform Admin and increase priority to Urgent.')
+                ->modalSubmitActionLabel('Escalate')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performEscalateContentReport($ticket);
+                }),
+        ];
+    }
+
+    /**
      * Dismiss the report: close ticket, keep review published.
      */
     protected function performDismissReport(Ticket $ticket): void
@@ -485,6 +604,348 @@ class ViewTicket extends BaseViewTicket
     protected function isGameSystemRequest(Ticket $ticket): bool
     {
         return app(GameSystemRequestService::class)->isGameSystemRequestTicket($ticket);
+    }
+
+    /**
+     * Dismiss content report: close ticket with no action on the reported entity.
+     */
+    protected function performDismissContentReport(Ticket $ticket): void
+    {
+        try {
+            $user = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            $ticketService->addNote($ticket, $user, 'Content report dismissed by admin — no action taken.');
+            $ticketService->close($ticket, $user);
+
+            Log::info('content_report.dismissed', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'entity_type' => $ticket->metadata['entity_type'] ?? null,
+                'entity_id' => $ticket->metadata['entity_id'] ?? null,
+                'admin_id' => $user->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Report dismissed')
+                ->body('The ticket has been closed with no action taken.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to dismiss content report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Dismiss failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Warn user: close ticket, send warning notification to the content owner.
+     */
+    protected function performWarnUser(Ticket $ticket, ?string $entityType, ?string $entityName, ?string $note): void
+    {
+        try {
+            $admin = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            $reportedUser = $this->resolveReportedUser($ticket, $entityType);
+            if (! $reportedUser) {
+                Notification::make()
+                    ->warning()
+                    ->title('User not found')
+                    ->body('Could not resolve the reported user. No warning sent.')
+                    ->send();
+
+                return;
+            }
+
+            $noteBody = 'Warning issued by admin.';
+            if ($note) {
+                $noteBody .= ' Note: ' . $note;
+            }
+            $ticketService->addNote($ticket, $admin, $noteBody);
+            $ticketService->close($ticket, $admin);
+
+            // Send warning notification to the reported user
+            $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
+            $reportedUser->notify(new ContentReportWarning(
+                $entityType ?? 'content',
+                $entityName ?? 'reported content',
+                $reason,
+            ));
+
+            Log::info('content_report.user_warned', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'warned_user_id' => $reportedUser->id,
+                'entity_type' => $entityType,
+                'entity_id' => $ticket->metadata['entity_id'] ?? null,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Warning sent')
+                ->body("A warning notification has been sent to {$reportedUser->name}.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to warn user for content report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Warning failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Remove content: close ticket, hide/remove the reported entity, notify owner.
+     */
+    protected function performRemoveContent(Ticket $ticket, ?string $entityType, ?string $entityName): void
+    {
+        try {
+            $admin = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            $entityId = $ticket->metadata['entity_id'] ?? null;
+            $removed = false;
+
+            match ($entityType) {
+                'game' => $removed = $this->removeGame($entityId),
+                'campaign' => $removed = $this->removeCampaign($entityId),
+                default => $removed = false,
+            };
+
+            $ticketService->addNote($ticket, $admin, $removed
+                ? ucfirst($entityType ?? 'content') . ' removed by admin.'
+                : 'Removal attempted but entity not found or already removed.');
+            $ticketService->close($ticket, $admin);
+
+            // Notify the content owner
+            if ($removed) {
+                $reportedUser = $this->resolveReportedUser($ticket, $entityType);
+                if ($reportedUser) {
+                    $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
+                    $reportedUser->notify(new ContentRemoved(
+                        $entityType ?? 'content',
+                        $entityName ?? 'reported content',
+                        $reason,
+                    ));
+                }
+            }
+
+            Log::info('content_report.content_removed', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'removed' => $removed,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title($removed ? 'Content removed' : 'Entity not found')
+                ->body($removed
+                    ? 'The reported content has been removed and the owner has been notified.'
+                    : 'The reported entity was not found or has already been removed.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to remove content for report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Remove failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Suspend user: close ticket, disable the reported user account, notify user.
+     */
+    protected function performSuspendUser(Ticket $ticket, ?string $entityType, ?string $entityName): void
+    {
+        try {
+            $admin = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            $reportedUser = $this->resolveReportedUser($ticket, $entityType);
+            if (! $reportedUser) {
+                Notification::make()
+                    ->warning()
+                    ->title('User not found')
+                    ->body('Could not resolve the reported user. No suspension applied.')
+                    ->send();
+
+                return;
+            }
+
+            // Suspend the user
+            $reportedUser->update([
+                'is_disabled' => true,
+                'disabled_at' => now(),
+            ]);
+
+            $ticketService->addNote($ticket, $admin, "User account suspended ({$reportedUser->name}, ID: {$reportedUser->id}).");
+            $ticketService->close($ticket, $admin);
+
+            // Send suspension notification
+            $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
+            $reportedUser->notify(new AccountSuspended($reason));
+
+            Log::info('content_report.user_suspended', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'suspended_user_id' => $reportedUser->id,
+                'entity_type' => $entityType,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('User suspended')
+                ->body("{$reportedUser->name}'s account has been suspended and they have been notified.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to suspend user for content report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Suspension failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Escalate content report: reassign to Platform Admin, increase priority to Urgent.
+     */
+    protected function performEscalateContentReport(Ticket $ticket): void
+    {
+        try {
+            $user = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            $ticketService->addNote($ticket, $user, "Content report escalated by {$user->name}.");
+            $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
+
+            $platformAdmin = User::role('Platform Admin')
+                ->where('id', '!=', $user->id)
+                ->first();
+
+            if ($platformAdmin) {
+                $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
+                $ticket->logActivity(
+                    \Escalated\Laravel\Enums\ActivityType::Assigned,
+                    $user,
+                    ['agent_id' => $platformAdmin->id]
+                );
+                $assignedName = $platformAdmin->name;
+            } else {
+                $assignedName = $user->name;
+            }
+
+            Log::info('content_report.escalated', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'escalated_by' => $user->id,
+                'assigned_to' => $platformAdmin?->id ?? $user->id,
+            ]);
+
+            Notification::make()
+                ->warning()
+                ->title('Report escalated')
+                ->body("Priority set to Urgent and reassigned to {$assignedName}.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to escalate content report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Escalation failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Resolve the reported user from the ticket metadata.
+     * For user reports: directly from entity_id.
+     * For game/campaign reports: from the entity's owner relationship.
+     */
+    protected function resolveReportedUser(Ticket $ticket, ?string $entityType): ?User
+    {
+        $entityId = $ticket->metadata['entity_id'] ?? null;
+
+        return match ($entityType) {
+            'user' => User::find($entityId),
+            'game' => Game::find($entityId)?->owner,
+            'campaign' => Campaign::find($entityId)?->owner,
+            default => null,
+        };
+    }
+
+    /**
+     * Remove a game by setting its status to canceled.
+     */
+    protected function removeGame(?string $entityId): bool
+    {
+        if (! $entityId) {
+            return false;
+        }
+
+        $game = Game::find($entityId);
+        if (! $game || $game->status === \App\Enums\GameStatus::Canceled) {
+            return false;
+        }
+
+        $game->update(['status' => \App\Enums\GameStatus::Canceled]);
+
+        return true;
+    }
+
+    /**
+     * Remove a campaign by setting its status to cancelled.
+     */
+    protected function removeCampaign(?string $entityId): bool
+    {
+        if (! $entityId) {
+            return false;
+        }
+
+        $campaign = Campaign::find($entityId);
+        if (! $campaign || $campaign->status === \App\Enums\CampaignStatus::Cancelled) {
+            return false;
+        }
+
+        $campaign->update(['status' => \App\Enums\CampaignStatus::Cancelled]);
+
+        return true;
     }
 
     /**

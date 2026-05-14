@@ -288,4 +288,20 @@ return [
 
     'push_title_below_min_players' => 'Low Roster Warning',
     'push_body_below_min_players' => ':game has only :current/:min players.',
+
+    // Content moderation notifications
+    'subject_content_warning' => 'Community Guidelines Warning',
+    'body_content_warning' => 'Your :entityType ":entityName" has been flagged for review by our moderation team.',
+    'body_content_warning_reason' => 'Reason: :reason',
+    'body_content_warning_guidelines' => 'Please review our community guidelines to ensure your content complies with our policies.',
+
+    'subject_content_removed' => 'Content Removed',
+    'body_content_removed' => 'Your :entityType ":entityName" has been removed by our moderation team.',
+    'body_content_removed_reason' => 'Reason: :reason',
+    'body_content_removed_guidelines' => 'Repeated violations may result in account suspension.',
+
+    'subject_account_suspended' => 'Account Suspended',
+    'body_account_suspended' => 'Your account has been suspended due to a violation of our community guidelines.',
+    'body_account_suspended_reason' => 'Reason: :reason',
+    'body_account_suspended_contact' => 'If you believe this is an error, please contact our support team.',
 ];
