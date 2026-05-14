@@ -131,3 +131,10 @@ Schedule::command('attendance:sweep-auto-attend')
 // Prune stale PWA data
 Schedule::command('pwa:prune-stale-subscriptions')->weekly()->sundays()->at('03:00')->onOneServer();
 Schedule::command('pwa:prune-visits')->monthly()->onOneServer();
+
+// Escalated helpdesk — auto-escalation, SLA enforcement, ticket lifecycle
+Schedule::command('escalated:evaluate-escalations')->everyFiveMinutes()->onOneServer();
+Schedule::command('escalated:run-automations')->everyMinute()->onOneServer();
+Schedule::command('escalated:wake-snoozed-tickets')->everyFiveMinutes()->onOneServer();
+Schedule::command('escalated:close-resolved')->dailyAt('02:00')->onOneServer();
+Schedule::command('escalated:purge-activities')->dailyAt('03:30')->onOneServer();
