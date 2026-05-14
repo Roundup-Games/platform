@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use PostHog\Posthog;
+use PostHog\PostHog;
 
 /**
  * Centralized wrapper around the PostHog PHP SDK.
@@ -13,7 +13,7 @@ use PostHog\Posthog;
  * an uninitialized SDK.
  *
  * Services should inject or resolve this class instead of calling
- * Posthog::capture() / Posthog::identify() directly. Protected
+ * PostHog::capture() / PostHog::identify() directly. Protected
  * wrapper methods on individual services delegate here for testability.
  */
 class PostHogClient
@@ -36,7 +36,7 @@ class PostHogClient
             return;
         }
 
-        Posthog::capture($payload);
+        PostHog::capture($payload);
     }
 
     /**
@@ -48,7 +48,7 @@ class PostHogClient
             return;
         }
 
-        Posthog::identify($payload);
+        PostHog::identify($payload);
     }
 
     /**
@@ -60,7 +60,7 @@ class PostHogClient
             return;
         }
 
-        Posthog::groupIdentify([
+        PostHog::groupIdentify([
             'groupType' => $groupType,
             'groupKey' => $groupKey,
             'properties' => $properties,
@@ -76,7 +76,7 @@ class PostHogClient
             return null;
         }
 
-        return Posthog::getFeatureFlag(
+        return PostHog::getFeatureFlag(
             $key,
             $distinctId,
             onlyEvaluateLocally: false,

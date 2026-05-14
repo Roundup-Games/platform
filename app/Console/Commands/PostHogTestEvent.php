@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use PostHog\Posthog;
+use PostHog\PostHog;
 
 class PostHogTestEvent extends Command
 {
@@ -40,7 +40,7 @@ class PostHogTestEvent extends Command
         $type = $this->option('type');
 
         try {
-            Posthog::capture([
+            PostHog::capture([
                 'distinctId' => 'test-server-' . gethostname(),
                 'event' => "{$type}_test_event",
                 'properties' => [

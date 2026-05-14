@@ -33,7 +33,7 @@ use RalphJSmit\Laravel\SEO\Support\AlternateTag;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Laravel\Paddle\Cashier;
 use Minishlink\WebPush\WebPush;
-use PostHog\Posthog;
+use PostHog\PostHog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -121,7 +121,7 @@ class AppServiceProvider extends ServiceProvider
 
         // PostHog PHP SDK — initialize when API key is configured
         if (config('posthog.enabled', true) && config('posthog.api_key')) {
-            Posthog::init(
+            PostHog::init(
                 config('posthog.api_key'),
                 [
                     'host' => config('posthog.host', 'https://eu.i.posthog.com'),
