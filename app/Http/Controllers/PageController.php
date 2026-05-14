@@ -124,6 +124,11 @@ class PageController extends Controller
         // Account recovery → Account Support department; general → Contact department
         $departmentName = $isAccountRecovery ? 'Account Support' : 'Contact';
         $department = Department::where('name', $departmentName)->first();
+        if (! $department) {
+            return redirect()
+                ->route('contact')
+                ->withErrors(['message' => __('support.error_unavailable')]);
+        }
 
         if (auth()->check()) {
             /** @var User $user */
@@ -134,7 +139,7 @@ class PageController extends Controller
                 'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
                 'description' => $validated['message'],
                 'priority' => 'medium',
-                'department_id' => $department?->id,
+                'department_id' => $department->id,
             ];
             if ($isAccountRecovery) {
                 $ticketData['ticket_type'] = 'account_recovery';
@@ -148,7 +153,7 @@ class PageController extends Controller
                 'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
                 'description' => $validated['message'],
                 'priority' => 'medium',
-                'department_id' => $department?->id,
+                'department_id' => $department->id,
             ];
             if ($isAccountRecovery) {
                 $ticketData['ticket_type'] = 'account_recovery';

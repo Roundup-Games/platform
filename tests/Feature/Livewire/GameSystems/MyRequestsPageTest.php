@@ -91,12 +91,12 @@ class MyRequestsPageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $old = $this->createGameSystemTicket($user, [
+        $this->createGameSystemTicket($user, [
             'subject' => 'Game System Request: Old System',
             'created_at' => now()->subDays(2),
         ]);
 
-        $new = $this->createGameSystemTicket($user, [
+        $this->createGameSystemTicket($user, [
             'subject' => 'Game System Request: New System',
             'created_at' => now(),
         ]);

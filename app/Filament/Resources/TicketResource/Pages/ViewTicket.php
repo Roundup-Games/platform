@@ -421,11 +421,11 @@ class ViewTicket extends BaseViewTicket
             // Add internal note before closing
             $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
 
+            // Restore review to published status before closing
+            $this->restoreReviewStatus($ticket, 'published');
+
             // Close the ticket
             $ticketService->close($ticket, $user);
-
-            // Restore review to published status if it's currently 'reported'
-            $this->restoreReviewStatus($ticket, 'published');
 
             Log::info('review.report.dismissed', [
                 'ticket_id' => $ticket->id,
@@ -466,11 +466,11 @@ class ViewTicket extends BaseViewTicket
             // Add internal note before closing
             $ticketService->addNote($ticket, $user, 'Review removed by admin');
 
+            // Hide the review before closing
+            $this->restoreReviewStatus($ticket, 'hidden');
+
             // Close the ticket
             $ticketService->close($ticket, $user);
-
-            // Hide the review
-            $this->restoreReviewStatus($ticket, 'hidden');
 
             Log::info('review.report.removed', [
                 'ticket_id' => $ticket->id,
@@ -571,22 +571,13 @@ class ViewTicket extends BaseViewTicket
         $reviewId = $ticket->metadata['review_id'] ?? null;
 
         if (! $reviewId) {
-            Log::warning('review.report.no_review_id_in_ticket', [
-                'ticket_id' => $ticket->id,
-            ]);
-
-            return;
+            throw new \RuntimeException('Review ID is missing from ticket metadata.');
         }
 
         $review = Review::find($reviewId);
 
         if (! $review) {
-            Log::warning('review.report.review_not_found', [
-                'ticket_id' => $ticket->id,
-                'review_id' => $reviewId,
-            ]);
-
-            return;
+            throw new \RuntimeException("Review {$reviewId} was not found.");
         }
 
         $review->update(['status' => $status]);
@@ -1079,6 +1070,11 @@ class ViewTicket extends BaseViewTicket
      */
     protected function performBggSearch(string $query): void
     {
+        // Clear previous selection before running new search
+        $this->selectedBggId = null;
+        $this->selectedBggName = null;
+        $this->bggPreviewData = null;
+
         try {
             $xml = app(BggClient::class)->search($query);
             $results = app(BggXmlParser::class)->parseSearchResults($xml->asXML());
@@ -1100,6 +1096,9 @@ class ViewTicket extends BaseViewTicket
             }
         } catch (\Throwable $e) {
             $this->bggSearchResults = [];
+            $this->selectedBggId = null;
+            $this->selectedBggName = null;
+            $this->bggPreviewData = null;
 
             Notification::make()
                 ->danger()

@@ -4,6 +4,7 @@
         <div>
             <div class="flex items-center gap-3 mb-1">
                 <a href="{{ route('billing.portal') }}" wire:navigate
+                   aria-label="{{ __('support.action_back') }}"
                    class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>

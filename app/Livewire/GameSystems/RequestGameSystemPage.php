@@ -59,6 +59,11 @@ class RequestGameSystemPage extends Component
         $this->validate();
 
         $user = Auth::user();
+        if (! $user) {
+            redirect()->route('login');
+            return;
+        }
+
         $service = app(GameSystemRequestService::class);
 
         // Check for duplicate pending request from same user

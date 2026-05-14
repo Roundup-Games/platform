@@ -115,6 +115,10 @@ class ContactSupport extends Component
     private function createAccountSupportTicket(User $user): void
     {
         $department = Department::where('name', 'Account Support')->first();
+        if (! $department) {
+            Log::error('support.account_department_missing');
+            throw new \RuntimeException('Account Support department is not configured.');
+        }
 
         $metadata = [
             'user_id' => $user->id,
@@ -129,7 +133,7 @@ class ContactSupport extends Component
             'description' => $this->buildTicketDescription($user),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
-            'department_id' => $department?->id,
+            'department_id' => $department->id,
             'ticket_type' => 'account_recovery',
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,
