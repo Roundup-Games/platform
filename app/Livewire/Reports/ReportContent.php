@@ -211,9 +211,18 @@ class ReportContent extends Component
             return $entity->id === $reporter->id;
         }
 
-        // Games and campaigns: check ownership
-        if (method_exists($entity, 'owner') && isset($entity->owner_id)) {
-            return $entity->owner_id === $reporter->id;
+        // Games and campaigns: check ownership via owner_id
+        if (isset($entity->owner_id) && $entity->owner_id === $reporter->id) {
+            return true;
+        }
+
+        // Defensive: check gm_id / user_id if present (for future entity types)
+        if (isset($entity->gm_id) && $entity->gm_id === $reporter->id) {
+            return true;
+        }
+
+        if (isset($entity->user_id) && $entity->user_id === $reporter->id) {
+            return true;
         }
 
         return false;
