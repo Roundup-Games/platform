@@ -25,7 +25,7 @@ beforeEach(function () {
 
 // ── Helpers ──────────────────────────────────────────────
 
-function createDisputeGameWithParticipants(int $participantCount = 3, array $gameOverrides = []): array
+function createTicketDisputeGameWithParticipants(int $participantCount = 3, array $gameOverrides = []): array
 {
     $owner = User::factory()->create();
     $game = Game::factory()->create([
@@ -63,7 +63,7 @@ function createDisputeGameWithParticipants(int $participantCount = 3, array $gam
 
 describe('unresolved dispute auto-creates ticket', function () {
     it('creates an Escalated ticket in Events department when dispute is upheld', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         // Only one no_show report, no corroboration
@@ -97,7 +97,7 @@ describe('unresolved dispute auto-creates ticket', function () {
     });
 
     it('tags the dispute ticket with attendance-dispute tag', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
@@ -120,7 +120,7 @@ describe('unresolved dispute auto-creates ticket', function () {
     });
 
     it('does NOT create a ticket when dispute is resolved in player favor', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(5);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(5);
         $reported = $participants[4];
 
         // Create corroborating reports
@@ -146,7 +146,7 @@ describe('unresolved dispute auto-creates ticket', function () {
     });
 
     it('includes corroborating count in ticket metadata', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(4);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(4);
         $reported = $participants[3];
 
         $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
@@ -174,7 +174,7 @@ describe('unresolved dispute auto-creates ticket', function () {
 
 describe('ticket resolution triggers dispute resolution', function () {
     it('resolves dispute in player favor when staff resolves the ticket', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
@@ -213,7 +213,7 @@ describe('ticket resolution triggers dispute resolution', function () {
     });
 
     it('sends DisputeResolved notification when ticket is resolved', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         $reported->forceFill([
@@ -308,7 +308,7 @@ describe('ticket resolution triggers dispute resolution', function () {
 
 describe('HandleAttendanceDisputeTicketResolved listener', function () {
     it('processes attendance dispute ticket via TicketResolved event', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         $reported->forceFill([
@@ -381,7 +381,7 @@ describe('HandleAttendanceDisputeTicketResolved listener', function () {
 
 describe('full attendance dispute to ticket flow', function () {
     it('dispute → upheld → ticket created → staff resolves → dispute resolved → notification sent', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createDisputeGameWithParticipants(3);
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createTicketDisputeGameWithParticipants(3);
         $reported = $participants[2];
 
         $reported->forceFill([
