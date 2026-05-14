@@ -35,4 +35,7 @@ php artisan view:cache
 echo "Seeding Escalated helpdesk data..."
 php artisan db:seed --force --class=EscalatedSetupSeeder 2>/dev/null || true
 
+# Write deploy timestamp for admin dashboard
+date -u +"%Y-%m-%d %H:%M:%S UTC" > /var/www/html/storage/framework/deploy-timestamp
+
 echo "Laravel startup complete."

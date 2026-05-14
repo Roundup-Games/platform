@@ -54,21 +54,33 @@ class SystemInfoWidget extends StatsOverviewWidget
 
     private function deploymentStat(): Stat
     {
-        $timestamp = config('app.deploy_timestamp')
-            ?? env('DEPLOY_TIMESTAMP');
+        $timestamp = $this->resolveDeployTimestamp();
 
         if ($timestamp) {
-            $display = $timestamp;
-            $description = 'Last deployment';
+            $description = 'Last container start';
         } else {
-            $display = 'Not set';
-            $description = 'Set APP_DEPLOY_TIMESTAMP or DEPLOY_TIMESTAMP env var';
+            $description = 'No deploy timestamp found';
         }
 
-        return Stat::make('Deployed', $display)
+        return Stat::make('Deployed', $timestamp ?? 'Unknown')
             ->description($description)
             ->descriptionIcon('heroicon-o-clock')
             ->color($timestamp ? 'success' : 'warning');
+    }
+
+    private function resolveDeployTimestamp(): ?string
+    {
+        // 1. File written by S6 init on every container start
+        $file = storage_path('framework/deploy-timestamp');
+        if (file_exists($file)) {
+            $contents = trim(file_get_contents($file));
+            if ($contents !== '') {
+                return $contents;
+            }
+        }
+
+        // 2. Fallback to env var (CI/CD pipelines, non-Docker deploys)
+        return config('app.deploy_timestamp') ?? env('DEPLOY_TIMESTAMP');
     }
 
     private function versionsStat(): Stat
