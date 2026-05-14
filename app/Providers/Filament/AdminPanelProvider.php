@@ -3,7 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\AuthenticateFilament;
-use Escalated\Filament\EscalatedFilamentPlugin;
+use App\Filament\Plugins\AppEscalatedFilamentPlugin;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
             ])
             ->plugin(
-                EscalatedFilamentPlugin::make()
+                AppEscalatedFilamentPlugin::make()
                     ->navigationGroup('Support')
                     ->agentGate('escalated-agent')
                     ->adminGate('escalated-admin')
