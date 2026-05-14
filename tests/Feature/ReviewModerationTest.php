@@ -67,12 +67,9 @@ function createReviewReportTicket(): array
         'ticket_type' => 'review_report',
         'metadata' => [
             'review_id' => $review->id,
-            'review_content' => $review->body,
             'review_author_id' => $review->reviewer_id,
-            'review_author_name' => $reviewer->name,
             'report_reason' => 'harassment',
             'reporter_id' => $reporter->id,
-            'reporter_name' => $reporter->name,
         ],
     ]);
 

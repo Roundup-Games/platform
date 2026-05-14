@@ -136,12 +136,9 @@ it('stores complete review context in ticket metadata', function () {
 
     $metadata = $ticket->metadata;
     expect($metadata['review_id'])->toBe($review->id);
-    expect($metadata['review_content'])->toBe('Offensive content in review');
     expect($metadata['review_author_id'])->toBe($reviewAuthor->id);
-    expect($metadata['review_author_name'])->toBe($reviewAuthor->name);
     expect($metadata['report_reason'])->toBe('spam');
     expect($metadata['reporter_id'])->toBe($reporter->id);
-    expect($metadata['reporter_name'])->toBe($reporter->name);
 
     // Verify review-report tag applied
     expect($ticket->tags->pluck('name')->toArray())->toContain('review-report');

@@ -15,6 +15,10 @@ return new class extends Migration
     {
         $prefix = config('escalated.table_prefix', 'escalated_');
 
+        // Wrap all DDL in a transaction — PostgreSQL supports transactional DDL
+        // so a failure halfway through will roll back cleanly.
+        DB::transaction(function () use ($prefix) {
+
         /**
          * Drop all indexes and constraints involving a column on a table.
          */
@@ -157,10 +161,15 @@ return new class extends Migration
         $convertMorph($prefix.'api_tokens', 'tokenable');
         $convertMorph($prefix.'custom_field_values', 'entity');
         $convertMorph($prefix.'attachments', 'attachable');
+
+        }); // end DB::transaction
     }
 
     public function down(): void
     {
-        // Not reversible — bigint→uuid is a one-way migration.
+        throw new \RuntimeException(
+            'This migration is not reversible. bigint→uuid is a one-way conversion. '
+            . 'Restore from backup if rollback is required.'
+        );
     }
 };

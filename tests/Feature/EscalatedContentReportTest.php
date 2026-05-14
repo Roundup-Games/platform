@@ -148,45 +148,31 @@ it('prevents reporting own game', function () {
     $owner = User::factory()->create(['profile_complete' => true]);
     $game = Game::factory()->create(['owner_id' => $owner->id]);
 
-    // The component itself doesn't block self-reports — that's handled by
-    // the view layer via @unless($isOwner). Verify the full lifecycle by
-    // confirming that when a self-report is created, the entity owner
-    // matches the reporter (which the UI would prevent).
+    // The component's isSelfReport() check blocks self-reports server-side.
     Livewire::actingAs($owner)
         ->test(ReportContent::class, ['entityType' => 'game', 'entityId' => $game->id])
         ->call('openModal')
         ->set('reason', 'spam')
-        ->call('submitReport');
+        ->call('submitReport')
+        ->assertHasErrors(['reason' => __('reports.error_self_report')]);
 
-    $ticket = Ticket::where('ticket_type', 'content_report')->first();
-    expect($ticket)->not->toBeNull();
-    // The reporter IS the game owner — self-report
-    expect($ticket->metadata['reporter_id'])->toBe($owner->id);
-    expect($ticket->metadata['entity_id'])->toBe($game->id);
-
-    // In the real UI, @unless($isOwner) prevents the report button from
-    // appearing for your own content. The Livewire component accepts it,
-    // but the view guard is the enforcement layer.
+    // No ticket should be created for self-reports
+    expect(Ticket::where('ticket_type', 'content_report')->exists())->toBeFalse();
 });
 
 it('prevents reporting own user profile', function () {
     $user = User::factory()->create(['profile_complete' => true]);
 
-    // A user could theoretically submit a self-report through the component.
-    // The @auth/@unless($isOwner) view guard prevents the button from showing.
-    // Verify the metadata would reveal it as a self-report.
+    // A user cannot report their own profile — blocked by isSelfReport()
     Livewire::actingAs($user)
         ->test(ReportContent::class, ['entityType' => 'user', 'entityId' => $user->id])
         ->call('openModal')
         ->set('reason', 'other')
-        ->call('submitReport');
+        ->call('submitReport')
+        ->assertHasErrors(['reason' => __('reports.error_self_report')]);
 
-    $ticket = Ticket::where('ticket_type', 'content_report')->first();
-    expect($ticket)->not->toBeNull();
-    // Reporter = reported user = self-report
-    expect($ticket->metadata['reporter_id'])->toBe($user->id);
-    expect($ticket->metadata['entity_id'])->toBe($user->id);
-    expect($ticket->metadata['reporter_id'])->toBe($ticket->metadata['entity_id']);
+    // No ticket should be created
+    expect(Ticket::where('ticket_type', 'content_report')->exists())->toBeFalse();
 });
 
 // ── Rate limiting — 6th report in an hour is blocked ──────────────────

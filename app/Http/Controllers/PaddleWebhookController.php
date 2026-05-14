@@ -209,6 +209,15 @@ class PaddleWebhookController extends BaseWebhookController
     {
         try {
             return parent::__invoke($request);
+        } catch (\Illuminate\Database\QueryException|\PDOException|\RedisException $e) {
+            // Transient infrastructure errors — return 500 so Paddle retries
+            Log::warning('Paddle webhook transient error (will retry)', [
+                'error' => $e->getMessage(),
+                'event_type' => $request->input('event_type'),
+                'payload_id' => $request->input('data.id'),
+            ]);
+
+            return new Response('Temporary processing error', 503);
         } catch (\Throwable $e) {
             Log::error('Paddle webhook processing failed', [
                 'error' => $e->getMessage(),
@@ -216,8 +225,8 @@ class PaddleWebhookController extends BaseWebhookController
                 'payload_id' => $request->input('data.id'),
             ]);
 
-            // Return 200 to prevent Paddle from retrying indefinitely.
-            // The error is logged for manual investigation.
+            // Return 200 for non-retryable errors (bad data, missing models, etc.)
+            // to prevent Paddle from retrying indefinitely.
             return new Response('Webhook processed with errors', 200);
         }
     }

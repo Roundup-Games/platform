@@ -81,7 +81,7 @@ describe('departments', function () {
 });
 
 describe('tags', function () {
-    it('seeds all 9 tags', function () {
+    it('seeds all 18 tags across Safety and Billing', function () {
         $this->seeder->run();
 
         expect(Tag::count())->toBe(18);

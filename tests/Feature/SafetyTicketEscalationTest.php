@@ -54,7 +54,6 @@ function createSafetyTicket($department, $reporter, array $overrides = []): Tick
         'ticket_type' => 'review_report',
         'metadata' => [
             'review_id' => \Illuminate\Support\Str::uuid()->toString(),
-            'review_content' => 'Inappropriate content',
             'report_reason' => 'harassment',
         ],
     ], $overrides));

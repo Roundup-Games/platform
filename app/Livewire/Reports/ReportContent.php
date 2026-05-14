@@ -125,7 +125,7 @@ class ReportContent extends Component
                 ->where('requester_id', $reporter->id)
                 ->whereJsonContains('metadata->entity_type', $this->entityType)
                 ->whereJsonContains('metadata->entity_id', $this->entityId)
-                ->sharedLock()
+                ->lockForUpdate()
                 ->exists();
 
             if ($existing) {
@@ -242,7 +242,6 @@ class ReportContent extends Component
             'entity_id' => $this->entityId,
             'entity_name' => $entityName,
             'reporter_id' => $reporter->id,
-            'reporter_name' => $reporter->name,
             'report_reason' => $this->reason,
             'description' => $this->description,
         ];

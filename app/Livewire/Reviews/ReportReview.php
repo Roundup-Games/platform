@@ -62,11 +62,6 @@ class ReportReview extends Component
 
         Gate::authorize('report', $review);
 
-        if ($review->isReported()) {
-            $this->addError('reason', __('reviews.error_already_reported'));
-            return;
-        }
-
         $reporter = Auth::user();
 
         // Rate limit: 5 review reports per user per hour
@@ -79,7 +74,19 @@ class ReportReview extends Component
             return;
         }
 
-        DB::transaction(function () use ($review, $reporter) {
+        // Atomically check for existing report and create ticket to prevent race conditions
+        $duplicateDetected = false;
+
+        DB::transaction(function () use ($review, $reporter, &$duplicateDetected) {
+            // Re-check inside transaction with exclusive lock
+            $lockedReview = Review::where('id', $review->id)->lockForUpdate()->first();
+
+            if ($lockedReview && $lockedReview->isReported()) {
+                $duplicateDetected = true;
+
+                return;
+            }
+
             $review->report($reporter->id, $this->reason);
 
             Log::info('review.reported', [
@@ -93,6 +100,12 @@ class ReportReview extends Component
             // Create Escalated safety ticket
             $this->createSafetyTicket($review, $reporter);
         });
+
+        if ($duplicateDetected) {
+            $this->addError('reason', __('reviews.error_already_reported'));
+
+            return;
+        }
 
         // Notify all global admins
         $this->notifyAdmins($review, $reporter);
@@ -131,16 +144,11 @@ class ReportReview extends Component
             throw new \RuntimeException('Safety department not found; cannot create review report ticket.');
         }
 
-        $reviewAuthor = $review->reviewer;
-
         $metadata = [
             'review_id' => $review->id,
-            'review_content' => $review->body,
             'review_author_id' => $review->reviewer_id,
-            'review_author_name' => $reviewAuthor?->name ?? 'Unknown',
             'report_reason' => $this->reason,
             'reporter_id' => $reporter->id,
-            'reporter_name' => $reporter->name,
         ];
 
         $ticket = Ticket::create([

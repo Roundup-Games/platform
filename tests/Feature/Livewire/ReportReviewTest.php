@@ -227,11 +227,9 @@ it('creates a safety ticket when a review is reported', function () {
     // Verify metadata
     $metadata = $ticket->metadata;
     expect($metadata['review_id'])->toBe($review->id);
-    expect($metadata['review_content'])->toBe('Great session!');
     expect($metadata['review_author_id'])->toBe($reviewAuthor->id);
     expect($metadata['report_reason'])->toBe('harassment');
     expect($metadata['reporter_id'])->toBe($reporter->id);
-    expect($metadata['reporter_name'])->toBe($reporter->name);
 
     // Verify department
     $department = Department::where('name', 'Safety')->first();

@@ -343,26 +343,26 @@ class AttendanceService
             return;
         }
 
-        // Record the late cancel on the host's participant record
-        $hostParticipant->forceFill([
-            'attendance_status' => AttendanceStatus::LateCancel->value,
-            'attendance_reported_at' => now(),
-            'attendance_weight' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
-        ])->save();
+        // Record the late cancel atomically: participant update + report + reliability
+        DB::transaction(function () use ($hostParticipant, $game) {
+            $hostParticipant->forceFill([
+                'attendance_status' => AttendanceStatus::LateCancel->value,
+                'attendance_reported_at' => now(),
+                'attendance_weight' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
+            ])->save();
 
-        // Create report record
-        AttendanceReport::create([
-            'game_id' => $game->id,
-            'reporter_id' => $game->owner_id,
-            'reported_id' => $game->owner_id,
-            'status' => AttendanceStatus::LateCancel->value,
-            'weight_applied' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
-            'is_corroborated' => true,
-            'quarantined' => false,
-        ]);
+            AttendanceReport::create([
+                'game_id' => $game->id,
+                'reporter_id' => $game->owner_id,
+                'reported_id' => $game->owner_id,
+                'status' => AttendanceStatus::LateCancel->value,
+                'weight_applied' => ReliabilityScoreService::HOST_WEIGHTS['host_cancel_late'],
+                'is_corroborated' => true,
+                'quarantined' => false,
+            ]);
 
-        // Recompute host's reliability
-        $this->reliabilityService->recomputeAfterAttendance($hostParticipant);
+            $this->reliabilityService->recomputeAfterAttendance($hostParticipant);
+        });
 
         Log::info('Host cancellation offence recorded', [
             'game_id' => $game->id,

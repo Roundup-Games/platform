@@ -744,14 +744,15 @@ class ViewTicket extends BaseViewTicket
             $entityId = $ticket->metadata['entity_id'] ?? null;
             $removed = false;
 
-            // Remove the content first (outside transaction — hard to roll back)
-            match ($entityType) {
-                'game' => $removed = $this->removeGame($entityId),
-                'campaign' => $removed = $this->removeCampaign($entityId),
-                default => $removed = false,
-            };
+            // Remove content inside transaction so ticket close + content removal
+            // are atomic. If either fails, everything rolls back.
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $entityType, $entityId, &$removed) {
+                match ($entityType) {
+                    'game' => $removed = $this->removeGame($entityId),
+                    'campaign' => $removed = $this->removeCampaign($entityId),
+                    default => $removed = false,
+                };
 
-            DB::transaction(function () use ($ticket, $admin, $ticketService, $entityType, $removed) {
                 $ticketService->addNote($ticket, $admin, $removed
                     ? ucfirst($entityType ?? 'content') . ' removed by admin.'
                     : 'Removal attempted but entity not found or already removed.');
