@@ -534,7 +534,8 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            DB::transaction(function () use ($ticket, $user, $ticketService) {
+            $assignmentInfo = null;
+            DB::transaction(function () use ($ticket, $user, $ticketService, &$assignmentInfo) {
                 // Add internal note
                 $ticketService->addNote($ticket, $user, "Escalated by {$user->name}");
 
@@ -542,7 +543,8 @@ class ViewTicket extends BaseViewTicket
                 $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
                 // Find a Platform Admin to assign to
-                ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+                $assignmentInfo = $this->findPlatformAdminForEscalation($user);
+                ['admin' => $platformAdmin] = $assignmentInfo;
 
                 if ($platformAdmin->id !== $user->id) {
                     // Update assigned_to directly to avoid TicketAssigned event type mismatch
@@ -556,8 +558,7 @@ class ViewTicket extends BaseViewTicket
                 }
             });
 
-            // Extract assignment info for notification (outside transaction)
-            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $assignmentInfo;
 
             Log::info('review.report.escalated', [
                 'ticket_id' => $ticket->id,
@@ -688,22 +689,19 @@ class ViewTicket extends BaseViewTicket
             if ($note) {
                 $noteBody .= ' Note: ' . $note;
             }
+
             DB::transaction(function () use ($ticket, $admin, $ticketService, $noteBody) {
                 $ticketService->addNote($ticket, $admin, $noteBody);
+                $ticketService->close($ticket, $admin);
             });
 
-            // Send warning notification to the reported user before closing
+            // Send warning notification after transaction commits
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
             $reportedUser->notify(new ContentReportWarning(
                 $entityType ?? 'content',
                 $entityName ?? 'reported content',
                 $reason,
             ));
-
-            // Close the ticket only after notification succeeds
-            DB::transaction(function () use ($ticket, $admin, $ticketService) {
-                $ticketService->close($ticket, $admin);
-            });
 
             Log::info('content_report.user_warned', [
                 'ticket_id' => $ticket->id,
@@ -876,11 +874,13 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            DB::transaction(function () use ($ticket, $user, $ticketService) {
+            $assignmentInfo = null;
+            DB::transaction(function () use ($ticket, $user, $ticketService, &$assignmentInfo) {
                 $ticketService->addNote($ticket, $user, "Content report escalated by {$user->name}.");
                 $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
-                ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+                $assignmentInfo = $this->findPlatformAdminForEscalation($user);
+                ['admin' => $platformAdmin] = $assignmentInfo;
 
                 if ($platformAdmin->id !== $user->id) {
                     $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
@@ -892,8 +892,7 @@ class ViewTicket extends BaseViewTicket
                 }
             });
 
-            // Extract assignment info for notification (outside transaction)
-            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
+            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $assignmentInfo;
 
             Log::info('content_report.escalated', [
                 'ticket_id' => $ticket->id,

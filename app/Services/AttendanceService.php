@@ -17,6 +17,7 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AttendanceService
@@ -108,22 +109,22 @@ class AttendanceService
 
         $weight = $griefCheck['weight_multiplier'];
 
-        // Record the attendance on the participant
-        $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
+        // Record attendance, create report, and check corroboration atomically
+        DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported) {
+            $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
 
-        // Create the attendance report record for grief tracking
-        AttendanceReport::create([
-            'game_id' => $game->id,
-            'reporter_id' => $reporter->id,
-            'reported_id' => $reported->id,
-            'status' => $status,
-            'weight_applied' => $weight,
-            'is_corroborated' => false,
-            'quarantined' => $griefCheck['quarantined'],
-        ]);
+            AttendanceReport::create([
+                'game_id' => $game->id,
+                'reporter_id' => $reporter->id,
+                'reported_id' => $reported->id,
+                'status' => $status,
+                'weight_applied' => $weight,
+                'is_corroborated' => false,
+                'quarantined' => $griefCheck['quarantined'],
+            ]);
 
-        // Check for corroboration — same reported user, different reporter
-        $this->checkCorroboration($game, $reported, $status);
+            $this->checkCorroboration($game, $reported, $status);
+        });
 
         Log::info('Attendance reported', [
             'game_id' => $game->id,
@@ -272,26 +273,28 @@ class AttendanceService
             ->where('date_time', '<=', $cutoff)
             ->chunkById(100, function ($games) use (&$count) {
                 foreach ($games as $game) {
-                    $unreportedParticipants = $game->participants()
-                        ->where('status', ParticipantStatus::Approved->value)
-                        ->whereNull('attendance_status')
-                        ->get();
+                    DB::transaction(function () use ($game, &$count) {
+                        $unreportedParticipants = $game->participants()
+                            ->where('status', ParticipantStatus::Approved->value)
+                            ->whereNull('attendance_status')
+                            ->get();
 
-                    foreach ($unreportedParticipants as $participant) {
-                        $this->recordAttendance($participant, AttendanceStatus::Attended->value);
+                        foreach ($unreportedParticipants as $participant) {
+                            $this->recordAttendance($participant, AttendanceStatus::Attended->value);
 
-                        AttendanceReport::create([
-                            'game_id' => $game->id,
-                            'reporter_id' => $participant->user_id,
-                            'reported_id' => $participant->user_id,
-                            'status' => AttendanceStatus::Attended->value,
-                            'weight_applied' => 1.0,
-                            'is_corroborated' => true,
-                            'quarantined' => false,
-                        ]);
+                            AttendanceReport::create([
+                                'game_id' => $game->id,
+                                'reporter_id' => $participant->user_id,
+                                'reported_id' => $participant->user_id,
+                                'status' => AttendanceStatus::Attended->value,
+                                'weight_applied' => 1.0,
+                                'is_corroborated' => true,
+                                'quarantined' => false,
+                            ]);
 
-                        $count++;
-                    }
+                            $count++;
+                        }
+                    });
                 }
             });
 
@@ -432,19 +435,20 @@ class AttendanceService
             return ['success' => false, 'reason' => 'Attendance already disputed'];
         }
 
-        // Set dispute reason on participant
-        $participant->forceFill([
-            'attendance_dispute_reason' => $reason,
-        ])->save();
+        // Set dispute reason on participant and mark reports atomically
+        DB::transaction(function () use ($participant, $reason) {
+            $participant->forceFill([
+                'attendance_dispute_reason' => $reason,
+            ])->save();
 
-        // Mark all attendance reports for this game+reported user as disputed
-        AttendanceReport::where('game_id', $participant->game_id)
-            ->where('reported_id', $participant->user_id)
-            ->whereNull('dispute_reason')
-            ->update([
-                'dispute_reason' => $reason,
-                'disputed_at' => now(),
-            ]);
+            AttendanceReport::where('game_id', $participant->game_id)
+                ->where('reported_id', $participant->user_id)
+                ->whereNull('dispute_reason')
+                ->update([
+                    'dispute_reason' => $reason,
+                    'disputed_at' => now(),
+                ]);
+        });
 
         Log::info('Attendance report disputed', [
             'participant_id' => $participant->id,
@@ -474,40 +478,39 @@ class AttendanceService
         // Get corroborating reports (other reporters saying 'attended')
         $corroboratingReports = $this->getCorroboratingReports($game, $user);
 
-        if ($corroboratingReports->count() >= 2) {
-            // Auto-resolve in player's favor
-            $participant->forceFill([
-                'attendance_status' => AttendanceStatus::Attended,
-                'attendance_weight' => 1.0,
-            ])->save();
+        $outcome = DB::transaction(function () use ($participant, $game, $user, $corroboratingReports) {
+            if ($corroboratingReports->count() >= 2) {
+                // Auto-resolve in player's favor
+                $participant->forceFill([
+                    'attendance_status' => AttendanceStatus::Attended,
+                    'attendance_weight' => 1.0,
+                ])->save();
 
-            // Update all disputed reports for this participant
-            AttendanceReport::where('game_id', $game->id)
-                ->where('reported_id', $user->id)
-                ->whereNotNull('dispute_reason')
-                ->update([
-                    'dispute_resolution' => 'resolved_favor',
-                    'dispute_resolved_at' => now(),
+                AttendanceReport::where('game_id', $game->id)
+                    ->where('reported_id', $user->id)
+                    ->whereNotNull('dispute_reason')
+                    ->update([
+                        'dispute_resolution' => 'resolved_favor',
+                        'dispute_resolved_at' => now(),
+                    ]);
+
+                $this->reliabilityService->recomputeAfterAttendance($participant);
+
+                Log::info('Dispute resolved in player favor', [
+                    'participant_id' => $participant->id,
+                    'game_id' => $game->id,
+                    'user_id' => $user->id,
+                    'corroborating_count' => $corroboratingReports->count(),
                 ]);
 
-            // Recompute reliability (the no-show penalty is removed)
-            $this->reliabilityService->recomputeAfterAttendance($participant);
+                return 'resolved_favor';
+            }
 
-            Log::info('Dispute resolved in player favor', [
-                'participant_id' => $participant->id,
-                'game_id' => $game->id,
-                'user_id' => $user->id,
-                'corroborating_count' => $corroboratingReports->count(),
-            ]);
-
-            $outcome = 'resolved_favor';
-        } else {
             // Report stands — reduce weight but don't clear
             $participant->forceFill([
                 'attendance_weight' => max(0.3, ($participant->attendance_weight ?? 1.0) * 0.5),
             ])->save();
 
-            // Mark reports as upheld
             AttendanceReport::where('game_id', $game->id)
                 ->where('reported_id', $user->id)
                 ->whereNotNull('dispute_reason')
@@ -516,7 +519,6 @@ class AttendanceService
                     'dispute_resolved_at' => now(),
                 ]);
 
-            // Recompute reliability with reduced weight
             $this->reliabilityService->recomputeAfterAttendance($participant);
 
             Log::info('Dispute upheld — report stands with reduced weight', [
@@ -527,8 +529,10 @@ class AttendanceService
                 'reduced_weight' => $participant->attendance_weight,
             ]);
 
-            $outcome = 'upheld';
+            return 'upheld';
+        });
 
+        if ($outcome === 'upheld') {
             // Auto-create an Escalated ticket for manual review
             $this->createDisputeTicket($participant, $corroboratingReports);
         }

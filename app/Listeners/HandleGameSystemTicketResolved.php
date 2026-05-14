@@ -37,7 +37,7 @@ class HandleGameSystemTicketResolved
         Log::info('Game system ticket resolved — processing approval', [
             'ticket_id' => $ticket->id,
             'ticket_reference' => $ticket->reference,
-            'subject' => $ticket->subject,
+            'has_subject' => filled($ticket->subject),
         ]);
 
         try {
