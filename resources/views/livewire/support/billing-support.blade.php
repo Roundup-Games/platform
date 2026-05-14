@@ -32,13 +32,15 @@
                     {{ __('support.field_issue_type') }} <span class="text-error">*</span>
                 </label>
                 <select wire:model="issueType" id="billingIssueType"
+                        aria-invalid="@error('issueType') true @else false @enderror"
+                        aria-describedby="@error('issueType') billingIssueTypeError @enderror"
                         class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
                     @foreach($issueTypes as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
                 @error('issueType')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="billingIssueTypeError" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -48,10 +50,12 @@
                     {{ __('support.field_subject') }} <span class="text-error">*</span>
                 </label>
                 <input type="text" wire:model="subject" id="billingSubject"
+                       aria-invalid="@error('subject') true @else false @enderror"
+                       aria-describedby="@error('subject') billingSubjectError @enderror"
                        class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                        placeholder="{{ __('support.placeholder_billing_subject') }}" />
                 @error('subject')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="billingSubjectError" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -61,10 +65,12 @@
                     {{ __('support.field_description') }} <span class="text-error">*</span>
                 </label>
                 <textarea wire:model="description" id="billingDescription" rows="6"
+                          aria-invalid="@error('description') true @else false @enderror"
+                          aria-describedby="@error('description') billingDescriptionError @enderror"
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                           placeholder="{{ __('support.placeholder_billing_description') }}"></textarea>
                 @error('description')
-                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                    <p id="billingDescriptionError" class="mt-1 text-sm text-error">{{ $message }}</p>
                 @enderror
             </div>
 

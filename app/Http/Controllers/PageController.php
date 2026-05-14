@@ -130,35 +130,29 @@ class PageController extends Controller
                 ->withErrors(['message' => __('support.error_unavailable')]);
         }
 
+        $baseTicketData = [
+            'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
+            'description' => $validated['message'],
+            'priority' => 'medium',
+            'department_id' => $department->id,
+        ];
+        if ($isAccountRecovery) {
+            $baseTicketData['ticket_type'] = 'account_recovery';
+        }
+
         if (auth()->check()) {
             /** @var User $user */
             $user = auth()->user();
-            $ticketData = [
+            $ticket = Ticket::create($baseTicketData + [
                 'requester_type' => User::class,
                 'requester_id' => $user->id,
-                'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
-                'description' => $validated['message'],
-                'priority' => 'medium',
-                'department_id' => $department->id,
-            ];
-            if ($isAccountRecovery) {
-                $ticketData['ticket_type'] = 'account_recovery';
-            }
-            $ticket = Ticket::create($ticketData);
+            ]);
         } else {
-            $ticketData = [
+            $ticket = Ticket::create($baseTicketData + [
                 'guest_name' => $validated['name'],
                 'guest_email' => $validated['email'],
                 'guest_token' => Str::uuid()->toString(),
-                'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
-                'description' => $validated['message'],
-                'priority' => 'medium',
-                'department_id' => $department->id,
-            ];
-            if ($isAccountRecovery) {
-                $ticketData['ticket_type'] = 'account_recovery';
-            }
-            $ticket = Ticket::create($ticketData);
+            ]);
         }
 
         return redirect()->route('contact')->with('success', __('common.content_thank_you_for_your_message'));

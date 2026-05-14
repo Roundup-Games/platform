@@ -43,11 +43,13 @@ class HandleGameSystemTicketResolved
         try {
             $metadata = $ticket->metadata ?? [];
             $bggUrl = $metadata['bgg_url'] ?? null;
+            $bggSynced = false;
 
             // Create GameSystem — sync from BGG if bgg_url is available, otherwise manual
             if ($bggUrl) {
                 try {
                     $gameSystem = $service->syncBggFromTicket($ticket);
+                    $bggSynced = true;
                 } catch (\InvalidArgumentException | \RuntimeException $e) {
                     // BGG sync failed — fall back to manual creation
                     Log::info('BGG sync failed, falling back to manual creation', [
@@ -65,7 +67,7 @@ class HandleGameSystemTicketResolved
                 'ticket_id' => $ticket->id,
                 'game_system_id' => $gameSystem->id,
                 'game_system_name' => $gameSystem->name,
-                'bgg_synced' => $bggUrl !== null,
+                'bgg_synced' => $bggSynced,
             ]);
 
             // Notify the requester

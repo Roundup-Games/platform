@@ -71,7 +71,7 @@ it('escalates safety ticket after 4 hours', function () {
     $service = app(EscalationService::class);
     $escalated = $service->evaluateRules();
 
-    expect($escalated)->toBeGreaterThanOrEqual(1);
+    expect($escalated)->toBe(1);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Escalated);
@@ -86,6 +86,7 @@ it('does not escalate safety ticket before 4 hours', function () {
 
     $service = app(EscalationService::class);
     $escalated = $service->evaluateRules();
+    expect($escalated)->toBe(0);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Open);
@@ -104,7 +105,8 @@ it('does not escalate ticket in different department', function () {
     $ticket->updateQuietly(['created_at' => now()->subHours(6)]);
 
     $service = app(EscalationService::class);
-    $service->evaluateRules();
+    $escalated = $service->evaluateRules();
+    expect($escalated)->toBe(0);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Open);
@@ -122,6 +124,7 @@ it('does not escalate already closed safety ticket', function () {
 
     $service = app(EscalationService::class);
     $escalated = $service->evaluateRules();
+    expect($escalated)->toBe(0);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Closed);
@@ -136,7 +139,8 @@ it('does not escalate already resolved safety ticket', function () {
     ]);
 
     $service = app(EscalationService::class);
-    $service->evaluateRules();
+    $escalated = $service->evaluateRules();
+    expect($escalated)->toBe(0);
 
     $ticket->refresh();
     expect($ticket->status)->toBe(TicketStatus::Resolved);

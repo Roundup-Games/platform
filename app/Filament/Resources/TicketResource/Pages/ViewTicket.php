@@ -771,7 +771,7 @@ class ViewTicket extends BaseViewTicket
     /**
      * Suspend user: close ticket, disable the reported user account, notify user.
      */
-    protected function performSuspendUser(Ticket $ticket, ?string $entityType, ?string $entityName): void
+    protected function performSuspendUser(Ticket $ticket, ?string $entityType): void
     {
         try {
             $admin = auth()->user();

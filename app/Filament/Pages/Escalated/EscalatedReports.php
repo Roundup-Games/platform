@@ -12,11 +12,11 @@ class EscalatedReports extends Reports
 {
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('escalated-agent') ?? false;
+        return parent::canAccess() && (auth()->user()?->can('escalated-agent') ?? false);
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canAccess();
+        return parent::shouldRegisterNavigation() && static::canAccess();
     }
 }

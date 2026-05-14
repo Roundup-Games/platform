@@ -188,7 +188,9 @@ describe('SLA policies', function () {
 
         $events = SlaPolicy::where('name', 'Events SLA')->first();
         $billing = SlaPolicy::where('name', 'Billing SLA')->first();
-        expect($events->first_response_hours)->toEqual($billing->first_response_hours)
+        expect($events)->not->toBeNull()
+            ->and($billing)->not->toBeNull()
+            ->and($events->first_response_hours)->toEqual($billing->first_response_hours)
             ->and($events->resolution_hours)->toEqual($billing->resolution_hours);
     });
 
