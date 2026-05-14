@@ -115,10 +115,11 @@ class PostHogFeatureFlag
     }
 
     /**
-     * Execute flag evaluation with error handling.
+     * Execute flag evaluation.
      *
-     * Catches all Throwables so PostHog failures never propagate.
-     * Logs failures at warning level for diagnostics.
+     * Error handling is centralized in PostHogClient::getFeatureFlag().
+     * If the SDK throws, PostHogClient catches it, logs a warning, and
+     * returns null — which checkFlag() maps to the caller's $default.
      */
     private function evaluate(string $key, string $userId, mixed $default): mixed
     {
@@ -131,17 +132,10 @@ class PostHogFeatureFlag
             return $default;
         }
 
-        try {
-            return $this->posthog->getFeatureFlag($key, $userId);
-        } catch (\Throwable $e) {
-            Log::channel('daily')->warning('posthog.feature_flag.evaluation_failed', [
-                'flag_key' => $key,
-                'user_id' => $userId,
-                'error' => $e->getMessage(),
-                'exception' => get_class($e),
-            ]);
+        $result = $this->posthog->getFeatureFlag($key, $userId);
 
-            return $default;
-        }
+        // PostHogClient returns null when the SDK throws or PostHog is down.
+        // Map null to the caller's default so callers always get a usable value.
+        return $result ?? $default;
     }
 }

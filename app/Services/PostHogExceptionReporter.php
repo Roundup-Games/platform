@@ -34,6 +34,8 @@ class PostHogExceptionReporter
      * Report an exception to PostHog error tracking.
      *
      * Skips: disabled PostHog, 4xx HTTP exceptions, rate-limited exceptions.
+     * Error handling is centralized in PostHogClient::capture().
+     * If the SDK throws, PostHogClient catches it and logs a warning.
      */
     public function report(Throwable $e): void
     {
@@ -51,45 +53,37 @@ class PostHogExceptionReporter
             return;
         }
 
-        try {
-            $distinctId = $this->resolveDistinctId();
-            $fingerprint = $this->buildFingerprint($e);
+        $distinctId = $this->resolveDistinctId();
+        $fingerprint = $this->buildFingerprint($e);
 
-            $this->posthog->capture([
-                'distinctId' => $distinctId,
-                'event' => '$exception',
-                'properties' => [
-                    // PostHog error tracking expects $exception_* properties
-                    '$exception_type' => get_class($e),
-                    '$exception_message' => $e->getMessage(),
-                    '$exception_source' => 'php',
-                    '$exception_stack_trace' => $this->formatStackTrace($e),
-                    '$exception_handled' => false,
-                    '$exception_fingerprint' => $fingerprint,
-                    // Request context
-                    'request_url' => request()->fullUrl(),
-                    'request_method' => request()->method(),
-                    'request_path' => request()->path(),
-                    // Code location
-                    'exception_file' => $e->getFile(),
-                    'exception_line' => $e->getLine(),
-                    'exception_code' => $e->getCode(),
-                    // Environment
-                    'environment' => app()->environment(),
-                ],
-            ]);
+        $this->posthog->capture([
+            'distinctId' => $distinctId,
+            'event' => '$exception',
+            'properties' => [
+                // PostHog error tracking expects $exception_* properties
+                '$exception_type' => get_class($e),
+                '$exception_message' => $e->getMessage(),
+                '$exception_source' => 'php',
+                '$exception_stack_trace' => $this->formatStackTrace($e),
+                '$exception_handled' => false,
+                '$exception_fingerprint' => $fingerprint,
+                // Request context
+                'request_url' => request()->fullUrl(),
+                'request_method' => request()->method(),
+                'request_path' => request()->path(),
+                // Code location
+                'exception_file' => $e->getFile(),
+                'exception_line' => $e->getLine(),
+                'exception_code' => $e->getCode(),
+                // Environment
+                'environment' => app()->environment(),
+            ],
+        ]);
 
-            Log::channel('daily')->debug('posthog.exception.reported', [
-                'exception_class' => get_class($e),
-                'fingerprint' => $fingerprint,
-            ]);
-        } catch (Throwable $posthogError) {
-            // PostHog failures must never block error reporting or app response
-            Log::channel('daily')->warning('posthog.exception.report_failed', [
-                'original_exception' => get_class($e),
-                'posthog_error' => $posthogError->getMessage(),
-            ]);
-        }
+        Log::channel('daily')->debug('posthog.exception.reported', [
+            'exception_class' => get_class($e),
+            'fingerprint' => $fingerprint,
+        ]);
     }
 
     /**

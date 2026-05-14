@@ -81,6 +81,9 @@ class PostHogIdentifyUsers
     /**
      * Server-side identify call for user property enrichment and
      * server-side event attribution.
+     *
+     * Error handling is centralized in PostHogClient::identify().
+     * If the SDK throws, PostHogClient catches it and logs a warning.
      */
     private function identifyServerSide($user): void
     {
@@ -88,32 +91,24 @@ class PostHogIdentifyUsers
             return;
         }
 
-        try {
-            $distinctId = (string) $user->getAuthIdentifier();
+        $distinctId = (string) $user->getAuthIdentifier();
 
-            $this->posthog->identify([
-                'distinctId' => $distinctId,
-                'properties' => [
-                    '$set' => [
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'locale' => $user->preferred_language ?? app()->getLocale(),
-                    ],
-                    '$set_once' => [
-                        'signup_date' => $user->created_at?->toDateString(),
-                    ],
+        $this->posthog->identify([
+            'distinctId' => $distinctId,
+            'properties' => [
+                '$set' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'locale' => $user->preferred_language ?? app()->getLocale(),
                 ],
-            ]);
+                '$set_once' => [
+                    'signup_date' => $user->created_at?->toDateString(),
+                ],
+            ],
+        ]);
 
-            Log::channel('daily')->debug('posthog.user.identified', [
-                'user_id' => $distinctId,
-            ]);
-        } catch (\Throwable $e) {
-            // Fail silently — analytics should never break the app
-            Log::channel('daily')->warning('posthog.identify.failed', [
-                'user_id' => $user->getAuthIdentifier(),
-                'error' => $e->getMessage(),
-            ]);
-        }
+        Log::channel('daily')->debug('posthog.user.identified', [
+            'user_id' => $distinctId,
+        ]);
     }
 }

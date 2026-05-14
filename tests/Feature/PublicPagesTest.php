@@ -46,11 +46,20 @@ describe('AboutPage', function () {
     it('includes the SEO title and description', function () {
         get(route('about'))
             ->assertOk()
+            // SEO title is rendered in <title> where & becomes &amp;.
+            // assertSee() without false encodes the expected string too, so both sides match.
+            // nosemgrep: php.laravel.assert-see-escaped — intentional default escaping for HTML context.
             ->assertSee(__('pages.seo_title_about'))
+            // Description is in a <meta> content attribute — use false to match raw value.
             ->assertSee(__('pages.seo_description_about'), false);
     });
 
-    it('renders how-it-works page successfully', function () {
+});
+
+// ── How It Works Page ──────────────────────────────────
+
+describe('HowItWorksPage', function () {
+    it('renders the how-it-works page successfully', function () {
         get(route('how-it-works'))->assertOk();
     });
 });

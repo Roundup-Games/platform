@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -16,7 +18,7 @@ function resolvePostHogBundleOrFail(): string
     $bundleFiles = glob(public_path('build/assets/posthog-*.js'));
 
     if (empty($bundleFiles)) {
-        test()->markTestSkipped('PostHog JS bundle not built — run npm run build first.');
+        it()->skip('PostHog JS bundle not built — run npm run build first.');
     }
 
     return file_get_contents($bundleFiles[0]);
@@ -58,22 +60,37 @@ describe('Session Replay configuration', function () {
 describe('Session Replay disabled state', function () {
     test('no replay meta tag is rendered when PostHog is globally disabled', function () {
         Config::set('posthog.enabled', false);
+        Config::set('posthog.api_key', 'phc_test');
 
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
+        $html = Blade::render(file_get_contents(resource_path('views/partials/posthog-meta.blade.php')));
 
-        expect($partial)->toContain("config('posthog.enabled', true)");
+        expect($html)->not->toContain('posthog-api-key')
+            ->and($html)->not->toContain('posthog-replay-sample-rate');
     });
 
     test('no replay meta tag is rendered when session_replay.enabled is false', function () {
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
+        Config::set('posthog.enabled', true);
+        Config::set('posthog.api_key', 'phc_test');
+        Config::set('posthog.session_replay.enabled', false);
 
-        expect($partial)->toContain("config('posthog.session_replay.enabled'");
+        $html = Blade::render(file_get_contents(resource_path('views/partials/posthog-meta.blade.php')));
+
+        expect($html)->toContain('posthog-api-key')
+            ->and($html)->not->toContain('posthog-replay-sample-rate');
     });
 
     test('PostHog JS is not loaded on admin routes', function () {
-        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
+        Config::set('posthog.enabled', true);
+        Config::set('posthog.api_key', 'phc_test');
 
-        expect($partial)->toContain("!request()->is('admin/*')");
+        // Create a request to an admin route and bind it as current
+        $adminRequest = Illuminate\Http\Request::create('https://roundup.games/admin/dashboard', 'GET');
+        app()->instance('request', $adminRequest);
+
+        $html = Blade::render(file_get_contents(resource_path('views/partials/posthog-meta.blade.php')));
+
+        expect($html)->not->toContain('posthog-api-key')
+            ->and($html)->not->toContain('posthog-api-host');
     });
 
     test('PostHog JS is not loaded on livewire/update routes', function () {

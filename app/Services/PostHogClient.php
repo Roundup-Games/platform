@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use PostHog\PostHog;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Centralized wrapper around the PostHog PHP SDK.
@@ -15,6 +16,11 @@ use PostHog\PostHog;
  * Services should inject or resolve this class instead of calling
  * PostHog::capture() / PostHog::identify() directly. Protected
  * wrapper methods on individual services delegate here for testability.
+ *
+ * All SDK calls are wrapped in try-catch — PostHog failures (network
+ * errors, invalid payloads, uninitialized SDK) are caught and logged
+ * at warning level. Exceptions never propagate to calling code, so
+ * analytics can never break the primary application flow.
  */
 class PostHogClient
 {
@@ -36,7 +42,14 @@ class PostHogClient
             return;
         }
 
-        PostHog::capture($payload);
+        try {
+            PostHog::capture($payload);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.client.capture_failed', [
+                'event' => $payload['event'] ?? 'unknown',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -48,7 +61,14 @@ class PostHogClient
             return;
         }
 
-        PostHog::identify($payload);
+        try {
+            PostHog::identify($payload);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.client.identify_failed', [
+                'distinctId' => $payload['distinctId'] ?? 'unknown',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -60,11 +80,19 @@ class PostHogClient
             return;
         }
 
-        PostHog::groupIdentify([
-            'groupType' => $groupType,
-            'groupKey' => $groupKey,
-            'properties' => $properties,
-        ]);
+        try {
+            PostHog::groupIdentify([
+                'groupType' => $groupType,
+                'groupKey' => $groupKey,
+                'properties' => $properties,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.client.group_identify_failed', [
+                'groupType' => $groupType,
+                'groupKey' => $groupKey,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -76,10 +104,20 @@ class PostHogClient
             return null;
         }
 
-        return PostHog::getFeatureFlag(
-            $key,
-            $distinctId,
-            onlyEvaluateLocally: false,
-        );
+        try {
+            return PostHog::getFeatureFlag(
+                $key,
+                $distinctId,
+                onlyEvaluateLocally: false,
+            );
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('posthog.client.feature_flag_failed', [
+                'flag_key' => $key,
+                'distinctId' => $distinctId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

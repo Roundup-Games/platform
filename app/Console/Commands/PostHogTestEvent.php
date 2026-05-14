@@ -3,10 +3,15 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use PostHog\PostHog;
+use App\Services\PostHogClient;
 
 class PostHogTestEvent extends Command
 {
+    public function __construct(private PostHogClient $posthogClient)
+    {
+        parent::__construct();
+    }
+
     /**
      * The name and signature of the console command.
      */
@@ -40,7 +45,7 @@ class PostHogTestEvent extends Command
         $type = $this->option('type');
 
         try {
-            PostHog::capture([
+            $this->posthogClient->capture([
                 'distinctId' => 'test-server-' . gethostname(),
                 'event' => "{$type}_test_event",
                 'properties' => [
