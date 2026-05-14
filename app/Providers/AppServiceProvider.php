@@ -12,6 +12,9 @@ use App\Models\Review;
 use App\Models\Team;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
+use App\Listeners\HandleAttendanceDisputeTicketResolved;
+use App\Listeners\HandleGameSystemTicketClosed;
+use App\Listeners\HandleGameSystemTicketResolved;
 use App\Observers\ActivityLogObserver;
 use App\Observers\SeoModelObserver;
 use App\Services\PostHogClient;
@@ -19,9 +22,13 @@ use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
+use Escalated\Laravel\Events\TicketClosed;
+use Escalated\Laravel\Events\TicketResolved;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event as EventFacade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
@@ -112,6 +119,44 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Escalated ticket event listeners for game system requests
+        EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
+        EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+
+        // Escalated ticket event listener for attendance disputes
+        EventFacade::listen(TicketResolved::class, HandleAttendanceDisputeTicketResolved::class);
+
+        // Escalated helpdesk authorization gates
+        // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
+        Gate::define('escalated-admin', fn ($user) => $user->hasRole('Platform Admin'));
+        // escalated-agent: ticket agent (manage tickets, canned responses, macros)
+        Gate::define('escalated-agent', fn ($user) => $user->hasRole('Platform Admin') || $user->hasRole('Service Admin'));
+
+        // Escalated model policies — override vendor defaults for RBAC.
+        // Agent resources (tickets): escalated-agent gate (Platform Admin + Service Admin)
+        Gate::policy(\Escalated\Laravel\Models\Ticket::class, \App\Policies\Escalated\TicketPolicy::class);
+        // All admin-only resources use the same EscalatedAdminPolicy
+        // (vendor policies for Department/Tag/SlaPolicy/EscalationRule use Gate::allows()
+        // which doesn't work with Gate::forUser() in test contexts)
+        Gate::policy(\Escalated\Laravel\Models\Department::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Tag::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\SlaPolicy::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\EscalationRule::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\CannedResponse::class, \App\Policies\Escalated\CannedResponsePolicy::class);
+        // Resources with no vendor policy — use generic admin-only policy
+        Gate::policy(\Escalated\Laravel\Models\Macro::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\ApiToken::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Automation::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Webhook::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Role::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\TicketStatus::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Skill::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\CustomField::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\BusinessSchedule::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\Article::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\ArticleCategory::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+        Gate::policy(\Escalated\Laravel\Models\AuditLog::class, \App\Policies\Escalated\EscalatedAdminPolicy::class);
+
         // Feature flag Blade directives
         // Blade::if creates @featureFlag / @else / @endfeatureFlag automatically.
         // Closing tags @endfeatureFlag and @endfeatureFlagVariant are auto-generated.

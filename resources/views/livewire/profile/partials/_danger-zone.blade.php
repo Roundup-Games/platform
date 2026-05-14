@@ -1,3 +1,22 @@
+{{-- Contact Support Section --}}
+<section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">support_agent</span>
+            </div>
+            <div>
+                <h2 class="text-sm font-heading font-semibold tracking-tight text-on-surface">{{ __('support.title_need_help') }}</h2>
+                <p class="text-xs text-on-surface-variant">{{ __('support.content_contact_our_support_team') }}</p>
+            </div>
+        </div>
+        <a href="{{ route('support.account') }}" wire:navigate
+           class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+            {{ __('support.action_contact_support') }}
+        </a>
+    </div>
+</section>
+
 {{-- Danger Zone: Account Deletion --}}
 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 border-l-4 border-error">
     <h2 class="text-lg font-heading font-semibold text-error mb-2 tracking-tight flex items-center gap-2">

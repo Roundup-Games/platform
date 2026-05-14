@@ -63,8 +63,7 @@ class GameSystemPolicy
     }
 
     /**
-     * Request a new game system: any authenticated user.
-     * Supports GameSystemRequest flow — guests cannot request.
+     * Request a new game system: any authenticated user. Guests cannot request.
      */
     public function requestNew(?User $user): bool
     {

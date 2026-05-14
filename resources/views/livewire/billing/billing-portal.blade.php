@@ -183,6 +183,25 @@
         </section>
         @endif
 
+        {{-- Contact Support Link --}}
+        <section class="bg-surface-container-low rounded-xl p-6">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">support_agent</span>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-heading font-semibold tracking-tight text-on-surface">{{ __('support.title_need_help') }}</h2>
+                        <p class="text-xs text-on-surface-variant">{{ __('support.content_having_billing_issues') }}</p>
+                    </div>
+                </div>
+                <a href="{{ route('support.billing') }}" wire:navigate
+                   class="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+                    {{ __('support.action_contact_billing_support') }}
+                </a>
+            </div>
+        </section>
+
         {{-- Transaction History --}}
         <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
             <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-4">{{ __('billing.content_payment_history') }}</h2>

@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ContactFormSubmitted;
+use App\Models\User;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use function Pest\Laravel\{get, post, actingAs};
 
 // Max lengths must be one character over the validation rules
@@ -67,6 +68,13 @@ describe('HowItWorksPage', function () {
 // ── Contact Page ───────────────────────────────────────
 
 describe('ContactPage', function () {
+    beforeEach(function () {
+        \Escalated\Laravel\Models\Department::firstOrCreate(
+            ['name' => 'Contact'],
+            ['description' => 'General inquiries and questions', 'is_active' => true],
+        );
+    });
+
     // smoke: contact page renders for guests
     it('renders the contact page', function () {
         get(route('contact'))
@@ -90,8 +98,8 @@ describe('ContactPage', function () {
             ->assertSee(__('common.content_frequently_asked'));
     });
 
-    it('can submit a valid contact form', function () {
-        Mail::fake();
+    it('can submit a valid contact form as guest creating a ticket', function () {
+        $department = Department::where('name', 'Contact')->first();
 
         post(route('contact.submit'), [
             'name' => 'John Doe',
@@ -102,28 +110,45 @@ describe('ContactPage', function () {
             ->assertRedirect(route('contact'))
             ->assertSessionHas('success');
 
-        // Verify stored in DB with all fields including message content
-        $this->assertDatabaseHas('contact_messages', [
-            'name' => 'John Doe',
-            'email' => 'john@example.com',
+        // Verify ticket was created with guest fields
+        $this->assertDatabaseHas('escalated_tickets', [
+            'guest_name' => 'John Doe',
+            'guest_email' => 'john@example.com',
             'subject' => 'Question about events',
-            'message' => 'I have a question about upcoming events.',
-            'status' => 'new',
+            'description' => 'I have a question about upcoming events.',
+            'department_id' => $department?->id,
         ]);
 
-        // Verify email was queued with correct data
-        Mail::assertQueued(function (ContactFormSubmitted $mail) {
-            $contact = $mail->contactMessage;
-            return $contact->name === 'John Doe'
-                && $contact->email === 'john@example.com'
-                && $contact->subject === 'Question about events'
-                && $contact->message === 'I have a question about upcoming events.';
-        });
+        // Verify guest_token is set
+        $ticket = Ticket::where('guest_email', 'john@example.com')->first();
+        expect($ticket->guest_token)->not->toBeNull();
+        expect($ticket->status->value)->toBe('open');
+    });
+
+    it('creates ticket for authenticated user with requester relation', function () {
+        $user = User::factory()->create();
+        $department = Department::where('name', 'Contact')->first();
+
+        actingAs($user)->post(route('contact.submit'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'subject' => 'Auth user question',
+            'message' => 'I am logged in and have a question.',
+        ])
+            ->assertRedirect(route('contact'))
+            ->assertSessionHas('success');
+
+        // Verify ticket created with requester morph
+        $this->assertDatabaseHas('escalated_tickets', [
+            'requester_type' => User::class,
+            'requester_id' => $user->id,
+            'subject' => 'Auth user question',
+            'description' => 'I am logged in and have a question.',
+            'department_id' => $department?->id,
+        ]);
     });
 
     it('works without a subject', function () {
-        Mail::fake();
-
         post(route('contact.submit'), [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
@@ -132,9 +157,11 @@ describe('ContactPage', function () {
             ->assertRedirect(route('contact'))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('contact_messages', [
-            'name' => 'Jane Doe',
-            'email' => 'jane@example.com',
+        $this->assertDatabaseHas('escalated_tickets', [
+            'guest_name' => 'Jane Doe',
+            'guest_email' => 'jane@example.com',
+            'subject' => 'General Inquiry',
+            'description' => 'Hello there!',
         ]);
     });
 
@@ -170,8 +197,6 @@ describe('ContactPage', function () {
     });
 
     it('displays success message after submission', function () {
-        Mail::fake();
-
         post(route('contact.submit'), [
             'name' => 'John Doe',
             'email' => 'john@example.com',
@@ -204,4 +229,3 @@ describe('PublicNavigation', function () {
             ->assertSee(route('events.index'));
     });
 });
-

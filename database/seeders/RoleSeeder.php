@@ -54,6 +54,7 @@ class RoleSeeder extends Seeder
             'manage roles',
             'view audit log',
             'manage settings',
+            'manage tickets',
         ];
 
         foreach ($specialPermissions as $perm) {
@@ -117,6 +118,18 @@ class RoleSeeder extends Seeder
             'view team', 'update team',
             'view membership', 'create membership', 'update membership',
             'view game',
+            'view user',
+        ]);
+
+        // Service Admin: manage support tickets (Escalated helpdesk agents)
+        $serviceAdmin = Role::firstOrCreate([
+            'name' => 'Service Admin',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
+        $serviceAdmin->syncPermissions([
+            'view dashboard',
+            'manage tickets',
             'view user',
         ]);
 

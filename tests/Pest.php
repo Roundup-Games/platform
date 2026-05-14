@@ -89,7 +89,7 @@ function seedPermissions()
         }
     }
 
-    foreach (['view dashboard', 'manage roles', 'view audit log', 'manage settings'] as $perm) {
+    foreach (['view dashboard', 'manage roles', 'view audit log', 'manage settings', 'manage tickets'] as $perm) {
         \Spatie\Permission\Models\Permission::firstOrCreate([
             'name' => $perm,
             'guard_name' => 'web',
@@ -154,6 +154,17 @@ function seedRoles()
         'view team', 'update team',
         'view membership', 'create membership', 'update membership',
         'view game',
+        'view user',
+    ]);
+
+    $serviceAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+        'name' => 'Service Admin',
+        'guard_name' => 'web',
+        'team_id' => null,
+    ]);
+    $serviceAdmin->syncPermissions([
+        'view dashboard',
+        'manage tickets',
         'view user',
     ]);
 

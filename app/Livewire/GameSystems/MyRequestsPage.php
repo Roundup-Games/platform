@@ -2,7 +2,8 @@
 
 namespace App\Livewire\GameSystems;
 
-use App\Models\GameSystemRequest;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -29,28 +30,32 @@ class MyRequestsPage extends Component
 
     protected function getRequests(): LengthAwarePaginator
     {
-        return GameSystemRequest::query()
-            ->where('user_id', Auth::id())
-            ->with('gameSystem')
+        return Ticket::query()
+            ->where('requester_type', \App\Models\User::class)
+            ->where('requester_id', Auth::id())
+            ->where('ticket_type', 'game_system_request')
             ->orderByDesc('created_at')
             ->paginate(self::PER_PAGE);
     }
 
     // ── Helpers ───────────────────────────────────────
 
-    public function getStatusColor(string $status): string
+    public function getStatusColor(Ticket $ticket): string
     {
+        $status = $this->mapTicketStatus($ticket);
+
         return match ($status) {
             'pending', 'in_review' => 'yellow',
             'approved' => 'green',
-            'rejected' => 'red',
-            'duplicate' => 'blue',
+            'rejected', 'duplicate' => 'red',
             default => 'gray',
         };
     }
 
-    public function getStatusLabel(string $status): string
+    public function getStatusLabel(Ticket $ticket): string
     {
+        $status = $this->mapTicketStatus($ticket);
+
         return match ($status) {
             'pending' => __('games.request_status_pending'),
             'in_review' => __('games.request_status_in_review'),
@@ -61,14 +66,47 @@ class MyRequestsPage extends Component
         };
     }
 
-    public function getTypeLabel(string $type): string
+    public function getTypeLabel(Ticket $ticket): string
     {
+        $type = $ticket->metadata['game_system_type'] ?? 'other';
+
         return match ($type) {
             'boardgame' => __('games.type_board_game'),
             'ttrpg' => __('games.type_ttrpg'),
             'other' => __('games.type_other'),
             default => ucfirst($type),
         };
+    }
+
+    public function getRequestName(Ticket $ticket): string
+    {
+        $subject = $ticket->subject ?? '';
+
+        if (str_starts_with($subject, 'Game System Request: ')) {
+            return trim(str_after($subject, 'Game System Request: '));
+        }
+
+        return trim($subject);
+    }
+
+    public function getGameSystem(Ticket $ticket): ?\App\Models\GameSystem
+    {
+        $gameSystemId = $ticket->metadata['game_system_id'] ?? null;
+
+        if (! $gameSystemId) {
+            return null;
+        }
+
+        return \App\Models\GameSystem::find($gameSystemId);
+    }
+
+    public function getRejectionReason(Ticket $ticket): ?string
+    {
+        if ($this->mapTicketStatus($ticket) !== 'rejected') {
+            return null;
+        }
+
+        return $ticket->metadata['rejection_reason'] ?? null;
     }
 
     // ── Render ────────────────────────────────────────
@@ -78,5 +116,29 @@ class MyRequestsPage extends Component
         return view('livewire.game-systems.my-requests-page', [
             'requests' => $this->getRequests(),
         ]);
+    }
+
+    // ── Private ───────────────────────────────────────
+
+    public function mapTicketStatus(Ticket $ticket): string
+    {
+        $status = $ticket->status;
+
+        if ($status === TicketStatus::Open->value || $status === TicketStatus::InProgress->value) {
+            return 'pending';
+        }
+
+        if ($status === TicketStatus::Resolved->value) {
+            return 'approved';
+        }
+
+        if ($status === TicketStatus::Closed->value) {
+            // Check metadata for close reason
+            $metadata = $ticket->metadata ?? [];
+
+            return $metadata['close_reason'] ?? 'rejected';
+        }
+
+        return 'pending';
     }
 }

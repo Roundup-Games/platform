@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ContactFormSubmitted;
 use App\Models\Campaign;
-use App\Models\ContactMessage;
 use App\Models\Game;
 use App\Models\User;
 use App\SEO\OrganizationSchema;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
@@ -114,15 +114,45 @@ class PageController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'subject' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'in:general,account_recovery'],
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        $contactMessage = ContactMessage::create($validated);
+        $category = $validated['category'] ?? 'general';
+        $isAccountRecovery = $category === 'account_recovery';
 
-        // Send notification email (queued)
-        $adminEmail = config('mail.from.address');
-        if ($adminEmail) {
-            Mail::to($adminEmail)->send(new ContactFormSubmitted($contactMessage));
+        // Account recovery → Account Support department; general → Contact department
+        $departmentName = $isAccountRecovery ? 'Account Support' : 'Contact';
+        $department = Department::where('name', $departmentName)->first();
+        if (! $department) {
+            return redirect()
+                ->route('contact')
+                ->withErrors(['message' => __('support.error_unavailable')]);
+        }
+
+        $baseTicketData = [
+            'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
+            'description' => $validated['message'],
+            'priority' => 'medium',
+            'department_id' => $department->id,
+        ];
+        if ($isAccountRecovery) {
+            $baseTicketData['ticket_type'] = 'account_recovery';
+        }
+
+        if (auth()->check()) {
+            /** @var User $user */
+            $user = auth()->user();
+            Ticket::create($baseTicketData + [
+                'requester_type' => User::class,
+                'requester_id' => $user->id,
+            ]);
+        } else {
+            Ticket::create($baseTicketData + [
+                'guest_name' => $validated['name'],
+                'guest_email' => $validated['email'],
+                'guest_token' => Str::uuid()->toString(),
+            ]);
         }
 
         return redirect()->route('contact')->with('success', __('common.content_thank_you_for_your_message'));

@@ -21,14 +21,31 @@
                     <form method="POST" action="{{ route('contact.submit') }}" class="space-y-5">
                         @csrf
 
+                        {{-- Category --}}
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('support.field_category') }}</label>
+                            <select name="category" id="category"
+                                aria-invalid="@error('category') true @else false @enderror"
+                                aria-describedby="category-error"
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                                <option value="general" @selected(old('category', 'general') === 'general')>{{ __('support.category_general') }}</option>
+                                <option value="account_recovery" @selected(old('category') === 'account_recovery')>{{ __('support.category_account_recovery') }}</option>
+                            </select>
+                            @error('category')
+                                <p id="category-error" class="mt-1 text-sm text-error">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         {{-- Name --}}
                         <div>
                             <label for="name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_name') }} <span class="text-error">*</span></label>
                             <input type="text" name="name" id="name" value="{{ old('name') }}"
+                                aria-invalid="@error('name') true @else false @enderror"
+                                aria-describedby="name-error"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required />
                             @error('name')
-                                <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                                <p id="name-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -36,10 +53,12 @@
                         <div>
                             <label for="email" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('emails.field_email') }} <span class="text-error">*</span></label>
                             <input type="email" name="email" id="email" value="{{ old('email') }}"
+                                aria-invalid="@error('email') true @else false @enderror"
+                                aria-describedby="email-error"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required />
                             @error('email')
-                                <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                                <p id="email-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -47,9 +66,11 @@
                         <div>
                             <label for="subject" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_subject') }}</label>
                             <input type="text" name="subject" id="subject" value="{{ old('subject') }}"
+                                aria-invalid="@error('subject') true @else false @enderror"
+                                aria-describedby="subject-error"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
                             @error('subject')
-                                <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                                <p id="subject-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                             @enderror
                         </div>
 
@@ -57,10 +78,12 @@
                         <div>
                             <label for="message" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_message') }} <span class="text-error">*</span></label>
                             <textarea name="message" id="message" rows="6"
+                                aria-invalid="@error('message') true @else false @enderror"
+                                aria-describedby="message-error"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                                 required>{{ old('message') }}</textarea>
                             @error('message')
-                                <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                                <p id="message-error" class="mt-1 text-sm text-error">{{ $message }}</p>
                             @enderror
                         </div>
 

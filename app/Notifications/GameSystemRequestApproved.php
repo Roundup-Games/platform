@@ -5,8 +5,8 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 
 use App\Models\GameSystem;
-use App\Models\GameSystemRequest;
 use App\Models\User;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,11 +17,11 @@ class GameSystemRequestApproved extends Notification
     use HasUnsubscribeLink;
 
     /**
-     * @param  GameSystemRequest  $request  The original game system request
+     * @param  Ticket  $ticket  The Escalated ticket representing the game system request
      * @param  GameSystem  $gameSystem  The newly created game system
      */
     public function __construct(
-        public GameSystemRequest $request,
+        public Ticket $ticket,
         public GameSystem $gameSystem,
     ) {}
 
@@ -69,7 +69,7 @@ class GameSystemRequestApproved extends Notification
 
         return [
             'type' => 'game_system_request_approved',
-            'request_id' => $this->request->id,
+            'ticket_id' => $this->ticket->id,
             'game_system_id' => $this->gameSystem->id,
             'game_system_name' => $this->gameSystem->name,
             'game_system_slug' => $this->gameSystem->slug,

@@ -3,7 +3,7 @@
         {{-- Page Header --}}
         <div class="mb-6 sm:mb-8">
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ route('game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors" aria-label="{{ __('games.action_back_to_game_systems') }}">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
                 <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.heading_my_requests') }}</h1>
@@ -15,36 +15,42 @@
         @if($requests->count() > 0)
             <div class="space-y-3">
                 @foreach($requests as $request)
+                    @php
+                        $requestName = $this->getRequestName($request);
+                        $gameSystem = $this->getGameSystem($request);
+                        $status = $this->mapTicketStatus($request);
+                    @endphp
                     <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-4 sm:p-5">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 {{-- Name --}}
-                                @if($request->status === 'approved' && $request->gameSystem)
-                                    <a href="{{ route('game-systems.show', $request->gameSystem->slug) }}"
+                                @if($status === 'approved' && $gameSystem)
+                                    <a href="{{ route('game-systems.show', $gameSystem->slug) }}"
                                        wire:navigate
                                        class="text-base font-semibold text-on-surface hover:text-primary transition-colors truncate block">
-                                        {{ $request->name }}
+                                        {{ $requestName }}
                                     </a>
                                 @else
-                                    <h3 class="text-base font-semibold text-on-surface truncate">{{ $request->name }}</h3>
+                                    <h3 class="text-base font-semibold text-on-surface truncate">{{ $requestName }}</h3>
                                 @endif
 
                                 {{-- Meta row: type + date --}}
                                 <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
-                                    <span>{{ $this->getTypeLabel($request->type) }}</span>
+                                    <span>{{ $this->getTypeLabel($request) }}</span>
                                     <span aria-hidden="true">·</span>
                                     <time datetime="{{ $request->created_at->toIso8601String() }}">{{ $request->created_at->format('M j, Y') }}</time>
                                 </div>
 
                                 {{-- Rejection reason --}}
-                                @if($request->status === 'rejected' && $request->rejection_reason)
-                                    <p class="mt-2 text-sm text-error">{{ $request->rejection_reason }}</p>
+                                @php $rejectionReason = $this->getRejectionReason($request); @endphp
+                                @if($rejectionReason)
+                                    <p class="mt-2 text-sm text-error">{{ $rejectionReason }}</p>
                                 @endif
                             </div>
 
                             {{-- Status badge --}}
                             @php
-                                $color = $this->getStatusColor($request->status);
+                                $color = $this->getStatusColor($request);
                                 $badgeClasses = match($color) {
                                     'yellow' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
                                     'green' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
@@ -54,7 +60,7 @@
                                 };
                             @endphp
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap {{ $badgeClasses }}">
-                                {{ $this->getStatusLabel($request->status) }}
+                                {{ $this->getStatusLabel($request) }}
                             </span>
                         </div>
                     </div>

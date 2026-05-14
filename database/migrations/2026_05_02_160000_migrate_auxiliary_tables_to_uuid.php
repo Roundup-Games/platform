@@ -9,9 +9,8 @@ use Illuminate\Support\Str;
 /**
  * Migrate all auxiliary tables from auto-increment integer PKs to UUID v7.
  *
- * Tables migrated (12 total):
+ * Tables migrated (10 total):
  *   - membership_types
- *   - contact_messages
  *   - activity_logs
  *   - bgg_sync_logs
  *   - translations
@@ -20,13 +19,12 @@ use Illuminate\Support\Str;
  *   - user_app_visits
  *   - push_subscriptions
  *   - nearby_discovery_views
- *   - game_system_requests
  *   - media (Spatie)
  *
  * Cross-aux FK updated:
  *   - local_subscriptions.membership_type_id → uuid (references membership_types)
  *
- * All other FK columns (user_id, game_system_id, reviewed_by) are already uuid type
+ * All other FK columns (user_id, game_system_id) are already uuid type
  * and reference already-migrated tables — no column type change needed for those.
  *
  * Note: media already has a Spatie `uuid` column, so we use `new_uuid` as the
@@ -40,7 +38,6 @@ return new class extends Migration
      */
     private array $tables = [
         'membership_types',
-        'contact_messages',
         'activity_logs',
         'bgg_sync_logs',
         'translations',
@@ -48,7 +45,6 @@ return new class extends Migration
         'user_app_visits',
         'push_subscriptions',
         'nearby_discovery_views',
-        'game_system_requests',
         'media',
         // local_subscriptions last — depends on membership_types
         'local_subscriptions',
@@ -80,11 +76,6 @@ return new class extends Migration
         'user_app_visits' => ['user_app_visits_user_id_foreign'],
         'push_subscriptions' => ['push_subscriptions_user_id_foreign'],
         'nearby_discovery_views' => ['nearby_discovery_views_user_id_foreign'],
-        'game_system_requests' => [
-            'game_system_requests_user_id_foreign',
-            'game_system_requests_reviewed_by_foreign',
-            'game_system_requests_game_system_id_foreign',
-        ],
         'bgg_sync_logs' => ['bgg_sync_logs_game_system_id_foreign'],
     ];
 
@@ -177,9 +168,6 @@ return new class extends Migration
         DB::statement('ALTER TABLE user_app_visits ADD CONSTRAINT user_app_visits_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
         DB::statement('ALTER TABLE push_subscriptions ADD CONSTRAINT push_subscriptions_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
         DB::statement('ALTER TABLE nearby_discovery_views ADD CONSTRAINT nearby_discovery_views_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_reviewed_by_foreign FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_game_system_id_foreign FOREIGN KEY (game_system_id) REFERENCES game_systems(id) ON DELETE SET NULL');
         DB::statement('ALTER TABLE bgg_sync_logs ADD CONSTRAINT bgg_sync_logs_game_system_id_foreign FOREIGN KEY (game_system_id) REFERENCES game_systems(id) ON DELETE SET NULL');
     }
 
@@ -227,9 +215,6 @@ return new class extends Migration
         DB::statement('ALTER TABLE user_app_visits ADD CONSTRAINT user_app_visits_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
         DB::statement('ALTER TABLE push_subscriptions ADD CONSTRAINT push_subscriptions_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
         DB::statement('ALTER TABLE nearby_discovery_views ADD CONSTRAINT nearby_discovery_views_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_reviewed_by_foreign FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL');
-        DB::statement('ALTER TABLE game_system_requests ADD CONSTRAINT game_system_requests_game_system_id_foreign FOREIGN KEY (game_system_id) REFERENCES game_systems(id) ON DELETE SET NULL');
         DB::statement('ALTER TABLE bgg_sync_logs ADD CONSTRAINT bgg_sync_logs_game_system_id_foreign FOREIGN KEY (game_system_id) REFERENCES game_systems(id) ON DELETE SET NULL');
     }
 };

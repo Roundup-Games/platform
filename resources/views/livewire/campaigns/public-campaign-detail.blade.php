@@ -194,6 +194,15 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Report (authenticated non-owners only) --}}
+                @auth
+                    @unless($this->isOwner)
+                        <div class="flex justify-end">
+                            <livewire:reports.report-content :entityType="'campaign'" :entityId="$campaign->id" :key="'report-campaign-' . $campaign->id" />
+                        </div>
+                    @endunless
+                @endauth
             </aside>
         </div>
     </div>

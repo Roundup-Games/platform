@@ -2,9 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\GmRoleService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Laravel\Paddle\Events\SubscriptionCanceled;
 use Laravel\Paddle\Events\SubscriptionCreated;
 use Laravel\Paddle\Events\SubscriptionUpdated;
@@ -102,6 +110,104 @@ class PaddleWebhookController extends BaseWebhookController
             'currency' => $data['currency_code'] ?? null,
             'status' => $data['status'] ?? null,
         ]);
+
+        // Auto-create a billing support ticket for payment failures that need human review
+        $this->createPaymentFailureTicket($data);
+    }
+
+    /**
+     * Create a billing support ticket for payment failures that may need human review.
+     * Only creates a ticket for recurring payment failures (subscription context).
+     */
+    private function createPaymentFailureTicket(array $data): void
+    {
+        try {
+            $paddleCustomerId = $data['customer_id'] ?? null;
+            if (! $paddleCustomerId) {
+                return;
+            }
+
+            $user = User::where('paddle_id', $paddleCustomerId)->first();
+            if (! $user) {
+                return;
+            }
+
+            $transactionId = $data['id'] ?? 'unknown';
+
+            $department = Department::where('name', 'Billing')->first();
+            if (! $department) {
+                Log::warning('Cannot create payment failure ticket: Billing department not found');
+
+                return;
+            }
+
+            $amount = $data['details']['totals']['total'] ?? 'unknown';
+            $currency = $data['currency_code'] ?? 'unknown';
+            $subscriptionId = $data['subscription_id'] ?? null;
+
+            $metadata = [
+                'user_id' => $user->id,
+                'issue_type' => 'payment_failure',
+                'paddle_transaction_id' => $transactionId,
+                'paddle_customer_id' => $paddleCustomerId,
+                'paddle_subscription_id' => $subscriptionId,
+                'amount' => $amount,
+                'currency' => $currency,
+                'auto_created' => true,
+            ];
+
+            // Atomic dedup: lock + check + create inside a transaction to prevent
+            // concurrent webhook deliveries from creating duplicate tickets.
+            $ticket = DB::transaction(function () use ($transactionId, $user, $department, $metadata) {
+                $existing = Ticket::where('ticket_type', 'billing_support')
+                    ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+
+                return Ticket::create([
+                    'requester_type' => User::class,
+                    'requester_id' => $user->id,
+                    'subject' => 'Payment Failed — Action May Be Required',
+                    'description' => 'Auto-created from Paddle webhook payment failure event.',
+                    'status' => TicketStatus::Open->value,
+                    'priority' => TicketPriority::High->value,
+                    'department_id' => $department->id,
+                    'ticket_type' => 'billing_support',
+                    'channel' => TicketChannel::Web->value,
+                    'metadata' => $metadata,
+                ]);
+            });
+
+            if ($ticket->wasRecentlyCreated) {
+                // Apply tags only to newly created tickets
+                $billingTag = Tag::where('name', 'billing-support')->first();
+                $paymentTag = Tag::where('name', 'payment-failure')->first();
+                $tagIds = array_filter([$billingTag?->id, $paymentTag?->id]);
+                if (! empty($tagIds)) {
+                    $ticket->tags()->syncWithoutDetaching($tagIds);
+                }
+
+                Log::info('support.payment_failure_ticket_created', [
+                    'ticket_id' => $ticket->id,
+                    'ticket_reference' => $ticket->reference,
+                    'user_id' => $user->id,
+                    'paddle_transaction_id' => $transactionId,
+                ]);
+            } else {
+                Log::info('support.payment_failure_ticket_skipped_duplicate', [
+                    'paddle_transaction_id' => $transactionId,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to create payment failure ticket', [
+                'error' => $e->getMessage(),
+                'customer_id' => $data['customer_id'] ?? null,
+            ]);
+        }
     }
 
     /**
@@ -111,6 +217,15 @@ class PaddleWebhookController extends BaseWebhookController
     {
         try {
             return parent::__invoke($request);
+        } catch (\Illuminate\Database\QueryException|\PDOException|\RedisException $e) {
+            // Transient infrastructure errors — return 500 so Paddle retries
+            Log::warning('Paddle webhook transient error (will retry)', [
+                'error' => $e->getMessage(),
+                'event_type' => $request->input('event_type'),
+                'payload_id' => $request->input('data.id'),
+            ]);
+
+            return new Response('Temporary processing error', 503);
         } catch (\Throwable $e) {
             Log::error('Paddle webhook processing failed', [
                 'error' => $e->getMessage(),
@@ -118,7 +233,9 @@ class PaddleWebhookController extends BaseWebhookController
                 'payload_id' => $request->input('data.id'),
             ]);
 
-            return new Response('Webhook Error', 500);
+            // Return 200 for non-retryable errors (bad data, missing models, etc.)
+            // to prevent Paddle from retrying indefinitely.
+            return new Response('Webhook processed with errors', 200);
         }
     }
 

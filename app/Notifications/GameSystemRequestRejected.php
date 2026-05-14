@@ -4,22 +4,23 @@ namespace App\Notifications;
 
 use App\Dto\PushPayload;
 
-use App\Models\GameSystemRequest;
 use App\Models\User;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class GameSystemRequestRejected extends Notification
 {
     use HasUnsubscribeLink;
 
     /**
-     * @param  GameSystemRequest  $request  The rejected game system request
+     * @param  Ticket  $ticket  The Escalated ticket representing the rejected game system request
      */
     public function __construct(
-        public GameSystemRequest $request,
+        public Ticket $ticket,
     ) {}
 
     /**
@@ -35,20 +36,45 @@ class GameSystemRequestRejected extends Notification
     }
 
     /**
+     * Get the game system name from the ticket subject.
+     */
+    protected function getGameSystemName(): string
+    {
+        $subject = $this->ticket->subject ?? '';
+
+        if (str_starts_with($subject, 'Game System Request: ')) {
+            return trim(Str::after($subject, 'Game System Request: '));
+        }
+
+        return trim($subject);
+    }
+
+    /**
+     * Get the rejection reason from ticket metadata.
+     */
+    protected function getRejectionReason(): ?string
+    {
+        return $this->ticket->metadata['rejection_reason'] ?? null;
+    }
+
+    /**
      * Get the mail representation of the notification.
      */
     public function toMail(object $notifiable): MailMessage
     {
+        $name = $this->getGameSystemName();
+        $rejectionReason = $this->getRejectionReason();
+
         $mail = (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_rejected'))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_game_system_request_rejected', [
-                'name' => $this->request->name,
+                'name' => $name,
             ]));
 
-        if ($this->request->rejection_reason) {
+        if ($rejectionReason) {
             $mail->line(__('notifications.body_rejection_reason', [
-                'reason' => $this->request->rejection_reason,
+                'reason' => $rejectionReason,
             ]));
         }
 
@@ -64,19 +90,22 @@ class GameSystemRequestRejected extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $name = $this->getGameSystemName();
+        $rejectionReason = $this->getRejectionReason();
+
         $data = [
             'type' => 'game_system_request_rejected',
-            'request_id' => $this->request->id,
-            'game_system_name' => $this->request->name,
-            'rejection_reason' => $this->request->rejection_reason,
+            'ticket_id' => $this->ticket->id,
+            'game_system_name' => $name,
+            'rejection_reason' => $rejectionReason,
             'message' => __('notifications.body_game_system_request_rejected', [
-                'name' => $this->request->name,
+                'name' => $name,
             ]),
         ];
 
-        if ($this->request->rejection_reason) {
+        if ($rejectionReason) {
             $data['message'] .= ' ' . __('notifications.body_rejection_reason', [
-                'reason' => $this->request->rejection_reason,
+                'reason' => $rejectionReason,
             ]);
         }
 

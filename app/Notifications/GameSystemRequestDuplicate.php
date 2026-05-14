@@ -5,23 +5,24 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 
 use App\Models\GameSystem;
-use App\Models\GameSystemRequest;
 use App\Models\User;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class GameSystemRequestDuplicate extends Notification
 {
     use HasUnsubscribeLink;
 
     /**
-     * @param  GameSystemRequest  $request  The duplicate game system request
+     * @param  Ticket  $ticket  The Escalated ticket representing the duplicate game system request
      * @param  GameSystem  $existingSystem  The existing game system that matches
      */
     public function __construct(
-        public GameSystemRequest $request,
+        public Ticket $ticket,
         public GameSystem $existingSystem,
     ) {}
 
@@ -38,18 +39,33 @@ class GameSystemRequestDuplicate extends Notification
     }
 
     /**
+     * Get the game system name from the ticket subject.
+     */
+    protected function getGameSystemName(): string
+    {
+        $subject = $this->ticket->subject ?? '';
+
+        if (str_starts_with($subject, 'Game System Request: ')) {
+            return trim(Str::after($subject, 'Game System Request: '));
+        }
+
+        return trim($subject);
+    }
+
+    /**
      * Get the mail representation of the notification.
      */
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
         $existingUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]);
+        $name = $this->getGameSystemName();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_duplicate'))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
             ->line(__('notifications.body_game_system_request_duplicate', [
-                'name' => $this->request->name,
+                'name' => $name,
                 'existing' => $this->existingSystem->name,
             ]))
             ->action(__('notifications.action_view_game_system'), $existingUrl)
@@ -64,15 +80,16 @@ class GameSystemRequestDuplicate extends Notification
     public function toDatabase(object $notifiable): array
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $name = $this->getGameSystemName();
 
         return [
             'type' => 'game_system_request_duplicate',
-            'request_id' => $this->request->id,
+            'ticket_id' => $this->ticket->id,
             'existing_game_system_id' => $this->existingSystem->id,
             'existing_game_system_name' => $this->existingSystem->name,
             'existing_game_system_slug' => $this->existingSystem->slug,
             'message' => __('notifications.body_game_system_request_duplicate', [
-                'name' => $this->request->name,
+                'name' => $name,
                 'existing' => $this->existingSystem->name,
             ]),
             'action_url' => route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]),
