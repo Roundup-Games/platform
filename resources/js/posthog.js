@@ -83,24 +83,26 @@ if (apiKey && apiHost) {
         delete window.__posthogUser;
     }
 
-    // ── Feature flag helper ──────────────────────────────
-    window.featureFlag = (key) => {
-        if (!posthog.__loaded) return undefined;
-        return posthog.getFeatureFlag(key);
-    };
-
-    // ── Manual error capture utility ─────────────────────
-    window.capturePostHogError = (error, context = {}) => {
-        if (posthog.captureException) {
-            posthog.captureException(error, context);
-        } else {
-            posthog.capture('$exception', {
-                $exception_type: error?.name || 'Error',
-                $exception_message: error?.message || String(error),
-                $exception_stack: error?.stack || '',
-                ...context,
-            });
-        }
+    // ── Namespaced helpers (avoid polluting global scope) ──
+    // Access via window.Roundup.posthog.featureFlag(key) etc.
+    window.Roundup = window.Roundup || {};
+    window.Roundup.posthog = {
+        featureFlag: (key) => {
+            if (!posthog.__loaded) return undefined;
+            return posthog.getFeatureFlag(key);
+        },
+        captureError: (error, context = {}) => {
+            if (posthog.captureException) {
+                posthog.captureException(error, context);
+            } else {
+                posthog.capture('$exception', {
+                    $exception_type: error?.name || 'Error',
+                    $exception_message: error?.message || String(error),
+                    $exception_stack: error?.stack || '',
+                    ...context,
+                });
+            }
+        },
     };
 
     if (import.meta.env.DEV) {

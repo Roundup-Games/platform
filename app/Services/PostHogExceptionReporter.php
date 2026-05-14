@@ -132,10 +132,9 @@ class PostHogExceptionReporter
     /**
      * Rate-limit: max N reports per minute per exception class.
      *
-     * Uses atomic cache increment with a guaranteed TTL. The key is set
-     * with an expiry upfront via put(), then incremented atomically.
-     * For Redis, INCR on an existing key preserves its TTL, so the
-     * window doesn't shift on subsequent hits.
+     * Uses cache()->add() to atomically create the key with a 60s TTL,
+     * then increments on each hit. add() only writes if the key doesn't
+     * exist, so concurrent first requests don't race to reset the counter.
      *
      * With the array or database cache driver, concurrent requests may
      * both pass the limit check — acceptable for analytics.
@@ -145,17 +144,12 @@ class PostHogExceptionReporter
         $key = self::CACHE_KEY_PREFIX . md5(get_class($e));
 
         try {
-            $hits = cache()->increment($key);
+            // Ensure key exists with TTL before incrementing.
+            // add() is atomic — only sets if key doesn't exist, avoiding
+            // the race between concurrent first-request increments.
+            cache()->add($key, 0, 60);
 
-            // First hit: key didn't exist (increment returns 1).
-            // Set TTL now so the key always expires. For Redis, INCR on
-            // a non-existent key creates it with no TTL — this put() call
-            // adds the 60s window. Subsequent increments preserve it.
-            if ($hits === 1) {
-                cache()->put($key, 1, 60);
-            }
-
-            return $hits <= self::RATE_LIMIT_PER_CLASS;
+            return cache()->increment($key) <= self::RATE_LIMIT_PER_CLASS;
         } catch (Throwable) {
             // If cache fails, allow the report through
             return true;

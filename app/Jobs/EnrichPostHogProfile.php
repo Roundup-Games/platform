@@ -266,6 +266,12 @@ class EnrichPostHogProfile implements ShouldQueue
         }
     }
 
+    /**
+     * Count accepted invitations for a user.
+     *
+     * Relies on the activity_logs_user_event_type_idx composite index
+     * for performance. Without it, this degrades to a full table scan.
+     */
     private function countInvitationsAccepted(User $user): int
     {
         return ActivityLog::where('user_id', $user->id)

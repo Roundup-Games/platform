@@ -59,27 +59,27 @@ describe('Session Replay disabled state', function () {
     test('no replay meta tag is rendered when PostHog is globally disabled', function () {
         Config::set('posthog.enabled', false);
 
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("config('posthog.enabled', true)");
+        expect($partial)->toContain("config('posthog.enabled', true)");
     });
 
     test('no replay meta tag is rendered when session_replay.enabled is false', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("config('posthog.session_replay.enabled'");
+        expect($partial)->toContain("config('posthog.session_replay.enabled'");
     });
 
     test('PostHog JS is not loaded on admin routes', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("!request()->is('admin/*')");
+        expect($partial)->toContain("!request()->is('admin/*')");
     });
 
     test('PostHog JS is not loaded on livewire/update routes', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("!request()->is('livewire/update*')");
+        expect($partial)->toContain("!request()->is('livewire/update*')");
     });
 });
 
@@ -150,16 +150,16 @@ describe('Session Replay JS bundle integration', function () {
 
 describe('Survey configuration', function () {
     test('surveys meta tag is rendered when surveys enabled', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain('posthog-surveys-enabled')
-            ->and($layout)->toContain("config('posthog.surveys.enabled'");
+        expect($partial)->toContain('posthog-surveys-enabled')
+            ->and($partial)->toContain("config('posthog.surveys.enabled'");
     });
 
     test('surveys are excluded from admin routes via PostHog guard', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("!request()->is('admin/*')");
+        expect($partial)->toContain("!request()->is('admin/*')");
     });
 
     test('JS source contains survey event listeners for observability', function () {
@@ -224,12 +224,12 @@ describe('Full stack config integration', function () {
         expect($shouldInit)->toBeTrue();
     });
 
-    test('layout conditionally renders all PostHog meta tags together', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+    test('partial conditionally renders all PostHog meta tags together', function () {
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain('posthog-api-key')
-            ->and($layout)->toContain('posthog-api-host')
-            ->and($layout)->toContain('posthog-replay-sample-rate')
-            ->and($layout)->toContain('posthog-surveys-enabled');
+        expect($partial)->toContain('posthog-api-key')
+            ->and($partial)->toContain('posthog-api-host')
+            ->and($partial)->toContain('posthog-replay-sample-rate')
+            ->and($partial)->toContain('posthog-surveys-enabled');
     });
 });

@@ -83,13 +83,13 @@ class PostHogEventBridge
             // Only dispatch for event types that have meaningful enrichment
             // to avoid wasting queue slots on no-op jobs.
             if (in_array($type, self::ENRICHED_TYPES, true)) {
-            EnrichPostHogProfile::dispatch(
-                $type->value,
-                $user->id,
-                $subject ? get_class($subject) : null,
-                $subject?->getKey(),
-            );
-            } // end enrichment-type guard
+                EnrichPostHogProfile::dispatch(
+                    $type->value,
+                    $user->id,
+                    $subject ? get_class($subject) : null,
+                    $subject?->getKey(),
+                );
+            }
         } catch (\Throwable $e) {
             Log::channel('daily')->warning('posthog.event_bridge.failed', [
                 'event_type' => $type->value,
@@ -106,6 +106,12 @@ class PostHogEventBridge
      *
      * Uses a consistent naming convention: namespace.action format
      * that works well with PostHog's event filtering and funnel tools.
+     *
+     * IMPORTANT: When adding a new ActivityType case, both this method
+     * and extractProperties() must be updated. The `default` branch
+     * prevents crashes but results in events with no properties and
+     * a generic name — not useful for analytics. Add an explicit match
+     * arm instead.
      */
     private function resolveEventName(ActivityType $type): string
     {

@@ -31,6 +31,13 @@ class PostHogIdentifyUsers
     {
         $user = $request->user();
 
+        // Respect Do Not Track — server-side identify sends PII (name, email).
+        // The JS client already checks respect_dnt:true, but server-side
+        // has no equivalent config. This ensures consistency.
+        if ($request->headers->get('DNT') === '1') {
+            return $next($request);
+        }
+
         if ($user && $this->shouldIdentify($request)) {
             $this->shareClientIdentifyData($user);
 

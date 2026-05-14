@@ -103,16 +103,16 @@ describe('PostHog session replay masking', function () {
             ->and($layout)->toContain('data-ph-mask>{{ Auth::user()->email }}');
     });
 
-    test('layout renders replay sample rate meta tag when replay enabled', function () {
+    test('partial renders replay sample rate meta tag when replay enabled', function () {
         Config::set('posthog.enabled', true);
         Config::set('posthog.api_key', 'phc_test');
         Config::set('posthog.session_replay.enabled', true);
         Config::set('posthog.session_replay.sample_rate', 0.5);
 
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain('posthog-replay-sample-rate')
-            ->and($layout)->toContain("config('posthog.session_replay.sample_rate'");
+        expect($partial)->toContain('posthog-replay-sample-rate')
+            ->and($partial)->toContain("config('posthog.session_replay.sample_rate'");
     });
 
     test('session replay sample rate is clamped to valid range', function () {
@@ -153,17 +153,18 @@ describe('PostHog surveys', function () {
             ->and($source)->toContain('ph-survey');
     });
 
-    test('layout renders surveys meta tag when surveys enabled', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+    test('partial renders surveys meta tag when surveys enabled', function () {
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain('posthog-surveys-enabled')
-            ->and($layout)->toContain("config('posthog.surveys.enabled'");
+        expect($partial)->toContain('posthog-surveys-enabled')
+            ->and($partial)->toContain("config('posthog.surveys.enabled'");
     });
 
     test('surveys are excluded from Filament admin routes', function () {
-        $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));
 
-        expect($layout)->toContain("!request()->is('admin/*')");
-        expect($layout)->toContain("config('posthog.api_key') && !request()->is('admin/*')");
+        expect($partial)->toContain("!request()->is('admin/*')");
+        expect($partial)->toContain("config('posthog.api_key')")
+            ->and($partial)->toContain("!request()->is('admin/*')");
     });
 });
