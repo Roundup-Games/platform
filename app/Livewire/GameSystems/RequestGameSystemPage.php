@@ -60,7 +60,7 @@ class RequestGameSystemPage extends Component
 
         $user = Auth::user();
         if (! $user) {
-            redirect()->route('login');
+            $this->redirectRoute('login');
             return;
         }
 

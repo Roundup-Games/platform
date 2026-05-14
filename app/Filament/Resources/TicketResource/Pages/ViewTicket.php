@@ -23,6 +23,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Log;
@@ -175,17 +176,18 @@ class ViewTicket extends BaseViewTicket
                         ->hidden(fn () => ! empty($this->bggSearchResults) || $this->selectedBggId !== null)
                         ->content(new HtmlString('<p class="text-gray-500">Enter a query and click Search.</p>')),
                 ])
-                ->action(function (array $data) {
-                    $query = $data['bgg_search_query'] ?? '';
-
-                    if (empty(trim($query))) {
-                        return;
-                    }
-
-                    $this->performBggSearch($query);
-                })
+                ->modalSubmitActionLabel('Search')
                 ->modalFooterActions(fn (Action $action) => [
-                    $action->getModalSubmitAction(),
+                    Action::make('bggSearch')
+                        ->label('Search')
+                        ->icon(Heroicon::OutlinedMagnifyingGlass)
+                        ->action(function (Get $get) {
+                            $query = $get('bgg_search_query') ?? '';
+                            if (! empty(trim($query))) {
+                                $this->performBggSearch($query);
+                            }
+                        })
+                        ->closeModalAfterClicking(false),
                     Action::make('syncSelectedBgg')
                         ->label('Sync Selected')
                         ->icon(Heroicon::OutlinedArrowPath)
@@ -418,11 +420,11 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            // Add internal note before closing
-            $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
-
             // Restore review to published status before closing
             $this->restoreReviewStatus($ticket, 'published');
+
+            // Add internal note after review update succeeds
+            $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
 
             // Close the ticket
             $ticketService->close($ticket, $user);
@@ -463,11 +465,11 @@ class ViewTicket extends BaseViewTicket
             $user = auth()->user();
             $ticketService = app(TicketService::class);
 
-            // Add internal note before closing
-            $ticketService->addNote($ticket, $user, 'Review removed by admin');
-
             // Hide the review before closing
             $this->restoreReviewStatus($ticket, 'hidden');
+
+            // Add internal note after review update succeeds
+            $ticketService->addNote($ticket, $user, 'Review removed by admin');
 
             // Close the ticket
             $ticketService->close($ticket, $user);
@@ -674,15 +676,17 @@ class ViewTicket extends BaseViewTicket
                 $noteBody .= ' Note: ' . $note;
             }
             $ticketService->addNote($ticket, $admin, $noteBody);
-            $ticketService->close($ticket, $admin);
 
-            // Send warning notification to the reported user
+            // Send warning notification to the reported user before closing
             $reason = $ticket->metadata['report_reason'] ?? 'community guidelines violation';
             $reportedUser->notify(new ContentReportWarning(
                 $entityType ?? 'content',
                 $entityName ?? 'reported content',
                 $reason,
             ));
+
+            // Close the ticket only after notification succeeds
+            $ticketService->close($ticket, $admin);
 
             Log::info('content_report.user_warned', [
                 'ticket_id' => $ticket->id,
