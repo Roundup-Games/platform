@@ -14,9 +14,12 @@
     {{-- Report modal --}}
     @if($showModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="report-content-title"
              wire:click.self="closeModal">
             <div class="bg-surface-container-lowest rounded-xl shadow-ambient p-6 w-full max-w-md mx-4">
-                <h3 class="text-lg font-heading font-semibold text-on-surface mb-4">
+                <h3 id="report-content-title" class="text-lg font-heading font-semibold text-on-surface mb-4">
                     {{ __('reports.title_report_content', ['type' => $this->getEntityTypeLabel()]) }}
                 </h3>
 

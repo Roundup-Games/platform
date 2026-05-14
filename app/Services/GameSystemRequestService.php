@@ -137,6 +137,7 @@ class GameSystemRequestService
         }
 
         // Update ticket metadata with game_system_id
+        // Use updateQuietly to avoid re-triggering model events (e.g. ticket listeners).
         $metadata['game_system_id'] = $gameSystem->id;
         $ticket->updateQuietly(['metadata' => $metadata]);
 
@@ -175,6 +176,7 @@ class GameSystemRequestService
         ]);
 
         // Update ticket metadata with game_system_id
+        // Use updateQuietly to avoid re-triggering model events (e.g. ticket listeners).
         $metadata['game_system_id'] = $gameSystem->id;
         $ticket->updateQuietly(['metadata' => $metadata]);
 

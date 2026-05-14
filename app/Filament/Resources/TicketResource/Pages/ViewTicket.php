@@ -502,6 +502,24 @@ class ViewTicket extends BaseViewTicket
     /**
      * Escalate the report: reassign to Platform Admin role, increase priority to Urgent.
      */
+    /**
+     * Find another Platform Admin to assign escalation to.
+     * Falls back to the current user if no other Platform Admin exists.
+     *
+     * @return array{admin: User, assigned_name: string}
+     */
+    protected function findPlatformAdminForEscalation(User $currentUser): array
+    {
+        $admin = User::role('Platform Admin')
+            ->where('id', '!=', $currentUser->id)
+            ->first();
+
+        return [
+            'admin' => $admin ?? $currentUser,
+            'assigned_name' => $admin?->name ?? $currentUser->name,
+        ];
+    }
+
     protected function performEscalateReport(Ticket $ticket): void
     {
         try {
@@ -515,11 +533,9 @@ class ViewTicket extends BaseViewTicket
             $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
             // Find a Platform Admin to assign to
-            $platformAdmin = \App\Models\User::role('Platform Admin')
-                ->where('id', '!=', $user->id)
-                ->first();
+            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
 
-            if ($platformAdmin) {
+            if ($platformAdmin->id !== $user->id) {
                 // Update assigned_to directly to avoid TicketAssigned event type mismatch
                 // (vendor event expects int agentId but our User model uses UUID)
                 $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
@@ -528,10 +544,6 @@ class ViewTicket extends BaseViewTicket
                     $user,
                     ['agent_id' => $platformAdmin->id]
                 );
-                $assignedName = $platformAdmin->name;
-            } else {
-                // If no other Platform Admin, keep assigned to current user
-                $assignedName = $user->name;
             }
 
             Log::info('review.report.escalated', [
@@ -841,20 +853,15 @@ class ViewTicket extends BaseViewTicket
             $ticketService->addNote($ticket, $user, "Content report escalated by {$user->name}.");
             $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
 
-            $platformAdmin = User::role('Platform Admin')
-                ->where('id', '!=', $user->id)
-                ->first();
+            ['admin' => $platformAdmin, 'assigned_name' => $assignedName] = $this->findPlatformAdminForEscalation($user);
 
-            if ($platformAdmin) {
+            if ($platformAdmin->id !== $user->id) {
                 $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
                 $ticket->logActivity(
                     \Escalated\Laravel\Enums\ActivityType::Assigned,
                     $user,
                     ['agent_id' => $platformAdmin->id]
                 );
-                $assignedName = $platformAdmin->name;
-            } else {
-                $assignedName = $user->name;
             }
 
             Log::info('content_report.escalated', [
