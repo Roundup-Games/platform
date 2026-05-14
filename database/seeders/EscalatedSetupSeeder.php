@@ -309,6 +309,7 @@ class EscalatedSetupSeeder extends Seeder
     protected function seedEscalationRules(): void
     {
         $safety = Department::where('name', 'Safety')->first();
+        $billing = Department::where('name', 'Billing')->first();
 
         $rules = [
             [
@@ -327,11 +328,30 @@ class EscalatedSetupSeeder extends Seeder
                 'is_active' => true,
                 'order' => 10,
             ],
+            [
+                'name' => 'Billing Ticket 24h Auto-Escalation',
+                'description' => 'Auto-escalate Billing department tickets unresolved after 24 hours to urgent priority',
+                'trigger_type' => 'time_based',
+                'category' => 'Billing',
+                'conditions' => array_filter([
+                    ['field' => 'department_id', 'value' => $billing?->id],
+                    ['field' => 'age_hours', 'value' => 24],
+                ]),
+                'actions' => [
+                    ['type' => 'escalate'],
+                    ['type' => 'change_priority', 'value' => 'urgent'],
+                ],
+                'is_active' => true,
+                'order' => 20,
+            ],
         ];
 
         foreach ($rules as $rule) {
-            // Only seed if Safety department exists (conditions require department_id)
-            if ($safety) {
+            $deptName = $rule['category'];
+            $dept = Department::where('name', $deptName)->first();
+
+            // Only seed if the department exists (conditions require department_id)
+            if ($dept) {
                 EscalationRule::firstOrCreate(
                     ['name' => $rule['name']],
                     $rule
