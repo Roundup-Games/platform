@@ -182,20 +182,24 @@ it('review report method triggers aggregate recalculation', function () {
 
 // ── Safety ticket creation tests ───────────────────────
 
-function seedSafetyDepartment(): void
-{
-    Department::firstOrCreate(
-        ['name' => 'Safety'],
-        ['description' => 'Review reports, content moderation, user reports', 'is_active' => true],
-    );
+if (! function_exists('seedSafetyDepartment')) {
+    function seedSafetyDepartment(): void
+    {
+        Department::firstOrCreate(
+            ['name' => 'Safety'],
+            ['description' => 'Review reports, content moderation, user reports', 'is_active' => true],
+        );
+    }
 }
 
-function seedReviewReportTag(): void
-{
-    Tag::firstOrCreate(
-        ['name' => 'review-report'],
-        ['color' => '#E11D48'],
-    );
+if (! function_exists('seedReviewReportTag')) {
+    function seedReviewReportTag(): void
+    {
+        Tag::firstOrCreate(
+            ['name' => 'review-report'],
+            ['color' => '#E11D48'],
+        );
+    }
 }
 
 it('creates a safety ticket when a review is reported', function () {

@@ -12,34 +12,37 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
-use Exception;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
 });
 
-function seedSafetyDepartment(): void
-{
-    Department::firstOrCreate(
-        ['name' => 'Safety'],
-        ['description' => 'Review reports, content moderation, user reports', 'is_active' => true],
-    );
+if (! function_exists('seedSafetyDepartment')) {
+    function seedSafetyDepartment(): void
+    {
+        Department::firstOrCreate(
+            ['name' => 'Safety'],
+            ['description' => 'Review reports, content moderation, user reports', 'is_active' => true],
+        );
+    }
 }
 
-function seedReportTags(): void
-{
-    $tags = [
-        ['name' => 'user-report', 'color' => '#BE185D'],
-        ['name' => 'game-report', 'color' => '#DB2777'],
-        ['name' => 'campaign-report', 'color' => '#EC4899'],
-        ['name' => 'inappropriate-content', 'color' => '#DC2626'],
-        ['name' => 'harassment', 'color' => '#B91C1C'],
-        ['name' => 'spam', 'color' => '#D97706'],
-        ['name' => 'misleading', 'color' => '#EA580C'],
-    ];
+if (! function_exists('seedReportTags')) {
+    function seedReportTags(): void
+    {
+        $tags = [
+            ['name' => 'user-report', 'color' => '#BE185D'],
+            ['name' => 'game-report', 'color' => '#DB2777'],
+            ['name' => 'campaign-report', 'color' => '#EC4899'],
+            ['name' => 'inappropriate-content', 'color' => '#DC2626'],
+            ['name' => 'harassment', 'color' => '#B91C1C'],
+            ['name' => 'spam', 'color' => '#D97706'],
+            ['name' => 'misleading', 'color' => '#EA580C'],
+        ];
 
-    foreach ($tags as $tag) {
-        Tag::firstOrCreate(['name' => $tag['name']], $tag);
+        foreach ($tags as $tag) {
+            Tag::firstOrCreate(['name' => $tag['name']], $tag);
+        }
     }
 }
 
