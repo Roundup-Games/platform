@@ -2,7 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\GmRoleService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Events\SubscriptionCanceled;
@@ -102,6 +109,85 @@ class PaddleWebhookController extends BaseWebhookController
             'currency' => $data['currency_code'] ?? null,
             'status' => $data['status'] ?? null,
         ]);
+
+        // Auto-create a billing support ticket for payment failures that need human review
+        $this->createPaymentFailureTicket($data);
+    }
+
+    /**
+     * Create a billing support ticket for payment failures that may need human review.
+     * Only creates a ticket for recurring payment failures (subscription context).
+     */
+    private function createPaymentFailureTicket(array $data): void
+    {
+        try {
+            $paddleCustomerId = $data['customer_id'] ?? null;
+            if (! $paddleCustomerId) {
+                return;
+            }
+
+            $user = User::where('paddle_id', $paddleCustomerId)->first();
+            if (! $user) {
+                return;
+            }
+
+            $department = Department::where('name', 'Billing')->first();
+            if (! $department) {
+                Log::warning('Cannot create payment failure ticket: Billing department not found');
+
+                return;
+            }
+
+            $amount = $data['details']['totals']['total'] ?? 'unknown';
+            $currency = $data['currency_code'] ?? 'unknown';
+            $transactionId = $data['id'] ?? 'unknown';
+            $subscriptionId = $data['subscription_id'] ?? null;
+
+            $metadata = [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'issue_type' => 'payment_failure',
+                'paddle_transaction_id' => $transactionId,
+                'paddle_customer_id' => $paddleCustomerId,
+                'paddle_subscription_id' => $subscriptionId,
+                'amount' => $amount,
+                'currency' => $currency,
+                'auto_created' => true,
+            ];
+
+            $ticket = Ticket::create([
+                'requester_type' => User::class,
+                'requester_id' => $user->id,
+                'subject' => 'Payment Failed — Action May Be Required',
+                'description' => "A recurring payment of {$currency} {$amount} failed for this account.\n\n**Paddle Transaction ID:** {$transactionId}\n**Customer ID:** {$paddleCustomerId}" . ($subscriptionId ? "\n**Subscription ID:** {$subscriptionId}" : '') . "\n\nThis ticket was auto-created from a Paddle webhook payment failure event. Please review and contact the user if needed.",
+                'status' => TicketStatus::Open->value,
+                'priority' => TicketPriority::High->value,
+                'department_id' => $department->id,
+                'ticket_type' => 'billing_support',
+                'channel' => TicketChannel::Web->value,
+                'metadata' => $metadata,
+            ]);
+
+            // Apply tags
+            $billingTag = Tag::where('name', 'billing-support')->first();
+            $paymentTag = Tag::where('name', 'payment-failure')->first();
+            $tagIds = array_filter([$billingTag?->id, $paymentTag?->id]);
+            if (! empty($tagIds)) {
+                $ticket->tags()->syncWithoutDetaching($tagIds);
+            }
+
+            Log::info('support.payment_failure_ticket_created', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'user_id' => $user->id,
+                'paddle_transaction_id' => $transactionId,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to create payment failure ticket', [
+                'error' => $e->getMessage(),
+                'customer_id' => $data['customer_id'] ?? null,
+            ]);
+        }
     }
 
     /**

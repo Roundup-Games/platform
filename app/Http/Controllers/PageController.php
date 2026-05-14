@@ -114,31 +114,39 @@ class PageController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'subject' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'in:general,account_recovery'],
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        $contactDepartment = Department::where('name', 'Contact')->first();
+        $category = $validated['category'] ?? 'general';
+        $isAccountRecovery = $category === 'account_recovery';
+
+        // Account recovery → Account Support department; general → Contact department
+        $departmentName = $isAccountRecovery ? 'Account Support' : 'Contact';
+        $department = Department::where('name', $departmentName)->first();
 
         if (auth()->check()) {
             /** @var User $user */
             $user = auth()->user();
-            Ticket::create([
+            $ticket = Ticket::create([
                 'requester_type' => User::class,
                 'requester_id' => $user->id,
-                'subject' => $validated['subject'] ?? 'General Inquiry',
+                'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
                 'description' => $validated['message'],
                 'priority' => 'medium',
-                'department_id' => $contactDepartment?->id,
+                'department_id' => $department?->id,
+                'ticket_type' => $isAccountRecovery ? 'account_recovery' : null,
             ]);
         } else {
-            Ticket::create([
+            $ticket = Ticket::create([
                 'guest_name' => $validated['name'],
                 'guest_email' => $validated['email'],
                 'guest_token' => Str::uuid()->toString(),
-                'subject' => $validated['subject'] ?? 'General Inquiry',
+                'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
                 'description' => $validated['message'],
                 'priority' => 'medium',
-                'department_id' => $contactDepartment?->id,
+                'department_id' => $department?->id,
+                'ticket_type' => $isAccountRecovery ? 'account_recovery' : null,
             ]);
         }
 

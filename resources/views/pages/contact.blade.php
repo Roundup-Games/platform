@@ -21,6 +21,16 @@
                     <form method="POST" action="{{ route('contact.submit') }}" class="space-y-5">
                         @csrf
 
+                        {{-- Category --}}
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('support.field_category') }}</label>
+                            <select name="category" id="category"
+                                class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                                <option value="general">{{ __('support.category_general') }}</option>
+                                <option value="account_recovery">{{ __('support.category_account_recovery') }}</option>
+                            </select>
+                        </div>
+
                         {{-- Name --}}
                         <div>
                             <label for="name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_name') }} <span class="text-error">*</span></label>

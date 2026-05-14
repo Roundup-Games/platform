@@ -84,6 +84,9 @@ class EscalatedSetupSeeder extends Seeder
             ['name' => 'user-report', 'color' => '#BE185D'],
             ['name' => 'game-report', 'color' => '#DB2777'],
             ['name' => 'campaign-report', 'color' => '#EC4899'],
+            ['name' => 'account-recovery', 'color' => '#2563EB'],
+            ['name' => 'billing-support', 'color' => '#0891B2'],
+            ['name' => 'payment-failure', 'color' => '#DC2626'],
         ];
 
         foreach ($tags as $tag) {

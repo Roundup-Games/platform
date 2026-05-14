@@ -101,6 +101,10 @@ Route::prefix('{locale}')
             // Profile page (Livewire — handles all profile management inline)
             Route::get('/profile', App\Livewire\Profile\Show::class)->name('profile.show');
 
+            // Support tickets (authenticated)
+            Route::get('/support/account', App\Livewire\Support\ContactSupport::class)->name('support.account');
+            Route::get('/support/billing', App\Livewire\Support\BillingSupport::class)->name('support.billing');
+
             // Keep profile.edit route name for backward compatibility (OAuth, Breeze redirects)
             Route::get('/profile/view', App\Livewire\Profile\Show::class)->name('profile.edit');
 
