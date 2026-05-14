@@ -99,6 +99,8 @@
                                 <span class="material-symbols-outlined text-base">block</span>
                                 {{ __('common.action_block') }}
                             </button>
+
+                            <livewire:reports.report-content :entityType="'user'" :entityId="$profileUser->id" :key="'report-user-' . $profileUser->id" />
                         @endif
                     </div>
                 @endunless

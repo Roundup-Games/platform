@@ -180,8 +180,17 @@
                             {{ __('games.action_promote_from_bench') }}
                         </button>
                     </div>
-                @endforeach
+                @endforeach>
             </div>
         </div>
     @endif
+
+    {{-- Report (authenticated non-owners only) --}}
+    @auth
+        @unless($isOwner)
+            <div class="flex justify-end">
+                <livewire:reports.report-content :entityType="'game'" :entityId="$game->id" :key="'report-game-' . $game->id" />
+            </div>
+        @endunless
+    @endauth
 </aside>
