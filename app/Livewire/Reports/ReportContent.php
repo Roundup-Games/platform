@@ -12,6 +12,7 @@ use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Locked;
@@ -114,15 +115,33 @@ class ReportContent extends Component
             return;
         }
 
-        // Prevent duplicate reports: check for existing open ticket on the same entity
-        if ($this->hasExistingReport($entity, $reporter)) {
+        // Atomically check for existing report and create ticket to prevent race conditions
+        $duplicateDetected = false;
+
+        DB::transaction(function () use ($entity, $reporter, &$duplicateDetected) {
+            // Lock existing open tickets for this reporter+entity to prevent concurrent inserts
+            $existing = Ticket::where('ticket_type', 'content_report')
+                ->where('status', '!=', TicketStatus::Closed->value)
+                ->where('requester_id', $reporter->id)
+                ->whereJsonContains('metadata->entity_type', $this->entityType)
+                ->whereJsonContains('metadata->entity_id', $this->entityId)
+                ->sharedLock()
+                ->exists();
+
+            if ($existing) {
+                $duplicateDetected = true;
+
+                return;
+            }
+
+            $this->createSafetyTicket($entity, $reporter);
+        });
+
+        if ($duplicateDetected) {
             $this->addError('reason', __('reports.error_already_reported'));
 
             return;
         }
-
-        // Create Safety department ticket
-        $this->createSafetyTicket($entity, $reporter);
 
         Log::info('content.reported', [
             'entity_type' => $this->entityType,
@@ -200,18 +219,6 @@ class ReportContent extends Component
         return false;
     }
 
-    /**
-     * Check if an open ticket already exists for this entity from this reporter.
-     */
-    private function hasExistingReport($entity, User $reporter): bool
-    {
-        return Ticket::where('ticket_type', 'content_report')
-            ->where('status', '!=', TicketStatus::Closed->value)
-            ->where('requester_id', $reporter->id)
-            ->whereJsonContains('metadata->entity_type', $this->entityType)
-            ->whereJsonContains('metadata->entity_id', $this->entityId)
-            ->exists();
-    }
 
     private function createSafetyTicket($entity, User $reporter): void
     {
