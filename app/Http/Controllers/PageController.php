@@ -128,17 +128,20 @@ class PageController extends Controller
         if (auth()->check()) {
             /** @var User $user */
             $user = auth()->user();
-            $ticket = Ticket::create([
+            $ticketData = [
                 'requester_type' => User::class,
                 'requester_id' => $user->id,
                 'subject' => $validated['subject'] ?? ($isAccountRecovery ? 'Account Recovery Request' : 'General Inquiry'),
                 'description' => $validated['message'],
                 'priority' => 'medium',
                 'department_id' => $department?->id,
-                'ticket_type' => $isAccountRecovery ? 'account_recovery' : null,
-            ]);
+            ];
+            if ($isAccountRecovery) {
+                $ticketData['ticket_type'] = 'account_recovery';
+            }
+            $ticket = Ticket::create($ticketData);
         } else {
-            $ticket = Ticket::create([
+            $ticketData = [
                 'guest_name' => $validated['name'],
                 'guest_email' => $validated['email'],
                 'guest_token' => Str::uuid()->toString(),
@@ -146,8 +149,11 @@ class PageController extends Controller
                 'description' => $validated['message'],
                 'priority' => 'medium',
                 'department_id' => $department?->id,
-                'ticket_type' => $isAccountRecovery ? 'account_recovery' : null,
-            ]);
+            ];
+            if ($isAccountRecovery) {
+                $ticketData['ticket_type'] = 'account_recovery';
+            }
+            $ticket = Ticket::create($ticketData);
         }
 
         return redirect()->route('contact')->with('success', __('common.content_thank_you_for_your_message'));
