@@ -26,8 +26,9 @@ class HandleGameSystemTicketClosed
     public function handle(TicketClosed $event): void
     {
         $ticket = $event->ticket;
+        $service = app(\App\Services\GameSystemRequestService::class);
 
-        if (! $this->isGameSystemRequest($ticket)) {
+        if (! $service->isGameSystemRequestTicket($ticket)) {
             return;
         }
 
@@ -38,20 +39,6 @@ class HandleGameSystemTicketClosed
         } else {
             $this->handleRejection($ticket);
         }
-    }
-
-    /**
-     * Check if this ticket is a game system request in the Game Systems department.
-     */
-    protected function isGameSystemRequest($ticket): bool
-    {
-        if (($ticket->ticket_type ?? null) !== 'game_system_request') {
-            return false;
-        }
-
-        $department = $ticket->department;
-
-        return $department && $department->name === 'Game Systems';
     }
 
     /**

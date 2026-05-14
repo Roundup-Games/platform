@@ -7,6 +7,7 @@ use App\Filament\Pages\Escalated\EscalatedManagePlugins;
 use App\Filament\Pages\Escalated\EscalatedReports;
 use App\Filament\Pages\Escalated\EscalatedSettings;
 use App\Filament\Pages\Escalated\EscalatedSsoSettings;
+use App\Filament\Resources\TicketResource;
 use Escalated\Filament\EscalatedFilamentPlugin;
 use Escalated\Filament\Pages\Dashboard;
 use Escalated\Filament\Livewire\SatisfactionRating;
@@ -20,8 +21,9 @@ use Filament\Panel;
  * visibility gating (canAccess/shouldRegisterNavigation) based on
  * Spatie roles via the escalated-agent/escalated-admin gates.
  *
- * Resources inherit the full vendor registration unchanged — visibility
- * is controlled via app-level Policies registered in AppServiceProvider.
+ * Resources: the vendor TicketResource is replaced with an app-level
+ * TicketResource that uses a custom ViewTicket page providing game-system
+ * BGG sync actions. All other vendor resources are inherited unchanged.
  */
 class AppEscalatedFilamentPlugin extends EscalatedFilamentPlugin
 {
@@ -31,8 +33,20 @@ class AppEscalatedFilamentPlugin extends EscalatedFilamentPlugin
             return;
         }
 
+        // Build resource list: replace vendor TicketResource with app-level one
+        $resources = collect($this->resources)
+            ->map(function (string $resourceClass) {
+                if ($resourceClass === \Escalated\Filament\Resources\TicketResource::class) {
+                    return TicketResource::class;
+                }
+
+                return $resourceClass;
+            })
+            ->values()
+            ->all();
+
         $panel
-            ->resources($this->resources)
+            ->resources($resources)
             ->pages([
                 // Dashboard: visible to ALL panel users (no gate override)
                 Dashboard::class,
