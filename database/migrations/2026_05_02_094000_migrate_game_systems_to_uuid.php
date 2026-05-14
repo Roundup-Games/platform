@@ -18,7 +18,6 @@ use Illuminate\Support\Str;
  *   - game_system_family.game_system_id (composite PK)
  *   - game_system_designer.game_system_id (composite PK)
  *   - game_system_publisher.game_system_id (composite PK)
- *   - game_system_requests.game_system_id
  *   - bgg_sync_logs.game_system_id
  *   - game_systems.base_game_id (self-referencing)
  *
@@ -79,9 +78,6 @@ return new class extends Migration
         Schema::table('campaigns', function (Blueprint $table) {
             $table->dropForeign(['game_system_id']);
         });
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->dropForeign(['game_system_id']);
-        });
         Schema::table('bgg_sync_logs', function (Blueprint $table) {
             $table->dropForeign(['game_system_id']);
         });
@@ -103,7 +99,6 @@ return new class extends Migration
             // Entity tables
             DB::table('games')->where('game_system_id', $oldId)->update(['game_system_id' => $newUuid]);
             DB::table('campaigns')->where('game_system_id', $oldId)->update(['game_system_id' => $newUuid]);
-            DB::table('game_system_requests')->where('game_system_id', $oldId)->update(['game_system_id' => $newUuid]);
             DB::table('bgg_sync_logs')->where('game_system_id', $oldId)->update(['game_system_id' => $newUuid]);
 
             // Self-referencing
@@ -206,15 +201,6 @@ return new class extends Migration
             $table->foreign('game_system_id')->references('id')->on('game_systems')->cascadeOnDelete();
         });
 
-        // game_system_requests.game_system_id
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->dropColumn('game_system_id');
-        });
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->uuid('game_system_id')->nullable()->after('status');
-            $table->foreign('game_system_id')->references('id')->on('game_systems')->nullOnDelete();
-        });
-
         // bgg_sync_logs.game_system_id
         Schema::table('bgg_sync_logs', function (Blueprint $table) {
             $table->dropColumn('game_system_id');
@@ -275,10 +261,6 @@ return new class extends Migration
             $table->dropPrimary();
             $table->dropColumn('game_system_id');
         });
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->dropForeign(['game_system_id']);
-            $table->dropColumn('game_system_id');
-        });
         Schema::table('bgg_sync_logs', function (Blueprint $table) {
             $table->dropForeign(['game_system_id']);
             $table->dropColumn('game_system_id');
@@ -327,9 +309,6 @@ return new class extends Migration
         Schema::table('game_system_publisher', function (Blueprint $table) {
             $table->foreignId('game_system_id')->first()->constrained('game_systems')->cascadeOnDelete();
             $table->primary(['game_system_id', 'game_system_publisher_id']);
-        });
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->foreignId('game_system_id')->nullable()->after('status')->constrained('game_systems')->nullOnDelete();
         });
         Schema::table('bgg_sync_logs', function (Blueprint $table) {
             $table->foreignId('game_system_id')->nullable()->after('id')->constrained('game_systems')->nullOnDelete();

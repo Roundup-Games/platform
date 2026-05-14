@@ -288,7 +288,7 @@ __('common.action_cancel')           // Shared button text
 ### Database
 
 - PostgreSQL with CHECK constraints on enum columns (not native enum types)
-- UUID primary keys on Event, GMProfile, Review, GameSystemRequest, SessionZeroSurvey/Confirmation models
+- UUID primary keys on Event, GMProfile, Review, SessionZeroSurvey/Confirmation models
 - Integer primary keys on Game, Campaign, Team, User models
 - All migration indexes explicitly named for reliable rollback
 - Polymorphic translations table (`translatable_type`/`translatable_id`) for entity content translation

@@ -43,8 +43,6 @@ return new class extends Migration
         ['game_applications', 'user_id', false, false],
         ['game_participants', 'user_id', false, false],
         ['game_participants', 'attendance_reported_by', true, false],
-        ['game_system_requests', 'user_id', false, false],
-        ['game_system_requests', 'reviewed_by', true, false],
         ['games', 'owner_id', false, false],
         ['gm_profiles', 'user_id', false, false],
         ['linked_accounts', 'user_id', false, false],
@@ -247,11 +245,6 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->foreign('attendance_reported_by')->references('id')->on('users')->nullOnDelete();
         });
-        // game_system_requests
-        Schema::table('game_system_requests', function (Blueprint $table) {
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreign('reviewed_by')->references('id')->on('users')->nullOnDelete();
-        });
         // games
         Schema::table('games', function (Blueprint $table) {
             $table->foreign('owner_id')->references('id')->on('users')->cascadeOnDelete();
@@ -321,8 +314,6 @@ return new class extends Migration
         // for frequently queried columns
         DB::statement('CREATE INDEX IF NOT EXISTS activity_logs_user_id_created_at_index ON activity_logs (user_id, created_at)');
         DB::statement('CREATE INDEX IF NOT EXISTS event_registrations_user_event_index ON event_registrations (user_id, event_id)');
-        DB::statement('CREATE INDEX IF NOT EXISTS game_system_requests_user_id_index ON game_system_requests (user_id)');
-        DB::statement('CREATE INDEX IF NOT EXISTS game_system_requests_user_id_name_index ON game_system_requests (user_id, name)');
         DB::statement('CREATE INDEX IF NOT EXISTS push_subscriptions_user_id_index ON push_subscriptions (user_id)');
         DB::statement('CREATE INDEX IF NOT EXISTS session_zero_confirmations_user_id_index ON session_zero_confirmations (user_id)');
         DB::statement('CREATE INDEX IF NOT EXISTS team_members_user_id_index ON team_members (user_id)');

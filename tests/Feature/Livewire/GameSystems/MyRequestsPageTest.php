@@ -3,10 +3,12 @@
 namespace Tests\Feature\Livewire\GameSystems;
 
 use App\Livewire\GameSystems\MyRequestsPage;
-
 use App\Models\GameSystem;
-use App\Models\GameSystemRequest;
 use App\Models\User;
+use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -16,6 +18,42 @@ class MyRequestsPageTest extends TestCase
 {
     use DatabaseTransactions;
     use SetsUpLocale;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(EscalatedSetupSeeder::class);
+    }
+
+    // ── Helper: create a game system request ticket ─────
+
+    private function createGameSystemTicket(User $user, array $overrides = []): Ticket
+    {
+        $department = Department::where('name', 'Game Systems')->firstOrFail();
+
+        $defaults = [
+            'requester_type' => User::class,
+            'requester_id' => $user->id,
+            'subject' => 'Game System Request: Test System',
+            'description' => 'Please add this system.',
+            'status' => TicketStatus::Open->value,
+            'priority' => 'medium',
+            'department_id' => $department->id,
+            'ticket_type' => 'game_system_request',
+            'channel' => 'web',
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => null,
+            ],
+        ];
+
+        return Ticket::create(array_merge($defaults, $overrides));
+    }
 
     // ── Page Access ───────────────────────────────────
 
@@ -53,17 +91,13 @@ class MyRequestsPageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $old = GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Old System',
-            'status' => 'approved',
+        $old = $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: Old System',
             'created_at' => now()->subDays(2),
         ]);
 
-        $new = GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'New System',
-            'status' => 'pending',
+        $new = $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: New System',
             'created_at' => now(),
         ]);
 
@@ -77,14 +111,12 @@ class MyRequestsPageTest extends TestCase
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'My System',
+        $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: My System',
         ]);
 
-        GameSystemRequest::factory()->create([
-            'user_id' => $otherUser->id,
-            'name' => 'Their System',
+        $this->createGameSystemTicket($otherUser, [
+            'subject' => 'Game System Request: Their System',
         ]);
 
         Livewire::actingAs($user)
@@ -100,11 +132,17 @@ class MyRequestsPageTest extends TestCase
         $user = User::factory()->create();
         $gameSystem = GameSystem::factory()->create(['slug' => 'wingspan']);
 
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Wingspan',
-            'status' => 'approved',
-            'game_system_id' => $gameSystem->id,
+        $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: Wingspan',
+            'status' => TicketStatus::Resolved->value,
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => $gameSystem->id,
+            ],
         ]);
 
         Livewire::actingAs($user)
@@ -116,11 +154,17 @@ class MyRequestsPageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Orphan System',
-            'status' => 'approved',
-            'game_system_id' => null,
+        $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: Orphan System',
+            'status' => TicketStatus::Resolved->value,
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => null,
+            ],
         ]);
 
         $component = Livewire::actingAs($user)
@@ -129,8 +173,6 @@ class MyRequestsPageTest extends TestCase
         // Should see the name as plain text, not as a link to game-system detail
         $component->assertSee('Orphan System');
         $html = $component->html();
-        // The back arrow link goes to game-systems index — that's fine.
-        // We check that there's no link containing the name as a detail URL.
         $this->assertStringNotContainsString('>Orphan System</a>', $html);
     }
 
@@ -140,11 +182,19 @@ class MyRequestsPageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Test System',
-            'status' => 'rejected',
-            'rejection_reason' => 'Already exists in our database.',
+        $this->createGameSystemTicket($user, [
+            'subject' => 'Game System Request: Test System',
+            'status' => TicketStatus::Closed->value,
+            'metadata' => [
+                'game_system_request' => true,
+                'bgg_url' => null,
+                'publisher' => null,
+                'designer' => null,
+                'game_system_type' => 'boardgame',
+                'game_system_id' => null,
+                'close_reason' => 'rejected',
+                'rejection_reason' => 'Already exists in our database.',
+            ],
         ]);
 
         Livewire::actingAs($user)
@@ -158,10 +208,12 @@ class MyRequestsPageTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Create 13 requests
-        GameSystemRequest::factory()->count(13)->create([
-            'user_id' => $user->id,
-        ]);
+        // Create 13 tickets
+        for ($i = 0; $i < 13; $i++) {
+            $this->createGameSystemTicket($user, [
+                'subject' => "Game System Request: System {$i}",
+            ]);
+        }
 
         $component = Livewire::actingAs($user)
             ->test(MyRequestsPage::class);
@@ -169,5 +221,4 @@ class MyRequestsPageTest extends TestCase
         // Should have pagination (not all 13 on one page)
         $this->assertCount(12, $component->viewData('requests')->items());
     }
-
 }
