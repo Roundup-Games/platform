@@ -76,9 +76,13 @@ class EscalatedSetupSeeder extends Seeder
             ['name' => 'inappropriate-content', 'color' => '#DC2626'],
             ['name' => 'harassment', 'color' => '#B91C1C'],
             ['name' => 'spam', 'color' => '#D97706'],
+            ['name' => 'misleading', 'color' => '#EA580C'],
             ['name' => 'dispute', 'color' => '#7C3AED'],
             ['name' => 'bgg-sync', 'color' => '#059669'],
             ['name' => 'review-report', 'color' => '#E11D48'],
+            ['name' => 'user-report', 'color' => '#BE185D'],
+            ['name' => 'game-report', 'color' => '#DB2777'],
+            ['name' => 'campaign-report', 'color' => '#EC4899'],
         ];
 
         foreach ($tags as $tag) {
