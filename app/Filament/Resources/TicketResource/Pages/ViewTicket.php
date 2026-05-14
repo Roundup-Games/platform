@@ -4,11 +4,15 @@ namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
 use App\Models\GameSystem;
+use App\Models\Review;
 use App\Services\BggClient;
 use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Ticket;
+use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
@@ -26,6 +30,12 @@ use Livewire\Attributes\On;
  *
  * - "Sync from BGG" — syncs GameSystem using bgg_url from ticket metadata
  * - "Search BGG" — searches BGG, previews data, and optionally syncs
+ *
+ * Adds review moderation actions for Safety department review_report tickets:
+ *
+ * - "Dismiss Report" — closes ticket, keeps review published
+ * - "Remove Review" — closes ticket, hides review
+ * - "Escalate" — reassigns to Platform Admin, increases priority to Urgent
  */
 class ViewTicket extends BaseViewTicket
 {
@@ -56,6 +66,12 @@ class ViewTicket extends BaseViewTicket
     protected function getHeaderActions(): array
     {
         $actions = parent::getHeaderActions();
+
+        // Insert review moderation actions for Safety department review_report tickets
+        $reviewActions = $this->getReviewModerationActions();
+        if (! empty($reviewActions)) {
+            array_splice($actions, 0, 0, $reviewActions);
+        }
 
         // Insert game-system-specific actions before the generic resolve/close actions
         $gameSystemActions = $this->getGameSystemActions();
@@ -209,6 +225,258 @@ class ViewTicket extends BaseViewTicket
             ->title('BGG game selected')
             ->body("Selected: {$this->selectedBggName} (ID: {$this->selectedBggId})")
             ->send();
+    }
+
+    /**
+     * Get review moderation actions. Only visible on Safety department review_report tickets
+     * that are still open (not closed/resolved).
+     */
+    protected function getReviewModerationActions(): array
+    {
+        $ticket = $this->getRecord();
+
+        if (! $ticket || ! $this->isReviewReport($ticket)) {
+            return [];
+        }
+
+        return [
+            Action::make('dismissReport')
+                ->label('Dismiss Report')
+                ->icon(Heroicon::OutlinedShieldCheck)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Dismiss Review Report')
+                ->modalDescription('This will close the ticket and keep the review published. The review will remain visible.')
+                ->modalSubmitActionLabel('Dismiss')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performDismissReport($ticket);
+                }),
+
+            Action::make('removeReview')
+                ->label('Remove Review')
+                ->icon(Heroicon::OutlinedTrash)
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Remove Review')
+                ->modalDescription('This will close the ticket AND hide the review. The review will no longer be publicly visible.')
+                ->modalSubmitActionLabel('Remove')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performRemoveReview($ticket);
+                }),
+
+            Action::make('escalateReport')
+                ->label('Escalate')
+                ->icon(Heroicon::OutlinedArrowTrendingUp)
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Escalate Review Report')
+                ->modalDescription('This will reassign the ticket to a Platform Admin and increase priority to Urgent.')
+                ->modalSubmitActionLabel('Escalate')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performEscalateReport($ticket);
+                }),
+        ];
+    }
+
+    /**
+     * Check if the ticket is a review report in the Safety department.
+     */
+    protected function isReviewReport(Ticket $ticket): bool
+    {
+        return ($ticket->ticket_type ?? null) === 'review_report'
+            && ($ticket->department?->name ?? null) === 'Safety';
+    }
+
+    /**
+     * Dismiss the report: close ticket, keep review published.
+     */
+    protected function performDismissReport(Ticket $ticket): void
+    {
+        try {
+            $user = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            // Add internal note before closing
+            $ticketService->addNote($ticket, $user, 'Report dismissed by admin');
+
+            // Close the ticket
+            $ticketService->close($ticket, $user);
+
+            // Restore review to published status if it's currently 'reported'
+            $this->restoreReviewStatus($ticket, 'published');
+
+            Log::info('review.report.dismissed', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'review_id' => $ticket->metadata['review_id'] ?? null,
+                'admin_id' => $user->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Report dismissed')
+                ->body('The ticket has been closed and the review remains published.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to dismiss review report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Dismiss failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Remove the review: close ticket, hide review.
+     */
+    protected function performRemoveReview(Ticket $ticket): void
+    {
+        try {
+            $user = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            // Add internal note before closing
+            $ticketService->addNote($ticket, $user, 'Review removed by admin');
+
+            // Close the ticket
+            $ticketService->close($ticket, $user);
+
+            // Hide the review
+            $this->restoreReviewStatus($ticket, 'hidden');
+
+            Log::info('review.report.removed', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'review_id' => $ticket->metadata['review_id'] ?? null,
+                'admin_id' => $user->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Review removed')
+                ->body('The ticket has been closed and the review has been hidden.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to remove review', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Remove failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Escalate the report: reassign to Platform Admin role, increase priority to Urgent.
+     */
+    protected function performEscalateReport(Ticket $ticket): void
+    {
+        try {
+            $user = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            // Add internal note
+            $ticketService->addNote($ticket, $user, "Escalated by {$user->name}");
+
+            // Increase priority to Urgent
+            $ticketService->changePriority($ticket, TicketPriority::Urgent, $user);
+
+            // Find a Platform Admin to assign to
+            $platformAdmin = \App\Models\User::role('Platform Admin')
+                ->where('id', '!=', $user->id)
+                ->first();
+
+            if ($platformAdmin) {
+                // Update assigned_to directly to avoid TicketAssigned event type mismatch
+                // (vendor event expects int agentId but our User model uses UUID)
+                $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
+                $ticket->logActivity(
+                    \Escalated\Laravel\Enums\ActivityType::Assigned,
+                    $user,
+                    ['agent_id' => $platformAdmin->id]
+                );
+                $assignedName = $platformAdmin->name;
+            } else {
+                // If no other Platform Admin, keep assigned to current user
+                $assignedName = $user->name;
+            }
+
+            Log::info('review.report.escalated', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'review_id' => $ticket->metadata['review_id'] ?? null,
+                'escalated_by' => $user->id,
+                'assigned_to' => $platformAdmin?->id ?? $user->id,
+            ]);
+
+            Notification::make()
+                ->warning()
+                ->title('Report escalated')
+                ->body("Priority set to Urgent and reassigned to {$assignedName}.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to escalate review report', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Escalation failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Update the review status based on the ticket metadata.
+     * The ReviewObserver will handle aggregate recalculation via the 'updated' hook.
+     */
+    protected function restoreReviewStatus(Ticket $ticket, string $status): void
+    {
+        $reviewId = $ticket->metadata['review_id'] ?? null;
+
+        if (! $reviewId) {
+            Log::warning('review.report.no_review_id_in_ticket', [
+                'ticket_id' => $ticket->id,
+            ]);
+
+            return;
+        }
+
+        $review = Review::find($reviewId);
+
+        if (! $review) {
+            Log::warning('review.report.review_not_found', [
+                'ticket_id' => $ticket->id,
+                'review_id' => $reviewId,
+            ]);
+
+            return;
+        }
+
+        $review->update(['status' => $status]);
+
+        Log::info('review.status.updated_from_ticket', [
+            'review_id' => $review->id,
+            'new_status' => $status,
+            'ticket_id' => $ticket->id,
+        ]);
     }
 
     /**
