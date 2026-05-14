@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Escalated\Laravel\Models\CustomField;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\SlaPolicy;
 use Escalated\Laravel\Models\Tag;
@@ -17,6 +18,7 @@ class EscalatedSetupSeeder extends Seeder
         $this->seedDepartments();
         $this->seedTags();
         $this->seedSlaPolicies();
+        $this->seedCustomFields();
     }
 
     protected function seedDepartments(): void
@@ -221,6 +223,74 @@ class EscalatedSetupSeeder extends Seeder
             SlaPolicy::firstOrCreate(
                 ['name' => $policy['name']],
                 $policy
+            );
+        }
+    }
+
+    protected function seedCustomFields(): void
+    {
+        $fields = [
+            [
+                'name' => 'BGG URL',
+                'slug' => 'bgg_url',
+                'type' => 'text',
+                'context' => 'ticket',
+                'description' => 'BoardGameGeek URL for the requested game system',
+                'required' => false,
+                'position' => 10,
+                'active' => true,
+            ],
+            [
+                'name' => 'Publisher',
+                'slug' => 'publisher',
+                'type' => 'text',
+                'context' => 'ticket',
+                'description' => 'Publisher of the requested game system',
+                'required' => false,
+                'position' => 20,
+                'active' => true,
+            ],
+            [
+                'name' => 'Designer',
+                'slug' => 'designer',
+                'type' => 'text',
+                'context' => 'ticket',
+                'description' => 'Designer of the requested game system',
+                'required' => false,
+                'position' => 30,
+                'active' => true,
+            ],
+            [
+                'name' => 'Game System Type',
+                'slug' => 'game_system_type',
+                'type' => 'select',
+                'context' => 'ticket',
+                'description' => 'Type of game system being requested',
+                'options' => [
+                    ['label' => 'Board Game', 'value' => 'boardgame'],
+                    ['label' => 'TTRPG', 'value' => 'ttrpg'],
+                    ['label' => 'Other', 'value' => 'other'],
+                ],
+                'required' => true,
+                'position' => 40,
+                'active' => true,
+            ],
+            [
+                'name' => 'Game System ID',
+                'slug' => 'game_system_id',
+                'type' => 'text',
+                'context' => 'ticket',
+                'description' => 'UUID of the created or matched GameSystem (set on approval or duplicate)',
+                'required' => false,
+                'position' => 50,
+                'active' => true,
+            ],
+        ];
+
+        foreach ($fields as $field) {
+            CustomField::firstOrCreate(
+                ['slug' => $field['slug']],
+                $field
             );
         }
     }

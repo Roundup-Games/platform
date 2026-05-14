@@ -1,6 +1,7 @@
 <?php
 
 use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Models\CustomField;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\SlaPolicy;
 use Escalated\Laravel\Models\Tag;
@@ -219,5 +220,76 @@ describe('SLA policies', function () {
                     ->toBeTrue("{$policy->name} missing resolution_hours.{$p}");
             }
         });
+    });
+});
+
+describe('custom fields', function () {
+    it('seeds all 5 game system request custom fields', function () {
+        $this->seeder->run();
+
+        expect(CustomField::where('context', 'ticket')->count())->toBe(5);
+    });
+
+    it('creates bgg_url custom field', function () {
+        $this->seeder->run();
+
+        $field = CustomField::where('slug', 'bgg_url')->first();
+        expect($field)->not->toBeNull()
+            ->and($field->type)->toBe('text')
+            ->and($field->required)->toBeFalse()
+            ->and($field->active)->toBeTrue();
+    });
+
+    it('creates publisher custom field', function () {
+        $this->seeder->run();
+
+        $field = CustomField::where('slug', 'publisher')->first();
+        expect($field)->not->toBeNull()
+            ->and($field->type)->toBe('text')
+            ->and($field->required)->toBeFalse();
+    });
+
+    it('creates designer custom field', function () {
+        $this->seeder->run();
+
+        $field = CustomField::where('slug', 'designer')->first();
+        expect($field)->not->toBeNull()
+            ->and($field->type)->toBe('text')
+            ->and($field->required)->toBeFalse();
+    });
+
+    it('creates game_system_type select field with 3 options', function () {
+        $this->seeder->run();
+
+        $field = CustomField::where('slug', 'game_system_type')->first();
+        expect($field)->not->toBeNull()
+            ->and($field->type)->toBe('select')
+            ->and($field->required)->toBeTrue()
+            ->and($field->options)->toHaveCount(3)
+            ->and(collect($field->options)->pluck('value')->toArray())->toBe(['boardgame', 'ttrpg', 'other']);
+    });
+
+    it('creates game_system_id custom field', function () {
+        $this->seeder->run();
+
+        $field = CustomField::where('slug', 'game_system_id')->first();
+        expect($field)->not->toBeNull()
+            ->and($field->type)->toBe('text')
+            ->and($field->required)->toBeFalse();
+    });
+
+    it('is idempotent — running twice does not duplicate records', function () {
+        $this->seeder->run();
+        $this->seeder->run();
+
+        expect(CustomField::where('context', 'ticket')->count())->toBe(5);
+    });
+
+    it('all custom fields have correct position ordering', function () {
+        $this->seeder->run();
+
+        $fields = CustomField::where('context', 'ticket')->orderBy('position')->get();
+        $positions = $fields->pluck('position')->toArray();
+        expect($positions)->toBe([10, 20, 30, 40, 50]);
     });
 });
