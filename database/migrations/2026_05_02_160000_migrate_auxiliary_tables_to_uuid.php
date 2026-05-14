@@ -9,9 +9,8 @@ use Illuminate\Support\Str;
 /**
  * Migrate all auxiliary tables from auto-increment integer PKs to UUID v7.
  *
- * Tables migrated (12 total):
+ * Tables migrated (11 total):
  *   - membership_types
- *   - contact_messages
  *   - activity_logs
  *   - bgg_sync_logs
  *   - translations
@@ -40,7 +39,6 @@ return new class extends Migration
      */
     private array $tables = [
         'membership_types',
-        'contact_messages',
         'activity_logs',
         'bgg_sync_logs',
         'translations',
