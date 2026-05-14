@@ -119,7 +119,6 @@ class BillingSupport extends Component
         $subscription = $user->subscription();
         $metadata = [
             'user_id' => $user->id,
-            'user_email' => $user->email,
             'issue_type' => $this->issueType,
             'has_subscription' => $subscription !== null,
             'subscription_status' => $subscription?->status,

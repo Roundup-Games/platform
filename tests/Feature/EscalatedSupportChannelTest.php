@@ -294,7 +294,7 @@ describe('account recovery channel', function () {
             ->and($ticket->department->name)->toBe('Account Support')
             ->and($ticket->subject)->toBe('Locked out of my account')
             ->and($ticket->metadata['issue_type'])->toBe('account_access')
-            ->and($ticket->metadata['user_email'])->toBe($user->email);
+            ->and($ticket->metadata['user_id'])->toBe($user->id);
 
         // Verify tag
         $ticket->load('tags');

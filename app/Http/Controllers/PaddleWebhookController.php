@@ -12,6 +12,7 @@ use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Laravel\Paddle\Events\SubscriptionCanceled;
 use Laravel\Paddle\Events\SubscriptionCreated;
 use Laravel\Paddle\Events\SubscriptionUpdated;
@@ -133,17 +134,6 @@ class PaddleWebhookController extends BaseWebhookController
 
             $transactionId = $data['id'] ?? 'unknown';
 
-            // Deduplicate: skip if a ticket already exists for this transaction
-            if ($transactionId !== 'unknown' && Ticket::where('ticket_type', 'billing_support')
-                ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
-                ->exists()) {
-                Log::info('support.payment_failure_ticket_skipped_duplicate', [
-                    'paddle_transaction_id' => $transactionId,
-                ]);
-
-                return;
-            }
-
             $department = Department::where('name', 'Billing')->first();
             if (! $department) {
                 Log::warning('Cannot create payment failure ticket: Billing department not found');
@@ -157,7 +147,6 @@ class PaddleWebhookController extends BaseWebhookController
 
             $metadata = [
                 'user_id' => $user->id,
-                'user_email' => $user->email,
                 'issue_type' => 'payment_failure',
                 'paddle_transaction_id' => $transactionId,
                 'paddle_customer_id' => $paddleCustomerId,
@@ -167,33 +156,52 @@ class PaddleWebhookController extends BaseWebhookController
                 'auto_created' => true,
             ];
 
-            $ticket = Ticket::create([
-                'requester_type' => User::class,
-                'requester_id' => $user->id,
-                'subject' => 'Payment Failed — Action May Be Required',
-                'description' => "A recurring payment of {$currency} {$amount} failed for this account.\n\n**Paddle Transaction ID:** {$transactionId}\n**Customer ID:** {$paddleCustomerId}" . ($subscriptionId ? "\n**Subscription ID:** {$subscriptionId}" : '') . "\n\nThis ticket was auto-created from a Paddle webhook payment failure event. Please review and contact the user if needed.",
-                'status' => TicketStatus::Open->value,
-                'priority' => TicketPriority::High->value,
-                'department_id' => $department->id,
-                'ticket_type' => 'billing_support',
-                'channel' => TicketChannel::Web->value,
-                'metadata' => $metadata,
-            ]);
+            // Atomic dedup: lock + check + create inside a transaction to prevent
+            // concurrent webhook deliveries from creating duplicate tickets.
+            $ticket = DB::transaction(function () use ($transactionId, $user, $department, $metadata) {
+                $existing = Ticket::where('ticket_type', 'billing_support')
+                    ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
+                    ->lockForUpdate()
+                    ->first();
 
-            // Apply tags
-            $billingTag = Tag::where('name', 'billing-support')->first();
-            $paymentTag = Tag::where('name', 'payment-failure')->first();
-            $tagIds = array_filter([$billingTag?->id, $paymentTag?->id]);
-            if (! empty($tagIds)) {
-                $ticket->tags()->syncWithoutDetaching($tagIds);
+                if ($existing) {
+                    return $existing;
+                }
+
+                return Ticket::create([
+                    'requester_type' => User::class,
+                    'requester_id' => $user->id,
+                    'subject' => 'Payment Failed — Action May Be Required',
+                    'description' => 'Auto-created from Paddle webhook payment failure event.',
+                    'status' => TicketStatus::Open->value,
+                    'priority' => TicketPriority::High->value,
+                    'department_id' => $department->id,
+                    'ticket_type' => 'billing_support',
+                    'channel' => TicketChannel::Web->value,
+                    'metadata' => $metadata,
+                ]);
+            });
+
+            if ($ticket->wasRecentlyCreated) {
+                // Apply tags only to newly created tickets
+                $billingTag = Tag::where('name', 'billing-support')->first();
+                $paymentTag = Tag::where('name', 'payment-failure')->first();
+                $tagIds = array_filter([$billingTag?->id, $paymentTag?->id]);
+                if (! empty($tagIds)) {
+                    $ticket->tags()->syncWithoutDetaching($tagIds);
+                }
+
+                Log::info('support.payment_failure_ticket_created', [
+                    'ticket_id' => $ticket->id,
+                    'ticket_reference' => $ticket->reference,
+                    'user_id' => $user->id,
+                    'paddle_transaction_id' => $transactionId,
+                ]);
+            } else {
+                Log::info('support.payment_failure_ticket_skipped_duplicate', [
+                    'paddle_transaction_id' => $transactionId,
+                ]);
             }
-
-            Log::info('support.payment_failure_ticket_created', [
-                'ticket_id' => $ticket->id,
-                'ticket_reference' => $ticket->reference,
-                'user_id' => $user->id,
-                'paddle_transaction_id' => $transactionId,
-            ]);
         } catch (\Throwable $e) {
             Log::warning('Failed to create payment failure ticket', [
                 'error' => $e->getMessage(),
