@@ -17,11 +17,42 @@ class SystemInfoWidget extends StatsOverviewWidget
     protected function getStats(): array
     {
         return [
-            $this->cacheDriverStat(),
             $this->environmentStat(),
             $this->deploymentStat(),
+            $this->databaseStat(),
+            $this->cacheDriverStat(),
             $this->versionsStat(),
         ];
+    }
+
+    private function databaseStat(): Stat
+    {
+        try {
+            $driver = config('database.default');
+            $connection = config("database.connections.{$driver}.driver", $driver);
+
+            $description = "Driver: {$connection}";
+
+            if ($driver === 'pgsql') {
+                $dbSize = $this->getDatabaseSize();
+                if ($dbSize !== null) {
+                    $description .= " · Size: {$dbSize}";
+                }
+
+                $migrationCount = \Illuminate\Support\Facades\DB::table('migrations')->count();
+                $description .= " · Migrations: {$migrationCount}";
+            }
+
+            return Stat::make('Database', ucfirst($connection))
+                ->description($description)
+                ->descriptionIcon('heroicon-o-circle-stack')
+                ->color('success');
+        } catch (\Throwable) {
+            return Stat::make('Database', 'Error')
+                ->description('Could not connect')
+                ->descriptionIcon('heroicon-o-circle-stack')
+                ->color('danger');
+        }
     }
 
     private function cacheDriverStat(): Stat
@@ -49,7 +80,11 @@ class SystemInfoWidget extends StatsOverviewWidget
         return Stat::make('Environment', ucfirst($env))
             ->description(config('app.url'))
             ->descriptionIcon('heroicon-o-globe-alt')
-            ->color($env === 'production' ? 'danger' : ($env === 'staging' ? 'warning' : 'success'));
+            ->color(match ($env) {
+                'production' => 'success',
+                'staging' => 'warning',
+                default => 'info',
+            });
     }
 
     private function deploymentStat(): Stat
@@ -111,5 +146,32 @@ class SystemInfoWidget extends StatsOverviewWidget
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function getDatabaseSize(): ?string
+    {
+        try {
+            $dbName = config('database.connections.pgsql.database');
+            $result = \Illuminate\Support\Facades\DB::selectOne(
+                "SELECT pg_database_size(?) as size",
+                [$dbName]
+            );
+
+            if ($result && isset($result->size)) {
+                $bytes = (int) $result->size;
+                if ($bytes >= 1073741824) {
+                    return round($bytes / 1073741824, 1).' GB';
+                }
+                if ($bytes >= 1048576) {
+                    return round($bytes / 1048576, 1).' MB';
+                }
+
+                return round($bytes / 1024).' KB';
+            }
+        } catch (\Throwable) {
+            // Silently ignore — database size is non-critical info
+        }
+
+        return null;
     }
 }
