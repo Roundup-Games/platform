@@ -76,6 +76,7 @@ class EscalatedSetupSeeder extends Seeder
             ['name' => 'spam', 'color' => '#D97706'],
             ['name' => 'dispute', 'color' => '#7C3AED'],
             ['name' => 'bgg-sync', 'color' => '#059669'],
+            ['name' => 'review-report', 'color' => '#E11D48'],
         ];
 
         foreach ($tags as $tag) {

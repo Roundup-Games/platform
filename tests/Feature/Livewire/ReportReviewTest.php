@@ -5,6 +5,11 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
@@ -173,4 +178,100 @@ it('review report method triggers aggregate recalculation', function () {
     // Observer should have fired and updated aggregates (no published reviews now)
     expect($gmProfile->fresh()->review_count)->toBe(0);
     expect($gmProfile->fresh()->average_rating)->toBeNull();
+});
+
+// ── Safety ticket creation tests ───────────────────────
+
+function seedSafetyDepartment(): void
+{
+    Department::firstOrCreate(
+        ['name' => 'Safety'],
+        ['description' => 'Review reports, content moderation, user reports', 'is_active' => true],
+    );
+}
+
+function seedReviewReportTag(): void
+{
+    Tag::firstOrCreate(
+        ['name' => 'review-report'],
+        ['color' => '#E11D48'],
+    );
+}
+
+it('creates a safety ticket when a review is reported', function () {
+    seedSafetyDepartment();
+    seedReviewReportTag();
+
+    ['review' => $review, 'reviewer' => $reviewAuthor] = createReportableReview();
+    $reporter = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($reporter)
+        ->test(ReportReview::class, ['reviewId' => $review->id])
+        ->set('reason', 'harassment')
+        ->call('submitReport')
+        ->assertSet('successMessage', __('reviews.flash_review_reported'));
+
+    // Verify ticket was created
+    $ticket = Ticket::where('ticket_type', 'review_report')->first();
+    expect($ticket)->not->toBeNull();
+    expect($ticket->subject)->toBe('Review Report: Harassment');
+    expect($ticket->priority)->toBe(TicketPriority::High);
+    expect($ticket->status)->toBe(TicketStatus::Open);
+    expect($ticket->requester_id)->toBe($reporter->id);
+    expect($ticket->requester_type)->toBe(User::class);
+
+    // Verify metadata
+    $metadata = $ticket->metadata;
+    expect($metadata['review_id'])->toBe($review->id);
+    expect($metadata['review_content'])->toBe('Great session!');
+    expect($metadata['review_author_id'])->toBe($reviewAuthor->id);
+    expect($metadata['report_reason'])->toBe('harassment');
+    expect($metadata['reporter_id'])->toBe($reporter->id);
+    expect($metadata['reporter_name'])->toBe($reporter->name);
+
+    // Verify department
+    $department = Department::where('name', 'Safety')->first();
+    expect($ticket->department_id)->toBe($department->id);
+
+    // Verify tag
+    expect($ticket->tags->pluck('name')->toArray())->toContain('review-report');
+});
+
+it('creates safety ticket even when safety department does not exist', function () {
+    // Do NOT seed the Safety department — ticket should still be created
+    seedReviewReportTag();
+
+    ['review' => $review] = createReportableReview();
+    $reporter = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($reporter)
+        ->test(ReportReview::class, ['reviewId' => $review->id])
+        ->set('reason', 'spam')
+        ->call('submitReport')
+        ->assertSet('successMessage', __('reviews.flash_review_reported'));
+
+    // Ticket created with null department_id (graceful degradation)
+    $ticket = Ticket::where('ticket_type', 'review_report')->first();
+    expect($ticket)->not->toBeNull();
+    expect($ticket->department_id)->toBeNull();
+    expect($ticket->priority)->toBe(TicketPriority::High);
+});
+
+it('includes review author name in ticket description', function () {
+    seedSafetyDepartment();
+    seedReviewReportTag();
+
+    ['review' => $review, 'reviewer' => $reviewAuthor] = createReportableReview();
+    $reporter = User::factory()->create(['profile_complete' => true]);
+
+    Livewire::actingAs($reporter)
+        ->test(ReportReview::class, ['reviewId' => $review->id])
+        ->set('reason', 'inappropriate')
+        ->call('submitReport');
+
+    $ticket = Ticket::where('ticket_type', 'review_report')->first();
+    expect($ticket->description)->toContain($reviewAuthor->name);
+    expect($ticket->description)->toContain('Inappropriate');
+    expect($ticket->description)->toContain('Great session!');
+    expect($ticket->description)->toContain('4/5');
 });
