@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    @include('partials.posthog-meta')
+
     {!! seo() !!}
 
     {{-- Favicons --}}
@@ -237,6 +239,8 @@
 
     {{-- Offline indicator (no server round-trips) --}}
     <x-offline-indicator />
+
+    @include('partials.posthog-script')
 </body>
 </html>
 
