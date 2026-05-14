@@ -131,10 +131,10 @@ class PaddleWebhookController extends BaseWebhookController
                 return;
             }
 
-            $transactionId = $data['id'] ?? null;
+            $transactionId = $data['id'] ?? 'unknown';
 
             // Deduplicate: skip if a ticket already exists for this transaction
-            if ($transactionId && Ticket::where('ticket_type', 'billing_support')
+            if ($transactionId !== 'unknown' && Ticket::where('ticket_type', 'billing_support')
                 ->whereJsonContains('metadata->paddle_transaction_id', $transactionId)
                 ->exists()) {
                 Log::info('support.payment_failure_ticket_skipped_duplicate', [
@@ -153,7 +153,6 @@ class PaddleWebhookController extends BaseWebhookController
 
             $amount = $data['details']['totals']['total'] ?? 'unknown';
             $currency = $data['currency_code'] ?? 'unknown';
-            $transactionId = $data['id'] ?? 'unknown';
             $subscriptionId = $data['subscription_id'] ?? null;
 
             $metadata = [

@@ -110,7 +110,7 @@ class AttendanceService
         $weight = $griefCheck['weight_multiplier'];
 
         // Record attendance, create report, and check corroboration atomically
-        DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported) {
+        DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported, $griefCheck) {
             $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
 
             AttendanceReport::create([
@@ -734,25 +734,38 @@ class AttendanceService
         $game = $participant->game;
         $user = $participant->user;
 
+        if (! $game || ! $user) {
+            Log::warning('Dispute ticket resolution skipped: missing game or user relation', [
+                'ticket_id' => $ticket->id,
+                'participant_id' => $participant->id,
+                'has_game' => $game !== null,
+                'has_user' => $user !== null,
+            ]);
+
+            return;
+        }
+
         // Determine outcome from metadata — default to resolved_favor when staff resolves
         // (staff resolving a ticket means they found in favor of the player)
         $outcome = $metadata['staff_resolution'] ?? 'resolved_favor';
 
         if ($outcome === 'resolved_favor') {
-            $participant->forceFill([
-                'attendance_status' => AttendanceStatus::Attended,
-                'attendance_weight' => 1.0,
-            ])->save();
+            DB::transaction(function () use ($participant, $game, $user) {
+                $participant->forceFill([
+                    'attendance_status' => AttendanceStatus::Attended,
+                    'attendance_weight' => 1.0,
+                ])->save();
 
-            AttendanceReport::where('game_id', $game->id)
-                ->where('reported_id', $user->id)
-                ->whereNotNull('dispute_reason')
-                ->update([
-                    'dispute_resolution' => 'resolved_favor',
-                    'dispute_resolved_at' => now(),
-                ]);
+                AttendanceReport::where('game_id', $game->id)
+                    ->where('reported_id', $user->id)
+                    ->whereNotNull('dispute_reason')
+                    ->update([
+                        'dispute_resolution' => 'resolved_favor',
+                        'dispute_resolved_at' => now(),
+                    ]);
 
-            $this->reliabilityService->recomputeAfterAttendance($participant);
+                $this->reliabilityService->recomputeAfterAttendance($participant);
+            });
 
             Log::info('Dispute resolved from ticket in player favor', [
                 'ticket_id' => $ticket->id,

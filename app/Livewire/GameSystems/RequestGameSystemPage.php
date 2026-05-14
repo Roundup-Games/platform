@@ -66,12 +66,14 @@ class RequestGameSystemPage extends Component
 
         $service = app(GameSystemRequestService::class);
 
+        $normalizedName = trim($this->name);
+
         // Check for duplicate pending request from same user
-        if ($service->hasPendingRequest($user, $this->name)) {
+        if ($service->hasPendingRequest($user, $normalizedName)) {
             $this->addError('name', __('games.request_error_duplicate'));
             logger()->info('Game system request duplicate attempt', [
                 'user_id' => $user->id,
-                'name' => $this->name,
+                'name' => $normalizedName,
             ]);
             return;
         }
@@ -90,7 +92,7 @@ class RequestGameSystemPage extends Component
         }
 
         $service->createRequest($user, [
-            'name' => trim($this->name),
+            'name' => $normalizedName,
             'type' => $this->type,
             'bgg_url' => $this->bgg_url,
             'publisher' => $this->publisher,

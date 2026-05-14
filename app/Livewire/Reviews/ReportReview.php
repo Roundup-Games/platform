@@ -14,6 +14,7 @@ use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -78,18 +79,20 @@ class ReportReview extends Component
             return;
         }
 
-        $review->report($reporter->id, $this->reason);
+        DB::transaction(function () use ($review, $reporter) {
+            $review->report($reporter->id, $this->reason);
 
-        Log::info('review.reported', [
-            'review_id' => $review->id,
-            'reviewable_type' => $review->reviewable_type,
-            'reviewable_id' => $review->reviewable_id,
-            'reporter_id' => $reporter->id,
-            'reason' => $this->reason,
-        ]);
+            Log::info('review.reported', [
+                'review_id' => $review->id,
+                'reviewable_type' => $review->reviewable_type,
+                'reviewable_id' => $review->reviewable_id,
+                'reporter_id' => $reporter->id,
+                'reason' => $this->reason,
+            ]);
 
-        // Create Escalated safety ticket
-        $this->createSafetyTicket($review, $reporter);
+            // Create Escalated safety ticket
+            $this->createSafetyTicket($review, $reporter);
+        });
 
         // Notify all global admins
         $this->notifyAdmins($review, $reporter);
