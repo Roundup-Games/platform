@@ -22,6 +22,7 @@ use App\Translation\TrackingTranslator;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
@@ -112,6 +113,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Escalated helpdesk authorization gates
+        // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
+        Gate::define('escalated-admin', fn ($user) => $user->hasRole('Platform Admin'));
+        // escalated-agent: ticket agent (manage tickets, canned responses, macros)
+        Gate::define('escalated-agent', fn ($user) => $user->hasRole('Platform Admin') || $user->hasRole('Service Admin'));
+
         // Feature flag Blade directives
         // Blade::if creates @featureFlag / @else / @endfeatureFlag automatically.
         // Closing tags @endfeatureFlag and @endfeatureFlagVariant are auto-generated.

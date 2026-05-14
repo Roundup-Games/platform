@@ -120,6 +120,17 @@ class RoleSeeder extends Seeder
             'view user',
         ]);
 
+        // Service Admin: manage support tickets (Escalated helpdesk agents)
+        $serviceAdmin = Role::firstOrCreate([
+            'name' => 'Service Admin',
+            'guard_name' => 'web',
+            'team_id' => null,
+        ]);
+        $serviceAdmin->syncPermissions([
+            'view dashboard',
+            'view user',
+        ]);
+
         // Game Master: subscription-gated GM role (assigned via GmRoleService)
         // No permissions needed — GM status gates features via GmRoleService checks,
         // not via Spatie permissions. The role acts as a capability flag.
