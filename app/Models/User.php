@@ -539,7 +539,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function canAccessPanel(Panel $panel): bool
     {
         return app(ScopedRoleService::class)->isGlobalAdmin($this)
-            || $this->hasRole('Platform Admin');
+            || $this->hasRole('Platform Admin')
+            || $this->hasRole('Service Admin');
     }
 
     // ── SEO ────────────────────────────────────────────

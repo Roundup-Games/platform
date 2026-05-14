@@ -54,6 +54,7 @@ class RoleSeeder extends Seeder
             'manage roles',
             'view audit log',
             'manage settings',
+            'manage tickets',
         ];
 
         foreach ($specialPermissions as $perm) {
@@ -128,6 +129,7 @@ class RoleSeeder extends Seeder
         ]);
         $serviceAdmin->syncPermissions([
             'view dashboard',
+            'manage tickets',
             'view user',
         ]);
 
