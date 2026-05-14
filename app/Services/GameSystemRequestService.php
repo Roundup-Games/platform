@@ -32,7 +32,7 @@ class GameSystemRequestService
      */
     public function createRequest(User $user, array $data): Ticket
     {
-        $department = Department::where('name', 'Game Systems')->first();
+        $department = Department::where('name', 'Game Systems')->firstOrFail();
 
         $metadata = [
             'game_system_request' => true,
@@ -50,7 +50,7 @@ class GameSystemRequestService
             'description' => $data['notes'] ?? '',
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
-            'department_id' => $department?->id,
+            'department_id' => $department->id,
             'ticket_type' => 'game_system_request',
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,

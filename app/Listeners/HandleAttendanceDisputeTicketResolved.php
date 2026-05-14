@@ -47,6 +47,7 @@ class HandleAttendanceDisputeTicketResolved
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+            throw $e;
         }
     }
 }

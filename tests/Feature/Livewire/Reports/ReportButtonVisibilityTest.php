@@ -13,6 +13,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);

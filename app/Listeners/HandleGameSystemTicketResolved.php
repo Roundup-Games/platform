@@ -48,9 +48,9 @@ class HandleGameSystemTicketResolved
             if ($bggUrl) {
                 try {
                     $gameSystem = $service->syncBggFromTicket($ticket);
-                } catch (\InvalidArgumentException $e) {
-                    // BGG URL present but couldn't extract ID — fall back to manual
-                    Log::info('BGG URL present but could not extract ID, falling back to manual creation', [
+                } catch (\InvalidArgumentException | \RuntimeException $e) {
+                    // BGG sync failed — fall back to manual creation
+                    Log::info('BGG sync failed, falling back to manual creation', [
                         'ticket_id' => $ticket->id,
                         'bgg_url' => $bggUrl,
                         'error' => $e->getMessage(),

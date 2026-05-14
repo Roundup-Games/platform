@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
@@ -35,8 +37,8 @@ function createGameSystemRequestTicket(User $user, Department $department, array
         'requester_id' => $user->id,
         'subject' => 'Game System Request: Catan',
         'description' => 'Please add Catan.',
-        'status' => 'open',
-        'priority' => 'medium',
+        'status' => TicketStatus::Open->value,
+        'priority' => TicketPriority::Medium->value,
         'department_id' => $department->id,
         'ticket_type' => 'game_system_request',
         'channel' => 'web',

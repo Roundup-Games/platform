@@ -26,9 +26,12 @@
                             <label for="category" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('support.field_category') }}</label>
                             <select name="category" id="category"
                                 class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
-                                <option value="general">{{ __('support.category_general') }}</option>
-                                <option value="account_recovery">{{ __('support.category_account_recovery') }}</option>
+                                <option value="general" @selected(old('category', 'general') === 'general')>{{ __('support.category_general') }}</option>
+                                <option value="account_recovery" @selected(old('category') === 'account_recovery')>{{ __('support.category_account_recovery') }}</option>
                             </select>
+                            @error('category')
+                                <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Name --}}

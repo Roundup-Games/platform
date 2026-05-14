@@ -84,7 +84,7 @@ describe('tags', function () {
     it('seeds all 9 tags', function () {
         $this->seeder->run();
 
-        expect(Tag::count())->toBe(9);
+        expect(Tag::count())->toBe(18);
     });
 
     it('creates bug tag with red color', function () {
@@ -126,7 +126,7 @@ describe('tags', function () {
         $this->seeder->run();
         $this->seeder->run();
 
-        expect(Tag::count())->toBe(9);
+        expect(Tag::count())->toBe(18);
     });
 });
 

@@ -83,7 +83,7 @@ return new class extends Migration
          */
         $convertUnique = function (string $table, string $column) use ($convertCol) {
             $constraints = DB::select("
-                SELECT con.conname FROM pg_constraint con
+                SELECT con.conname, pg_get_constraintdef(con.oid) AS definition FROM pg_constraint con
                 JOIN pg_class rel ON rel.oid = con.conrelid
                 JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
                 WHERE rel.relname = ? AND att.attname = ? AND con.contype = 'u'
@@ -96,7 +96,7 @@ return new class extends Migration
             $convertCol($table, $column);
 
             foreach ($constraints as $c) {
-                DB::statement("ALTER TABLE \"{$table}\" ADD CONSTRAINT \"{$c->conname}\" UNIQUE (\"{$column}\")");
+                DB::statement("ALTER TABLE \"{$table}\" ADD CONSTRAINT \"{$c->conname}\" {$c->definition}");
             }
         };
 

@@ -180,7 +180,7 @@
                             {{ __('games.action_promote_from_bench') }}
                         </button>
                     </div>
-                @endforeach>
+                @endforeach
             </div>
         </div>
     @endif

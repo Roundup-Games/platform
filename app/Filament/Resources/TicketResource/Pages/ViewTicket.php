@@ -390,8 +390,8 @@ class ViewTicket extends BaseViewTicket
                 ->modalDescription('This will close the ticket, suspend the user account (is_disabled = true), and notify the user.')
                 ->modalSubmitActionLabel('Suspend')
                 ->visible(fn () => $ticket->isOpen())
-                ->action(function () use ($ticket, $entityType, $entityName) {
-                    $this->performSuspendUser($ticket, $entityType, $entityName);
+                ->action(function () use ($ticket, $entityType) {
+                    $this->performSuspendUser($ticket, $entityType);
                 }),
 
             Action::make('escalateContentReport')

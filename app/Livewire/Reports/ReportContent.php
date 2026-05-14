@@ -82,6 +82,10 @@ class ReportContent extends Component
         $this->validate();
 
         $reporter = Auth::user();
+        if (! $reporter) {
+            $this->addError('reason', __('auth.unauthenticated'));
+            return;
+        }
 
         // Rate limit: 5 reports per user per hour
         $rateLimitKey = "content-reports:{$reporter->id}";
@@ -167,6 +171,9 @@ class ReportContent extends Component
     private function createSafetyTicket($entity, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();
+        if (! $department) {
+            throw new \LogicException('Safety department is not configured.');
+        }
         $entityName = $this->resolveEntityName($entity);
 
         $metadata = [
@@ -186,7 +193,7 @@ class ReportContent extends Component
             'description' => $this->buildTicketDescription($entity, $reporter, $entityName),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::High->value,
-            'department_id' => $department?->id,
+            'department_id' => $department->id,
             'ticket_type' => 'content_report',
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,
