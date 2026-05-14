@@ -8,5 +8,6 @@ exec php artisan queue:work \
     --queue=default,discovery \
     --sleep=3 \
     --tries=3 \
+    --timeout=300 \
     --max-time=3600 \
     --max-jobs=1000
