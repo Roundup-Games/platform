@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ContactFormSubmitted;
 use App\Models\Campaign;
-use App\Models\ContactMessage;
 use App\Models\Game;
 use App\Models\User;
 use App\SEO\OrganizationSchema;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
@@ -117,12 +117,29 @@ class PageController extends Controller
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
-        $contactMessage = ContactMessage::create($validated);
+        $contactDepartment = Department::where('name', 'Contact')->first();
 
-        // Send notification email (queued)
-        $adminEmail = config('mail.from.address');
-        if ($adminEmail) {
-            Mail::to($adminEmail)->send(new ContactFormSubmitted($contactMessage));
+        if (auth()->check()) {
+            /** @var User $user */
+            $user = auth()->user();
+            Ticket::create([
+                'requester_type' => User::class,
+                'requester_id' => $user->id,
+                'subject' => $validated['subject'] ?? 'General Inquiry',
+                'description' => $validated['message'],
+                'priority' => 'medium',
+                'department_id' => $contactDepartment?->id,
+            ]);
+        } else {
+            Ticket::create([
+                'guest_name' => $validated['name'],
+                'guest_email' => $validated['email'],
+                'guest_token' => Str::uuid()->toString(),
+                'subject' => $validated['subject'] ?? 'General Inquiry',
+                'description' => $validated['message'],
+                'priority' => 'medium',
+                'department_id' => $contactDepartment?->id,
+            ]);
         }
 
         return redirect()->route('contact')->with('success', __('common.content_thank_you_for_your_message'));

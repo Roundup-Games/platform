@@ -1,132 +1,106 @@
 <?php
 
-use App\Models\ContactMessage;
-use App\Mail\ContactFormSubmitted;
-use Illuminate\Support\Facades\Mail;
+use App\Models\User;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 
 // ═══════════════════════════════════════════════════════════
-// CONTACT MESSAGE MODEL
+// TICKET CREATION FROM CONTACT FORM
 // ═══════════════════════════════════════════════════════════
 
-describe('ContactMessage Model', function () {
-    it('creates with fillable attributes', function () {
-        $msg = ContactMessage::create([
-            'name' => 'John Doe',
-            'email' => 'john@example.com',
+describe('Contact Form Ticket Creation', function () {
+    beforeEach(function () {
+        Department::firstOrCreate(
+            ['name' => 'Contact'],
+            ['description' => 'General inquiries and questions', 'is_active' => true],
+        );
+    });
+
+    it('creates a guest ticket with correct fields', function () {
+        $ticket = Ticket::create([
+            'guest_name' => 'John Doe',
+            'guest_email' => 'john@example.com',
+            'guest_token' => \Illuminate\Support\Str::uuid()->toString(),
             'subject' => 'Hello',
-            'message' => 'Test message body',
-            'status' => 'new',
+            'description' => 'Test message body',
+            'priority' => 'medium',
+            'department_id' => Department::where('name', 'Contact')->first()?->id,
         ]);
 
-        expect($msg->name)->toBe('John Doe')
-            ->and($msg->email)->toBe('john@example.com')
-            ->and($msg->status)->toBe('new');
+        expect($ticket->guest_name)->toBe('John Doe')
+            ->and($ticket->guest_email)->toBe('john@example.com')
+            ->and($ticket->subject)->toBe('Hello')
+            ->and($ticket->description)->toBe('Test message body')
+            ->and($ticket->status)->toBe(TicketStatus::Open);
     });
 
-    it('casts replied_at to datetime', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Jane',
-            'email' => 'jane@example.com',
-            'subject' => 'Question',
-            'message' => 'Help needed',
-            'replied_at' => now()->subWeek()->format('Y-m-d H:i:s'),
+    it('creates a ticket with requester morph for authenticated user', function () {
+        $user = User::factory()->create();
+
+        $ticket = Ticket::create([
+            'requester_type' => User::class,
+            'requester_id' => $user->id,
+            'subject' => 'Auth question',
+            'description' => 'I need help',
+            'priority' => 'medium',
+            'department_id' => Department::where('name', 'Contact')->first()?->id,
         ]);
 
-        expect($msg->replied_at)->toBeInstanceOf(\Carbon\Carbon::class);
+        expect($ticket->requester_type)->toBe(User::class)
+            ->and($ticket->requester_id)->toBe($user->id)
+            ->and($ticket->requester->is($user))->toBeTrue();
     });
 
-    it('scopes new messages', function () {
-        ContactMessage::create(['name' => 'A', 'email' => 'a@test.com', 'message' => 'msg', 'status' => 'new']);
-        ContactMessage::create(['name' => 'B', 'email' => 'b@test.com', 'message' => 'msg', 'status' => 'replied']);
-
-        expect(ContactMessage::new()->count())->toBe(1);
-    });
-
-    it('scopes unreplied messages', function () {
-        ContactMessage::create(['name' => 'A', 'email' => 'a@test.com', 'message' => 'msg', 'replied_at' => now()]);
-        ContactMessage::create(['name' => 'B', 'email' => 'b@test.com', 'message' => 'msg', 'replied_at' => null]);
-
-        expect(ContactMessage::unreplied()->count())->toBe(1);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════
-// CONTACT FORM SUBMITTED MAIL
-// ═══════════════════════════════════════════════════════════
-
-describe('ContactFormSubmitted Mailable', function () {
-    it('builds envelope with subject when present', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Alice',
-            'email' => 'alice@example.com',
-            'subject' => 'Event Inquiry',
-            'message' => 'Tell me more',
+    it('auto-generates a reference on creation', function () {
+        $ticket = Ticket::create([
+            'guest_name' => 'Jane',
+            'guest_email' => 'jane@example.com',
+            'guest_token' => \Illuminate\Support\Str::uuid()->toString(),
+            'subject' => 'Ref test',
+            'description' => 'Body',
+            'priority' => 'medium',
         ]);
 
-        $mailable = new ContactFormSubmitted($msg);
-        $envelope = $mailable->envelope();
-
-        expect($envelope->subject)->toBe('Contact: Event Inquiry');
+        expect($ticket->reference)->not->toBeNull()
+            ->and($ticket->reference)->toStartWith('ESC-');
     });
 
-    it('builds envelope with fallback subject when blank', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Bob',
-            'email' => 'bob@example.com',
-            'subject' => null,
-            'message' => 'Just saying hi',
+    it('dispatches TicketCreated event on creation', function () {
+        \Illuminate\Support\Facades\Event::fake(
+            \Escalated\Laravel\Events\TicketCreated::class
+        );
+
+        Ticket::create([
+            'guest_name' => 'Event Tester',
+            'guest_email' => 'event@example.com',
+            'guest_token' => \Illuminate\Support\Str::uuid()->toString(),
+            'subject' => 'Event test',
+            'description' => 'Body',
+            'priority' => 'medium',
         ]);
 
-        $mailable = new ContactFormSubmitted($msg);
-        $envelope = $mailable->envelope();
-
-        expect($envelope->subject)->toBe('New Contact Form Submission from Bob');
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \Escalated\Laravel\Events\TicketCreated::class
+        );
     });
 
-    it('sets replyTo from contact message', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Carol',
-            'email' => 'carol@example.com',
-            'subject' => 'Hi',
-            'message' => 'Test',
+    it('defaults status to Open', function () {
+        $ticket = Ticket::create([
+            'guest_name' => 'Status Tester',
+            'guest_email' => 'status@example.com',
+            'guest_token' => \Illuminate\Support\Str::uuid()->toString(),
+            'subject' => 'Status test',
+            'description' => 'Body',
+            'priority' => 'medium',
         ]);
 
-        $mailable = new ContactFormSubmitted($msg);
-        $envelope = $mailable->envelope();
-
-        expect($envelope->replyTo)->toHaveCount(1);
-
-        // replyTo is an associative array [email => Address]
-        $addresses = array_values($envelope->replyTo);
-        $replyTo = $addresses[0];
-        expect($replyTo)->toBeInstanceOf(\Illuminate\Mail\Mailables\Address::class)
-            ->and($replyTo->address)->toBe('carol@example.com');
+        expect($ticket->status)->toBe(TicketStatus::Open);
     });
 
-    it('uses markdown content view', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Dave',
-            'email' => 'dave@example.com',
-            'subject' => 'Test',
-            'message' => 'Body',
-        ]);
-
-        $mailable = new ContactFormSubmitted($msg);
-        $content = $mailable->content();
-
-        expect($content->markdown)->toBe('emails.contact-submitted');
-    });
-
-    it('implements ShouldQueue', function () {
-        $msg = ContactMessage::create([
-            'name' => 'Eve',
-            'email' => 'eve@example.com',
-            'subject' => 'Queue',
-            'message' => 'Test',
-        ]);
-
-        $mailable = new ContactFormSubmitted($msg);
-
-        expect($mailable)->toBeInstanceOf(\Illuminate\Contracts\Queue\ShouldQueue::class);
+    it('assigns to Contact department', function () {
+        $department = Department::where('name', 'Contact')->first();
+        expect($department)->not->toBeNull()
+            ->and($department->is_active)->toBeTrue();
     });
 });
