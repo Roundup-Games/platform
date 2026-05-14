@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Escalated\Laravel\Models\CustomField;
 use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\EscalationRule;
 use Escalated\Laravel\Models\SlaPolicy;
 use Escalated\Laravel\Models\Tag;
 use Illuminate\Database\Seeder;
@@ -19,6 +20,7 @@ class EscalatedSetupSeeder extends Seeder
         $this->seedTags();
         $this->seedSlaPolicies();
         $this->seedCustomFields();
+        $this->seedEscalationRules();
     }
 
     protected function seedDepartments(): void
@@ -293,6 +295,40 @@ class EscalatedSetupSeeder extends Seeder
                 ['slug' => $field['slug']],
                 $field
             );
+        }
+    }
+
+    protected function seedEscalationRules(): void
+    {
+        $safety = Department::where('name', 'Safety')->first();
+
+        $rules = [
+            [
+                'name' => 'Safety Ticket Auto-Escalation',
+                'description' => 'Auto-escalate Safety department tickets unresolved after 4 hours to urgent priority',
+                'trigger_type' => 'time_based',
+                'category' => 'Safety',
+                'conditions' => array_filter([
+                    ['field' => 'department_id', 'value' => $safety?->id],
+                    ['field' => 'age_hours', 'value' => 4],
+                ]),
+                'actions' => [
+                    ['type' => 'escalate'],
+                    ['type' => 'change_priority', 'value' => 'urgent'],
+                ],
+                'is_active' => true,
+                'order' => 10,
+            ],
+        ];
+
+        foreach ($rules as $rule) {
+            // Only seed if Safety department exists (conditions require department_id)
+            if ($safety) {
+                EscalationRule::firstOrCreate(
+                    ['name' => $rule['name']],
+                    $rule
+                );
+            }
         }
     }
 }
