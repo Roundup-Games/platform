@@ -12,6 +12,8 @@ use App\Models\Review;
 use App\Models\Team;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
+use App\Listeners\HandleGameSystemTicketClosed;
+use App\Listeners\HandleGameSystemTicketResolved;
 use App\Observers\ActivityLogObserver;
 use App\Observers\SeoModelObserver;
 use App\Services\PostHogClient;
@@ -19,9 +21,12 @@ use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
+use Escalated\Laravel\Events\TicketClosed;
+use Escalated\Laravel\Events\TicketResolved;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -113,6 +118,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Escalated ticket event listeners for game system requests
+        EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
+        EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
+
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)
         Gate::define('escalated-admin', fn ($user) => $user->hasRole('Platform Admin'));

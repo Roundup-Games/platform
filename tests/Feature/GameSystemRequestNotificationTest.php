@@ -2,34 +2,72 @@
 
 use App\Enums\NotificationCategory;
 use App\Models\GameSystem;
-use App\Models\GameSystemRequest;
 use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
 use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
 use App\Services\NotificationService;
+use Database\Seeders\EscalatedSetupSeeder;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
+
+    $this->seed(EscalatedSetupSeeder::class);
+    $this->department = Department::where('name', 'Game Systems')->firstOrFail();
+
+    $this->user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+    ]);
 });
+
+// ── Helper: create a game system request ticket ─────
+
+function createGameSystemRequestTicket(User $user, Department $department, array $overrides = []): Ticket
+{
+    $defaults = [
+        'requester_type' => User::class,
+        'requester_id' => $user->id,
+        'subject' => 'Game System Request: Catan',
+        'description' => 'Please add Catan.',
+        'status' => 'open',
+        'priority' => 'medium',
+        'department_id' => $department->id,
+        'ticket_type' => 'game_system_request',
+        'channel' => 'web',
+        'metadata' => [
+            'game_system_request' => true,
+            'bgg_url' => null,
+            'publisher' => null,
+            'designer' => null,
+            'game_system_type' => 'boardgame',
+            'game_system_id' => null,
+        ],
+    ];
+
+    return Ticket::create(array_merge($defaults, $overrides));
+}
 
 // ── Real database channel persistence ─────────────────
 
 describe('Database channel persistence', function () {
     it('persists GameSystemRequestApproved in the notifications table', function () {
-        $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create(['name' => 'Catan']);
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Catan',
+        ]);
         $gameSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
 
-        $user->notifyNow(new GameSystemRequestApproved($request, $gameSystem));
+        $this->user->notifyNow(new GameSystemRequestApproved($ticket, $gameSystem));
 
-        $notification = $user->notifications()->where('type', GameSystemRequestApproved::class)->first();
+        $notification = $this->user->notifications()->where('type', GameSystemRequestApproved::class)->first();
         expect($notification)->not->toBeNull()
             ->and($notification->data['type'])->toBe('game_system_request_approved')
-            ->and($notification->data['request_id'])->toBe($request->id)
+            ->and($notification->data['ticket_id'])->toBe($ticket->id)
             ->and($notification->data['game_system_id'])->toBe($gameSystem->id)
             ->and($notification->data['game_system_name'])->toBe('Catan')
             ->and($notification->data['game_system_slug'])->toBe('catan')
@@ -37,18 +75,20 @@ describe('Database channel persistence', function () {
     });
 
     it('persists GameSystemRequestRejected with rejection reason', function () {
-        $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create([
-            'name' => 'Monopoly',
-            'rejection_reason' => 'Already exists in the catalog.',
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Monopoly',
+            'metadata' => [
+                'game_system_request' => true,
+                'rejection_reason' => 'Already exists in the catalog.',
+            ],
         ]);
 
-        $user->notifyNow(new GameSystemRequestRejected($request));
+        $this->user->notifyNow(new GameSystemRequestRejected($ticket));
 
-        $notification = $user->notifications()->where('type', GameSystemRequestRejected::class)->first();
+        $notification = $this->user->notifications()->where('type', GameSystemRequestRejected::class)->first();
         expect($notification)->not->toBeNull()
             ->and($notification->data['type'])->toBe('game_system_request_rejected')
-            ->and($notification->data['request_id'])->toBe($request->id)
+            ->and($notification->data['ticket_id'])->toBe($ticket->id)
             ->and($notification->data['game_system_name'])->toBe('Monopoly')
             ->and($notification->data['rejection_reason'])->toBe('Already exists in the catalog.')
             ->and($notification->data['message'])->toContain('Monopoly')
@@ -56,15 +96,13 @@ describe('Database channel persistence', function () {
     });
 
     it('persists GameSystemRequestRejected without rejection reason', function () {
-        $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create([
-            'name' => 'Risk',
-            'rejection_reason' => null,
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Risk',
         ]);
 
-        $user->notifyNow(new GameSystemRequestRejected($request));
+        $this->user->notifyNow(new GameSystemRequestRejected($ticket));
 
-        $notification = $user->notifications()->where('type', GameSystemRequestRejected::class)->first();
+        $notification = $this->user->notifications()->where('type', GameSystemRequestRejected::class)->first();
         expect($notification)->not->toBeNull()
             ->and($notification->data['rejection_reason'])->toBeNull()
             ->and($notification->data['message'])->toContain('Risk')
@@ -72,16 +110,17 @@ describe('Database channel persistence', function () {
     });
 
     it('persists GameSystemRequestDuplicate with existing system data', function () {
-        $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create(['name' => 'Catan']);
+        $ticket = createGameSystemRequestTicket($this->user, $this->department, [
+            'subject' => 'Game System Request: Catan',
+        ]);
         $existingSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
 
-        $user->notifyNow(new GameSystemRequestDuplicate($request, $existingSystem));
+        $this->user->notifyNow(new GameSystemRequestDuplicate($ticket, $existingSystem));
 
-        $notification = $user->notifications()->where('type', GameSystemRequestDuplicate::class)->first();
+        $notification = $this->user->notifications()->where('type', GameSystemRequestDuplicate::class)->first();
         expect($notification)->not->toBeNull()
             ->and($notification->data['type'])->toBe('game_system_request_duplicate')
-            ->and($notification->data['request_id'])->toBe($request->id)
+            ->and($notification->data['ticket_id'])->toBe($ticket->id)
             ->and($notification->data['existing_game_system_id'])->toBe($existingSystem->id)
             ->and($notification->data['existing_game_system_name'])->toBe('Catan')
             ->and($notification->data['existing_game_system_slug'])->toBe('catan')
@@ -94,10 +133,12 @@ describe('Database channel persistence', function () {
 describe('Mail channel rendering', function () {
     it('renders approved mail with correct subject and action button', function () {
         $user = User::factory()->create(['name' => 'Alice']);
-        $request = GameSystemRequest::factory()->create(['name' => 'Catan']);
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Catan',
+        ]);
         $gameSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
 
-        $mail = (new GameSystemRequestApproved($request, $gameSystem))->toMail($user);
+        $mail = (new GameSystemRequestApproved($ticket, $gameSystem))->toMail($user);
 
         expect($mail->subject)->toContain('Catan')
             ->and($mail->actionUrl)->toContain('/games/create')
@@ -107,12 +148,15 @@ describe('Mail channel rendering', function () {
 
     it('renders rejected mail with subject and no action button', function () {
         $user = User::factory()->create(['name' => 'Bob']);
-        $request = GameSystemRequest::factory()->create([
-            'name' => 'Monopoly',
-            'rejection_reason' => 'Not enough info.',
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Monopoly',
+            'metadata' => [
+                'game_system_request' => true,
+                'rejection_reason' => 'Not enough info.',
+            ],
         ]);
 
-        $mail = (new GameSystemRequestRejected($request))->toMail($user);
+        $mail = (new GameSystemRequestRejected($ticket))->toMail($user);
 
         expect($mail->subject)->toBe('Game System Request Update')
             ->and($mail->actionUrl)->toBeNull();
@@ -120,12 +164,11 @@ describe('Mail channel rendering', function () {
 
     it('renders rejected mail without reason line when null', function () {
         $user = User::factory()->create(['name' => 'Carol']);
-        $request = GameSystemRequest::factory()->create([
-            'name' => 'Risk',
-            'rejection_reason' => null,
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Risk',
         ]);
 
-        $mail = (new GameSystemRequestRejected($request))->toMail($user);
+        $mail = (new GameSystemRequestRejected($ticket))->toMail($user);
 
         expect($mail->subject)->toBe('Game System Request Update')
             ->and($mail->actionUrl)->toBeNull();
@@ -133,10 +176,12 @@ describe('Mail channel rendering', function () {
 
     it('renders duplicate mail with existing system link', function () {
         $user = User::factory()->create(['name' => 'Dave']);
-        $request = GameSystemRequest::factory()->create(['name' => 'Catan']);
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Catan',
+        ]);
         $existingSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
 
-        $mail = (new GameSystemRequestDuplicate($request, $existingSystem))->toMail($user);
+        $mail = (new GameSystemRequestDuplicate($ticket, $existingSystem))->toMail($user);
 
         expect($mail->subject)->toBe('Game System Already Exists')
             ->and($mail->actionUrl)->toContain('/game-systems/catan')
@@ -149,12 +194,14 @@ describe('Mail channel rendering', function () {
 describe('End-to-end dispatch via NotificationService', function () {
     it('stores approved notification in database and asserts full data round-trip', function () {
         $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create(['user_id' => $user->id, 'name' => 'Twilight Imperium']);
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Twilight Imperium',
+        ]);
         $gameSystem = GameSystem::factory()->create(['name' => 'Twilight Imperium', 'slug' => 'twilight-imperium']);
 
         app(NotificationService::class)->send(
             $user,
-            new GameSystemRequestApproved($request, $gameSystem),
+            new GameSystemRequestApproved($ticket, $gameSystem),
             NotificationCategory::GameSystemRequest,
         );
 
@@ -167,15 +214,17 @@ describe('End-to-end dispatch via NotificationService', function () {
 
     it('stores rejected notification in database with reason', function () {
         $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create([
-            'user_id' => $user->id,
-            'name' => 'Chess 2',
-            'rejection_reason' => 'Chess already exists.',
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Chess 2',
+            'metadata' => [
+                'game_system_request' => true,
+                'rejection_reason' => 'Chess already exists.',
+            ],
         ]);
 
         app(NotificationService::class)->send(
             $user,
-            new GameSystemRequestRejected($request),
+            new GameSystemRequestRejected($ticket),
             NotificationCategory::GameSystemRequest,
         );
 
@@ -188,12 +237,14 @@ describe('End-to-end dispatch via NotificationService', function () {
 
     it('stores duplicate notification in database with existing system data', function () {
         $user = User::factory()->create();
-        $request = GameSystemRequest::factory()->create(['user_id' => $user->id, 'name' => 'Checkers']);
+        $ticket = createGameSystemRequestTicket($user, $this->department, [
+            'subject' => 'Game System Request: Checkers',
+        ]);
         $existingSystem = GameSystem::factory()->create(['name' => 'Checkers', 'slug' => 'checkers']);
 
         app(NotificationService::class)->send(
             $user,
-            new GameSystemRequestDuplicate($request, $existingSystem),
+            new GameSystemRequestDuplicate($ticket, $existingSystem),
             NotificationCategory::GameSystemRequest,
         );
 
@@ -209,23 +260,23 @@ describe('End-to-end dispatch via NotificationService', function () {
 
 describe('getActor returns null for all game system request notifications', function () {
     it('returns null for approved notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
         $gameSystem = GameSystem::factory()->create();
 
-        expect((new GameSystemRequestApproved($request, $gameSystem))->getActor())->toBeNull();
+        expect((new GameSystemRequestApproved($ticket, $gameSystem))->getActor())->toBeNull();
     });
 
     it('returns null for rejected notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
 
-        expect((new GameSystemRequestRejected($request))->getActor())->toBeNull();
+        expect((new GameSystemRequestRejected($ticket))->getActor())->toBeNull();
     });
 
     it('returns null for duplicate notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
         $existingSystem = GameSystem::factory()->create();
 
-        expect((new GameSystemRequestDuplicate($request, $existingSystem))->getActor())->toBeNull();
+        expect((new GameSystemRequestDuplicate($ticket, $existingSystem))->getActor())->toBeNull();
     });
 });
 
@@ -233,30 +284,30 @@ describe('getActor returns null for all game system request notifications', func
 
 describe('via() returns database and mail channels', function () {
     it('returns correct channels for approved notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
         $gameSystem = GameSystem::factory()->create();
         $notifiable = User::factory()->create();
 
-        $channels = (new GameSystemRequestApproved($request, $gameSystem))->via($notifiable);
+        $channels = (new GameSystemRequestApproved($ticket, $gameSystem))->via($notifiable);
 
         expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
     });
 
     it('returns correct channels for rejected notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
         $notifiable = User::factory()->create();
 
-        $channels = (new GameSystemRequestRejected($request))->via($notifiable);
+        $channels = (new GameSystemRequestRejected($ticket))->via($notifiable);
 
         expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
     });
 
     it('returns correct channels for duplicate notification', function () {
-        $request = GameSystemRequest::factory()->create();
+        $ticket = createGameSystemRequestTicket($this->user, $this->department);
         $existingSystem = GameSystem::factory()->create();
         $notifiable = User::factory()->create();
 
-        $channels = (new GameSystemRequestDuplicate($request, $existingSystem))->via($notifiable);
+        $channels = (new GameSystemRequestDuplicate($ticket, $existingSystem))->via($notifiable);
 
         expect($channels)->toContain(DatabaseChannel::class, MailChannel::class);
     });

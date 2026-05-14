@@ -217,16 +217,17 @@ class RequestGameSystemPageTest extends TestCase
     {
         $service = app(GameSystemRequestService::class);
         $ticket = $service->createRequest($this->user, [
-            'name' => 'Wingspan',
+            'name' => 'ApprovedGame123',
             'type' => 'boardgame',
         ]);
 
-        // Resolve (approve) the ticket
+        // Resolve (approve) the ticket — suppress listener side effects
+        \Illuminate\Support\Facades\Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
         $ticket->markResolved($this->user);
 
         Livewire::actingAs($this->user)
             ->test(\App\Livewire\GameSystems\RequestGameSystemPage::class)
-            ->set('name', 'Wingspan')
+            ->set('name', 'ApprovedGame123')
             ->call('submit')
             ->assertHasNoErrors();
 
