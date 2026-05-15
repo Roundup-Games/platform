@@ -25,6 +25,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Remap any rows that were set to 'short_link' back to 'share_link'
+        // before dropping the constraint that doesn't include it.
+        DB::statement("UPDATE game_participants SET join_source = 'share_link' WHERE join_source = 'short_link'");
+        DB::statement("UPDATE campaign_participants SET join_source = 'share_link' WHERE join_source = 'short_link'");
+
         $allowedValues = "ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying]";
 
         DB::statement('ALTER TABLE game_participants DROP CONSTRAINT IF EXISTS game_participants_join_source_check');

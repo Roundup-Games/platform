@@ -74,7 +74,7 @@ class GameParticipant extends Model
      */
     public function getSourceLabelAttribute(): ?string
     {
-        if ($this->short_link_id && $this->shortLink) {
+        if ($this->short_link_id && $this->relationLoaded('shortLink') && $this->shortLink) {
             return $this->shortLink->label ?? $this->shortLink->code;
         }
 

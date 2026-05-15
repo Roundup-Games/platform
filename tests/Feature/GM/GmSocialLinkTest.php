@@ -111,9 +111,9 @@ describe('Mastodon instance handling', function () {
     });
 
     it('generates URL with empty instance fallback', function () {
-        // No instance provided — template replaces {instance} with empty string
+        // No instance provided — instance_required platforms return null
         expect($this->service->generateUrl('mastodon', 'charlie'))
-            ->toBe('https:///@charlie');
+            ->toBeNull();
     });
 });
 

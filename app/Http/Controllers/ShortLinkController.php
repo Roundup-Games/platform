@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -46,7 +47,7 @@ class ShortLinkController extends Controller
 
         if ($misses >= static::MISS_THRESHOLD) {
             Log::warning('short_link.redirect.miss_threshold_exceeded', [
-                'code' => $code,
+                'code_prefix' => substr($code, 0, 3) . '…',
                 'ip' => $ip,
                 'misses' => $misses,
             ]);
@@ -62,14 +63,10 @@ class ShortLinkController extends Controller
 
         // ── Not found ──────────────────────────────────────────────────
         if ($link === null) {
-            Cache::increment($missKey);
-            // Ensure TTL is set even on first miss
-            if (Cache::get($missKey) === 1) {
-                Cache::put($missKey, 1, static::MISS_TTL);
-            }
+            RateLimiter::hit($missKey, static::MISS_TTL);
 
             Log::debug('short_link.redirect.not_found', [
-                'code' => $code,
+                'code_prefix' => substr($code, 0, 3) . '…',
                 'ip' => $ip,
             ]);
 
@@ -81,7 +78,7 @@ class ShortLinkController extends Controller
             Cache::forget($cacheKey);
 
             Log::debug('short_link.redirect.expired', [
-                'code' => $code,
+                'code_prefix' => substr($code, 0, 3) . '…',
                 'ip' => $ip,
                 'expires_at' => $link->expires_at?->toIso8601String(),
             ]);
@@ -89,15 +86,17 @@ class ShortLinkController extends Controller
             abort(404, 'Short link not found.');
         }
 
-        // ── Hit cap check ──────────────────────────────────────────────
-        if ($link->hasHitCap()) {
+        // ── Hit cap check (DB-authoritative) ───────────────────────────
+        $freshHitCount = ShortLink::where('id', $link->id)->value('hit_count');
+        $freshMaxHits = $link->max_hits;
+        if ($freshMaxHits !== null && $freshHitCount >= $freshMaxHits) {
             Cache::forget($cacheKey);
 
             Log::debug('short_link.redirect.hit_cap_exceeded', [
-                'code' => $code,
+                'code_prefix' => substr($code, 0, 3) . '…',
                 'ip' => $ip,
-                'hit_count' => $link->hit_count,
-                'max_hits' => $link->max_hits,
+                'hit_count' => $freshHitCount,
+                'max_hits' => $freshMaxHits,
             ]);
 
             // 404 — no information leakage about whether the link exists
@@ -105,12 +104,19 @@ class ShortLinkController extends Controller
         }
 
         // ── Dispatch async analytics ───────────────────────────────────
-        RecordShortLinkHit::dispatch(
-            $link->id,
-            $ip,
-            $request->header('referer'),
-            $request->header('User-Agent'),
-        );
+        try {
+            RecordShortLinkHit::dispatch(
+                $link->id,
+                $ip,
+                $request->header('referer'),
+                $request->header('User-Agent'),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('short_link.redirect.hit_dispatch_failed', [
+                'link_id' => $link->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // ── PostHog stitching cookie ───────────────────────────────────
         // Sets ph_link_id so client-side PostHog can stitch anonymous → identified.
@@ -126,7 +132,7 @@ class ShortLinkController extends Controller
         ]), 24 * 60); // 24 hours
 
         Log::info('short_link.redirect.success', [
-            'code' => $code,
+            'code_prefix' => substr($code, 0, 3) . '…',
             'link_id' => $link->id,
             'ip' => $ip,
             'url' => $link->url,

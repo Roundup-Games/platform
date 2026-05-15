@@ -70,7 +70,7 @@
                             <td class="py-2.5 px-3 text-right">
                                 @unless($link->trashed())
                                     <button type="button"
-                                        onclick="if(confirm('{{ __("gws.link_confirm_revoke") }}')) { Livewire.dispatch('revoke-link', { linkId: {{ $link->id }} }) }"
+                                        onclick="if(confirm(@js(__('gws.link_confirm_revoke')))) { Livewire.dispatch('revoke-link', { linkId: {{ $link->id }} }) }"
                                         class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-error-container/50 text-on-error-container hover:bg-error-container transition-colors">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
                                         {{ __('gws.link_action_revoke') }}

@@ -48,13 +48,14 @@ describe('ShortLink model — code generation', function () {
         // Force Str::random to always return a colliding code
         Str::createRandomStringsUsing(fn (int $length) => 'AAAAAAA');
 
-        expect(fn () => ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => null,
-        ]))->toThrow(\RuntimeException::class);
-
-        // Reset
-        Str::createRandomStringsUsing(null);
+        try {
+            expect(fn () => ShortLink::factory()->create([
+                'linkable_id' => $this->game->id,
+                'code' => null,
+            ]))->toThrow(\RuntimeException::class);
+        } finally {
+            Str::createRandomStringsUsing(null);
+        }
     });
 
     it('accepts an explicit code without auto-generation', function () {

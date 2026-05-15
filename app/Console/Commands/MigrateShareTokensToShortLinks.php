@@ -35,9 +35,7 @@ class MigrateShareTokensToShortLinks extends Command
         $gameSkipped = 0;
 
         // ── Games ────────────────────────────────────────────────────
-        $games = Game::whereNotNull('share_token')->get();
-
-        foreach ($games as $game) {
+        foreach (Game::whereNotNull('share_token')->lazyById(200) as $game) {
             // Skip if entity already has a ShortLink with 'share_token_migration' purpose
             $alreadyMigrated = ShortLink::withTrashed()
                 ->where('linkable_type', Game::class)
@@ -53,6 +51,7 @@ class MigrateShareTokensToShortLinks extends Command
 
             if (! $dryRun) {
                 $service->createLink($game, $game->owner, [
+                    'code' => $game->share_token,
                     'label' => 'Migrated share token',
                     'purpose' => 'share_token_migration',
                     'expires_at' => $game->share_token_expires_at,
@@ -66,9 +65,7 @@ class MigrateShareTokensToShortLinks extends Command
         $campaignSkipped = 0;
 
         // ── Campaigns ────────────────────────────────────────────────
-        $campaigns = Campaign::whereNotNull('share_token')->get();
-
-        foreach ($campaigns as $campaign) {
+        foreach (Campaign::whereNotNull('share_token')->lazyById(200) as $campaign) {
             // Skip if entity already has a ShortLink with 'share_token_migration' purpose
             $alreadyMigrated = ShortLink::withTrashed()
                 ->where('linkable_type', Campaign::class)
@@ -84,6 +81,7 @@ class MigrateShareTokensToShortLinks extends Command
 
             if (! $dryRun) {
                 $service->createLink($campaign, $campaign->owner, [
+                    'code' => $campaign->share_token,
                     'label' => 'Migrated share token',
                     'purpose' => 'share_token_migration',
                     'expires_at' => $campaign->share_token_expires_at,

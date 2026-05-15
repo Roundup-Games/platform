@@ -414,7 +414,15 @@ class GameDetail extends Component
             && $this->validatedShareToken === $this->game->share_token
             && ($this->game->share_token_expires_at === null || ! $this->game->share_token_expires_at->isPast());
 
-        $hasShortLink = $this->validatedShortLinkId !== null;
+        $hasShortLink = false;
+        if ($this->validatedShortLinkId !== null) {
+            $freshShortLink = \App\Models\ShortLink::where('id', $this->validatedShortLinkId)
+                ->whereNull('deleted_at')
+                ->first();
+            $hasShortLink = $freshShortLink !== null
+                && ! $freshShortLink->isExpired()
+                && ! $freshShortLink->hasHitCap();
+        }
 
         if (! $hasShareToken && ! $hasShortLink) {
             return false;

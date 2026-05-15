@@ -122,7 +122,7 @@ class Team extends Model implements HasMedia
             'linkable_type',
             'linkable_id',
             'id'
-        ))->where('linkable_type', static::class);
+        ))->where('linkable_type', $this->getMorphClass());
     }
 
     // ── Helpers ────────────────────────────────────────

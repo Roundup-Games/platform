@@ -16,7 +16,7 @@ class GmSocialLink extends Model
         'user_id',
         'platform',
         'handle',
-        'url',
+        'instance',
     ];
 
     protected function casts(): array
@@ -28,13 +28,13 @@ class GmSocialLink extends Model
     {
         static::creating(function (self $link) {
             $link->url = app(\App\Services\GmSocialLinkService::class)
-                ->generateUrl($link->platform, $link->handle);
+                ->generateUrl($link->platform, $link->handle, $link->instance);
         });
 
         static::updating(function (self $link) {
-            if ($link->isDirty('platform') || $link->isDirty('handle')) {
+            if ($link->isDirty('platform') || $link->isDirty('handle') || $link->isDirty('instance')) {
                 $link->url = app(\App\Services\GmSocialLinkService::class)
-                    ->generateUrl($link->platform, $link->handle);
+                    ->generateUrl($link->platform, $link->handle, $link->instance);
             }
         });
     }

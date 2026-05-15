@@ -198,6 +198,15 @@ class ProcessShareIntent
             DB::transaction(function () use ($game, $user, &$status) {
                 $lockedGame = Game::lockForUpdate()->find($game->id);
 
+                if (! $lockedGame) {
+                    Log::error('share_intent.game_not_found_under_lock', [
+                        'user_id' => $user->id,
+                        'entity_id' => $game->id,
+                    ]);
+
+                    return;
+                }
+
                 // Check game is still active (not completed/cancelled)
                 if (in_array($lockedGame->status, [GameStatus::Completed, GameStatus::Canceled], true)) {
                     Log::warning('share_intent.game_inactive', [
@@ -325,6 +334,15 @@ class ProcessShareIntent
 
             DB::transaction(function () use ($campaign, $user, &$status) {
                 $lockedCampaign = Campaign::lockForUpdate()->find($campaign->id);
+
+                if (! $lockedCampaign) {
+                    Log::error('share_intent.campaign_not_found_under_lock', [
+                        'user_id' => $user->id,
+                        'entity_id' => $campaign->id,
+                    ]);
+
+                    return;
+                }
 
                 // Check campaign is still active (not cancelled/completed)
                 if (in_array($lockedCampaign->status, [CampaignStatus::Cancelled, CampaignStatus::Completed], true)) {
@@ -621,6 +639,15 @@ class ProcessShareIntent
             DB::transaction(function () use ($game, $user, $shortLink, &$status) {
                 $lockedGame = Game::lockForUpdate()->find($game->id);
 
+                if (! $lockedGame) {
+                    Log::error('short_link_intent.game_not_found_under_lock', [
+                        'user_id' => $user->id,
+                        'entity_id' => $game->id,
+                    ]);
+
+                    return;
+                }
+
                 if (in_array($lockedGame->status, [GameStatus::Completed, GameStatus::Canceled], true)) {
                     Log::warning('short_link_intent.game_inactive', [
                         'user_id' => $user->id,
@@ -743,6 +770,15 @@ class ProcessShareIntent
 
             DB::transaction(function () use ($campaign, $user, $shortLink, &$status) {
                 $lockedCampaign = Campaign::lockForUpdate()->find($campaign->id);
+
+                if (! $lockedCampaign) {
+                    Log::error('short_link_intent.campaign_not_found_under_lock', [
+                        'user_id' => $user->id,
+                        'entity_id' => $campaign->id,
+                    ]);
+
+                    return;
+                }
 
                 if (in_array($lockedCampaign->status, [CampaignStatus::Cancelled, CampaignStatus::Completed], true)) {
                     Log::warning('short_link_intent.campaign_inactive', [

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ShortLink;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -28,7 +29,7 @@ class ShortLinkService
 
             if (! ShortLink::where('code', $code)->exists()) {
                 Log::debug('ShortLinkService: generated unique code', [
-                    'code' => $code,
+                    'code_prefix' => substr($code, 0, 3) . '…',
                     'attempts' => $attempts,
                 ]);
 
@@ -49,21 +50,40 @@ class ShortLinkService
         $code = $params['code'] ?? $this->generateUniqueCode();
         $url = $params['url'] ?? $this->getEntityRoute($linkable);
 
-        $link = ShortLink::create([
-            'code' => $code,
-            'url' => $url,
-            'linkable_type' => get_class($linkable),
-            'linkable_id' => (string) $linkable->getKey(),
-            'user_id' => $user?->id,
-            'label' => $params['label'] ?? null,
-            'purpose' => $params['purpose'] ?? null,
-            'expires_at' => $params['expires_at'] ?? null,
-            'max_hits' => $params['max_hits'] ?? null,
-        ]);
+        $link = retry(3, function () use ($code, $url, $linkable, $user, $params) {
+            try {
+                return ShortLink::create([
+                    'code' => $code,
+                    'url' => $url,
+                    'linkable_type' => get_class($linkable),
+                    'linkable_id' => (string) $linkable->getKey(),
+                    'user_id' => $user?->id,
+                    'label' => $params['label'] ?? null,
+                    'purpose' => $params['purpose'] ?? null,
+                    'expires_at' => $params['expires_at'] ?? null,
+                    'max_hits' => $params['max_hits'] ?? null,
+                ]);
+            } catch (QueryException $e) {
+                // SQLSTATE 23000 = unique constraint violation (duplicate code)
+                if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'Duplicate')) {
+                    Log::warning('ShortLinkService: code collision on insert, retrying', [
+                        'code_prefix' => substr($code, 0, 3) . '…',
+                    ]);
+
+                    throw $e; // let retry() regenerate on next attempt
+                }
+
+                throw $e;
+            }
+        }, 100, function ($attempt) {
+            // On collision retry, we can't change the code since it may have been
+            // explicitly passed. Just rethrow so retry() propagates the exception.
+            return $attempt < 1;
+        });
 
         Log::info('ShortLinkService: created short link', [
             'link_id' => $link->id,
-            'code' => $link->code,
+            'code_prefix' => substr($link->code, 0, 3) . '…',
             'linkable_type' => get_class($linkable),
             'linkable_id' => $linkable->getKey(),
             'user_id' => $user?->id,
@@ -82,20 +102,20 @@ class ShortLinkService
         $link = ShortLink::where('code', $code)->first();
 
         if ($link === null) {
-            Log::debug('ShortLinkService: code not found', ['code' => $code]);
+            Log::debug('ShortLinkService: code not found', ['code_prefix' => substr($code, 0, 3) . '…']);
 
             return null;
         }
 
         if ($link->isExpired()) {
-            Log::debug('ShortLinkService: link expired', ['code' => $code, 'expires_at' => $link->expires_at]);
+            Log::debug('ShortLinkService: link expired', ['code_prefix' => substr($code, 0, 3) . '…', 'expires_at' => $link->expires_at]);
 
             return null;
         }
 
         if ($link->hasHitCap()) {
             Log::debug('ShortLinkService: hit cap exceeded', [
-                'code' => $code,
+                'code_prefix' => substr($code, 0, 3) . '…',
                 'hit_count' => $link->hit_count,
                 'max_hits' => $link->max_hits,
             ]);
@@ -159,9 +179,12 @@ class ShortLinkService
     {
         $link->delete();
 
+        Cache::forget("short_link:{$link->code}");
+        Cache::forget("short_link_id:{$link->id}");
+
         Log::info('ShortLinkService: revoked short link', [
             'link_id' => $link->id,
-            'code' => $link->code,
+            'code_prefix' => substr($link->code, 0, 3) . '…',
         ]);
     }
 

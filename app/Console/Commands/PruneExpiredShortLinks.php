@@ -22,6 +22,18 @@ class PruneExpiredShortLinks extends Command
         $days = (int) $this->option('days');
         $grace = (int) $this->option('grace');
 
+        if ($days < 1) {
+            $this->error('The --days option must be at least 1.');
+
+            return self::FAILURE;
+        }
+
+        if ($grace < 0) {
+            $this->error('The --grace option must be non-negative.');
+
+            return self::FAILURE;
+        }
+
         try {
             // Phase 1: Entity-driven expiry — set expires_at on links whose entity is completed/cancelled
             $expiredCount = $this->expireLinksForCompletedEntities($grace, $dryRun);

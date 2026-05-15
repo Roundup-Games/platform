@@ -108,6 +108,8 @@ describe('link ordering', function () {
         $twitterPos = strpos($html, 'https://x.com/a_gm');
         $startPlayingPos = strpos($html, 'https://startplaying.games/gm/z_gm');
 
+        expect($twitterPos)->not->toBeFalse();
+        expect($startPlayingPos)->not->toBeFalse();
         expect($twitterPos)->toBeLessThan($startPlayingPos);
     });
 });

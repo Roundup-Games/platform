@@ -17,12 +17,13 @@ beforeEach(function () {
         'url' => route('games.detail', $this->game->id),
     ]);
 
-    // Clear cache before each test
-    Cache::flush();
+    // Clear specific cache keys instead of flushing entire cache
+    Cache::forget("short_link:{$this->link->code}");
+    Cache::forget('short_link_misses:127.0.0.1');
 });
 
 afterEach(function () {
-    Cache::flush();
+    Cache::forget('short_link_misses:127.0.0.1');
 });
 
 // ── Valid redirects ────────────────────────────────────

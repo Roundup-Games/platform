@@ -259,14 +259,18 @@ describe('PruneExpiredShortLinks command', function () {
             'expires_at' => now()->subDay(),
         ]);
 
-        \Illuminate\Support\Facades\Log::channel('daily')->shouldReceive('info')
+        \Illuminate\Support\Facades\Log::partialMock()
+            ->shouldReceive('channel')
+            ->with('daily')
+            ->andReturnSelf()
+            ->shouldReceive('info')
             ->once()
             ->with('prune.expired_links', \Mockery::on(function ($context) {
                 return isset($context['soft_deleted_count']) && $context['soft_deleted_count'] >= 1;
             }));
 
         Artisan::call('short-links:prune');
-    })->skip(); // Skipping because Log::channel('daily') conflicts with the daily logger setup
+    });
 
     it('is registered in the console scheduler', function () {
         $consoleContent = file_get_contents(base_path('routes/console.php'));

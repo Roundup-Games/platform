@@ -48,6 +48,7 @@ class GmWorkspace extends Component
                 'linkAnalytics' => $this->emptyLinkAnalytics(),
                 'topLinks' => collect(),
                 'topReferrers' => collect(),
+                'allLinks' => collect(),
             ]);
         }
 
@@ -98,6 +99,13 @@ class GmWorkspace extends Component
         // (6) Share Link Analytics
         [$linkAnalytics, $topLinks, $topReferrers] = $this->getLinkAnalytics($user);
 
+        // (7) All links for management table (moved from Blade template)
+        $allLinks = ShortLink::where('user_id', $user->id)
+            ->with('linkable')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
         return view('livewire.gm.gm-workspace', [
             'upcomingSessions' => $upcomingSessions,
             'recentReviews' => $recentReviews,
@@ -109,6 +117,7 @@ class GmWorkspace extends Component
             'linkAnalytics' => $linkAnalytics,
             'topLinks' => $topLinks,
             'topReferrers' => $topReferrers,
+            'allLinks' => $allLinks,
         ]);
     }
 
@@ -157,23 +166,22 @@ class GmWorkspace extends Component
                 ->limit(5)
                 ->get();
 
-            // Top referrer domains
+            // Top referrer domains (aggregate by host in PHP)
             $topReferrers = $gmLinkIds->isNotEmpty()
                 ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
                     ->whereNotNull('referer')
                     ->where('referer', '!=', '')
-                    ->select('referer', DB::raw('COUNT(*) as cnt'))
-                    ->groupBy('referer')
-                    ->orderByDesc('cnt')
-                    ->limit(5)
-                    ->get()
-                    ->map(function ($hit) {
-                        $parsed = parse_url($hit->referer);
-                        return [
-                            'domain' => $parsed['host'] ?? $hit->referer,
-                            'count' => $hit->cnt,
-                        ];
-                    })
+                    ->pluck('referer')
+                    ->map(fn (string $referer) => parse_url($referer, PHP_URL_HOST) ?: $referer)
+                    ->filter()
+                    ->countBy()
+                    ->sortDesc()
+                    ->take(5)
+                    ->map(fn (int $count, string $domain) => [
+                        'domain' => $domain,
+                        'count' => $count,
+                    ])
+                    ->values()
                 : collect();
 
             return [$linkAnalytics, $topLinks, $topReferrers];

@@ -356,13 +356,6 @@
         @endif
 
         {{-- Links Manager Table --}}
-        @php
-            $allLinks = \App\Models\ShortLink::where('user_id', \Illuminate\Support\Facades\Auth::id())
-                ->with('linkable')
-                ->orderByDesc('created_at')
-                ->limit(20)
-                ->get();
-        @endphp
         @if($allLinks->count())
             <h4 class="text-sm font-medium text-on-surface mb-3">{{ __('gws.heading_all_links') }}</h4>
             @include('livewire.partials._share-links-manager', ['links' => $allLinks, 'showActions' => true])

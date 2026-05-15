@@ -53,12 +53,12 @@
                     </div>
 
                     {{-- Copy button --}}
-                    <button @click="copyToClipboard('{{ $link->id }}', '{{ $fullUrl }}')"
+                    <button @click="copyToClipboard(@js($link->id), @js($fullUrl))"
                         class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-                        :class="copiedId === '{{ $link->id }}' ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-container-high'"
-                        :title="copiedId === '{{ $link->id }}' ? '{{ __('common.status_copied') }}' : '{{ __('common.action_copy_link') }}'">
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="copiedId !== '{{ $link->id }}'">content_copy</span>
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="copiedId === '{{ $link->id }}'">check</span>
+                        :class="copiedId === @js($link->id) ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                        :title="copiedId === @js($link->id) ? @js(__('common.status_copied')) : @js(__('common.action_copy_link'))">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="copiedId !== @js($link->id)">content_copy</span>
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true" x-show="copiedId === @js($link->id)">check</span>
                     </button>
 
                     {{-- Revoke button --}}

@@ -41,10 +41,10 @@ describe('generateUrl', function () {
             ->toBeNull();
     });
 
-    it('handles Mastodon without instance (empty substitution)', function () {
+    it('handles Mastodon without instance (instance_required returns null)', function () {
         $result = $this->service->generateUrl('mastodon', 'testuser');
-        // Without instance, the {instance} placeholder is replaced with empty string
-        expect($result)->toBe('https:///@testuser');
+        // Mastodon has instance_required=true, so missing instance returns null
+        expect($result)->toBeNull();
     });
 });
 

@@ -216,4 +216,7 @@ return [
     'gm_social_handle_placeholder' => 'Dein Benutzername',
     'gm_social_handle_placeholder_at' => 'Benutzername',
     'gm_social_instance_label' => 'Instanz (z.B. mastodon.social)',
+
+    // Social Links
+    'content_find_me_on' => 'Finde mich auf',
 ];

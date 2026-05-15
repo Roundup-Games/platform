@@ -160,11 +160,13 @@ describe('Referrer domain aggregation', function () {
         Livewire\Livewire::actingAs($gm)
             ->test(GmWorkspace::class)
             ->assertViewHas('topReferrers', function ($referrers) {
-                // The GROUP BY is on full referer URL, so each URL is its own group.
-                // Domain extraction happens after grouping, so we get 2 discord.com entries + 1 twitter.com entry
-                return $referrers->count() === 3
-                    && $referrers->where('domain', 'discord.com')->count() === 2
-                    && $referrers->where('domain', 'twitter.com')->count() === 1;
+                // After fix: aggregation is by host in PHP, so two discord.com URLs
+                // become a single domain entry with count 2.
+                return $referrers->count() === 2
+                    && $referrers->first()['domain'] === 'discord.com'
+                    && $referrers->first()['count'] === 2
+                    && $referrers->last()['domain'] === 'twitter.com'
+                    && $referrers->last()['count'] === 1;
             });
     });
 

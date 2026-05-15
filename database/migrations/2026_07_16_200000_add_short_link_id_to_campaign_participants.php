@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('campaign_participants', function (Blueprint $table) {
-            $table->unsignedBigInteger('short_link_id')->nullable()->after('join_source');
+            $table->unsignedBigInteger('short_link_id')->nullable()->after('join_source')->index();
             $table->foreign('short_link_id')->references('id')->on('short_links')->nullOnDelete();
         });
     }

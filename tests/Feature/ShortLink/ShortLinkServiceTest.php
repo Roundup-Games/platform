@@ -47,10 +47,12 @@ describe('ShortLinkService — generateUniqueCode', function () {
 
         Str::createRandomStringsUsing(fn (int $length) => 'AAAAAAA');
 
-        expect(fn () => $this->service->generateUniqueCode())
-            ->toThrow(\RuntimeException::class, 'Unable to generate a unique short link code');
-
-        Str::createRandomStringsUsing(null);
+        try {
+            expect(fn () => $this->service->generateUniqueCode())
+                ->toThrow(\RuntimeException::class, 'Unable to generate a unique short link code');
+        } finally {
+            Str::createRandomStringsUsing(null);
+        }
     });
 
     it('returns a unique code when first attempt collides', function () {
@@ -66,11 +68,13 @@ describe('ShortLinkService — generateUniqueCode', function () {
             return $callCount <= 1 ? 'AAAAAAA' : 'BBBBBBB';
         });
 
-        $code = $this->service->generateUniqueCode();
-        expect($code)->not->toBe('AAAAAAA');
-        expect($code)->toBe('BBBBBBB');
-
-        Str::createRandomStringsUsing(null);
+        try {
+            $code = $this->service->generateUniqueCode();
+            expect($code)->not->toBe('AAAAAAA');
+            expect($code)->toBe('BBBBBBB');
+        } finally {
+            Str::createRandomStringsUsing(null);
+        }
     });
 });
 
@@ -301,17 +305,20 @@ describe('ShortLinkService — canCreateMore', function () {
     });
 
     it('respects custom max_links_per_entity from user', function () {
-        // The column will be added in S03. Until then, the service falls back to 10.
-        // Test the default behavior: user with 10 links should be at limit.
-        $user = User::factory()->create();
+        $user = User::factory()->create(['max_links_per_entity' => 3]);
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 3; $i++) {
             ShortLink::factory()->create([
                 'linkable_id' => $this->game->id,
                 'user_id' => $user->id,
             ]);
         }
 
+        // At custom limit of 3
         expect($this->service->canCreateMore($this->game, $user))->toBeFalse();
+
+        // Another user with default limit should still be allowed
+        $defaultUser = User::factory()->create();
+        expect($this->service->canCreateMore($this->game, $defaultUser))->toBeTrue();
     });
 });

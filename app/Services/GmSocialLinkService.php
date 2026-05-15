@@ -26,11 +26,15 @@ class GmSocialLinkService
         }
 
         $url = $config['url_template'];
-        $url = str_replace('{handle}', $handle, $url);
 
         if (str_contains($url, '{instance}')) {
+            if (($config['instance_required'] ?? false) && empty($instance)) {
+                return null;
+            }
             $url = str_replace('{instance}', $instance ?? '', $url);
         }
+
+        $url = str_replace('{handle}', $handle, $url);
 
         return $url;
     }
@@ -147,6 +151,11 @@ class GmSocialLinkService
 
             // Validate instance if required
             $platformConfig = config("platforms.{$platform}");
+            if (($platformConfig['instance_required'] ?? false) && empty($instance)) {
+                $errors[$platform] = 'Instance is required for this platform.';
+                continue;
+            }
+
             if (($platformConfig['instance_required'] ?? false) && $instance) {
                 $instanceValidation = $this->validateInstance($instance);
                 if (! $instanceValidation['valid']) {
@@ -194,6 +203,6 @@ class GmSocialLinkService
             return $link->url;
         }
 
-        return $this->generateUrl($link->platform, $link->handle);
+        return $this->generateUrl($link->platform, $link->handle, $link->instance);
     }
 }

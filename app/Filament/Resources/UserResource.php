@@ -151,9 +151,10 @@ class UserResource extends Resource
                                     ->helperText('Allow this user to create public game sessions and campaigns visible to everyone. Without this, entries default to private.'),
                                 TextInput::make('max_links_per_entity')
                                     ->label('Max short links per entity')
-                                    ->numeric()
+                                    ->integer()
                                     ->minValue(1)
                                     ->maxValue(50)
+                                    ->nullable()
                                     ->helperText('Maximum short links per entity for this GM. Leave empty for default (10).'),
                                 Select::make('location_id')
                                     ->label('Location')
