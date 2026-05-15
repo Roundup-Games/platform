@@ -107,7 +107,7 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
         $baseUrl = config('app.url');
 
-        $paths = ['/', '/about', '/how-it-works', '/for-organizers', '/contact', '/safety-tools', '/gms', '/game-systems'];
+        $paths = ['/', '/about', '/how-it-works', '/for-organizers', '/contact', '/safety-tools', '/gms', '/game-systems', '/our-pledge', '/our-pledge/algorithms'];
 
         foreach (['en', 'de'] as $locale) {
             foreach ($paths as $path) {
@@ -120,8 +120,8 @@ describe('Static Pages Sitemap', function () {
         $content = get('/sitemap-static.xml')->content();
 
         preg_match_all('/<url>(.*?)<\/url>/s', $content, $blocks);
-        // 8 paths × 2 locales = 16 entries
-        expect($blocks[0])->toHaveCount(16);
+        // 10 paths × 2 locales = 20 entries
+        expect($blocks[0])->toHaveCount(20);
 
         foreach ($blocks[0] as $block) {
             expect($block)->toContain('<changefreq>monthly</changefreq>');

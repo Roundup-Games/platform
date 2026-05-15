@@ -213,6 +213,30 @@ describe('ContactPage', function () {
 
 });
 
+// ── Our Pledge / Algorithms Page ────────────────────────
+
+describe('AlgorithmsPage', function () {
+    it('renders the algorithms page successfully', function () {
+        get(route('pledge.algorithms'))
+            ->assertOk();
+    });
+
+    it('includes the SEO title and description', function () {
+        get(route('pledge.algorithms'))
+            ->assertOk()
+            ->assertSee(__('pages.seo_title_pledge_algorithms'))
+            ->assertSee(__('pages.seo_description_pledge_algorithms'), false);
+    });
+});
+
+describe('OurPledgeHub', function () {
+    it('links to the algorithms page from the hub card', function () {
+        get(route('pledge'))
+            ->assertOk()
+            ->assertSee(route('pledge.algorithms'));
+    });
+});
+
 // ── Navigation Integration ─────────────────────────────
 
 describe('PublicNavigation', function () {
