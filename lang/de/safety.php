@@ -14,6 +14,8 @@ return [
     'content_the_single_most_impactful_thing' => 'Das Wirksamste, was du tun kannst. Nimm dir vor deinem ersten Spiel Zeit, um als Gruppe Erwartungen, Themen und Grenzen zu besprechen.',
     'content_using_safety_tools_on_roundup' => 'Sicherheitstools auf Roundup nutzen',
     'content_when_you_create_a_game' => 'Wenn du ein Spiel oder eine Kampagne erstellst, kannst du die Sicherheitstools auswählen, die du verwenden möchtest. Diese werden auf der Detailseite deines Spiels angezeigt, damit Spieler wissen, was sie erwartet. Du kannst auch eigene Notizen zu deinem Sicherheitsansatz hinzufügen.',
+    'content_safety_tools_matter_at_every_table' => 'Sicherheitstools sind an jedem Tisch wichtig — aber besonders, wenn man neue Leute persönlich trifft. Jedes Tool auf dieser Seite ist verfügbar, weil wir glauben, dass Vertrauen Fremde zu einer Spielgruppe macht.',
+    'action_learn_about_our_commitment' => 'Erfahre mehr über unser Versprechen',
     'content_whether_you_re_a_seasoned' => 'Egal ob du ein erfahrener Game Master bist oder an deiner ersten Sitzung teilnimmst — Sicherheitstools schaffen eine gemeinsame Sprache für Grenzen. Sie schränken nicht die Kreativität ein, sondern bauen Vertrauen auf, damit sich alle voll in die Geschichte einbringen können.',
     'content_your_safety_built_in' => 'Deine Sicherheit, eingebaut',
     'field_safety_tools_for_tabletop_gaming' => 'Sicherheitstools für Tabletop-Spiele',

@@ -102,6 +102,26 @@ class BreadcrumbBuilder
                 [$this->resolveLeafName($params, $pageTitle), request()->url()],
             ]),
 
+            'pledge' => $this->crumbs([
+                [__('common.nav_our_pledge'), route('pledge')],
+            ]),
+            'pledge.algorithms' => $this->crumbs([
+                [__('common.nav_our_pledge'), route('pledge')],
+                [__('pages.content_pledge_card_algorithms_title'), request()->url()],
+            ]),
+            'pledge.finances' => $this->crumbs([
+                [__('common.nav_our_pledge'), route('pledge')],
+                [__('pages.content_pledge_card_finances_title'), request()->url()],
+            ]),
+            'pledge.roadmap' => $this->crumbs([
+                [__('common.nav_our_pledge'), route('pledge')],
+                [__('pages.content_pledge_card_roadmap_title'), request()->url()],
+            ]),
+            'pledge.operations' => $this->crumbs([
+                [__('common.nav_our_pledge'), route('pledge')],
+                [__('pages.content_pledge_card_operations_title'), request()->url()],
+            ]),
+
             default => [$this->homeCrumb()],
         };
     }

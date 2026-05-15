@@ -47,7 +47,7 @@ return [
     'content_event_type' => 'Event Type *',
     'content_events' => 'Events',
     'content_everything_we_build_starts_with' => 'Everything we build starts with the community in mind. Events are about people coming together, not just competition.',
-    'content_find_your_people_discover_new' => 'Find your people. Discover new worlds. Share stories around the table that you\'ll be talking about for years.',
+    'content_find_your_people_discover_new' => 'Find tabletop games and campaigns happening near you. Meet new people, discover new games, and build real-world connections — one session at a time.',
     'content_from_weekly_board_game_nights' => 'From weekly board game nights to epic multi-year RPG campaigns, organizers on Roundup are building the gaming communities they always wished existed. Your table is next.',
     'content_how_do_i_create_an_event' => 'How do I create an event?',
     'content_how_roundup_works' => 'How Roundup Works',

@@ -14,6 +14,8 @@ return [
     'content_the_single_most_impactful_thing' => 'The single most impactful thing you can do. Set aside time before your first game to discuss expectations, themes, and boundaries as a group.',
     'content_using_safety_tools_on_roundup' => 'Using Safety Tools on Roundup',
     'content_when_you_create_a_game' => 'When you create a game or campaign, you can select the safety tools you plan to use. These are displayed on your game\'s detail page so players know what to expect before joining. You can also add custom notes about your safety approach.',
+    'content_safety_tools_matter_at_every_table' => 'Safety tools matter at every table — but they matter especially when you\'re meeting new people in person. Every tool on this page is available because we believe trust is what turns strangers into a gaming group.',
+    'action_learn_about_our_commitment' => 'Learn about our organizational commitment',
     'content_whether_you_re_a_seasoned' => 'Whether you\'re a seasoned game master or joining your first session, safety tools create a shared language for boundaries. They\'re not about limiting creativity — they\'re about building trust so everyone can fully engage with the story.',
     'content_your_safety_built_in' => 'Your safety, built in',
     'field_safety_tools_for_tabletop_gaming' => 'Safety Tools for Tabletop Gaming',
@@ -61,6 +63,6 @@ return [
     'tool_lines_and_veils_placeholder' => 'e.g. No spiders, fade-to-black for romance',
 
     // SEO
-    'seo_title_safety_tools' => 'Safety Tools',
-    'seo_description_safety_tools' => 'Explore safety tools used in tabletop RPGs to ensure a comfortable and respectful gaming experience for everyone.',
+    'seo_title_safety_tools' => 'Tabletop RPG Safety Tools — X-Card, Lines & Veils & More',
+    'seo_description_safety_tools' => 'Essential safety tools for tabletop RPG sessions: X-Card, Lines & Veils, Session Zero questionnaires, and more. Built for trust at every table.',
 ];

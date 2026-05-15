@@ -68,7 +68,7 @@ resources/
 │   ├── emails/             # Notification mail templates with shared layout
 │   └── livewire/           # Component Blade templates organized by feature
 ├── js/                     # Alpine.js, guest-location helper, PWA install logic
-└── css/                    # Tailwind CSS with "Digital Parlor" design system
+└── css/                    # Tailwind CSS with warm amber design system
 
 lang/
 ├── en/                     # 22 domain files (auth, events, teams, games, campaigns, etc.)
@@ -295,7 +295,7 @@ __('common.action_cancel')           // Shared button text
 
 ### Frontend
 
-- "Digital Parlor" design system: amber primary (#835500), cream surfaces (#fbf9f1), warm shadows
+- Warm amber design system: amber primary (#835500), cream surfaces (#fbf9f1), warm shadows
 - `wire:navigate` on all internal links for SPA-style page transitions
 - `font-heading` and `font-body` tokens — never reference font families directly
 - Decorative SVGs get `aria-hidden="true"`, icon-only buttons get `aria-label`

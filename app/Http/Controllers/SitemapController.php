@@ -28,6 +28,8 @@ class SitemapController extends Controller
         '/safety-tools',
         '/gms',
         '/game-systems',
+        '/our-pledge',
+        '/our-pledge/algorithms',
     ];
 
     /**

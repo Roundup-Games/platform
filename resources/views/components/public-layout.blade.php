@@ -73,6 +73,7 @@
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('campaigns.content_campaigns') }}</a>
                     @endauth
                     <a href="{{ $howItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('pages.content_how_it_works') }}</a>
+                    <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('pledge*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('common.nav_our_pledge') }}</a>
                     <a href="{{ $gameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="font-heading text-sm tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold border-b-2 border-primary-container pb-1' : 'text-on-surface-variant font-medium hover:text-primary transition-colors duration-200' }}">{{ __('games.content_game_systems') }}</a>
                     <a href="{{ route('locale.switch', ['locale' => $pubOtherLocale, 'redirect' => $pubCurrentPath]) }}" class="font-heading text-sm tracking-tight text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 uppercase">{{ strtoupper($pubOtherLocale) }}</a>
                 </div>
@@ -134,6 +135,7 @@
                                 <a href="{{ route('campaigns.index') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('campaigns.*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('campaigns.content_campaigns') }}</a>
                             @endauth
                             <a href="{{ $mobHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('how-it-works') || request()->is('*how-it-works') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_how_it_works') }}</a>
+                            <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('pledge*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('common.nav_our_pledge') }}</a>
                             <a href="{{ $mobGameSystemsRouteExists ? route('game-systems') : url(app()->getLocale() . '/game-systems') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('game-systems*') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('games.content_game_systems') }}</a>
                             <a href="{{ route('about') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('about') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_about') }}</a>
                             <a href="{{ route('contact') }}" wire:navigate class="block px-3 py-2.5 rounded-lg text-sm font-heading tracking-tight {{ request()->routeIs('contact') ? 'text-primary font-bold bg-primary/5' : 'text-on-surface-variant font-medium hover:text-primary hover:bg-primary/5' }}">{{ __('pages.content_contact') }}</a>
@@ -195,7 +197,6 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-4">
                     @php
                         $gameSystemsRouteExists = \Illuminate\Support\Facades\Route::has('game-systems');
-                        $footerHowItWorksRouteExists = \Illuminate\Support\Facades\Route::has('how-it-works');
                         $forOrganizersRouteExists = \Illuminate\Support\Facades\Route::has('for-organizers');
                     @endphp
                     <div class="flex flex-col gap-2">
@@ -210,9 +211,10 @@
                         @endauth
                     </div>
                     <div class="flex flex-col gap-2">
-                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_support') }}</span>
-                        <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_about_roundup_games') }}</a>
-                        <a href="{{ $footerHowItWorksRouteExists ? route('how-it-works') : url(app()->getLocale() . '/how-it-works') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_how_it_works') }}</a>
+                        <span class="text-xs font-bold text-primary uppercase tracking-wide mb-2">{{ __('common.content_community_and_trust') }}</span>
+                        <a href="{{ route('about') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_about') }}</a>
+                        <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_our_pledge') }}</a>
+                        <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_pledge_card_algorithms_title') }}</a>
                         <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
                         <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_for_organizers') }}</a>
                         <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_contact') }}</a>

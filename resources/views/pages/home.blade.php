@@ -81,6 +81,49 @@
         </div>
     </section>
 
+    {{-- ── Trust Badge Row ─────────────────────────────────── --}}
+    <section class="bg-inverse-surface text-inverse-on-surface border-t border-inverse-on-surface/10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                {{-- In-Person by Design --}}
+                <a href="{{ route('about') }}#why-local" class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
+                    <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">groups</span>
+                    <div>
+                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_in_person_title') }}</div>
+                        <div class="text-xs text-inverse-on-surface/60 mt-0.5">{{ __('pages.content_trust_badge_in_person_text') }}</div>
+                    </div>
+                </a>
+
+                {{-- Non-profit by Design --}}
+                <a href="{{ route('pledge') }}" wire:navigate class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
+                    <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">volunteer_activism</span>
+                    <div>
+                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_nonprofit_title') }}</div>
+                        <div class="text-xs text-inverse-on-surface/60 mt-0.5">{{ __('pages.content_trust_badge_nonprofit_text') }}</div>
+                    </div>
+                </a>
+
+                {{-- Open Source on GitHub --}}
+                <a href="https://github.com/Roundup-Games/" target="_blank" rel="noopener noreferrer" class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
+                    <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">code</span>
+                    <div>
+                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_opensource_title') }}</div>
+                        <div class="text-xs text-inverse-on-surface/60 mt-0.5">{{ __('pages.content_trust_badge_opensource_text') }}</div>
+                    </div>
+                </a>
+
+                {{-- Safety Built In --}}
+                <a href="{{ route('safety-tools') }}" wire:navigate class="group flex items-start gap-3 p-4 rounded-lg bg-inverse-on-surface/5 hover:bg-inverse-on-surface/10 transition-colors">
+                    <span class="material-symbols-outlined text-inverse-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">shield_person</span>
+                    <div>
+                        <div class="font-semibold text-sm text-inverse-on-surface group-hover:text-inverse-primary transition-colors">{{ __('pages.content_trust_badge_safety_title') }}</div>
+                        <div class="text-xs text-inverse-on-surface/60 mt-0.5">{{ __('pages.content_trust_badge_safety_text') }}</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
     {{-- ── Values Strip ────────────────────────────────────── --}}
     <section class="py-16 sm:py-20 bg-surface-container-low">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
@@ -117,7 +160,8 @@
                         <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                     </div>
                     <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_safe_spaces') }}</h3>
-                    <p class="text-sm text-on-surface-variant">{{ __('safety.content_clear_safety_tools_session_zero') }}</p>
+                    <p class="text-sm text-on-surface-variant">{{ __('pages.content_safe_spaces_trust') }}</p>
+                    <a href="{{ route('pledge') }}" wire:navigate class="inline-block mt-3 text-sm font-medium text-primary hover:underline">{{ __('pages.content_safe_spaces_pledge_link') }} →</a>
                 </div>
 
                 {{-- Discovery --}}

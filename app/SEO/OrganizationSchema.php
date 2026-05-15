@@ -26,8 +26,12 @@ class OrganizationSchema extends CustomSchemaFluent
             'name' => config('seo.site_name', 'Roundup Games'),
             'url' => config('app.url'),
             'logo' => secure_url('icons/pwa-512x512.png'),
-            'description' => $SEOData->description ?? config('seo.description.fallback', ''),
-            'sameAs' => [],
+            'description' => $SEOData->description ?? 'Roundup Games is a non-profit platform helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.',
+            'sameAs' => [
+                'https://github.com/Roundup-Games/',
+            ],
+            'nonprofitStatus' => 'https://schema.org/NonprofitType/NonprofitOrganization',
+            'areaServed' => 'Worldwide',
         ]);
     }
 

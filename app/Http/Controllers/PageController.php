@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\SEO\AlgorithmsSchema;
 use App\SEO\OrganizationSchema;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
@@ -93,6 +94,30 @@ class PageController extends Controller
         ));
 
         return view('pages.contact');
+    }
+
+    public function ourPledge()
+    {
+        seo(new SEOData(
+            title: __('pages.seo_title_our_pledge'),
+            description: __('pages.seo_description_our_pledge'),
+        ));
+
+        return view('pages.pledge');
+    }
+
+    public function algorithms()
+    {
+        $schema = SchemaCollection::initialize();
+        $schema->markup[AlgorithmsSchema::class][] = fn (AlgorithmsSchema $s) => $s;
+
+        seo(new SEOData(
+            title: __('pages.seo_title_pledge_algorithms'),
+            description: __('pages.seo_description_pledge_algorithms'),
+            schema: $schema,
+        ));
+
+        return view('pages.pledge-algorithms');
     }
 
     public function safetyTools()

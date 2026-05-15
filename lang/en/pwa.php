@@ -4,7 +4,7 @@ return [
     // Manifest
     'manifest_name' => 'Roundup Games',
     'manifest_short_name' => 'Roundup',
-    'manifest_description' => 'The digital parlor for tabletop enthusiasts — discover games, find GMs, and join sessions.',
+    'manifest_description' => 'Find local board game sessions, RPG campaigns, and tabletop gaming communities near you. Non-profit, open source, built for real connection.',
 
     // Install prompt — Chrome / Android
     'install_title' => 'Install Roundup Games',
