@@ -127,34 +127,34 @@
                     <caption class="sr-only">Attendance status weights</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Status</th>
-                            <th class="text-left py-2 pr-4 font-medium">Player Weight</th>
-                            <th class="text-left py-2 font-medium">Host Weight</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_status') }}</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_player_weight') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_table_host_weight') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Attended</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_attended') }}</td>
                             <td class="py-2 pr-4 font-mono">+1.0</td>
                             <td class="py-2 font-mono">+1.0</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Late Cancel (&lt;24h)</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_late_cancel') }}</td>
                             <td class="py-2 pr-4 font-mono">&minus;0.3</td>
                             <td class="py-2 font-mono text-error">&minus;1.2</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">No-show</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_no_show') }}</td>
                             <td class="py-2 pr-4 font-mono">&minus;1.0</td>
                             <td class="py-2 font-mono text-error">&minus;1.5</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Excused</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_excused') }}</td>
                             <td class="py-2 pr-4 font-mono">0.0</td>
                             <td class="py-2 font-mono">0.0</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">Cancelled Early (&gt;24h)</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_status_cancelled_early') }}</td>
                             <td class="py-2 pr-4 font-mono">0.0</td>
                             <td class="py-2 font-mono">0.0</td>
                         </tr>
@@ -170,16 +170,16 @@
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-primary text-lg mb-1">Reliable</div>
-                        <p class="text-sm text-on-surface-variant">&ge; 95% and &ge; 5 games</p>
+                        <div class="font-heading font-bold text-primary text-lg mb-1">{{ __('pages.content_pledge_algo_tier_reliable') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_reliable_desc') }}</p>
                     </div>
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface text-lg mb-1">Active</div>
-                        <p class="text-sm text-on-surface-variant">&ge; 5 games (any score)</p>
+                        <div class="font-heading font-bold text-on-surface text-lg mb-1">{{ __('pages.content_pledge_algo_tier_active') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_active_desc') }}</p>
                     </div>
                     <div class="text-center p-4 bg-surface-container-lowest rounded-lg">
-                        <div class="font-heading font-bold text-on-surface-variant text-lg mb-1">Newcomer</div>
-                        <p class="text-sm text-on-surface-variant">&lt; 5 games</p>
+                        <div class="font-heading font-bold text-on-surface-variant text-lg mb-1">{{ __('pages.content_pledge_algo_tier_newcomer') }}</div>
+                        <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_tier_newcomer_desc') }}</p>
                     </div>
                 </div>
             </div>
@@ -208,7 +208,7 @@
 
             {{-- GitHub Link --}}
             <div class="text-center">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReliabilityScoreService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/ReliabilityScoreService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -270,7 +270,7 @@
 
             {{-- GitHub Link --}}
             <div class="text-center">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReviewAggregateService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/ReviewAggregateService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -300,7 +300,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">account_tree</span>
-                    Pipeline
+                    {{ __('pages.content_pledge_algo_people_pipeline_heading') }}
                 </h3>
                 <div class="space-y-4">
                     <div class="flex items-start gap-3">
@@ -353,22 +353,22 @@
                     <caption class="sr-only">Scoring component weights</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Component</th>
-                            <th class="text-left py-2 font-medium">Weight (both available)</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_component') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_table_weight_both') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Taste similarity</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_taste_similarity') }}</td>
                             <td class="py-2 font-mono">0.7</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">Social overlap</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_social_overlap') }}</td>
                             <td class="py-2 font-mono">0.3</td>
                         </tr>
                     </tbody>
                 </table>
-                <p class="text-xs text-on-surface-variant mt-3 italic">When only one signal type is available, it receives 100% weight.</p>
+                <p class="text-xs text-on-surface-variant mt-3 italic"{{ __('pages.content_pledge_algo_single_signal_note') }}</p>
             </div>
 
             {{-- Design Decisions --}}
@@ -395,13 +395,13 @@
 
             {{-- GitHub Links --}}
             <div class="text-center flex flex-wrap justify-center gap-3">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/PeopleDiscoveryService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/PeopleDiscoveryService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
                     {{ __('pages.content_pledge_algo_source_people') }}
                 </a>
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ProfileVisibilityResolver.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/ProfileVisibilityResolver.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -431,7 +431,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">account_tree</span>
-                    Two-Query Approach
+                    {{ __('pages.content_pledge_algo_session_two_query_heading') }}
                 </h3>
                 <div class="space-y-4">
                     <div class="flex items-start gap-3">
@@ -458,7 +458,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">function</span>
-                    Preference Resolution
+                    {{ __('pages.content_pledge_algo_preference_resolution_heading') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">allowed = (favorites + implied_favorites) &minus; avoided</p>
@@ -469,22 +469,22 @@
                     <caption class="sr-only">Preference resolution rules</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Rule</th>
-                            <th class="text-left py-2 font-medium">Behavior</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_rule') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_table_behavior') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Base game favorited</td>
-                            <td class="py-2">Expansions become <code class="bg-surface-container-lowest px-1 rounded text-xs">implied_favorites</code></td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_rule_base_favorited') }}</td>
+                            <td class="py-2">{!! __('pages.content_pledge_algo_rule_base_favorited_behavior') !!} class="bg-surface-container-lowest px-1 rounded text-xs">implied_favorites</code></td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Explicit avoid</td>
-                            <td class="py-2">Always wins over favorite or implied</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_rule_explicit_avoid') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_rule_explicit_avoid_behavior') }}</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">Vibe exclusivity</td>
-                            <td class="py-2">Favoriting one auto-avoids its partner</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_rule_vibe_exclusivity') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_rule_vibe_exclusivity_behavior') }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -514,13 +514,13 @@
 
             {{-- GitHub Links --}}
             <div class="text-center flex flex-wrap justify-center gap-3">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/DiscoveryQueryService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/DiscoveryQueryService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
                     {{ __('pages.content_pledge_algo_source_discovery') }}
                 </a>
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/UserPreferenceResolver.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/UserPreferenceResolver.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -550,7 +550,7 @@
             <div class="bg-surface-container-high rounded-xl p-6 mb-8 border border-outline-variant">
                 <h3 class="font-heading font-semibold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">account_tree</span>
-                    Two-Phase Approach
+                    {{ __('pages.content_pledge_algo_proximity_two_phase_heading') }}
                 </h3>
                 <div class="space-y-4">
                     <div class="flex items-start gap-3">
@@ -582,7 +582,7 @@
                     <p class="mb-1">&nbsp;&nbsp;cos(lat&#8321;) &times; cos(lat&#8322;) &times; sin&sup2;(&Delta;lng / 2)</p>
                     <p>))</p>
                 </div>
-                <p class="text-sm text-on-surface-variant">where R = 6371 km (Earth's radius)</p>
+                <p class="text-sm text-on-surface-variant"{{ __('pages.content_pledge_algo_haversine_radius') }}</p>
             </div>
 
             {{-- Geohash Tile System --}}
@@ -595,26 +595,26 @@
                     <caption class="sr-only">Geohash precision levels and approximate tile sizes</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Precision</th>
-                            <th class="text-left py-2 pr-4 font-medium">Approximate Size</th>
-                            <th class="text-left py-2 font-medium">Use</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_precision') }}</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_approx_size') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_table_use') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4 font-mono">4 chars</td>
                             <td class="py-2 pr-4">~20km &times; 20km</td>
-                            <td class="py-2">City-level caching</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_city') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4 font-mono">5 chars</td>
                             <td class="py-2 pr-4">~2.4km &times; 4.9km</td>
-                            <td class="py-2">Neighborhood-level</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_neighborhood') }}</td>
                         </tr>
                         <tr>
                             <td class="py-2 pr-4 font-mono">6 chars</td>
                             <td class="py-2 pr-4">~0.6km &times; 1.2km</td>
-                            <td class="py-2">Venue-level</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_venue') }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -637,13 +637,13 @@
 
             {{-- GitHub Links --}}
             <div class="text-center flex flex-wrap justify-center gap-3">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ProximityQuery.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/ProximityQuery.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
                     {{ __('pages.content_pledge_algo_source_proximity') }}
                 </a>
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/Geohash.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/Geohash.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -679,33 +679,33 @@
                     <caption class="sr-only">Trending session selection criteria</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Parameter</th>
-                            <th class="text-left py-2 font-medium">Value</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_trending_table_parameter') }}</th>
+                            <th class="text-left py-2 font-medium">{{ __('pages.content_pledge_algo_trending_table_value') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Geographic scope</td>
-                            <td class="py-2">Geohash-4 tile (~20km &times; 20km)</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_geo_scope') }}</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_geo_value') }} (~20km &times; 20km)</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Time window</td>
-                            <td class="py-2">Next 14 days</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_time_window') }}</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_time_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Visibility</td>
-                            <td class="py-2">Public sessions only</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_visibility') }}</td>
+                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_visibility_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Sort order</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_sort') }}</td>
                             <td class="py-2 font-mono">participants DESC, created_at DESC</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Limit</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_limit') }}</td>
                             <td class="py-2 font-mono">Top 5 per tile</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">Cache TTL</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_cache_ttl') }}</td>
                             <td class="py-2 font-mono">10 minutes</td>
                         </tr>
                     </tbody>
@@ -732,13 +732,13 @@
 
             {{-- GitHub Links --}}
             <div class="text-center flex flex-wrap justify-center gap-3">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/DashboardCacheService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/DashboardCacheService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
                     {{ __('pages.content_pledge_algo_source_dashboard_cache') }}
                 </a>
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Jobs/WarmTrendingNearby.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Jobs/WarmTrendingNearby.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -778,29 +778,29 @@
                     <caption class="sr-only">Type-differentiated scoring weights</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
-                            <th class="text-left py-2 pr-4 font-medium">Signal</th>
-                            <th class="text-center py-2 pr-4 font-medium">Board Games</th>
-                            <th class="text-center py-2 font-medium">TTRPGs</th>
+                            <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_signal') }}</th>
+                            <th class="text-center py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_board_games') }}</th>
+                            <th class="text-center py-2 font-medium">{{ __('pages.content_pledge_algo_table_ttrpgs') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Favorites</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_favorites') }}</td>
                             <td class="py-2 pr-4 text-center font-mono">10</td>
                             <td class="py-2 text-center font-mono">10</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Total Games</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_total_games') }}</td>
                             <td class="py-2 pr-4 text-center font-mono">3</td>
                             <td class="py-2 text-center font-mono">3</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
-                            <td class="py-2 pr-4">Campaigns</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_campaigns') }}</td>
                             <td class="py-2 pr-4 text-center font-mono">5</td>
                             <td class="py-2 text-center font-mono text-primary font-bold">15</td>
                         </tr>
                         <tr>
-                            <td class="py-2 pr-4">Active Games (scheduled)</td>
+                            <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_signal_active_games') }}</td>
                             <td class="py-2 pr-4 text-center font-mono text-primary font-bold">20</td>
                             <td class="py-2 text-center font-mono">10</td>
                         </tr>
@@ -828,7 +828,7 @@
 
             {{-- GitHub Link --}}
             <div class="text-center">
-                <a href="https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/PlatformScoreService.php"
+                <a href="https://github.com/roundup-games/platform/blob/main/app/Services/PlatformScoreService.php"
                    target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">open_in_new</span>
@@ -848,7 +848,7 @@
                 {{ __('pages.content_pledge_algo_cta_body') }}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-                <a href="https://github.com/vburghelea/roundup-games-laravel" target="_blank" rel="noopener noreferrer"
+                <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener noreferrer"
                    class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
                     <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">code</span>
                     {{ __('pages.content_pledge_algo_cta_github') }}

@@ -48,7 +48,7 @@
                             <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
                                 {{ __('pages.content_about_value_community_first_body') }}
                             </p>
-                            <a href="{{ url('/our-pledge') }}" class="text-sm font-medium text-primary hover:underline">{{ __('pages.content_safe_spaces_pledge_link') }}</a>
+                            <a href="{{ route('pledge') }}" wire:navigate class="text-sm font-medium text-primary hover:underline">{{ __('pages.content_safe_spaces_pledge_link') }}</a>
                         </div>
                     </div>
                 </div>
@@ -65,8 +65,8 @@
                                 {{ __('pages.content_about_value_safe_by_design_body') }}
                             </p>
                             <div class="flex gap-3 text-sm font-medium">
-                                <a href="{{ url('/safety-tools') }}" class="text-primary hover:underline">Safety Tools</a>
-                                <a href="{{ url('/our-pledge/algorithms') }}" class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                                <a href="{{ route('safety-tools') }}" wire:navigate class="text-primary hover:underline">{{ __('safety.content_safety_tools') }}</a>
+                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
                             </div>
                         </div>
                     </div>
@@ -84,8 +84,8 @@
                                 {{ __('pages.content_about_value_open_by_default_body') }}
                             </p>
                             <div class="flex gap-3 text-sm font-medium">
-                                <a href="https://github.com/roundup-games" target="_blank" rel="noopener" class="text-primary hover:underline">GitHub</a>
-                                <a href="{{ url('/our-pledge/algorithms') }}" class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                                <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener" class="text-primary hover:underline">GitHub</a>
+                                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
                             </div>
                         </div>
                     </div>
@@ -105,7 +105,7 @@
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {{-- Algorithms (live) --}}
-                <a href="{{ url('/our-pledge/algorithms') }}" class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow group">
+                <a href="{{ route('pledge.algorithms') }}" wire:navigate class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow group">
                     <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                         <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">functions</span>
                     </div>

@@ -115,7 +115,7 @@
                         {{ __('pages.content_safety_bridge_nonprofit') }}
                     </p>
                     <p class="mt-4">
-                        <a href="{{ url('/our-pledge') }}" class="text-primary font-semibold hover:underline">
+                        <a href="{{ route('pledge') }}" wire:navigate class="text-primary font-semibold hover:underline">
                             {{ __('pages.action_learn_about_our_pledge') }}
                         </a>
                     </p>

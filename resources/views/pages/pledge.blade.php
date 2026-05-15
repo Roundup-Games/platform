@@ -61,7 +61,7 @@
                     {{ __('pages.content_pledge_open_body') }}
                 </p>
                 <div class="mt-8 flex flex-wrap justify-center gap-4">
-                    <a href="https://github.com/roundup-games" target="_blank" rel="noopener noreferrer"
+                    <a href="https://github.com/roundup-games/platform" target="_blank" rel="noopener noreferrer"
                        class="inline-flex items-center px-5 py-2.5 bg-surface-container-lowest text-on-surface rounded-xl font-semibold hover:bg-surface-container-low transition-colors text-sm shadow-ambient border border-outline-variant">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">open_in_new</span>
                         {{ __('pages.content_pledge_open_github') }}

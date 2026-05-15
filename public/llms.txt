@@ -8,7 +8,7 @@ Roundup Games connects tabletop gaming enthusiasts with players and game masters
 
 **Non-profit by design.** Roundup Games is not a venture-backed startup. Every dollar of revenue is reinvested into the platform, community events, game organizer education, and promoting tabletop gaming culture. There are no investors to please — only players and organizers to serve.
 
-**Open source.** The entire codebase is publicly available on GitHub at https://github.com/roundup-games. Anyone can inspect, audit, or contribute to the platform.
+**Open source.** The entire codebase is publicly available on GitHub at https://github.com/roundup-games/platform. Anyone can inspect, audit, or contribute to the platform.
 
 ## Core Differentiators
 
@@ -46,13 +46,13 @@ Roundup Games believes players deserve to understand how the platform works. Our
 
 ### Algorithm Summaries
 
-- **Reliability Score**: Measures player dependability based on attendance history. Attended sessions earn positive credit (+1.0). Late cancellations incur a mild penalty (-0.3). No-shows receive a severe penalty (-1.0). Hosts who cancel or no-show their own games face steeper penalties (-1.2, -1.5). Minimum 5 games required for tier classification. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReliabilityScoreService.php
+- **Reliability Score**: Measures player dependability based on attendance history. Attended sessions earn positive credit (+1.0). Late cancellations incur a mild penalty (-0.3). No-shows receive a severe penalty (-1.0). Hosts who cancel or no-show their own games face steeper penalties (-1.2, -1.5). Minimum 5 games required for tier classification. Source: https://github.com/roundup-games/platform/blob/main/app/Services/ReliabilityScoreService.php
 
-- **Review Aggregation**: Aggregates community reviews for GMs and sessions using a weighted average that accounts for recency and review quality. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReviewAggregateService.php
+- **Review Aggregation**: Aggregates community reviews for GMs and sessions using a weighted average that accounts for recency and review quality. Source: https://github.com/roundup-games/platform/blob/main/app/Services/ReviewAggregateService.php
 
-- **People Discovery**: Recommends nearby players and GMs based on location proximity, shared game systems, and complementary schedules. Uses geohash-based proximity queries. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/PeopleDiscoveryService.php
+- **People Discovery**: Recommends nearby players and GMs based on location proximity, shared game systems, and complementary schedules. Uses geohash-based proximity queries. Source: https://github.com/roundup-games/platform/blob/main/app/Services/PeopleDiscoveryService.php
 
-- **Profile Visibility**: Controls who can see your profile based on your privacy settings, existing connections, and shared team memberships. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ProfileVisibilityResolver.php
+- **Profile Visibility**: Controls who can see your profile based on your privacy settings, existing connections, and shared team memberships. Source: https://github.com/roundup-games/platform/blob/main/app/Services/ProfileVisibilityResolver.php
 
 ### Safety Tools
 
@@ -82,4 +82,4 @@ Roundup Games is free to use. Core features — finding sessions, joining games,
 - Algorithm transparency: https://roundupgames.com/en/our-pledge/algorithms
 - Safety tools: https://roundupgames.com/en/safety
 - Contact form: https://roundupgames.com/en/contact
-- GitHub: https://github.com/roundup-games
+- GitHub: https://github.com/roundup-games/platform
