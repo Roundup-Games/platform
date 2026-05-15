@@ -68,6 +68,15 @@ Route::prefix('{locale}')
             ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         Route::get('/about', [PageController::class, 'about'])->name('about');
         Route::get('/how-it-works', [PageController::class, 'howItWorks'])->name('how-it-works');
+
+        // ── Our Pledge ────────────────────────────────────
+        Route::prefix('our-pledge')->group(function () {
+            Route::get('/', [PageController::class, 'ourPledge'])->name('pledge');
+            Route::get('/algorithms', [PageController::class, 'algorithms'])->name('pledge.algorithms');
+            Route::get('/finances', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.finances');
+            Route::get('/roadmap', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.roadmap');
+            Route::get('/operations', fn () => redirect()->route('pledge', app()->getLocale()))->name('pledge.operations');
+        });
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
         Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
