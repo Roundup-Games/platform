@@ -32,7 +32,7 @@ return [
     'content_automatic_player_matching' => 'Automatische Spielermatchmaking',
     'content_back_to_event' => '← Zurück zur Veranstaltung',
     'content_browse_events_discover_upcoming_tournaments' => '**Durchstöbere Veranstaltungen** — Entdecke anstehende Turniere und Spielsessions in deiner Nähe.',
-    'content_building_community_through_competitive_gaming' => 'Gemeinschaft durch wettbewerbliche Spiele-Events aufbauen.',
+
     'content_can_i_register_a_team' => 'Kann ich mich als Team anmelden?',
     'content_cancel_this_event_this_will' => 'Diese Veranstaltung absagen? Registrierte Teilnehmer werden benachrichtigt.',
     'content_check_back_soon_for_upcoming_events' => 'Schau bald wieder vorbei für kommende Veranstaltungen!',
@@ -46,7 +46,7 @@ return [
     'content_event_registration' => 'Veranstaltungsanmeldung',
     'content_event_type' => 'Veranstaltungsart *',
     'content_events' => 'Veranstaltungen',
-    'content_everything_we_build_starts_with' => 'Alles, was wir bauen, beginnt mit der Community im Hinterkopf. Veranstaltungen handeln davon, dass Menschen zusammenkommen – nicht nur vom Wettbewerb.',
+
     'content_find_your_people_discover_new' => 'Finde deine Leute. Entdecke neue Welten. Erzähle Geschichten am Tisch, über die ihr noch Jahre sprecht.',
     'content_from_weekly_board_game_nights' => 'Von wöchentlichen Brettspielabenden bis hin zu epischen mehrjährigen RPG-Kampagnen — Organisatoren auf Roundup bauen die Gaming-Communitys, die sie sich immer gewünscht haben. Dein Tisch ist der nächste.',
     'content_how_do_i_create_an_event' => 'Wie erstelle ich eine Veranstaltung?',
@@ -61,7 +61,7 @@ return [
     'content_no_events_found' => 'Keine Veranstaltungen gefunden',
     'content_no_registrations_found' => 'Keine Anmeldungen gefunden.',
     'content_optional_add_competitive_divisions_to_your_event' => 'Optional — füge Wettbewerbsdivisionen zu deiner Veranstaltung hinzu.',
-    'content_our_platform_makes_it_easy' => 'Unsere Plattform macht es Organisatoren leicht, Veranstaltungen jeder Größe zu erstellen und zu verwalten – von kleinen lokalen Treffen bis hin zu großen Wettbewerben. Für Teilnehmer bieten wir ein nahtloses Erlebnis von der Entdeckung bis zur Anmeldung bis zum Wettbewerbstag.',
+
     'content_participants' => 'Teilnehmer',
     'content_public_event' => 'Öffentliche Veranstaltung',
     'content_registration' => 'Anmeldung',
@@ -79,7 +79,7 @@ return [
     'label_registration_type' => 'Anmeldungsart',
     'content_registration_window' => 'Anmeldezeitraum',
     'content_reject_this_registration' => 'Diese Anmeldung ablehnen?',
-    'content_roundup_games_was_born_from' => 'Roundup Games entstand aus einer einfachen Überzeugung: dass wettbewerbliches Spielen Menschen zusammenbringt. Ob Weekendturnier, wöchentlicher Liga-Abend oder Community-Treffen – wir haben miterlebt, wie Spiele Verbindungen schaffen, die weit über den letzten Spielstand hinausgehen.',
+
     'content_select_the_games_you_enjoy' => 'Wähle die Spiele, die dir gefallen — wir nutzen dies, um dir Sessions und Veranstaltungen zu empfehlen.',
     'content_team_only' => 'Nur Team',
     'content_team' => 'Team',
@@ -95,21 +95,19 @@ return [
     'field_team_size_min_max_players' => 'Teamgröße: :min–:max Spieler',
     'content_thanks_for_joining_roundup_games' => 'Danke, dass du bei **Roundup Games** mitmachst — deinem Hub für die Organisation und Teilnahme an Brettspiel-Events, Kampagnen und Turnieren.',
     'content_thanks_for_supporting_roundup_games' => 'Danke, dass du Roundup Games unterstützt!',
-    'content_the_best_games_happen_when' => 'Die besten Spiele entstehen, wenn Menschen sich umeinander kümmern, nicht nur um die Punkte. Wir stellen Verbindung vor Wettbewerb, Gespräche vor Kalkül und gemeinsame Geschichten vor einzelne Siege.',
+
     'content_this_event_is_now_full' => 'Diese Veranstaltung ist ausgebucht.',
-    'content_we_believe_that_everyone_should' => 'Wir glauben, dass jeder Zugang zu gut organisierten Wettbewerben haben sollte, unabhängig von Können oder Erfahrung. Deshalb haben wir Werkzeuge entwickelt, die Veranstaltungs­management für Organisatoren zugänglich machen und gleichzeitig das Teilnehmererlebnis in den Mittelpunkt stellen.',
-    'content_we_give_organizers_the_tools' => 'Wir geben Organisatoren die Werkzeuge, die sie benötigen, um professionelle Veranstaltungen durchzuführen – ohne die Komplexität herkömmlicher Verwaltungssoftware.',
+
     'content_welcome_back_to_roundup_games' => 'Willkommen zurück bei Roundup Games',
     'content_welcome_to_roundup_games' => 'Willkommen bei Roundup Games!',
-    'content_whether_you_re_a_seasoned' => 'Ob du ein erfahrener Teilnehmer bist oder etwas Neues ausprobierst – in der Roundup-Games-Community ist ein Platz für dich.',
-    'content_whether_you_want_to_organize' => 'Ob du Veranstaltungen organisieren oder daran teilnehmen möchtest – wir freuen uns auf dich.',
+
     'content_write_your_announcement' => 'Schreibe deine Ankündigung...',
     'content_yes_many_events_support_team' => 'Ja! Viele Veranstaltungen unterstützen Team-Anmeldungen. Erstelle ein Team, lade deine Mitglieder ein und meldet euch gemeinsam an.',
     'content_you_are_already_a_participant' => 'Du bist bereits Teilnehmer oder hast eine ausstehende Einladung.',
     'content_already_participant_or_pending_game' => 'Du bist bereits Teilnehmer oder hast eine ausstehende Einladung/Bewerbung für dieses Spiel.',
     'content_you_are_already_registered_for_this_event' => 'Du bist bereits für diese Veranstaltung angemeldet.',
     'content_you_re_all_set_for_event' => 'Du bist dabei: **:event**!',
-    'content_you_re_logged_in_to' => 'Du bist bei Roundup Games angemeldet. Entdecke Spiele und verbinde dich mit der Community.',
+
     'error_cannot_cancel_event_from_status_from' => 'Veranstaltung kann nicht aus dem Status ":from" abgesagt werden.',
     'error_cannot_change_event_status_from_from_to_to' => 'Veranstaltungsstatus kann nicht von ":from" zu ":to" geändert werden.',
     'error_cannot_close_registration_from_status_from' => 'Anmeldung kann nicht aus dem Status ":from" geschlossen werden.',

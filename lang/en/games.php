@@ -50,7 +50,7 @@ return [
     'content_no_game_systems_found' => 'No game systems found.',
     'content_no_games_found' => 'No games found',
     'content_optional_useful_for_game_night_coordination' => 'Optional — useful for game night coordination.',
-    'content_passion_for_games' => 'Passion for Games',
+
     'content_pick_your_game_set_the' => 'Pick your game, set the date and location, choose how many players you want. It takes about thirty seconds — faster than shuffling a deck.',
     'content_running_a_multi_session_campaign' => 'Running a multi-session campaign? Group your sessions, track attendance, and keep your party connected between games. Your players always know when the next session is.',
     'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game session for players to join.',
@@ -58,12 +58,12 @@ return [
     'content_share_your_location_to_see' => 'Share your location to see game sessions and campaigns happening this week in your area.',
     'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
-    'content_the_best_adventures_start_with' => 'The best adventures start with "what if?" We celebrate trying new games, exploring unfamiliar mechanics, and stepping outside your comfort zone. That\'s where the magic happens.',
+
     'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the game owner before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',
     'content_unlimited_games' => 'Unlimited Games',
     'content_use_stars_wishes_or_a' => 'Use Stars & Wishes or a debrief after sessions. Regular check-ins build a culture of trust and make your games better over time.',
-    'content_we_re_gamers_ourselves_that' => 'We\'re gamers ourselves. That passion drives us to build the best possible platform for the community we love.',
+
     'content_you_have_already_applied_to_this_game' => 'You have already applied to this game.',
     'content_you_have_joined_the_game' => 'You have joined the game!',
     'content_you_have_been_placed_on_the_bench' => 'The session is full — you\'ve been placed on the bench.',
@@ -89,7 +89,7 @@ return [
     'error_clone_own_only' => 'You can only clone your own game sessions.',
     'error_select_game_type' => 'Please select a game type before creating.',
     'error_you_cannot_apply_to_your_own_game' => 'You cannot apply to your own game.',
-    'field_game_type' => 'Game Type',
+
     'field_max_players' => 'Max Players',
     'field_maximum_complexity' => 'Maximum complexity',
     'field_min_players' => 'Min Players',
@@ -303,18 +303,17 @@ return [
     'action_leave_waitlist' => 'Leave Waitlist',
     'content_game_full_join_waitlist' => 'This game is full. Join the waitlist to be notified when a spot opens up.',
     'content_waitlist_position' => 'You are #:position on the waitlist.',
-    'content_comfort_notes' => 'Comfort Notes',
+
     'content_spot_opened_confirm' => 'A spot opened up! Confirm your participation before :deadline.',
     'action_confirm_spot' => 'Confirm Spot',
     'action_decline_spot' => 'Decline Spot',
     'action_manual_promote' => 'Promote',
     'content_waitlist_management' => 'Waitlist',
-    'content_no_waitlisted_players' => 'No players on the waitlist.',
+
     'content_waitlist_spot_confirmed' => 'You have confirmed your spot!',
     'content_waitlist_spot_declined' => 'You have declined the spot.',
     'content_added_to_waitlist' => 'You have been added to the waitlist.',
-    'content_late_cancel_warning' => 'You are cancelling within 24 hours of the game. This will be recorded as a late cancellation.',
-    'content_below_min_players_warning' => 'This game now has fewer than the minimum required players.',
+
     'flash_manual_promote_success' => 'Player has been promoted from the waitlist.',
 
     // Reliability preference
@@ -335,7 +334,7 @@ return [
     'title_write_recap' => 'Write a Recap',
     'content_write_recap_description' => 'Share what happened in this session with your players.',
     'label_recap_placeholder' => 'Share what happened in this session…',
-    'label_recap_char_limit' => 'Max 2,000 characters',
+
     'action_recap_submit' => 'Publish Recap',
 
     // Debriefing
@@ -362,9 +361,6 @@ return [
     'content_debriefing_prompt_wish' => 'A wish — something for next time',
 
     // Visibility labels
-    'visibility_public' => 'Public',
-    'visibility_protected' => 'Connections Only',
-    'visibility_private' => 'Private',
 
     // Participant role labels
     'field_role_owner' => 'Owner',

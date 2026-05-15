@@ -46,7 +46,7 @@ return [
     'content_tactical' => 'Tactical',
     'content_type' => 'Type *',
     'content_type_word_to_confirm' => 'Type :word to confirm',
-    'content_we_re_committed_to_creating' => 'We\'re committed to creating a level playing field where everyone has an equal opportunity to compete and have fun.',
+
     'content_what_s_happening_near_you' => 'What\'s happening near you?',
     'field_any_date' => 'Any Date',
     'field_any_distance' => 'Any Distance',
@@ -62,7 +62,7 @@ return [
     'action_find_games_and_campaigns_that_match_your_vibe' => 'Find games and campaigns that match your vibe.',
     'content_tone_atmosphere' => 'Tone & Atmosphere',
     'content_social' => 'Social',
-    'content_find_games_near_you' => 'Find games and sessions happening near you.',
+
     'content_sandbox' => 'Sandbox / Open World',
     'content_rule_of_cool' => 'Rule of Cool',
     'content_dungeon_crawl' => 'Dungeon Crawl',

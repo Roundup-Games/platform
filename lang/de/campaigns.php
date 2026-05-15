@@ -106,18 +106,17 @@ return [
     'content_bench' => 'Bank',
     'content_bench_description' => 'Diese Spieler sitzen auf der Bank. Befördere sie, wenn ein Platz frei wird.',
     'action_promote_from_bench' => 'Befördern',
-    'flash_promote_from_bench_success' => 'Spieler wurde von der Bank befördert.',
+
     'content_campaign_full_join_waitlist' => 'Diese Kampagne ist voll. Tritt der Warteliste bei, um benachrichtigt zu werden, wenn ein Platz frei wird.',
     'content_waitlist_position' => 'Du bist #:position auf der Warteliste.',
     'content_waitlist_management' => 'Warteliste',
     'content_added_to_waitlist' => 'Du wurdest zur Warteliste hinzugefügt.',
     'content_you_have_been_placed_on_the_waitlist' => 'Die Kampagne ist voll — du wurdest auf die Warteliste gesetzt.',
-    'flash_left_waitlist' => 'Du hast die Warteliste verlassen.',
-    'flash_left_bench' => 'Du hast die Bank verlassen.',
+
     'action_join_waitlist' => 'Warteliste beitreten',
     'action_leave_waitlist' => 'Warteliste verlassen',
     'action_manual_promote' => 'Befördern',
-    'flash_manual_promote_success' => 'Spieler wurde von der Warteliste befördert.',
+
     'content_application_submitted_the_campaign_owner' => 'Bewerbung eingereicht! Der Kampagnenbesitzer wird sie prüfen.',
     'content_application_pending' => 'Bewerbung ausstehend',
     'content_waiting_for_host_approval' => 'Warte auf die Bestätigung durch den Host.',
@@ -178,7 +177,7 @@ return [
     'flash_campaign_updated' => 'Kampagne erfolgreich aktualisiert.',
 
     // Bankmodus
-    'label_bench_mode' => 'Bankmodus',
+
     'content_bench_mode_requires_gm' => 'Nur Spielleiter können den Bankmodus aktivieren.',
     'content_bench_mode_description' => 'Überschüssige Spieler werden auf die Bank gesetzt statt auf die Warteliste.',
 

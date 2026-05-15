@@ -22,10 +22,10 @@ return [
     'action_edit' => 'Bearbeiten',
     'action_enter_amount_in_cents_e_g_500_5_00' => 'Betrag in Cent eingeben (z.B. 500 = 5,00 € / $5.00)',
     'action_join_count_organizers_who_bring_people_together' => '{1} Schließe dich :count Organisator an, der Menschen zusammenbringt|[2,*] Schließe dich :count Organisatoren an, die Menschen zusammenbringen',
-    'action_join_our_community' => 'Werde Teil unserer Community',
+
     'action_manage' => 'Verwalten',
     'action_next' => 'Weiter →',
-    'action_open_to_all' => 'Offen für alle',
+
     'action_publish' => 'Veröffentlichen',
     'action_publish_immediately' => 'Sofort veröffentlichen',
     'action_loading' => 'Laden...',
@@ -172,7 +172,7 @@ return [
     'content_sending' => 'Wird gesendet...',
     'content_she_her' => 'Sie/Ihr',
     'content_show_up_and_play' => 'Komm vorbei und spiel',
-    'content_simple_fast' => 'Einfach & Schnell',
+
     'content_skip_to_content' => 'Zum Inhalt springen',
     'aria_toggle_navigation_menu' => 'Navigationsmenü umschalten',
     'aria_main_navigation' => 'Hauptnavigation',
@@ -181,7 +181,7 @@ return [
     'content_subject' => 'Betreff',
     'content_subscribe' => 'Abonnieren',
     'content_substitute' => 'Ersatzspieler',
-    'content_support' => 'Support',
+
     'content_tabletop_gaming_is_about_more' => 'Brettspiele sind mehr als Regeln. Es geht um die Menschen, mit denen du am Tisch sitzt.',
     'content_tell_the_host_why_you_d_like_to_join' => 'Erzähle dem Veranstalter, warum du beitreten möchtest...',
     'content_tell_us_about_yourself' => 'Erzähl uns von dir',
@@ -208,7 +208,7 @@ return [
     'content_visibility_controls' => 'Sichtbarkeitseinstellungen',
     'content_waitlisted' => 'Auf Warteliste',
     'content_we_typically_respond_within_24' => 'Wir antworten in der Regel innerhalb von 24–48 Stunden an Werktagen.',
-    'content_welcome_back_name' => 'Willkommen zurück, :name!',
+
     'content_you' => '(du)',
     'content_your_favorites' => 'Deine Favoriten',
     'error_cannot_remove_the_entity_owner' => 'Der :entity-Besitzer kann nicht entfernt werden.',
@@ -310,7 +310,7 @@ return [
     'content_count_participants' => '{1} :count Teilnehmer|[2,*] :count Teilnehmer',
     'content_no_participants_yet' => 'Noch keine Teilnehmer.',
     'content_applications' => 'Bewerbungen',
-    'content_members_only' => 'Nur für Verbindungen',
+
     'action_no_let_me_search' => 'Nein, selbst suchen',
     'action_remove_name' => ':name entfernen',
     'content_searching' => 'Suche läuft...',
@@ -352,8 +352,6 @@ return [
     'activity_type_debriefing_submitted' => 'Hat ein Sitzungs-Feedback eingereicht',
 
     // Dashboard-Aktivitätszeitlinie
-    'activity_start_cta' => 'Erkunde Spiele und Kampagnen, um hier deine Aktivität zu sehen.',
-    'activity_no_results' => 'Noch keine Aktivität',
 
     // Sprachen
     'label_language_en' => 'Englisch',
@@ -363,8 +361,6 @@ return [
     'content_or' => 'oder',
 
     // Discovery card overflow indicators
-    'content_n_waitlisted' => '{1} 1 auf Warteliste|[2,*] :count auf Warteliste',
-    'content_n_on_bench' => '{1} 1 auf der Bank|[2,*] :count auf der Bank',
 
     // ── Navigation ──────────────────────────────────────
     'nav_our_pledge' => 'Unser Versprechen',

@@ -108,17 +108,16 @@ return [
     'content_bench' => 'Bench',
     'content_bench_description' => 'These players are on the bench. Promote them when a spot opens up.',
     'action_promote_from_bench' => 'Promote',
-    'flash_promote_from_bench_success' => 'Player promoted from the bench.',
+
     'content_campaign_full_join_waitlist' => 'This campaign is full. Join the waitlist to be notified when a spot opens up.',
     'content_waitlist_position' => 'You are #:position on the waitlist.',
     'content_waitlist_management' => 'Waitlist',
     'content_added_to_waitlist' => 'You have been added to the waitlist.',
-    'flash_left_waitlist' => 'You have left the waitlist.',
-    'flash_left_bench' => 'You have left the bench.',
+
     'action_join_waitlist' => 'Join Waitlist',
     'action_leave_waitlist' => 'Leave Waitlist',
     'action_manual_promote' => 'Promote',
-    'flash_manual_promote_success' => 'Player has been promoted from the waitlist.',
+
     'content_application_submitted_the_campaign_owner' => 'Application submitted! The campaign owner will review it.',
     'content_application_pending' => 'Application Pending',
     'content_waiting_for_host_approval' => 'Waiting for the host to review your application.',
@@ -179,7 +178,7 @@ return [
     'flash_campaign_updated' => 'Campaign updated successfully.',
 
     // Bench mode
-    'label_bench_mode' => 'Bench Mode',
+
     'content_bench_mode_requires_gm' => 'Only Game Masters can enable bench mode.',
     'content_bench_mode_description' => 'Overflow players are placed on a bench instead of a waitlist.',
 

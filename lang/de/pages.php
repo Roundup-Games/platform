@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'action_get_in_touch' => 'Kontaktiere uns',
+
     'action_join_roundup_games_today' => 'Noch heute bei Roundup Games anmelden',
     'content_about' => 'Über uns',
 
@@ -9,29 +9,25 @@ return [
 
     'content_about_intro' => 'Roundup Games ist eine gemeinnützige Organisation, die sich der Schaffung persönlicher Verbindungen durch Brett- und Tabletop-Spiele verschrieben hat. Wir glauben, dass Würfel werfen, Geschichten teilen und der direkte Austausch am Tisch Bindungen aufbaut, die Bildschirme nie erreichen können.',
 
-    'content_about_roundup_games' => 'Über Roundup Games',
-
-
     'content_about_what_drives_us' => 'Was uns antreibt',
     'content_all_rights_reserved' => 'Alle Rechte vorbehalten.',
     'content_built_for_real_connection' => 'Gebaut für echte Verbindung',
     'content_community' => 'Community',
-    'content_community_first' => 'Community zuerst',
+
     'content_contact' => 'Kontakt',
     'content_contact_us' => 'Kontakt',
     'content_even_if_you_never_use' => 'Auch wenn du sie nie benutzt — allein ihre Anwesenheit gibt allen die Erlaubnis, sich zu melden. Lege eine Karte mit einem „X" auf den Tisch und erkläre, wie sie funktioniert.',
     'content_every_table_has_room_for' => 'An jedem Tisch ist Platz für einen mehr. Finde Spieler und Gastgeber, bei denen du dich willkommen fühlst.',
-    'content_every_table_welcoming_body' => 'An jedem Tisch ist noch Platz für einen mehr. Wir bauen für schüchterne Neulinge und erfahrene Veteranen gleichermaßen. Ob du schon hundert Kampagnen gespielt hast oder nicht weißt, was ein W20 ist — du gehörst hierher.',
-    'content_from_creating_an_event_to' => 'Von der Erstellung einer Veranstaltung bis zur Team-Anmeldung halten wir alles unkompliziert, damit du dich auf das Wesentliche konzentrieren kannst – den Wettbewerb.',
+
     'content_how_it_works' => 'So funktioniert\'s',
     'content_no_subscriptions_required_no_credit' => 'Der Einstieg ist kostenlos — keine Kreditkarte nötig. Erstelle einen Account, richte deine Session ein und lass die Spieler zu dir kommen. Erweiterte Werkzeuge für Organisatoren sind per Abonnement verfügbar.',
     'content_organizer_profiles_are_public_you' => 'Organisatoren-Profile sind öffentlich. Du kannst über deinen Gastgeber lesen, seine Sitzungshistorie einsehen und Community-Feedback prüfen, bevor du beitrittst.',
-    'content_our_mission' => 'Unsere Mission',
+
     'content_see_how_it_works' => 'So funktioniert\'s ansehen',
     'content_sign_up_for_a_free' => 'Registriere dich kostenlos und klicke dann auf „Veranstaltung erstellen" in deinem Dashboard oder auf der Veranstaltungsseite.',
-    'content_trust_is_earned_through_transparency' => 'Vertrauen entsteht durch Transparenz. Jede Session ist für die Community sichtbar. Organisatoren-Profile sind öffentlich. Sessions nur für Verbindungen erfordern eine Mitgliedschaft. Wir geben dir die Werkzeuge, um sicher zu spielen.',
+
     'content_we_believe_everyone_deserves_a' => 'Wir glauben, dass jeder einen Platz am Tisch verdient. So machen wir das möglich — ohne Vorkenntnisse.',
-    'content_we_re_a_small_team' => 'Wir sind ein kleines Team aus leidenschaftlichen Spielern und Entwicklern, die glauben, dass organisierter Wettbewerb das Spielen für alle besser macht. Wir arbeiten ständig daran, die Plattform zu verbessern und freuen uns über dein Feedback.',
+
     'content_we_take_trust_seriously_here' => 'Wir nehmen Vertrauen ernst. So halten wir die Community sicher und transparent.',
     'content_what_s_included' => 'Was inklusive ist',
 
@@ -65,8 +61,7 @@ return [
     'content_pledge_open_heading' => 'Offen vom Grundsatz her',
     'content_pledge_open_body' => 'Unser Code ist öffentlich auf GitHub. Unser Issue-Tracker ist öffentlich. Unsere Roadmap ist öffentlich. Wir verstecken uns nicht hinter verschlossenen Türen — wenn du wissen möchtest, wie etwas funktioniert, kannst du es herausfinden. Und wenn du denkst, dass es anders funktionieren sollte, kannst du das sagen.',
     'content_pledge_open_github' => 'Auf GitHub ansehen',
-    'content_pledge_open_issues' => 'Issue-Tracker durchsuchen',
-    'content_pledge_open_roadmap' => 'Roadmap ansehen',
+
     'content_pledge_investment_heading' => 'Community-Investitionen',
     'content_pledge_investment_body' => 'Wohin fließt das Geld? Direkt zurück in die Verbesserung von Tabletop-Spielen für alle.',
     'content_pledge_investment_events' => 'Lokale Events & Meetups',
@@ -281,6 +276,8 @@ return [
     'content_pledge_algo_trending_sort' => 'Sortierung',
     'content_pledge_algo_trending_limit' => 'Obergrenze',
     'content_pledge_algo_trending_cache_ttl' => 'Cache-TTL',
+    'content_pledge_algo_trending_table_parameter' => 'Parameter',
+    'content_pledge_algo_trending_table_value' => 'Wert',
     'content_pledge_algo_table_signal' => 'Metrik',
     'content_pledge_algo_table_board_games' => 'Brettspiele',
     'content_pledge_algo_table_ttrpgs' => 'Pen-&-Paper-RPGs',
@@ -296,12 +293,10 @@ return [
     'content_pledge_algo_gm_formula_count' => 'Anzahl Bewertungen = COUNT(*) WHERE status = \'published\'',
     'content_pledge_algo_gm_formula_badges' => 'Kompetenzabzeichen = TOP 3 Tags nach Häufigkeit in veröffentlichten Bewertungen',
     'content_pledge_algo_people_formula_taste' => 'Geschmack: J(A, B) = |A ∩ B| / |A ∪ B|',
-    'content_pledge_algo_people_formula_taste_note' => 'Berechnet über Spielsysteme + Vibes, gemittelt',
+
     'content_pledge_algo_people_formula_social' => 'Sozial: (Team-Überschneidung + gegenseitiges Folgen) / Komponenten',
     'content_pledge_algo_people_formula_composite' => 'Zusammengesetzt:',
-    'content_pledge_algo_people_formula_both' => 'wenn Geschmack & sozial: score = Geschmack × 0,7 + sozial × 0,3',
-    'content_pledge_algo_people_formula_taste_only' => 'wenn nur Geschmack: score = Geschmack',
-    'content_pledge_algo_people_formula_social_only' => 'wenn nur sozial: score = sozial',
+
     'content_pledge_algo_people_caption' => 'Gewichtung der Bewertungskomponenten',
     'content_pledge_algo_session_formula_allowed' => 'erlaubt = (Favoriten + implizierte_Favoriten) − vermiedene',
     'content_pledge_algo_session_formula_boosted' => 'Boosted: erlaubt UND Lieblingsvibes',

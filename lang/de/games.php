@@ -50,7 +50,7 @@ return [
     'content_no_game_systems_found' => 'Keine Spielsysteme gefunden.',
     'content_no_games_found' => 'Keine Spiele gefunden',
     'content_optional_useful_for_game_night_coordination' => 'Optional — hilfreich für die Koordination von Spieleabenden.',
-    'content_passion_for_games' => 'Leidenschaft für Spiele',
+
     'content_pick_your_game_set_the' => 'Wähle dein Spiel, setze Datum und Ort, lege die Spielerzahl fest. Das dauert etwa dreißig Sekunden — schneller als ein Kartendeck zu mischen.',
     'content_running_a_multi_session_campaign' => 'Leitest du eine Multi-Session-Kampagne? Gruppiere deine Sessions, verfolge die Teilnahme und halte deine Gruppe zwischen den Spielen verbunden. Deine Spieler wissen immer, wann die nächste Session stattfindet.',
     'content_schedule_a_new_game_session_for_players_to_join' => 'Plane eine neue Spielsitzung, an der Spieler teilnehmen können.',
@@ -58,12 +58,12 @@ return [
     'content_share_your_location_to_see' => 'Teile deinen Standort, um Spielsitzungen und Kampagnen in deiner Nähe zu sehen, die diese Woche stattfinden.',
     'content_start_a_campaign_organize_a' => '**Starte eine Kampagne** — Organisiere ein wiederkehrendes Spiel mit deiner Gruppe.',
     'content_step_outside_your_comfort_zone' => 'Verlass deine Komfortzone. Probier ein neues System aus, schließ dich einer anderen Gruppe an oder verliebe dich in ein Spiel, von dem du nie gehört hast.',
-    'content_the_best_adventures_start_with' => 'Die besten Abenteuer beginnen mit „Was wäre, wenn?“ Wir feiern das Ausprobieren neuer Spiele, das Entdecken unbekannter Mechaniken und den Schritt aus der Komfortzone. Genau da passiert die Magie.',
+
     'content_this_is_a_protected_game' => 'Dies ist ein Spiel nur für Verbindungen. Deine Anmeldung wird vom Besitzer geprüft, bevor du beitreten kannst.',
     'content_three_steps_to_your_next_game_night' => 'Drei Schritte zu deinem nächsten Spieleabend',
     'content_unlimited_games' => 'Unbegrenzte Spiele',
     'content_use_stars_wishes_or_a' => 'Nutze Sterne & Wünsche oder ein Debriefing nach Sitzungen. Regelmäßige Check-ins bauen eine Vertrauenskultur auf und verbessern deine Spiele mit der Zeit.',
-    'content_we_re_gamers_ourselves_that' => 'Wir sind selbst Spieler. Diese Leidenschaft treibt uns an, die bestmögliche Plattform für die Community zu bauen, die wir lieben.',
+
     'content_you_have_already_applied_to_this_game' => 'Du hast dich bereits für dieses Spiel beworben.',
     'content_you_have_joined_the_game' => 'Du bist dem Spiel beigetreten!',
     'content_you_have_been_placed_on_the_bench' => 'Die Sitzung ist voll — du wurdest auf die Bank gesetzt.',
@@ -82,7 +82,7 @@ return [
     'error_clone_own_only' => 'Du kannst nur deine eigenen Spielsitzungen klonen.',
     'error_select_game_type' => 'Bitte wähle eine Spielart bevor du erstellst.',
     'error_you_cannot_apply_to_your_own_game' => 'Du kannst dich nicht auf dein eigenes Spiel bewerben.',
-    'field_game_type' => 'Spielart',
+
     'field_max_players' => 'Max. Spieler',
     'field_maximum_complexity' => 'Maximale Komplexität',
     'field_min_players' => 'Min. Spieler',
@@ -310,7 +310,7 @@ return [
     'title_write_recap' => 'Nachbericht verfassen',
     'content_write_recap_description' => 'Teile mit, was in dieser Sitzung passiert ist.',
     'label_recap_placeholder' => 'Teile mit, was in dieser Sitzung passiert ist…',
-    'label_recap_char_limit' => 'Max. 2.000 Zeichen',
+
     'action_recap_submit' => 'Nachbericht veröffentlichen',
 
     // Debriefing
@@ -340,18 +340,17 @@ return [
     'action_join_waitlist' => 'Warteliste beitreten',
     'content_game_full_join_waitlist' => 'Dieses Spiel ist voll. Tritt der Warteliste bei, um benachrichtigt zu werden, wenn ein Platz frei wird.',
     'content_waitlist_position' => 'Du bist #:position auf der Warteliste.',
-    'content_comfort_notes' => 'Wohlfühl-Notizen',
+
     'content_spot_opened_confirm' => 'Ein Platz ist frei! Bitte bestätige innerhalb von :deadline.',
     'action_confirm_spot' => 'Platz bestätigen',
     'action_decline_spot' => 'Platz ablehnen',
     'action_manual_promote' => 'Befördern',
     'content_waitlist_management' => 'Warteliste',
-    'content_no_waitlisted_players' => 'Keine Spieler auf der Warteliste.',
+
     'content_waitlist_spot_confirmed' => 'Du hast deinen Platz bestätigt!',
     'content_waitlist_spot_declined' => 'Du hast den Platz abgelehnt.',
     'content_added_to_waitlist' => 'Du wurdest zur Warteliste hinzugefügt.',
-    'content_late_cancel_warning' => 'Achtung: Du stornierst weniger als 24 Stunden vor Spielbeginn. Dies wird als späte Stornierung erfasst.',
-    'content_below_min_players_warning' => 'Achtung: Die Spielerzahl ist unter das Minimum gefallen.',
+
     'flash_manual_promote_success' => 'Spieler wurde von der Warteliste befördert.',
     'action_leave_waitlist' => 'Warteliste verlassen',
     'action_leave_bench' => 'Bank verlassen',
@@ -363,9 +362,6 @@ return [
     'content_benched_count' => '{0} |{1} auf der Bank|[2,*] auf der Bank',
 
     // Sichtbarkeitsbezeichnungen
-    'visibility_public' => 'Öffentlich',
-    'visibility_protected' => 'Nur für Verbindungen',
-    'visibility_private' => 'Privat',
 
     // Teilnehmerrollenbezeichnungen
     'field_role_owner' => 'Besitzer',

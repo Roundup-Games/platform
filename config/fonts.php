@@ -78,7 +78,12 @@ return [
 
         // Icons only in dynamic PHP code
         'pause_circle', 'search_off',
-                'inbox', 'code', 'dashboard',        
+                'inbox', 'code', 'dashboard',
+
+        // Pledge & algorithms pages
+        'account_balance', 'distance', 'insights', 'function',
+        'lightbulb', 'account_tree', 'grid_on',
+        'functions',        
         // Icons only in JS
         'system_update',
     ],

@@ -153,13 +153,48 @@ class I18nDeadStringsCommand extends Command
         $dynamicDomainPrefixes = [
             'notifications' => ['verb_', 'email_', 'display_', 'state_', 'channel_', 'hint_'],
             'discovery' => ['cat_', 'mech_', 'play_style_'],
+            // ContactSupport/BillingSupport ISSUE_TYPES const maps
+            'support' => ['field_issue_', 'field_billing_issue_'],
         ];
 
-        return array_values(array_filter($deadKeys, function ($dead) use ($dynamicPrefixes, $staticFileKeys, $dynamicDomainPrefixes, $usage) {
+        // Specific keys used via ternary + __($variable) in PHP code.
+        // These are constructed at runtime (e.g. $key = cond ? 'a' : 'b'; __($key))
+        // and cannot be detected by the static regex scanner.
+        $dynamicTernaryKeys = [
+            // SessionReminder.php: $titleKey/$bodyKey ternary for 24h vs immediate
+            'notifications.push_title_session_reminder',
+            'notifications.push_body_session_reminder',
+            'notifications.push_title_session_reminder_24h',
+            'notifications.push_body_session_reminder_24h',
+            // ManagesParticipants.php: $messageKey ternary for waitlist vs bench
+            'people.flash_email_invite_waitlisted',
+            'people.flash_email_invite_benched',
+            'people.flash_accepted_waitlisted',
+            'people.flash_accepted_benched',
+            // entity-invitation.blade.php: ternary for game vs campaign
+            'emails.content_you_re_invited_to_a_game',
+            'emails.content_you_re_invited_to_a_campaign',
+            // dashboard.blade.php: $actionKey match() block
+            'profile.dashboard_feed_action_created_game',
+            'profile.dashboard_feed_action_joined_game',
+            'profile.dashboard_feed_action_completed_game',
+            'profile.dashboard_feed_action_recapped_game',
+            'profile.dashboard_feed_action_created_campaign',
+            'profile.dashboard_feed_action_joined_campaign',
+            'profile.dashboard_feed_action_completed_campaign',
+            'profile.dashboard_feed_action_scheduled_session',
+        ];
+
+        return array_values(array_filter($deadKeys, function ($dead) use ($dynamicPrefixes, $staticFileKeys, $dynamicDomainPrefixes, $dynamicTernaryKeys, $usage) {
             $dotted = $dead['dotted'];
 
             // Check static file usage
             if (in_array($dotted, $staticFileKeys, true)) {
+                return false;
+            }
+
+            // Check dynamic ternary-constructed keys
+            if (in_array($dotted, $dynamicTernaryKeys, true)) {
                 return false;
             }
 

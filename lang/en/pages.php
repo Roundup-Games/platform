@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'action_get_in_touch' => 'Get in Touch',
+
     'action_join_roundup_games_today' => 'Join Roundup Games today',
     'content_about' => 'About',
 
@@ -9,29 +9,25 @@ return [
 
     'content_about_intro' => 'Roundup Games is a non-profit built on a simple premise: the people who organize your games, handle your data, and set community standards should be accountable to you — not to investors. We work in the open because trust can\'t be claimed. It has to be verifiable. And we focus on local, in-person play because that\'s where the deepest connections happen.',
 
-    'content_about_roundup_games' => 'About Roundup Games',
-
-
     'content_about_what_drives_us' => 'What Drives Us',
     'content_all_rights_reserved' => 'All rights reserved.',
     'content_built_for_real_connection' => 'Built for real connection',
     'content_community' => 'Community',
-    'content_community_first' => 'Community First',
+
     'content_contact' => 'Contact',
     'content_contact_us' => 'Contact Us',
     'content_even_if_you_never_use' => 'Even if you never use it, knowing it\'s there gives everyone permission to speak up. Place a card with an "X" on the table and explain how it works.',
     'content_every_table_has_room_for' => 'Every table has room for one more. Find players and hosts who make you feel at home.',
-    'content_every_table_welcoming_body' => 'Every table has room for one more. We build for shy newcomers and seasoned veterans alike. Whether you\'ve played a hundred campaigns or don\'t know what a d20 is, you belong here.',
-    'content_from_creating_an_event_to' => 'From creating an event to registering a team, we keep things straightforward so you can focus on what matters — competing.',
+
     'content_how_it_works' => 'How It Works',
     'content_no_subscriptions_required_no_credit' => 'Getting started is free — no credit card needed. Create an account, set up your session, and let the players come to you. Advanced tools for organizers are available via subscription.',
     'content_organizer_profiles_are_public_you' => 'Organizer profiles are public. You can read about your host, see their session history, and check community feedback before joining.',
-    'content_our_mission' => 'Our Mission',
+
     'content_see_how_it_works' => 'See How It Works',
     'content_sign_up_for_a_free' => 'Sign up for a free account, then click "Create Event" from your dashboard or the events page.',
-    'content_trust_is_earned_through_transparency' => 'Trust is earned through transparency. Every session is visible to the community. Organizer profiles are public. Connections-only sessions require membership. We give you the tools to play safe.',
+
     'content_we_believe_everyone_deserves_a' => 'We believe everyone deserves a seat at the table. Here\'s how we make that happen — no experience required.',
-    'content_we_re_a_small_team' => 'We\'re a small team of passionate gamers and developers who believe that organized competition makes gaming better for everyone. We\'re constantly working to improve the platform and would love to hear your feedback.',
+
     'content_we_take_trust_seriously_here' => 'We take trust seriously. Here\'s how we keep the community safe and transparent.',
     'content_what_s_included' => 'What\'s Included',
 
@@ -65,8 +61,7 @@ return [
     'content_pledge_open_heading' => 'Open by Default',
     'content_pledge_open_body' => 'Our code is public on GitHub. Our issue tracker is public. Our roadmap is public. We don\'t hide behind closed doors — if you want to know how something works, you can find out. And if you think it should work differently, you can say so.',
     'content_pledge_open_github' => 'View on GitHub',
-    'content_pledge_open_issues' => 'Browse Issue Tracker',
-    'content_pledge_open_roadmap' => 'View Roadmap',
+
     'content_pledge_investment_heading' => 'Community Investment',
     'content_pledge_investment_body' => 'Where does the money go? Right back into making tabletop gaming better for everyone.',
     'content_pledge_investment_events' => 'Local Events & Meetups',
@@ -281,6 +276,8 @@ return [
     'content_pledge_algo_trending_sort' => 'Sort order',
     'content_pledge_algo_trending_limit' => 'Limit',
     'content_pledge_algo_trending_cache_ttl' => 'Cache TTL',
+    'content_pledge_algo_trending_table_parameter' => 'Parameter',
+    'content_pledge_algo_trending_table_value' => 'Value',
     'content_pledge_algo_table_signal' => 'Signal',
     'content_pledge_algo_table_board_games' => 'Board Games',
     'content_pledge_algo_table_ttrpgs' => 'TTRPGs',
@@ -296,12 +293,10 @@ return [
     'content_pledge_algo_gm_formula_count' => 'Review Count = COUNT(*) WHERE status = \'published\'',
     'content_pledge_algo_gm_formula_badges' => 'Proficiency Badges = TOP 3 tags by frequency across published reviews',
     'content_pledge_algo_people_formula_taste' => 'Taste: J(A, B) = |A ∩ B| / |A ∪ B|',
-    'content_pledge_algo_people_formula_taste_note' => 'Computed on game systems + vibes, averaged',
+
     'content_pledge_algo_people_formula_social' => 'Social: (team overlap + mutual follow) / components',
     'content_pledge_algo_people_formula_composite' => 'Composite:',
-    'content_pledge_algo_people_formula_both' => 'if taste & social: score = taste × 0.7 + social × 0.3',
-    'content_pledge_algo_people_formula_taste_only' => 'if taste only: score = taste',
-    'content_pledge_algo_people_formula_social_only' => 'if social only: score = social',
+
     'content_pledge_algo_people_caption' => 'Scoring component weights',
     'content_pledge_algo_session_formula_allowed' => 'allowed = (favorites + implied_favorites) − avoided',
     'content_pledge_algo_session_formula_boosted' => 'Boosted: allowed AND favorite_vibes',

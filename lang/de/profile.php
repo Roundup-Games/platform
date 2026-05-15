@@ -76,10 +76,6 @@ return [
     'guest_nudge_profile' => 'Erstelle ein kostenloses Konto, um dich mit Brettspielern zu verbinden.',
 
     // Dashboard-Karten
-    'dashboard_card_my_games' => 'Meine Spiele',
-    'dashboard_card_my_games_desc' => 'Verwalte deine geplanten Spielsitzungen.',
-    'dashboard_card_my_campaigns' => 'Meine Kampagnen',
-    'dashboard_card_my_campaigns_desc' => 'Verwalte deine aktiven Kampagnen.',
 
     // GM-Proficiency-Labels
     'gm_proficiency_creativity' => 'Kreativer Improvisator',
@@ -118,21 +114,10 @@ return [
     'nav_gm_workspace' => 'GM Arbeitsbereich',
 
     // Dashboard-Karten - GM
-    'dashboard_card_gm_workspace' => 'GM Arbeitsbereich',
-    'dashboard_card_gm_workspace_desc' => 'Verwalte deine GM-Sitzungen, Bewertungen und dein Profil.',
 
     // Dashboard-Statistikbeschriftungen
-    'dashboard_stats_upcoming_sessions' => 'Kommende Sitzungen',
-    'dashboard_stats_active_games' => 'Aktive Spiele',
-    'dashboard_stats_active_campaigns' => 'Aktive Kampagnen',
-    'dashboard_stats_pending_invitations' => 'Ausstehende Einladungen',
-    'dashboard_stats_followers' => 'Follower',
-    'dashboard_stats_following' => 'Folge ich',
+
     'dashboard_stats_unread_notifications' => 'Ungelesen',
-    'dashboard_stats_gm_rating' => 'GM Bewertung',
-    'dashboard_stats_gm_reviews' => 'Bewertungen',
-    'dashboard_stats_gm_upcoming' => 'Kommende GM-Sitzungen',
-    'dashboard_recent_activity' => 'Letzte Aktivität',
 
     // Community Feed
     'dashboard_feed_heading' => 'Was passiert',
@@ -151,14 +136,12 @@ return [
     'dashboard_feed_spots_left' => ':count Platz frei|:count Plätze frei',
     'dashboard_feed_players' => ':current/:max Spieler',
     'dashboard_feed_trending_badge' => 'Beliebt',
-    'dashboard_feed_view_details' => 'Details ansehen',
-    'dashboard_gm_overview' => 'GM Übersicht',
 
     // Smart-Prompt-Aktionen (auch in DashboardSmartPromptService verwendet)
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
     'dashboard_prompt_write_recap' => 'Zusammenfassung schreiben',
-    'dashboard_prompt_browse_nearby' => ':count Spiele in der Nähe durchsuchen',
+
     'dashboard_prompt_find_game' => 'Spiel finden',
     'dashboard_prompt_view_profile' => 'Profil ansehen',
     'dashboard_prompt_view_schedule' => 'Zeitplan ansehen',
@@ -187,7 +170,7 @@ return [
     'dashboard_opportunities_heading' => 'Spiele, die dir gefallen könnten',
     'dashboard_opportunities_empty' => 'Aktuell keine Spiele, die zu deinen Präferenzen passen',
     'dashboard_opportunities_create_cta' => 'Spiel erstellen',
-    'dashboard_opportunities_spots' => ':current/:max Spieler',
+
     'dashboard_opportunities_spots_available' => ':count Platz frei|:count Plätze frei',
     'dashboard_opportunities_recurring' => 'Wiederkehrend',
     'dashboard_opportunities_km_away' => ':count km entfernt',

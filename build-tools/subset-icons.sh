@@ -76,10 +76,10 @@ CONFIG_ICONS=$(php -r "
 
 # 2. From static scan of Blade templates, PHP enums, and JS files
 SCAN_ICONS=$(
-    rg -o 'material-symbols-outlined[^>]*>\K[a-z_0-9]+' resources/views/ --no-filename 2>/dev/null || true
+    rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/views/ --no-filename -r '$1' 2>/dev/null || true
     rg -o "return '([a-z_0-9]+)'" app/Enums/ --no-filename -r '$1' 2>/dev/null || true
     rg -o "'icon'\s*=>\s*'([a-z_0-9]+)'" app/ -r '$1' --no-filename 2>/dev/null || true
-    rg -o "material-symbols-outlined[^>]*>\K[a-z_0-9]+" resources/js/ --no-filename 2>/dev/null || true
+    rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/js/ --no-filename -r '$1' 2>/dev/null || true
 )
 
 # Combine and deduplicate

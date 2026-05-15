@@ -22,12 +22,12 @@ return [
     'content_invite_member' => 'Mitglied einladen',
     'content_invite_player' => 'Spieler einladen',
     'content_member_removed_from_team' => 'Mitglied aus dem Team entfernt.',
-    'content_members_only' => 'Nur für Verbindungen',
+
     'content_most_members' => 'Meiste Mitglieder',
     'content_no_teams_found' => 'Keine Teams gefunden',
     'content_non_captain' => 'Nicht-Kapitän',
     'content_only_the_team_captain_can_register_a_team' => 'Nur der Teamkapitän kann ein Team anmelden.',
-    'content_our_team' => 'Unser Team',
+
     'content_please_select_a_team' => 'Bitte wähle ein Team aus.',
     'content_roster' => 'Kader',
     'content_team_information' => 'Team-Informationen',

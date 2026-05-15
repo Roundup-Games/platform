@@ -76,10 +76,6 @@ return [
     'guest_nudge_profile' => 'Create a free account to connect with tabletop gamers.',
 
     // Dashboard cards
-    'dashboard_card_my_games' => 'My Games',
-    'dashboard_card_my_games_desc' => 'View and manage your scheduled game sessions.',
-    'dashboard_card_my_campaigns' => 'My Campaigns',
-    'dashboard_card_my_campaigns_desc' => 'View and manage your active campaigns.',
 
     // GM Proficiency labels
     'gm_proficiency_creativity' => 'Creative Improviser',
@@ -118,21 +114,10 @@ return [
     'nav_gm_workspace' => 'GM Workspace',
 
     // Dashboard cards - GM
-    'dashboard_card_gm_workspace' => 'GM Workspace',
-    'dashboard_card_gm_workspace_desc' => 'Manage your GM sessions, reviews, and profile.',
 
     // Dashboard stat labels
-    'dashboard_stats_upcoming_sessions' => 'Upcoming Sessions',
-    'dashboard_stats_active_games' => 'Active Games',
-    'dashboard_stats_active_campaigns' => 'Active Campaigns',
-    'dashboard_stats_pending_invitations' => 'Pending Invitations',
-    'dashboard_stats_followers' => 'Followers',
-    'dashboard_stats_following' => 'Following',
+
     'dashboard_stats_unread_notifications' => 'Unread',
-    'dashboard_stats_gm_rating' => 'GM Rating',
-    'dashboard_stats_gm_reviews' => 'Reviews',
-    'dashboard_stats_gm_upcoming' => 'Upcoming GM Sessions',
-    'dashboard_recent_activity' => 'Recent Activity',
 
     // Community Feed
     'dashboard_feed_heading' => 'What\'s happening',
@@ -151,14 +136,12 @@ return [
     'dashboard_feed_spots_left' => ':count spot left|:count spots left',
     'dashboard_feed_players' => ':current/:max players',
     'dashboard_feed_trending_badge' => 'Trending',
-    'dashboard_feed_view_details' => 'View details',
-    'dashboard_gm_overview' => 'GM Overview',
 
     // Smart prompt action labels (also used by DashboardSmartPromptService)
     'dashboard_prompt_view_invitations' => 'View invitations',
     'dashboard_prompt_view_details' => 'View details',
     'dashboard_prompt_write_recap' => 'Write recap',
-    'dashboard_prompt_browse_nearby' => 'Browse :count nearby games',
+
     'dashboard_prompt_find_game' => 'Find a game',
     'dashboard_prompt_view_profile' => 'View profile',
     'dashboard_prompt_view_schedule' => 'View schedule',
@@ -187,7 +170,7 @@ return [
     'dashboard_opportunities_heading' => 'Games you might like',
     'dashboard_opportunities_empty' => 'No games matching your preferences right now',
     'dashboard_opportunities_create_cta' => 'Create a game',
-    'dashboard_opportunities_spots' => ':current/:max players',
+
     'dashboard_opportunities_spots_available' => ':count spot available|:count spots available',
     'dashboard_opportunities_recurring' => 'Recurring',
     'dashboard_opportunities_km_away' => ':count km',

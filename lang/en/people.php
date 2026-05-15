@@ -7,7 +7,7 @@ return [
     'content_followers' => 'Followers',
     'content_following' => 'Following',
     'content_friends' => 'Friends',
-    'content_manage_following_followers_blocked' => 'Manage following, followers & blocked',
+
     'content_no_followers_yet' => 'No followers yet.',
     'content_no_friends_found' => 'No friends found matching your search.',
     'content_not_following_anyone_yet' => 'You\'re not following anyone yet.',
@@ -15,7 +15,7 @@ return [
     'content_you_have_been_invited' => 'You\'ve been invited to join this event.',
     'content_you_haven_t_blocked_anyone' => 'You haven\'t blocked anyone.',
     'content_blocked_tab' => 'Blocked',
-    'error_entity_full' => 'This :entity is already full.',
+
     'error_invitation_no_longer_valid' => 'This invitation is no longer valid.',
     'error_no_valid_friends_to_invite' => 'None of the selected users could be invited. They may already be participants or not on your friend list.',
     'error_not_your_invitation' => 'This invitation is not yours to accept.',
@@ -50,7 +50,7 @@ return [
     'placeholder_enter_email_address' => 'Enter email address',
     'action_send_invite' => 'Send Invite',
     'content_pending_account_creation' => 'Pending account creation',
-    'flash_email_invite_failed' => 'Could not send invitation email, but invite is tracked.',
+
     'flash_email_invite_waitlisted' => 'Game is full — invitee added to waitlist.',
     'flash_email_invite_benched' => 'Session is full — invitee added to bench.',
     'flash_accepted_waitlisted' => 'Game is full — you\'ve been added to the waitlist and will be notified when a spot opens.',

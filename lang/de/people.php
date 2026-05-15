@@ -7,7 +7,7 @@ return [
     'content_followers' => 'Follower',
     'content_following' => 'Ich folge',
     'content_friends' => 'Freunde',
-    'content_manage_following_followers_blocked' => 'Follower, Gefolgte & Blockierte verwalten',
+
     'content_no_followers_yet' => 'Noch keine Follower.',
     'content_no_friends_found' => 'Keine Freunde gefunden, die deiner Suche entsprechen.',
     'content_not_following_anyone_yet' => 'Du folgst noch niemandem.',
@@ -15,7 +15,7 @@ return [
     'content_you_have_been_invited' => 'Du wurdest eingeladen, an dieser Veranstaltung teilzunehmen.',
     'content_you_haven_t_blocked_anyone' => 'Du hast niemanden blockiert.',
     'content_blocked_tab' => 'Blockiert',
-    'error_entity_full' => 'Diese(r) :entity ist bereits voll.',
+
     'error_invitation_no_longer_valid' => 'Diese Einladung ist nicht mehr gültig.',
     'error_no_valid_friends_to_invite' => 'Keine der ausgewählten Personen konnte eingeladen werden. Sie sind möglicherweise bereits Teilnehmer oder nicht in deiner Freundesliste.',
     'error_not_your_invitation' => 'Diese Einladung gehört dir nicht.',
@@ -50,7 +50,7 @@ return [
     'placeholder_enter_email_address' => 'E-Mail-Adresse eingeben',
     'action_send_invite' => 'Einladung senden',
     'content_pending_account_creation' => 'Warten auf Kontoerstellung',
-    'flash_email_invite_failed' => 'Einladungs-E-Mail konnte nicht gesendet werden, die Einladung wird jedoch verfolgt.',
+
     'flash_email_invite_waitlisted' => 'Spiel ist voll — Eingeladener wurde zur Warteliste hinzugefügt.',
     'flash_email_invite_benched' => 'Sitzung ist voll — Eingeladener wurde zur Bank hinzugefügt.',
     'flash_accepted_waitlisted' => 'Spiel ist voll — Du wurdest zur Warteliste hinzugefügt und wirst benachrichtigt, wenn ein Platz frei wird.',

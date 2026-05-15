@@ -32,7 +32,7 @@ return [
     'content_automatic_player_matching' => 'Automatic player matching',
     'content_back_to_event' => '← Back to Event',
     'content_browse_events_discover_upcoming_tournaments' => '**Browse events** — Discover upcoming tournaments and game sessions near you.',
-    'content_building_community_through_competitive_gaming' => 'Building community through competitive gaming events.',
+
     'content_can_i_register_a_team' => 'Can I register a team?',
     'content_cancel_this_event_this_will' => 'Cancel this event? This will notify registered participants.',
     'content_check_back_soon_for_upcoming_events' => 'Check back soon for upcoming events!',
@@ -46,7 +46,7 @@ return [
     'content_event_registration' => 'Event Registration',
     'content_event_type' => 'Event Type *',
     'content_events' => 'Events',
-    'content_everything_we_build_starts_with' => 'Everything we build starts with the community in mind. Events are about people coming together, not just competition.',
+
     'content_find_your_people_discover_new' => 'Find tabletop games and campaigns happening near you. Meet new people, discover new games, and build real-world connections — one session at a time.',
     'content_from_weekly_board_game_nights' => 'From weekly board game nights to epic multi-year RPG campaigns, organizers on Roundup are building the gaming communities they always wished existed. Your table is next.',
     'content_how_do_i_create_an_event' => 'How do I create an event?',
@@ -61,7 +61,7 @@ return [
     'content_no_events_found' => 'No events found',
     'content_no_registrations_found' => 'No registrations found.',
     'content_optional_add_competitive_divisions_to_your_event' => 'Optional — add competitive divisions to your event.',
-    'content_our_platform_makes_it_easy' => 'Our platform makes it easy for organizers to create and manage events of any size — from small local meetups to large-scale competitions. For participants, we provide a seamless experience from discovery to registration to competition day.',
+
     'content_participants' => 'Participants',
     'content_public_event' => 'Public Event',
     'content_registration' => 'Registration',
@@ -79,7 +79,7 @@ return [
     'label_registration_type' => 'Registration type',
     'content_registration_window' => 'Registration Window',
     'content_reject_this_registration' => 'Reject this registration?',
-    'content_roundup_games_was_born_from' => 'Roundup Games was born from a simple belief: that competitive gaming brings people together. Whether it\'s a weekend tournament, a weekly league night, or a community meetup, we\'ve seen firsthand how games create connections that last far beyond the final score.',
+
     'content_select_the_games_you_enjoy' => 'Select the games you enjoy — we\'ll use this to recommend sessions and events.',
     'content_team_only' => 'Team Only',
     'content_team' => 'Team',
@@ -95,21 +95,19 @@ return [
     'field_team_size_min_max_players' => 'Team size: :min–:max players',
     'content_thanks_for_joining_roundup_games' => 'Thanks for joining **Roundup Games** — your hub for organizing and participating in tabletop gaming events, campaigns, and tournaments.',
     'content_thanks_for_supporting_roundup_games' => 'Thanks for supporting Roundup Games!',
-    'content_the_best_games_happen_when' => 'The best games happen when people care about each other, not just the scoreboard. We prioritize connection over competition, conversation over calculation, and shared stories over individual wins.',
+
     'content_this_event_is_now_full' => 'This event is now full.',
-    'content_we_believe_that_everyone_should' => 'We believe that everyone should have access to well-organized competitive events, regardless of their skill level or experience. That\'s why we\'ve built tools that make event management accessible to organizers while keeping the participant experience front and center.',
-    'content_we_give_organizers_the_tools' => 'We give organizers the tools they need to run professional events without the complexity of traditional management software.',
+
     'content_welcome_back_to_roundup_games' => 'Welcome back to Roundup Games',
     'content_welcome_to_roundup_games' => 'Welcome to Roundup Games!',
-    'content_whether_you_re_a_seasoned' => 'Whether you\'re a seasoned competitor or trying something new, there\'s a place for you in the Roundup Games community.',
-    'content_whether_you_want_to_organize' => 'Whether you want to organize events or compete in them, we\'d love to have you.',
+
     'content_write_your_announcement' => 'Write your announcement...',
     'content_yes_many_events_support_team' => 'Yes! Many events support team registration. Create a team, invite your members, and register together.',
     'content_you_are_already_a_participant' => 'You are already a participant or have a pending invite.',
     'content_already_participant_or_pending_game' => 'You are already a participant or have a pending invite/application for this game.',
     'content_you_are_already_registered_for_this_event' => 'You are already registered for this event.',
     'content_you_re_all_set_for_event' => 'You\'re all set for **:event**!',
-    'content_you_re_logged_in_to' => 'You\'re logged in to Roundup Games. Start exploring games and connecting with the community.',
+
     'error_cannot_cancel_event_from_status_from' => 'Cannot cancel event from status ":from".',
     'error_cannot_change_event_status_from_from_to_to' => 'Cannot change event status from ":from" to ":to".',
     'error_cannot_close_registration_from_status_from' => 'Cannot close registration from status ":from".',

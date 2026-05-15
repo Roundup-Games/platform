@@ -22,10 +22,10 @@ return [
     'action_edit' => 'Edit',
     'action_enter_amount_in_cents_e_g_500_5_00' => 'enter amount in cents (e.g. 500 = $5.00 / 5,00 €)',
     'action_join_count_organizers_who_bring_people_together' => '{1} Join :count organizer who brings people together|[2,*] Join :count organizers who bring people together',
-    'action_join_our_community' => 'Join Our Community',
+
     'action_manage' => 'Manage',
     'action_next' => 'Next →',
-    'action_open_to_all' => 'Open to All',
+
     'action_publish' => 'Publish',
     'action_publish_immediately' => 'Publish immediately',
     'action_loading' => 'Loading...',
@@ -172,7 +172,7 @@ return [
     'content_sending' => 'Sending...',
     'content_she_her' => 'She/Her',
     'content_show_up_and_play' => 'Show up and play',
-    'content_simple_fast' => 'Simple & Fast',
+
     'content_skip_to_content' => 'Skip to content',
     'aria_toggle_navigation_menu' => 'Toggle navigation menu',
     'aria_main_navigation' => 'Main navigation',
@@ -181,7 +181,7 @@ return [
     'content_subject' => 'Subject',
     'content_subscribe' => 'Subscribe',
     'content_substitute' => 'Substitute',
-    'content_support' => 'Support',
+
     'content_tabletop_gaming_is_about_more' => 'Tabletop gaming is about more than rules. It\'s about the people you share the table with.',
     'content_tell_the_host_why_you_d_like_to_join' => 'Tell the host why you\'d like to join...',
     'content_tell_us_about_yourself' => 'Tell us about yourself',
@@ -208,7 +208,7 @@ return [
     'content_visibility_controls' => 'Visibility controls',
     'content_waitlisted' => 'Waitlisted',
     'content_we_typically_respond_within_24' => 'We typically respond within 24–48 hours during business days.',
-    'content_welcome_back_name' => 'Welcome back, :name!',
+
     'content_you' => '(you)',
     'content_your_favorites' => 'Your Favorites',
     'error_cannot_remove_the_entity_owner' => 'Cannot remove the :entity owner.',
@@ -310,7 +310,7 @@ return [
     'content_count_participants' => '{1} :count participant|[2,*] :count participants',
     'content_no_participants_yet' => 'No participants yet.',
     'content_applications' => 'Applications',
-    'content_members_only' => 'Connections Only',
+
     'action_no_let_me_search' => 'No, let me search',
     'content_searching' => 'Searching...',
     'content_yes_that_s_right' => 'Yes, that\'s right',
@@ -352,8 +352,6 @@ return [
     'activity_type_debriefing_submitted' => 'Submitted a session debriefing',
 
     // Dashboard activity timeline
-    'activity_start_cta' => 'Start exploring games and campaigns to see your activity here.',
-    'activity_no_results' => 'No activity yet',
 
     // Languages
     'label_language_en' => 'English',
@@ -363,8 +361,6 @@ return [
     'content_or' => 'or',
 
     // Overflow indicators
-    'content_n_waitlisted' => '{1} 1 waitlisted|[2,*] :count waitlisted',
-    'content_n_on_bench' => '{1} 1 on bench|[2,*] :count on bench',
 
     // ── Navigation ──────────────────────────────────────
     'nav_our_pledge' => 'Our Pledge',
