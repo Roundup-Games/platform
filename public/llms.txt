@@ -1,56 +1,85 @@
 # Roundup Games
 
-> Roundup Games is a platform for finding, joining, and organizing board games, tabletop RPG sessions, events, and campaigns.
+> Roundup Games is a non-profit, open-source platform for finding, joining, and organizing in-person board game sessions, tabletop RPG campaigns, and local gaming events.
 
 ## What is Roundup Games?
 
-Roundup Games helps tabletop gaming enthusiasts discover game sessions, campaigns, and events near them. Whether you play board games, Dungeons & Dragons, Pathfinder, or any tabletop RPG, Roundup Games connects you with players and game masters in your area.
+Roundup Games connects tabletop gaming enthusiasts with players and game masters in their area. Whether you play board games, Dungeons & Dragons, Pathfinder, or any tabletop RPG, Roundup Games helps you discover local in-person sessions, join ongoing campaigns, or organize your own games.
 
-## Key Features
+**Non-profit by design.** Roundup Games is not a venture-backed startup. Every dollar of revenue is reinvested into the platform, community events, game organizer education, and promoting tabletop gaming culture. There are no investors to please — only players and organizers to serve.
 
-- **Session Discovery**: Find board game and tabletop RPG sessions happening near you, filtered by game system, distance, and availability.
-- **Campaign Management**: Join or organize ongoing campaigns with scheduling, player management, and session tracking.
-- **Event Organization**: Create and manage gaming events with registration, announcements, and participant coordination.
-- **Game Master Directory**: Browse GM profiles with session history, reviews, and game system specialties.
-- **Safety Tools**: Built-in safety tools including Session Zero support, lines & veils, and the X-Card for comfortable gaming experiences.
-- **Game Systems Knowledge Base**: Browse a comprehensive library of game systems with descriptions, mechanics, and categories.
-- **Multi-language**: Available in English and German.
+**Open source.** The entire codebase is publicly available on GitHub at https://github.com/roundup-games. Anyone can inspect, audit, or contribute to the platform.
+
+## Core Differentiators
+
+- **Non-profit**: Revenue reinvested into community, not extracted by investors
+- **Open source**: Full codebase publicly auditable on GitHub
+- **Transparent algorithms**: Every matching and scoring algorithm is documented with formulas and source links at /our-pledge/algorithms
+- **Safety-first**: Built-in safety tools (X-Card, Lines & Veils, Script Change, Session Zero) integrated into every session
+- **In-person focused**: Designed for local, face-to-face tabletop gaming — not online play
 
 ## For Players
 
-- Discover game sessions and campaigns near you
-- Browse GM profiles and read community reviews
-- Join games with built-in safety tools
-- Track your gaming history and preferences
+- **Session discovery**: Find board game and RPG sessions near you, filtered by game system, distance, and availability
+- **Campaign matching**: Join ongoing campaigns with scheduling, player management, and session tracking
+- **GM directory**: Browse game master profiles with session history, reviews, and game system specialties
+- **Reliability scores**: Transparency into your attendance track record, helping groups find dependable players
+- **Safety tools**: X-Card, Lines & Veils, Script Change, and Session Zero built into every session for comfortable gaming
+- **Game systems library**: Browse a comprehensive catalog of game systems with descriptions, mechanics, and categories
 
-## For Organizers / Game Masters
+## For Organizers & Game Masters
 
-- Schedule sessions and manage player rosters
-- Run campaigns with automatic session scheduling
-- Build your reputation with public GM profiles
-- Manage events with registration and announcements
+- **Session management**: Schedule sessions, manage player rosters, and handle waitlists
+- **Campaign tools**: Run multi-session campaigns with automatic scheduling and player matching
+- **Player matching**: Let the platform fill empty seats with compatible nearby players
+- **GM profiles**: Build your reputation with public profiles showing session history and community reviews
+- **Event organization**: Create and manage gaming events with registration, announcements, and participant coordination
 
-## Getting Started
+## Trust & Transparency
 
-1. Create a free account at roundupgames.com
-2. Set your location to find nearby sessions
-3. Browse available games, campaigns, or events
-4. Join a session or create your own
+Roundup Games believes players deserve to understand how the platform works. Our /our-pledge page outlines our non-profit commitment, open-source values, and community-first approach. Our /our-pledge/algorithms page documents every scoring and matching algorithm with:
+
+- Plain-language explanations of how each system works
+- Exact formulas and weighting constants
+- Design decisions and tradeoffs
+- Direct links to the corresponding source code on GitHub
+
+### Algorithm Summaries
+
+- **Reliability Score**: Measures player dependability based on attendance history. Attended sessions earn positive credit (+1.0). Late cancellations incur a mild penalty (-0.3). No-shows receive a severe penalty (-1.0). Hosts who cancel or no-show their own games face steeper penalties (-1.2, -1.5). Minimum 5 games required for tier classification. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReliabilityScoreService.php
+
+- **Review Aggregation**: Aggregates community reviews for GMs and sessions using a weighted average that accounts for recency and review quality. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ReviewAggregateService.php
+
+- **People Discovery**: Recommends nearby players and GMs based on location proximity, shared game systems, and complementary schedules. Uses geohash-based proximity queries. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/PeopleDiscoveryService.php
+
+- **Profile Visibility**: Controls who can see your profile based on your privacy settings, existing connections, and shared team memberships. Source: https://github.com/vburghelea/roundup-games-laravel/blob/main/app/Services/ProfileVisibilityResolver.php
+
+### Safety Tools
+
+- **X-Card**: A simple card mechanic — tap or hold up the X-Card to immediately pause or skip any content without explanation
+- **Lines & Veils**: Pre-session tool to set hard boundaries (lines — content that will not appear) and soft boundaries (veils — content that happens off-screen)
+- **Script Change**: A communication framework using "rewind", "fast-forward", and "pause" gestures to adjust scene intensity
+- **Session Zero**: Pre-game planning session to establish expectations, tone, safety boundaries, and group norms before play begins
 
 ## Pricing
 
-Roundup Games is free to get started. Core features — finding sessions, joining games, creating events — are free. Subscription plans for advanced organizer tools (GM workspace, seat filling, promotion) are available. Revenue from subscriptions is reinvested into the platform, community events, game organizer education, and promoting tabletop gaming.
+Roundup Games is free to use. Core features — finding sessions, joining games, creating events, safety tools — are all free. Optional subscription plans provide advanced organizer tools (GM workspace, seat filling, promotion). All subscription revenue funds the platform and community initiatives.
 
 ## Technical
 
 - Built with Laravel, Livewire, and Tailwind CSS
-- Progressive Web App (PWA) support for mobile
+- Progressive Web App (PWA) for mobile devices
 - Available in English (en) and German (de)
-- Sitemap available at /sitemap.xml
+- Sitemap: /sitemap.xml
+- This file: /llms.txt
 
-## Contact
+## Links
 
 - Website: https://roundupgames.com
 - About: https://roundupgames.com/en/about
+- How it works: https://roundupgames.com/en/how-it-works
+- Our pledge: https://roundupgames.com/en/our-pledge
+- Algorithm transparency: https://roundupgames.com/en/our-pledge/algorithms
+- Safety tools: https://roundupgames.com/en/safety
 - Contact form: https://roundupgames.com/en/contact
-- Open source: https://github.com/Roundup-Games/
+- GitHub: https://github.com/roundup-games
