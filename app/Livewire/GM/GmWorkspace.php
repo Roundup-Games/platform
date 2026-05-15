@@ -6,9 +6,12 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
+use App\Models\ShortLink;
+use App\Models\ShortLinkHit;
 use App\Services\GmRoleService;
 use App\Services\ReviewAggregateService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -42,6 +45,9 @@ class GmWorkspace extends Component
                 'totalGames' => 0,
                 'activeCampaigns' => 0,
                 'sessionZeroSurveys' => collect(),
+                'linkAnalytics' => $this->emptyLinkAnalytics(),
+                'topLinks' => collect(),
+                'topReferrers' => collect(),
             ]);
         }
 
@@ -89,6 +95,9 @@ class GmWorkspace extends Component
             ->limit(20)
             ->get();
 
+        // (6) Share Link Analytics
+        [$linkAnalytics, $topLinks, $topReferrers] = $this->getLinkAnalytics($user);
+
         return view('livewire.gm.gm-workspace', [
             'upcomingSessions' => $upcomingSessions,
             'recentReviews' => $recentReviews,
@@ -97,6 +106,86 @@ class GmWorkspace extends Component
             'totalGames' => $totalGames,
             'activeCampaigns' => $activeCampaigns,
             'sessionZeroSurveys' => $sessionZeroSurveys,
+            'linkAnalytics' => $linkAnalytics,
+            'topLinks' => $topLinks,
+            'topReferrers' => $topReferrers,
         ]);
+    }
+
+    /**
+     * Get cached link analytics for the GM.
+     *
+     * Returns [summaryStats, topLinks, topReferrers].
+     * Cached for 1 hour since analytics are expensive aggregations
+     * and data changes slowly (async queue jobs update hit counts).
+     */
+    private function getLinkAnalytics($user): array
+    {
+        $cacheKey = "gm_workspace:link_analytics:{$user->id}";
+
+        return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
+            $gmLinkIds = ShortLink::where('user_id', $user->id)->pluck('id');
+
+            // Summary stats grouped by entity type
+            $linksByType = ShortLink::where('user_id', $user->id)
+                ->select('linkable_type', DB::raw('COUNT(*) as count'))
+                ->groupBy('linkable_type')
+                ->get()
+                ->mapWithKeys(function ($item) {
+                    $type = class_basename($item->linkable_type) ?? 'Unknown';
+                    return [$type => $item->count];
+                });
+
+            $totalHits = $gmLinkIds->isNotEmpty()
+                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
+                    ->where('hit_at', '>=', now()->subDays(30))
+                    ->count()
+                : 0;
+
+            $totalLinks = $gmLinkIds->count();
+
+            $linkAnalytics = [
+                'totalLinks' => $totalLinks,
+                'totalHits30d' => $totalHits,
+                'linksByType' => $linksByType,
+            ];
+
+            // Top 5 links by hit count
+            $topLinks = ShortLink::where('user_id', $user->id)
+                ->with('linkable')
+                ->orderByDesc('hit_count')
+                ->limit(5)
+                ->get();
+
+            // Top referrer domains
+            $topReferrers = $gmLinkIds->isNotEmpty()
+                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
+                    ->whereNotNull('referer')
+                    ->where('referer', '!=', '')
+                    ->select('referer', DB::raw('COUNT(*) as cnt'))
+                    ->groupBy('referer')
+                    ->orderByDesc('cnt')
+                    ->limit(5)
+                    ->get()
+                    ->map(function ($hit) {
+                        $parsed = parse_url($hit->referer);
+                        return [
+                            'domain' => $parsed['host'] ?? $hit->referer,
+                            'count' => $hit->cnt,
+                        ];
+                    })
+                : collect();
+
+            return [$linkAnalytics, $topLinks, $topReferrers];
+        });
+    }
+
+    private function emptyLinkAnalytics(): array
+    {
+        return [
+            'totalLinks' => 0,
+            'totalHits30d' => 0,
+            'linksByType' => collect(),
+        ];
     }
 }

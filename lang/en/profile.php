@@ -108,6 +108,7 @@ return [
     'gm_profile_bio' => 'About',
     'gm_profile_reviews' => ':count review|:count reviews',
     'gm_profile_no_reviews' => 'No reviews yet',
+    'content_find_me_on' => 'Find me on',
 
     // GM Navigation
     'nav_gm_directory' => 'GM Directory',
@@ -206,4 +207,14 @@ return [
     'label_reliability_games_played' => 'games',
     'content_reliability_stats' => 'Reliability Stats',
     'content_who_can_see_your_reliability_stats' => 'Who can see your detailed attendance rate and game count. Your stats are always visible to anyone viewing a game session or campaign you organize',
+
+    // GM Social Links
+    'field_gm_profile' => 'GM Profile',
+    'gm_social_links_title' => 'Social Links',
+    'gm_social_links_intro' => 'Add your social media profiles to your GM profile page. Players will see these as linked icons.',
+    'gm_social_links_saved' => 'Social links saved successfully.',
+    'gm_social_links_error' => 'Failed to save social links. Please try again.',
+    'gm_social_handle_placeholder' => 'Your username',
+    'gm_social_handle_placeholder_at' => 'username',
+    'gm_social_instance_label' => 'Instance (e.g. mastodon.social)',
 ];

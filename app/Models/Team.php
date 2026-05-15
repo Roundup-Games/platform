@@ -16,6 +16,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Traits\HasTranslations;
 use App\Traits\StringMorphMediaKey;
+use App\Relations\StringKeyMorphMany;
 
 class Team extends Model implements HasMedia
 {
@@ -109,6 +110,19 @@ class Team extends Model implements HasMedia
     public function eventRegistrations(): HasMany
     {
         return $this->hasMany(EventRegistration::class);
+    }
+
+    // ── Short Links ────────────────────────────────────
+
+    public function shortLinks()
+    {
+        return (new StringKeyMorphMany(
+            $this->newRelatedInstance(ShortLink::class)->newQuery(),
+            $this,
+            'linkable_type',
+            'linkable_id',
+            'id'
+        ))->where('linkable_type', static::class);
     }
 
     // ── Helpers ────────────────────────────────────────

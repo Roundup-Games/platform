@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CampaignStatus;
 use App\Enums\Visibility;
+use App\Relations\StringKeyMorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -67,6 +68,12 @@ class Campaign extends Model
                 $campaign->id = (string) Str::uuid();
             }
         });
+
+        static::updated(function (self $campaign) {
+            if ($campaign->wasChanged('status') && in_array($campaign->status->value, ['completed', 'cancelled'])) {
+                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($campaign);
+            }
+        });
     }
 
     // ── Relationships ──────────────────────────────────
@@ -99,6 +106,19 @@ class Campaign extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(CampaignApplication::class);
+    }
+
+    // ── Short Links ────────────────────────────────────
+
+    public function shortLinks()
+    {
+        return (new StringKeyMorphMany(
+            $this->newRelatedInstance(ShortLink::class)->newQuery(),
+            $this,
+            'linkable_type',
+            'linkable_id',
+            'id'
+        ))->where('linkable_type', static::class);
     }
 
     // ── Share Token ────────────────────────────────────

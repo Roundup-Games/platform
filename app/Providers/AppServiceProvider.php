@@ -220,6 +220,11 @@ class AppServiceProvider extends ServiceProvider
             return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Short link rate limiter — 30 requests/minute per IP to prevent abuse
+        RateLimiter::for('short-link', function (Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip());
+        });
+
         // Register custom notification channels
         Notification::extend('push', function ($app) {
             return $app->make(PushChannel::class);

@@ -13,10 +13,12 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
+use App\Models\ShortLink;
 use App\Notifications\ParticipantRemoved;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
+use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
@@ -51,6 +53,10 @@ class GameDetail extends Component
     #[Locked]
     public ?string $validatedShareToken = null;
 
+    /** @var int|null Validated short link ID captured on mount via ph_link_id cookie */
+    #[Locked]
+    public ?int $validatedShortLinkId = null;
+
     public function mount(string $id): void
     {
         $game = Game::findOrFail($id);
@@ -60,6 +66,32 @@ class GameDetail extends Component
         // Capture valid share token on initial page load (query params don't persist across Livewire updates)
         if ($game->hasValidShareToken()) {
             $this->validatedShareToken = request()->query('share');
+        }
+
+        // Detect short link arrival via ph_link_id cookie
+        $this->detectShortLink();
+    }
+
+    /**
+     * Detect and validate a short link from the ph_link_id cookie.
+     */
+    private function detectShortLink(): void
+    {
+        $linkId = request()->cookie('ph_link_id');
+
+        if ($linkId === null) {
+            return;
+        }
+
+        $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
+
+        if ($link === null) {
+            return;
+        }
+
+        // Validate the short link belongs to this game
+        if ($link->linkable_type === Game::class && (string) $link->linkable_id === (string) $this->game->getKey()) {
+            $this->validatedShortLinkId = $link->id;
         }
     }
 
@@ -180,17 +212,89 @@ class GameDetail extends Component
     #[Computed]
     public function hasShareLink(): bool
     {
-        return $this->game->share_token !== null;
+        return $this->game->share_token !== null || $this->getShortLinks()->isNotEmpty();
     }
 
     #[Computed]
     public function shareLinkUrl(): ?string
     {
+        // Prefer short link URL if available
+        $shortLinks = $this->getShortLinks();
+        if ($shortLinks->isNotEmpty()) {
+            return url('/link/' . $shortLinks->first()->code);
+        }
+
         if ($this->game->share_token === null) {
             return null;
         }
 
         return route('games.show', $this->game->id) . '?share=' . $this->game->share_token;
+    }
+
+    // ── Short Link Management ──────────────────────────
+
+    #[Computed]
+    public function getShortLinks()
+    {
+        return app(ShortLinkService::class)->getLinksForEntity($this->game);
+    }
+
+    public function createShortLink(?string $label = null): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->game->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $service = app(ShortLinkService::class);
+
+        if (! $service->canCreateMore($this->game, $viewer)) {
+            session()->flash('error', 'Maximum number of short links reached for this game.');
+            return;
+        }
+
+        $link = $service->createLink($this->game, $viewer, [
+            'label' => $label,
+            'purpose' => 'share',
+        ]);
+
+        Log::info('Short link created for game', [
+            'game_id' => $this->game->id,
+            'link_id' => $link->id,
+            'code' => $link->code,
+            'user_id' => $viewer->id,
+        ]);
+
+        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
+        session()->flash('success', 'Short link created.');
+    }
+
+    public function revokeShortLink(int $linkId): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer || $this->game->owner_id !== $viewer->id) {
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
+        $link = ShortLink::where('id', $linkId)
+            ->where('linkable_type', Game::class)
+            ->where('linkable_id', $this->game->getKey())
+            ->firstOrFail();
+
+        app(ShortLinkService::class)->revokeLink($link);
+
+        Log::info('Short link revoked for game', [
+            'game_id' => $this->game->id,
+            'link_id' => $linkId,
+            'user_id' => $viewer->id,
+        ]);
+
+        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
+        session()->flash('success', 'Short link revoked.');
     }
 
     // ── Join via Share Link ────────────────────────────
@@ -211,8 +315,14 @@ class GameDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
+        // Determine join source and short link ID
+        $joinSource = $this->validatedShortLinkId !== null
+            ? JoinSource::ShortLink
+            : JoinSource::ShareLink;
+        $shortLinkId = $this->validatedShortLinkId;
+
         try {
-            DB::transaction(function () use ($viewer) {
+            DB::transaction(function () use ($viewer, $joinSource, $shortLinkId) {
                 $game = Game::lockForUpdate()->find($this->game->id);
 
                 $approvedCount = $game->participants()
@@ -221,55 +331,58 @@ class GameDetail extends Component
 
                 $isFull = $game->max_players !== null && $approvedCount >= $game->max_players;
 
+                $baseData = [
+                    'game_id' => $game->id,
+                    'user_id' => $viewer->id,
+                    'role' => 'player',
+                    'join_source' => $joinSource->value,
+                ];
+
+                if ($shortLinkId !== null) {
+                    $baseData['short_link_id'] = $shortLinkId;
+                }
+
                 if ($isFull && $game->isBenchMode()) {
-                    // Bench-mode entity: bench the player
-                    GameParticipant::create([
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'role' => 'player',
-                        'status' => ParticipantStatus::Benched->value,
-                        'benched_at' => now(),
-                        'join_source' => JoinSource::ShareLink->value,
-                    ]);
+                    $baseData['status'] = ParticipantStatus::Benched->value;
+                    $baseData['benched_at'] = now();
+
+                    GameParticipant::create($baseData);
 
                     Log::info('Player benched via share link (bench mode, full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
+                        'join_source' => $joinSource->value,
+                        'short_link_id' => $shortLinkId,
                     ]);
                 } elseif ($isFull) {
-                    // Waitlist-mode entity: waitlist the player
-                    GameParticipant::create([
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'role' => 'player',
-                        'status' => ParticipantStatus::Waitlisted->value,
-                        'waitlisted_at' => now(),
-                        'join_source' => JoinSource::ShareLink->value,
-                    ]);
+                    $baseData['status'] = ParticipantStatus::Waitlisted->value;
+                    $baseData['waitlisted_at'] = now();
+
+                    GameParticipant::create($baseData);
 
                     Log::info('Player waitlisted via share link (game full)', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
+                        'join_source' => $joinSource->value,
+                        'short_link_id' => $shortLinkId,
                     ]);
                 } else {
-                    // Direct join
-                    GameParticipant::create([
-                        'game_id' => $game->id,
-                        'user_id' => $viewer->id,
-                        'role' => 'player',
-                        'status' => ParticipantStatus::Approved->value,
-                        'join_source' => JoinSource::ShareLink->value,
-                    ]);
+                    $baseData['status'] = ParticipantStatus::Approved->value;
+
+                    GameParticipant::create($baseData);
 
                     Log::info('Player joined via share link', [
                         'game_id' => $game->id,
                         'user_id' => $viewer->id,
+                        'join_source' => $joinSource->value,
+                        'short_link_id' => $shortLinkId,
                     ]);
                 }
             });
 
-            // Clear the share_intent cookie since the user has now joined
+            // Clear the intent cookies since the user has now joined
             Cookie::queue(Cookie::forget('share_intent'));
+            Cookie::queue(Cookie::forget('short_link_intent'));
 
             // Reload game to reflect new participant
             $this->game->load('participants.user');
@@ -296,18 +409,14 @@ class GameDetail extends Component
             return false;
         }
 
-        // Must have a valid share token captured on mount
-        if ($this->validatedShareToken === null) {
-            return false;
-        }
+        // Must have either a valid share token or a valid short link
+        $hasShareToken = $this->validatedShareToken !== null
+            && $this->validatedShareToken === $this->game->share_token
+            && ($this->game->share_token_expires_at === null || ! $this->game->share_token_expires_at->isPast());
 
-        // Token must still match the game's current share token
-        if ($this->validatedShareToken !== $this->game->share_token) {
-            return false;
-        }
+        $hasShortLink = $this->validatedShortLinkId !== null;
 
-        // Token must not be expired
-        if ($this->game->share_token_expires_at !== null && $this->game->share_token_expires_at->isPast()) {
+        if (! $hasShareToken && ! $hasShortLink) {
             return false;
         }
 
@@ -543,6 +652,10 @@ class GameDetail extends Component
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
+            'shortLinks' => $this->getShortLinks(),
+            'canCreateMoreShortLinks' => Auth::user()
+                ? app(ShortLinkService::class)->canCreateMore($this->game, Auth::user())
+                : false,
         ]);
     }
 }

@@ -10,5 +10,7 @@ class ShareIntentResult
     public function __construct(
         public readonly bool $shouldRedirect,
         public readonly ?string $redirectRoute,
+        public readonly bool $shouldClearCookie = false,
+        public readonly ?string $entityId = null,
     ) {}
 }

@@ -20,6 +20,7 @@ use Spatie\SchemaOrg\EventStatusType;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Traits\HasTranslations;
 use App\Traits\StringMorphMediaKey;
+use App\Relations\StringKeyMorphMany;
 
 class Event extends Model implements HasMedia
 {
@@ -97,6 +98,12 @@ class Event extends Model implements HasMedia
                 $event->slug = Str::slug($event->name) . '-' . Str::random(6);
             }
         });
+
+        static::updated(function (self $event) {
+            if ($event->wasChanged('status') && in_array($event->status, ['completed', 'cancelled'])) {
+                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($event);
+            }
+        });
     }
 
     public function registerMediaCollections(): void
@@ -153,6 +160,19 @@ class Event extends Model implements HasMedia
     public function linkedLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    // ── Short Links ────────────────────────────────────
+
+    public function shortLinks()
+    {
+        return (new StringKeyMorphMany(
+            $this->newRelatedInstance(ShortLink::class)->newQuery(),
+            $this,
+            'linkable_type',
+            'linkable_id',
+            'id'
+        ))->where('linkable_type', static::class);
     }
 
     // ── Scopes ─────────────────────────────────────────

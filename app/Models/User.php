@@ -49,6 +49,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'is_disabled',
     'disabled_at',
     'can_create_public_entries',
+    'max_links_per_entity',
     'preferred_language',
     'location',
     'location_id',
@@ -101,6 +102,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia
             'location' => 'array',
             'reliability_score' => 'array',
             'reliability_computed_at' => 'datetime',
+            'max_links_per_entity' => 'integer',
         ];
     }
 
@@ -288,6 +290,11 @@ class User extends Authenticatable implements FilamentUser, HasMedia
     public function gmProfile()
     {
         return $this->hasOne(GMProfile::class);
+    }
+
+    public function gmSocialLinks()
+    {
+        return $this->hasMany(GmSocialLink::class)->orderBy('platform');
     }
 
     public function localSubscriptions()

@@ -291,4 +291,88 @@
             </div>
         @endif
     </div>
+
+    {{-- ── Share Link Analytics ─────────────────────────────────── --}}
+    <div class="mt-6 bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+        <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">link</span>
+            <h3 class="font-heading font-semibold text-on-surface">{{ __('gws.heading_share_link_analytics') }}</h3>
+        </div>
+
+        {{-- Summary Cards --}}
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+            <div class="p-4 bg-surface-container-high/50 rounded-lg text-center">
+                <div class="text-3xl font-heading font-bold text-primary">{{ $linkAnalytics['totalLinks'] }}</div>
+                <div class="text-xs text-on-surface-variant mt-1">{{ __('gws.label_total_links') }}</div>
+            </div>
+            <div class="p-4 bg-surface-container-high/50 rounded-lg text-center">
+                <div class="text-3xl font-heading font-bold text-on-surface">{{ number_format($linkAnalytics['totalHits30d']) }}</div>
+                <div class="text-xs text-on-surface-variant mt-1">{{ __('gws.label_hits_30d') }}</div>
+            </div>
+            @foreach($linkAnalytics['linksByType'] as $type => $count)
+                <div class="p-4 bg-surface-container-high/50 rounded-lg text-center">
+                    <div class="text-3xl font-heading font-bold text-on-surface-variant">{{ $count }}</div>
+                    <div class="text-xs text-on-surface-variant mt-1">{{ $type }}</div>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Top Links --}}
+        @if($topLinks->count())
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-on-surface mb-3">{{ __('gws.heading_top_links') }}</h4>
+                <div class="space-y-2">
+                    @foreach($topLinks as $link)
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/50">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <code class="text-xs font-mono bg-surface-container-highest px-1.5 py-0.5 rounded">{{ $link->code }}</code>
+                                    <span class="text-sm text-on-surface truncate">{{ $link->label ?? ($link->linkable?->name ?? class_basename($link->linkable_type)) }}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 text-xs text-on-surface-variant ml-2 shrink-0">
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">touch_app</span>
+                                {{ number_format($link->hit_count ?? 0) }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Top Referrers --}}
+        @if($topReferrers->count())
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-on-surface mb-3">{{ __('gws.heading_top_referrers') }}</h4>
+                <div class="space-y-2">
+                    @foreach($topReferrers as $ref)
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/50">
+                            <span class="text-sm text-on-surface truncate">{{ $ref['domain'] }}</span>
+                            <span class="text-xs text-on-surface-variant ml-2 shrink-0">{{ number_format($ref['count']) }} {{ __('gws.label_hits') }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Links Manager Table --}}
+        @php
+            $allLinks = \App\Models\ShortLink::where('user_id', \Illuminate\Support\Facades\Auth::id())
+                ->with('linkable')
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get();
+        @endphp
+        @if($allLinks->count())
+            <h4 class="text-sm font-medium text-on-surface mb-3">{{ __('gws.heading_all_links') }}</h4>
+            @include('livewire.partials._share-links-manager', ['links' => $allLinks, 'showActions' => true])
+        @endif
+
+        @if(!$topLinks->count() && !$topReferrers->count() && !$allLinks->count())
+            <div class="text-center py-8">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2 block">link_off</span>
+                <p class="text-sm text-on-surface-variant">{{ __('gws.content_no_share_links') }}</p>
+            </div>
+        @endif
+    </div>
 </div>

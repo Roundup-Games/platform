@@ -304,6 +304,9 @@ return [
     'action_revoke_link' => 'Link widerrufen',
     'confirmation_regenerate_link' => 'Bist du sicher? Dadurch wird der aktuellen Link ungültig.',
     'confirmation_revoke_link' => 'Bist du sicher? Dadurch wird der Share-Link dauerhaft deaktiviert.',
+    'content_hits' => '{1} :count Aufruf|[2,*] :count Aufrufe',
+    'placeholder_link_label' => 'Bezeichnung (optional)',
+    'error_max_links_reached' => 'Maximale Anzahl an Short Links für diese Entität erreicht.',
 
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Teilnehmer',
@@ -367,4 +370,12 @@ return [
 
     // ── Footer ──────────────────────────────────────────
     'content_community_and_trust' => 'Community & Vertrauen',
+
+    // ── Teilnehmerquelle-Anzeige ────────────────────────
+    'content_joined_via_link' => 'Beigetreten über: :label',
+    'source_share_link' => 'Freigabelink',
+    'source_friend_invite' => 'Freundschaftseinladung',
+    'source_application' => 'Bewerbung',
+    'source_email_invite' => 'E-Mail-Einladung',
+    'source_short_link' => 'Kurzlink',
 ];

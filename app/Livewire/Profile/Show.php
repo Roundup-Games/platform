@@ -75,8 +75,15 @@ class Show extends Component
     public bool $preferencesSaved = false;
     public bool $privacySaved = false;
     public bool $notificationSaved = false;
+    public bool $socialLinksSaved = false;
 
     public int $pushSubscriptionCount = 0;
+
+    /** @var array<string, array{handle: string, instance?: string}> Per-platform social link data */
+    public array $socialLinks = [];
+
+    /** @var array<string, array{name: string, icon: string, ...}> Platform config for rendering */
+    public array $platforms = [];
 
     public function mount(): void
     {
@@ -126,6 +133,15 @@ class Show extends Component
 
         // Count existing push subscriptions for the subscribe/unsubscribe UI
         $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
+
+        // Load social links for GMs
+        $this->platforms = collect(config('platforms'))
+            ->sortBy('sort_order')
+            ->toArray();
+
+        if ($user->isGM()) {
+            $this->loadSocialLinks($user);
+        }
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -486,6 +502,64 @@ class Show extends Component
         session()->regenerateToken();
 
         $this->redirect('/', navigate: false);
+    }
+
+    /**
+     * Load existing social links for the current user.
+     */
+    protected function loadSocialLinks($user): void
+    {
+        $existingLinks = $user->gmSocialLinks()->get()->keyBy('platform');
+
+        foreach ($this->platforms as $key => $platform) {
+            $this->socialLinks[$key] = [
+                'handle' => $existingLinks->has($key) ? $existingLinks[$key]->handle : '',
+                'instance' => $existingLinks->has($key) ? ($existingLinks[$key]->instance ?? '') : '',
+            ];
+        }
+    }
+
+    /**
+     * Save social links for GM profile.
+     */
+    public function saveSocialLinks(): void
+    {
+        $user = Auth::user();
+
+        if (! $user->isGM()) {
+            return;
+        }
+
+        $rules = ['socialLinks' => ['required', 'array']];
+        foreach ($this->platforms as $key => $platform) {
+            $rules["socialLinks.{$key}.handle"] = ['nullable', 'string', 'max:255'];
+            if ($platform['instance_required'] ?? false) {
+                $rules["socialLinks.{$key}.instance"] = ['nullable', 'string', 'max:255'];
+            }
+        }
+
+        $validated = $this->validate($rules);
+
+        try {
+            $service = app(\App\Services\GmSocialLinkService::class);
+            $service->syncLinksForUser($user, $validated['socialLinks']);
+
+            Log::info('GM social links updated', [
+                'user_id' => $user->id,
+                'platforms_count' => count(array_filter($validated['socialLinks'], fn ($l) => ! empty($l['handle']))),
+            ]);
+
+            $this->socialLinksSaved = true;
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Failed to save GM social links', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->addError('socialLinks', __('profile.gm_social_links_error'));
+        }
     }
 
     public function render()

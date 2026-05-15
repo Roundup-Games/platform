@@ -16,7 +16,7 @@ class CampaignParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts'];
+    protected $fillable = ['campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,
@@ -26,6 +26,7 @@ class CampaignParticipant extends Model
         'waitlisted_at' => 'datetime',
         'confirmation_expires_at' => 'datetime',
         'confirmation_attempts' => 'integer',
+        'short_link_id' => 'integer',
     ];
 
     public $timestamps = false;
@@ -48,6 +49,26 @@ class CampaignParticipant extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function shortLink(): BelongsTo
+    {
+        return $this->belongsTo(ShortLink::class);
+    }
+
+    /**
+     * Get a human-readable label for the participant's join source.
+     *
+     * Returns the short link label if one exists, otherwise falls back
+     * to the JoinSource enum label.
+     */
+    public function getSourceLabelAttribute(): ?string
+    {
+        if ($this->short_link_id && $this->shortLink) {
+            return $this->shortLink->label ?? $this->shortLink->code;
+        }
+
+        return $this->join_source?->label();
     }
 
     /**

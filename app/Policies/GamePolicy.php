@@ -7,6 +7,7 @@ use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
+use App\Services\ShortLinkService;
 
 class GamePolicy
 {
@@ -38,6 +39,11 @@ class GamePolicy
     public function view(?User $user, Game $game): bool
     {
         if ($game->visibility === Visibility::Public) {
+            return true;
+        }
+
+        // Short link bypass: valid short link grants access unless game is completed/canceled
+        if ($this->hasValidShortLink($game)) {
             return true;
         }
 
@@ -96,5 +102,33 @@ class GamePolicy
     private function checkPermission(User $user, string $permission): bool
     {
         return app(ScopedRoleService::class)->checkPermission($user, $permission);
+    }
+
+    /**
+     * Check if the current request carries a valid short link for this game.
+     *
+     * Reads the ph_link_id cookie, resolves the ShortLink, and validates
+     * it belongs to this game and is not expired.
+     */
+    private function hasValidShortLink(Game $game): bool
+    {
+        $linkId = request()->cookie('ph_link_id');
+
+        if ($linkId === null) {
+            return false;
+        }
+
+        $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
+
+        if ($link === null) {
+            return false;
+        }
+
+        if ($game->status === GameStatus::Completed || $game->status === GameStatus::Canceled) {
+            return false;
+        }
+
+        return $link->linkable_type === Game::class
+            && (string) $link->linkable_id === (string) $game->getKey();
     }
 }

@@ -9,6 +9,7 @@ use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
+use App\Services\ShortLinkService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -227,6 +228,21 @@ class CreateCampaign extends Component
             'name' => $campaign->name,
             'owner_id' => Auth::id(),
         ]);
+
+        // Auto-generate short link for GMs
+        if (Auth::user()->isGM()) {
+            try {
+                app(ShortLinkService::class)->createLink($campaign, Auth::user(), [
+                    'label' => 'Default',
+                    'expires_at' => now()->addDays(30),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to auto-generate short link for campaign', [
+                    'campaign_id' => $campaign->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         session()->flash('success', __('campaigns.flash_campaign_name_created_successfully', ['name' => $campaign->name]));
 

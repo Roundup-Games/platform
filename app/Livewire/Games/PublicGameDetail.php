@@ -5,6 +5,7 @@ namespace App\Livewire\Games;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\Review;
+use App\Services\ShortLinkService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Livewire\Attributes\Computed;
@@ -20,6 +21,10 @@ class PublicGameDetail extends Component
     #[Locked]
     public ?string $validatedShareToken = null;
 
+    /** @var int|null Validated short link ID from ph_link_id cookie */
+    #[Locked]
+    public ?int $validatedShortLinkId = null;
+
     public function mount(string $id): void
     {
         $game = Game::findOrFail($id);
@@ -31,12 +36,33 @@ class PublicGameDetail extends Component
             $this->validatedShareToken = request()->query('share');
         }
 
+        // Detect short link arrival via ph_link_id cookie
+        $linkId = request()->cookie('ph_link_id');
+        if ($linkId !== null) {
+            $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
+            if ($link !== null
+                && $link->linkable_type === Game::class
+                && (string) $link->linkable_id === (string) $game->getKey()) {
+                $this->validatedShortLinkId = $link->id;
+            }
+        }
+
         // Set share_intent cookie for guests visiting via share link
         if (Auth::guest() && $this->validatedShareToken !== null) {
             Cookie::queue('share_intent', json_encode([
                 'entity_type' => 'game',
                 'entity_id' => $game->id,
                 'share_token' => $this->validatedShareToken,
+            ]), 24 * 60);
+        }
+
+        // Set short_link_intent cookie for guests arriving via short link
+        // (ShortLinkController already sets this, but ensure it persists for the current page load)
+        if (Auth::guest() && $this->validatedShortLinkId !== null) {
+            Cookie::queue('short_link_intent', json_encode([
+                'entity_type' => 'game',
+                'entity_id' => $game->id,
+                'short_link_id' => $this->validatedShortLinkId,
             ]), 24 * 60);
         }
     }
@@ -70,12 +96,20 @@ class PublicGameDetail extends Component
     #[Computed]
     public function hasShareLink(): bool
     {
-        return $this->game->share_token !== null;
+        return $this->game->share_token !== null || $this->validatedShortLinkId !== null;
     }
 
     #[Computed]
     public function shareLinkUrl(): ?string
     {
+        // If we have a validated short link, use its URL
+        if ($this->validatedShortLinkId !== null) {
+            $link = \App\Models\ShortLink::find($this->validatedShortLinkId);
+            if ($link) {
+                return url('/link/' . $link->code);
+            }
+        }
+
         if ($this->game->share_token === null) {
             return null;
         }

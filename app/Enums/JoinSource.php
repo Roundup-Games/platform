@@ -8,6 +8,7 @@ enum JoinSource: string
     case ShareLink = 'share_link';
     case Application = 'application';
     case EmailInvite = 'email_invite';
+    case ShortLink = 'short_link';
 
     /**
      * @return string[]
@@ -24,6 +25,7 @@ enum JoinSource: string
             self::ShareLink => 'Share Link',
             self::Application => 'Application',
             self::EmailInvite => 'Email Invite',
+            self::ShortLink => 'Short Link',
         };
     }
 }

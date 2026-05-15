@@ -206,4 +206,14 @@ return [
     'label_reliability_games_played' => 'Spiele',
     'content_reliability_stats' => 'Zuverlässigkeitsstatistiken',
     'content_who_can_see_your_reliability_stats' => 'Wer deine detaillierte Anwesenheitsrate und Spielanzahl sehen kann. Deine Statistiken sind immer sichtbar, wenn jemand eine Spielsession oder Kampagne ansieht, die du organisierst',
+
+    // GM Social Links
+    'field_gm_profile' => 'GM-Profil',
+    'gm_social_links_title' => 'Social-Media-Links',
+    'gm_social_links_intro' => 'Füge deine Social-Media-Profile zu deiner GM-Profilseite hinzu. Spieler sehen diese als verknüpfte Icons.',
+    'gm_social_links_saved' => 'Social-Media-Links erfolgreich gespeichert.',
+    'gm_social_links_error' => 'Fehler beim Speichern der Links. Bitte versuche es erneut.',
+    'gm_social_handle_placeholder' => 'Dein Benutzername',
+    'gm_social_handle_placeholder_at' => 'Benutzername',
+    'gm_social_instance_label' => 'Instanz (z.B. mastodon.social)',
 ];
