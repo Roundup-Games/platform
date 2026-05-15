@@ -121,10 +121,10 @@
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
                     <p class="mb-2">Score = (weighted_sum / game_count) &times; 100</p>
-                    <p class="mb-2">Clamped to range [0%, 100%]</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_reliability_formula_clamped') }}</p>
                 </div>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Attendance status weights</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_reliability_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_status') }}</th>
@@ -241,9 +241,9 @@
                     {{ __('pages.content_pledge_algo_formula_heading') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
-                    <p class="mb-2">Average Rating = COALESCE(AVG(rating), 0)</p>
-                    <p class="mb-2">Review Count = COUNT(*) <span class="text-primary">WHERE status = 'published'</span></p>
-                    <p>Proficiency Badges = TOP 3 tags by frequency across published reviews</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_gm_formula_avg') }}</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_gm_formula_count') }}</p>
+                    <p>{{ __('pages.content_pledge_algo_gm_formula_badges') }}</p>
                 </div>
                 <p class="text-sm text-on-surface-variant">
                     {{ __('pages.content_pledge_algo_gm_formula_note') }}
@@ -341,16 +341,16 @@
                     {{ __('pages.content_pledge_algo_formula_heading') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
-                    <p class="mb-2">Taste: J(A, B) = |A &cap; B| / |A &cup; B|</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_people_formula_taste') }}</p>
                     <p class="mb-2">&nbsp;&nbsp;Computed on game systems + vibes, averaged</p>
-                    <p class="mb-2">Social: (team overlap + mutual follow) / components</p>
-                    <p class="mb-3">Composite:</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_people_formula_social') }}</p>
+                    <p class="mb-3">{{ __('pages.content_pledge_algo_people_formula_composite') }}</p>
                     <p class="mb-1">&nbsp;&nbsp;if taste &amp; social: score = taste &times; 0.7 + social &times; 0.3</p>
                     <p class="mb-1">&nbsp;&nbsp;if taste only: score = taste</p>
                     <p>&nbsp;&nbsp;if social only: score = social</p>
                 </div>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Scoring component weights</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_people_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_component') }}</th>
@@ -461,12 +461,12 @@
                     {{ __('pages.content_pledge_algo_preference_resolution_heading') }}
                 </h3>
                 <div class="font-mono text-sm text-on-surface-variant bg-surface-container-lowest rounded-lg p-4 overflow-x-auto mb-4">
-                    <p class="mb-2">allowed = (favorites + implied_favorites) &minus; avoided</p>
-                    <p class="mb-2">Boosted: allowed AND favorite_vibes</p>
-                    <p>Fallback: allowed (any vibe)</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_session_formula_allowed') }}</p>
+                    <p class="mb-2">{{ __('pages.content_pledge_algo_session_formula_boosted') }}</p>
+                    <p>{{ __('pages.content_pledge_algo_session_formula_fallback') }}</p>
                 </div>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Preference resolution rules</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_session_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_rule') }}</th>
@@ -476,7 +476,7 @@
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_rule_base_favorited') }}</td>
-                            <td class="py-2">{!! __('pages.content_pledge_algo_rule_base_favorited_behavior') !!} class="bg-surface-container-lowest px-1 rounded text-xs">implied_favorites</code></td>
+                            <td class="py-2">{!! __('pages.content_pledge_algo_rule_base_favorited_behavior') !!}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_rule_explicit_avoid') }}</td>
@@ -582,7 +582,7 @@
                     <p class="mb-1">&nbsp;&nbsp;cos(lat&#8321;) &times; cos(lat&#8322;) &times; sin&sup2;(&Delta;lng / 2)</p>
                     <p>))</p>
                 </div>
-                <p class="text-sm text-on-surface-variant"{{ __('pages.content_pledge_algo_haversine_radius') }}</p>
+                <p class="text-sm text-on-surface-variant">{{ __('pages.content_pledge_algo_haversine_radius') }}</p>
             </div>
 
             {{-- Geohash Tile System --}}
@@ -592,7 +592,7 @@
                     {{ __('pages.content_pledge_algo_proximity_geohash') }}
                 </h3>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Geohash precision levels and approximate tile sizes</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_proximity_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_precision') }}</th>
@@ -676,7 +676,7 @@
                     {{ __('pages.content_pledge_algo_trending_criteria') }}
                 </h3>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Trending session selection criteria</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_trending_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_trending_table_parameter') }}</th>
@@ -775,7 +775,7 @@
                     <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (campaigns &times; w&#8323;) + (active_games &times; w&#8324;)</p>
                 </div>
                 <table class="w-full text-sm text-on-surface-variant">
-                    <caption class="sr-only">Type-differentiated scoring weights</caption>
+                    <caption class="sr-only">{{ __('pages.content_pledge_algo_platform_caption') }}</caption>
                     <thead>
                         <tr class="border-b border-outline-variant">
                             <th class="text-left py-2 pr-4 font-medium">{{ __('pages.content_pledge_algo_table_signal') }}</th>
