@@ -20,6 +20,10 @@
     <section class="py-16 bg-surface">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
             <p class="text-lg text-on-surface-variant leading-relaxed max-w-3xl mx-auto">
+                {{ __('safety.content_safety_tools_matter_at_every_table') }}
+                <a href="{{ route('pledge') }}" wire:navigate class="text-primary hover:underline ml-1">{{ __('safety.action_learn_about_our_commitment') }} →</a>
+            </p>
+            <p class="text-lg text-on-surface-variant leading-relaxed max-w-3xl mx-auto mt-4">
                 {{ __('safety.content_whether_you_re_a_seasoned') }}
             </p>
             <div class="mt-8 flex items-center justify-center gap-4">

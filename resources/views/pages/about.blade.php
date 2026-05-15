@@ -16,6 +16,20 @@
         </div>
     </section>
 
+    {{-- ── Why Local Matters ─────────────────────────────────── --}}
+    <section id="why-local" class="py-16 sm:py-20 bg-surface">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-8">
+                {{ __('pages.content_about_why_local_heading') }}
+            </h2>
+            <div class="space-y-6 text-on-surface-variant leading-relaxed">
+                <p>{{ __('pages.content_about_why_local_p1') }}</p>
+                <p>{{ __('pages.content_about_why_local_p2') }}</p>
+                <p>{{ __('pages.content_about_why_local_p3') }}</p>
+            </div>
+        </div>
+    </section>
+
     {{-- ── What Drives Us ───────────────────────────────────── --}}
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
@@ -23,94 +37,111 @@
                 {{ __('pages.content_about_what_drives_us') }}
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {{-- Transparency --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">visibility</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_transparency_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_transparency_body') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Safety --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_safety_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_safety_body') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Inclusivity & Diversity --}}
+                {{-- Community First --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_inclusivity_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_inclusivity_body') }}
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_value_community_first_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
+                                {{ __('pages.content_about_value_community_first_body') }}
                             </p>
+                            <a href="{{ url('/our-pledge') }}" class="text-sm font-medium text-primary hover:underline">{{ __('pages.content_safe_spaces_pledge_link') }}</a>
                         </div>
                     </div>
                 </div>
 
-                {{-- Investing in Community --}}
+                {{-- Safe by Design --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">favorite</span>
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_community_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_community_body') }}
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_value_safe_by_design_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
+                                {{ __('pages.content_about_value_safe_by_design_body') }}
                             </p>
+                            <div class="flex gap-3 text-sm font-medium">
+                                <a href="{{ url('/safety-tools') }}" class="text-primary hover:underline">Safety Tools</a>
+                                <a href="{{ url('/our-pledge/algorithms') }}" class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {{-- Try Something New --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">auto_awesome</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_experiment_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_experiment_body') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Open Source --}}
+                {{-- Open by Default --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                             <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">code</span>
                         </div>
                         <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_open_source_title') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_about_open_source_body') }}
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_about_value_open_by_default_title') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed mb-3">
+                                {{ __('pages.content_about_value_open_by_default_body') }}
                             </p>
+                            <div class="flex gap-3 text-sm font-medium">
+                                <a href="https://github.com/roundup-games" target="_blank" rel="noopener" class="text-primary hover:underline">GitHub</a>
+                                <a href="{{ url('/our-pledge/algorithms') }}" class="text-primary hover:underline">{{ __('pages.content_about_commitment_algorithms_action') }}</a>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ── Our Commitments ─────────────────────────────────── --}}
+    <section class="py-16 sm:py-20 bg-surface-container-low">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-4">
+                {{ __('pages.content_about_commitments_heading') }}
+            </h2>
+            <p class="text-center text-on-surface-variant mb-12 max-w-2xl mx-auto">
+                {{ __('pages.content_about_commitments_subtitle') }}
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {{-- Algorithms (live) --}}
+                <a href="{{ url('/our-pledge/algorithms') }}" class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient hover:shadow-md transition-shadow group">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">functions</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2 group-hover:text-primary transition-colors">{{ __('pages.content_about_commitment_algorithms_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_algorithms_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-primary">{{ __('pages.content_about_commitment_algorithms_action') }} →</span>
+                </a>
+
+                {{-- Finances (coming soon) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">account_balance</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_finances_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_finances_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_finances_status') }}</span>
+                </div>
+
+                {{-- Roadmap (coming soon) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">map</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_roadmap_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_roadmap_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_roadmap_status') }}</span>
+                </div>
+
+                {{-- Operations (coming soon) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient opacity-75">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-primary text-xl" aria-hidden="true">gavel</span>
+                    </div>
+                    <h3 class="font-heading font-semibold text-on-surface mb-2">{{ __('pages.content_about_commitment_operations_title') }}</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('pages.content_about_commitment_operations_body') }}</p>
+                    <span class="inline-block mt-3 text-sm font-medium text-on-surface-variant">{{ __('pages.content_about_commitment_operations_status') }}</span>
                 </div>
             </div>
         </div>

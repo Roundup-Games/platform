@@ -62,79 +62,6 @@
         </div>
     </section>
 
-    {{-- ── Values Section ───────────────────────────────────── --}}
-    <section class="py-16 sm:py-20 bg-surface-container-low">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface text-center mb-4">
-                {{ __('pages.heading_what_we_stand_for') }}
-            </h2>
-            <p class="text-on-surface-variant text-center max-w-2xl mx-auto mb-12">
-                {{ __('common.content_these_aren_t_just_words') }}
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {{-- Inclusivity --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">diversity_3</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_inclusivity') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_every_table_welcoming_body') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Safety --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">shield_person</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('safety.content_safety') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('pages.content_trust_is_earned_through_transparency') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Community --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">favorite</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('pages.content_community') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('events.content_the_best_games_happen_when') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Curiosity --}}
-                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">auto_awesome</span>
-                        </div>
-                        <div>
-                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('common.content_curiosity') }}</h3>
-                            <p class="text-sm text-on-surface-variant leading-relaxed">
-                                {{ __('games.content_the_best_adventures_start_with') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     {{-- ── Safety & Vetting Section ─────────────────────────── --}}
     <section class="py-16 sm:py-20 bg-surface">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
@@ -177,6 +104,21 @@
                             <p class="text-sm text-on-surface-variant mt-1">{{ __('safety.content_for_rpg_campaigns_we_encourage') }}</p>
                         </div>
                     </div>
+                </div>
+
+                {{-- Bridge to in-person trust (M043 S04 T02) --}}
+                <div class="mt-10 pt-8 border-t border-outline-variant">
+                    <p class="text-on-surface-variant leading-relaxed max-w-2xl mx-auto">
+                        {{ __('pages.content_safety_bridge_trust') }}
+                    </p>
+                    <p class="mt-4 text-on-surface-variant leading-relaxed max-w-2xl mx-auto">
+                        {{ __('pages.content_safety_bridge_nonprofit') }}
+                    </p>
+                    <p class="mt-4">
+                        <a href="{{ url('/our-pledge') }}" class="text-primary font-semibold hover:underline">
+                            {{ __('pages.action_learn_about_our_pledge') }}
+                        </a>
+                    </p>
                 </div>
             </div>
         </div>
