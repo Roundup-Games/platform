@@ -44,7 +44,9 @@
             if (theme === 'system') resolve();
         });
     "
+    @keydown.escape.window="open = false"
     class="relative"
+    wire:ignore
 >
     <button
         @click="open = !open"
@@ -62,6 +64,7 @@
     {{-- Dropdown --}}
     <div
         x-show="open"
+        x-cloak
         x-transition:enter="transition ease-out duration-150"
         x-transition:enter-start="opacity-0 scale-95"
         x-transition:enter-end="opacity-100 scale-100"

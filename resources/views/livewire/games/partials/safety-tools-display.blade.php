@@ -32,7 +32,7 @@
                             @foreach($categoryTools as $tool)
                                 <div class="flex items-start gap-3 p-3 bg-surface-container-high rounded-lg">
                                     <span class="material-symbols-outlined text-lg text-primary mt-0.5 shrink-0" aria-hidden="true">
-                                        {{ $tool === \App\Enums\SafetyTool::XCard || $tool === \App\Enums\SafetyTool::XnoCard ? 'block' : ($tool === \App\Enums\SafetyTool::Breaks ? 'coffee' : 'verified_user') }}
+                                        {{ $tool === \App\Enums\SafetyTool::XCard || $tool === \App\Enums\SafetyTool::XnoCard ? 'block' : ($tool === \App\Enums\SafetyTool::Breaks ? 'pause_circle' : 'verified_user') }}
                                     </span>
                                     <div>
                                         <p class="text-sm font-medium text-on-surface">{{ $tool->label() }}</p>

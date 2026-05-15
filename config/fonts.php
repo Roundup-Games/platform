@@ -78,10 +78,7 @@ return [
 
         // Icons only in dynamic PHP code
         'pause_circle', 'search_off',
-        'support_agent',
-        'receipt_long', 'coffee', 'inbox', 'code', 'dashboard',
-        'waving_hand',
-
+                'inbox', 'code', 'dashboard',        
         // Icons only in JS
         'system_update',
     ],

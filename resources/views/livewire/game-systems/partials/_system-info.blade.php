@@ -2,7 +2,7 @@
                     <section>
                         <h2 class="text-lg font-heading font-bold text-on-surface mb-3">{{ __('games.heading_about_this_game') }}</h2>
                         <div class="prose prose-sm max-w-none text-on-surface-variant prose-headings:text-on-surface prose-a:text-primary whitespace-pre-line">
-                            {{ $system->description }}
+                            {!! nl2br(e(html_entity_decode($system->description ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'))) !!}
                         </div>
                     </section>
                 @endif

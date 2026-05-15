@@ -71,7 +71,7 @@
             <div class="flex justify-end">
                 <button type="submit" wire:loading.attr="disabled"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-[0.96] transition-all text-sm font-medium">
-                    <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">support_agent</span>
+                    <span class="material-symbols-outlined text-base" wire:loading.remove aria-hidden="true">contact_support</span>
                     <span wire:loading.remove>{{ __('support.action_submit_ticket') }}</span>
                     <span wire:loading class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>

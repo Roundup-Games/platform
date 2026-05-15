@@ -67,7 +67,7 @@
                 @else
                     <span>{{ __('location.action_set_your_location') }}</span>
                 @endif
-                <button wire:click="requestGuestLocation" class="text-primary hover:underline text-xs">{{ __('common.action_change') }}</button>
+                <button wire:click="requestGuestLocation" type="button" class="text-primary hover:underline text-xs font-medium py-1 px-1 cursor-pointer relative z-10">{{ __('common.action_change') }}</button>
             </div>
         </div>
 

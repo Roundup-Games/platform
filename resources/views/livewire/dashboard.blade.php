@@ -14,7 +14,7 @@
                             'just_completed' => 'auto_stories',
                             'empty_week' => 'event_available',
                             'new_follower' => 'person_add',
-                            default => 'waving_hand',
+                            default => 'auto_awesome',
                         };
                         $promptIconFilled = in_array($smartPrompt['type'], ['pending_invitations', 'upcoming_session']);
                     @endphp

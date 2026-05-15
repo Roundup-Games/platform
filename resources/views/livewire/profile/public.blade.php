@@ -286,7 +286,7 @@
                                         <span class="text-xs text-on-surface-variant">{{ format_date($game->date_time, 'datetime') }}</span>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                             {{ $game->visibility->value === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                            {{ __(ucfirst($game->visibility->value)) }}
+                                            {{ $game->visibility->label() }}
                                         </span>
                                         <span class="text-xs text-on-surface-variant">{{ trans_choice('common.content_count_players', $game->participants_count) }}</span>
                                     </div>
@@ -319,7 +319,7 @@
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                             {{ $campaign->visibility->value === 'public' ? 'bg-secondary-container text-on-secondary-container' : 'bg-tertiary/10 text-tertiary' }}">
-                                            {{ __(ucfirst($campaign->visibility->value)) }}
+                                            {{ $campaign->visibility->label() }}
                                         </span>
                                         <span class="text-xs text-on-surface-variant">{{ trans_choice('common.content_count_participants', $campaign->participants_count) }}</span>
                                     </div>

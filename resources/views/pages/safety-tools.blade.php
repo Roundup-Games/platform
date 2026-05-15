@@ -68,7 +68,7 @@
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                                     <span class="material-symbols-outlined text-primary text-lg" aria-hidden="true">
-                                        {{ $tool === \App\Enums\SafetyTool::XCard || $tool === \App\Enums\SafetyTool::XnoCard ? 'block' : ($tool === \App\Enums\SafetyTool::Breaks ? 'coffee' : 'verified_user') }}
+                                        {{ $tool === \App\Enums\SafetyTool::XCard || $tool === \App\Enums\SafetyTool::XnoCard ? 'block' : ($tool === \App\Enums\SafetyTool::Breaks ? 'pause_circle' : 'verified_user') }}
                                     </span>
                                 </div>
                                 <h3 class="text-lg font-heading font-semibold text-on-surface">{{ $tool->label() }}</h3>

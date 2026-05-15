@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between flex-wrap gap-4">
         <div class="flex items-center gap-3">
             <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">support_agent</span>
+                <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">contact_support</span>
             </div>
             <div>
                 <h2 class="text-sm font-heading font-semibold tracking-tight text-on-surface">{{ __('support.title_need_help') }}</h2>
