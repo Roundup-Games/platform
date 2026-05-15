@@ -4,10 +4,15 @@
 
 cd /var/www/html
 
+# Configurable via environment variables with sensible defaults
+QUEUE_TIMEOUT="${QUEUE_TIMEOUT:-300}"
+QUEUE_MAX_TIME="${QUEUE_MAX_TIME:-3600}"
+QUEUE_MAX_JOBS="${QUEUE_MAX_JOBS:-1000}"
+
 exec php artisan queue:work \
     --queue=default,discovery \
     --sleep=3 \
     --tries=3 \
-    --timeout=300 \
-    --max-time=3600 \
-    --max-jobs=1000
+    --timeout="${QUEUE_TIMEOUT}" \
+    --max-time="${QUEUE_MAX_TIME}" \
+    --max-jobs="${QUEUE_MAX_JOBS}"

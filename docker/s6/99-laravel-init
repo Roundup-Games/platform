@@ -14,10 +14,20 @@ if [ "${DB_CONNECTION}" = "pgsql" ] && [ -n "${DB_HOST}" ]; then
     echo "Database ready."
 fi
 
-# Generate app key if not set
+# Generate app key if not set — persist to .env so it survives restarts
 if [ -z "${APP_KEY}" ]; then
     echo "Generating APP_KEY..."
-    export APP_KEY=$(php artisan key:generate --show)
+    GENERATED_KEY=$(php artisan key:generate --show)
+    export APP_KEY="${GENERATED_KEY}"
+
+    # Write to .env file so the key persists across container restarts
+    if [ -f .env ]; then
+        if grep -q '^APP_KEY=' .env; then
+            sed -i "s|^APP_KEY=.*|APP_KEY=${GENERATED_KEY}|" .env
+        else
+            echo "APP_KEY=${GENERATED_KEY}" >> .env
+        fi
+    fi
 fi
 
 # Run migrations
@@ -30,10 +40,10 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-
 # Seed Escalated helpdesk data (departments, tags, SLA policies) — idempotent
+# Allow errors to surface in container logs for debugging; || true prevents script failure
 echo "Seeding Escalated helpdesk data..."
-php artisan db:seed --force --class=EscalatedSetupSeeder 2>/dev/null || true
+php artisan db:seed --force --class=EscalatedSetupSeeder || true
 
 # Write deploy timestamp for admin dashboard
 date -u +"%Y-%m-%d %H:%M:%S UTC" > /var/www/html/storage/framework/deploy-timestamp

@@ -185,7 +185,7 @@
                         </div>
                     @else
                         <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
-                    @endif>
+                    @endif
                 </section>
                 @endauth
             </div>

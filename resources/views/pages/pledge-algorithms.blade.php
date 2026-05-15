@@ -368,7 +368,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <p class="text-xs text-on-surface-variant mt-3 italic"{{ __('pages.content_pledge_algo_single_signal_note') }}</p>
+                <p class="text-xs text-on-surface-variant mt-3 italic">{{ __('pages.content_pledge_algo_single_signal_note') }}</p>
             </div>
 
             {{-- Design Decisions --}}
@@ -604,17 +604,17 @@
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4 font-mono">4 chars</td>
                             <td class="py-2 pr-4">~20km &times; 20km</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_city') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_geohash_city') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4 font-mono">5 chars</td>
                             <td class="py-2 pr-4">~2.4km &times; 4.9km</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_neighborhood') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_geohash_neighborhood') }}</td>
                         </tr>
                         <tr>
                             <td class="py-2 pr-4 font-mono">6 chars</td>
                             <td class="py-2 pr-4">~0.6km &times; 1.2km</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_geohash_venue') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_geohash_venue') }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -686,15 +686,15 @@
                     <tbody>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_geo_scope') }}</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_geo_value') }} (~20km &times; 20km)</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_trending_geo_value') }} (~20km &times; 20km)</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_time_window') }}</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_time_value') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_trending_time_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_visibility') }}</td>
-                            <td class="py-2"{{ __('pages.content_pledge_algo_trending_visibility_value') }}</td>
+                            <td class="py-2">{{ __('pages.content_pledge_algo_trending_visibility_value') }}</td>
                         </tr>
                         <tr class="border-b border-outline-variant/50">
                             <td class="py-2 pr-4">{{ __('pages.content_pledge_algo_trending_sort') }}</td>

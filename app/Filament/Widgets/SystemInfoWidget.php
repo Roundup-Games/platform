@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 class SystemInfoWidget extends StatsOverviewWidget
@@ -39,7 +40,7 @@ class SystemInfoWidget extends StatsOverviewWidget
                     $description .= " · Size: {$dbSize}";
                 }
 
-                $migrationCount = \Illuminate\Support\Facades\DB::table('migrations')->count();
+                $migrationCount = DB::table('migrations')->count();
                 $description .= " · Migrations: {$migrationCount}";
             }
 
@@ -152,7 +153,7 @@ class SystemInfoWidget extends StatsOverviewWidget
     {
         try {
             $dbName = config('database.connections.pgsql.database');
-            $result = \Illuminate\Support\Facades\DB::selectOne(
+            $result = DB::selectOne(
                 "SELECT pg_database_size(?) as size",
                 [$dbName]
             );
