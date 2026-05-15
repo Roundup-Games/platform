@@ -408,6 +408,7 @@ class LangFileParser
             'Team', 'Teams', 'Dashboard', 'Avatar', 'Community', 'Details',
             'Forum', 'Chat', 'Logo', 'Google', 'Admin', 'Horror', 'Draft',
             'Online', 'Offline', 'Pro', 'Max', 'Min', 'Camp', 'Format',
+            'Spam', 'optional',
             'Sandbox', 'Fantasy', 'Humor', 'Division', 'Status', 'Position',
             'Support', 'System', 'Neutral', 'Push', 'Name', 'Debriefing',
             // Game industry terms

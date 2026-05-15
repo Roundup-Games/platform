@@ -20,6 +20,7 @@ class DiscoveryPortal extends Component
         $boardGameCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->visibleTo(null)
+            ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'))
             ->count();
 
         $adventureCount = Campaign::where('status', 'active')

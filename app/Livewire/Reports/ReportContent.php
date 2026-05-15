@@ -190,11 +190,11 @@ class ReportContent extends Component
     public function getReasons(): array
     {
         return [
-            'inappropriate-content' => __('reports.reason_inappropriate_content'),
-            'harassment' => __('reports.reason_harassment'),
-            'spam' => __('reports.reason_spam'),
-            'misleading' => __('reports.reason_misleading'),
-            'other' => __('reports.reason_other'),
+            'inappropriate-content' => __('reports.field_reason_inappropriate_content'),
+            'harassment' => __('reports.field_reason_harassment'),
+            'spam' => __('reports.field_reason_spam'),
+            'misleading' => __('reports.field_reason_misleading'),
+            'other' => __('reports.field_reason_other'),
         ];
     }
 

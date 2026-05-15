@@ -34,13 +34,13 @@ class ContactSupport extends Component
 
     /** Supported issue types for account support. */
     private const ISSUE_TYPES = [
-        'account_access' => 'support.issue_account_access',
-        'login_issue' => 'support.issue_login_issue',
-        'name_change' => 'support.issue_name_change',
-        'email_change' => 'support.issue_email_change',
-        'suspended_account' => 'support.issue_suspended_account',
-        'data_request' => 'support.issue_data_request',
-        'other' => 'support.issue_other',
+        'account_access' => 'support.field_issue_account_access',
+        'login_issue' => 'support.field_issue_login_issue',
+        'name_change' => 'support.field_issue_name_change',
+        'email_change' => 'support.field_issue_email_change',
+        'suspended_account' => 'support.field_issue_suspended_account',
+        'data_request' => 'support.field_issue_data_request',
+        'other' => 'support.field_issue_other',
     ];
 
     public function submitSupport(): void

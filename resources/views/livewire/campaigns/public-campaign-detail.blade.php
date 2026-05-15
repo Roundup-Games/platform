@@ -134,21 +134,35 @@
                     @endif
                 </section>
 
-                {{-- Participants (public: approved only) --}}
+                {{-- Participants --}}
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
                         {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
                     </h2>
-                    @if($approvedParticipantsCount > 0)
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($campaign->participants->where('status', \App\Enums\ParticipantStatus::Approved->value) as $participant)
-                                <x-user-link :user="$participant->user" avatar-size="w-9 h-9" :truncate="true" />
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-sm text-on-surface-variant italic">{{ __('common.content_no_participants_yet') }}</p>
-                    @endif
+                    @guest
+                        @if($campaign->max_players)
+                            @php($spotsLeft = max(0, $campaign->max_players - $approvedParticipantsCount))
+                            <p class="text-sm text-on-surface-variant">
+                                {{ trans_choice('campaigns.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $campaign->max_players]) }}
+                            </p>
+                        @else
+                            <p class="text-sm text-on-surface-variant">
+                                {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
+                            </p>
+                        @endif
+                    @endguest
+                    @auth
+                        @if($approvedParticipantsCount > 0)
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($campaign->participants->where('status', \App\Enums\ParticipantStatus::Approved->value) as $participant)
+                                    <x-user-link :user="$participant->user" avatar-size="w-9 h-9" :truncate="true" />
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-on-surface-variant italic">{{ __('common.content_no_participants_yet') }}</p>
+                        @endif
+                    @endauth
                 </section>
 
                 {{-- Safety Tools --}}
@@ -156,7 +170,8 @@
                     @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $campaign->safety_rules])
                 @endif
 
-                {{-- Reviews --}}
+                {{-- Reviews (authenticated only) --}}
+                @auth
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
@@ -172,6 +187,7 @@
                         <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
                     @endif>
                 </section>
+                @endauth
             </div>
 
             {{-- Sidebar --}}

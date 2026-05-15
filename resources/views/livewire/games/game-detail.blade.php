@@ -103,8 +103,8 @@
                                 <p class="text-sm font-medium text-on-surface mb-1">{{ __('games.content_complexity') }}</p>
                                 <div class="flex items-center gap-1">
                                     @for($i = 1; $i <= 5; $i++)
-                                        <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
-                                            {{ $i <= round($game->complexity) ? 'star' : 'star_border' }}
+                                        <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" style="font-variation-settings: 'FILL' {{ $i <= round($game->complexity) ? 1 : 0 }}" aria-hidden="true">
+                                            star
                                         </span>
                                     @endfor
                                     <span class="ml-2 text-sm text-on-surface-variant">{{ number_format($game->complexity, 1) }}/5</span>

@@ -53,21 +53,35 @@
             {{-- Main column --}}
             <div class="lg:col-span-2 space-y-6">
 
-                {{-- Participants (public: count only) --}}
+                {{-- Participants --}}
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">groups</span>
                         {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
                     </h2>
-                    @if($approvedParticipantsCount > 0)
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($game->participants->where('status', \App\Enums\ParticipantStatus::Approved->value) as $participant)
-                                <x-user-link :user="$participant->user" avatar-size="w-9 h-9" :truncate="true" />
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-sm text-on-surface-variant italic">{{ __('games.content_no_participants_yet') }}</p>
-                    @endif
+                    @guest
+                        @if($game->max_players)
+                            @php($spotsLeft = max(0, $game->max_players - $approvedParticipantsCount))
+                            <p class="text-sm text-on-surface-variant">
+                                {{ trans_choice('games.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $game->max_players]) }}
+                            </p>
+                        @else
+                            <p class="text-sm text-on-surface-variant">
+                                {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
+                            </p>
+                        @endif
+                    @endguest
+                    @auth
+                        @if($approvedParticipantsCount > 0)
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($game->participants->where('status', \App\Enums\ParticipantStatus::Approved->value) as $participant)
+                                    <x-user-link :user="$participant->user" avatar-size="w-9 h-9" :truncate="true" />
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-on-surface-variant italic">{{ __('games.content_no_participants_yet') }}</p>
+                        @endif
+                    @endauth
                 </section>
 
                 {{-- Discovery Meta --}}
@@ -82,8 +96,8 @@
                                 <p class="text-sm font-medium text-on-surface mb-1">{{ __('games.content_complexity') }}</p>
                                 <div class="flex items-center gap-1">
                                     @for($i = 1; $i <= 5; $i++)
-                                        <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
-                                            {{ $i <= round($game->complexity) ? 'star' : 'star_border' }}
+                                        <span class="material-symbols-outlined text-lg {{ $i <= round($game->complexity) ? 'text-primary' : 'text-outline/30' }}" style="font-variation-settings: 'FILL' {{ $i <= round($game->complexity) ? 1 : 0 }}" aria-hidden="true">
+                                            star
                                         </span>
                                     @endfor
                                     <span class="ml-2 text-sm text-on-surface-variant">{{ number_format($game->complexity, 1) }}/5</span>
@@ -125,7 +139,8 @@
                     @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $game->safety_rules])
                 @endif
 
-                {{-- Reviews --}}
+                {{-- Reviews (authenticated only) --}}
+                @auth
                 <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
                     <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-xl" aria-hidden="true">rate_review</span>
@@ -141,6 +156,7 @@
                         <p class="text-sm text-on-surface-variant italic py-4 text-center">{{ __('reviews.content_no_reviews_yet') }}</p>
                     @endif
                 </section>
+                @endauth
             </div>
 
             {{-- Sidebar --}}

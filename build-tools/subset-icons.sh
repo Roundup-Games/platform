@@ -149,6 +149,20 @@ def icon_to_ligature_variants(name):
         converted2.append(new_part)
     forms.add('underscore'.join(converted2))
     
+    # Variant 4: Digits → plain <word> with underscore join (post-instancing GSUB fixup)
+    # After instancing + GSUB fixup, digit_three→three, so ligatures use plain words
+    parts3 = name.split('_')
+    converted3 = []
+    for part in parts3:
+        new_part = ''
+        for c in part:
+            if c.isdigit():
+                new_part += digit_words[c]
+            else:
+                new_part += c
+        converted3.append(new_part)
+    forms.add('underscore'.join(converted3))
+    
     return forms
 
 
@@ -217,12 +231,42 @@ def main():
     # Keep FILL (0/1 for active/filled states) and wght (400/700)
     instantiateVariableFont(font, {"GRAD": 0, "opsz": 24}, overlap=True, inplace=True)
     
+    # Fix GSUB ligature component glyph names after instancing.
+    # instancing renames digit_zero→zero, digit_one→one, etc.
+    # but GSUB ligature component lists still reference the old names.
+    glyph_order = set(font.getGlyphOrder())
+    digit_rename = {f'digit_{word}': word for word in 
+                    ['zero','one','two','three','four','five','six','seven','eight','nine']}
+    renamed_count = 0
+    for feat in font['GSUB'].table.FeatureList.FeatureRecord:
+        for idx in feat.Feature.LookupListIndex:
+            lookup = font['GSUB'].table.LookupList.Lookup[idx]
+            if lookup.LookupType == 7:
+                for ext in lookup.SubTable:
+                    inner = ext.ExtSubTable
+                    if inner.LookupType == 4:
+                        for first, lig_list in inner.ligatures.items():
+                            for lig in lig_list:
+                                if hasattr(lig, 'Component'):
+                                    new_comp = []
+                                    for c in lig.Component:
+                                        if c in digit_rename and digit_rename[c] in glyph_order:
+                                            new_comp.append(digit_rename[c])
+                                            renamed_count += 1
+                                        else:
+                                            new_comp.append(c)
+                                    lig.Component = new_comp
+    if renamed_count:
+        print(f"  Fixed {renamed_count} post-instancing glyph references in GSUB")
+    
     # Save intermediate
     font.flavor = 'woff2'
     intermediate = output_font + '.intermediate'
     font.save(intermediate)
     
-    # PASS 2: Prune unused glyphs with unicode-only subset
+    # PASS 2: Prune unused glyphs
+    # Include both unicode codepoints AND text content to preserve
+    # ligature target glyphs that may not have direct cmap entries
     unicode_set = set(icon_unicode_set)
     for cp in range(0x20, 0x7F):  # ASCII for ligature text
         unicode_set.add(cp)
@@ -230,6 +274,7 @@ def main():
     font2 = TTFont(intermediate)
     subsetter2 = Subsetter()
     subsetter2.populate(unicodes=unicode_set)
+    subsetter2.populate(text=text_content)  # preserve ligature target glyphs
     subsetter2.subset(font2)
     
     # Drop unused tables

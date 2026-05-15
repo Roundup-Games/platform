@@ -66,19 +66,19 @@ return [
     'error_rate_limit' => 'You\'ve submitted too many tickets. Please try again in :minutes minutes.',
 
     // Account issue types
-    'issue_account_access' => 'Account Access',
-    'issue_login_issue' => 'Login Issue',
-    'issue_name_change' => 'Name Change Request',
-    'issue_email_change' => 'Email Change Request',
-    'issue_suspended_account' => 'Suspended Account',
-    'issue_data_request' => 'Data / Export Request',
-    'issue_other' => 'Other',
+    'field_issue_account_access' => 'Account Access',
+    'field_issue_login_issue' => 'Login Issue',
+    'field_issue_name_change' => 'Name Change Request',
+    'field_issue_email_change' => 'Email Change Request',
+    'field_issue_suspended_account' => 'Suspended Account',
+    'field_issue_data_request' => 'Data / Export Request',
+    'field_issue_other' => 'Other',
 
     // Billing issue types
-    'billing_issue_payment' => 'Payment Issue',
-    'billing_issue_refund' => 'Refund Request',
-    'billing_issue_subscription_change' => 'Subscription Change',
-    'billing_issue_invoice' => 'Invoice Question',
-    'billing_issue_cancellation' => 'Cancellation Issue',
-    'billing_issue_other' => 'Other',
+    'field_billing_issue_payment' => 'Payment Issue',
+    'field_billing_issue_refund' => 'Refund Request',
+    'field_billing_issue_subscription_change' => 'Subscription Change',
+    'field_billing_issue_invoice' => 'Invoice Question',
+    'field_billing_issue_cancellation' => 'Cancellation Issue',
+    'field_billing_issue_other' => 'Other',
 ];

@@ -292,4 +292,22 @@ return [
 
     'push_title_below_min_players' => 'Wenige Spieler',
     'push_body_below_min_players' => ':game hat nur :current/:min Spieler.',
+
+    // Moderation — Inhaltwarnung
+    'subject_content_warning' => 'Warnung zu Community-Richtlinien',
+    'body_content_warning' => 'Dein :entityType „:entityName" wurde von unserem Moderationsteam zur Überprüfung markiert.',
+    'body_content_warning_reason' => 'Grund: :reason',
+    'body_content_warning_guidelines' => 'Bitte lies unsere Community-Richtlinien, um sicherzustellen, dass dein Inhalt unseren Richtlinien entspricht.',
+
+    // Moderation — Inhalt entfernt
+    'subject_content_removed' => 'Inhalt entfernt',
+    'body_content_removed' => 'Dein :entityType „:entityName" wurde von unserem Moderationsteam entfernt.',
+    'body_content_removed_reason' => 'Grund: :reason',
+    'body_content_removed_guidelines' => 'Wiederholte Verstöße können zur Kontosperrung führen.',
+
+    // Moderation — Konto gesperrt
+    'subject_account_suspended' => 'Konto gesperrt',
+    'body_account_suspended' => 'Dein Konto wurde wegen eines Verstoßes gegen unsere Community-Richtlinien gesperrt.',
+    'body_account_suspended_reason' => 'Grund: :reason',
+    'body_account_suspended_contact' => 'Wenn du glaubst, dass dies ein Fehler ist, wende dich bitte an unser Support-Team.',
 ];

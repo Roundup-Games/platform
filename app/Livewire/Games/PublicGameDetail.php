@@ -58,6 +58,10 @@ class PublicGameDetail extends Component
     #[Computed]
     public function reviews()
     {
+        if (Auth::guest()) {
+            return collect();
+        }
+
         return Review::where('reviewable_type', Game::class)
             ->where('reviewable_id', $this->game->id)->published()
             ->with('reviewer')->latest()->limit(10)->get();
@@ -81,11 +85,17 @@ class PublicGameDetail extends Component
 
     public function render()
     {
-        $this->game->load([
+        $relations = [
             'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
             'gameSystem.publishers', 'gameSystem.baseGame', 'gameSystem.expansions',
-            'participants.user', 'linkedLocation',
-        ]);
+            'linkedLocation',
+        ];
+        if (Auth::check()) {
+            $relations[] = 'participants.user';
+        } else {
+            $relations[] = 'participants';
+        }
+        $this->game->load($relations);
 
         seo()->for($this->game);
 

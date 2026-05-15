@@ -15,8 +15,8 @@
                     <div class="flex items-center gap-0.5">
                         @for($i = 1; $i <= 5; $i++)
                             @php($filled = $i <= round($gmProfile->average_rating))
-                            <span class="material-symbols-outlined text-sm {{ $filled ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
-                                {{ $filled ? 'star' : 'star_border' }}
+                            <span class="material-symbols-outlined text-sm {{ $filled ? 'text-primary' : 'text-outline/30' }}" style="font-variation-settings: 'FILL' {{ $filled ? 1 : 0 }}" aria-hidden="true">
+                                star
                             </span>
                         @endfor
                     </div>

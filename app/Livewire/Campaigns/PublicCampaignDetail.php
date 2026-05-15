@@ -58,6 +58,10 @@ class PublicCampaignDetail extends Component
     #[Computed]
     public function reviews()
     {
+        if (Auth::guest()) {
+            return collect();
+        }
+
         return Review::where('reviewable_type', Campaign::class)
             ->where('reviewable_id', $this->campaign->id)
             ->published()
@@ -85,17 +89,22 @@ class PublicCampaignDetail extends Component
 
     public function render()
     {
-        $this->campaign->load([
+        $relations = [
             'owner',
             'gameSystem.categories',
             'gameSystem.mechanics',
             'gameSystem.publishers',
             'gameSystem.baseGame',
             'gameSystem.expansions',
-            'participants.user',
             'sessions' => fn ($q) => $q->orderBy('date_time')->limit(10),
             'linkedLocation',
-        ]);
+        ];
+        if (Auth::check()) {
+            $relations[] = 'participants.user';
+        } else {
+            $relations[] = 'participants';
+        }
+        $this->campaign->load($relations);
 
         seo()->for($this->campaign);
 

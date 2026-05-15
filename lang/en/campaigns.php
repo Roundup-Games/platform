@@ -41,6 +41,7 @@ return [
     'content_no_more_group_chats_spreadsheets' => 'No more group chats, spreadsheets, or "who\'s bringing snacks?" threads. One platform, all your sessions.',
     'content_no_sessions_found_within_radius' => 'No sessions found within :radius km. Showing results within :fallback km.',
     'content_no_sessions_near_you_yet' => 'No sessions near you yet',
+    'content_spots_available' => '{0} No spots available (full)|{1} 1 spot available out of :max|[2,*] :count spots available out of :max',
     'content_no_sessions_scheduled_yet' => 'No sessions scheduled yet.',
     'content_ongoing_campaign' => 'Ongoing Campaign',
     'content_ongoing_campaigns' => 'Ongoing Campaigns',

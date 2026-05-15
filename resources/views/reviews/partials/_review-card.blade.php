@@ -10,8 +10,8 @@
             <div class="flex items-center gap-2 flex-wrap">
                 <div class="flex items-center gap-0.5" aria-label="{{ $review->rating }} {{ trans_choice('reviews.content_star_count', $review->rating) }}">
                     @for($i = 1; $i <= 5; $i++)
-                        <span class="material-symbols-outlined text-sm {{ $i <= $review->rating ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
-                            {{ $i <= $review->rating ? 'star' : 'star_border' }}
+                        <span class="material-symbols-outlined text-sm {{ $i <= $review->rating ? 'text-primary' : 'text-outline/30' }}" style="font-variation-settings: 'FILL' {{ $i <= $review->rating ? 1 : 0 }}" aria-hidden="true">
+                            star
                         </span>
                     @endfor
                 </div>

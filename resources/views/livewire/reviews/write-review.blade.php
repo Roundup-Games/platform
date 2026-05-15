@@ -59,8 +59,8 @@
                                     role="radio"
                                     aria-checked="{{ $rating === $i ? 'true' : 'false' }}"
                                     aria-label="{{ $i }} {{ trans_choice('reviews.content_star_count', $i) }}">
-                                <span class="material-symbols-outlined text-3xl {{ $i <= $rating ? 'text-primary' : 'text-outline/30' }}" aria-hidden="true">
-                                    {{ $i <= $rating ? 'star' : 'star_border' }}
+                                <span class="material-symbols-outlined text-3xl {{ $i <= $rating ? 'text-primary' : 'text-outline/30' }}" style="font-variation-settings: 'FILL' {{ $i <= $rating ? 1 : 0 }}" aria-hidden="true">
+                                    star
                                 </span>
                             </button>
                         @endfor

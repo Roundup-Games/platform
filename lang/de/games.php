@@ -387,6 +387,8 @@ return [
     'content_experience_advanced' => 'Experte',
     'content_experience_all' => 'Alle Niveaus',
 
+    'content_spots_available' => '{0} Keine Plätze verfügbar (voll)|{1} 1 Platz verfügbar von :max|[2,*] :count Plätze verfügbar von :max',
+
     // SEO
     'seo_title_my_games' => 'Meine Spiele',
     'seo_description_my_games' => 'Verwalte deine Spiele, Einladungen und den Aktivitäts-Feed auf Roundup Games.',

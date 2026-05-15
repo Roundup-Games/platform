@@ -34,12 +34,12 @@ class BillingSupport extends Component
 
     /** Supported billing issue types. */
     private const ISSUE_TYPES = [
-        'payment_issue' => 'support.billing_issue_payment',
-        'refund_request' => 'support.billing_issue_refund',
-        'subscription_change' => 'support.billing_issue_subscription_change',
-        'invoice_question' => 'support.billing_issue_invoice',
-        'cancellation_issue' => 'support.billing_issue_cancellation',
-        'other' => 'support.billing_issue_other',
+        'payment_issue' => 'support.field_billing_issue_payment',
+        'refund_request' => 'support.field_billing_issue_refund',
+        'subscription_change' => 'support.field_billing_issue_subscription_change',
+        'invoice_question' => 'support.field_billing_issue_invoice',
+        'cancellation_issue' => 'support.field_billing_issue_cancellation',
+        'other' => 'support.field_billing_issue_other',
     ];
 
     public function submitBillingSupport(): void

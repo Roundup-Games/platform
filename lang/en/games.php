@@ -386,6 +386,8 @@ return [
     'content_experience_advanced' => 'Advanced',
     'content_experience_all' => 'All Levels',
 
+    'content_spots_available' => '{0} No spots available (full)|{1} 1 spot available out of :max|[2,*] :count spots available out of :max',
+
     // SEO
     'seo_title_my_games' => 'My Games',
     'seo_description_my_games' => 'View and manage your games, invitations, and activity feed on Roundup Games.',
