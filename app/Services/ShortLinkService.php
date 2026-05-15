@@ -47,38 +47,35 @@ class ShortLinkService
      */
     public function createLink(Model $linkable, ?User $user = null, array $params = []): ShortLink
     {
-        $code = $params['code'] ?? $this->generateUniqueCode();
         $url = $params['url'] ?? $this->getEntityRoute($linkable);
+        $explicitCode = array_key_exists('code', $params);
 
-        $link = retry(3, function () use ($code, $url, $linkable, $user, $params) {
-            try {
-                return ShortLink::create([
-                    'code' => $code,
-                    'url' => $url,
-                    'linkable_type' => get_class($linkable),
-                    'linkable_id' => (string) $linkable->getKey(),
-                    'user_id' => $user?->id,
-                    'label' => $params['label'] ?? null,
-                    'purpose' => $params['purpose'] ?? null,
-                    'expires_at' => $params['expires_at'] ?? null,
-                    'max_hits' => $params['max_hits'] ?? null,
+        $link = retry($explicitCode ? 1 : 5, function () use (&$code, $params, $url, $linkable, $user) {
+            $code = $params['code'] ?? $this->generateUniqueCode();
+
+            return ShortLink::create([
+                'code' => $code,
+                'url' => $url,
+                'linkable_type' => get_class($linkable),
+                'linkable_id' => (string) $linkable->getKey(),
+                'user_id' => $user?->id,
+                'label' => $params['label'] ?? null,
+                'purpose' => $params['purpose'] ?? null,
+                'expires_at' => $params['expires_at'] ?? null,
+                'max_hits' => $params['max_hits'] ?? null,
+            ]);
+        }, 100, function ($attempt, $e) {
+            // Only retry on unique constraint violations for auto-generated codes
+            if ($e instanceof QueryException
+                && (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'Duplicate'))) {
+                Log::warning('ShortLinkService: code collision on insert, regenerating', [
+                    'attempt' => $attempt + 1,
                 ]);
-            } catch (QueryException $e) {
-                // SQLSTATE 23000 = unique constraint violation (duplicate code)
-                if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'Duplicate')) {
-                    Log::warning('ShortLinkService: code collision on insert, retrying', [
-                        'code_prefix' => substr($code, 0, 3) . '…',
-                    ]);
 
-                    throw $e; // let retry() regenerate on next attempt
-                }
-
-                throw $e;
+                return true; // retry with fresh code
             }
-        }, 100, function ($attempt) {
-            // On collision retry, we can't change the code since it may have been
-            // explicitly passed. Just rethrow so retry() propagates the exception.
-            return $attempt < 1;
+
+            return false; // don't retry other errors
         });
 
         Log::info('ShortLinkService: created short link', [
@@ -218,10 +215,25 @@ class ShortLinkService
     {
         $expiresAt = now()->addDays($graceDays);
 
+        // Select codes first so we can invalidate cache after the update
+        $codes = ShortLink::where('linkable_type', get_class($entity))
+            ->where('linkable_id', (string) $entity->getKey())
+            ->whereNull('expires_at')
+            ->pluck('code');
+
+        if ($codes->isEmpty()) {
+            return 0;
+        }
+
         $count = ShortLink::where('linkable_type', get_class($entity))
             ->where('linkable_id', (string) $entity->getKey())
             ->whereNull('expires_at')
             ->update(['expires_at' => $expiresAt]);
+
+        // Invalidate cached redirects so ShortLinkController sees expiry immediately
+        foreach ($codes as $code) {
+            Cache::forget("short_link:{$code}");
+        }
 
         if ($count > 0) {
             Log::info('ShortLinkService: expired links for entity', [

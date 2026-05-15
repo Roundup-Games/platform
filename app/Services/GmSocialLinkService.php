@@ -164,22 +164,15 @@ class GmSocialLinkService
                 }
             }
 
-            // Upsert the link
+            // Upsert the link — include instance so the model's saving event
+            // can regenerate the URL from platform + handle + instance.
             GmSocialLink::updateOrCreate(
                 ['user_id' => $user->id, 'platform' => $platform],
-                ['handle' => $handle],
+                [
+                    'handle' => $handle,
+                    'instance' => $instance ?: null,
+                ],
             );
-
-            // If instance is stored, we may need to regenerate URL with it
-            if (($platformConfig['instance_required'] ?? false) && $instance) {
-                $linkModel = GmSocialLink::where('user_id', $user->id)
-                    ->where('platform', $platform)
-                    ->first();
-                if ($linkModel) {
-                    $linkModel->url = $this->generateUrl($platform, $handle, $instance);
-                    $linkModel->save();
-                }
-            }
 
             Log::info('gm_social_link.synced', [
                 'user_id' => $user->id,
