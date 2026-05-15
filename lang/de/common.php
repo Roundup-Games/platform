@@ -67,7 +67,7 @@ return [
     'content_created_by_beau_j_gr_sheldon' => 'Erstellt von Beau Jágr Sheldon.',
     'content_created_by_john_stavropoulos_learn_more_at' => 'Erstellt von John Stavropoulos. Mehr unter',
     'content_creating' => 'Wird erstellt...',
-    'content_curiosity' => 'Neugier',
+
     'content_custom' => 'Benutzerdefiniert',
     'content_danger_zone' => 'Gefahrenzone',
     'content_deleting' => 'Löschen...',
@@ -79,7 +79,7 @@ return [
     'content_either' => 'Beliebig',
     'content_est' => 'Gegr.',
     'content_every_2_weeks' => 'Alle 2 Wochen',
-    'content_fair_play' => 'Faires Spiel',
+
     'content_female' => 'Weiblich',
     'content_filters' => 'Filter:',
     'content_for_general_inquiries_and_support' => 'Für allgemeine Anfragen und Support.',
@@ -100,7 +100,7 @@ return [
     'content_in_cents' => 'in Cent',
     'content_in_progress' => 'Laufend',
     'content_in_progress_badge' => '● Laufend',
-    'content_inclusivity' => 'Inklusion',
+
     'content_individual' => 'Einzelperson',
     'content_individual_only' => 'Nur Einzelperson',
     'content_internal_notes_visible_only_to_organizers' => 'Interne Notizen (nur für Organisatoren sichtbar)...',
@@ -132,7 +132,7 @@ return [
     'content_opens_at' => 'Eröffnet am',
     'content_optional' => '(optional)',
     'content_order_summary' => 'Bestellübersicht',
-    'content_organizer_empowerment' => 'Organisatoren stärken',
+
     'content_other' => 'Sonstige',
     'content_other_ways_to_reach_us' => 'Andere Wege, uns zu erreichen',
     'content_owner' => 'Besitzer',
@@ -186,9 +186,9 @@ return [
     'content_tell_the_host_why_you_d_like_to_join' => 'Erzähle dem Veranstalter, warum du beitreten möchtest...',
     'content_tell_us_about_yourself' => 'Erzähl uns von dir',
     'content_thank_you_for_your_message' => 'Vielen Dank für deine Nachricht! Wir melden uns in Kürze bei dir.',
-    'content_the_digital_parlor_for_tabletop_enthusiasts' => 'Das digitale Wohnzimmer für Brettspiel-Fans.',
+    'content_the_digital_parlor_for_tabletop_enthusiasts' => 'Tabletop-Spieler zusammenbringen, einen Tisch nach dem anderen.',
     'content_there_s_a_seat_waiting_for_you' => 'Es wartet ein Platz auf dich.',
-    'content_these_aren_t_just_words' => 'Das sind nicht nur Worte auf einer Seite. Sie prägen jedes Feature, das wir entwickeln, und jede Entscheidung, die wir treffen.',
+
     'content_they_them' => 'Sie/Ihnen',
     'content_this_helps_us_personalize_your_experience' => 'Das hilft uns, dein Erlebnis zu personalisieren.',
     'content_this_month' => 'Dieser Monat',
@@ -365,4 +365,10 @@ return [
     // Discovery card overflow indicators
     'content_n_waitlisted' => '{1} 1 auf Warteliste|[2,*] :count auf Warteliste',
     'content_n_on_bench' => '{1} 1 auf der Bank|[2,*] :count auf der Bank',
+
+    // ── Navigation ──────────────────────────────────────
+    'nav_our_pledge' => 'Unser Versprechen',
+
+    // ── Footer ──────────────────────────────────────────
+    'content_community_and_trust' => 'Community & Vertrauen',
 ];

@@ -4,7 +4,7 @@ return [
     // Manifest
     'manifest_name' => 'Roundup Games',
     'manifest_short_name' => 'Roundup',
-    'manifest_description' => 'Der digitale Treffpunkt für Tabletop-Enthusiasten — entdecke Spiele, finde Spielleiter und nimm an Runden teil.',
+    'manifest_description' => 'Finde lokale Brettspiel-Sessions, RPG-Kampagnen und Tabletop-Communities in deiner Nähe. Gemeinnützig, Open Source, gebaut für echte Verbindungen.',
 
     // Install prompt — Chrome / Android
     'install_title' => 'Roundup Games installieren',
