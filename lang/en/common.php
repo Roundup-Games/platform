@@ -67,7 +67,7 @@ return [
     'content_created_by_beau_j_gr_sheldon' => 'Created by Beau Jágr Sheldon.',
     'content_created_by_john_stavropoulos_learn_more_at' => 'Created by John Stavropoulos. Learn more at',
     'content_creating' => 'Creating...',
-    'content_curiosity' => 'Curiosity',
+
     'content_custom' => 'Custom',
     'content_danger_zone' => 'Danger Zone',
     'content_deleting' => 'Deleting...',
@@ -79,7 +79,7 @@ return [
     'content_either' => 'Either',
     'content_est' => 'Est.',
     'content_every_2_weeks' => 'Every 2 weeks',
-    'content_fair_play' => 'Fair Play',
+
     'content_female' => 'Female',
     'content_filters' => 'Filters:',
     'content_for_general_inquiries_and_support' => 'For general inquiries and support.',
@@ -100,7 +100,7 @@ return [
     'content_in_cents' => 'in cents',
     'content_in_progress' => 'In Progress',
     'content_in_progress_badge' => '● In Progress',
-    'content_inclusivity' => 'Inclusivity',
+
     'content_individual' => 'Individual',
     'content_individual_only' => 'Individual Only',
     'content_internal_notes_visible_only_to_organizers' => 'Internal notes (visible only to organizers)...',
@@ -132,7 +132,7 @@ return [
     'content_opens_at' => 'Opens At',
     'content_optional' => '(optional)',
     'content_order_summary' => 'Order Summary',
-    'content_organizer_empowerment' => 'Organizer Empowerment',
+
     'content_other' => 'Other',
     'content_other_ways_to_reach_us' => 'Other Ways to Reach Us',
     'content_owner' => 'Owner',
@@ -186,9 +186,9 @@ return [
     'content_tell_the_host_why_you_d_like_to_join' => 'Tell the host why you\'d like to join...',
     'content_tell_us_about_yourself' => 'Tell us about yourself',
     'content_thank_you_for_your_message' => 'Thank you for your message! We\'ll get back to you soon.',
-    'content_the_digital_parlor_for_tabletop_enthusiasts' => 'The Digital Parlor for Tabletop Enthusiasts.',
+    'content_the_digital_parlor_for_tabletop_enthusiasts' => 'Bringing tabletop gamers together, one table at a time.',
     'content_there_s_a_seat_waiting_for_you' => 'There\'s a seat waiting for you.',
-    'content_these_aren_t_just_words' => 'These aren\'t just words on a page. They shape every feature we build and every decision we make.',
+
     'content_they_them' => 'They/Them',
     'content_this_helps_us_personalize_your_experience' => 'This helps us personalize your experience.',
     'content_this_month' => 'This Month',
@@ -365,4 +365,10 @@ return [
     // Overflow indicators
     'content_n_waitlisted' => '{1} 1 waitlisted|[2,*] :count waitlisted',
     'content_n_on_bench' => '{1} 1 on bench|[2,*] :count on bench',
+
+    // ── Navigation ──────────────────────────────────────
+    'nav_our_pledge' => 'Our Pledge',
+
+    // ── Footer ──────────────────────────────────────────
+    'content_community_and_trust' => 'Community & Trust',
 ];
