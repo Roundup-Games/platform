@@ -185,14 +185,14 @@ return [
     'content_pledge_algo_cta_join' => 'Der Community beitreten',
 
     // ── Trust Badge Row (M043 S03) ──
-    'trust_badge_in_person_title' => 'Persönlich vom Design her',
-    'trust_badge_in_person_text' => 'Gebaut für echte Tische, nicht Bildschirme',
-    'trust_badge_nonprofit_title' => 'Gemeinnützig vom Design her',
-    'trust_badge_nonprofit_text' => 'Keine Investoren. Community zuerst.',
-    'trust_badge_opensource_title' => 'Open Source auf GitHub',
-    'trust_badge_opensource_text' => 'Jeder Algorithmus einsehbar',
-    'trust_badge_safety_title' => 'Sicherheit eingebaut',
-    'trust_badge_safety_text' => 'Werkzeuge, Transparenz und Verantwortung',
+    'content_trust_badge_in_person_title' => 'Persönlich vom Design her',
+    'content_trust_badge_in_person_text' => 'Gebaut für echte Tische, nicht Bildschirme',
+    'content_trust_badge_nonprofit_title' => 'Gemeinnützig vom Design her',
+    'content_trust_badge_nonprofit_text' => 'Keine Investoren. Community zuerst.',
+    'content_trust_badge_opensource_title' => 'Open Source auf GitHub',
+    'content_trust_badge_opensource_text' => 'Jeder Algorithmus einsehbar',
+    'content_trust_badge_safety_title' => 'Sicherheit eingebaut',
+    'content_trust_badge_safety_text' => 'Werkzeuge, Transparenz und Verantwortung',
 
     // ── How It Works: Safety bridge sentence (M043 S04) ──
     'content_safety_bridge_trust' => 'Alles oben existiert aus einem Grund: um es sicher zu machen, neue Leute persönlich zu treffen. Wenn du sehen kannst, wer Gastgeber ist, seine Historie lesen kannst und weißt, dass die Community Organisatoren zur Verantwortung zieht, fühlt sich der Besuch bei einem Tisch mit Fremden deutlich weniger fremd an.',

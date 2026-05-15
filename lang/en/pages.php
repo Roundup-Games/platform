@@ -185,14 +185,14 @@ return [
     'content_pledge_algo_cta_join' => 'Join the Community',
 
     // ── Trust Badge Row (M043 S03 T01) ────────────────
-    'trust_badge_in_person_title' => 'In-Person by Design',
-    'trust_badge_in_person_text' => 'Built for real tables, not screens',
-    'trust_badge_nonprofit_title' => 'Non-profit by Design',
-    'trust_badge_nonprofit_text' => 'No investors. Community comes first.',
-    'trust_badge_opensource_title' => 'Open Source on GitHub',
-    'trust_badge_opensource_text' => 'Every algorithm inspectable',
-    'trust_badge_safety_title' => 'Safety Built In',
-    'trust_badge_safety_text' => 'Tools, transparency, and accountability',
+    'content_trust_badge_in_person_title' => 'In-Person by Design',
+    'content_trust_badge_in_person_text' => 'Built for real tables, not screens',
+    'content_trust_badge_nonprofit_title' => 'Non-profit by Design',
+    'content_trust_badge_nonprofit_text' => 'No investors. Community comes first.',
+    'content_trust_badge_opensource_title' => 'Open Source on GitHub',
+    'content_trust_badge_opensource_text' => 'Every algorithm inspectable',
+    'content_trust_badge_safety_title' => 'Safety Built In',
+    'content_trust_badge_safety_text' => 'Tools, transparency, and accountability',
 
     // ── Values: 3 cards (M043 S03 T06) ──────────────
     'content_about_value_community_first_title' => 'Community First',
