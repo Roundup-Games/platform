@@ -66,13 +66,11 @@ class ShortLinkService
                 'expires_at' => $params['expires_at'] ?? null,
                 'max_hits' => $params['max_hits'] ?? null,
             ]);
-        }, 100, function ($attempt, $e) {
+        }, 100, function ($e) {
             // Only retry on unique constraint violations for auto-generated codes
             if ($e instanceof QueryException
                 && (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'Duplicate'))) {
-                Log::warning('ShortLinkService: code collision on insert, regenerating', [
-                    'attempt' => $attempt + 1,
-                ]);
+                Log::warning('ShortLinkService: code collision on insert, regenerating');
 
                 return true; // retry with fresh code
             }
