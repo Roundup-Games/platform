@@ -290,6 +290,16 @@ class CampaignDetail extends Component
             DB::transaction(function () use ($viewer, $joinSource, $shortLinkId) {
                 $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
 
+                // Revalidate short link under lock to catch mid-session revocation.
+                if ($shortLinkId !== null) {
+                    $freshLink = ShortLink::where('id', $shortLinkId)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    if ($freshLink === null || $freshLink->isExpired()) {
+                        throw new \RuntimeException('Short link revoked or expired during join.');
+                    }
+                }
+
                 $approvedCount = $campaign->participants()
                     ->where('status', ParticipantStatus::Approved->value)
                     ->count();

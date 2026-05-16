@@ -36,9 +36,10 @@ class PublicCampaignDetail extends Component
             $this->validatedShareToken = request()->query('share');
         }
 
-        // Detect short link arrival via ph_link_id cookie
+        // Detect short link arrival via ph_link_id cookie.
+        // Reject malformed values before casting to prevent wrong-link attribution.
         $linkId = request()->cookie('ph_link_id');
-        if ($linkId !== null) {
+        if (is_string($linkId) && ctype_digit($linkId)) {
             $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
             if ($link !== null
                 && $link->linkable_type === Campaign::class

@@ -225,10 +225,18 @@ class ShortLinkService
     {
         $expiresAt = now()->addDays($graceDays);
 
-        $count = ShortLink::where('linkable_type', get_class($entity))
+        // Load links first so we can invalidate caches (bulk update bypasses model events).
+        $links = ShortLink::where('linkable_type', get_class($entity))
             ->where('linkable_id', (string) $entity->getKey())
             ->whereNull('expires_at')
-            ->update(['expires_at' => $expiresAt]);
+            ->get(['id', 'code']);
+
+        $count = ShortLink::whereIn('id', $links->pluck('id'))->update(['expires_at' => $expiresAt]);
+
+        foreach ($links as $link) {
+            Cache::forget("short_link:{$link->code}");
+            Cache::forget("short_link_id:{$link->id}");
+        }
 
         if ($count > 0) {
             Log::info('ShortLinkService: expired links for entity', [

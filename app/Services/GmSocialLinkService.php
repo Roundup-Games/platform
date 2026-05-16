@@ -65,7 +65,15 @@ class GmSocialLinkService
             return ['valid' => false, 'error' => 'Handle is required.'];
         }
 
-        $pattern = $config['handle_pattern'] ?? '//';
+        $pattern = $config['handle_pattern'] ?? null;
+
+        if (! is_string($pattern) || $pattern === '' || @preg_match($pattern, '') === false) {
+            Log::warning('gm_social_link.invalid_handle_pattern_config', [
+                'platform' => $platform, 'pattern' => $pattern,
+            ]);
+
+            return ['valid' => false, 'error' => "Platform {$platform} is misconfigured."];
+        }
 
         if (! preg_match($pattern, $handle)) {
             Log::info('gm_social_link.invalid_handle', [
@@ -86,7 +94,11 @@ class GmSocialLinkService
     public function validateInstance(string $instance): array
     {
         $mastodonConfig = config('platforms.mastodon');
-        $pattern = $mastodonConfig['instance_pattern'] ?? '//';
+        $pattern = $mastodonConfig['instance_pattern'] ?? null;
+
+        if (! is_string($pattern) || $pattern === '' || @preg_match($pattern, '') === false) {
+            return ['valid' => false, 'error' => 'Instance validation is temporarily unavailable.'];
+        }
 
         if (! preg_match($pattern, $instance)) {
             return ['valid' => false, 'error' => 'Invalid instance domain.'];

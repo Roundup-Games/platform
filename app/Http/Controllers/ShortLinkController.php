@@ -47,7 +47,7 @@ class ShortLinkController extends Controller
         if ($misses >= static::MISS_THRESHOLD) {
             Log::warning('short_link.redirect.miss_threshold_exceeded', [
                 'code_prefix' => substr($code, 0, 3) . '…',
-                'ip' => $ip,
+                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
                 'misses' => $misses,
             ]);
 
@@ -67,7 +67,7 @@ class ShortLinkController extends Controller
 
             Log::debug('short_link.redirect.not_found', [
                 'code_prefix' => substr($code, 0, 3) . '…',
-                'ip' => $ip,
+                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
                 'misses' => $newMisses,
             ]);
 
@@ -80,7 +80,7 @@ class ShortLinkController extends Controller
 
             Log::debug('short_link.redirect.expired', [
                 'code_prefix' => substr($code, 0, 3) . '…',
-                'ip' => $ip,
+                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
                 'expires_at' => $link->expires_at?->toIso8601String(),
             ]);
 
@@ -95,7 +95,7 @@ class ShortLinkController extends Controller
 
             Log::debug('short_link.redirect.hit_cap_exceeded', [
                 'code_prefix' => substr($code, 0, 3) . '…',
-                'ip' => $ip,
+                'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
                 'hit_count' => $freshHitCount,
                 'max_hits' => $freshMaxHits,
             ]);
@@ -134,8 +134,8 @@ class ShortLinkController extends Controller
         Log::info('short_link.redirect.success', [
             'code_prefix' => substr($code, 0, 3) . '…',
             'link_id' => $link->id,
-            'ip' => $ip,
-            'url' => $link->url,
+            'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
+            'url_host' => parse_url($link->url, PHP_URL_HOST),
         ]);
 
         // ── 302 redirect ───────────────────────────────────────────────
