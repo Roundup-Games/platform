@@ -122,15 +122,18 @@ class PruneExpiredShortLinks extends Command
             return $query->count();
         }
 
-        // Load links before updating so we can invalidate caches.
-        // Bulk update() bypasses Eloquent events, so booted() cache hooks don't fire.
-        $links = $query->get(['id', 'code']);
-        $count = ShortLink::whereIn('id', $links->pluck('id'))->update(['expires_at' => now()]);
+        // Chunked processing to avoid loading all matching links at once.
+        // Bulk update per chunk is efficient; cache invalidation follows each chunk.
+        $count = 0;
+        $query->chunkById(500, function ($links) use (&$count) {
+            $ids = $links->pluck('id');
+            $count += ShortLink::whereIn('id', $ids)->update(['expires_at' => now()]);
 
-        foreach ($links as $link) {
-            Cache::forget("short_link:{$link->code}");
-            Cache::forget("short_link_id:{$link->id}");
-        }
+            foreach ($links as $link) {
+                Cache::forget("short_link:{$link->code}");
+                Cache::forget("short_link_id:{$link->id}");
+            }
+        });
 
         return $count;
     }
@@ -172,10 +175,9 @@ class PruneExpiredShortLinks extends Command
         $count = 0;
         ShortLinkHit::where('hit_at', '<', $cutoff)
             ->chunkById(500, function ($hits) use (&$count) {
-                foreach ($hits as $hit) {
-                    $hit->delete();
-                    $count++;
-                }
+                // ShortLinkHit has no model events — bulk DELETE is safe and
+                // generates one statement per chunk instead of 500 individual deletes.
+                $count += ShortLinkHit::whereIn('id', $hits->pluck('id'))->delete();
             });
 
         return $count;

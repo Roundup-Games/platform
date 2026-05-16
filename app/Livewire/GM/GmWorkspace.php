@@ -121,11 +121,12 @@ class GmWorkspace extends Component
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // Verify the linkable entity is owned by this GM.
+        // Verify the linkable entity is owned by this GM (defense-in-depth).
         // Aligns with ManagesShortLinks::revokeShortLink() which checks both
-        // user_id AND entity ownership for defense-in-depth.
+        // user_id AND entity ownership. Uses isset() because owner_id is an
+        // Eloquent dynamic property (column accessor), not a declared method.
         $entity = $link->linkable;
-        if ($entity && method_exists($entity, 'owner_id') && $entity->owner_id !== $user->id) {
+        if ($entity && isset($entity->owner_id) && $entity->owner_id !== $user->id) {
             Log::warning('GM workspace: revoke denied — entity not owned by user', [
                 'link_id' => $linkId, 'user_id' => $user->id,
                 'linkable_type' => $link->linkable_type, 'linkable_id' => $link->linkable_id,
@@ -166,12 +167,16 @@ class GmWorkspace extends Component
                 ->distinct('user_id')
                 ->count('user_id');
 
-            $repeatPlayers = GameParticipant::whereIn('game_id', $gameIds)
+            // Count repeat players (appeared in 2+ games) in the database.
+            // A subquery counts the qualifying users so we get a single integer
+            // back instead of loading all grouped rows into PHP.
+            $repeatSub = GameParticipant::whereIn('game_id', $gameIds)
                 ->where('role', 'player')
-                ->select('user_id', DB::raw('COUNT(*) as game_count'))
                 ->groupBy('user_id')
                 ->havingRaw('COUNT(*) >= 2')
-                ->get()
+                ->selectRaw('1');
+            $repeatPlayers = (int) DB::table(DB::raw("({$repeatSub->toSql()}) as repeat_sub"))
+                ->mergeBindings($repeatSub->getQuery())
                 ->count();
 
             $totalGames = $gameIds->count();
@@ -195,7 +200,11 @@ class GmWorkspace extends Component
         $cacheKey = "gm_workspace:link_analytics:{$user->id}";
 
         return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
-            $gmLinkIds = ShortLink::where('user_id', $user->id)->pluck('id');
+            // Subquery for GM's short link IDs — avoids loading all IDs into PHP
+            // and generates efficient WHERE short_link_id IN (SELECT ...) instead.
+            $gmLinkSub = fn ($q) => $q->select('id')
+                ->from('short_links')
+                ->where('user_id', $user->id);
 
             // Summary stats grouped by entity type
             $linksByType = ShortLink::where('user_id', $user->id)
@@ -207,13 +216,11 @@ class GmWorkspace extends Component
                     return [$type => $item->count];
                 });
 
-            $totalHits = $gmLinkIds->isNotEmpty()
-                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
-                    ->where('hit_at', '>=', now()->subDays(30))
-                    ->count()
-                : 0;
+            $totalHits = ShortLinkHit::whereIn('short_link_id', $gmLinkSub)
+                ->where('hit_at', '>=', now()->subDays(30))
+                ->count();
 
-            $totalLinks = $gmLinkIds->count();
+            $totalLinks = ShortLink::where('user_id', $user->id)->count();
 
             $linkAnalytics = [
                 'totalLinks' => $totalLinks,
@@ -229,19 +236,17 @@ class GmWorkspace extends Component
                 ->get();
 
             // Top referrer domains — pre-extracted at write time for fast aggregation.
-            $topReferrers = $gmLinkIds->isNotEmpty()
-                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
-                    ->whereNotNull('referer_domain')
-                    ->where('hit_at', '>=', now()->subDays(30))
-                    ->selectRaw('referer_domain as domain')
-                    ->selectRaw('COUNT(*) as cnt')
-                    ->groupByRaw('referer_domain')
-                    ->orderByDesc('cnt')
-                    ->limit(5)
-                    ->get()
-                    ->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
-                    ->values()
-                : collect();
+            $topReferrers = ShortLinkHit::whereIn('short_link_id', $gmLinkSub)
+                ->whereNotNull('referer_domain')
+                ->where('hit_at', '>=', now()->subDays(30))
+                ->selectRaw('referer_domain as domain')
+                ->selectRaw('COUNT(*) as cnt')
+                ->groupByRaw('referer_domain')
+                ->orderByDesc('cnt')
+                ->limit(5)
+                ->get()
+                ->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
+                ->values();
 
             return [$linkAnalytics, $topLinks, $topReferrers];
         });

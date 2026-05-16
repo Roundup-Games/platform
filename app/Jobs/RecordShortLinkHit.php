@@ -108,13 +108,15 @@ class RecordShortLinkHit implements ShouldQueue
                 'hit_at' => now(),
             ]);
 
-            $link->increment('hit_count');
-            $link->update(['last_hit_at' => now()]);
-
-            // Invalidate cached copy so resolveLinkById sees fresh hit_count.
-            // increment() bypasses Eloquent events, so model hooks won't fire.
-            Cache::forget("short_link_id:{$link->id}");
+            // Single UPDATE statement — avoids two separate DB round-trips per hit.
+            $link->increment('hit_count', 1, ['last_hit_at' => now()]);
         });
+
+        // Invalidate caches after commit to avoid stale-free entries on rollback.
+        // Both cache keys for the same model must be invalidated together so
+        // any consumer (controller, policy, workspace) sees fresh hit_count.
+        Cache::forget("short_link_id:{$link->id}");
+        Cache::forget("short_link:{$link->code}");
 
         // ── PostHog link.hit event (after transaction commits) ───────
         try {

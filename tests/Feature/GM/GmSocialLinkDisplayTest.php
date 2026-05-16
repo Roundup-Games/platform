@@ -36,7 +36,7 @@ describe('social links on public profile', function () {
             ->assertSee('https://youtube.com/@GMChannel', false);
     });
 
-    it('renders social links with target=_blank', function () {
+    it('renders social links with target=_blank and rel=noopener', function () {
         $gm = $this->createSubscribedGm();
 
         GmSocialLink::create([
@@ -45,9 +45,15 @@ describe('social links on public profile', function () {
             'handle' => 'iconsgm',
         ]);
 
-        Livewire::test(PublicProfile::class, ['user' => $gm])
-            ->assertSee('target="_blank"', false)
-            ->assertSee('noopener noreferrer', false);
+        $html = Livewire::test(PublicProfile::class, ['user' => $gm])
+            ->html();
+
+        // Assert the security attributes appear on the social link anchor itself,
+        // not just anywhere on the page. The URL is unique to this social link,
+        // so matching it ensures the attributes belong to the right element.
+        expect($html)->toContain('href="https://x.com/iconsgm"');
+        $anchorPattern = '/<a[^>]+href="https:\/\/x\.com\/iconsgm"[^>]*target="_blank"[^>]*rel="[^"]*noopener[^"]*noreferrer[^"]*"/';
+        expect(preg_match($anchorPattern, $html))->toBe(1, "Social link anchor should have target=_blank and rel=noopener noreferrer");
     });
 
     it('shows no social links section when GM has no links', function () {

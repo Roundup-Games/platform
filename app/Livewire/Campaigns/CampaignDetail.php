@@ -171,23 +171,32 @@ class CampaignDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
-        // Determine join source and short link ID
-        $joinSource = $this->validatedShortLinkId !== null
+        // Determine join source and short link ID.
+        // Try short link first, but fall back to share token if the short link
+        // is revoked mid-session (caught during transactional revalidation).
+        $shortLinkId = $this->validatedShortLinkId;
+        $joinSource = $shortLinkId !== null
             ? JoinSource::ShortLink
             : JoinSource::ShareLink;
-        $shortLinkId = $this->validatedShortLinkId;
 
         try {
-            DB::transaction(function () use ($viewer, $joinSource, $shortLinkId) {
+            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
                 $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
 
                 // Revalidate short link under lock to catch mid-session revocation.
+                // If revoked, fall back to share token if one is still valid.
                 if ($shortLinkId !== null) {
                     $freshLink = ShortLink::where('id', $shortLinkId)
                         ->whereNull('deleted_at')
                         ->first();
                     if ($freshLink === null || $freshLink->isExpired()) {
-                        throw new \RuntimeException('Short link revoked or expired during join.');
+                        // Short link gone — fall back to share token if valid.
+                        if ($this->isShareTokenStillValid()) {
+                            $shortLinkId = null;
+                            $joinSource = JoinSource::ShareLink;
+                        } else {
+                            throw new \RuntimeException('Short link revoked or expired during join.');
+                        }
                     }
                 }
 
