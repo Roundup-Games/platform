@@ -94,13 +94,16 @@ class RecordShortLinkHit implements ShouldQueue
         // IP was hashed in constructor before entering the queue store.
         $hashedIp = $this->ipAddress;
 
+        // Extract referer domain once — used in both hit row and PostHog event.
+        $refererDomain = $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null;
+
         // ── Record hit + update counters in a transaction ────────────
-        DB::transaction(function () use ($link, $hashedIp): void {
+        DB::transaction(function () use ($link, $hashedIp, $refererDomain): void {
             ShortLinkHit::create([
                 'short_link_id' => $link->id,
                 'ip_address' => $hashedIp,
                 'referer' => $this->referer,
-                'referer_domain' => $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null,
+                'referer_domain' => $refererDomain,
                 'user_agent' => $this->userAgent,
                 'hit_at' => now(),
             ]);
@@ -124,7 +127,7 @@ class RecordShortLinkHit implements ShouldQueue
                     'link_label' => $link->label,
                     'linkable_type' => class_basename($link->linkable_type),
                     'linkable_id' => $link->linkable_id,
-                    'referer_domain' => $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null,
+                    'referer_domain' => $refererDomain,
                 ],
             ]);
         } catch (\Throwable $e) {

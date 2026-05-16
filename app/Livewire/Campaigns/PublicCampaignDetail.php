@@ -103,6 +103,10 @@ class PublicCampaignDetail extends Component
     #[Computed]
     public function hasShareLink(): bool
     {
+        // Note: validatedShortLinkId is #[Locked] and set only on mount.
+        // If the link is revoked within this Livewire session, this still
+        // returns true until a full page refresh. This is a deliberate
+        // tradeoff for UI consistency (hasShareLink/shareLinkUrl stay in sync).
         return $this->campaign->share_token !== null || $this->validatedShortLinkId !== null;
     }
 

@@ -56,7 +56,7 @@ class GmSocialLink extends Model
      */
     public function getSafeUrlAttribute(): string
     {
-        if ($this->url && str_starts_with($this->url, 'https://') || str_starts_with($this->url ?? '', 'http://')) {
+        if ($this->url && (str_starts_with($this->url, 'https://') || str_starts_with($this->url, 'http://'))) {
             return $this->url;
         }
 

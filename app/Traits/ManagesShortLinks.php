@@ -117,7 +117,7 @@ trait ManagesShortLinks
             'user_id' => $viewer->id,
         ]);
 
-        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
+        unset($this->getShortLinks, $this->hasShareLink, $this->shareLinkUrl);
         session()->flash('success', __('common.flash_share_link_generated'));
     }
 
@@ -146,7 +146,7 @@ trait ManagesShortLinks
             'user_id' => $viewer->id,
         ]);
 
-        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
+        unset($this->getShortLinks, $this->hasShareLink, $this->shareLinkUrl);
         session()->flash('success', __('common.flash_share_link_revoked'));
     }
 

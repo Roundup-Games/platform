@@ -74,7 +74,24 @@ class ShortLinkController extends Controller
             abort(404, 'Short link not found.');
         }
 
-        // ── Expiration check (application-level on cached data) ────────
+        // ── Freshness check: re-fetch authoritative fields from DB ─────
+        // The cached model may predate an expiry change (via expireLinksForEntity)
+        // or hit counter increment. A single lightweight query keeps both the
+        // expiry and hit-cap decisions consistent with resolveLinkById().
+        $fresh = ShortLink::where('id', $link->id)
+            ->whereNull('deleted_at')
+            ->first(['expires_at', 'max_hits', 'hit_count']);
+
+        if ($fresh === null) {
+            Cache::forget($cacheKey);
+            abort(404, 'Short link not found.');
+        }
+
+        // Overlay fresh values onto cached model for isExpired/hasHitCap
+        $link->expires_at = $fresh->expires_at;
+        $link->max_hits = $fresh->max_hits;
+        $link->hit_count = $fresh->hit_count;
+
         if ($link->isExpired()) {
             Cache::forget($cacheKey);
 
@@ -87,20 +104,16 @@ class ShortLinkController extends Controller
             abort(404, 'Short link not found.');
         }
 
-        // ── Hit cap check (DB-authoritative) ───────────────────────────
-        $freshHitCount = ShortLink::where('id', $link->id)->value('hit_count');
-        $freshMaxHits = $link->max_hits;
-        if ($freshMaxHits !== null && $freshHitCount >= $freshMaxHits) {
+        if ($link->hasHitCap()) {
             Cache::forget($cacheKey);
 
             Log::debug('short_link.redirect.hit_cap_exceeded', [
                 'code_prefix' => substr($code, 0, 3) . '…',
                 'ip_hash' => hash_hmac('sha256', (string) $ip, (string) config('app.key')),
-                'hit_count' => $freshHitCount,
-                'max_hits' => $freshMaxHits,
+                'hit_count' => $link->hit_count,
+                'max_hits' => $link->max_hits,
             ]);
 
-            // 404 — no information leakage about whether the link exists
             abort(404, 'Short link not found.');
         }
 

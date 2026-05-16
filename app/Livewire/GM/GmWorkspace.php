@@ -121,6 +121,19 @@ class GmWorkspace extends Component
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        // Verify the linkable entity is owned by this GM.
+        // Aligns with ManagesShortLinks::revokeShortLink() which checks both
+        // user_id AND entity ownership for defense-in-depth.
+        $entity = $link->linkable;
+        if ($entity && method_exists($entity, 'owner_id') && $entity->owner_id !== $user->id) {
+            Log::warning('GM workspace: revoke denied — entity not owned by user', [
+                'link_id' => $linkId, 'user_id' => $user->id,
+                'linkable_type' => $link->linkable_type, 'linkable_id' => $link->linkable_id,
+            ]);
+            session()->flash('error', __('common.error_not_authorized'));
+            return;
+        }
+
         app(ShortLinkService::class)->revokeLink($link);
 
         Cache::forget("gm_workspace:link_analytics:{$user->id}");
