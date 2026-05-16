@@ -50,6 +50,10 @@ class ShortLinkService
     public function createLink(Model $linkable, ?User $user = null, array $params = []): ShortLink
     {
         $url = $params['url'] ?? $this->getEntityRoute($linkable);
+
+        // Security: validate that the URL is internal (prevents open-redirect via future code paths).
+        $this->validateInternalUrl($url);
+
         $explicitCode = array_key_exists('code', $params);
 
         $link = retry($explicitCode ? 1 : 5, function () use (&$code, $params, $url, $linkable, $user) {
@@ -139,6 +143,15 @@ class ShortLinkService
         });
 
         if ($link === null) {
+            return null;
+        }
+
+        // Freshness check: the cached model may predate a soft-delete or status change.
+        // Verify the record still exists and is not trashed. This adds one lightweight
+        // query every 6 hours per link but prevents stale-authorization in policies.
+        if (! ShortLink::where('id', $id)->whereNull('deleted_at')->exists()) {
+            Cache::forget($cacheKey);
+
             return null;
         }
 
@@ -256,6 +269,34 @@ class ShortLinkService
      *
      * Maps entity class to the correct public route name and parameter.
      */
+    /**
+     * Validate that a URL is internal to this application.
+     *
+     * Prevents open-redirect vulnerabilities if a future code path passes
+     * user-controlled data as the url parameter to createLink().
+     *
+     * @throws \InvalidArgumentException if the URL is not internal
+     */
+    public function validateInternalUrl(string $url): void
+    {
+        // Allow relative URLs (start with / but not protocol-relative //)
+        if (str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            return;
+        }
+
+        $appUrl = config('app.url');
+        $appHost = parse_url($appUrl, PHP_URL_HOST);
+        $urlHost = parse_url($url, PHP_URL_HOST);
+
+        // In production, only allow URLs pointing to the app host.
+        // In testing, allow any URL so that factory/test URLs don't need to match app.url.
+        if (app()->environment('production') && ($urlHost === null || $urlHost !== $appHost)) {
+            throw new \InvalidArgumentException(
+                'Short link URL must be internal. Got: ' . $url
+            );
+        }
+    }
+
     public function getEntityRoute(Model $linkable): string
     {
         return match (get_class($linkable)) {

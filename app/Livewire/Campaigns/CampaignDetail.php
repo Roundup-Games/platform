@@ -15,6 +15,7 @@ use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
+use App\Traits\ManagesShortLinks;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ use Livewire\Component;
 class CampaignDetail extends Component
 {
     use HandlesBench, HandlesWaitlist, ManagesParticipants;
+    use ManagesShortLinks;
 
     public Campaign $campaign;
 
@@ -54,29 +56,6 @@ class CampaignDetail extends Component
 
         // Detect short link arrival via ph_link_id cookie
         $this->detectShortLink();
-    }
-
-    /**
-     * Detect and validate a short link from the ph_link_id cookie.
-     */
-    private function detectShortLink(): void
-    {
-        $linkId = request()->cookie('ph_link_id');
-
-        if (! is_string($linkId) || ! ctype_digit($linkId)) {
-            return;
-        }
-
-        $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
-
-        if ($link === null) {
-            return;
-        }
-
-        // Validate the short link belongs to this campaign
-        if ($link->linkable_type === Campaign::class && (string) $link->linkable_id === (string) $this->campaign->getKey()) {
-            $this->validatedShortLinkId = $link->id;
-        }
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -172,94 +151,6 @@ class CampaignDetail extends Component
             'user_id' => $viewer->id,
         ]);
         session()->flash('success', __('common.flash_share_link_generated'));
-    }
-
-    #[Computed]
-    public function hasShareLink(): bool
-    {
-        return $this->campaign->share_token !== null || $this->getShortLinks()->isNotEmpty();
-    }
-
-    #[Computed]
-    public function shareLinkUrl(): ?string
-    {
-        // Prefer short link URL if available
-        $shortLinks = $this->getShortLinks();
-        if ($shortLinks->isNotEmpty()) {
-            return url('/link/' . $shortLinks->first()->code);
-        }
-
-        if ($this->campaign->share_token === null) {
-            return null;
-        }
-
-        return route('campaigns.detail', $this->campaign->id) . '?share=' . $this->campaign->share_token;
-    }
-
-    // ── Short Link Management ──────────────────────────
-
-    #[Computed]
-    public function getShortLinks()
-    {
-        return app(ShortLinkService::class)->getLinksForEntity($this->campaign);
-    }
-
-    public function createShortLink(?string $label = null): void
-    {
-        $viewer = Auth::user();
-
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
-            session()->flash('error', __('common.error_not_authorized'));
-            return;
-        }
-
-        $service = app(ShortLinkService::class);
-
-        if (! $service->canCreateMore($this->campaign, $viewer)) {
-            session()->flash('error', 'Maximum number of short links reached for this campaign.');
-            return;
-        }
-
-        $link = $service->createLink($this->campaign, $viewer, [
-            'label' => $label,
-            'purpose' => 'share',
-        ]);
-
-        Log::info('Short link created for campaign', [
-            'campaign_id' => $this->campaign->id,
-            'link_id' => $link->id,
-            'code' => $link->code,
-            'user_id' => $viewer->id,
-        ]);
-
-        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
-        session()->flash('success', 'Short link created.');
-    }
-
-    public function revokeShortLink(int $linkId): void
-    {
-        $viewer = Auth::user();
-
-        if (! $viewer || $this->campaign->owner_id !== $viewer->id) {
-            session()->flash('error', __('common.error_not_authorized'));
-            return;
-        }
-
-        $link = ShortLink::where('id', $linkId)
-            ->where('linkable_type', Campaign::class)
-            ->where('linkable_id', $this->campaign->getKey())
-            ->firstOrFail();
-
-        app(ShortLinkService::class)->revokeLink($link);
-
-        Log::info('Short link revoked for campaign', [
-            'campaign_id' => $this->campaign->id,
-            'link_id' => $linkId,
-            'user_id' => $viewer->id,
-        ]);
-
-        unset($this->shortLinks, $this->hasShareLink, $this->shareLinkUrl);
-        session()->flash('success', 'Short link revoked.');
     }
 
     // ── Join via Share Link ────────────────────────────
@@ -372,19 +263,8 @@ class CampaignDetail extends Component
         }
 
         // Must have either a valid share token or a valid short link
-        $hasShareToken = $this->validatedShareToken !== null
-            && $this->validatedShareToken === $this->campaign->share_token
-            && ($this->campaign->share_token_expires_at === null || ! $this->campaign->share_token_expires_at->isPast());
-
-        $hasShortLink = false;
-        if ($this->validatedShortLinkId !== null) {
-            $freshShortLink = \App\Models\ShortLink::where('id', $this->validatedShortLinkId)
-                ->whereNull('deleted_at')
-                ->first();
-            $hasShortLink = $freshShortLink !== null
-                && ! $freshShortLink->isExpired()
-                && ! $freshShortLink->hasHitCap();
-        }
+        $hasShareToken = $this->isShareTokenStillValid();
+        $hasShortLink = $this->isShortLinkStillValid();
 
         if (! $hasShareToken && ! $hasShortLink) {
             return false;

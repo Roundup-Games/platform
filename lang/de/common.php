@@ -373,9 +373,9 @@ return [
 
     // ── Teilnehmerquelle-Anzeige ────────────────────────
     'content_joined_via_link' => 'Beigetreten über: :label',
-    'source_share_link' => 'Freigabelink',
-    'source_friend_invite' => 'Freundschaftseinladung',
-    'source_application' => 'Bewerbung',
-    'source_email_invite' => 'E-Mail-Einladung',
-    'source_short_link' => 'Kurzlink',
+    'content_source_share_link' => 'Freigabelink',
+    'content_source_friend_invite' => 'Freundschaftseinladung',
+    'content_source_application' => 'Bewerbung',
+    'content_source_email_invite' => 'E-Mail-Einladung',
+    'content_source_short_link' => 'Kurzlink',
 ];

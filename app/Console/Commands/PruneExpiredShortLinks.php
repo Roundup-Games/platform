@@ -82,53 +82,38 @@ class PruneExpiredShortLinks extends Command
     {
         $cutoff = now()->subDays($graceDays);
 
-        // Collect IDs of completed/cancelled entities
-        $completedGameIds = \App\Models\Game::whereIn('status', [GameStatus::Completed->value, GameStatus::Canceled->value])
-            ->where('updated_at', '<', $cutoff)
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id);
-
-        $completedCampaignIds = \App\Models\Campaign::whereIn('status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
-            ->where('updated_at', '<', $cutoff)
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id);
-
-        $completedEventIds = \App\Models\Event::whereIn('status', [EventStatus::Completed->value, EventStatus::Cancelled->value])
-            ->where('updated_at', '<', $cutoff)
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id);
-
-        // Query links without expires_at whose linkable entity is completed
-        // If no completed entities exist past the grace period, skip entirely
-        $hasCompletedEntities = $completedGameIds->isNotEmpty()
-            || $completedCampaignIds->isNotEmpty()
-            || $completedEventIds->isNotEmpty();
-
-        if (! $hasCompletedEntities) {
-            return 0;
-        }
-
+        // Use subqueries instead of plucking IDs into memory.
+        // This scales to millions of rows without OOM risk.
         $query = ShortLink::query()
             ->whereNull('expires_at')
-            ->where(function ($q) use ($completedGameIds, $completedCampaignIds, $completedEventIds) {
-                if ($completedGameIds->isNotEmpty()) {
-                    $q->orWhere(function ($subQ) use ($completedGameIds) {
-                        $subQ->where('linkable_type', \App\Models\Game::class)
-                            ->whereIn('linkable_id', $completedGameIds);
-                    });
-                }
-                if ($completedCampaignIds->isNotEmpty()) {
-                    $q->orWhere(function ($subQ) use ($completedCampaignIds) {
-                        $subQ->where('linkable_type', \App\Models\Campaign::class)
-                            ->whereIn('linkable_id', $completedCampaignIds);
-                    });
-                }
-                if ($completedEventIds->isNotEmpty()) {
-                    $q->orWhere(function ($subQ) use ($completedEventIds) {
-                        $subQ->where('linkable_type', \App\Models\Event::class)
-                            ->whereIn('linkable_id', $completedEventIds);
-                    });
-                }
+            ->where(function ($q) use ($cutoff) {
+                $q->orWhere(function ($subQ) use ($cutoff) {
+                    $subQ->where('linkable_type', \App\Models\Game::class)
+                        ->whereIn('linkable_id', function ($sub) use ($cutoff) {
+                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                                ->from('games')
+                                ->whereIn('status', [GameStatus::Completed->value, GameStatus::Canceled->value])
+                                ->where('updated_at', '<', $cutoff);
+                        });
+                });
+                $q->orWhere(function ($subQ) use ($cutoff) {
+                    $subQ->where('linkable_type', \App\Models\Campaign::class)
+                        ->whereIn('linkable_id', function ($sub) use ($cutoff) {
+                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                                ->from('campaigns')
+                                ->whereIn('status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
+                                ->where('updated_at', '<', $cutoff);
+                        });
+                });
+                $q->orWhere(function ($subQ) use ($cutoff) {
+                    $subQ->where('linkable_type', \App\Models\Event::class)
+                        ->whereIn('linkable_id', function ($sub) use ($cutoff) {
+                            $sub->selectRaw('CAST(id AS VARCHAR)')
+                                ->from('events')
+                                ->whereIn('status', [EventStatus::Completed->value, EventStatus::Cancelled->value])
+                                ->where('updated_at', '<', $cutoff);
+                        });
+                });
             });
 
         if ($dryRun) {

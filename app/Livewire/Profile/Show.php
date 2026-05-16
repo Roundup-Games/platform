@@ -542,7 +542,15 @@ class Show extends Component
 
         try {
             $service = app(\App\Services\GmSocialLinkService::class);
-            $service->syncLinksForUser($user, $validated['socialLinks']);
+            // Transform keyed array ['twitter' => ['handle' => 'x']]
+            // into the format syncLinksForUser expects: [['platform' => 'twitter', 'handle' => 'x']].
+            $links = collect($validated['socialLinks'])->map(fn ($data, $platform) => [
+                'platform' => $platform,
+                'handle' => $data['handle'] ?? '',
+                'instance' => $data['instance'] ?? '',
+            ])->values()->toArray();
+
+            $service->syncLinksForUser($user, $links);
 
             Log::info('GM social links updated', [
                 'user_id' => $user->id,

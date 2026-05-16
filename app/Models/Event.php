@@ -100,7 +100,7 @@ class Event extends Model implements HasMedia
         });
 
         static::updated(function (self $event) {
-            if ($event->wasChanged('status') && in_array($event->status, ['completed', 'cancelled'])) {
+            if ($event->wasChanged('status') && in_array($event->status->value, ['completed', 'cancelled'])) {
                 app(\App\Services\ShortLinkService::class)->expireLinksForEntity($event);
             }
         });

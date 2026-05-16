@@ -8,9 +8,11 @@ use App\Models\Campaign;
 use App\Models\User;
 use App\Services\ScopedRoleService;
 use App\Services\ShortLinkService;
+use App\Traits\ValidatesShortLinkCookie;
 
 class CampaignPolicy
 {
+    use ValidatesShortLinkCookie;
     /**
      * Global admin bypass.
      */
@@ -109,23 +111,6 @@ class CampaignPolicy
      */
     private function hasValidShortLink(Campaign $campaign): bool
     {
-        $linkId = request()->cookie('ph_link_id');
-
-        if ($linkId === null) {
-            return false;
-        }
-
-        $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
-
-        if ($link === null) {
-            return false;
-        }
-
-        if ($campaign->status === CampaignStatus::Cancelled || $campaign->status === CampaignStatus::Completed) {
-            return false;
-        }
-
-        return $link->linkable_type === Campaign::class
-            && (string) $link->linkable_id === (string) $campaign->getKey();
+        return $this->isValidShortLinkForEntity($campaign);
     }
 }

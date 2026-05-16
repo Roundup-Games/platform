@@ -8,9 +8,11 @@ use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
 use App\Services\ShortLinkService;
+use App\Traits\ValidatesShortLinkCookie;
 
 class GamePolicy
 {
+    use ValidatesShortLinkCookie;
     /**
      * Global admin bypass.
      */
@@ -112,23 +114,6 @@ class GamePolicy
      */
     private function hasValidShortLink(Game $game): bool
     {
-        $linkId = request()->cookie('ph_link_id');
-
-        if ($linkId === null) {
-            return false;
-        }
-
-        $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
-
-        if ($link === null) {
-            return false;
-        }
-
-        if ($game->status === GameStatus::Completed || $game->status === GameStatus::Canceled) {
-            return false;
-        }
-
-        return $link->linkable_type === Game::class
-            && (string) $link->linkable_id === (string) $game->getKey();
+        return $this->isValidShortLinkForEntity($game);
     }
 }

@@ -373,9 +373,9 @@ return [
 
     // ── Participant source display ──────────────────────
     'content_joined_via_link' => 'Joined via: :label',
-    'source_share_link' => 'Share Link',
-    'source_friend_invite' => 'Friend Invite',
-    'source_application' => 'Application',
-    'source_email_invite' => 'Email Invite',
-    'source_short_link' => 'Short Link',
+    'content_source_share_link' => 'Share Link',
+    'content_source_friend_invite' => 'Friend Invite',
+    'content_source_application' => 'Application',
+    'content_source_email_invite' => 'Email Invite',
+    'content_source_short_link' => 'Short Link',
 ];
