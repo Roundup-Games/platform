@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Async job that records a short link hit and fires the PostHog event.
  *
- * Writes the ShortLinkHit row and increments the hit counter on the parent
- * ShortLink inside a DB transaction. After commit, dispatches a link.hit
- * PostHog event for analytics stitching. PostHog failures are caught and
- * logged — analytics never blocks the job.
+ * Writes the ShortLinkHit row (with hashed IP for PII compliance) and
+ * increments the hit counter on the parent ShortLink inside a DB transaction.
+ * After commit, dispatches a link.hit PostHog event for analytics stitching.
+ * PostHog failures are caught and logged — analytics never blocks the job.
  *
  * Triggered by: ShortLinkController::redirect() on every successful resolution.
  */
@@ -45,7 +45,7 @@ class RecordShortLinkHit implements ShouldQueue
 
     /**
      * @param  int  $shortLinkId  The ID of the ShortLink that was resolved.
-     * @param  string|null  $ipAddress  The visitor's IP address.
+     * @param  string|null  $ipAddress  The visitor's IP address (hashed before storage).
      * @param  string|null  $referer  The Referer header value.
      * @param  string|null  $userAgent  The User-Agent header value.
      */
@@ -73,11 +73,17 @@ class RecordShortLinkHit implements ShouldQueue
             return;
         }
 
+        // Hash the IP for PII compliance — allows geo-resolution from
+        // the first 3 octets while preventing raw IP storage.
+        $hashedIp = $this->ipAddress
+            ? hash('sha256', $this->ipAddress . config('app.key'))
+            : null;
+
         // ── Record hit + update counters in a transaction ────────────
-        DB::transaction(function () use ($link): void {
+        DB::transaction(function () use ($link, $hashedIp): void {
             ShortLinkHit::create([
                 'short_link_id' => $link->id,
-                'ip_address' => $this->ipAddress,
+                'ip_address' => $hashedIp,
                 'referer' => $this->referer,
                 'user_agent' => $this->userAgent,
                 'hit_at' => now(),
@@ -99,11 +105,9 @@ class RecordShortLinkHit implements ShouldQueue
                     'linkable_type' => class_basename($link->linkable_type),
                     'linkable_id' => $link->linkable_id,
                     'referer_domain' => $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null,
-                    'referer_full' => $this->referer,
                 ],
             ]);
         } catch (\Throwable $e) {
-            // Analytics failure never blocks the job
             Log::warning('short_link.hit.posthog_failed', [
                 'short_link_id' => $link->id,
                 'error' => $e->getMessage(),

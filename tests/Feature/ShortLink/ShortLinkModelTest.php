@@ -12,14 +12,13 @@ beforeEach(function () {
     $this->game = Game::factory()->create(['game_system_id' => $this->gameSystem->id]);
 });
 
-// ── Code generation ────────────────────────────────────
+// ── Code generation (via ShortLinkService) ────────────
 
-describe('ShortLink model — code generation', function () {
-    it('auto-generates a 7-char alphanumeric code on create', function () {
-        $link = ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => null,
-        ]);
+describe('ShortLinkService — code generation', function () {
+    it('auto-generates a 7-char alphanumeric code via service', function () {
+        $user = User::factory()->create();
+        $service = app(\App\Services\ShortLinkService::class);
+        $link = $service->createLink($this->game, $user);
 
         expect($link->code)->toBeString();
         expect(strlen($link->code))->toBe(7);
@@ -27,42 +26,36 @@ describe('ShortLink model — code generation', function () {
     });
 
     it('generates different codes for different links', function () {
-        $link1 = ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => null,
-        ]);
-        $link2 = ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => null,
-        ]);
+        $user = User::factory()->create();
+        $service = app(\App\Services\ShortLinkService::class);
+        $link1 = $service->createLink($this->game, $user);
+        $link2 = $service->createLink($this->game, $user);
 
         expect($link1->code)->not->toBe($link2->code);
     });
 
-    it('throws after 10 collision attempts', function () {
-        $existing = ShortLink::factory()->create([
+    it('throws after 10 collision attempts in service', function () {
+        // Fill all possible code slots with existing links
+        Str::createRandomStringsUsing(fn (int $length) => 'AAAAAAA');
+        ShortLink::factory()->create([
             'linkable_id' => $this->game->id,
             'code' => 'AAAAAAA',
         ]);
 
-        // Force Str::random to always return a colliding code
-        Str::createRandomStringsUsing(fn (int $length) => 'AAAAAAA');
-
         try {
-            expect(fn () => ShortLink::factory()->create([
-                'linkable_id' => $this->game->id,
-                'code' => null,
-            ]))->toThrow(\RuntimeException::class);
+            $user = User::factory()->create();
+            $service = app(\App\Services\ShortLinkService::class);
+            expect(fn () => $service->createLink($this->game, $user))
+                ->toThrow(\RuntimeException::class);
         } finally {
             Str::createRandomStringsUsing(null);
         }
     });
 
-    it('accepts an explicit code without auto-generation', function () {
-        $link = ShortLink::factory()->create([
-            'linkable_id' => $this->game->id,
-            'code' => 'CUSTOM1',
-        ]);
+    it('accepts an explicit code via service params', function () {
+        $user = User::factory()->create();
+        $service = app(\App\Services\ShortLinkService::class);
+        $link = $service->createLink($this->game, $user, ['code' => 'CUSTOM1']);
 
         expect($link->code)->toBe('CUSTOM1');
     });

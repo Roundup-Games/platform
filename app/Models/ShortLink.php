@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 class ShortLink extends Model
 {
@@ -40,29 +39,18 @@ class ShortLink extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $link) {
-            if (empty($link->code)) {
-                $attempts = 0;
-                do {
-                    $link->code = Str::random(7);
-                    $attempts++;
-                } while (static::where('code', $link->code)->exists() && $attempts < 10);
-
-                if ($attempts >= 10 && static::where('code', $link->code)->exists()) {
-                    throw new \RuntimeException('Unable to generate a unique short link code after 10 attempts.');
-                }
-            }
-        });
-
+        // Cache invalidation on update — clear both old and new code keys.
         static::updating(function (self $link) {
             Cache::forget("short_link:{$link->getOriginal('code')}");
             if ($link->isDirty('code')) {
                 Cache::forget("short_link:{$link->code}");
             }
+            Cache::forget("short_link_id:{$link->id}");
         });
 
         static::deleting(function (self $link) {
             Cache::forget("short_link:{$link->code}");
+            Cache::forget("short_link_id:{$link->id}");
         });
     }
 

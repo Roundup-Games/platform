@@ -8,7 +8,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -63,11 +62,13 @@ class ShortLinkController extends Controller
 
         // ── Not found ──────────────────────────────────────────────────
         if ($link === null) {
-            RateLimiter::hit($missKey, static::MISS_TTL);
+            Cache::add($missKey, 0, static::MISS_TTL);
+            $newMisses = Cache::increment($missKey);
 
             Log::debug('short_link.redirect.not_found', [
                 'code_prefix' => substr($code, 0, 3) . '…',
                 'ip' => $ip,
+                'misses' => $newMisses,
             ]);
 
             abort(404, 'Short link not found.');
@@ -123,11 +124,10 @@ class ShortLinkController extends Controller
         $cookie = cookie('ph_link_id', (string) $link->id, 60); // 60 minutes
 
         // ── Short link intent cookie for guest-to-auth participant creation ──
-        // Encrypted cookie carrying entity context so ProcessShareIntent can
-        // create participants from short link arrivals after auth.
+        // Encrypted cookie carrying ONLY the short_link_id.
+        // ProcessShareIntent derives entity_type and entity_id from the link
+        // record itself — no attacker-controlled payload in the cookie.
         $intentCookie = cookie('short_link_intent', json_encode([
-            'entity_type' => strtolower(class_basename($link->linkable_type)),
-            'entity_id' => $link->linkable_id,
             'short_link_id' => $link->id,
         ]), 24 * 60); // 24 hours
 

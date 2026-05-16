@@ -23,12 +23,12 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * ProcessShareIntent middleware.
  *
- * Intercepts the 'share_intent' encrypted cookie after auth transitions
- * (registration, email verification, login, onboarding completion).
- * If the user has a complete profile and a valid share intent cookie:
- *   1. Validates the entity exists and share_token still matches
- *   2. Creates the user as a participant (approved/waitlisted/benched)
- *   3. Clears the cookie and redirects to the entity detail page
+ * Intercepts encrypted cookies after auth transitions (registration, email
+ * verification, login, onboarding completion) to auto-create participants.
+ *
+ * Two cookie flows:
+ *   1. short_link_intent — carries short_link_id only; entity derived from link
+ *   2. share_intent — carries entity_type, entity_id, share_token
  *
  * If the user's profile is incomplete, defers processing (cookie persists).
  */
@@ -79,9 +79,6 @@ class ProcessShareIntent
             return $next($request);
         }
 
-        // Defer processing if profile is not yet complete.
-        // The cookie persists and will be processed on the next authenticated
-        // GET request after onboarding finishes.
         if (! $user->profile_complete) {
             Log::debug('share_intent.deferred_profile_incomplete', [
                 'user_id' => $user->id,
@@ -91,7 +88,6 @@ class ProcessShareIntent
             return $next($request);
         }
 
-        // Parse the cookie payload
         $payload = $this->parsePayload($shareIntent);
 
         if ($payload === null) {
@@ -102,11 +98,8 @@ class ProcessShareIntent
             return $this->clearCookie($next($request));
         }
 
-        // Process the share intent BEFORE running $next($request) so we can
-        // redirect immediately without wasting a full controller/render cycle.
         $result = $this->processShareIntent($payload, $user);
 
-        // If we created a participant (or user was already one), redirect now
         if ($result->shouldRedirect && $result->redirectRoute) {
             Log::info('share_intent.redirecting', [
                 'user_id' => $user->id,
@@ -120,9 +113,10 @@ class ProcessShareIntent
             ])->withCookie(cookie()->forget('share_intent'));
         }
 
-        // No redirect needed — run the normal request pipeline and clear cookie
         return $this->clearCookie($next($request));
     }
+
+    // ── Share Token Intent ──────────────────────────────────
 
     /**
      * Process the share intent: validate entity, check capacity, create participant.
@@ -140,244 +134,226 @@ class ProcessShareIntent
         };
     }
 
-    /**
-     * Process a game share intent.
-     */
     private function processGameShareIntent(string $entityId, string $shareToken, $user): ShareIntentResult
     {
         $game = Game::find($entityId);
 
         if (! $game) {
             Log::warning('share_intent.entity_not_found', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
+                'user_id' => $user->id, 'entity_type' => 'game', 'entity_id' => $entityId,
             ]);
 
             return new ShareIntentResult(false, null);
         }
 
-        // Validate share token
         if (! $this->validateShareToken($game, $shareToken, 'game', $entityId, $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        // Owner is already a participant — skip with redirect
         if ($game->owner_id === $user->id) {
-            Log::debug('share_intent.is_owner', [
-                'entity_type' => 'game',
-                'entity_id' => $game->id,
-                'user_id' => $user->id,
-            ]);
-
             return new ShareIntentResult(true, 'games.show');
         }
 
-        // Check if user is already a participant (before acquiring lock)
-        $existing = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existing) {
-            Log::info('share_intent.already_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
-                'existing_status' => $existing->status->value,
-            ]);
-
-            // Still redirect to the entity so user sees it
-            return new ShareIntentResult(true, 'games.show');
-        }
-
-        // Wrap participant creation in a transaction with lockForUpdate to prevent
-        // race conditions (concurrent share-link joins, double-clicks, etc.)
-        try {
-            $status = null;
-
-            DB::transaction(function () use ($game, $user, &$status) {
-                $lockedGame = Game::lockForUpdate()->find($game->id);
-
-                if (! $lockedGame) {
-                    Log::error('share_intent.game_not_found_under_lock', [
-                        'user_id' => $user->id,
-                        'entity_id' => $game->id,
-                    ]);
-
-                    return;
-                }
-
-                // Check game is still active (not completed/cancelled)
-                if (in_array($lockedGame->status, [GameStatus::Completed, GameStatus::Canceled], true)) {
-                    Log::warning('share_intent.game_inactive', [
-                        'user_id' => $user->id,
-                        'entity_id' => $game->id,
-                        'status' => $lockedGame->status->value,
-                    ]);
-
-                    return; // exits transaction early — $status stays null
-                }
-
-                // Re-check under lock that user hasn't been added by a concurrent request
-                $alreadyExists = GameParticipant::where('game_id', $lockedGame->id)
-                    ->where('user_id', $user->id)
-                    ->exists();
-
-                if ($alreadyExists) {
-                    // Race lost — another request already added the participant.
-                    // Set status so we still redirect.
-                    $status = ParticipantStatus::Approved;
-
-                    return;
-                }
-
-                // Determine status based on capacity (under lock)
-                $status = $this->determineStatus($lockedGame, 'game');
-
-                $participantData = [
-                    'game_id' => $lockedGame->id,
-                    'user_id' => $user->id,
-                    'role' => 'player',
-                    'status' => $status,
-                    'join_source' => JoinSource::ShareLink,
-                ];
-
-                if ($status === ParticipantStatus::Waitlisted) {
-                    $participantData['waitlisted_at'] = now();
-                } elseif ($status === ParticipantStatus::Benched) {
-                    $participantData['benched_at'] = now();
-                }
-
-                GameParticipant::create($participantData);
-
-                Log::info('share_intent.participant_created', [
-                    'user_id' => $user->id,
-                    'entity_type' => 'game',
-                    'entity_id' => $lockedGame->id,
-                    'status' => $status->value,
-                ]);
-            });
-        } catch (QueryException $e) {
-            // Unique constraint violation — participant already exists from a
-            // concurrent request. The outcome is correct, so log and redirect.
-            Log::warning('share_intent.duplicate_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return new ShareIntentResult(true, 'games.show');
-        }
-
-        // If status is null the game was inactive — don't redirect, just clear cookie
-        if ($status === null) {
-            return new ShareIntentResult(false, null);
-        }
-
-        return new ShareIntentResult(true, 'games.show');
+        return $this->createParticipantForEntity(
+            $game, $user, 'game', JoinSource::ShareLink, null
+        );
     }
 
-    /**
-     * Process a campaign share intent.
-     */
     private function processCampaignShareIntent(string $entityId, string $shareToken, $user): ShareIntentResult
     {
         $campaign = Campaign::find($entityId);
 
         if (! $campaign) {
             Log::warning('share_intent.entity_not_found', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
+                'user_id' => $user->id, 'entity_type' => 'campaign', 'entity_id' => $entityId,
             ]);
 
             return new ShareIntentResult(false, null);
         }
 
-        // Validate share token
         if (! $this->validateShareToken($campaign, $shareToken, 'campaign', $entityId, $user->id)) {
             return new ShareIntentResult(false, null);
         }
 
-        // Owner is already a participant — skip with redirect
         if ($campaign->owner_id === $user->id) {
-            Log::debug('share_intent.is_owner', [
-                'entity_type' => 'campaign',
-                'entity_id' => $campaign->id,
-                'user_id' => $user->id,
-            ]);
-
             return new ShareIntentResult(true, 'campaigns.show');
         }
 
-        // Check if user is already a participant (before acquiring lock)
-        $existing = CampaignParticipant::where('campaign_id', $campaign->id)
+        return $this->createParticipantForEntity(
+            $campaign, $user, 'campaign', JoinSource::ShareLink, null
+        );
+    }
+
+    // ── Short Link Intent ───────────────────────────────────
+
+    /**
+     * Process the short_link_intent cookie.
+     *
+     * Derives entity identity entirely from the short link record — the cookie
+     * only carries short_link_id, so there is no attacker-controlled entity data.
+     */
+    private function processShortLinkIntent(mixed $cookieValue, $user): ShareIntentResult
+    {
+        $payload = $this->parseShortLinkPayload($cookieValue);
+
+        if ($payload === null) {
+            Log::warning('short_link_intent.invalid_payload', ['user_id' => $user->id]);
+
+            return new ShareIntentResult(false, null, shouldClearCookie: true);
+        }
+
+        $shortLink = app(ShortLinkService::class)->resolveLinkById((int) $payload['short_link_id']);
+
+        if ($shortLink === null) {
+            Log::warning('short_link_intent.link_not_found', [
+                'user_id' => $user->id, 'short_link_id' => $payload['short_link_id'],
+            ]);
+
+            return new ShareIntentResult(false, null, shouldClearCookie: true);
+        }
+
+        // Derive entity identity from the short link — not from the cookie.
+        $entityType = strtolower(class_basename($shortLink->linkable_type));
+        $entityId = (string) $shortLink->linkable_id;
+
+        return match ($entityType) {
+            'game' => $this->processShortLinkEntity(
+                Game::find($entityId), $user, 'game', $shortLink
+            ),
+            'campaign' => $this->processShortLinkEntity(
+                Campaign::find($entityId), $user, 'campaign', $shortLink
+            ),
+            default => $this->failShortLinkResult(
+                "Unsupported entity type: {$entityType}", $user->id, $entityType, $entityId
+            ),
+        };
+    }
+
+    /**
+     * Validate and create participant for a short link entity arrival.
+     */
+    private function processShortLinkEntity(
+        $entity,
+        $user,
+        string $entityType,
+        ShortLink $shortLink,
+    ): ShareIntentResult {
+        $route = $entityType === 'game' ? 'games.show' : 'campaigns.show';
+
+        if (! $entity) {
+            Log::warning('short_link_intent.entity_not_found', [
+                'user_id' => $user->id, 'entity_type' => $entityType,
+                'entity_id' => $shortLink->linkable_id,
+            ]);
+
+            return new ShareIntentResult(false, null, shouldClearCookie: true);
+        }
+
+        if ($entity->owner_id === $user->id) {
+            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
+        }
+
+        return $this->createParticipantForEntity(
+            $entity, $user, $entityType, JoinSource::ShortLink, $shortLink->id, true
+        );
+    }
+
+    // ── Shared Participant Creation ─────────────────────────
+
+    /**
+     * Create a participant for the given entity with proper locking.
+     *
+     * Handles: existing-participant detection, capacity-based status,
+     * concurrent-request protection via lockForUpdate, and unique constraint
+     * fallback for races lost before the lock.
+     *
+     * @param  Game|Campaign  $entity
+     * @param  string  $entityType  'game' or 'campaign'
+     * @param  int|null  $shortLinkId  Set when arriving via short link
+     * @param  bool  $clearCookieOnInactive  Whether to clear cookie when entity is inactive
+     */
+    private function createParticipantForEntity(
+        $entity,
+        $user,
+        string $entityType,
+        JoinSource $joinSource,
+        ?int $shortLinkId,
+        bool $clearCookieOnInactive = false,
+    ): ShareIntentResult {
+        $route = $entityType === 'game' ? 'games.show' : 'campaigns.show';
+        $fkColumn = $entityType === 'game' ? 'game_id' : 'campaign_id';
+        $modelClass = $entityType === 'game' ? GameParticipant::class : CampaignParticipant::class;
+
+        // Pre-lock check: already a participant?
+        $existing = $modelClass::where($fkColumn, $entity->getKey())
             ->where('user_id', $user->id)
             ->first();
 
         if ($existing) {
             Log::info('share_intent.already_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
-                'existing_status' => $existing->status->value,
+                'user_id' => $user->id, 'entity_type' => $entityType,
+                'entity_id' => $entity->getKey(), 'existing_status' => $existing->status->value,
             ]);
 
-            return new ShareIntentResult(true, 'campaigns.show');
+            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
         }
 
-        // Wrap participant creation in a transaction with lockForUpdate to prevent
-        // race conditions (concurrent share-link joins, double-clicks, etc.)
+        // Wrap participant creation in a transaction with lockForUpdate
+        $status = null;
+
         try {
-            $status = null;
+            DB::transaction(function () use ($entity, $user, $entityType, $joinSource, $shortLinkId, $fkColumn, $modelClass, &$status) {
+                $lockedEntity = $entity->lockForUpdate()->find($entity->getKey());
 
-            DB::transaction(function () use ($campaign, $user, &$status) {
-                $lockedCampaign = Campaign::lockForUpdate()->find($campaign->id);
-
-                if (! $lockedCampaign) {
-                    Log::error('share_intent.campaign_not_found_under_lock', [
-                        'user_id' => $user->id,
-                        'entity_id' => $campaign->id,
+                if (! $lockedEntity) {
+                    Log::error('share_intent.entity_not_found_under_lock', [
+                        'user_id' => $user->id, 'entity_type' => $entityType,
+                        'entity_id' => $entity->getKey(),
                     ]);
 
                     return;
                 }
 
-                // Check campaign is still active (not cancelled/completed)
-                if (in_array($lockedCampaign->status, [CampaignStatus::Cancelled, CampaignStatus::Completed], true)) {
-                    Log::warning('share_intent.campaign_inactive', [
-                        'user_id' => $user->id,
-                        'entity_id' => $campaign->id,
-                        'status' => $lockedCampaign->status->value,
+                // Check entity is still active
+                $terminalStatuses = $entityType === 'game'
+                    ? [GameStatus::Completed, GameStatus::Canceled]
+                    : [CampaignStatus::Cancelled, CampaignStatus::Completed];
+
+                $currentStatus = $lockedEntity->status;
+
+                if (in_array($currentStatus, $terminalStatuses, true)) {
+                    Log::warning('share_intent.entity_inactive', [
+                        'user_id' => $user->id, 'entity_type' => $entityType,
+                        'entity_id' => $lockedEntity->getKey(), 'status' => (string) $currentStatus,
                     ]);
 
-                    return; // exits transaction early — $status stays null
+                    return;
                 }
 
-                // Re-check under lock that user hasn't been added by a concurrent request
-                $alreadyExists = CampaignParticipant::where('campaign_id', $lockedCampaign->id)
+                // Re-check under lock
+                $alreadyExists = $modelClass::where($fkColumn, $lockedEntity->getKey())
                     ->where('user_id', $user->id)
                     ->exists();
 
                 if ($alreadyExists) {
-                    // Race lost — another request already added the participant.
-                    // Set status so we still redirect.
                     $status = ParticipantStatus::Approved;
 
                     return;
                 }
 
-                // Determine status based on capacity (under lock)
-                $status = $this->determineStatus($lockedCampaign, 'campaign');
+                $status = $this->determineStatus($lockedEntity, $entityType);
 
                 $participantData = [
-                    'campaign_id' => $lockedCampaign->id,
+                    $fkColumn => $lockedEntity->getKey(),
                     'user_id' => $user->id,
                     'role' => 'player',
                     'status' => $status,
-                    'join_source' => JoinSource::ShareLink,
+                    'join_source' => $joinSource,
                 ];
+
+                if ($shortLinkId !== null) {
+                    $participantData['short_link_id'] = $shortLinkId;
+                }
 
                 if ($status === ParticipantStatus::Waitlisted) {
                     $participantData['waitlisted_at'] = now();
@@ -385,35 +361,31 @@ class ProcessShareIntent
                     $participantData['benched_at'] = now();
                 }
 
-                CampaignParticipant::create($participantData);
+                $modelClass::create($participantData);
 
                 Log::info('share_intent.participant_created', [
-                    'user_id' => $user->id,
-                    'entity_type' => 'campaign',
-                    'entity_id' => $lockedCampaign->id,
-                    'status' => $status->value,
+                    'user_id' => $user->id, 'entity_type' => $entityType,
+                    'entity_id' => $lockedEntity->getKey(), 'status' => $status->value,
+                    'join_source' => $joinSource->value, 'short_link_id' => $shortLinkId,
                 ]);
             });
         } catch (QueryException $e) {
-            // Unique constraint violation — participant already exists from a
-            // concurrent request. The outcome is correct, so log and redirect.
             Log::warning('share_intent.duplicate_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
-                'error' => $e->getMessage(),
+                'user_id' => $user->id, 'entity_type' => $entityType,
+                'entity_id' => $entity->getKey(), 'error' => $e->getMessage(),
             ]);
 
-            return new ShareIntentResult(true, 'campaigns.show');
+            return new ShareIntentResult(true, $route, entityId: $entity->getKey());
         }
 
-        // If status is null the campaign was inactive — don't redirect, just clear cookie
         if ($status === null) {
-            return new ShareIntentResult(false, null);
+            return new ShareIntentResult(false, null, shouldClearCookie: $clearCookieOnInactive);
         }
 
-        return new ShareIntentResult(true, 'campaigns.show');
+        return new ShareIntentResult(true, $route, entityId: $entity->getKey());
     }
+
+    // ── Helpers ─────────────────────────────────────────────
 
     /**
      * Validate that the entity's share_token matches the token from the cookie.
@@ -422,9 +394,7 @@ class ProcessShareIntent
     {
         if ($entity->share_token === null || $entity->share_token !== $token) {
             Log::warning('share_intent.token_mismatch', [
-                'user_id' => $userId,
-                'entity_type' => $entityType,
-                'entity_id' => $entityId,
+                'user_id' => $userId, 'entity_type' => $entityType, 'entity_id' => $entityId,
             ]);
 
             return false;
@@ -432,9 +402,7 @@ class ProcessShareIntent
 
         if ($entity->share_token_expires_at !== null && $entity->share_token_expires_at->isPast()) {
             Log::warning('share_intent.token_expired', [
-                'user_id' => $userId,
-                'entity_type' => $entityType,
-                'entity_id' => $entityId,
+                'user_id' => $userId, 'entity_type' => $entityType, 'entity_id' => $entityId,
                 'expires_at' => $entity->share_token_expires_at->toIso8601String(),
             ]);
 
@@ -461,7 +429,6 @@ class ProcessShareIntent
                 return ParticipantStatus::Benched;
             }
 
-            // Game: bench if it belongs to a campaign, waitlist otherwise
             return $entity->campaign_id !== null
                 ? ParticipantStatus::Benched
                 : ParticipantStatus::Waitlisted;
@@ -472,12 +439,9 @@ class ProcessShareIntent
 
     /**
      * Parse the share_intent cookie payload.
-     *
-     * Expected format: JSON string with entity_type, entity_id, share_token.
      */
     private function parsePayload(mixed $shareIntent): ?array
     {
-        // The cookie may already be decoded as an array by Laravel's cookie handling
         if (is_array($shareIntent)) {
             if (! isset($shareIntent['entity_type'], $shareIntent['entity_id'], $shareIntent['share_token'])) {
                 return null;
@@ -496,24 +460,34 @@ class ProcessShareIntent
 
         $data = json_decode($shareIntent, true);
 
-        if (! is_array($data)) {
+        if (! is_array($data) || ! isset($data['entity_type'], $data['entity_id'], $data['share_token'])) {
             return null;
         }
 
-        if (! isset($data['entity_type'], $data['entity_id'], $data['share_token'])) {
-            return null;
-        }
-
-        if (! in_array($data['entity_type'], ['game', 'campaign'], true)) {
-            return null;
-        }
-
-        return $data;
+        return in_array($data['entity_type'], ['game', 'campaign'], true) ? $data : null;
     }
 
     /**
-     * Clear the share_intent cookie from the response.
+     * Parse the short_link_intent cookie payload.
+     *
+     * Only short_link_id is expected — entity identity is derived server-side.
      */
+    private function parseShortLinkPayload(mixed $cookieValue): ?array
+    {
+        $data = is_array($cookieValue) ? $cookieValue : null;
+
+        if ($data === null && is_string($cookieValue)) {
+            $decoded = json_decode($cookieValue, true);
+            $data = is_array($decoded) ? $decoded : null;
+        }
+
+        if ($data === null || ! isset($data['short_link_id'])) {
+            return null;
+        }
+
+        return ['short_link_id' => $data['short_link_id']];
+    }
+
     private function clearCookie(Response $response): Response
     {
         $response->withCookie(cookie()->forget('share_intent'));
@@ -524,376 +498,30 @@ class ProcessShareIntent
     private function failResult(string $reason, string $userId, string $entityType, string $entityId): ShareIntentResult
     {
         Log::warning('share_intent.failed', [
-            'user_id' => $userId,
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'reason' => $reason,
+            'user_id' => $userId, 'entity_type' => $entityType,
+            'entity_id' => $entityId, 'reason' => $reason,
         ]);
 
         return new ShareIntentResult(false, null);
     }
 
+    private function failShortLinkResult(string $reason, string $userId, string $entityType, string $entityId): ShareIntentResult
+    {
+        Log::warning('short_link_intent.failed', [
+            'user_id' => $userId, 'entity_type' => $entityType,
+            'entity_id' => $entityId, 'reason' => $reason,
+        ]);
+
+        return new ShareIntentResult(false, null, shouldClearCookie: true);
+    }
+
     /**
      * Determine if this request should be checked for share intent processing.
-     *
-     * Skip API calls, Livewire updates, and non-GET methods.
      */
     private function shouldProcess(Request $request): bool
     {
         return $request->isMethod('GET')
             && ! $request->is('api/*')
             && ! $request->header('X-Livewire');
-    }
-
-    // ── Short Link Intent Processing ────────────────────────
-
-    /**
-     * Process the short_link_intent cookie: validate entity, create participant with JoinSource::ShortLink.
-     */
-    private function processShortLinkIntent(mixed $cookieValue, $user): ShareIntentResult
-    {
-        $payload = $this->parseShortLinkPayload($cookieValue);
-
-        if ($payload === null) {
-            Log::warning('short_link_intent.invalid_payload', [
-                'user_id' => $user->id,
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        // Resolve and validate the short link
-        $shortLink = app(ShortLinkService::class)->resolveLinkById((int) $payload['short_link_id']);
-
-        if ($shortLink === null) {
-            Log::warning('short_link_intent.link_not_found', [
-                'user_id' => $user->id,
-                'short_link_id' => $payload['short_link_id'],
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        return match ($payload['entity_type']) {
-            'game' => $this->processGameShortLinkIntent($payload['entity_id'], $shortLink, $user),
-            'campaign' => $this->processCampaignShortLinkIntent($payload['entity_id'], $shortLink, $user),
-            default => $this->failShortLinkResult("Unknown entity type: {$payload['entity_type']}", $user->id, $payload),
-        };
-    }
-
-    /**
-     * Process a game short link intent: validate game, create participant with short_link_id.
-     */
-    private function processGameShortLinkIntent(string $entityId, ShortLink $shortLink, $user): ShareIntentResult
-    {
-        $game = Game::find($entityId);
-
-        if (! $game) {
-            Log::warning('short_link_intent.entity_not_found', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        // Validate short link belongs to this entity
-        if ($shortLink->linkable_type !== Game::class || (string) $shortLink->linkable_id !== (string) $game->getKey()) {
-            Log::warning('short_link_intent.link_entity_mismatch', [
-                'user_id' => $user->id,
-                'expected_type' => Game::class,
-                'expected_id' => $game->getKey(),
-                'link_type' => $shortLink->linkable_type,
-                'link_id' => $shortLink->linkable_id,
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        // Owner is already a participant — skip with redirect
-        if ($game->owner_id === $user->id) {
-            return new ShareIntentResult(true, 'games.show', entityId: $game->id);
-        }
-
-        // Check if user is already a participant
-        $existing = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existing) {
-            Log::info('short_link_intent.already_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
-                'existing_status' => $existing->status->value,
-            ]);
-
-            return new ShareIntentResult(true, 'games.show', entityId: $game->id);
-        }
-
-        // Wrap participant creation in a transaction with lockForUpdate
-        try {
-            $status = null;
-
-            DB::transaction(function () use ($game, $user, $shortLink, &$status) {
-                $lockedGame = Game::lockForUpdate()->find($game->id);
-
-                if (! $lockedGame) {
-                    Log::error('short_link_intent.game_not_found_under_lock', [
-                        'user_id' => $user->id,
-                        'entity_id' => $game->id,
-                    ]);
-
-                    return;
-                }
-
-                if (in_array($lockedGame->status, [GameStatus::Completed, GameStatus::Canceled], true)) {
-                    Log::warning('short_link_intent.game_inactive', [
-                        'user_id' => $user->id,
-                        'entity_id' => $game->id,
-                        'status' => $lockedGame->status->value,
-                    ]);
-
-                    return;
-                }
-
-                $alreadyExists = GameParticipant::where('game_id', $lockedGame->id)
-                    ->where('user_id', $user->id)
-                    ->exists();
-
-                if ($alreadyExists) {
-                    $status = ParticipantStatus::Approved;
-
-                    return;
-                }
-
-                $status = $this->determineStatus($lockedGame, 'game');
-
-                $participantData = [
-                    'game_id' => $lockedGame->id,
-                    'user_id' => $user->id,
-                    'role' => 'player',
-                    'status' => $status,
-                    'join_source' => JoinSource::ShortLink,
-                    'short_link_id' => $shortLink->id,
-                ];
-
-                if ($status === ParticipantStatus::Waitlisted) {
-                    $participantData['waitlisted_at'] = now();
-                } elseif ($status === ParticipantStatus::Benched) {
-                    $participantData['benched_at'] = now();
-                }
-
-                GameParticipant::create($participantData);
-
-                Log::info('short_link_intent.participant_created', [
-                    'user_id' => $user->id,
-                    'entity_type' => 'game',
-                    'entity_id' => $lockedGame->id,
-                    'short_link_id' => $shortLink->id,
-                    'status' => $status->value,
-                ]);
-            });
-        } catch (QueryException $e) {
-            Log::warning('short_link_intent.duplicate_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'game',
-                'entity_id' => $entityId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return new ShareIntentResult(true, 'games.show', entityId: $game->id);
-        }
-
-        if ($status === null) {
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        return new ShareIntentResult(true, 'games.show', entityId: $game->id);
-    }
-
-    /**
-     * Process a campaign short link intent: validate campaign, create participant with short_link_id.
-     */
-    private function processCampaignShortLinkIntent(string $entityId, ShortLink $shortLink, $user): ShareIntentResult
-    {
-        $campaign = Campaign::find($entityId);
-
-        if (! $campaign) {
-            Log::warning('short_link_intent.entity_not_found', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        // Validate short link belongs to this entity
-        if ($shortLink->linkable_type !== Campaign::class || (string) $shortLink->linkable_id !== (string) $campaign->getKey()) {
-            Log::warning('short_link_intent.link_entity_mismatch', [
-                'user_id' => $user->id,
-                'expected_type' => Campaign::class,
-                'expected_id' => $campaign->getKey(),
-                'link_type' => $shortLink->linkable_type,
-                'link_id' => $shortLink->linkable_id,
-            ]);
-
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        // Owner is already a participant — skip with redirect
-        if ($campaign->owner_id === $user->id) {
-            return new ShareIntentResult(true, 'campaigns.show', entityId: $campaign->id);
-        }
-
-        // Check if user is already a participant
-        $existing = CampaignParticipant::where('campaign_id', $campaign->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existing) {
-            Log::info('short_link_intent.already_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
-                'existing_status' => $existing->status->value,
-            ]);
-
-            return new ShareIntentResult(true, 'campaigns.show', entityId: $campaign->id);
-        }
-
-        // Wrap participant creation in a transaction with lockForUpdate
-        try {
-            $status = null;
-
-            DB::transaction(function () use ($campaign, $user, $shortLink, &$status) {
-                $lockedCampaign = Campaign::lockForUpdate()->find($campaign->id);
-
-                if (! $lockedCampaign) {
-                    Log::error('short_link_intent.campaign_not_found_under_lock', [
-                        'user_id' => $user->id,
-                        'entity_id' => $campaign->id,
-                    ]);
-
-                    return;
-                }
-
-                if (in_array($lockedCampaign->status, [CampaignStatus::Cancelled, CampaignStatus::Completed], true)) {
-                    Log::warning('short_link_intent.campaign_inactive', [
-                        'user_id' => $user->id,
-                        'entity_id' => $campaign->id,
-                        'status' => $lockedCampaign->status->value,
-                    ]);
-
-                    return;
-                }
-
-                $alreadyExists = CampaignParticipant::where('campaign_id', $lockedCampaign->id)
-                    ->where('user_id', $user->id)
-                    ->exists();
-
-                if ($alreadyExists) {
-                    $status = ParticipantStatus::Approved;
-
-                    return;
-                }
-
-                $status = $this->determineStatus($lockedCampaign, 'campaign');
-
-                $participantData = [
-                    'campaign_id' => $lockedCampaign->id,
-                    'user_id' => $user->id,
-                    'role' => 'player',
-                    'status' => $status,
-                    'join_source' => JoinSource::ShortLink,
-                    'short_link_id' => $shortLink->id,
-                ];
-
-                if ($status === ParticipantStatus::Waitlisted) {
-                    $participantData['waitlisted_at'] = now();
-                } elseif ($status === ParticipantStatus::Benched) {
-                    $participantData['benched_at'] = now();
-                }
-
-                CampaignParticipant::create($participantData);
-
-                Log::info('short_link_intent.participant_created', [
-                    'user_id' => $user->id,
-                    'entity_type' => 'campaign',
-                    'entity_id' => $lockedCampaign->id,
-                    'short_link_id' => $shortLink->id,
-                    'status' => $status->value,
-                ]);
-            });
-        } catch (QueryException $e) {
-            Log::warning('short_link_intent.duplicate_participant', [
-                'user_id' => $user->id,
-                'entity_type' => 'campaign',
-                'entity_id' => $entityId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return new ShareIntentResult(true, 'campaigns.show', entityId: $campaign->id);
-        }
-
-        if ($status === null) {
-            return new ShareIntentResult(false, null, shouldClearCookie: true);
-        }
-
-        return new ShareIntentResult(true, 'campaigns.show', entityId: $campaign->id);
-    }
-
-    /**
-     * Parse the short_link_intent cookie payload.
-     *
-     * Expected format: JSON with entity_type, entity_id, short_link_id.
-     */
-    private function parseShortLinkPayload(mixed $cookieValue): ?array
-    {
-        if (is_array($cookieValue)) {
-            if (! isset($cookieValue['entity_type'], $cookieValue['entity_id'], $cookieValue['short_link_id'])) {
-                return null;
-            }
-
-            if (! in_array($cookieValue['entity_type'], ['game', 'campaign'], true)) {
-                return null;
-            }
-
-            return $cookieValue;
-        }
-
-        if (! is_string($cookieValue)) {
-            return null;
-        }
-
-        $data = json_decode($cookieValue, true);
-
-        if (! is_array($data)) {
-            return null;
-        }
-
-        if (! isset($data['entity_type'], $data['entity_id'], $data['short_link_id'])) {
-            return null;
-        }
-
-        if (! in_array($data['entity_type'], ['game', 'campaign'], true)) {
-            return null;
-        }
-
-        return $data;
-    }
-
-    private function failShortLinkResult(string $reason, string $userId, array $payload): ShareIntentResult
-    {
-        Log::warning('short_link_intent.failed', [
-            'user_id' => $userId,
-            'entity_type' => $payload['entity_type'] ?? 'unknown',
-            'entity_id' => $payload['entity_id'] ?? 'unknown',
-            'reason' => $reason,
-        ]);
-
-        return new ShareIntentResult(false, null, shouldClearCookie: true);
     }
 }

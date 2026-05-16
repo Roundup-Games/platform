@@ -33,7 +33,7 @@ return new class extends Migration
         Schema::create('short_link_hits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('short_link_id')->constrained()->cascadeOnDelete();
-            $table->string('ip_address', 45)->nullable();
+            $table->string('ip_address', 128)->nullable();
             $table->text('referer')->nullable();
             $table->text('user_agent')->nullable();
             $table->string('country_code', 2)->nullable();

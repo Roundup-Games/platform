@@ -35,7 +35,9 @@ describe('RecordShortLinkHit job — hit recording', function () {
         expect(ShortLinkHit::where('short_link_id', $this->link->id)->count())->toBe(1);
 
         $hit = ShortLinkHit::first();
-        expect($hit->ip_address)->toBe('192.168.1.1');
+        // IP is hashed for PII compliance — verify it's a sha256 hash, not raw IP
+        expect($hit->ip_address)->not->toBe('192.168.1.1');
+        expect(strlen($hit->ip_address))->toBe(64); // sha256 hex
         expect($hit->referer)->toBe('https://google.com');
         expect($hit->user_agent)->toBe('TestBot/1.0');
         expect($hit->hit_at)->not->toBeNull();
@@ -127,7 +129,6 @@ describe('RecordShortLinkHit job — PostHog', function () {
         $posthog = $this->mock(PostHogClient::class);
         $posthog->shouldReceive('capture')->once()->withArgs(function (array $payload) {
             expect($payload['properties']['referer_domain'])->toBe('google.com');
-            expect($payload['properties']['referer_full'])->toBe('https://google.com/search?q=test');
 
             return true;
         });
@@ -142,7 +143,6 @@ describe('RecordShortLinkHit job — PostHog', function () {
         $posthog = $this->mock(PostHogClient::class);
         $posthog->shouldReceive('capture')->once()->withArgs(function (array $payload) {
             expect($payload['properties']['referer_domain'])->toBeNull();
-            expect($payload['properties']['referer_full'])->toBeNull();
 
             return true;
         });

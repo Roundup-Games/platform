@@ -166,22 +166,22 @@ class GmWorkspace extends Component
                 ->limit(5)
                 ->get();
 
-            // Top referrer domains (aggregate by host in PHP)
+            // Top referrer domains — DB-level aggregation instead of loading all rows into PHP.
             $topReferrers = $gmLinkIds->isNotEmpty()
-                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
-                    ->whereNotNull('referer')
-                    ->where('referer', '!=', '')
-                    ->pluck('referer')
-                    ->map(fn (string $referer) => parse_url($referer, PHP_URL_HOST) ?: $referer)
-                    ->filter()
-                    ->countBy()
-                    ->sortDesc()
-                    ->take(5)
-                    ->map(fn (int $count, string $domain) => [
-                        'domain' => $domain,
-                        'count' => $count,
-                    ])
-                    ->values()
+                ? collect(
+                    DB::select("
+                        SELECT SUBSTRING(referer FROM '(?:https?://)?([^/]+)') AS domain, COUNT(*) AS cnt
+                        FROM short_link_hits
+                        WHERE short_link_id IN (" . $gmLinkIds->map(fn () => '?')->implode(',') . ")
+                          AND referer IS NOT NULL
+                          AND referer != ''
+                          AND hit_at >= ?
+                        GROUP BY domain
+                        ORDER BY cnt DESC
+                        LIMIT 5
+                    ", [...$gmLinkIds->all(), now()->subDays(30)->toDateTimeString()])
+                )->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
+                ->values()
                 : collect();
 
             return [$linkAnalytics, $topLinks, $topReferrers];

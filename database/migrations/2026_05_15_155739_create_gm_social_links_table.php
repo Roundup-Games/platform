@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->string('platform', 50);
             $table->string('handle');
+            $table->string('instance')->nullable();
             $table->string('url', 500)->nullable();
             $table->timestamps();
 

@@ -64,8 +64,11 @@ class CampaignParticipant extends Model
      */
     public function getSourceLabelAttribute(): ?string
     {
-        if ($this->short_link_id && $this->relationLoaded('shortLink') && $this->shortLink) {
-            return $this->shortLink->label ?? $this->shortLink->code;
+        if ($this->short_link_id) {
+            $shortLink = $this->shortLink;
+            if ($shortLink) {
+                return $shortLink->label ?? $shortLink->code;
+            }
         }
 
         return $this->join_source?->label();

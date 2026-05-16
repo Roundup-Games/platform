@@ -44,6 +44,8 @@ class ShortLinkService
      * Create a new short link for a linkable entity.
      *
      * Auto-generates a unique code and computes the URL from the entity's public route.
+     * On duplicate code collision (DB unique constraint), regenerates the code and retries
+     * up to 5 times when the code was auto-generated (not explicitly passed).
      */
     public function createLink(Model $linkable, ?User $user = null, array $params = []): ShortLink
     {
@@ -126,21 +128,31 @@ class ShortLinkService
     /**
      * Resolve a short link ID to its ShortLink model.
      *
+     * Uses a 6-hour cache to avoid repeated DB lookups for policy checks.
      * Returns null for expired, hit-capped, or non-existent links.
      */
     public function resolveLinkById(int $id): ?ShortLink
     {
-        $link = ShortLink::find($id);
+        $cacheKey = "short_link_id:{$id}";
+
+        /** @var ShortLink|null $link */
+        $link = Cache::remember($cacheKey, now()->addHours(6), function () use ($id): ?ShortLink {
+            return ShortLink::find($id);
+        });
 
         if ($link === null) {
             return null;
         }
 
         if ($link->isExpired()) {
+            Cache::forget($cacheKey);
+
             return null;
         }
 
         if ($link->hasHitCap()) {
+            Cache::forget($cacheKey);
+
             return null;
         }
 
@@ -189,7 +201,7 @@ class ShortLinkService
      * Check whether a user can create more links for a given entity.
      *
      * Default limit is 10 links per entity per user.
-     * Will read from user.max_links_per_entity when that column is added (S03).
+     * Reads from user.max_links_per_entity when set.
      */
     public function canCreateMore(Model $linkable, User $user): bool
     {
@@ -215,25 +227,10 @@ class ShortLinkService
     {
         $expiresAt = now()->addDays($graceDays);
 
-        // Select codes first so we can invalidate cache after the update
-        $codes = ShortLink::where('linkable_type', get_class($entity))
-            ->where('linkable_id', (string) $entity->getKey())
-            ->whereNull('expires_at')
-            ->pluck('code');
-
-        if ($codes->isEmpty()) {
-            return 0;
-        }
-
         $count = ShortLink::where('linkable_type', get_class($entity))
             ->where('linkable_id', (string) $entity->getKey())
             ->whereNull('expires_at')
             ->update(['expires_at' => $expiresAt]);
-
-        // Invalidate cached redirects so ShortLinkController sees expiry immediately
-        foreach ($codes as $code) {
-            Cache::forget("short_link:{$code}");
-        }
 
         if ($count > 0) {
             Log::info('ShortLinkService: expired links for entity', [

@@ -4,13 +4,14 @@ namespace App\Services;
 
 use App\Models\GmSocialLink;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class GmSocialLinkService
 {
     /**
      * Generate the full URL for a platform handle.
      * Resolves the url_template from config, substituting {handle} and {instance}.
+     *
+     * Returns null if the platform is unknown or the resulting URL is not https/http.
      */
     public function generateUrl(string $platform, string $handle, ?string $instance = null): ?string
     {
@@ -18,8 +19,7 @@ class GmSocialLinkService
 
         if (! $config) {
             Log::warning('gm_social_link.unknown_platform', [
-                'platform' => $platform,
-                'action' => 'generate_url',
+                'platform' => $platform, 'action' => 'generate_url',
             ]);
 
             return null;
@@ -35,6 +35,15 @@ class GmSocialLinkService
         }
 
         $url = str_replace('{handle}', $handle, $url);
+
+        // Defense-in-depth: reject URLs that don't have a safe scheme.
+        if (! str_starts_with($url, 'https://') && ! str_starts_with($url, 'http://')) {
+            Log::warning('gm_social_link.unsafe_url_generated', [
+                'platform' => $platform, 'handle' => $handle, 'url' => $url,
+            ]);
+
+            return null;
+        }
 
         return $url;
     }
@@ -60,9 +69,7 @@ class GmSocialLinkService
 
         if (! preg_match($pattern, $handle)) {
             Log::info('gm_social_link.invalid_handle', [
-                'platform' => $platform,
-                'handle' => $handle,
-                'pattern' => $pattern,
+                'platform' => $platform, 'handle' => $handle, 'pattern' => $pattern,
             ]);
 
             return ['valid' => false, 'error' => "Invalid handle for {$config['name']}."];
@@ -107,6 +114,7 @@ class GmSocialLinkService
      *
      * Each item in $links should have: platform, handle, and optionally instance.
      * Items with an empty handle are treated as deletions.
+     * Platforms present in config but absent from $links are also removed.
      *
      * @param  array<int, array{platform: string, handle: string, instance?: string}>  $links
      * @return array{synced: int, errors: array<string, string>}
@@ -130,15 +138,7 @@ class GmSocialLinkService
 
             // Empty handle = remove the link
             if ($handle === '') {
-                GmSocialLink::where('user_id', $user->id)
-                    ->where('platform', $platform)
-                    ->delete();
-
-                Log::info('gm_social_link.deleted', [
-                    'user_id' => $user->id,
-                    'platform' => $platform,
-                ]);
-
+                $this->deleteLink($user, $platform);
                 continue;
             }
 
@@ -175,20 +175,41 @@ class GmSocialLinkService
             );
 
             Log::info('gm_social_link.synced', [
-                'user_id' => $user->id,
-                'platform' => $platform,
-                'handle' => $handle,
+                'user_id' => $user->id, 'platform' => $platform, 'handle' => $handle,
             ]);
 
             $synced++;
+        }
+
+        // Remove links for known platforms that weren't submitted (user unchecked them).
+        $knownPlatforms = array_keys(config('platforms', []));
+        $orphanPlatforms = array_diff($knownPlatforms, $submittedPlatforms);
+        foreach ($orphanPlatforms as $platform) {
+            $this->deleteLink($user, $platform);
         }
 
         return ['synced' => $synced, 'errors' => $errors];
     }
 
     /**
+     * Delete a social link for a user/platform pair.
+     */
+    private function deleteLink($user, string $platform): void
+    {
+        $deleted = GmSocialLink::where('user_id', $user->id)
+            ->where('platform', $platform)
+            ->delete();
+
+        if ($deleted > 0) {
+            Log::info('gm_social_link.deleted', [
+                'user_id' => $user->id, 'platform' => $platform,
+            ]);
+        }
+    }
+
+    /**
      * Get the full display URL for a social link.
-     * Falls back to the stored url, regenerating if needed.
+     * Falls back to regenerating from handle/instance if stored URL is missing.
      */
     public function getDisplayUrl(GmSocialLink $link): ?string
     {

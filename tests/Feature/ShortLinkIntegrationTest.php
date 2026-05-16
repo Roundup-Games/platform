@@ -290,11 +290,11 @@ describe('guest short link intent flow', function () {
         $response->assertRedirect();
         $response->assertCookie('short_link_intent');
 
-        // Verify cookie payload
+        // Verify cookie payload — only short_link_id stored; entity derived server-side
         $cookieValue = json_decode($response->getCookie('short_link_intent')->getValue(), true);
-        expect($cookieValue['entity_type'])->toBe('game');
-        expect($cookieValue['entity_id'])->toBe($game->id);
+        expect($cookieValue)->toHaveKey('short_link_id');
         expect($cookieValue['short_link_id'])->toBe($shortLink->id);
+        expect($cookieValue)->not->toHaveKey('entity_type');
     });
 
     it('processes short_link_intent cookie after user completes profile', function () {
