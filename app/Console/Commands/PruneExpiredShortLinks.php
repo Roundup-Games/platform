@@ -2,9 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CampaignStatus;
+use App\Enums\EventStatus;
+use App\Enums\GameStatus;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class PruneExpiredShortLinks extends Command
@@ -79,17 +83,17 @@ class PruneExpiredShortLinks extends Command
         $cutoff = now()->subDays($graceDays);
 
         // Collect IDs of completed/cancelled entities
-        $completedGameIds = \App\Models\Game::whereIn('status', ['completed', 'canceled'])
+        $completedGameIds = \App\Models\Game::whereIn('status', [GameStatus::Completed->value, GameStatus::Canceled->value])
             ->where('updated_at', '<', $cutoff)
             ->pluck('id')
             ->map(fn ($id) => (string) $id);
 
-        $completedCampaignIds = \App\Models\Campaign::whereIn('status', ['completed', 'cancelled'])
+        $completedCampaignIds = \App\Models\Campaign::whereIn('status', [CampaignStatus::Completed->value, CampaignStatus::Cancelled->value])
             ->where('updated_at', '<', $cutoff)
             ->pluck('id')
             ->map(fn ($id) => (string) $id);
 
-        $completedEventIds = \App\Models\Event::whereIn('status', ['completed', 'cancelled'])
+        $completedEventIds = \App\Models\Event::whereIn('status', [EventStatus::Completed->value, EventStatus::Cancelled->value])
             ->where('updated_at', '<', $cutoff)
             ->pluck('id')
             ->map(fn ($id) => (string) $id);
@@ -127,7 +131,19 @@ class PruneExpiredShortLinks extends Command
                 }
             });
 
-        $count = $dryRun ? $query->count() : $query->update(['expires_at' => now()]);
+        if ($dryRun) {
+            return $query->count();
+        }
+
+        // Load links before updating so we can invalidate caches.
+        // Bulk update() bypasses Eloquent events, so booted() cache hooks don't fire.
+        $links = $query->get(['id', 'code']);
+        $count = ShortLink::whereIn('id', $links->pluck('id'))->update(['expires_at' => now()]);
+
+        foreach ($links as $link) {
+            Cache::forget("short_link:{$link->code}");
+            Cache::forget("short_link_id:{$link->id}");
+        }
 
         return $count;
     }

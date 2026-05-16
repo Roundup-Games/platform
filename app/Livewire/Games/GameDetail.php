@@ -79,7 +79,7 @@ class GameDetail extends Component
     {
         $linkId = request()->cookie('ph_link_id');
 
-        if ($linkId === null) {
+        if (! is_string($linkId) || ! ctype_digit($linkId)) {
             return;
         }
 

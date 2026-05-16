@@ -74,8 +74,8 @@ class RecordShortLinkHit implements ShouldQueue
             return;
         }
 
-        // Hash the IP for PII compliance — allows geo-resolution from
-        // the first 3 octets while preventing raw IP storage.
+        // Hash the IP with SHA-256 for PII compliance — prevents raw IP
+        // storage while allowing consistent visitor identification across hits.
         $hashedIp = $this->ipAddress
             ? hash('sha256', $this->ipAddress . config('app.key'))
             : null;
@@ -121,7 +121,7 @@ class RecordShortLinkHit implements ShouldQueue
 
         Log::debug('short_link.hit.recorded', [
             'short_link_id' => $link->id,
-            'code' => $link->code,
+            'code_prefix' => substr($link->code, 0, 3) . '…',
         ]);
     }
 
