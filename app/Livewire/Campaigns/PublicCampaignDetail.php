@@ -56,11 +56,10 @@ class PublicCampaignDetail extends Component
             ]), 24 * 60);
         }
 
-        // Set short_link_intent cookie for guests arriving via short link
+        // Set short_link_intent cookie for guests arriving via short link.
+        // Only short_link_id is needed — entity identity is derived server-side.
         if (Auth::guest() && $this->validatedShortLinkId !== null) {
             Cookie::queue('short_link_intent', json_encode([
-                'entity_type' => 'campaign',
-                'entity_id' => $campaign->id,
                 'short_link_id' => $this->validatedShortLinkId,
             ]), 24 * 60);
         }

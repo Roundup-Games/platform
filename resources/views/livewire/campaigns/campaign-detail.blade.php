@@ -264,32 +264,7 @@
                                         {{ $participant->status === \App\Enums\ParticipantStatus::Approved ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === \App\Enums\ParticipantStatus::Benched ? 'bg-tertiary/10 text-tertiary' : 'bg-tertiary/10 text-tertiary') }}">
                                         {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __(ucfirst($participant->status)) }}
                                     </span>
-                                    @if($participant->join_source)
-                                        @php
-                                            $joinSourceEnum = $participant->join_source;
-                                            if ($joinSourceEnum instanceof \App\Enums\JoinSource) {
-                                                $joinSourceBadge = $joinSourceEnum;
-                                            } else {
-                                                $joinSourceBadge = \App\Enums\JoinSource::tryFrom($joinSourceEnum);
-                                            }
-                                        @endphp
-                                        @if($joinSourceBadge)
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
-                                                {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'bg-tertiary/10 text-tertiary' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'bg-primary/10 text-primary' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'bg-tertiary/10 text-tertiary' : 'bg-secondary-container text-on-secondary-container')) }}">
-                                                <span class="material-symbols-outlined text-xs" aria-hidden="true">
-                                                    {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'link' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'person_add' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'tag' : 'edit_note')) }}
-                                                </span>
-                                                {{ $joinSourceBadge->label() }}
-                                            </span>
-                                            @if($participant->short_link_id && $participant->shortLink)
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/5 text-tertiary"
-                                                      title="{{ __('common.content_joined_via_link', ['label' => $participant->source_label]) }}">
-                                                    <span class="material-symbols-outlined text-xs" aria-hidden="true">tag</span>
-                                                    {{ $participant->source_label }}
-                                                </span>
-                                            @endif
-                                        @endif
-                                    @endif
+                                    <x-join-source-badge :participant="$participant" />
                                 </div>
                             @endforeach
                         </div>
@@ -366,7 +341,7 @@
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
-                                    @if($campaign->visibility->value === 'public') login @else edit_note @endif
+                                    {{ $campaign->visibility->value === 'public' ? 'login' : 'edit_note' }}
                                 </span>
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
@@ -380,7 +355,7 @@
                             <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">
-                                    @if($campaign->visibility->value === 'public') login @else send @endif
+                                    {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}
                                 </span>
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
@@ -535,7 +510,7 @@
                 <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
-                        @if($campaign->visibility->value === 'public') login @else send @endif
+                        {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}
                     </span>
                     @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}

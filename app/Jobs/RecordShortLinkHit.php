@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -91,6 +92,10 @@ class RecordShortLinkHit implements ShouldQueue
 
             $link->increment('hit_count');
             $link->update(['last_hit_at' => now()]);
+
+            // Invalidate cached copy so resolveLinkById sees fresh hit_count.
+            // increment() bypasses Eloquent events, so model hooks won't fire.
+            Cache::forget("short_link_id:{$link->id}");
         });
 
         // ── PostHog link.hit event (after transaction commits) ───────

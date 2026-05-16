@@ -166,22 +166,20 @@ class GmWorkspace extends Component
                 ->limit(5)
                 ->get();
 
-            // Top referrer domains — DB-level aggregation instead of loading all rows into PHP.
+            // Top referrer domains — DB-level aggregation via Eloquent.
             $topReferrers = $gmLinkIds->isNotEmpty()
-                ? collect(
-                    DB::select("
-                        SELECT SUBSTRING(referer FROM '(?:https?://)?([^/]+)') AS domain, COUNT(*) AS cnt
-                        FROM short_link_hits
-                        WHERE short_link_id IN (" . $gmLinkIds->map(fn () => '?')->implode(',') . ")
-                          AND referer IS NOT NULL
-                          AND referer != ''
-                          AND hit_at >= ?
-                        GROUP BY domain
-                        ORDER BY cnt DESC
-                        LIMIT 5
-                    ", [...$gmLinkIds->all(), now()->subDays(30)->toDateTimeString()])
-                )->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
-                ->values()
+                ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
+                    ->whereNotNull('referer')
+                    ->where('referer', '!=', '')
+                    ->where('hit_at', '>=', now()->subDays(30))
+                    ->selectRaw("SUBSTRING(referer FROM '^(?:https?://)?([^/]+)') as domain")
+                    ->selectRaw('COUNT(*) as cnt')
+                    ->groupByRaw("SUBSTRING(referer FROM '^(?:https?://)?([^/]+)')")
+                    ->orderByDesc('cnt')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn ($row) => ['domain' => $row->domain, 'count' => (int) $row->cnt])
+                    ->values()
                 : collect();
 
             return [$linkAnalytics, $topLinks, $topReferrers];

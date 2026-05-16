@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('short_links', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 8)->unique();
+            $table->string('code', 36)->unique();
             $table->text('url');
             $table->string('linkable_type')->nullable();
             $table->string('linkable_id')->nullable();
