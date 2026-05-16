@@ -25,6 +25,9 @@ class PublicCampaignDetail extends Component
     #[Locked]
     public ?int $validatedShortLinkId = null;
 
+    #[Locked]
+    public ?string $validatedShortLinkCode = null;
+
     public function mount(string $id): void
     {
         $campaign = Campaign::findOrFail($id);
@@ -45,6 +48,7 @@ class PublicCampaignDetail extends Component
                 && $link->linkable_type === Campaign::class
                 && (string) $link->linkable_id === (string) $campaign->getKey()) {
                 $this->validatedShortLinkId = $link->id;
+                $this->validatedShortLinkCode = $link->code;
             }
         }
 
@@ -105,12 +109,10 @@ class PublicCampaignDetail extends Component
     #[Computed]
     public function shareLinkUrl(): ?string
     {
-        // If we have a validated short link, use its URL
-        if ($this->validatedShortLinkId !== null) {
-            $link = \App\Models\ShortLink::find($this->validatedShortLinkId);
-            if ($link) {
-                return url('/link/' . $link->code);
-            }
+        // Use the code cached during mount — avoids a DB lookup that can return null
+        // if the link is revoked between mount and render, keeping hasShareLink/shareLinkUrl consistent.
+        if ($this->validatedShortLinkCode !== null) {
+            return url('/link/' . $this->validatedShortLinkCode);
         }
 
         if ($this->campaign->share_token === null) {
