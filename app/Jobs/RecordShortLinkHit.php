@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Async job that records a short link hit and fires the PostHog event.
  *
- * Writes the ShortLinkHit row (with hashed IP for PII compliance) and
+ * Writes the ShortLinkHit row (IP is hashed before entering the queue) and
  * increments the hit counter on the parent ShortLink inside a DB transaction.
  * After commit, dispatches a link.hit PostHog event for analytics stitching.
  * PostHog failures are caught and logged — analytics never blocks the job.
@@ -45,17 +45,34 @@ class RecordShortLinkHit implements ShouldQueue
     public bool $deleteWhenMissingModels = true;
 
     /**
+     * Pre-computed PostHog distinctId from raw IP+UA fingerprint.
+     * Set at construction time before IP is hashed.
+     */
+    public string $visitorFingerprint;
+
+    /**
      * @param  int  $shortLinkId  The ID of the ShortLink that was resolved.
-     * @param  string|null  $ipAddress  The visitor's IP address (hashed before storage).
+     * @param  string|null  $ipAddress  The visitor's IP address (will be hashed in constructor).
      * @param  string|null  $referer  The Referer header value.
      * @param  string|null  $userAgent  The User-Agent header value.
      */
     public function __construct(
         public int $shortLinkId,
-        public ?string $ipAddress = null,
+        ?string $ipAddress = null,
         public ?string $referer = null,
         public ?string $userAgent = null,
     ) {
+        // Compute the PostHog fingerprint from raw IP+UA before hashing.
+        // This gives a consistent anonymous visitor ID without storing raw PII.
+        $this->visitorFingerprint = ($ipAddress ?? '') !== '' || ($this->userAgent ?? '') !== ''
+            ? 'link:' . hash('xxh128', ($ipAddress ?? '') . ($this->userAgent ?? ''))
+            : 'link:anonymous';
+
+        // Hash IP at construction time so raw PII never enters the queue store.
+        $this->ipAddress = $ipAddress !== null
+            ? hash('sha256', $ipAddress . config('app.key'))
+            : null;
+
         $this->onQueue('default');
     }
 
@@ -74,11 +91,8 @@ class RecordShortLinkHit implements ShouldQueue
             return;
         }
 
-        // Hash the IP with SHA-256 for PII compliance — prevents raw IP
-        // storage while allowing consistent visitor identification across hits.
-        $hashedIp = $this->ipAddress
-            ? hash('sha256', $this->ipAddress . config('app.key'))
-            : null;
+        // IP was hashed in constructor before entering the queue store.
+        $hashedIp = $this->ipAddress;
 
         // ── Record hit + update counters in a transaction ────────────
         DB::transaction(function () use ($link, $hashedIp): void {
@@ -86,6 +100,7 @@ class RecordShortLinkHit implements ShouldQueue
                 'short_link_id' => $link->id,
                 'ip_address' => $hashedIp,
                 'referer' => $this->referer,
+                'referer_domain' => $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null,
                 'user_agent' => $this->userAgent,
                 'hit_at' => now(),
             ]);
@@ -101,7 +116,7 @@ class RecordShortLinkHit implements ShouldQueue
         // ── PostHog link.hit event (after transaction commits) ───────
         try {
             $posthog->capture([
-                'distinctId' => 'link:' . hash('xxh128', ($this->ipAddress ?? '') . ($this->userAgent ?? '')),
+                'distinctId' => $this->visitorFingerprint,
                 'event' => 'link.hit',
                 'properties' => [
                     'link_id' => $link->id,

@@ -238,6 +238,19 @@ class ProcessShareIntent
         string $entityType,
         ShortLink $shortLink,
     ): ShareIntentResult {
+        // Only Game and Campaign are supported — both use integer PKs
+        // matched by the {id} route parameter. If additional entity types
+        // with string PKs (e.g. Team by slug) are added, the redirect
+        // route resolution must be updated to handle the correct parameter.
+        if (! in_array($entityType, ['game', 'campaign'], true)) {
+            return $this->failShortLinkResult(
+                "Unsupported entity type: {$entityType}",
+                $user->id,
+                $entityType,
+                $shortLink->linkable_id,
+            );
+        }
+
         $route = $entityType === 'game' ? 'games.show' : 'campaigns.show';
 
         if (! $entity) {

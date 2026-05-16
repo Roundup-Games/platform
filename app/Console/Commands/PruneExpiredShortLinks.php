@@ -82,8 +82,10 @@ class PruneExpiredShortLinks extends Command
     {
         $cutoff = now()->subDays($graceDays);
 
-        // Use subqueries instead of plucking IDs into memory.
-        // This scales to millions of rows without OOM risk.
+        // Use explicit subqueries with CAST(id AS VARCHAR) to handle the type
+        // mismatch between integer entity PKs and the string linkable_id column.
+        // This scales to millions of rows without OOM risk and works correctly
+        // with PostgreSQL's strict type checking.
         $query = ShortLink::query()
             ->whereNull('expires_at')
             ->where(function ($q) use ($cutoff) {

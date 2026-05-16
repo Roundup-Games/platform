@@ -511,7 +511,7 @@ class Show extends Component
     {
         $existingLinks = $user->gmSocialLinks()->get()->keyBy('platform');
 
-        foreach ($this->platforms as $key => $platform) {
+        foreach (array_keys($this->platforms) as $key) {
             $this->socialLinks[$key] = [
                 'handle' => $existingLinks->has($key) ? $existingLinks[$key]->handle : '',
                 'instance' => $existingLinks->has($key) ? ($existingLinks[$key]->instance ?? '') : '',

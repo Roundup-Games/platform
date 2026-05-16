@@ -13,6 +13,7 @@ class ShortLinkHit extends Model
         'short_link_id',
         'ip_address',
         'referer',
+        'referer_domain',
         'user_agent',
         'country_code',
         'hit_at',

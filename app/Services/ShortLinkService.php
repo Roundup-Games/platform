@@ -130,15 +130,19 @@ class ShortLinkService
     /**
      * Resolve a short link ID to its ShortLink model.
      *
-     * Uses a 6-hour cache to avoid repeated DB lookups for policy checks.
-     * Returns null for expired, hit-capped, or non-existent links.
+     * Uses a short-lived cache (5 minutes) to avoid repeated DB lookups while
+     * keeping authorization decisions fresh. Returns null for expired, hit-capped,
+     * or non-existent links.
+     *
+     * The short TTL is intentional — this method feeds policy checks where stale
+     * data could grant unauthorized access to protected/private entities.
      */
     public function resolveLinkById(int $id): ?ShortLink
     {
         $cacheKey = "short_link_id:{$id}";
 
         /** @var ShortLink|null $link */
-        $link = Cache::remember($cacheKey, now()->addHours(6), function () use ($id): ?ShortLink {
+        $link = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($id): ?ShortLink {
             return ShortLink::find($id);
         });
 
@@ -146,14 +150,24 @@ class ShortLinkService
             return null;
         }
 
-        // Freshness check: the cached model may predate a soft-delete or status change.
-        // Verify the record still exists and is not trashed. This adds one lightweight
-        // query every 6 hours per link but prevents stale-authorization in policies.
-        if (! ShortLink::where('id', $id)->whereNull('deleted_at')->exists()) {
+        // Freshness check: the cached model may predate a soft-delete, expiry change,
+        // or hit cap change. Re-fetch critical fields from DB to ensure authorization
+        // decisions use current data. This adds one lightweight query per cache TTL
+        // window per link — an acceptable cost for correct access control.
+        $fresh = ShortLink::where('id', $id)
+            ->whereNull('deleted_at')
+            ->first(['expires_at', 'max_hits', 'hit_count']);
+
+        if ($fresh === null) {
             Cache::forget($cacheKey);
 
             return null;
         }
+
+        // Overlay fresh authoritative values onto the cached model
+        $link->expires_at = $fresh->expires_at;
+        $link->max_hits = $fresh->max_hits;
+        $link->hit_count = $fresh->hit_count;
 
         if ($link->isExpired()) {
             Cache::forget($cacheKey);
@@ -265,11 +279,6 @@ class ShortLinkService
     }
 
     /**
-     * Get the public-facing route URL for a linkable entity.
-     *
-     * Maps entity class to the correct public route name and parameter.
-     */
-    /**
      * Validate that a URL is internal to this application.
      *
      * Prevents open-redirect vulnerabilities if a future code path passes
@@ -289,8 +298,10 @@ class ShortLinkService
         $urlHost = parse_url($url, PHP_URL_HOST);
 
         // In production, only allow URLs pointing to the app host.
-        // In testing, allow any URL so that factory/test URLs don't need to match app.url.
-        if (app()->environment('production') && ($urlHost === null || $urlHost !== $appHost)) {
+        // In unit tests, allow any URL so that factory/test URLs don't need to match app.url.
+        // Staging and other non-production environments validate the same as production
+        // to catch open-redirect issues before they reach production.
+        if (! app()->runningUnitTests() && ($urlHost === null || $urlHost !== $appHost)) {
             throw new \InvalidArgumentException(
                 'Short link URL must be internal. Got: ' . $url
             );

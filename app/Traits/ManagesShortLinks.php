@@ -113,7 +113,7 @@ trait ManagesShortLinks
             'entity_type' => get_class($entity),
             'entity_id' => $entity->getKey(),
             'link_id' => $link->id,
-            'code' => $link->code,
+            'code_prefix' => substr($link->code, 0, 3) . '…',
             'user_id' => $viewer->id,
         ]);
 
@@ -142,6 +142,7 @@ trait ManagesShortLinks
             'entity_type' => get_class($entity),
             'entity_id' => $entity->getKey(),
             'link_id' => $linkId,
+            'code_prefix' => substr($link->code, 0, 3) . '…',
             'user_id' => $viewer->id,
         ]);
 

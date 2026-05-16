@@ -15,7 +15,7 @@
                     $platformConfig = $platforms[$link->platform] ?? null;
                     $icon = $platformConfig['icon'] ?? 'link';
                     $name = $platformConfig['name'] ?? $link->platform;
-                    $url = $link->url;
+                    $url = $link->safe_url;
                 @endphp
                 @if($url)
                     <a href="{{ $url }}"

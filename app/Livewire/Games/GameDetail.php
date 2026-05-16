@@ -215,6 +215,16 @@ class GameDetail extends Component
             DB::transaction(function () use ($viewer, $joinSource, $shortLinkId) {
                 $game = Game::lockForUpdate()->find($this->game->id);
 
+                // Revalidate short link under lock to catch mid-session revocation.
+                if ($shortLinkId !== null) {
+                    $freshLink = \App\Models\ShortLink::where('id', $shortLinkId)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    if ($freshLink === null || $freshLink->isExpired()) {
+                        throw new \RuntimeException('Short link revoked or expired during join.');
+                    }
+                }
+
                 $approvedCount = $game->participants()
                     ->where('status', ParticipantStatus::Approved->value)
                     ->count();

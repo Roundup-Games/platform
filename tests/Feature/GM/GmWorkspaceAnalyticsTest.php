@@ -138,6 +138,7 @@ describe('Referrer domain aggregation', function () {
             'short_link_id' => $link->id,
             'ip_address' => '1.2.3.4',
             'referer' => 'https://discord.com/channels/123',
+            'referer_domain' => 'discord.com',
             'hit_at' => now()->subDay(),
         ]);
 
@@ -145,6 +146,7 @@ describe('Referrer domain aggregation', function () {
             'short_link_id' => $link->id,
             'ip_address' => '5.6.7.8',
             'referer' => 'https://discord.com/channels/456',
+            'referer_domain' => 'discord.com',
             'hit_at' => now()->subDay(),
         ]);
 
@@ -152,6 +154,7 @@ describe('Referrer domain aggregation', function () {
             'short_link_id' => $link->id,
             'ip_address' => '9.10.11.12',
             'referer' => 'https://twitter.com/user/status/789',
+            'referer_domain' => 'twitter.com',
             'hit_at' => now()->subDay(),
         ]);
 

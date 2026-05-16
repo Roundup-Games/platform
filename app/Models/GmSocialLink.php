@@ -45,4 +45,21 @@ class GmSocialLink extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // ── Accessors ──────────────────────────────────────
+
+    /**
+     * Get the URL with defense-in-depth scheme validation.
+     *
+     * Ensures that only https:// or http:// URLs are ever rendered in href
+     * attributes, even if the stored value was modified outside the service layer.
+     */
+    public function getSafeUrlAttribute(): string
+    {
+        if ($this->url && str_starts_with($this->url, 'https://') || str_starts_with($this->url ?? '', 'http://')) {
+            return $this->url;
+        }
+
+        return '#';
+    }
 }

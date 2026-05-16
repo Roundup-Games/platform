@@ -13,7 +13,10 @@ use App\Services\ReviewAggregateService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Services\ShortLinkService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -67,27 +70,8 @@ class GmWorkspace extends Component
         $reviewAggregateService = app(ReviewAggregateService::class);
         $recentReviews = $reviewAggregateService->recentReviews($this->gmProfile, 5);
 
-        // (3) Participant Stats — unique players across all games, repeat players
-        $gameIds = Game::where('owner_id', $user->id)->pluck('id');
-
-        $totalUniquePlayers = GameParticipant::whereIn('game_id', $gameIds)
-            ->where('role', 'player')
-            ->distinct('user_id')
-            ->count('user_id');
-
-        $repeatPlayers = GameParticipant::whereIn('game_id', $gameIds)
-            ->where('role', 'player')
-            ->select('user_id', DB::raw('COUNT(*) as game_count'))
-            ->groupBy('user_id')
-            ->havingRaw('COUNT(*) >= 2')
-            ->get()
-            ->count();
-
-        // (4) Quick actions data
-        $totalGames = Game::where('owner_id', $user->id)->count();
-        $activeCampaigns = \App\Models\Campaign::where('owner_id', $user->id)
-            ->where('status', 'active')
-            ->count();
+        // (3) Participant Stats + Quick actions — cached for 1 hour
+        [$totalUniquePlayers, $repeatPlayers, $totalGames, $activeCampaigns] = $this->getCachedParticipantStats($user);
 
         // (5) Session Zero Surveys
         $sessionZeroSurveys = SessionZeroSurvey::where('gm_profile_id', $this->gmProfile->id)
@@ -119,6 +103,71 @@ class GmWorkspace extends Component
             'topReferrers' => $topReferrers,
             'allLinks' => $allLinks,
         ]);
+    }
+
+
+    /**
+     * Revoke a short link from the workspace analytics table.
+     *
+     * Validates ownership before revoking and clears the analytics cache
+     * so the table updates immediately.
+     */
+    #[On('revoke-link')]
+    public function revokeLink(int $linkId): void
+    {
+        $user = Auth::user();
+
+        $link = ShortLink::where('id', $linkId)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        app(ShortLinkService::class)->revokeLink($link);
+
+        Cache::forget("gm_workspace:link_analytics:{$user->id}");
+        Cache::forget("gm_workspace:participant_stats:{$user->id}");
+
+        Log::info('GM workspace: short link revoked', [
+            'link_id' => $linkId,
+            'user_id' => $user->id,
+        ]);
+
+        session()->flash('success', __('common.flash_share_link_revoked'));
+    }
+
+
+    /**
+     * Get cached participant and entity stats for the GM.
+     *
+     * Returns [totalUniquePlayers, repeatPlayers, totalGames, activeCampaigns].
+     * Cached for 1 hour — these are aggregate counts that change slowly.
+     */
+    private function getCachedParticipantStats($user): array
+    {
+        $cacheKey = "gm_workspace:participant_stats:{$user->id}";
+
+        return Cache::remember($cacheKey, now()->addHour(), function () use ($user) {
+            $gameIds = Game::where('owner_id', $user->id)->pluck('id');
+
+            $totalUniquePlayers = GameParticipant::whereIn('game_id', $gameIds)
+                ->where('role', 'player')
+                ->distinct('user_id')
+                ->count('user_id');
+
+            $repeatPlayers = GameParticipant::whereIn('game_id', $gameIds)
+                ->where('role', 'player')
+                ->select('user_id', DB::raw('COUNT(*) as game_count'))
+                ->groupBy('user_id')
+                ->havingRaw('COUNT(*) >= 2')
+                ->get()
+                ->count();
+
+            $totalGames = $gameIds->count();
+            $activeCampaigns = \App\Models\Campaign::where('owner_id', $user->id)
+                ->where('status', 'active')
+                ->count();
+
+            return [$totalUniquePlayers, $repeatPlayers, $totalGames, $activeCampaigns];
+        });
     }
 
     /**
@@ -166,15 +215,14 @@ class GmWorkspace extends Component
                 ->limit(5)
                 ->get();
 
-            // Top referrer domains — DB-level aggregation via Eloquent.
+            // Top referrer domains — pre-extracted at write time for fast aggregation.
             $topReferrers = $gmLinkIds->isNotEmpty()
                 ? ShortLinkHit::whereIn('short_link_id', $gmLinkIds)
-                    ->whereNotNull('referer')
-                    ->where('referer', '!=', '')
+                    ->whereNotNull('referer_domain')
                     ->where('hit_at', '>=', now()->subDays(30))
-                    ->selectRaw("SUBSTRING(referer FROM '^(?:https?://)?([^/]+)') as domain")
+                    ->selectRaw('referer_domain as domain')
                     ->selectRaw('COUNT(*) as cnt')
-                    ->groupByRaw("SUBSTRING(referer FROM '^(?:https?://)?([^/]+)')")
+                    ->groupByRaw('referer_domain')
                     ->orderByDesc('cnt')
                     ->limit(5)
                     ->get()

@@ -71,7 +71,9 @@ describe('ShortLink redirect — valid codes', function () {
         ])->get("/link/{$this->link->code}");
 
         Queue::assertPushed(RecordShortLinkHit::class, function (RecordShortLinkHit $job) {
-            return $job->ipAddress === '127.0.0.1'
+            // IP is hashed in constructor — verify it's a 64-char sha256, not raw
+            return strlen($job->ipAddress) === 64
+                && $job->ipAddress !== '127.0.0.1'
                 && $job->referer === 'https://google.com'
                 && $job->userAgent === 'TestBot/1.0';
         });
