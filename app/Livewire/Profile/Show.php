@@ -7,13 +7,22 @@ use App\Enums\NotificationCategory;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
+use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\DashboardCacheService;
+use App\Services\GmSocialLinkService;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\UserAnonymizationService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -27,11 +36,17 @@ class Show extends Component
 
     // Profile fields
     public string $name = '';
+
     public string $email = '';
+
     public string $slug = '';
+
     public string $gender = '';
+
     public bool $gender_consent = false;
+
     public string $pronouns = '';
+
     public string $phone = '';
 
     public string $preferredLanguage = '';
@@ -57,15 +72,22 @@ class Show extends Component
 
     // Password fields
     public string $current_password = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
 
     public bool $showPasswordForm = false;
 
     // Account deletion
     public bool $showDeleteForm = false;
+
     public string $delete_password = '';
+
     public string $delete_confirmation = '';
+
+    #[Locked]
+    public bool $hasPendingExportRequest = false;
 
     /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
     public array $privacySettings = [];
@@ -74,9 +96,13 @@ class Show extends Component
     public array $notificationSettings = [];
 
     public bool $saved = false;
+
     public bool $preferencesSaved = false;
+
     public bool $privacySaved = false;
+
     public bool $notificationSaved = false;
+
     public bool $socialLinksSaved = false;
 
     public int $pushSubscriptionCount = 0;
@@ -145,6 +171,13 @@ class Show extends Component
         if ($user->isGM()) {
             $this->loadSocialLinks($user);
         }
+
+        // Check if user has a pending data export request ticket
+        $this->hasPendingExportRequest = Ticket::where('requester_type', User::class)
+            ->where('requester_id', $user->id)
+            ->where('ticket_type', 'data_export_request')
+            ->open()
+            ->exists();
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -198,7 +231,7 @@ class Show extends Component
             'gender_consent' => ['boolean'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
+            'preferredLanguage' => ['nullable', 'string', 'in:'.implode(',', ContentLanguage::values())],
             'bio' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -235,9 +268,9 @@ class Show extends Component
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
             $filename = $this->avatar->getClientOriginalName()
-                ?? ('avatar.' . ($this->avatar->extension() ?: 'jpg'));
+                ?? ('avatar.'.($this->avatar->extension() ?: 'jpg'));
             $user->addMedia($this->avatar->getRealPath())
-                ->usingName($user->name . ' avatar')
+                ->usingName($user->name.' avatar')
                 ->usingFileName($filename)
                 ->toMediaCollection('avatar');
 
@@ -255,12 +288,12 @@ class Show extends Component
             UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
 
             // Invalidate dashboard caches affected by location change
-            $dashboardCache = app(\App\Services\DashboardCacheService::class);
+            $dashboardCache = app(DashboardCacheService::class);
             $dashboardCache->invalidateForUser($user->id, ['opportunities']);
 
             // Invalidate trending for old and new geohash tiles
             if ($oldLocationId) {
-                $oldLocation = \App\Models\Location::find($oldLocationId);
+                $oldLocation = Location::find($oldLocationId);
                 if ($oldLocation && $oldLocation->geohash_4) {
                     $dashboardCache->invalidateTrendingForGeohash($oldLocation->geohash_4);
                 }
@@ -321,7 +354,7 @@ class Show extends Component
                 ];
             }
         }
-        if (!empty($inserts)) {
+        if (! empty($inserts)) {
             $user->vibePreferences()->createMany($inserts);
         }
 
@@ -354,7 +387,7 @@ class Show extends Component
 
         // Invalidate dashboard opportunities cache when preferences change
         if ($vibesChanged || $gameSystemsChanged) {
-            app(\App\Services\DashboardCacheService::class)->invalidateForUser(
+            app(DashboardCacheService::class)->invalidateForUser(
                 $user->id, ['opportunities'],
             );
         }
@@ -548,7 +581,7 @@ class Show extends Component
         $validated = $this->validate($rules);
 
         try {
-            $service = app(\App\Services\GmSocialLinkService::class);
+            $service = app(GmSocialLinkService::class);
             // Transform keyed array ['twitter' => ['handle' => 'x']]
             // into the format syncLinksForUser expects: [['platform' => 'twitter', 'handle' => 'x']].
             $links = collect($validated['socialLinks'])->map(fn ($data, $platform) => [
@@ -565,7 +598,7 @@ class Show extends Component
             ]);
 
             $this->socialLinksSaved = true;
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
             Log::error('Failed to save GM social links', [
@@ -575,6 +608,61 @@ class Show extends Component
 
             $this->addError('socialLinks', __('profile.gm_social_links_error'));
         }
+    }
+
+    /**
+     * Submit a data export request ticket from profile settings.
+     */
+    public function requestExport(): void
+    {
+        $user = Auth::user();
+
+        // Prevent duplicate open requests
+        $existingOpen = Ticket::where('requester_type', User::class)
+            ->where('requester_id', $user->id)
+            ->where('ticket_type', 'data_export_request')
+            ->open()
+            ->exists();
+
+        if ($existingOpen) {
+            $this->addError('dataExport', __('profile.error_data_export_request_pending'));
+
+            return;
+        }
+
+        $department = Department::where('name', 'Account Support')->first();
+        if (! $department) {
+            Log::error('profile.data_export_department_missing');
+            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
+
+            return;
+        }
+
+        $ticket = Ticket::create([
+            'requester_type' => User::class,
+            'requester_id' => $user->id,
+            'subject' => "Data Export Request — {$user->name}",
+            'description' => 'User requested a full data export via profile settings.',
+            'status' => TicketStatus::Open->value,
+            'priority' => TicketPriority::Medium->value,
+            'department_id' => $department->id,
+            'ticket_type' => 'data_export_request',
+            'channel' => TicketChannel::Web->value,
+            'metadata' => [
+                'source' => 'profile_settings',
+                'user_id' => $user->id,
+            ],
+        ]);
+
+        $this->hasPendingExportRequest = true;
+
+        Log::info('profile.data_export_requested', [
+            'ticket_id' => $ticket->id,
+            'ticket_reference' => $ticket->reference,
+            'user_id' => $user->id,
+        ]);
+
+        session()->flash('data_export_requested', __('profile.flash_data_export_requested'));
     }
 
     public function render()

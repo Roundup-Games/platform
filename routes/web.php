@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\ExportDownloadController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
@@ -236,6 +237,13 @@ Route::prefix('{locale}')
 
         Route::get('/notifications/unsubscribe/{user}/{category}', [NotificationController::class, 'unsubscribe'])
             ->name('notifications.unsubscribe')
+            ->middleware('signed');
+
+        // ── Data Export Download (signed URL, no auth required) ──
+        // Signed URL expires after 7 days; signature verification is done in controller.
+
+        Route::get('/export/download/{user}', [ExportDownloadController::class, 'download'])
+            ->name('export.download')
             ->middleware('signed');
 
         // ── Onboarding (authenticated, profile NOT complete) ──

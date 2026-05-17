@@ -217,4 +217,13 @@ return [
     'gm_social_handle_placeholder' => 'Your username',
     'gm_social_handle_placeholder_at' => 'username',
     'gm_social_instance_label' => 'Instance (e.g. mastodon.social)',
+
+    // Data Export
+    'title_privacy_and_data' => 'Privacy & Data',
+    'content_request_your_data_description' => 'You have the right to request a copy of all personal data we hold about you. We will prepare an export and notify you when it is ready to download.',
+    'action_request_my_data' => 'Request My Data',
+    'content_data_export_pending' => 'Your data export request is being processed. You will be notified when your data is ready to download.',
+    'flash_data_export_requested' => 'Your request has been submitted. You will be notified when your data is ready.',
+    'error_data_export_request_pending' => 'You already have a pending data export request.',
+    'error_data_export_request_failed' => 'Something went wrong. Please try again or contact support.',
 ];

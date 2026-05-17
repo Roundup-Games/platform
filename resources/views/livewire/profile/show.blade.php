@@ -196,6 +196,55 @@
 
             <div class="space-y-6">
                 @include('livewire.profile.partials._linked-accounts')
+
+                {{-- Privacy & Data: Data Export Request --}}
+                <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">shield</span>
+                        {{ __('profile.title_privacy_and_data') }}
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mb-4">
+                        {{ __('profile.content_request_your_data_description') }}
+                    </p>
+
+                    @if(session()->has('data_export_requested'))
+                        <div class="rounded-lg bg-secondary-container p-4 mb-4" role="status" aria-live="polite">
+                            <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                                {{ session('data_export_requested') }}
+                            </p>
+                        </div>
+                    @endif
+
+                    @error('dataExport')
+                        <div class="rounded-lg bg-error-container p-4 mb-4" role="alert">
+                            <p class="text-sm text-on-error-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">error</span>
+                                {{ $message }}
+                            </p>
+                        </div>
+                    @enderror
+
+                    @if($hasPendingExportRequest)
+                        <div class="rounded-lg bg-surface-container-high p-4 flex items-center gap-3">
+                            <span class="material-symbols-outlined text-lg text-on-surface-variant animate-spin" aria-hidden="true">progress_activity</span>
+                            <p class="text-sm text-on-surface-variant">
+                                {{ __('profile.content_data_export_pending') }}
+                            </p>
+                        </div>
+                    @else
+                        <button wire:click="requestExport" wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">download</span>
+                            <span wire:loading.remove>{{ __('profile.action_request_my_data') }}</span>
+                            <span wire:loading class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
+                                {{ __('common.content_saving') }}
+                            </span>
+                        </button>
+                    @endif
+                </section>
+
                 @include('livewire.profile.partials._password-form')
                 @include('livewire.profile.partials._danger-zone')
             </div>

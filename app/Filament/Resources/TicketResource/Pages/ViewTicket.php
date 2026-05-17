@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\TicketResource\Pages;
 
+use App\Enums\CampaignStatus;
+use App\Enums\GameStatus;
 use App\Filament\Resources\TicketResource;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -12,11 +14,12 @@ use App\Notifications\AccountSuspended;
 use App\Notifications\ContentRemoved;
 use App\Notifications\ContentReportWarning;
 use App\Services\BggClient;
+use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
+use Escalated\Laravel\Enums\ActivityType;
 use Escalated\Laravel\Enums\TicketPriority;
-use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
@@ -26,8 +29,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 
@@ -60,6 +66,7 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * BGG search results stored in component state.
+     *
      * @var array<int, array{bgg_id: int, name: string, year_released: int|null, bgg_type: string}>
      */
     public array $bggSearchResults = [];
@@ -76,13 +83,18 @@ class ViewTicket extends BaseViewTicket
 
     /**
      * Full BGG thing data for the selected game, fetched for preview.
-     * @var array|null
      */
     public ?array $bggPreviewData = null;
 
     protected function getHeaderActions(): array
     {
         $actions = parent::getHeaderActions();
+
+        // Insert data export action for data_export_request tickets
+        $dataExportActions = $this->getDataExportActions();
+        if (! empty($dataExportActions)) {
+            array_splice($actions, 0, 0, $dataExportActions);
+        }
 
         // Insert content moderation actions for Safety department content_report tickets
         $contentReportActions = $this->getContentReportActions();
@@ -168,9 +180,9 @@ class ViewTicket extends BaseViewTicket
                         ->hidden(fn () => $this->selectedBggId === null)
                         ->content(fn () => new HtmlString(
                             '<div class="fi-section rounded-xl bg-primary-50 p-3 dark:bg-primary-900/20">'
-                            . '<span class="font-medium text-primary-700 dark:text-primary-300">' . e($this->selectedBggName) . '</span>'
-                            . ' <span class="text-gray-500">(BGG ID: ' . $this->selectedBggId . ')</span>'
-                            . '</div>'
+                            .'<span class="font-medium text-primary-700 dark:text-primary-300">'.e($this->selectedBggName).'</span>'
+                            .' <span class="text-gray-500">(BGG ID: '.$this->selectedBggId.')</span>'
+                            .'</div>'
                         )),
                     Placeholder::make('bgg_no_results_display')
                         ->label('No results found')
@@ -223,6 +235,37 @@ class ViewTicket extends BaseViewTicket
                 })
                 ->visible(function () use ($ticket) {
                     return empty($ticket->metadata['game_system_id'] ?? null);
+                }),
+        ];
+    }
+
+    /**
+     * Get data export actions. Only visible on data_export_request tickets that are still open.
+     */
+    protected function getDataExportActions(): array
+    {
+        $ticket = $this->getRecord();
+
+        if (! $ticket || ($ticket->ticket_type ?? null) !== 'data_export_request') {
+            return [];
+        }
+
+        return [
+            Action::make('generateDataExport')
+                ->label('Generate Data Export')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Generate Data Export')
+                ->modalDescription(function () use ($ticket) {
+                    $requesterName = $ticket->requester?->name ?? $ticket->guest_name ?? 'Unknown User';
+
+                    return "This will generate a full data export for {$requesterName}. The export will be attached as a reply with a download link, and the ticket will be resolved.";
+                })
+                ->modalSubmitActionLabel('Generate Export')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performGenerateDataExport($ticket);
                 }),
         ];
     }
@@ -359,7 +402,7 @@ class ViewTicket extends BaseViewTicket
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Warn User')
-                ->modalDescription("This will close the ticket and send a warning notification to the content owner about community guidelines.")
+                ->modalDescription('This will close the ticket and send a warning notification to the content owner about community guidelines.')
                 ->schema([
                     Textarea::make('warning_note')
                         ->label('Admin note (internal)')
@@ -551,7 +594,7 @@ class ViewTicket extends BaseViewTicket
                     // (vendor event expects int agentId but our User model uses UUID)
                     $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
                     $ticket->logActivity(
-                        \Escalated\Laravel\Enums\ActivityType::Assigned,
+                        ActivityType::Assigned,
                         $user,
                         ['agent_id' => $platformAdmin->id]
                     );
@@ -624,6 +667,130 @@ class ViewTicket extends BaseViewTicket
     }
 
     /**
+     * Generate a user data export, reply to the ticket with a signed download URL, and resolve.
+     */
+    protected function performGenerateDataExport(Ticket $ticket): void
+    {
+        $requester = $ticket->requester;
+
+        if (! $requester instanceof User) {
+            Notification::make()
+                ->danger()
+                ->title('Cannot generate export')
+                ->body('The ticket requester is not a registered user.')
+                ->send();
+
+            return;
+        }
+
+        $admin = auth()->user();
+        $ticketService = app(TicketService::class);
+
+        try {
+            // Step 1: Generate the export by running the artisan command
+            $exitCode = Artisan::call('export:user-data', [
+                'user' => $requester->id,
+            ]);
+
+            $output = trim(Artisan::output());
+
+            if ($exitCode !== 0) {
+                throw new \RuntimeException('Export command failed: '.$output);
+            }
+
+            // The command outputs the stored path as the last line
+            $storedPath = $output;
+
+            if (empty($storedPath) || ! str_starts_with($storedPath, 'exports/')) {
+                throw new \RuntimeException('Export command did not return a valid file path.');
+            }
+
+            // Step 2: Generate a signed download URL (valid for 7 days)
+            $downloadUrl = URL::signedRoute(
+                'export.download',
+                ['user' => $requester->id],
+                now()->addDays(7),
+            );
+
+            // Step 3: Create a reply with the download link
+            $fileSize = Storage::disk('local')->size($storedPath);
+            $fileSizeFormatted = $this->formatBytes($fileSize);
+
+            $replyBody = "Your data export is ready for download.\n\n"
+                ."**File:** `user-data-{$requester->id}.zip` ({$fileSizeFormatted})\n"
+                ."**Download link:** [Download your data]({$downloadUrl})\n\n"
+                .'This link will expire in 7 days. If you need a new link, please reply to this ticket.';
+
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $replyBody, $storedPath) {
+                // Add reply with signed download URL
+                $ticketService->reply($ticket, $admin, $replyBody);
+
+                // Add internal note with file path for audit
+                $ticketService->addNote($ticket, $admin, "Data export generated. File: {$storedPath}");
+
+                // Resolve the ticket
+                $ticketService->resolve($ticket, $admin);
+            });
+
+            Log::info('data_export.generated_and_delivered', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'user_id' => $requester->id,
+                'file_path' => $storedPath,
+                'file_size' => $fileSize,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Data export generated')
+                ->body("The data export for {$requester->name} has been generated and delivered via ticket reply.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('data_export.generation_failed', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'user_id' => $requester->id,
+                'error' => $e->getMessage(),
+                'admin_id' => $admin->id,
+            ]);
+
+            // Add internal note about the failure but don't resolve the ticket
+            try {
+                $ticketService->addNote($ticket, $admin, "Data export generation failed: {$e->getMessage()}");
+            } catch (\Throwable $noteException) {
+                Log::error('data_export.failed_to_add_note', [
+                    'ticket_id' => $ticket->id,
+                    'error' => $noteException->getMessage(),
+                ]);
+            }
+
+            Notification::make()
+                ->danger()
+                ->title('Export generation failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Format bytes into human-readable size.
+     */
+    protected function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+
+        return round($bytes, 2).' '.$units[$i];
+    }
+
+    /**
      * Dismiss content report: close ticket with no action on the reported entity.
      */
     protected function performDismissContentReport(Ticket $ticket): void
@@ -687,7 +854,7 @@ class ViewTicket extends BaseViewTicket
 
             $noteBody = 'Warning issued by admin.';
             if ($note) {
-                $noteBody .= ' Note: ' . $note;
+                $noteBody .= ' Note: '.$note;
             }
 
             DB::transaction(function () use ($ticket, $admin, $ticketService, $noteBody) {
@@ -754,7 +921,7 @@ class ViewTicket extends BaseViewTicket
                 };
 
                 $ticketService->addNote($ticket, $admin, $removed
-                    ? ucfirst($entityType ?? 'content') . ' removed by admin.'
+                    ? ucfirst($entityType ?? 'content').' removed by admin.'
                     : 'Removal attempted but entity not found or already removed.');
                 $ticketService->close($ticket, $admin);
             });
@@ -886,7 +1053,7 @@ class ViewTicket extends BaseViewTicket
                 if ($platformAdmin->id !== $user->id) {
                     $ticket->updateQuietly(['assigned_to' => $platformAdmin->id]);
                     $ticket->logActivity(
-                        \Escalated\Laravel\Enums\ActivityType::Assigned,
+                        ActivityType::Assigned,
                         $user,
                         ['agent_id' => $platformAdmin->id]
                     );
@@ -949,11 +1116,11 @@ class ViewTicket extends BaseViewTicket
         }
 
         $game = Game::find($entityId);
-        if (! $game || $game->status === \App\Enums\GameStatus::Canceled) {
+        if (! $game || $game->status === GameStatus::Canceled) {
             return false;
         }
 
-        $game->update(['status' => \App\Enums\GameStatus::Canceled]);
+        $game->update(['status' => GameStatus::Canceled]);
 
         return true;
     }
@@ -968,11 +1135,11 @@ class ViewTicket extends BaseViewTicket
         }
 
         $campaign = Campaign::find($entityId);
-        if (! $campaign || $campaign->status === \App\Enums\CampaignStatus::Cancelled) {
+        if (! $campaign || $campaign->status === CampaignStatus::Cancelled) {
             return false;
         }
 
-        $campaign->update(['status' => \App\Enums\CampaignStatus::Cancelled]);
+        $campaign->update(['status' => CampaignStatus::Cancelled]);
 
         return true;
     }
@@ -1026,11 +1193,11 @@ class ViewTicket extends BaseViewTicket
         $ticket = $this->getRecord();
 
         try {
-            $result = app(\App\Services\BggSyncService::class)->syncGameSystems([$bggId]);
+            $result = app(BggSyncService::class)->syncGameSystems([$bggId]);
 
             if ($result['failed'] > 0 && $result['synced'] === 0) {
                 throw new \RuntimeException(
-                    'BGG sync failed: ' . implode('; ', $result['errors'])
+                    'BGG sync failed: '.implode('; ', $result['errors'])
                 );
             }
 
@@ -1129,7 +1296,7 @@ class ViewTicket extends BaseViewTicket
                 Notification::make()
                     ->success()
                     ->title('Search complete')
-                    ->body(count($results) . ' result(s) found.')
+                    ->body(count($results).' result(s) found.')
                     ->send();
             }
         } catch (\Throwable $e) {
@@ -1196,32 +1363,32 @@ class ViewTicket extends BaseViewTicket
 
             $selectButton = $isSelected
                 ? '<span class="text-primary-600 dark:text-primary-400 text-xs font-medium">✓ Selected</span>'
-                : '<button type="button" onclick="Livewire.dispatch(\'selectBggResult\', { index: ' . $index . ' })" class="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Select</button>';
+                : '<button type="button" onclick="Livewire.dispatch(\'selectBggResult\', { index: '.$index.' })" class="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Select</button>';
 
             $rows .= '<tr class="border-b border-gray-100 dark:border-gray-700">'
-                . '<td class="px-3 py-2 text-sm">' . e($result['name']) . $selectedBadge . '</td>'
-                . '<td class="px-3 py-2 text-sm text-center">' . ($result['year_released'] ?? '—') . '</td>'
-                . '<td class="px-3 py-2 text-sm">' . e($typeLabel) . '</td>'
-                . '<td class="px-3 py-2 text-sm text-center font-mono">' . $result['bgg_id'] . '</td>'
-                . '<td class="px-3 py-2 text-sm text-center">' . $selectButton . '</td>'
-                . '</tr>';
+                .'<td class="px-3 py-2 text-sm">'.e($result['name']).$selectedBadge.'</td>'
+                .'<td class="px-3 py-2 text-sm text-center">'.($result['year_released'] ?? '—').'</td>'
+                .'<td class="px-3 py-2 text-sm">'.e($typeLabel).'</td>'
+                .'<td class="px-3 py-2 text-sm text-center font-mono">'.$result['bgg_id'].'</td>'
+                .'<td class="px-3 py-2 text-sm text-center">'.$selectButton.'</td>'
+                .'</tr>';
         }
 
         return new HtmlString(
             '<div class="overflow-x-auto">'
-            . '<table class="w-full text-left text-sm">'
-            . '<thead class="border-b border-gray-200 bg-gray-50 dark:bg-gray-800">'
-            . '<tr>'
-            . '<th class="px-3 py-2 font-medium">Name</th>'
-            . '<th class="px-3 py-2 font-medium text-center">Year</th>'
-            . '<th class="px-3 py-2 font-medium">Type</th>'
-            . '<th class="px-3 py-2 font-medium text-center">BGG ID</th>'
-            . '<th class="px-3 py-2 font-medium text-center">Action</th>'
-            . '</tr>'
-            . '</thead>'
-            . '<tbody>' . $rows . '</tbody>'
-            . '</table>'
-            . '</div>'
+            .'<table class="w-full text-left text-sm">'
+            .'<thead class="border-b border-gray-200 bg-gray-50 dark:bg-gray-800">'
+            .'<tr>'
+            .'<th class="px-3 py-2 font-medium">Name</th>'
+            .'<th class="px-3 py-2 font-medium text-center">Year</th>'
+            .'<th class="px-3 py-2 font-medium">Type</th>'
+            .'<th class="px-3 py-2 font-medium text-center">BGG ID</th>'
+            .'<th class="px-3 py-2 font-medium text-center">Action</th>'
+            .'</tr>'
+            .'</thead>'
+            .'<tbody>'.$rows.'</tbody>'
+            .'</table>'
+            .'</div>'
         );
     }
 }
