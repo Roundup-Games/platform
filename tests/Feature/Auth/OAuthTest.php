@@ -29,15 +29,15 @@ it('creates a new user and linked account from Google OAuth', function () {
         'profile_complete' => false,
     ]);
 
-    // Linked account created
+    // Linked account created — tokens are encrypted in DB, check via model
     $user = User::where('email', 'test@google.com')->first();
-    $this->assertDatabaseHas('linked_accounts', [
-        'user_id' => $user->id,
-        'provider' => 'google',
-        'provider_user_id' => '12345',
-        'token' => 'access-token',
-        'refresh_token' => 'refresh-token',
-    ]);
+    $account = LinkedAccount::where('user_id', $user->id)
+        ->where('provider', 'google')
+        ->first();
+    expect($account)->not->toBeNull();
+    expect($account->provider_user_id)->toBe('12345');
+    expect($account->token)->toBe('access-token');
+    expect($account->refresh_token)->toBe('refresh-token');
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('onboarding.index'));
@@ -91,12 +91,11 @@ it('logs in existing user via linked account', function () {
 
     $this->assertAuthenticatedAs($user);
 
-    // Token refreshed
-    $this->assertDatabaseHas('linked_accounts', [
-        'user_id' => $user->id,
-        'provider' => 'google',
-        'token' => 'new-token',
-    ]);
+    // Token refreshed — check via model (encrypted in DB)
+    $account = LinkedAccount::where('user_id', $user->id)
+        ->where('provider', 'google')
+        ->first();
+    expect($account->token)->toBe('new-token');
 
     $response->assertRedirect(route('dashboard', absolute: false));
 })->group('smoke');
