@@ -148,7 +148,7 @@ it('OAuth user password set updates userHasPassword to true', function () {
 
 // ── Account Deletion: Users With Passwords ────────────
 
-it('user with password can delete account with correct password', function () {
+it('user with password can anonymize account with correct password', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
         'password_set_at' => now(),
@@ -159,7 +159,7 @@ it('user with password can delete account with correct password', function () {
         ->set('delete_password', 'password')
         ->call('deleteAccount');
 
-    expect($user->fresh())->toBeNull();
+    expect($user->fresh()->anonymized_at)->not->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 
@@ -193,7 +193,7 @@ it('user with password must provide password to delete', function () {
 
 // ── Account Deletion: OAuth Users (No Password) ───────
 
-it('OAuth user can delete account by typing DELETE', function () {
+it('OAuth user can anonymize account by typing DELETE', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
@@ -201,7 +201,7 @@ it('OAuth user can delete account by typing DELETE', function () {
         ->set('delete_confirmation', 'DELETE')
         ->call('deleteAccount');
 
-    expect($user->fresh())->toBeNull();
+    expect($user->fresh()->anonymized_at)->not->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 

@@ -78,6 +78,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
     protected static function booted(): void
     {
+        static::addGlobalScope('not-anonymized', fn ($q) => $q->whereNull('anonymized_at'));
+
         static::creating(function (User $user) {
             if (empty($user->id)) {
                 $user->id = (string) Str::orderedUuid();
@@ -110,6 +112,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             'reliability_score' => 'array',
             'reliability_computed_at' => 'datetime',
             'max_links_per_entity' => 'integer',
+            'anonymized_at' => 'datetime',
         ];
     }
 
@@ -501,6 +504,48 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
         }
 
         return $slug;
+    }
+
+    // ── Anonymization ──────────────────────────────────
+
+    /**
+     * Whether this user has been anonymized (account deleted).
+     */
+    public function isAnonymized(): bool
+    {
+        return $this->anonymized_at !== null;
+    }
+
+    /**
+     * Anonymize the user in-place: strip PII, set anonymized_at.
+     * Hard-deletes Tier 1 private data (password, email, phone).
+     * Preserves operational relationships (reviews, participations, teams).
+     */
+    public function anonymize(): void
+    {
+        $this->forceFill([
+            'name' => 'Deleted User',
+            'email' => 'anon-' . $this->id . '@anonymized.invalid',
+            'password' => null,
+            'phone' => null,
+            'avatar_url' => null,
+            'bio' => null,
+            'slug' => 'deleted-' . $this->id,
+            'gender' => null,
+            'pronouns' => null,
+            'location' => null,
+            'location_id' => null,
+            'privacy_settings' => null,
+            'notification_settings' => null,
+            'reliability_score' => null,
+            'reliability_computed_at' => null,
+            'profile_complete' => false,
+            'email_verified_at' => null,
+            'password_set_at' => null,
+            'privacy_policy_accepted_at' => null,
+            'terms_accepted_at' => null,
+            'anonymized_at' => now(),
+        ])->saveQuietly();
     }
 
     // ── Helpers ────────────────────────────────────────

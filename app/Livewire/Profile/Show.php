@@ -9,6 +9,7 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Rules\ValidUserName;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\UserAnonymizationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -488,15 +489,14 @@ class Show extends Component
             ]);
         }
 
-        Log::info('Account deletion initiated by user', [
+        Log::info('Account anonymization initiated by user', [
             'user_id' => $user->id,
-            'user_email' => $user->email,
             'had_password' => $user->hasPasswordSet(),
         ]);
 
-        Auth::logout();
+        app(UserAnonymizationService::class)->anonymize($user);
 
-        $user->delete();
+        Auth::logout();
 
         session()->invalidate();
         session()->regenerateToken();
