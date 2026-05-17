@@ -18,6 +18,7 @@ return [
     'action_continue_with_google' => 'Weiter mit Google',
     'action_create' => 'Erstellen',
     'action_decline' => 'Ablehnen',
+    'action_dismiss' => 'Ausblenden',
     'action_delete' => 'Löschen',
     'action_edit' => 'Bearbeiten',
     'action_enter_amount_in_cents_e_g_500_5_00' => 'Betrag in Cent eingeben (z.B. 500 = 5,00 € / $5.00)',
@@ -370,6 +371,10 @@ return [
 
     // ── Footer ──────────────────────────────────────────
     'content_community_and_trust' => 'Community & Vertrauen',
+    'nav_privacy' => 'Datenschutzerklärung',
+    'nav_terms' => 'Nutzungsbedingungen',
+    'nav_impressum' => 'Impressum',
+    'nav_cookie_settings' => 'Cookie-Einstellungen',
 
     // ── Teilnehmerquelle-Anzeige ────────────────────────
     'content_joined_via_link' => 'Beigetreten über: :label',
@@ -378,4 +383,15 @@ return [
     'content_source_application' => 'Bewerbung',
     'content_source_email_invite' => 'E-Mail-Einladung',
     'content_source_short_link' => 'Kurzlink',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Policy Update Notice
+    |--------------------------------------------------------------------------
+    */
+
+    'heading_policy_update' => 'Aktualisierung der Richtlinien',
+    'content_policy_update_body' => 'Wir haben unsere Datenschutzrichtlinie und Nutzungsbedingungen aktualisiert.',
+    'content_policy_update_privacy_link' => 'Datenschutzrichtlinie',
+    'content_policy_update_terms_link' => 'Nutzungsbedingungen',
 ];

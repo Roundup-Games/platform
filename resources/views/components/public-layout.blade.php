@@ -188,7 +188,7 @@
                         <a href="https://github.com/Roundup-Games/" target="_blank" rel="noopener noreferrer" class="text-on-surface-variant hover:text-primary transition-colors" aria-label="GitHub">
                             <svg style="width:1em;height:1em;fill:currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
                         </a>
-                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-label="{{ __('cookie-consent.footer_cookie_settings') }}">
+                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-label="{{ __('cookie-consent.nav_cookie_settings') }}">
                             <span class="material-symbols-outlined" aria-hidden="true">cookie</span>
                         </button>
                         <span class="border-l border-outline-variant/30 h-5"></span>
@@ -219,6 +219,8 @@
                         <a href="{{ route('pledge', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_our_pledge') }}</a>
                         <a href="{{ route('pledge.algorithms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_pledge_card_algorithms_title') }}</a>
                         <a href="{{ route('safety-tools') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('safety.content_safety_tools') }}</a>
+                        <a href="{{ route('privacy', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_privacy') }}</a>
+                        <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.nav_terms') }}</a>
                         <a href="{{ $forOrganizersRouteExists ? route('for-organizers') : url(app()->getLocale() . '/for-organizers') }}" class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('common.content_for_organizers') }}</a>
                         <a href="{{ route('contact') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('pages.content_contact') }}</a>
                     </div>
@@ -235,6 +237,22 @@
                             <a href="{{ route('register') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('auth.content_sign_up') }}</a>
                         @endauth
                     </div>
+                </div>
+            </div>
+
+            {{-- Bottom bar: legal links + cookie settings --}}
+            <div class="border-t border-outline-variant/10 px-8 sm:px-12 py-4">
+                <div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 justify-center">
+                        <a href="{{ route('impressum', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_impressum') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        <a href="{{ route('privacy', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_privacy') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_terms') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
+                    </div>
+                    <p>&copy; {{ date('Y') }} Roundup Games e.V.</p>
                 </div>
             </div>
 

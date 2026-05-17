@@ -2,14 +2,14 @@
 
 return [
     // Banner
-    'banner_message' => 'Wir verwenden Cookies, um Ihre Erfahrung zu verbessern und die Seitennutzung zu analysieren.',
-    'banner_title' => 'Cookie-Einstellungen',
+    'content_banner_message' => 'Wir verwenden Cookies, um Ihre Erfahrung zu verbessern und die Seitennutzung zu analysieren.',
+    'heading_banner_title' => 'Cookie-Einstellungen',
 
     // Buttons
-    'btn_reject_optional' => 'Optionale ablehnen',
-    'btn_accept_selected' => 'Auswahl speichern',
-    'btn_accept_all' => 'Alle akzeptieren',
-    'btn_settings' => 'Cookie-Einstellungen',
+    'action_reject_optional' => 'Optionale ablehnen',
+    'action_save_selected' => 'Auswahl speichern',
+    'action_accept_all' => 'Alle akzeptieren',
+    'action_cookie_settings' => 'Cookie-Einstellungen',
 
     // Categories
     'category_necessary_label' => 'Notwendig',
@@ -20,6 +20,6 @@ return [
     'category_marketing_description' => 'Verwendet für gezielte Werbung und zur Messung der Kampagnenwirksamkeit.',
 
     // Footer icon
-    'footer_cookie_settings' => 'Cookie-Einstellungen',
-    'always_active' => 'Immer aktiv',
+    'nav_cookie_settings' => 'Cookie-Einstellungen',
+    'label_always_active' => 'Immer aktiv',
 ];

@@ -133,6 +133,36 @@ class PageController extends Controller
         return view('pages.safety-tools', compact('tools', 'categories'));
     }
 
+    public function privacy()
+    {
+        seo(new SEOData(
+            title: __('privacy.title'),
+            description: __('privacy.seo_description'),
+        ));
+
+        return view('pages.privacy');
+    }
+
+    public function terms()
+    {
+        seo(new SEOData(
+            title: __('terms.title'),
+            description: __('terms.seo_description'),
+        ));
+
+        return view('pages.terms');
+    }
+
+    public function impressum()
+    {
+        seo(new SEOData(
+            title: __('impressum.title'),
+            description: __('impressum.seo_description'),
+        ));
+
+        return view('pages.impressum');
+    }
+
     public function submitContact(Request $request)
     {
         $validated = $request->validate([

@@ -88,6 +88,9 @@ Route::prefix('{locale}')
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
         Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
+        Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
+        Route::get('/terms', [PageController::class, 'terms'])->name('terms');
+        Route::get('/impressum', [PageController::class, 'impressum'])->name('impressum');
         Route::get('/gms', App\Livewire\GM\GmDirectory::class)->name('gm.directory');
         Route::get('/game-systems', App\Livewire\GameSystems\GameSystemsPage::class)->name('game-systems');
         Route::get('/game-systems/request', App\Livewire\GameSystems\RequestGameSystemPage::class)

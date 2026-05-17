@@ -121,7 +121,7 @@
                         </a>
                         <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
-                            {{ __('cookie-consent.footer_cookie_settings') }}
+                            {{ __('cookie-consent.nav_cookie_settings') }}
                         </button>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
@@ -230,7 +230,7 @@
                                 </a>
                                 <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings text-xs text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
                                     <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">cookie</span>
-                                    {{ __('cookie-consent.footer_cookie_settings') }}
+                                    {{ __('cookie-consent.nav_cookie_settings') }}
                                 </button>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -276,6 +276,11 @@
         </div>
         {{-- Offline indicator (no server round-trips) --}}
         <x-offline-indicator />
+
+        {{-- Policy update notice for authenticated users --}}
+        @auth
+            <livewire:policy-update-notice />
+        @endauth
 
         {{-- PWA Install Prompt (only for authenticated + eligible users) --}}
         @auth
