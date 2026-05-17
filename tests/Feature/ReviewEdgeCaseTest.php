@@ -175,7 +175,7 @@ describe('Pre-Date Blocked', function () {
         // Use a future date to ensure isFuture() returns true
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
-            'date_time' => now()->addSecond(),
+            'date_time' => now()->addMinutes(5),
         ]);
         $player = User::factory()->create(['profile_complete' => true]);
         GameParticipant::create([

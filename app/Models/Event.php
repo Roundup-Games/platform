@@ -18,6 +18,7 @@ use Spatie\SchemaOrg\PostalAddress;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\EventStatusType;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use App\Enums\EventStatus;
 use App\Traits\HasTranslations;
 use App\Traits\StringMorphMediaKey;
 use App\Relations\StringKeyMorphMany;
@@ -85,6 +86,7 @@ class Event extends Model implements HasMedia
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
             'metadata' => 'array',
+            'status' => EventStatus::class,
         ];
     }
 

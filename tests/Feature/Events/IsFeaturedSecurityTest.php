@@ -57,6 +57,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
             ),
         );
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
             ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
@@ -75,6 +76,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
 
         Log::shouldReceive('warning')->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
             ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
@@ -90,6 +92,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         expect($event->is_featured)->toBeFalse();
 
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
@@ -107,6 +110,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         ]);
 
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($admin)
             ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
@@ -122,6 +126,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
 
         Log::shouldReceive('warning')->never();
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
             ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])

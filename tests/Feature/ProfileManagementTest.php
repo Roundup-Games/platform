@@ -62,7 +62,8 @@ it('resets email verification when email changes', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->set('email', 'newemail@example.com')
-        ->call('saveProfile');
+        ->call('saveProfile')
+        ->assertHasNoErrors();
 
     expect($user->fresh()->email_verified_at)->toBeNull();
 });
@@ -285,6 +286,7 @@ it('persists preferred_language on save', function () {
         ->test(Show::class)
         ->set('preferredLanguage', 'de')
         ->call('saveProfile')
+        ->assertHasNoErrors()
         ->assertSet('saved', true);
 
     expect($user->fresh()->preferred_language)->toBe(\App\Enums\ContentLanguage::De);
@@ -305,6 +307,7 @@ it('persists location_id on save', function () {
         ->test(Show::class)
         ->set('locationId', $location->id)
         ->call('saveProfile')
+        ->assertHasNoErrors()
         ->assertSet('saved', true);
 
     expect($user->fresh()->location_id)->toBe($location->id);
@@ -580,7 +583,8 @@ it('persists location via Show after LocationPicker resolves it', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->set('locationId', $resolvedLocationId)
-        ->call('saveProfile');
+        ->call('saveProfile')
+        ->assertHasNoErrors();
 
     expect($user->fresh()->location_id)->toBe($resolvedLocationId);
 });

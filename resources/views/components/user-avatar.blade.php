@@ -26,6 +26,6 @@
 @else
     <span class="{{ $size }} rounded-full bg-surface-container-high flex items-center justify-center shrink-0"
           aria-hidden="true">
-        <span class="material-symbols-outlined text-on-surface-variant {{ $textSize }}">person</span>
+        <span class="material-symbols-outlined text-on-surface-variant {{ $textSize }}" aria-hidden="true">person</span>
     </span>
 @endif

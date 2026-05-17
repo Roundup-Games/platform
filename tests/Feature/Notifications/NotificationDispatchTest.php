@@ -55,7 +55,7 @@ describe('ConfirmationExpired notification', function () {
             $user1,
             ConfirmationExpired::class,
             function ($notification) use ($game) {
-                return $notification->game->id === $game->id;
+                return $notification->entity->id === $game->id;
             }
         );
     });

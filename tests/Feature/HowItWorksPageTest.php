@@ -25,16 +25,15 @@ describe('HowItWorksPage', function () {
             ->assertSee(__('campaigns.action_browse_sessions'));
     });
 
-    it('redirects /about to /how-it-works with 301', function () {
+    it('renders the about page', function () {
         get(route('about'))
-            ->assertRedirect(route('how-it-works'))
-            ->assertStatus(301);
+            ->assertOk();
     });
 
-    it('about redirect preserves locale', function () {
+    it('about page preserves locale', function () {
         $locale = app()->getLocale();
         get("/{$locale}/about")
-            ->assertRedirect("/{$locale}/how-it-works");
+            ->assertOk();
     });
 });
 

@@ -65,8 +65,8 @@
                         @include('partials.logo', ['class' => 'h-10 w-auto'])
                     </a>
                     <button @click="open = !open" class="p-2 text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.aria_toggle_navigation_menu') }}" :aria-expanded="open.toString()">
-                        <span class="material-symbols-outlined text-2xl" :class="{'hidden': open, 'block': !open}">menu</span>
-                        <span class="material-symbols-outlined text-2xl" :class="{'block': open, 'hidden': !open}">close</span>
+                        <span class="material-symbols-outlined text-2xl" aria-hidden="true" :class="{'hidden': open, 'block': !open}">menu</span>
+                        <span class="material-symbols-outlined text-2xl" aria-hidden="true" :class="{'block': open, 'hidden': !open}">close</span>
                     </button>
                 </div>
 
@@ -82,33 +82,33 @@
                      class="bg-surface/95 backdrop-blur-md border-b border-outline-variant/15">
                     <div class="px-4 pb-4 space-y-1">
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('profile.content_dashboard') }}
                         </a>
                         <a href="{{ route('notifications.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('notifications.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('notifications.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>notifications</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('notifications.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>notifications</span>
                             {{ __('notifications.nav_label') }}
                         </a>
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('games.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
                             {{ __('games.heading_my_games') }}
                         </a>
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('campaigns.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
                             {{ __('campaigns.heading_my_campaigns') }}
                         </a>
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('people') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
                             {{ __('profile.nav_people') }}
                         </a>
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('gm.workspace') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
                             {{ __('profile.nav_gm_workspace') }}
                         </a>
                         @endif
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('billing.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
                             {{ __('billing.content_billing') }}
                         </a>
 
@@ -116,13 +116,13 @@
                         <div class="border-t border-outline-variant/15 my-2"></div>
 
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('profile.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
                             {{ __('profile.content_profile') }}
                         </a>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
-                                <span class="material-symbols-outlined text-lg">logout</span>
+                                <span class="material-symbols-outlined text-lg" aria-hidden="true">logout</span>
                                 {{ __('auth.content_log_out') }}
                             </button>
                         </form>
@@ -166,7 +166,7 @@
                     <nav class="flex-1 px-3 py-6 space-y-1" aria-label="{{ __('common.aria_main_navigation') }}">
                         {{-- Primary navigation items --}}
                         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('dashboard') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>dashboard</span>
                             {{ __('profile.content_dashboard') }}
                         </a>
 
@@ -174,17 +174,17 @@
                         <livewire:notifications.notification-bell />
 
                         <a href="{{ route('games.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('games.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('games.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>stadium</span>
                             {{ __('games.heading_my_games') }}
                         </a>
 
                         <a href="{{ route('campaigns.index') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('campaigns.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('campaigns.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>campaign</span>
                             {{ __('campaigns.heading_my_campaigns') }}
                         </a>
 
                         <a href="{{ route('people') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('people') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('people') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>group</span>
                             {{ __('profile.nav_people') }}
                         </a>
 
@@ -193,18 +193,18 @@
 
                         @if(Auth::user()?->isGM())
                         <a href="{{ route('gm.workspace') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('gm.workspace') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('gm.workspace') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>casino</span>
                             {{ __('profile.nav_gm_workspace') }}
                         </a>
                         @endif
 
                         <a href="{{ route('billing.portal') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('billing.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
                             {{ __('billing.content_billing') }}
                         </a>
 
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('profile.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
                             {{ __('profile.content_profile') }}
                         </a>
                     </nav>
@@ -221,13 +221,13 @@
                         <div class="mt-3 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <a href="{{ route('profile.show') }}" wire:navigate class="text-xs text-on-surface-variant hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined text-sm align-middle">settings</span>
+                                    <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">settings</span>
                                     {{ __('profile.content_settings') }}
                                 </a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" onclick="event.preventDefault(); this.closest('form').submit();" class="text-xs text-on-surface-variant hover:text-primary transition-colors">
-                                        <span class="material-symbols-outlined text-sm align-middle">logout</span>
+                                        <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">logout</span>
                                         {{ __('auth.content_log_out') }}
                                     </button>
                                 </form>

@@ -504,7 +504,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        Log::shouldHaveReceived('error')
-            ->withArgs(fn (string $message) => str_contains($message, 'Game system ticket approval processing failed'));
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn (string $message) => str_contains($message, 'BGG sync failed, falling back to manual creation'));
     }
 }

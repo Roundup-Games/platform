@@ -24,7 +24,7 @@
                        title="{{ $name }}"
                        class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-surface-container-high text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
                        aria-label="{{ $name }}">
-                        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 0">{{ $icon }}</span>
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true" style="font-variation-settings: 'FILL' 0">{{ $icon }}</span>
                     </a>
                 @endif
             @endforeach

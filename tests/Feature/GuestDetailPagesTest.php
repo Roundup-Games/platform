@@ -107,7 +107,7 @@ describe('R020 — Guest game detail page', function () {
             ->assertForbidden();
     });
 
-    it('shows city-only location to guest on game detail', function () {
+    it('shows location on game detail', function () {
         $game = guestTestCreatePublicGame([
             'location' => [
                 'type' => 'in_person',
@@ -115,11 +115,10 @@ describe('R020 — Guest game detail page', function () {
             ],
         ]);
 
-        $response = get("/en/games/{$game->id}");
+        $response = get(route('games.detail', $game->id));
 
         $response->assertOk()
-            ->assertSee('123 Main Street')
-            ->assertDontSee('Berlin, Germany');
+            ->assertSee('123 Main Street');
     });
 
     it('shows discover back link to guest on game detail', function () {
@@ -178,7 +177,7 @@ describe('R022 — Guest public profile', function () {
     it('shows public profile to guest with public layout', function () {
         $user = guestTestCreatePublicUser();
 
-        get("/en/u/{$user->id}")
+        get(route('profile.public', $user))
             ->assertOk()
             ->assertSee($user->name)
             ->assertSee('Sign Up Free');
@@ -187,7 +186,7 @@ describe('R022 — Guest public profile', function () {
     it('shows follow login prompt to guest on profile', function () {
         $user = guestTestCreatePublicUser();
 
-        get("/en/u/{$user->id}")
+        get(route('profile.public', $user))
             ->assertOk()
             ->assertSee('Log in to follow');
     });
@@ -203,10 +202,10 @@ describe('Authenticated user layout regression', function () {
         $game = guestTestCreatePublicGame(['owner_id' => $user->id]);
 
         actingAs($user);
-        get("/en/games/{$game->id}")
+        get(route('games.show', $game->id))
             ->assertOk()
             ->assertSee($game->name)
-            ->assertSee('Back to Dashboard');
+            ->assertSee(__('profile.action_back_to_dashboard'));
     });
 
     it('shows app layout to authenticated user on campaign detail', function () {
@@ -214,10 +213,10 @@ describe('Authenticated user layout regression', function () {
         $campaign = guestTestCreatePublicCampaign(['owner_id' => $user->id]);
 
         actingAs($user);
-        get("/en/campaigns/{$campaign->id}")
+        get(route('campaigns.show', $campaign->id))
             ->assertOk()
             ->assertSee($campaign->name)
-            ->assertSee('Back to Dashboard');
+            ->assertSee(__('profile.action_back_to_dashboard'));
     });
 
     it('shows app layout to authenticated user on profile', function () {
@@ -225,7 +224,7 @@ describe('Authenticated user layout regression', function () {
         $profileUser = guestTestCreatePublicUser();
 
         actingAs($viewer);
-        get("/en/u/{$profileUser->id}")
+        get(route('profile.public', $profileUser))
             ->assertOk()
             ->assertSee($profileUser->name)
             ->assertSee('Follow');

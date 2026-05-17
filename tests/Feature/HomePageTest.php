@@ -16,20 +16,20 @@ describe('Rendering', function () {
     it('shows the hero heading', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__("There's a seat waiting for you."));
+            ->assertSee(__('common.content_there_s_a_seat_waiting_for_you'));
     });
 
     it('shows the hero subtext', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__('Find your people. Discover new worlds.'));
+            ->assertSee(__('events.content_find_your_people_discover_new'));
     });
 
     it('shows the hero CTAs', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__('Find sessions near me'))
-            ->assertSee(__('Explore games'));
+            ->assertSee(__('campaigns.action_find_sessions_near_me'))
+            ->assertSee(__('games.action_explore_games_cta'));
     });
 
     it('renders the location gate for guests', function () {
@@ -125,8 +125,8 @@ describe('Values Strip', function () {
     it('shows value descriptions', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__('Every table has room for one more'))
-            ->assertSee(__('Clear safety tools, session zero support'));
+            ->assertSee(__('pages.content_every_table_has_room_for'))
+            ->assertSee(__('pages.content_safe_spaces_trust'));
     });
 });
 

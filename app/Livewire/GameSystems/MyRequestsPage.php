@@ -83,7 +83,7 @@ class MyRequestsPage extends Component
         $subject = $ticket->subject ?? '';
 
         if (str_starts_with($subject, 'Game System Request: ')) {
-            return trim(str_after($subject, 'Game System Request: '));
+            return trim(\Illuminate\Support\Str::after($subject, 'Game System Request: '));
         }
 
         return trim($subject);

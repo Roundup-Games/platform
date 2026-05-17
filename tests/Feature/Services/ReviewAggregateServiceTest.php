@@ -61,7 +61,7 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(2, $this->gmProfile->review_count);
     }
 
-    
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonPublishedStatuses')]
     public function test_it_excludes_non_published_reviews(string $status): void
     {
         $this->createPublishedReview(rating: 5);
@@ -74,7 +74,7 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(1, $this->gmProfile->review_count);
     }
 
-    public static function it_excludes_non_published_reviewsDataProvider(): array
+    public static function nonPublishedStatuses(): array
     {
         return [
             'hidden' => ['hidden'],

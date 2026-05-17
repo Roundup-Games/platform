@@ -17,8 +17,8 @@ describe('HomepageSEO', function () {
     it('renders the correct SEO title and description', function () {
         get(route('home'))
             ->assertOk()
-            ->assertSee(__('pages.seo_title_home'), false)
-            ->assertSee(__('pages.seo_description_home'), false);
+            ->assertSeeText(__('pages.seo_title_home'))
+            ->assertSeeText(__('pages.seo_description_home'));
     });
 
     it('includes Organization schema markup', function () {
