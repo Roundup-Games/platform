@@ -44,8 +44,12 @@ class CampaignPolicy
             return true;
         }
 
-        // Short link bypass: valid short link grants access unless campaign is completed/cancelled
-        if ($this->hasValidShortLink($campaign)) {
+        // Short link bypass: valid short link grants access unless campaign is completed/cancelled.
+        // Terminal-status check also lives inside isValidShortLinkForEntity() via the trait,
+        // but we guard here too for defense-in-depth consistency with the share-token path.
+        if ($campaign->status !== CampaignStatus::Cancelled
+            && $campaign->status !== CampaignStatus::Completed
+            && $this->hasValidShortLink($campaign)) {
             return true;
         }
 

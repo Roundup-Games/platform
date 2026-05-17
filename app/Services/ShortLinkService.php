@@ -71,15 +71,20 @@ class ShortLinkService
                 'max_hits' => $params['max_hits'] ?? null,
             ]);
         }, 100, function ($e) {
-            // Only retry on unique constraint violations for auto-generated codes
-            if ($e instanceof QueryException
-                && (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'Duplicate'))) {
-                Log::warning('ShortLinkService: code collision on insert, regenerating');
+            // Only retry on unique constraint violations for auto-generated codes.
+            // Check SQLSTATE codes: 23000 (MySQL/generic), 23505 (PostgreSQL unique violation).
+            // Message-based matching is fragile across drivers; SQLSTATE is the reliable indicator.
+            if ($e instanceof QueryException) {
+                $sqlState = $e->errorInfo[0] ?? null;
 
-                return true; // retry with fresh code
+                if (in_array($sqlState, ['23000', '23505'], true)) {
+                    Log::warning('ShortLinkService: code collision on insert, regenerating');
+
+                    return true;
+                }
             }
 
-            return false; // don't retry other errors
+            return false;
         });
 
         Log::info('ShortLinkService: created short link', [

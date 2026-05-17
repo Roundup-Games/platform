@@ -44,8 +44,12 @@ class GamePolicy
             return true;
         }
 
-        // Short link bypass: valid short link grants access unless game is completed/canceled
-        if ($this->hasValidShortLink($game)) {
+        // Short link bypass: valid short link grants access unless game is completed/canceled.
+        // Terminal-status check also lives inside isValidShortLinkForEntity() via the trait,
+        // but we guard here too for defense-in-depth consistency with the share-token path.
+        if ($game->status !== GameStatus::Completed
+            && $game->status !== GameStatus::Canceled
+            && $this->hasValidShortLink($game)) {
             return true;
         }
 
