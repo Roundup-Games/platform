@@ -49,11 +49,15 @@ describe('social links on public profile', function () {
             ->html();
 
         // Assert the security attributes appear on the social link anchor itself,
-        // not just anywhere on the page. The URL is unique to this social link,
-        // so matching it ensures the attributes belong to the right element.
-        expect($html)->toContain('href="https://x.com/iconsgm"');
-        $anchorPattern = '/<a[^>]+href="https:\/\/x\.com\/iconsgm"[^>]*target="_blank"[^>]*rel="[^"]*noopener[^"]*noreferrer[^"]*"/';
-        expect(preg_match($anchorPattern, $html))->toBe(1, "Social link anchor should have target=_blank and rel=noopener noreferrer");
+        // not just anywhere on the page. Extract the anchor by its unique href first,
+        // then assert each attribute independently — avoids assuming fixed HTML ordering.
+        preg_match('/<a[^>]*href="https:\/\/x\.com\/iconsgm"[^>]*>/', $html, $matches);
+        expect($matches)->not->toBeEmpty('Social link anchor should exist');
+
+        $anchor = $matches[0];
+        expect($anchor)->toContain('target="_blank"');
+        expect($anchor)->toMatch('/rel="[^"]*noopener/');
+        expect($anchor)->toMatch('/rel="[^"]*noreferrer/');
     });
 
     it('shows no social links section when GM has no links', function () {

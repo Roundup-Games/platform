@@ -39,7 +39,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
         expect($hit->ip_address)->not->toBe('192.168.1.1');
         expect(strlen($hit->ip_address))->toBe(64); // sha256 hex
         expect($hit->referer)->toBe('https://google.com');
-        expect($hit->user_agent)->toBe('TestBot/1.0');
+        expect($hit->user_agent)->toBe('Bot/Unknown');
         expect($hit->hit_at)->not->toBeNull();
     });
 

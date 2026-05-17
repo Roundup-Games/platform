@@ -153,6 +153,8 @@ class PruneExpiredShortLinks extends Command
         $count = 0;
         $query->chunkById(500, function ($links) use (&$count) {
             foreach ($links as $link) {
+                Cache::forget("short_link:{$link->code}");
+                Cache::forget("short_link_id:{$link->id}");
                 $link->delete();
                 $count++;
             }

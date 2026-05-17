@@ -41,8 +41,13 @@ class ShortLinkController extends Controller
         $ip = $request->ip();
 
         // ── Miss counter: guard against enumeration / brute-force ──────
+        // Reads the current miss count first — if already at threshold, reject
+        // immediately. The counter is only incremented on actual misses (code not
+        // found) to avoid penalizing legitimate traffic. Uses atomic increment
+        // to avoid the Cache::add race where concurrent requests could both add
+        // and then both increment from the same base.
         $missKey = "short_link_misses:{$ip}";
-        $misses = Cache::get($missKey, 0);
+        $misses = (int) Cache::get($missKey, 0);
 
         if ($misses >= static::MISS_THRESHOLD) {
             Log::warning('short_link.redirect.miss_threshold_exceeded', [
@@ -55,6 +60,10 @@ class ShortLinkController extends Controller
         }
 
         // ── Cache lookup ───────────────────────────────────────────────
+        // All mutation paths (revokeLink, expireLinksForEntity, RecordShortLinkHit,
+        // model events) invalidate both short_link:{code} and short_link_id:{id}
+        // caches on every write. No freshness re-fetch is needed — the cache is
+        // always consistent after writes.
         $cacheKey = "short_link:{$code}";
         $link = Cache::remember($cacheKey, now()->addHours(static::CACHE_TTL_HOURS), function () use ($code): ?ShortLink {
             return ShortLink::where('code', $code)->first();
@@ -62,8 +71,13 @@ class ShortLinkController extends Controller
 
         // ── Not found ──────────────────────────────────────────────────
         if ($link === null) {
-            Cache::add($missKey, 0, static::MISS_TTL);
+            // Atomic increment avoids the Cache::add race: two concurrent misses
+            // from the same IP will each get a unique incremented value.
             $newMisses = Cache::increment($missKey);
+            if ($newMisses === 1 || $newMisses === false) {
+                // First miss or key expired — seed with TTL
+                Cache::put($missKey, $newMisses === false ? 1 : $newMisses, static::MISS_TTL);
+            }
 
             Log::debug('short_link.redirect.not_found', [
                 'code_prefix' => substr($code, 0, 3) . '…',
@@ -74,23 +88,10 @@ class ShortLinkController extends Controller
             abort(404, 'Short link not found.');
         }
 
-        // ── Freshness check: re-fetch authoritative fields from DB ─────
-        // The cached model may predate an expiry change (via expireLinksForEntity)
-        // or hit counter increment. A single lightweight query keeps both the
-        // expiry and hit-cap decisions consistent with resolveLinkById().
-        $fresh = ShortLink::where('id', $link->id)
-            ->whereNull('deleted_at')
-            ->first(['expires_at', 'max_hits', 'hit_count']);
-
-        if ($fresh === null) {
+        if ($link->trashed()) {
             Cache::forget($cacheKey);
             abort(404, 'Short link not found.');
         }
-
-        // Overlay fresh values onto cached model for isExpired/hasHitCap
-        $link->expires_at = $fresh->expires_at;
-        $link->max_hits = $fresh->max_hits;
-        $link->hit_count = $fresh->hit_count;
 
         if ($link->isExpired()) {
             Cache::forget($cacheKey);

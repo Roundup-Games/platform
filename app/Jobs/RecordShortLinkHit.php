@@ -51,8 +51,15 @@ class RecordShortLinkHit implements ShouldQueue
     public string $visitorFingerprint;
 
     /**
+     * SHA-256 hash of the visitor IP (salted with app.key).
+     * Set at construction time — raw PII never enters the queue store.
+     * Public visibility required for Laravel queue serialization.
+     */
+    public ?string $hashedIpAddress = null;
+
+    /**
      * @param  int  $shortLinkId  The ID of the ShortLink that was resolved.
-     * @param  string|null  $ipAddress  The visitor's IP address (will be hashed in constructor).
+     * @param  string|null  $ipAddress  The visitor's raw IP address (hashed in constructor).
      * @param  string|null  $referer  The Referer header value.
      * @param  string|null  $userAgent  The User-Agent header value.
      */
@@ -69,11 +76,41 @@ class RecordShortLinkHit implements ShouldQueue
             : 'link:anonymous';
 
         // Hash IP at construction time so raw PII never enters the queue store.
-        $this->ipAddress = $ipAddress !== null
+        $this->hashedIpAddress = $ipAddress !== null
             ? hash('sha256', $ipAddress . config('app.key'))
             : null;
 
+        // Reduce raw User-Agent PII to a browser family string before it
+        // enters the queue store. Retains analytics value (browser distribution)
+        // without storing the full UA fingerprint. 90-day hit retention in
+        // PruneExpiredShortLinks limits any residual exposure.
+        $this->userAgent = $this->userAgent !== null
+            ? $this->extractBrowserFamily($this->userAgent)
+            : null;
+
         $this->onQueue('default');
+    }
+
+    /**
+     * Extract a short browser family string from a raw User-Agent.
+     *
+     * Reduces full UA (which can contain OS version, device model, build IDs)
+     * to a short analytics-friendly label like "Chrome/Android" or "Safari/iOS".
+     * Falls back to "Other" for unrecognized agents.
+     */
+    private function extractBrowserFamily(string $ua): string
+    {
+        // Order matters — match specific patterns before generic ones.
+        return match (true) {
+            str_contains($ua, 'Firefox/') => 'Firefox',
+            str_contains($ua, 'Edg/') => 'Edge',
+            str_contains($ua, 'OPR/') || str_contains($ua, 'Opera') => 'Opera',
+            str_contains($ua, 'Chrome/') && str_contains($ua, 'Android') => 'Chrome/Android',
+            str_contains($ua, 'Chrome/') => 'Chrome',
+            str_contains($ua, 'Safari/') && ! str_contains($ua, 'Chrome') => 'Safari',
+            str_contains($ua, 'Mozilla/') => 'Other',
+            default => 'Bot/Unknown',
+        };
     }
 
     /**
@@ -91,17 +128,14 @@ class RecordShortLinkHit implements ShouldQueue
             return;
         }
 
-        // IP was hashed in constructor before entering the queue store.
-        $hashedIp = $this->ipAddress;
-
         // Extract referer domain once — used in both hit row and PostHog event.
         $refererDomain = $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null;
 
         // ── Record hit + update counters in a transaction ────────────
-        DB::transaction(function () use ($link, $hashedIp, $refererDomain): void {
+        DB::transaction(function () use ($link, $refererDomain): void {
             ShortLinkHit::create([
                 'short_link_id' => $link->id,
-                'ip_address' => $hashedIp,
+                'ip_address' => $this->hashedIpAddress,
                 'referer' => $this->referer,
                 'referer_domain' => $refererDomain,
                 'user_agent' => $this->userAgent,

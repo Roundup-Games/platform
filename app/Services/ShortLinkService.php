@@ -139,8 +139,10 @@ class ShortLinkService
      * keeping authorization decisions fresh. Returns null for expired, hit-capped,
      * or non-existent links.
      *
-     * The short TTL is intentional — this method feeds policy checks where stale
-     * data could grant unauthorized access to protected/private entities.
+     * Cache consistency: all mutation paths (revokeLink, expireLinksForEntity,
+     * RecordShortLinkHit, model events) invalidate both short_link:{code} and
+     * short_link_id:{id} caches on every write. No freshness re-fetch is needed —
+     * the cached model is always consistent after writes.
      */
     public function resolveLinkById(int $id): ?ShortLink
     {
@@ -155,24 +157,11 @@ class ShortLinkService
             return null;
         }
 
-        // Freshness check: the cached model may predate a soft-delete, expiry change,
-        // or hit cap change. Re-fetch critical fields from DB to ensure authorization
-        // decisions use current data. This adds one lightweight query per cache TTL
-        // window per link — an acceptable cost for correct access control.
-        $fresh = ShortLink::where('id', $id)
-            ->whereNull('deleted_at')
-            ->first(['expires_at', 'max_hits', 'hit_count']);
-
-        if ($fresh === null) {
+        if ($link->trashed()) {
             Cache::forget($cacheKey);
 
             return null;
         }
-
-        // Overlay fresh authoritative values onto the cached model
-        $link->expires_at = $fresh->expires_at;
-        $link->max_hits = $fresh->max_hits;
-        $link->hit_count = $fresh->hit_count;
 
         if ($link->isExpired()) {
             Cache::forget($cacheKey);
@@ -208,7 +197,7 @@ class ShortLinkService
         return ShortLink::where('user_id', $user->id)
             ->orderByDesc('created_at')
             ->get()
-            ->groupBy(fn (ShortLink $link) => $link->linkable_type . ':' . $link->linkable_id);
+            ->groupBy(fn (ShortLink $link) => $link->linkable_type . ':' . (string) $link->linkable_id);
     }
 
     /**

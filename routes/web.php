@@ -22,7 +22,7 @@ Route::get('/', function () {
 Route::get('/link/{code}', [ShortLinkController::class, 'redirect'])
     ->name('short-link.redirect')
     ->middleware('throttle:short-link')
-    ->where('code', '[a-zA-Z0-9]{7}');
+    ->where('code', '[a-zA-Z0-9\-]{7,36}');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
 

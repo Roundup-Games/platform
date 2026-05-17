@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->string('code', 36)->unique();
             $table->text('url');
-            $table->string('linkable_type')->nullable();
-            $table->string('linkable_id')->nullable();
+            $table->string('linkable_type');
+            $table->string('linkable_id');
             $table->uuid('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
             $table->string('label', 100)->nullable();

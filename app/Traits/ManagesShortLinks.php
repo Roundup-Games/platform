@@ -133,7 +133,7 @@ trait ManagesShortLinks
 
         $link = ShortLink::where('id', $linkId)
             ->where('linkable_type', get_class($entity))
-            ->where('linkable_id', $entity->getKey())
+            ->where('linkable_id', (string) $entity->getKey())
             ->firstOrFail();
 
         app(ShortLinkService::class)->revokeLink($link);
