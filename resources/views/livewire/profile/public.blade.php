@@ -153,6 +153,8 @@
                     </div>
                 @endif
 
+                <x-gm-social-links :links="$gmSocialLinks" />
+
                 @if($gmProfile->review_count > 0)
                     <div class="flex items-center gap-3 text-sm">
                         <div class="flex items-center gap-1">

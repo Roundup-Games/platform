@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
+use App\Relations\StringKeyMorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,6 +74,12 @@ class Game extends Model
         static::creating(function (self $game) {
             if (empty($game->id)) {
                 $game->id = (string) Str::uuid();
+            }
+        });
+
+        static::updated(function (self $game) {
+            if ($game->wasChanged('status') && in_array($game->status->value, ['completed', 'canceled'])) {
+                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($game);
             }
         });
     }
@@ -196,6 +203,19 @@ class Game extends Model
         }
 
         return null;
+    }
+
+    // ── Short Links ────────────────────────────────────
+
+    public function shortLinks()
+    {
+        return (new StringKeyMorphMany(
+            $this->newRelatedInstance(ShortLink::class)->newQuery(),
+            $this,
+            'linkable_type',
+            'linkable_id',
+            'id'
+        ))->where('linkable_type', static::class);
     }
 
     // ── Share Token ────────────────────────────────────

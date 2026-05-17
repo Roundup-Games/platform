@@ -8,11 +8,14 @@ use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
+use App\Models\ShortLink;
 use App\Services\BenchService;
+use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
+use App\Traits\ManagesShortLinks;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +31,17 @@ use Livewire\Component;
 class CampaignDetail extends Component
 {
     use HandlesBench, HandlesWaitlist, ManagesParticipants;
+    use ManagesShortLinks;
 
     public Campaign $campaign;
 
     /** @var string|null Validated share token captured on mount, persists across Livewire updates */
     #[Locked]
     public ?string $validatedShareToken = null;
+
+    /** @var int|null Validated short link ID captured on mount via ph_link_id cookie */
+    #[Locked]
+    public ?int $validatedShortLinkId = null;
 
     public function mount(string $id): void
     {
@@ -45,6 +53,9 @@ class CampaignDetail extends Component
         if ($campaign->hasValidShareToken()) {
             $this->validatedShareToken = request()->query('share');
         }
+
+        // Detect short link arrival via ph_link_id cookie
+        $this->detectShortLink();
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -142,22 +153,6 @@ class CampaignDetail extends Component
         session()->flash('success', __('common.flash_share_link_generated'));
     }
 
-    #[Computed]
-    public function hasShareLink(): bool
-    {
-        return $this->campaign->share_token !== null;
-    }
-
-    #[Computed]
-    public function shareLinkUrl(): ?string
-    {
-        if ($this->campaign->share_token === null) {
-            return null;
-        }
-
-        return route('campaigns.detail', $this->campaign->id) . '?share=' . $this->campaign->share_token;
-    }
-
     // ── Join via Share Link ────────────────────────────
 
     public function joinViaShareLink(): void
@@ -176,9 +171,34 @@ class CampaignDetail extends Component
         }
         RateLimiter::hit($rateLimitKey, 60);
 
+        // Determine join source and short link ID.
+        // Try short link first, but fall back to share token if the short link
+        // is revoked mid-session (caught during transactional revalidation).
+        $shortLinkId = $this->validatedShortLinkId;
+        $joinSource = $shortLinkId !== null
+            ? JoinSource::ShortLink
+            : JoinSource::ShareLink;
+
         try {
-            DB::transaction(function () use ($viewer) {
+            DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
                 $campaign = Campaign::lockForUpdate()->find($this->campaign->id);
+
+                // Revalidate short link under lock to catch mid-session revocation.
+                // If revoked, fall back to share token if one is still valid.
+                if ($shortLinkId !== null) {
+                    $freshLink = ShortLink::where('id', $shortLinkId)
+                        ->whereNull('deleted_at')
+                        ->first();
+                    if ($freshLink === null || $freshLink->isExpired()) {
+                        // Short link gone — fall back to share token if valid.
+                        if ($this->isShareTokenStillValid()) {
+                            $shortLinkId = null;
+                            $joinSource = JoinSource::ShareLink;
+                        } else {
+                            throw new \RuntimeException('Short link revoked or expired during join.');
+                        }
+                    }
+                }
 
                 $approvedCount = $campaign->participants()
                     ->where('status', ParticipantStatus::Approved->value)
@@ -186,40 +206,48 @@ class CampaignDetail extends Component
 
                 $isFull = $campaign->max_players !== null && $approvedCount >= $campaign->max_players;
 
+                $baseData = [
+                    'campaign_id' => $campaign->id,
+                    'user_id' => $viewer->id,
+                    'role' => 'player',
+                    'join_source' => $joinSource->value,
+                ];
+
+                if ($shortLinkId !== null) {
+                    $baseData['short_link_id'] = $shortLinkId;
+                }
+
                 if ($isFull) {
                     // Full campaign: bench the player
-                    CampaignParticipant::create([
-                        'campaign_id' => $campaign->id,
-                        'user_id' => $viewer->id,
-                        'role' => 'player',
-                        'status' => ParticipantStatus::Benched->value,
-                        'benched_at' => now(),
-                        'join_source' => JoinSource::ShareLink->value,
-                    ]);
+                    $baseData['status'] = ParticipantStatus::Benched->value;
+                    $baseData['benched_at'] = now();
+
+                    CampaignParticipant::create($baseData);
 
                     Log::info('Player benched via share link (campaign full)', [
                         'campaign_id' => $campaign->id,
                         'user_id' => $viewer->id,
+                        'join_source' => $joinSource->value,
+                        'short_link_id' => $shortLinkId,
                     ]);
                 } else {
                     // Direct join
-                    CampaignParticipant::create([
-                        'campaign_id' => $campaign->id,
-                        'user_id' => $viewer->id,
-                        'role' => 'player',
-                        'status' => ParticipantStatus::Approved->value,
-                        'join_source' => JoinSource::ShareLink->value,
-                    ]);
+                    $baseData['status'] = ParticipantStatus::Approved->value;
+
+                    CampaignParticipant::create($baseData);
 
                     Log::info('Player joined campaign via share link', [
                         'campaign_id' => $campaign->id,
                         'user_id' => $viewer->id,
+                        'join_source' => $joinSource->value,
+                        'short_link_id' => $shortLinkId,
                     ]);
                 }
             });
 
-            // Clear the share_intent cookie since the user has now joined
+            // Clear the intent cookies since the user has now joined
             Cookie::queue(Cookie::forget('share_intent'));
+            Cookie::queue(Cookie::forget('short_link_intent'));
 
             // Reload campaign to reflect new participant
             $this->campaign->load('participants.user');
@@ -243,18 +271,11 @@ class CampaignDetail extends Component
             return false;
         }
 
-        // Must have a valid share token captured on mount
-        if ($this->validatedShareToken === null) {
-            return false;
-        }
+        // Must have either a valid share token or a valid short link
+        $hasShareToken = $this->isShareTokenStillValid();
+        $hasShortLink = $this->isShortLinkStillValid();
 
-        // Token must still match the campaign's current share token
-        if ($this->validatedShareToken !== $this->campaign->share_token) {
-            return false;
-        }
-
-        // Token must not be expired
-        if ($this->campaign->share_token_expires_at !== null && $this->campaign->share_token_expires_at->isPast()) {
+        if (! $hasShareToken && ! $hasShortLink) {
             return false;
         }
 
@@ -465,6 +486,10 @@ class CampaignDetail extends Component
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),
             'canJoinViaShareLink' => $this->canJoinViaShareLink(),
+            'shortLinks' => $this->getShortLinks(),
+            'canCreateMoreShortLinks' => Auth::user()
+                ? app(ShortLinkService::class)->canCreateMore($this->campaign, Auth::user())
+                : false,
         ])->layout('layouts.app');
     }
 }

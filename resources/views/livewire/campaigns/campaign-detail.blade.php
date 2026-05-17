@@ -264,6 +264,7 @@
                                         {{ $participant->status === \App\Enums\ParticipantStatus::Approved ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === \App\Enums\ParticipantStatus::Benched ? 'bg-tertiary/10 text-tertiary' : 'bg-tertiary/10 text-tertiary') }}">
                                         {{ $participant->status instanceof \BackedEnum ? $participant->status->label() : __(ucfirst($participant->status)) }}
                                     </span>
+                                    <x-join-source-badge :participant="$participant" />
                                 </div>
                             @endforeach
                         </div>
@@ -340,7 +341,7 @@
                         <div class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">
                             <h3 class="text-lg font-heading font-bold text-on-surface flex items-center gap-2 mb-2">
                                 <span class="material-symbols-outlined text-xl text-primary" aria-hidden="true">
-                                    @if($campaign->visibility->value === 'public') login @else edit_note @endif
+                                    {{ $campaign->visibility->value === 'public' ? 'login' : 'edit_note' }}
                                 </span>
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
@@ -354,7 +355,7 @@
                             <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-ambient hover:brightness-110 transition-all">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">
-                                    @if($campaign->visibility->value === 'public') login @else send @endif
+                                    {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}
                                 </span>
                                 @if($campaign->visibility->value === 'public')
                                     {{ __('campaigns.action_join_campaign') }}
@@ -468,10 +469,13 @@
                     </div>
                 @endif
 
-                {{-- Share Link Management (owner only) --}}
+                {{-- Short Link Management (owner only) --}}
                 @if($isOwner)
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                        @include('livewire.partials.share-link', ['hasShareLink' => $hasShareLink, 'shareLinkUrl' => $shareLinkUrl])
+                        @include('livewire.partials.short-link-display', [
+                            'shortLinks' => $shortLinks,
+                            'canCreateMoreShortLinks' => $canCreateMoreShortLinks,
+                        ])
                     </div>
                 @endif
 
@@ -506,7 +510,7 @@
                 <a href="{{ route('campaigns.apply', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate
                    class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-xl shadow-lg hover:brightness-110 transition-all">
                     <span class="material-symbols-outlined text-base" aria-hidden="true">
-                        @if($campaign->visibility->value === 'public') login @else send @endif
+                        {{ $campaign->visibility->value === 'public' ? 'login' : 'send' }}
                     </span>
                     @if($campaign->visibility->value === 'public')
                         {{ __('campaigns.action_join_campaign') }}

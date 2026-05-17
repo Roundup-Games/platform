@@ -179,9 +179,12 @@ class PublicProfile extends Component
 
         // Resolve GM reviews with pagination if GM profile exists
         $gmReviews = null;
+        $gmSocialLinks = collect();
         if ($this->profileUser->gmProfile) {
             $gmReviews = app(\App\Services\ReviewAggregateService::class)
                 ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
+            $gmSocialLinks = $this->profileUser->gmSocialLinks()->get()
+                ->sortBy(fn ($link) => config("platforms.{$link->platform}.sort_order", 999));
         }
 
         // Reliability data: tier is always visible, detailed stats respect 'stats' privacy
@@ -201,6 +204,7 @@ class PublicProfile extends Component
             'games' => $games,
             'campaigns' => $campaigns,
             'gmReviews' => $gmReviews,
+            'gmSocialLinks' => $gmSocialLinks,
             'reliabilityTier' => $reliabilityTier,
             'reliabilityScore' => $reliabilityScore,
             'reliabilityGameCount' => $reliabilityGameCount,

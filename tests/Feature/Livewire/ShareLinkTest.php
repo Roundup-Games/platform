@@ -308,6 +308,10 @@ describe('CampaignDetail share links', function () {
             ->with('Share link generated', \Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'campaign' && $ctx['entity_id'] === $campaign->id))
             ->once();
 
+        Log::shouldReceive('debug')->andReturn(null);
+        Log::shouldReceive('warning')->andReturn(null);
+        Log::shouldReceive('error')->andReturn(null);
+
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->call('generateShareLink');

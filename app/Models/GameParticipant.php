@@ -17,7 +17,7 @@ class GameParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source'];
+    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id'];
 
     protected $casts = [
         'status' => ParticipantStatus::class,
@@ -30,6 +30,7 @@ class GameParticipant extends Model
         'confirmation_attempts' => 'integer',
         'benched_at' => 'datetime',
         'join_source' => JoinSource::class,
+        'short_link_id' => 'integer',
     ];
 
     public $timestamps = false;
@@ -58,6 +59,29 @@ class GameParticipant extends Model
     public function reportedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'attendance_reported_by');
+    }
+
+    public function shortLink(): BelongsTo
+    {
+        return $this->belongsTo(ShortLink::class);
+    }
+
+    /**
+     * Get a human-readable label for the participant's join source.
+     *
+     * Returns the short link label if one exists, otherwise falls back
+     * to the JoinSource enum label.
+     */
+    public function getSourceLabelAttribute(): ?string
+    {
+        if ($this->short_link_id) {
+            $shortLink = $this->shortLink;
+            if ($shortLink) {
+                return $shortLink->label ?? $shortLink->code;
+            }
+        }
+
+        return $this->join_source?->label();
     }
 
     /**

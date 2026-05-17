@@ -304,6 +304,9 @@ return [
     'action_revoke_link' => 'Revoke Link',
     'confirmation_regenerate_link' => 'Are you sure? This will invalidate the current link.',
     'confirmation_revoke_link' => 'Are you sure? This will disable the share link permanently.',
+    'content_hits' => '{1} :count hit|[2,*] :count hits',
+    'placeholder_link_label' => 'Label (optional)',
+    'error_max_links_reached' => 'Maximum number of short links reached for this entity.',
 
     // Shared entity concepts (events, games, campaigns)
     'content_participants' => 'Participants',
@@ -367,4 +370,12 @@ return [
 
     // ── Footer ──────────────────────────────────────────
     'content_community_and_trust' => 'Community & Trust',
+
+    // ── Participant source display ──────────────────────
+    'content_joined_via_link' => 'Joined via: :label',
+    'content_source_share_link' => 'Share Link',
+    'content_source_friend_invite' => 'Friend Invite',
+    'content_source_application' => 'Application',
+    'content_source_email_invite' => 'Email Invite',
+    'content_source_short_link' => 'Short Link',
 ];

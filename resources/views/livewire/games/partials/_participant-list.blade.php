@@ -20,6 +20,7 @@
                         {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                         {{ __('games.field_role_' . $participant->role) }}
                     </span>
+                    <x-join-source-badge :participant="$participant" />
                 </div>
             @endforeach
         </div>

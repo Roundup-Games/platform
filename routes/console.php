@@ -138,3 +138,6 @@ Schedule::command('escalated:run-automations')->everyMinute()->onOneServer();
 Schedule::command('escalated:wake-snoozed-tickets')->everyFiveMinutes()->onOneServer();
 Schedule::command('escalated:close-resolved')->dailyAt('02:00')->onOneServer();
 Schedule::command('escalated:purge-activities')->dailyAt('03:30')->onOneServer();
+
+// Short link maintenance — entity-driven expiry + expired link cleanup + analytics retention
+Schedule::command('short-links:prune --days=90')->dailyAt('03:00')->onOneServer();

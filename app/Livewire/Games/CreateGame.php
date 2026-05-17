@@ -10,6 +10,7 @@ use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Services\ShortLinkService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -382,6 +383,21 @@ class CreateGame extends Component
         }
 
         Log::info('Game created', $logContext);
+
+        // Auto-generate short link for GMs
+        if (Auth::user()->isGM()) {
+            try {
+                app(ShortLinkService::class)->createLink($game, Auth::user(), [
+                    'label' => 'Default',
+                    'expires_at' => now()->addDays(30),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to auto-generate short link for game', [
+                    'game_id' => $game->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 

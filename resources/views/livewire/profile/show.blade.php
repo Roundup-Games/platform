@@ -17,6 +17,11 @@
                     'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
                     'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
                 ];
+
+                // GM Profile tab — only visible to GMs
+                if (Auth::user()->isGM()) {
+                    $tabConfig['gm_profile'] = ['label' => __('profile.field_gm_profile'), 'icon' => 'person_play'];
+                }
             @endphp
             @foreach($tabConfig as $tabId => $tab)
                 <button
@@ -195,6 +200,18 @@
                 @include('livewire.profile.partials._danger-zone')
             </div>
         </div>
+
+        {{-- ============================================================ --}}
+        {{-- TAB: GM Profile (GM only) --}}
+        {{-- ============================================================ --}}
+        @if(Auth::user()->isGM())
+        <div x-show="activeTab === 'gm_profile'" x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             role="tabpanel" id="panel-gm_profile" aria-labelledby="tab-gm_profile">
+
+            @include('livewire.profile.partials._gm-profile-tab')
+        </div>
+        @endif
 
     </div>{{-- /max-w-2xl --}}
 </div>

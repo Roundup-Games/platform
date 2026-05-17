@@ -6,6 +6,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
+use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/' . resolvePreferredLocale() . '/');
 })->name('root');
+
+// ── Short Link Redirect (no auth, locale-agnostic) ───
+
+Route::get('/link/{code}', [ShortLinkController::class, 'redirect'])
+    ->name('short-link.redirect')
+    ->middleware('throttle:short-link')
+    ->where('code', '[a-zA-Z0-9\-]{7,36}');
 
 // ── Paddle Webhook (no auth — called by Paddle) ──────
 

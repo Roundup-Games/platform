@@ -7,9 +7,12 @@ use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\ScopedRoleService;
+use App\Services\ShortLinkService;
+use App\Traits\ValidatesShortLinkCookie;
 
 class GamePolicy
 {
+    use ValidatesShortLinkCookie;
     /**
      * Global admin bypass.
      */
@@ -38,6 +41,15 @@ class GamePolicy
     public function view(?User $user, Game $game): bool
     {
         if ($game->visibility === Visibility::Public) {
+            return true;
+        }
+
+        // Short link bypass: valid short link grants access unless game is completed/canceled.
+        // Terminal-status check also lives inside isValidShortLinkForEntity() via the trait,
+        // but we guard here too for defense-in-depth consistency with the share-token path.
+        if ($game->status !== GameStatus::Completed
+            && $game->status !== GameStatus::Canceled
+            && $this->hasValidShortLink($game)) {
             return true;
         }
 
@@ -96,5 +108,16 @@ class GamePolicy
     private function checkPermission(User $user, string $permission): bool
     {
         return app(ScopedRoleService::class)->checkPermission($user, $permission);
+    }
+
+    /**
+     * Check if the current request carries a valid short link for this game.
+     *
+     * Reads the ph_link_id cookie, resolves the ShortLink, and validates
+     * it belongs to this game and is not expired.
+     */
+    private function hasValidShortLink(Game $game): bool
+    {
+        return $this->isValidShortLinkForEntity($game);
     }
 }
