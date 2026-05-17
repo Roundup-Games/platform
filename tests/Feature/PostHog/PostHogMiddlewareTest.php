@@ -5,6 +5,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\PostHogClient;
 use Illuminate\Support\Facades\Config;
+use App\Services\PostHogConsentChecker;
 use Tests\Helpers\TestablePostHogClient;
 
 function makeOkResponse()
@@ -18,6 +19,11 @@ beforeEach(function () {
 
     $this->posthogClient = new TestablePostHogClient();
     $this->app->instance(PostHogClient::class, $this->posthogClient);
+
+    // Grant analytics consent by default in tests — individual tests can override
+    $consentChecker = $this->mock(PostHogConsentChecker::class);
+    $consentChecker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    $this->app->instance(PostHogConsentChecker::class, $consentChecker);
 });
 
 describe('PostHogIdentifyUsers — authenticated users', function () {
@@ -254,5 +260,47 @@ describe('PostHogIdentifyUsers — middleware registration', function () {
         $bootstrapContent = file_get_contents(base_path('bootstrap/app.php'));
 
         expect($bootstrapContent)->toContain('PostHogIdentifyUsers');
+    });
+});
+
+describe('PostHogIdentifyUsers — analytics consent gating', function () {
+    test('skips all PostHog calls when analytics consent is not granted', function () {
+        Config::set('posthog.api_key', 'phc_test_key');
+        Config::set('posthog.enabled', true);
+
+        // Override consent checker to deny consent
+        $deniedChecker = $this->mock(PostHogConsentChecker::class);
+        $deniedChecker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+        $this->app->instance(PostHogConsentChecker::class, $deniedChecker);
+
+        $user = User::factory()->create();
+        $request = Request::create('/games', 'GET');
+        $request->setUserResolver(fn () => $user);
+
+        $middleware = app(PostHogIdentifyUsers::class);
+        $response = $middleware->handle($request, fn ($req) => makeOkResponse());
+
+        // No identify calls, no client-side data shared
+        expect($response->status())->toBe(200);
+        expect(view()->shared('posthogIdentifyData'))->toBeNull();
+        expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    });
+
+    test('processes PostHog calls when analytics consent is granted', function () {
+        Config::set('posthog.api_key', 'phc_test_key');
+        Config::set('posthog.enabled', true);
+
+        // Consent is granted by default via beforeEach mock
+        $user = User::factory()->create();
+        $request = Request::create('/games', 'GET');
+        $request->setUserResolver(fn () => $user);
+
+        $middleware = app(PostHogIdentifyUsers::class);
+        $response = $middleware->handle($request, fn ($req) => makeOkResponse());
+
+        expect($response->status())->toBe(200);
+        $sharedData = view()->shared('posthogIdentifyData');
+        expect($sharedData)->not->toBeNull()
+            ->and($sharedData['id'])->toBe((string) $user->id);
     });
 });

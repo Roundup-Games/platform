@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\TrackAppVisit::class);
         $middleware->append(\App\Http\Middleware\PostHogIdentifyUsers::class);
         $middleware->append(\App\Http\Middleware\ProcessShareIntent::class);
+        $middleware->append(\Spatie\CookieConsent\CookieConsentMiddleware::class);
 
         $middleware->alias([
             'profile.complete' => \App\Http\Middleware\EnsureProfileComplete::class,

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ActivityLogService;
 use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
@@ -27,6 +28,11 @@ beforeEach(function () {
     Config::set('posthog.api_key', 'phc_test_key');
     $this->posthogClient = new TestablePostHogClient();
     $this->app->instance(PostHogClient::class, $this->posthogClient);
+
+    // Grant analytics consent by default — individual tests can override
+    $consentChecker = $this->mock(PostHogConsentChecker::class);
+    $consentChecker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    $this->app->instance(PostHogConsentChecker::class, $consentChecker);
 });
 
 // ── Event name mapping via full integration ─────────────
@@ -639,4 +645,62 @@ it('enriches team group via EnrichPostHogProfile job for team member', function 
         ->and($groupCall['properties']['city'])->toBe('Austin')
         ->and($groupCall['properties']['country'])->toBe('US')
         ->and($groupCall['properties'])->toHaveKey('member_count');
+});
+
+// ── Analytics consent gating ────────────────────────────
+
+it('does not forward events to PostHog when analytics consent is denied', function () {
+    // Override consent checker to deny consent
+    $deniedChecker = $this->mock(PostHogConsentChecker::class);
+    $deniedChecker->shouldReceive('hasAnalyticsConsent')->andReturn(false);
+    $this->app->instance(PostHogConsentChecker::class, $deniedChecker);
+
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $gameSystem = GameSystem::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $user->id,
+        'game_system_id' => $gameSystem->id,
+    ]);
+
+    $this->posthogClient->capturedCalls = [];
+
+    $service = new ActivityLogService();
+    $result = $service->log(ActivityType::GameCreated, $user, $game);
+
+    // ActivityLog entry is still written — consent only gates PostHog
+    expect($result)->not->toBeNull();
+
+    // No PostHog calls made
+    expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+
+    // No enrichment job dispatched
+    Queue::assertNotPushed(EnrichPostHogProfile::class);
+});
+
+it('skips EnrichPostHogProfile job when hasConsent is false', function () {
+    $user = User::factory()->create();
+    $gameSystem = GameSystem::factory()->create();
+    $game = Game::factory()->create([
+        'owner_id' => $user->id,
+        'game_system_id' => $gameSystem->id,
+    ]);
+
+    $this->posthogClient->capturedCalls = [];
+    $this->posthogClient->identifyCalls = [];
+
+    // Create job with hasConsent = false
+    $job = new EnrichPostHogProfile(
+        ActivityType::GameCreated->value,
+        $user->id,
+        Game::class,
+        $game->id,
+        false, // hasConsent
+    );
+    $job->handle($this->posthogClient);
+
+    // No identify or capture calls made
+    expect($this->posthogClient->identifyCalls)->toHaveCount(0);
+    expect($this->posthogClient->capturedCalls)->toHaveCount(0);
 });

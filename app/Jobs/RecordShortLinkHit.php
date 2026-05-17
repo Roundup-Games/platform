@@ -88,6 +88,14 @@ class RecordShortLinkHit implements ShouldQueue
             ? $this->extractBrowserFamily($this->userAgent)
             : null;
 
+        // Reduce raw referer URL to hostname only before it enters the queue
+        // store. Full referer URLs may contain UTM parameters, user IDs, or
+        // other PII in query strings. Hostname retains analytics value (traffic
+        // source) without the privacy exposure.
+        $this->referer = $this->referer !== null
+            ? (parse_url($this->referer, PHP_URL_HOST) ?: $this->referer)
+            : null;
+
         $this->onQueue('default');
     }
 
@@ -128,8 +136,9 @@ class RecordShortLinkHit implements ShouldQueue
             return;
         }
 
-        // Extract referer domain once — used in both hit row and PostHog event.
-        $refererDomain = $this->referer ? parse_url($this->referer, PHP_URL_HOST) : null;
+        // Referer was sanitized to hostname-only in constructor, so the domain
+        // is simply the referer value itself. No secondary parse_url needed.
+        $refererDomain = $this->referer;
 
         // ── Record hit + update counters in a transaction ────────────
         DB::transaction(function () use ($link, $refererDomain): void {

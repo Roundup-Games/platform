@@ -12,6 +12,7 @@ class PostHogIdentifyUsers
 {
     public function __construct(
         private readonly PostHogClient $posthog,
+        private readonly \App\Services\PostHogConsentChecker $consentChecker,
     ) {}
 
     /**
@@ -35,6 +36,13 @@ class PostHogIdentifyUsers
         // The JS client already checks respect_dnt:true, but server-side
         // has no equivalent config. This ensures consistency.
         if ($request->headers->get('DNT') === '1') {
+            return $next($request);
+        }
+
+        // Gate all server-side PostHog calls behind analytics consent.
+        // If the user has not accepted analytics cookies, skip identify
+        // and capture entirely — consistent with the JS-side gating.
+        if (! $this->consentChecker->hasAnalyticsConsent($request)) {
             return $next($request);
         }
 

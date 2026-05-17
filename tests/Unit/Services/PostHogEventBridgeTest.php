@@ -13,6 +13,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
@@ -27,6 +28,11 @@ beforeEach(function () {
 
     $this->posthogClient = new TestablePostHogClient();
     $this->app->instance(PostHogClient::class, $this->posthogClient);
+
+    // Grant analytics consent by default — unit tests test bridge behavior
+    $consentChecker = $this->mock(PostHogConsentChecker::class);
+    $consentChecker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    $this->app->instance(PostHogConsentChecker::class, $consentChecker);
 });
 
 /**
