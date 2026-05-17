@@ -57,7 +57,7 @@ describe('Global Admin', function () {
     });
 
     test('non-global-admin roles are not identified as global admin', function (string $role) {
-        $user = $$role;
+        $user = $this->$role;
         expect($this->service->isGlobalAdmin($user))->toBeFalse();
     })->with(['teamAdmin', 'eventAdmin', 'regularUser']);
 });

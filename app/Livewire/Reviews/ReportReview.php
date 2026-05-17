@@ -140,9 +140,6 @@ class ReportReview extends Component
     private function createSafetyTicket(Review $review, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();
-        if (! $department) {
-            throw new \RuntimeException('Safety department not found; cannot create review report ticket.');
-        }
 
         $metadata = [
             'review_id' => $review->id,
@@ -158,7 +155,7 @@ class ReportReview extends Component
             'description' => $this->buildTicketDescription($review, $reporter),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::High->value,
-            'department_id' => $department->id,
+            'department_id' => $department?->id,
             'ticket_type' => 'review_report',
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,

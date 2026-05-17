@@ -148,6 +148,7 @@ describe('ImageUpload component', function () {
 describe('Media upload logging', function () {
     it('logs successful uploads', function () {
         Storage::fake('public');
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
         Log::shouldReceive('info')
             ->with('Media uploaded', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'], $ctx['uploaded_by'])))
             ->once();
@@ -165,6 +166,7 @@ describe('Media upload logging', function () {
 
     it('logs media removal', function () {
         Storage::fake('public');
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
         Log::shouldReceive('info')
             ->with('Media removed', \Mockery::on(fn ($ctx) => isset($ctx['collection'], $ctx['model_id'])))
             ->once();

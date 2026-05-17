@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\User;
@@ -106,7 +107,7 @@ describe('CreateEvent', function () {
         $event = Event::where('name', 'Test Tournament')->first();
         expect($event)->not->toBeNull();
         expect($event->organizer_id)->toBe($user->id);
-        expect($event->status)->toBe('draft');
+        expect($event->status)->toBe(EventStatus::Draft);
         expect($event->type)->toBe('tournament');
         expect($event->venue_name)->toBe('Test Arena');
         expect($event->max_teams)->toBe(16);

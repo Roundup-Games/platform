@@ -337,7 +337,7 @@ class ProcessShareIntent
                 if (in_array($currentStatus, $terminalStatuses, true)) {
                     Log::warning('share_intent.entity_inactive', [
                         'user_id' => $user->id, 'entity_type' => $entityType,
-                        'entity_id' => $lockedEntity->getKey(), 'status' => (string) $currentStatus,
+                        'entity_id' => $lockedEntity->getKey(), 'status' => $currentStatus->value,
                     ]);
 
                     return;

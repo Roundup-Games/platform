@@ -345,6 +345,13 @@ class ReviewEligibilityServiceTest extends TestCase
             'status' => ParticipantStatus::Approved,
         ]);
 
+        // Campaign must have at least one completed session
+        Game::factory()->create([
+            'campaign_id' => $campaign->id,
+            'owner_id' => $owner->id,
+            'date_time' => now()->subDay(),
+        ]);
+
         $this->assertTrue($this->service->canReviewCampaign($owner, $campaign));
     }
 }

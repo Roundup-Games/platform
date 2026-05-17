@@ -119,7 +119,7 @@ class ManageEvent extends Component
         $this->short_description = $e->short_description ?? '';
         $this->description = $e->description ?? '';
         $this->type = $e->type;
-        $this->status = $e->status;
+        $this->status = $e->status->value;
         $this->start_date = $e->start_date->format('Y-m-d');
         $this->end_date = $e->end_date->format('Y-m-d');
         $this->venue_name = $e->venue_name ?? '';

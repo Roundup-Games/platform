@@ -277,7 +277,7 @@ class ProximityQueryTest extends TestCase
     #[Test]
     public function nearby_does_not_log_fast_queries_as_slow()
     {
-        Log::shouldReceive('info')->never();
+        Log::spy();
 
         $location = Location::factory()->create([
             'latitude' => 52.5230,
@@ -293,8 +293,8 @@ class ProximityQueryTest extends TestCase
         // Fast query — should NOT trigger slow query log
         $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
-        // If we got here without the log being called, the test passes
-        $this->assertTrue(true);
+        // Assert no info-level log was written (debug logs from SeoCacheService are fine)
+        Log::shouldNotHaveReceived('info');
     }
 
     // ── Hubs Query ─────────────────────────────────────

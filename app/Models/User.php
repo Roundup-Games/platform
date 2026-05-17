@@ -18,6 +18,8 @@ use Filament\Panel;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
+use Escalated\Laravel\Contracts\HasTickets;
+use Escalated\Laravel\Contracts\Ticketable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -57,9 +59,10 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id'])]
-class User extends Authenticatable implements FilamentUser, HasMedia
+class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 {
     use Billable;
+    use HasTickets;
     use HasApiTokens;
     use HasFactory;
     use HasRoles;
@@ -448,10 +451,12 @@ class User extends Authenticatable implements FilamentUser, HasMedia
      */
     public static function generateSlug(string $name): string
     {
-        // Remove emojis and special characters, keep letters, numbers, spaces
-        $slug = preg_replace('/[^\p{L}\p{N}\s]/u', '', $name);
-        // Replace spaces with hyphens, collapse multiples
+        // Remove emojis and special characters, keep letters, numbers, spaces, and hyphens
+        $slug = preg_replace('/[^\p{L}\p{N}\s-]/u', '', $name);
+        // Replace spaces with hyphens
         $slug = preg_replace('/\s+/', '-', trim($slug));
+        // Collapse consecutive hyphens
+        $slug = preg_replace('/-+/', '-', $slug);
         // Lowercase
         $slug = mb_strtolower($slug);
         // Trim leading/trailing hyphens

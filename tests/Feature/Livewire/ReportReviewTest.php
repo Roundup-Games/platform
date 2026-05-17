@@ -16,6 +16,7 @@ use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
+    seedRoles();
 });
 
 function createReportableReview(): array
@@ -202,9 +203,16 @@ if (! function_exists('seedReviewReportTag')) {
     }
 }
 
+if (! function_exists('seedReportReviewSetup')) {
+    function seedReportReviewSetup(): void
+    {
+        seedSafetyDepartment();
+        seedReviewReportTag();
+    }
+}
+
 it('creates a safety ticket when a review is reported', function () {
-    seedSafetyDepartment();
-    seedReviewReportTag();
+    seedReportReviewSetup();
 
     ['review' => $review, 'reviewer' => $reviewAuthor] = createReportableReview();
     $reporter = User::factory()->create(['profile_complete' => true]);
@@ -260,8 +268,7 @@ it('creates safety ticket even when safety department does not exist', function 
 });
 
 it('includes review author name in ticket description', function () {
-    seedSafetyDepartment();
-    seedReviewReportTag();
+    seedReportReviewSetup();
 
     ['review' => $review, 'reviewer' => $reviewAuthor] = createReportableReview();
     $reporter = User::factory()->create(['profile_complete' => true]);

@@ -232,9 +232,6 @@ class ReportContent extends Component
     private function createSafetyTicket($entity, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();
-        if (! $department) {
-            throw new \LogicException('Safety department is not configured.');
-        }
         $entityName = $this->resolveEntityName($entity);
 
         $metadata = [

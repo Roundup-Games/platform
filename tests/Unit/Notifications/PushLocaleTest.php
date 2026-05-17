@@ -8,10 +8,9 @@ use App\Notifications\GameInvitation;
 use App\Notifications\SessionReminder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;
-use Illuminate\Support\Facades\URL;
 
 /**
- * Verify that all toPush() methods generate valid locale-prefixed URLs
+ * Verify that all notification channels generate locale-prefixed URLs
  * even when URL::defaults() has NOT been set (artisan command context).
  *
  * The existing NotificationPushPayloadTest masks this bug because its
@@ -44,7 +43,8 @@ class PushLocaleTest extends TestCase
 
         $payload = (new SessionReminder($game))->toPush($notifiable);
 
-        $this->assertStringContainsString('/en/games/', $payload->url);
+        // route('games.show') generates /{locale}/dashboard/games/{id}
+        $this->assertStringContainsString('/en/dashboard/games/', $payload->url);
     }
 
     // -- GameInvitation ----------------------------------------------------
@@ -57,7 +57,7 @@ class PushLocaleTest extends TestCase
 
         $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
 
-        $this->assertStringContainsString('/en/games/', $payload->url);
+        $this->assertStringContainsString('/en/dashboard/games/', $payload->url);
     }
 
     // -- German locale variant --------------------------------------------
@@ -71,7 +71,7 @@ class PushLocaleTest extends TestCase
 
         $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
 
-        $this->assertStringContainsString('/de/games/', $payload->url);
+        $this->assertStringContainsString('/de/dashboard/games/', $payload->url);
     }
 
     // ── preferred_language on notifiable ────────────────
@@ -86,7 +86,7 @@ class PushLocaleTest extends TestCase
         $mail = (new GameInvitation($game, $inviter))->toMail($notifiable);
 
         // The action URL in the mail should use the notifiable's preferred language
-        $this->assertStringContainsString('/de/games/', $mail->actionUrl);
+        $this->assertStringContainsString('/de/dashboard/games/', $mail->actionUrl);
     }
 
     public function test_game_invitation_to_database_uses_notifiable_preferred_language(): void
@@ -98,7 +98,7 @@ class PushLocaleTest extends TestCase
 
         $data = (new GameInvitation($game, $inviter))->toDatabase($notifiable);
 
-        $this->assertStringContainsString('/de/games/', $data['action_url']);
+        $this->assertStringContainsString('/de/dashboard/games/', $data['action_url']);
     }
 
     public function test_session_reminder_to_database_uses_notifiable_preferred_language(): void
@@ -109,7 +109,6 @@ class PushLocaleTest extends TestCase
 
         $data = (new SessionReminder($game))->toDatabase($notifiable);
 
-        $this->assertStringContainsString('/de/games/', $data['action_url']);
+        $this->assertStringContainsString('/de/dashboard/games/', $data['action_url']);
     }
-
 }
