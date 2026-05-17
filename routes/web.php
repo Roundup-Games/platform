@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\ExportDownloadController;
+use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
@@ -232,6 +233,13 @@ Route::prefix('{locale}')
             Route::post('/billing/one-time', [PaddleBillingController::class, 'oneTimeCheckout'])
                 ->name('billing.one-time-checkout');
         });
+
+        // ── Invite Email Opt-out (public, rate-limited) ──
+
+        Route::get('/invite-optout/{emailHash}', [InviteOptoutController::class, 'optout'])
+            ->name('invite.optout')
+            ->middleware('throttle:10,1')
+            ->where('emailHash', '[a-f0-9]{64}');
 
         // ── Notification Unsubscribe (signed URL, no auth required) ──
 

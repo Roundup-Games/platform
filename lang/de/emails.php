@@ -38,4 +38,6 @@ return [
     'content_you_re_invited_to_a_campaign' => 'Du wurdest zu einer Kampagne eingeladen!',
     'content_you_re_invited_to_a_game' => 'Du wurdest zu einem Spiel eingeladen!',
     'entity_invitation_subject' => ':inviter hat dich zu :entity eingeladen',
+    'content_dont_want_invitations' => 'Möchtest du keine Einladungen mehr erhalten? ',
+    'action_optout_invite_emails' => 'Einladungen deaktivieren',
 ];

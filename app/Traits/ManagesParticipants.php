@@ -6,6 +6,7 @@ use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Mail\EntityInvitationEmail;
+use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
@@ -13,12 +14,12 @@ use App\Notifications\CampaignInvitation;
 use App\Notifications\GameInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
+use App\Services\BenchService;
 use App\Services\NotificationService;
+use App\Services\WaitlistService;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
-
-use App\Services\BenchService;
-use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -97,33 +98,37 @@ trait ManagesParticipants
             // Skip if user doesn't exist (stale selection)
             if (! $targetUser) {
                 $skippedCount++;
-                Log::warning($this->getEntityName() . ' invite skipped: user not found', [
+                Log::warning($this->getEntityName().' invite skipped: user not found', [
                     $entityIdColumn => $entity->id,
                     'target_user_id' => $userId,
                 ]);
+
                 continue;
             }
 
             // Skip self-invite
             if ($targetUser->id === $authUser->id) {
                 $skippedCount++;
+
                 continue;
             }
 
             // Validate mutual friendship (D048: friends only)
             if (! $authUser->isFriend($targetUser)) {
                 $skippedCount++;
-                Log::warning($this->getEntityName() . ' invite skipped: not a friend', [
+                Log::warning($this->getEntityName().' invite skipped: not a friend', [
                     $entityIdColumn => $entity->id,
                     'target_user_id' => $targetUser->id,
                     'invited_by' => $authUser->id,
                 ]);
+
                 continue;
             }
 
             // Skip if already a participant
             if ($entity->participants()->where('user_id', $targetUser->id)->exists()) {
                 $skippedCount++;
+
                 continue;
             }
 
@@ -135,7 +140,7 @@ trait ManagesParticipants
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
-            Log::info($this->getEntityName() . ' participant invited', [
+            Log::info($this->getEntityName().' participant invited', [
                 $entityIdColumn => $entity->id,
                 'invited_user_id' => $targetUser->id,
                 'invited_by' => $authUser->id,
@@ -184,7 +189,7 @@ trait ManagesParticipants
 
         $normalizedEmail = strtolower($email);
 
-        $rateLimitKey = 'email-invite:' . Auth::id() . ':' . $this->getEntity()->id;
+        $rateLimitKey = 'email-invite:'.Auth::id().':'.$this->getEntity()->id;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
             $this->addError('inviteEmail', __('people.error_too_many_invite_attempts'));
 
@@ -232,7 +237,7 @@ trait ManagesParticipants
                 'join_source' => JoinSource::EmailInvite,
             ]);
 
-            Log::info($this->getEntityName() . ' email invite: existing user invited', [
+            Log::info($this->getEntityName().' email invite: existing user invited', [
                 $entityIdColumn => $entity->id,
                 'invited_user_id' => $existingUser->id,
                 'invited_by' => $authUser->id,
@@ -292,7 +297,7 @@ trait ManagesParticipants
             return;
         }
 
-        Log::info($this->getEntityName() . ' email invite: external email invited', [
+        Log::info($this->getEntityName().' email invite: external email invited', [
             $entityIdColumn => $entity->id,
             'invitee_email' => $normalizedEmail,
             'invited_by' => $authUser->id,
@@ -301,16 +306,45 @@ trait ManagesParticipants
 
         // Send invitation email
         try {
-            $mailable = new EntityInvitationEmail(
-                entityType: strtolower($this->getEntityName()),
-                entityName: $entity->name,
-                entityDateTime: $entity->date_time ?? null,
-                entityLocation: $entity->linkedLocation?->address ?? null,
-                inviterName: $authUser->name,
-                inviteeEmail: $normalizedEmail,
-                signupUrl: route('register', ['locale' => app()->getLocale()]),
-            );
-            Mail::to($normalizedEmail)->queue($mailable);
+            // Check if the recipient has opted out of invite emails
+            if (SuppressedInviteEmail::isSuppressed($normalizedEmail)) {
+                Log::info('invite.email.suppressed', [
+                    'invitee_email' => $normalizedEmail,
+                    'entity_type' => $this->getEntityName(),
+                    $entityIdColumn => $entity->id,
+                    'invited_by' => $authUser->id,
+                ]);
+                // Skip sending but keep the participant record
+            } else {
+                // Rate limit unique invitee emails per sender (5 per 24h)
+                $senderRateKey = 'invite-email-unique:'.$authUser->id.':'.$normalizedEmail;
+                if (RateLimiter::tooManyAttempts($senderRateKey, 5)) {
+                    Log::warning('invite.email.rate_limited', [
+                        'invitee_email' => $normalizedEmail,
+                        'entity_type' => $this->getEntityName(),
+                        $entityIdColumn => $entity->id,
+                        'invited_by' => $authUser->id,
+                    ]);
+                    // Skip sending but keep the participant record
+                } else {
+                    RateLimiter::hit($senderRateKey, 86400); // 24 hours
+
+                    $mailable = new EntityInvitationEmail(
+                        entityType: strtolower($this->getEntityName()),
+                        entityName: $entity->name,
+                        entityDateTime: $entity->date_time ?? null,
+                        entityLocation: $entity->linkedLocation?->address ?? null,
+                        inviterName: $authUser->name,
+                        inviteeEmail: $normalizedEmail,
+                        signupUrl: route('register', ['locale' => app()->getLocale()]),
+                        optoutUrl: route('invite.optout', [
+                            'locale' => app()->getLocale(),
+                            'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
+                        ]),
+                    );
+                    Mail::to($normalizedEmail)->queue($mailable);
+                }
+            }
         } catch (\Throwable $e) {
             Log::error('email.invite_delivery_failed', [
                 'entity_type' => $this->getEntityName(),
@@ -357,7 +391,7 @@ trait ManagesParticipants
             ->where('user_id', $participant->user_id)
             ->update(['status' => 'approved']);
 
-        Log::info($this->getEntityName() . ' application approved', [
+        Log::info($this->getEntityName().' application approved', [
             $entityIdColumn => $entity->id,
             'user_id' => $participant->user_id,
             'approved_by' => Auth::id(),
@@ -402,7 +436,7 @@ trait ManagesParticipants
             ->where('user_id', $participant->user_id)
             ->update(['status' => 'rejected']);
 
-        Log::info($this->getEntityName() . ' application rejected', [
+        Log::info($this->getEntityName().' application rejected', [
             $entityIdColumn => $entity->id,
             'user_id' => $participant->user_id,
             'rejected_by' => Auth::id(),
@@ -448,7 +482,7 @@ trait ManagesParticipants
 
         $participant->update(['status' => 'rejected']);
 
-        Log::info($this->getEntityName() . ' participant removed', [
+        Log::info($this->getEntityName().' participant removed', [
             $this->getEntityIdColumn() => $entity->id,
             'user_id' => $participant->user_id,
             'removed_by' => Auth::id(),
@@ -494,7 +528,7 @@ trait ManagesParticipants
 
         $participant->update(['status' => 'rejected']);
 
-        Log::info($this->getEntityName() . ' invite cancelled', [
+        Log::info($this->getEntityName().' invite cancelled', [
             $this->getEntityIdColumn() => $entity->id,
             'user_id' => $userId,
             'invitee_email' => $inviteeEmail,
@@ -533,7 +567,7 @@ trait ManagesParticipants
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
+        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
             session()->flash('error', __('people.error_invitation_no_longer_valid'));
 
             return;
@@ -556,7 +590,7 @@ trait ManagesParticipants
             'status' => 'approved',
         ]);
 
-        Log::info($this->getEntityName() . ' invitation accepted', [
+        Log::info($this->getEntityName().' invitation accepted', [
             $entityIdColumn => $entity->id,
             'user_id' => $authUser->id,
         ]);
@@ -618,7 +652,7 @@ trait ManagesParticipants
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
+        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
             session()->flash('error', __('people.error_invitation_no_longer_valid'));
 
             return;
@@ -626,7 +660,7 @@ trait ManagesParticipants
 
         $participant->update(['status' => 'rejected']);
 
-        Log::info($this->getEntityName() . ' invitation declined', [
+        Log::info($this->getEntityName().' invitation declined', [
             $entityIdColumn => $entity->id,
             'user_id' => $authUser->id,
         ]);
@@ -688,7 +722,7 @@ trait ManagesParticipants
 
         app(WaitlistService::class)->manuallyPromote($participant);
 
-        Log::info($this->getEntityName() . ' waitlist participant promoted', [
+        Log::info($this->getEntityName().' waitlist participant promoted', [
             $entityIdColumn => $entity->id,
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
@@ -717,7 +751,7 @@ trait ManagesParticipants
 
         $participant->update(['status' => ParticipantStatus::Rejected->value]);
 
-        Log::info($this->getEntityName() . ' waitlist participant removed', [
+        Log::info($this->getEntityName().' waitlist participant removed', [
             $entityIdColumn => $entity->id,
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
@@ -749,7 +783,7 @@ trait ManagesParticipants
 
         app(BenchService::class)->promoteFromBench($participantId, $entityType);
 
-        Log::info($this->getEntityName() . ' bench participant promoted', [
+        Log::info($this->getEntityName().' bench participant promoted', [
             $entityIdColumn => $entity->id,
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
@@ -778,7 +812,7 @@ trait ManagesParticipants
 
         $participant->update(['status' => ParticipantStatus::Rejected->value]);
 
-        Log::info($this->getEntityName() . ' bench participant removed', [
+        Log::info($this->getEntityName().' bench participant removed', [
             $entityIdColumn => $entity->id,
             'participant_id' => $participant->id,
             'user_id' => $participant->user_id,
@@ -841,7 +875,7 @@ trait ManagesParticipants
      * Non-bench-mode entities (traditional waitlist): overflow to Waitlisted (FIFO queue).
      * Bench-mode entities: overflow to Benched (host-controlled promotion).
      *
-     * @return array{status: string, timestamp_column: string, timestamp_value: \Carbon\Carbon}
+     * @return array{status: string, timestamp_column: string, timestamp_value: Carbon}
      */
     private function resolveOverflowStatus(): array
     {
@@ -899,7 +933,7 @@ trait ManagesParticipants
         if ($existingUserId) {
             $logContext['invited_user_id'] = $existingUserId;
         }
-        Log::info($this->getEntityName() . ' email invite added to ' . $overflow['status'], $logContext);
+        Log::info($this->getEntityName().' email invite added to '.$overflow['status'], $logContext);
 
         // Still send the invitation email/notification so the person knows they've been invited
         // (they'll be notified when promoted from waitlist/bench later)
@@ -910,16 +944,30 @@ trait ManagesParticipants
             }
         } else {
             try {
-                $mailable = new EntityInvitationEmail(
-                    entityType: strtolower($this->getEntityName()),
-                    entityName: $entity->name,
-                    entityDateTime: $entity->date_time ?? null,
-                    entityLocation: $entity->linkedLocation?->address ?? null,
-                    inviterName: $authUser->name,
-                    inviteeEmail: $normalizedEmail,
-                    signupUrl: route('register', ['locale' => app()->getLocale()]),
-                );
-                Mail::to($normalizedEmail)->queue($mailable);
+                // Check suppression before sending overflow invite
+                if (SuppressedInviteEmail::isSuppressed($normalizedEmail)) {
+                    Log::info('invite.email.suppressed_overflow', [
+                        'entity_type' => $this->getEntityName(),
+                        $entityIdColumn => $entity->id,
+                        'invitee_email' => $normalizedEmail,
+                        'invited_by' => $authUser->id,
+                    ]);
+                } else {
+                    $mailable = new EntityInvitationEmail(
+                        entityType: strtolower($this->getEntityName()),
+                        entityName: $entity->name,
+                        entityDateTime: $entity->date_time ?? null,
+                        entityLocation: $entity->linkedLocation?->address ?? null,
+                        inviterName: $authUser->name,
+                        inviteeEmail: $normalizedEmail,
+                        signupUrl: route('register', ['locale' => app()->getLocale()]),
+                        optoutUrl: route('invite.optout', [
+                            'locale' => app()->getLocale(),
+                            'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
+                        ]),
+                    );
+                    Mail::to($normalizedEmail)->queue($mailable);
+                }
             } catch (\Throwable $e) {
                 Log::error('email.invite_delivery_failed', [
                     'entity_type' => $this->getEntityName(),
@@ -951,7 +999,7 @@ trait ManagesParticipants
             $overflow['timestamp_column'] => now(),
         ]);
 
-        Log::info($this->getEntityName() . ' invitation accepted but entity full — moved to ' . $overflow['status'], [
+        Log::info($this->getEntityName().' invitation accepted but entity full — moved to '.$overflow['status'], [
             $this->getEntityIdColumn() => $entity->id,
             'user_id' => $participant->user_id,
             'overflow_status' => $overflow['status'],

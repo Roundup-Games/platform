@@ -38,4 +38,6 @@ return [
     'content_you_re_invited_to_a_campaign' => 'You\'re Invited to a Campaign!',
     'content_you_re_invited_to_a_game' => 'You\'re Invited to a Game!',
     'entity_invitation_subject' => ':inviter invited you to :entity',
+    'content_dont_want_invitations' => "Don't want to receive invitations? ",
+    'action_optout_invite_emails' => 'Stop sending me invitations',
 ];
