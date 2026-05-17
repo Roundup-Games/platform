@@ -39,6 +39,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'avatar_url',
     'profile_complete',
     'gender',
+    'gender_consent',
     'pronouns',
     'phone',
     'privacy_settings',
@@ -60,7 +61,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'bio',
     'slug',
 ])]
-#[Hidden(['password', 'remember_token', 'paddle_id'])]
+#[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent'])]
 class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 {
     use Billable;
@@ -113,6 +114,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             'reliability_computed_at' => 'datetime',
             'max_links_per_entity' => 'integer',
             'anonymized_at' => 'datetime',
+            'gender_consent' => 'boolean',
         ];
     }
 

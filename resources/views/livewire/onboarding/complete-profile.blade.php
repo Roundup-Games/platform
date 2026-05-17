@@ -120,7 +120,7 @@
             <div class="space-y-4">
                 <div>
                     <label for="gender" class="block text-sm font-medium text-on-surface mb-1">
-                        {{ __('common.field_gender') }} <span class="text-error">*</span>
+                        {{ __('common.field_gender') }} <span class="text-on-surface-variant">{{ __('common.content_optional') }}</span>
                     </label>
                     <select id="gender" wire:model="gender"
                             class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant">
@@ -132,6 +132,15 @@
                         <option value="other">{{ __('common.content_other') }}</option>
                     </select>
                     @error('gender') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Gender consent checkbox (GDPR Art. 9(2)(a)) --}}
+                <div class="flex items-start gap-3 p-3 rounded-lg bg-surface-container-high/50 border border-outline-variant/10">
+                    <input type="checkbox" id="gender_consent" wire:model="gender_consent"
+                           class="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary/20" />
+                    <label for="gender_consent" class="text-xs text-on-surface-variant leading-relaxed cursor-pointer">
+                        {{ __('auth.gender_consent_explanation') }}
+                    </label>
                 </div>
 
                 <div>

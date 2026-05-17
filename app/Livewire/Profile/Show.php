@@ -30,6 +30,7 @@ class Show extends Component
     public string $email = '';
     public string $slug = '';
     public string $gender = '';
+    public bool $gender_consent = false;
     public string $pronouns = '';
     public string $phone = '';
 
@@ -93,6 +94,7 @@ class Show extends Component
         $this->email = $user->email;
         $this->slug = $user->slug ?? '';
         $this->gender = $user->gender ?? '';
+        $this->gender_consent = (bool) $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language?->value ?? '';
@@ -193,6 +195,7 @@ class Show extends Component
             'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'gender' => ['nullable', 'string', 'max:50'],
+            'gender_consent' => ['boolean'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
             'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
@@ -204,10 +207,14 @@ class Show extends Component
         // Capture pre-update location for discovery cache change detection
         $oldLocationId = $user->location_id;
 
+        // GDPR Art. 9(2)(a): only store gender if explicit consent is given
+        $genderValue = $validated['gender_consent'] ? $validated['gender'] : null;
+
         $user->update([
             'name' => ValidUserName::sanitize($validated['name']),
             'email' => $validated['email'],
-            'gender' => $validated['gender'],
+            'gender' => $genderValue,
+            'gender_consent' => $validated['gender_consent'],
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] ?: null,

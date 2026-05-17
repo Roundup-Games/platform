@@ -48,8 +48,10 @@ class CompleteProfile extends Component
     public bool $showManualEntry = false;
 
     // Step 2: Identity properties
-    #[Validate(['required', 'string', 'max:50'])]
-    public string $gender = '';
+    #[Validate(['nullable', 'string', 'max:50'])]
+    public ?string $gender = null;
+
+    public bool $gender_consent = false;
 
     #[Validate(['required', 'string', 'max:50'])]
     public string $pronouns = '';
@@ -84,7 +86,8 @@ class CompleteProfile extends Component
         }
 
         // Pre-fill from any existing user data (e.g. from OAuth)
-        $this->gender = $user->gender ?? '';
+        $this->gender = $user->gender;
+        $this->gender_consent = (bool) $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->slug = $user->slug ?? User::generateSlug($user->name);
@@ -292,7 +295,8 @@ class CompleteProfile extends Component
         $locationId = $this->resolveLocationId();
 
         $updateData = [
-            'gender' => $this->gender,
+            'gender' => $this->gender_consent ? $this->gender : null,
+            'gender_consent' => $this->gender_consent,
             'pronouns' => $this->pronouns,
             'phone' => $this->phone ?: null,
             'preferred_language' => $preferredLanguage,
@@ -322,7 +326,7 @@ class CompleteProfile extends Component
 
         Log::info('Onboarding completed', [
             'user_id' => $user->id,
-            'gender' => $this->gender,
+            'gender_consent' => $this->gender_consent,
             'game_systems_count' => count($this->favoriteGameSystemIds),
             'profile_version' => $user->profile_version,
             'location_id' => $locationId,
@@ -411,6 +415,10 @@ class CompleteProfile extends Component
             2 => (function () {
                 $this->validateOnly('gender');
                 $this->validateOnly('pronouns');
+                // If gender is selected but consent not given, clear gender (only store with consent)
+                if (!$this->gender_consent) {
+                    $this->gender = null;
+                }
                 $this->validate([
                     'slug' => ['required', 'string', 'min:3', 'max:255', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/', Rule::unique('users', 'slug')->ignore(Auth::id())],
                 ]);

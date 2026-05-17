@@ -58,6 +58,20 @@
             </div>
         </div>
 
+        {{-- Gender consent management (GDPR Art. 9(2)(a)) --}}
+        <div class="p-4 rounded-lg bg-surface-container-high/50 border border-outline-variant/10">
+            <div class="flex items-start gap-3">
+                <input type="checkbox" id="profile-gender-consent" wire:model="gender_consent"
+                       class="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary/20" />
+                <label for="profile-gender-consent" class="text-xs text-on-surface-variant leading-relaxed cursor-pointer">
+                    {{ __('auth.gender_consent_explanation') }}
+                </label>
+            </div>
+            <p class="mt-2 text-xs text-on-surface-variant/70 pl-7">
+                {{ __('auth.gender_consent_revocation_note') }}
+            </p>
+        </div>
+
         <div>
             <label for="profile-phone" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_phone') }}</label>
             <input type="tel" id="profile-phone" wire:model="phone" placeholder="+49 151 1234567"

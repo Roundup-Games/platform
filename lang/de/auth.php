@@ -31,6 +31,10 @@ return [
     'action_sign_up_to_get_started' => 'Registrieren und loslegen',
     'error_your_account_has_been_disabled' => 'Dein Konto wurde deaktiviert.',
 
+    // Geschlechts-Einwilligung (DSGVO Art. 9 Abs. 2 lit. a)
+    'gender_consent_explanation' => 'Ich stimme zu, dass mein Geschlecht genutzt wird, um mir passende Sessions zu empfehlen (z.B. rein frauliche Räume). Dies ist freiwillig — du kannst dies jederzeit in deinen Profileinstellungen ändern oder widerrufen.',
+    'gender_consent_revocation_note' => 'Wenn du die Einwilligung widerrufst, wird dein Geschlecht nicht mehr für Session-Empfehlungen verwendet. Du kannst die Einwilligung jederzeit wieder erteilen.',
+
     // Laravel/Breeze framework authentication messages
     'failed' => 'Diese Anmeldedaten stimmen nicht mit unseren Aufzeichnungen überein.',
     'password' => 'Das angegebene Passwort ist falsch.',

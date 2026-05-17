@@ -24,6 +24,7 @@ it('can save profile information', function () {
         ->set('name', 'Updated Name')
         ->set('email', 'updated@example.com')
         ->set('gender', 'non-binary')
+        ->set('gender_consent', true)
         ->set('pronouns', 'they/them')
         ->set('phone', '+15559876543')
         ->call('saveProfile')
@@ -34,6 +35,7 @@ it('can save profile information', function () {
         ->name->toBe('Updated Name')
         ->email->toBe('updated@example.com')
         ->gender->toBe('non-binary')
+        ->gender_consent->toBeTrue()
         ->pronouns->toBe('they/them')
         ->phone->toBe('+15559876543');
 });
@@ -834,5 +836,58 @@ describe('Privacy Settings', function () {
 
         expect($user->fresh()->bio)->toBeNull();
     });
+
+// ── Gender consent management (GDPR Art. 9) ──────────
+
+it('stores gender as null when consent is not given on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender_consent' => false,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender', 'female')
+        ->set('gender_consent', false)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBeNull()
+        ->and($user->fresh()->gender_consent)->toBeFalse();
+});
+
+it('stores gender when consent is given on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender_consent' => false,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender', 'female')
+        ->set('gender_consent', true)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBe('female')
+        ->and($user->fresh()->gender_consent)->toBeTrue();
+});
+
+it('clears gender when consent is revoked on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender' => 'female',
+        'gender_consent' => true,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender_consent', false)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBeNull()
+        ->and($user->fresh()->gender_consent)->toBeFalse();
+});
 });
 
