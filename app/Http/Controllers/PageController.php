@@ -45,7 +45,7 @@ class PageController extends Controller
         $schema->markup[OrganizationSchema::class][] = fn (OrganizationSchema $s) => $s;
 
         seo(new SEOData(
-            title: __('pages.seo_title_home'),
+            title: __('pages.seo_title_home', ['brand' => config('company.display_name')]),
             description: __('pages.seo_description_home'),
             schema: $schema,
         ));
@@ -56,8 +56,8 @@ class PageController extends Controller
     public function about()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_about'),
-            description: __('pages.seo_description_about'),
+            title: __('pages.seo_title_about', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_about', ['brand' => config('company.display_name')]),
         ));
 
         return view('pages.about');
@@ -67,7 +67,7 @@ class PageController extends Controller
     {
         seo(new SEOData(
             title: __('pages.seo_title_how_it_works'),
-            description: __('pages.seo_description_how_it_works'),
+            description: __('pages.seo_description_how_it_works', ['brand' => config('company.display_name')]),
         ));
 
         return view('pages.how-it-works');
@@ -89,8 +89,8 @@ class PageController extends Controller
     public function contact()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_contact'),
-            description: __('pages.seo_description_contact'),
+            title: __('pages.seo_title_contact', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_contact', ['brand' => config('company.display_name')]),
         ));
 
         return view('pages.contact');
@@ -99,8 +99,8 @@ class PageController extends Controller
     public function ourPledge()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_our_pledge'),
-            description: __('pages.seo_description_our_pledge'),
+            title: __('pages.seo_title_our_pledge', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_our_pledge', ['brand' => config('company.display_name')]),
         ));
 
         return view('pages.pledge');
@@ -156,7 +156,7 @@ class PageController extends Controller
     public function impressum()
     {
         seo(new SEOData(
-            title: __('impressum.title'),
+            title: __('impressum.heading_title'),
             description: __('impressum.seo_description'),
         ));
 

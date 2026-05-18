@@ -149,7 +149,7 @@
             </div>
 
             <p class="mt-6 text-on-surface-variant leading-relaxed">
-                {{ __('privacy.content_rights_exercise') }} <a href="mailto:privacy@roundup.games" class="text-primary hover:underline font-medium">privacy@roundup.games</a>.
+                {{ __('privacy.content_rights_exercise') }} <a href="mailto:{{ config('company.contact.privacy') }}" class="text-primary hover:underline font-medium">{{ config('company.contact.privacy') }}</a>.
             </p>
             <p class="mt-3 text-on-surface-variant leading-relaxed">{{ __('privacy.content_rights_complaint') }}</p>
         </div>

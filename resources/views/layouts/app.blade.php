@@ -14,7 +14,7 @@
             @endisset
         @endif
 
-        <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', 'Roundup Games') }}</title>
+        <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', config('company.display_name')) }}</title>
 
         {{-- Favicons --}}
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">

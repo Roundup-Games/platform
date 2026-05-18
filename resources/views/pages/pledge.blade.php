@@ -27,7 +27,7 @@
                     {{ __('pages.content_pledge_nonprofit_heading') }}
                 </h2>
                 <p class="text-on-surface-variant leading-relaxed text-lg">
-                    {{ __('pages.content_pledge_nonprofit_body') }}
+                    {{ __('pages.content_pledge_nonprofit_body', ['brand' => config('company.display_name')]) }}
                 </p>
                 <ul class="mt-8 text-left max-w-xl mx-auto space-y-3">
                     <li class="flex items-start gap-3">

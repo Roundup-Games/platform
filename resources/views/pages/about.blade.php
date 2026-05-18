@@ -11,7 +11,7 @@
                 {{ __('pages.content_about_heading_vision') }}
             </h1>
             <p class="mt-6 text-lg sm:text-xl text-on-primary/80 max-w-2xl mx-auto leading-relaxed">
-                {{ __('pages.content_about_intro') }}
+                {{ __('pages.content_about_intro', ['brand' => config('company.display_name')]) }}
             </p>
         </div>
     </section>
@@ -25,7 +25,7 @@
             <div class="space-y-6 text-on-surface-variant leading-relaxed">
                 <p>{{ __('pages.content_about_why_local_p1') }}</p>
                 <p>{{ __('pages.content_about_why_local_p2') }}</p>
-                <p>{{ __('pages.content_about_why_local_p3') }}</p>
+                <p>{{ __('pages.content_about_why_local_p3', ['brand' => config('company.display_name')]) }}</p>
             </div>
         </div>
     </section>

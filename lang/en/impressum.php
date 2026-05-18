@@ -2,33 +2,25 @@
 
 return [
     'heading_title' => 'Impressum (Legal Notice)',
-    'seo_description' => 'Legal notice and company information for Roundup Games e.V. as required by German law (TMG §5).',
+    'seo_description' => 'Legal notice and company information for ' . config('company.legal_name') . ' as required by German law (TMG §5).',
 
     // ── Company Details ────────────────────────────────
     'heading_company' => 'Company Information',
-    'content_company_name' => 'Roundup Games e.V.',
     'label_address' => 'Registered Address',
-    'content_address_line_1' => 'c/o Elis Apsel',
-    'content_address_line_2' => 'Rosenheimer Str. 139',
-    'content_address_line_3' => '81669 München',
-    'content_address_line_4' => 'Germany',
     'label_contact_email' => 'Contact Email',
-    'content_contact_email' => 'hello@roundup.games',
     'label_vat_id' => 'VAT Identification Number',
-    'content_vat_id' => 'DE 123456789',
     'label_responsible_person' => 'Responsible for Content (TMG §5)',
-    'content_responsible_person' => 'Elis Apsel, Munich, Germany',
+
+    // ── Pre-incorporation notice ───────────────────────
+    'content_pre_incorporation' => ':name is currently in pre-incorporation and is intended to be registered as a gGmbH (gemeinnützige Gesellschaft mit beschränkter Haftung) in :city, :country, under :person.',
 
     // ── Registration ───────────────────────────────────
     'heading_registration' => 'Registration',
-    'content_registration_1' => 'Roundup Games e.V. is a registered non-profit association (eingetragener Verein) under German law.',
-    'content_registration_2' => 'Registration court: Amtsgericht München',
-    'content_registration_3' => 'Registration number: VR 12345',
+    'content_registration_pending' => 'Registration is pending. Details will be published here once the incorporation process is complete.',
 
     // ── Dispute Resolution ─────────────────────────────
     'heading_dispute' => 'Online Dispute Resolution',
     'content_dispute_1' => 'The European Commission provides a platform for online dispute resolution (ODR):',
-    'content_dispute_url' => 'https://ec.europa.eu/consumers/odr/',
     'content_dispute_2' => 'We are neither willing nor obligated to participate in dispute resolution proceedings before a consumer arbitration board.',
 
     // ── Responsible for Content ────────────────────────

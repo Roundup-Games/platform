@@ -173,7 +173,7 @@
                         @include('partials.logo', ['class' => 'h-8 w-auto'])
                     </a>
                     <p class="text-sm text-on-surface-variant max-w-xs">
-                        &copy; {{ date('Y') }} Roundup Games. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
+                        &copy; {{ date('Y') }} {{ config('company.display_name') }}. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
                     </p>
                     <div class="flex gap-4 items-center">
                         <a href="{{ route('home') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.content_home') }}">
@@ -252,7 +252,7 @@
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
                         <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
                     </div>
-                    <p>&copy; {{ date('Y') }} Roundup Games e.V.</p>
+                    <p>&copy; {{ date('Y') }} {{ config('company.legal_name') }}</p>
                 </div>
             </div>
 

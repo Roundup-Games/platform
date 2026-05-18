@@ -64,8 +64,8 @@ return [
     'push_disable_button' => 'Disable',
 
     // Common email strings
-    'email_brand_name' => 'Roundup Games',
-    'email_default_subject' => 'Notification from Roundup Games',
+    'email_brand_name' => ':brand',
+    'email_default_subject' => 'Notification from :brand',
     'email_unsubscribe' => 'Unsubscribe',
     'email_manage_settings' => 'Notification Settings',
     'email_footer_reason' => 'You received this because you have notifications enabled for this type of activity.',
@@ -111,7 +111,7 @@ return [
 
     // Email subjects — Social
     'subject_new_follower' => ':follower started following you',
-    'body_new_follower' => '**:follower** started following you on Roundup Games. Check out their profile and say hello!',
+    'body_new_follower' => '**:follower** started following you on :brand. Check out their profile and say hello!',
     'action_new_follower' => 'View Profile',
 
     // Email subjects — Invitations

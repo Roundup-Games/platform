@@ -614,7 +614,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
         $description = $this->bio
             ? Str::limit(strip_tags($this->bio), 160)
-            : "View {$this->name}'s profile on Roundup Games.";
+            : "View {$this->name}'s profile on " . config('company.display_name') . ".";
 
         $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
 

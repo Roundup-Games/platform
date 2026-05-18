@@ -31,5 +31,5 @@
 @endcomponent
 
 {{ __('common.content_see_you_there') }} 🎯
-Roundup Games
+{{ config('company.display_name') }}
 @endcomponent

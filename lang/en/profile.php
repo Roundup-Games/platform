@@ -162,7 +162,7 @@ return [
     'dashboard_prompt_msg_new_follower_shared' => ':name started following you — you share :count game system|:name started following you — you share :count game systems',
     'dashboard_prompt_msg_greeting' => 'Good :time_of_day, :name',
     'dashboard_prompt_msg_upcoming_suffix' => ' — you have :count upcoming session| — you have :count upcoming sessions',
-    'dashboard_prompt_msg_welcome' => 'Welcome to Roundup Games — find your first game',
+    'dashboard_prompt_msg_welcome' => 'Welcome to :brand — find your first game',
     'dashboard_prompt_msg_time_morning' => 'morning',
     'dashboard_prompt_msg_time_afternoon' => 'afternoon',
     'dashboard_prompt_msg_time_evening' => 'evening',

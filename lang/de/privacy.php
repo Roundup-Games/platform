@@ -2,11 +2,11 @@
 
 return [
     'heading_title' => 'Datenschutzerklärung',
-    'seo_description' => 'Erfahre, wie Roundup Games deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
+    'seo_description' => 'Erfahre, wie ' . config('company.display_name') . ' deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
 
     // ── Einleitung ─────────────────────────────────────
     'heading_introduction' => 'Einleitung',
-    'content_introduction_1' => 'Roundup Games e.V. („wir", „uns", „unser") betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
+    'content_introduction_1' => config('company.legal_name') . ' („wir", „uns", „unser") betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
     'content_introduction_2' => 'Diese Datenschutzerklärung erläutert, welche personenbezogenen Daten wir erheben, warum wir sie erheben, auf welcher Rechtsgrundlage dies beruht, wer Zugriff hat und wie lange wir sie aufbewahren. Wir haben dies in klarer Sprache verfasst, weil Transparenz für uns keine Optionalität ist — sie ist grundlegend.',
     'content_introduction_3' => 'Diese Richtlinie gilt für alle Nutzer unserer Plattform, einschließlich Besucher, die ohne Konto surfen.',
 
@@ -48,7 +48,7 @@ return [
     'content_legal_contract' => 'Vertragserfüllung: Bereitstellung der Dienste, für die du dich angemeldet hast (Konto, Session-Verwaltung, Kommunikation).',
     'content_legal_consent' => 'Einwilligung: Analyse-Tracking (PostHog) und optionale cookiebasierte Funktionen. Du kannst deine Einwilligung jederzeit widerrufen.',
     'content_legal_legitimate' => 'Berechtigtes Interesse: Sicherheit, Betrugsprävention und Plattformverbesserung — stets abgewogen gegen deine Privatsphärerechte.',
-    'content_legal_obligation' => 'Rechtliche Verpflichtung: Datenspeicherung nach deutschem Steuer- und Vereinsrecht (z. B. Mitgliedsunterlagen für den e.V.).',
+    'content_legal_obligation' => 'Rechtliche Verpflichtung: Datenspeicherung nach deutschem Steuer- und Handelsrecht (z. B. Mitglieds- und Finanzunterlagen).',
 
     // ── Cookies & Tracking ─────────────────────────────
     'heading_cookies' => 'Cookies & Tracking',
@@ -97,8 +97,8 @@ return [
     // ── Kontakt ────────────────────────────────────────
     'heading_contact' => 'Kontakt',
     'content_contact_intro' => 'Bei Fragen zu dieser Datenschutzerklärung oder deinen personenbezogenen Daten kontaktiere uns:',
-    'content_contact_org' => 'Roundup Games e.V.',
-    'content_contact_email' => 'E-Mail: privacy@roundup.games',
+    'content_contact_org' => config('company.legal_name'),
+    'content_contact_email' => 'E-Mail: ' . config('company.contact.privacy'),
 
     // ── Letzte Aktualisierung ──────────────────────────
     'content_last_updated' => 'Zuletzt aktualisiert: :date',

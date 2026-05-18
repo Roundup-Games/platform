@@ -161,7 +161,7 @@ return [
     'dashboard_prompt_msg_new_follower_shared' => ':name folgt dir jetzt — ihr teilt :count Spiel-System|:name folgt dir jetzt — ihr teilt :count Spiel-Systeme',
     'dashboard_prompt_msg_greeting' => 'Guten :time_of_day, :name',
     'dashboard_prompt_msg_upcoming_suffix' => ' — du hast :count anstehende Runde| — du hast :count anstehende Runden',
-    'dashboard_prompt_msg_welcome' => 'Willkommen bei Roundup Games — finde dein erstes Spiel',
+    'dashboard_prompt_msg_welcome' => 'Willkommen bei :brand — finde dein erstes Spiel',
     'dashboard_prompt_msg_time_morning' => 'Morgen',
     'dashboard_prompt_msg_time_afternoon' => 'Tag',
     'dashboard_prompt_msg_time_evening' => 'Abend',
