@@ -67,10 +67,10 @@
                             <span class="material-symbols-outlined text-primary text-lg mr-1 align-middle" aria-hidden="true">
                                 {{ $key === 'account' ? 'person' : ($key === 'location' ? 'location_on' : ($key === 'gaming' ? 'casino' : ($key === 'activity' ? 'event_note' : ($key === 'communication' ? 'mail' : ($key === 'invitations' ? 'group_add' : ($key === 'sensitive' ? 'shield' : ($key === 'technical' ? 'settings' : 'payment'))))))) }}
                             </span>
-                            {{ __('privacy.' . $prefix . '_heading') }}
+                            {{ __('privacy.heading_' . $prefix) }}
                         </h3>
-                        <p class="text-sm text-primary font-medium mb-2">{{ __('privacy.' . $prefix . '_purpose') }}</p>
-                        <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('privacy.' . $prefix . '_items') }}</p>
+                        <p class="text-sm text-primary font-medium mb-2">{{ __('privacy.content_' . $prefix . '_purpose') }}</p>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">{{ __('privacy.content_' . $prefix . '_items') }}</p>
                     </div>
                 @endforeach
             </div>
@@ -89,7 +89,7 @@
                 @foreach (['contract', 'consent', 'legitimate', 'obligation'] as $basis)
                     <div class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
-                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.legal_' . $basis) }}</span>
+                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_legal_' . $basis) }}</span>
                     </div>
                 @endforeach
             </div>
@@ -130,10 +130,10 @@
                 @foreach (['posthog', 'paddle', 'cloudflare', 'nominatim'] as $service)
                     <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                         <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">
-                            {{ __('privacy.third_' . $service . '_heading') }}
+                            {{ __('privacy.heading_third_' . $service) }}
                         </h3>
                         <p class="text-sm text-on-surface-variant leading-relaxed">
-                            {{ __('privacy.third_' . $service . '_body') }}
+                            {{ __('privacy.content_third_' . $service . '_body') }}
                         </p>
                     </div>
                 @endforeach
@@ -153,7 +153,7 @@
                 @foreach (['access', 'rectification', 'erasure', 'portability', 'objection', 'restriction', 'withdraw'] as $right)
                     <div class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
-                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.rights_' . $right) }}</span>
+                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_rights_' . $right) }}</span>
                     </div>
                 @endforeach
             </div>
@@ -177,7 +177,7 @@
                 @foreach (['account', 'activity', 'analytics', 'legal'] as $type)
                     <div class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">schedule</span>
-                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.retention_' . $type) }}</span>
+                        <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_retention_' . $type) }}</span>
                     </div>
                 @endforeach
             </div>

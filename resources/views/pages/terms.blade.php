@@ -99,7 +99,7 @@
                 @foreach (['respect', 'honesty', 'reliability', 'safety', 'legal'] as $rule)
                     <div class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">check_circle</span>
-                        <span class="text-on-surface-variant leading-relaxed">{{ __('terms.conduct_' . $rule) }}</span>
+                        <span class="text-on-surface-variant leading-relaxed">{{ __('terms.content_conduct_' . $rule) }}</span>
                     </div>
                 @endforeach
             </div>
@@ -191,7 +191,7 @@
                 {{ __('terms.heading_privacy') }}
             </h2>
             <p class="text-on-surface-variant leading-relaxed">
-                {{ __('terms.content_privacy_ref', ['privacy_link' => '<a href="' . route('privacy', app()->getLocale()) . '" wire:navigate class="text-primary hover:underline font-medium">' . __('terms.content_privacy_link_text') . '</a>']) }}
+                {!! __('terms.content_privacy_ref', ['privacy_link' => '<a href="' . route('privacy', app()->getLocale()) . '" wire:navigate class="text-primary hover:underline font-medium">' . __('terms.content_privacy_link_text') . '</a>']) !!}
             </p>
         </div>
     </section>

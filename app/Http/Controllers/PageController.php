@@ -136,7 +136,7 @@ class PageController extends Controller
     public function privacy()
     {
         seo(new SEOData(
-            title: __('privacy.title'),
+            title: __('privacy.heading_title'),
             description: __('privacy.seo_description'),
         ));
 
@@ -146,7 +146,7 @@ class PageController extends Controller
     public function terms()
     {
         seo(new SEOData(
-            title: __('terms.title'),
+            title: __('terms.heading_title'),
             description: __('terms.seo_description'),
         ));
 
