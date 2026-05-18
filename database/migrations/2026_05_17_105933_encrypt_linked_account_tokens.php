@@ -48,27 +48,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $rows = DB::table('linked_accounts')
+        DB::table('linked_accounts')
             ->select('id', 'token', 'refresh_token')
-            ->get();
+            ->chunkById(500, function ($rows) {
+                foreach ($rows as $row) {
+                    $updates = [];
 
-        foreach ($rows as $row) {
-            $updates = [];
+                    if (! $this->isEncrypted($row->token)) {
+                        $updates['token'] = Crypt::encryptString($row->token);
+                    }
 
-            if (! $this->isEncrypted($row->token)) {
-                $updates['token'] = Crypt::encryptString($row->token);
-            }
+                    if (! $this->isEncrypted($row->refresh_token)) {
+                        $updates['refresh_token'] = $row->refresh_token !== null
+                            ? Crypt::encryptString($row->refresh_token)
+                            : null;
+                    }
 
-            if (! $this->isEncrypted($row->refresh_token)) {
-                $updates['refresh_token'] = $row->refresh_token !== null
-                    ? Crypt::encryptString($row->refresh_token)
-                    : null;
-            }
-
-            if (! empty($updates)) {
-                DB::table('linked_accounts')->where('id', $row->id)->update($updates);
-            }
-        }
+                    if (! empty($updates)) {
+                        DB::table('linked_accounts')->where('id', $row->id)->update($updates);
+                    }
+                }
+            });
     }
 
     /**
@@ -80,24 +80,24 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $rows = DB::table('linked_accounts')
+        DB::table('linked_accounts')
             ->select('id', 'token', 'refresh_token')
-            ->get();
+            ->chunkById(500, function ($rows) {
+                foreach ($rows as $row) {
+                    $updates = [];
 
-        foreach ($rows as $row) {
-            $updates = [];
+                    if ($this->isEncrypted($row->token)) {
+                        $updates['token'] = Crypt::decryptString($row->token);
+                    }
 
-            if ($this->isEncrypted($row->token)) {
-                $updates['token'] = Crypt::decryptString($row->token);
-            }
+                    if ($row->refresh_token !== null && $this->isEncrypted($row->refresh_token)) {
+                        $updates['refresh_token'] = Crypt::decryptString($row->refresh_token);
+                    }
 
-            if ($row->refresh_token !== null && $this->isEncrypted($row->refresh_token)) {
-                $updates['refresh_token'] = Crypt::decryptString($row->refresh_token);
-            }
-
-            if (! empty($updates)) {
-                DB::table('linked_accounts')->where('id', $row->id)->update($updates);
-            }
-        }
+                    if (! empty($updates)) {
+                        DB::table('linked_accounts')->where('id', $row->id)->update($updates);
+                    }
+                }
+            });
     }
 };

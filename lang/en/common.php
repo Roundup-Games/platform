@@ -394,4 +394,12 @@ return [
     'content_policy_update_body' => 'We have updated our Privacy Policy and Terms of Use.',
     'content_policy_update_privacy_link' => 'Privacy Policy',
     'content_policy_update_terms_link' => 'Terms of Use',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legal Text Draft Notice
+    |--------------------------------------------------------------------------
+    */
+
+    'content_legal_draft_notice' => 'This document was last updated on :date and is pending review by legal counsel. It should not be considered final legal advice.',
 ];

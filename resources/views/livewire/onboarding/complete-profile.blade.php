@@ -139,7 +139,7 @@
                     <input type="checkbox" id="gender_consent" wire:model="gender_consent"
                            class="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary/20" />
                     <label for="gender_consent" class="text-xs text-on-surface-variant leading-relaxed cursor-pointer">
-                        {{ __('auth.gender_consent_explanation') }}
+                        {{ __('auth.content_gender_consent_explanation') }}
                     </label>
                 </div>
 

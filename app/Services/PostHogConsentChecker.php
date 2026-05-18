@@ -35,9 +35,17 @@ class PostHogConsentChecker
      * - Missing cookie (no consent decision yet)
      * - Malformed cookie value
      * - Analytics explicitly false
+     * - CLI/queue contexts where no request is available
      */
     public function hasAnalyticsConsent(?Request $request = null): bool
     {
+        // In CLI contexts (artisan, queue workers), there is no HTTP request
+        // and therefore no cookie consent to check. Return false to prevent
+        // accidental server-side tracking without user consent.
+        if ($request === null && app()->runningInConsole()) {
+            return false;
+        }
+
         $request ??= request();
 
         $cookieValue = $request->cookie(self::COOKIE_NAME);

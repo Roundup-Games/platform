@@ -19,6 +19,7 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -243,6 +244,17 @@ class Show extends Component
         // GDPR Art. 9(2)(a): only store gender if explicit consent is given
         $genderValue = $validated['gender_consent'] ? $validated['gender'] : null;
 
+        // Audit trail for consent changes (GDPR Art. 7 compliance)
+        $previousConsent = (bool) $user->gender_consent;
+        $newConsent = $validated['gender_consent'];
+        if ($previousConsent !== $newConsent) {
+            Log::info('Gender consent status changed', [
+                'user_id' => $user->id,
+                'consent_given' => $newConsent,
+                'gender_cleared' => $previousConsent && !$newConsent,
+            ]);
+        }
+
         $user->update([
             'name' => ValidUserName::sanitize($validated['name']),
             'email' => $validated['email'],
@@ -341,22 +353,24 @@ class Show extends Component
         ]);
         $user->gameSystemPreferences()->sync(array_replace($favoriteSync->toArray(), $avoidSync->toArray()));
 
-        // Save vibe preferences (delete-and-insert)
+        // Save vibe preferences (atomic delete-and-insert within transaction)
         $validVibeValues = VibeFlag::values();
-        $user->vibePreferences()->delete();
-        $inserts = [];
-        foreach ($this->vibePreferences as $flagValue => $type) {
-            if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
-                $inserts[] = [
-                    'user_id' => $user->id,
-                    'vibe_preference_value' => $flagValue,
-                    'preference_type' => $type,
-                ];
+        DB::transaction(function () use ($user, $validVibeValues) {
+            $user->vibePreferences()->delete();
+            $inserts = [];
+            foreach ($this->vibePreferences as $flagValue => $type) {
+                if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
+                    $inserts[] = [
+                        'user_id' => $user->id,
+                        'vibe_preference_value' => $flagValue,
+                        'preference_type' => $type,
+                    ];
+                }
             }
-        }
-        if (! empty($inserts)) {
-            $user->vibePreferences()->createMany($inserts);
-        }
+            if (! empty($inserts)) {
+                $user->vibePreferences()->createMany($inserts);
+            }
+        });
 
         // Detect changes for discovery cache invalidation
         $vibesChanged = $oldVibePreferences !== $this->vibePreferences;
@@ -492,7 +506,7 @@ class Show extends Component
 
         Log::info('Password changed', [
             'user_id' => $user->id,
-            'had_password_before' => $user->wasRecentlyCreated ? false : ! $user->wasChanged('password_set_at'),
+            'had_password_before' => $user->getOriginal('password_set_at') !== null,
         ]);
 
         $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
@@ -534,7 +548,17 @@ class Show extends Component
             'had_password' => $user->hasPasswordSet(),
         ]);
 
-        app(UserAnonymizationService::class)->anonymize($user);
+        try {
+            app(UserAnonymizationService::class)->anonymize($user);
+        } catch (\Throwable $e) {
+            Log::error('Account anonymization failed from profile UI', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->addError('delete_password', __('profile.error_account_deletion_failed'));
+
+            return;
+        }
 
         Auth::logout();
 

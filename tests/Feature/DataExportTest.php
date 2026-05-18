@@ -204,6 +204,70 @@ describe('Export Command', function () {
 
         expect($exitCode)->toBe(1);
     });
+
+    it('does not include other users data in the export', function () {
+        Storage::fake('local');
+
+        // Create another user with a distinctive name and email
+        $otherUser = User::factory()->create([
+            'name' => 'Other User UniqueName ' . Str::random(8),
+            'email' => 'other-' . Str::random(8) . '@example.com',
+        ]);
+
+        // Generate export for $this->user
+        Artisan::call('export:user-data', ['user' => $this->user->id]);
+        $output = trim(Artisan::output());
+        $lines = explode("\n", $output);
+        $storedPath = end($lines);
+
+        // Verify profile export only contains the requesting user's data
+        $profile = extractJsonFromZip($storedPath, 'profile.json');
+        expect($profile['id'])->toBe($this->user->id);
+
+        // Ensure other user's email/name do not appear anywhere in the export files.
+        // This catches data leaks in all gatherers (games, campaigns, teams, etc.)
+        $zipContent = Storage::disk('local')->get($storedPath);
+        $tempZip = writeTempZip($zipContent);
+        $zip = new ZipArchive();
+        $zip->open($tempZip);
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $fileName = $zip->getNameIndex($i);
+            $content = $zip->getFromName($fileName);
+
+            if (is_string($content)) {
+                expect($content)->not->toContain($otherUser->email, "Found other user email in {$fileName}");
+                expect($content)->not->toContain($otherUser->name, "Found other user name in {$fileName}");
+            }
+        }
+
+        $zip->close();
+        unlink($tempZip);
+    });
+
+    it('excludes provider_meta from linked accounts export', function () {
+        Storage::fake('local');
+
+        // Create a linked account with provider_meta
+        \App\Models\LinkedAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'provider' => 'google',
+            'provider_meta' => ['access_token' => 'secret-value', 'scope' => 'openid'],
+        ]);
+
+        Artisan::call('export:user-data', ['user' => $this->user->id]);
+        $output = trim(Artisan::output());
+        $lines = explode("\n", $output);
+        $storedPath = end($lines);
+
+        $linkedAccounts = extractJsonFromZip($storedPath, 'linked-accounts.json');
+
+        expect($linkedAccounts)->not->toBeEmpty();
+        $account = $linkedAccounts[0];
+        expect($account)->not->toHaveKey('provider_meta', 'provider_meta should be excluded from export');
+        expect($account)->toHaveKey('provider');
+        expect($account)->toHaveKey('provider_user_id');
+    });
 });
 
 // ── Signed Download URL ──────────────────────────────
@@ -213,12 +277,38 @@ describe('Signed Download URL', function () {
         Storage::fake('local');
         Artisan::call('export:user-data', ['user' => $this->user->id]);
 
+        // The artisan command outputs the stored path as the last line
+        $output = trim(Artisan::output());
+        // Extract the path — the command outputs info lines then the path
+        $lines = array_filter(explode("\n", $output));
+        $exportPath = end($lines);
+
+        // If the path doesn't start with exports/, look for it in the fake disk
+        if (! str_starts_with($exportPath, 'exports/')) {
+            $files = Storage::disk('local')->files('exports');
+            $exportPath = collect($files)->first(fn ($f) => str_contains($f, $this->user->id));
+        }
+
+        // Create a resolved ticket with export_path metadata (mirrors production flow)
+        $department = \Escalated\Laravel\Models\Department::factory()->create(['name' => 'Account Support']);
+        \Escalated\Laravel\Models\Ticket::factory()->create([
+            'requester_type' => \App\Models\User::class,
+            'requester_id' => $this->user->id,
+            'ticket_type' => 'data_export_request',
+            'status' => 'resolved',
+            'department_id' => $department->id,
+            'metadata' => [
+                'export_path' => $exportPath,
+            ],
+        ]);
+
         $signedUrl = URL::signedRoute('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
+            'token' => \App\Http\Controllers\ExportDownloadController::deriveFileToken($exportPath),
         ], now()->addDays(7));
 
-        $response = $this->get($signedUrl);
+        $response = $this->actingAs($this->user)->get($signedUrl);
 
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/zip');
@@ -231,10 +321,11 @@ describe('Signed Download URL', function () {
         $signedUrl = URL::signedRoute('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
+            'token' => 'invalid-token',
         ], now()->addDays(7));
         $tamperedUrl = $signedUrl . '&tampered=1';
 
-        $response = $this->get($tamperedUrl);
+        $response = $this->actingAs($this->user)->get($tamperedUrl);
         $response->assertStatus(403);
     });
 
@@ -245,9 +336,10 @@ describe('Signed Download URL', function () {
         $expiredUrl = URL::signedRoute('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
+            'token' => 'any-token',
         ], now()->subDay());
 
-        $response = $this->get($expiredUrl);
+        $response = $this->actingAs($this->user)->get($expiredUrl);
         $response->assertStatus(403);
     });
 
@@ -257,9 +349,10 @@ describe('Signed Download URL', function () {
         $signedUrl = URL::signedRoute('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
+            'token' => 'any-token',
         ], now()->addDays(7));
 
-        $response = $this->get($signedUrl);
+        $response = $this->actingAs($this->user)->get($signedUrl);
         $response->assertStatus(404);
     });
 
@@ -267,10 +360,26 @@ describe('Signed Download URL', function () {
         Storage::fake('local');
         Artisan::call('export:user-data', ['user' => $this->user->id]);
 
-        $response = $this->get(route('export.download', [
+        $response = $this->actingAs($this->user)->get(route('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
         ]));
+        $response->assertStatus(403);
+    });
+
+    it('rejects a different authenticated user from downloading someone elses export', function () {
+        Storage::fake('local');
+        Artisan::call('export:user-data', ['user' => $this->user->id]);
+
+        $otherUser = User::factory()->create();
+
+        $signedUrl = URL::signedRoute('export.download', [
+            'locale' => 'en',
+            'user' => $this->user->id,
+            'token' => 'any-token',
+        ], now()->addDays(7));
+
+        $response = $this->actingAs($otherUser)->get($signedUrl);
         $response->assertStatus(403);
     });
 });

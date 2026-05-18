@@ -394,4 +394,6 @@ return [
     'content_policy_update_body' => 'Wir haben unsere Datenschutzrichtlinie und Nutzungsbedingungen aktualisiert.',
     'content_policy_update_privacy_link' => 'Datenschutzrichtlinie',
     'content_policy_update_terms_link' => 'Nutzungsbedingungen',
+
+    'content_legal_draft_notice' => 'Dieses Dokument wurde zuletzt am :date aktualisiert und wartet auf die Überprüfung durch den Rechtsbeistand. Es stellt keine endgültige Rechtsberatung dar.',
 ];

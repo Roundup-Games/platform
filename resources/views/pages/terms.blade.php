@@ -1,5 +1,13 @@
 <x-public-layout>
 
+    {{-- Legal review banner: shown until a legal professional reviews the text --}}
+    @if(!config('app.legal_text_reviewed', false))
+        <div class="bg-tertiary-container text-on-tertiary-container px-4 py-3 text-center text-sm">
+            <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">info</span>
+            {{ __('common.content_legal_draft_notice', ['date' => config('policies.terms.last_updated')]) }}
+        </div>
+    @endif
+
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
         <div class="absolute inset-0 opacity-10">

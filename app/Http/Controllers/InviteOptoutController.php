@@ -9,13 +9,12 @@ use Illuminate\Support\Facades\Log;
 class InviteOptoutController extends Controller
 {
     /**
-     * Handle one-click unsubscribe from invite emails.
+     * Show the opt-out confirmation page.
      *
-     * The emailHash is the SHA-256 of the invitee's email address.
-     * If valid, suppress the email (idempotent) and show confirmation.
-     * If invalid, show a generic error.
+     * Uses GET for the initial landing (email link), then POST for confirmation.
+     * Two-step flow prevents email security scanners from triggering false suppression.
      */
-    public function optout(Request $request, string $emailHash)
+    public function show(Request $request, string $emailHash)
     {
         // Validate the hash looks like a SHA-256 hex string
         if (! preg_match('/^[a-f0-9]{64}$/', $emailHash)) {
@@ -26,13 +25,29 @@ class InviteOptoutController extends Controller
             return view('pages.invite-optout', ['status' => 'invalid']);
         }
 
-        // Suppress the email by hash — idempotent
+        // Show confirmation page with POST form
+        return view('pages.invite-optout', ['status' => 'confirm', 'emailHash' => $emailHash]);
+    }
+
+    /**
+     * Confirm the opt-out after the user explicitly clicks the button.
+     *
+     * POST-only: email scanners and link prefetchers don't submit POST forms.
+     * The emailHash is the SHA-256 of the invitee's email address.
+     * Suppression is idempotent.
+     */
+    public function confirm(Request $request, string $emailHash)
+    {
+        if (! preg_match('/^[a-f0-9]{64}$/', $emailHash)) {
+            return view('pages.invite-optout', ['status' => 'invalid']);
+        }
+
         SuppressedInviteEmail::firstOrCreate(
             ['email_hash' => $emailHash],
             ['created_at' => now()],
         );
 
-        Log::info('invite.optout.success', [
+        Log::info('invite.optout.confirmed', [
             'email_hash' => $emailHash,
             'ip' => $request->ip(),
         ]);

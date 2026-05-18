@@ -20,6 +20,7 @@ use App\Services\WaitlistService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -78,6 +79,8 @@ trait ManagesParticipants
      */
     public function inviteParticipants(): void
     {
+        $this->authorize('update', $this->getEntity());
+
         if (empty($this->selectedFriendIds)) {
             $this->addError('selectedFriendIds', __('people.error_select_at_least_one_friend'));
 
@@ -254,12 +257,28 @@ trait ManagesParticipants
 
         // ── Path 4: No existing user → email-invite path ──
 
+        // Check suppression early — before creating the participant record.
+        // If suppressed, we still create the participant but without storing
+        // the plaintext invitee_email (use an anonymous placeholder instead).
+        $isSuppressed = SuppressedInviteEmail::isSuppressed($normalizedEmail);
+
         // Duplicate check: pending invite already sent to this email.
         // Application-level check first, with DB unique constraint as safety net.
-        $existingInvite = $participantModel::where($entityIdColumn, $entity->id)
-            ->where('invitee_email', $normalizedEmail)
-            ->where('status', ParticipantStatus::Pending)
-            ->first();
+        // For suppressed emails, also check the suppressed- prefixed form since
+        // the stored value is the hash, not the plaintext email.
+        $duplicateQuery = $participantModel::where($entityIdColumn, $entity->id)
+            ->where('status', ParticipantStatus::Pending);
+
+        if ($isSuppressed) {
+            $duplicateQuery->where(function ($q) use ($normalizedEmail) {
+                $q->where('invitee_email', $normalizedEmail)
+                    ->orWhere('invitee_email', 'suppressed-'.SuppressedInviteEmail::hashEmail($normalizedEmail));
+            });
+        } else {
+            $duplicateQuery->where('invitee_email', $normalizedEmail);
+        }
+
+        $existingInvite = $duplicateQuery->first();
 
         if ($existingInvite) {
             $this->addError('inviteEmail', __('people.error_email_invite_already_sent'));
@@ -270,6 +289,42 @@ trait ManagesParticipants
         if ($this->isAtCapacity()) {
             // Full entity — add to waitlist or bench instead of refusing
             $this->addEmailInviteeToOverflow($entity, $participantModel, $entityIdColumn, $normalizedEmail, $authUser);
+
+            return;
+        }
+
+        if ($isSuppressed) {
+            // Suppressed email — create participant without sending email.
+            // Use a deterministic suppressed- prefixed hash instead of the real email.
+            // Same email input always produces the same hash, so duplicate detection
+            // still works. This avoids storing plaintext PII for opted-out recipients
+            // (GDPR Art. 5(1)(c) data minimization).
+            $suppressedEmail = 'suppressed-'.SuppressedInviteEmail::hashEmail($normalizedEmail);
+
+            Log::info('invite.email.suppressed_skipped', [
+                'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
+                'entity_type' => $this->getEntityName(),
+                $entityIdColumn => $entity->id,
+                'invited_by' => $authUser->id,
+            ]);
+
+            try {
+                $participantModel::create([
+                    $entityIdColumn => $entity->id,
+                    'user_id' => null,
+                    'invitee_email' => $suppressedEmail,
+                    'role' => 'invited',
+                    'status' => 'pending',
+                    'join_source' => JoinSource::EmailInvite,
+                ]);
+            } catch (QueryException $e) {
+                $this->addError('inviteEmail', __('people.error_email_invite_already_sent'));
+
+                return;
+            }
+
+            $this->reset('inviteEmail');
+            session()->flash('success', __('people.flash_email_invite_sent'));
 
             return;
         }
@@ -288,7 +343,7 @@ trait ManagesParticipants
             ]);
         } catch (QueryException $e) {
             Log::warning('email_invite.duplicate_detected', [
-                'invitee_email' => $normalizedEmail,
+                'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                 'entity_type' => $this->getEntityName(),
                 $entityIdColumn => $entity->id,
             ]);
@@ -299,57 +354,46 @@ trait ManagesParticipants
 
         Log::info($this->getEntityName().' email invite: external email invited', [
             $entityIdColumn => $entity->id,
-            'invitee_email' => $normalizedEmail,
+            'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
             'invited_by' => $authUser->id,
             'join_source' => 'email_invite',
         ]);
 
-        // Send invitation email
+        // Send invitation email (suppression already checked above)
         try {
-            // Check if the recipient has opted out of invite emails
-            if (SuppressedInviteEmail::isSuppressed($normalizedEmail)) {
-                Log::info('invite.email.suppressed', [
-                    'invitee_email' => $normalizedEmail,
+            // Rate limit unique invitee emails per sender (5 per 24h)
+            $senderRateKey = 'invite-email-unique:'.$authUser->id.':'.$normalizedEmail;
+            if (RateLimiter::tooManyAttempts($senderRateKey, 5)) {
+                Log::warning('invite.email.rate_limited', [
+                    'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                     'entity_type' => $this->getEntityName(),
                     $entityIdColumn => $entity->id,
                     'invited_by' => $authUser->id,
                 ]);
                 // Skip sending but keep the participant record
             } else {
-                // Rate limit unique invitee emails per sender (5 per 24h)
-                $senderRateKey = 'invite-email-unique:'.$authUser->id.':'.$normalizedEmail;
-                if (RateLimiter::tooManyAttempts($senderRateKey, 5)) {
-                    Log::warning('invite.email.rate_limited', [
-                        'invitee_email' => $normalizedEmail,
-                        'entity_type' => $this->getEntityName(),
-                        $entityIdColumn => $entity->id,
-                        'invited_by' => $authUser->id,
-                    ]);
-                    // Skip sending but keep the participant record
-                } else {
-                    RateLimiter::hit($senderRateKey, 86400); // 24 hours
+                RateLimiter::hit($senderRateKey, 86400); // 24 hours
 
-                    $mailable = new EntityInvitationEmail(
-                        entityType: strtolower($this->getEntityName()),
-                        entityName: $entity->name,
-                        entityDateTime: $entity->date_time ?? null,
-                        entityLocation: $entity->linkedLocation?->address ?? null,
-                        inviterName: $authUser->name,
-                        inviteeEmail: $normalizedEmail,
-                        signupUrl: route('register', ['locale' => app()->getLocale()]),
-                        optoutUrl: route('invite.optout', [
-                            'locale' => app()->getLocale(),
-                            'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
-                        ]),
-                    );
-                    Mail::to($normalizedEmail)->queue($mailable);
-                }
+                $mailable = new EntityInvitationEmail(
+                    entityType: strtolower($this->getEntityName()),
+                    entityName: $entity->name,
+                    entityDateTime: $entity->date_time ?? null,
+                    entityLocation: $entity->linkedLocation?->address ?? null,
+                    inviterName: $authUser->name,
+                    inviteeEmail: $normalizedEmail,
+                    signupUrl: route('register', ['locale' => app()->getLocale()]),
+                    optoutUrl: route('invite.optout.show', [
+                        'locale' => app()->getLocale(),
+                        'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
+                    ]),
+                );
+                Mail::to($normalizedEmail)->queue($mailable);
             }
         } catch (\Throwable $e) {
             Log::error('email.invite_delivery_failed', [
                 'entity_type' => $this->getEntityName(),
                 $entityIdColumn => $entity->id,
-                'invitee_email' => $normalizedEmail,
+                'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                 'error' => $e->getMessage(),
             ]);
             // Keep the participant record even if email fails
@@ -531,7 +575,7 @@ trait ManagesParticipants
         Log::info($this->getEntityName().' invite cancelled', [
             $this->getEntityIdColumn() => $entity->id,
             'user_id' => $userId,
-            'invitee_email' => $inviteeEmail,
+            'invitee_email_hash' => $inviteeEmail ? SuppressedInviteEmail::hashEmail($inviteeEmail) : null,
             'cancelled_by' => Auth::id(),
         ]);
 
@@ -573,22 +617,39 @@ trait ManagesParticipants
             return;
         }
 
-        // Check capacity
-        $currentCount = $entity->participants()
-            ->where('status', 'approved')
-            ->count();
+        // Check capacity atomically to prevent over-acceptance under concurrency.
+        // Lock the entity row for the entire capacity-check + participant-update
+        // sequence so two simultaneous accepts cannot both pass the count check.
+        $entity = $this->getEntity();
 
-        if ($entity->max_players && $currentCount >= $entity->max_players) {
-            // Full entity — add to waitlist or bench instead of rejecting
+        $overflowed = DB::transaction(function () use ($entity, $participant, $authUser) {
+            $lockedEntity = $entity->newModelQuery()
+                ->where('id', $entity->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentCount = $lockedEntity->participants()
+                ->where('status', ParticipantStatus::Approved)
+                ->count();
+
+            if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
+                // Signal overflow — handled outside the transaction.
+                return true;
+            }
+
+            $participant->update([
+                'role' => 'player',
+                'status' => 'approved',
+            ]);
+
+            return false;
+        });
+
+        if ($overflowed) {
             $this->addAcceptedInviteeToOverflow($participant, $entity);
 
             return;
         }
-
-        $participant->update([
-            'role' => 'player',
-            'status' => 'approved',
-        ]);
 
         Log::info($this->getEntityName().' invitation accepted', [
             $entityIdColumn => $entity->id,
@@ -926,7 +987,7 @@ trait ManagesParticipants
         $logContext = [
             'entity_type' => $this->getEntityName(),
             $entityIdColumn => $entity->id,
-            'invitee_email' => $normalizedEmail,
+            'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
             'invited_by' => $authUser->id,
             'overflow_status' => $overflow['status'],
         ];
@@ -949,7 +1010,7 @@ trait ManagesParticipants
                     Log::info('invite.email.suppressed_overflow', [
                         'entity_type' => $this->getEntityName(),
                         $entityIdColumn => $entity->id,
-                        'invitee_email' => $normalizedEmail,
+                        'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                         'invited_by' => $authUser->id,
                     ]);
                 } else {
@@ -961,7 +1022,7 @@ trait ManagesParticipants
                         inviterName: $authUser->name,
                         inviteeEmail: $normalizedEmail,
                         signupUrl: route('register', ['locale' => app()->getLocale()]),
-                        optoutUrl: route('invite.optout', [
+                        optoutUrl: route('invite.optout.show', [
                             'locale' => app()->getLocale(),
                             'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                         ]),
@@ -972,7 +1033,7 @@ trait ManagesParticipants
                 Log::error('email.invite_delivery_failed', [
                     'entity_type' => $this->getEntityName(),
                     $entityIdColumn => $entity->id,
-                    'invitee_email' => $normalizedEmail,
+                    'invitee_email_hash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                     'error' => $e->getMessage(),
                 ]);
             }

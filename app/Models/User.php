@@ -7,6 +7,7 @@ use App\Enums\RelationshipType;
 use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
 use App\Services\SocialGraphService;
+use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -61,7 +62,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'bio',
     'slug',
 ])]
-#[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent'])]
+#[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
 class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 {
     use Billable;
@@ -79,8 +80,6 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
     protected static function booted(): void
     {
-        static::addGlobalScope('not-anonymized', fn ($q) => $q->whereNull('anonymized_at'));
-
         static::creating(function (User $user) {
             if (empty($user->id)) {
                 $user->id = (string) Str::orderedUuid();
@@ -115,6 +114,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             'max_links_per_entity' => 'integer',
             'anonymized_at' => 'datetime',
             'gender_consent' => 'boolean',
+            'analytics_consent' => 'boolean',
         ];
     }
 
@@ -519,35 +519,32 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
     }
 
     /**
+     * Scope: exclude anonymized users from a query.
+     *
+     * Use this in any query that displays user-facing lists (discovery,
+     * search, directories, sitemaps) where anonymized users should not
+     * appear. Do NOT use this on relationship resolution queries — those
+     * need to load anonymized users normally (they show as "Deleted User").
+     *
+     * Usage: User::notAnonymized()->where(...)
+     */
+    public function scopeNotAnonymized($query): void
+    {
+        $query->whereNull('anonymized_at');
+    }
+
+    /**
      * Anonymize the user in-place: strip PII, set anonymized_at.
-     * Hard-deletes Tier 1 private data (password, email, phone).
-     * Preserves operational relationships (reviews, participations, teams).
+     *
+     * @deprecated Use UserAnonymizationService::anonymize() instead.
+     *             The service handles Tier 1 data deletion, media cleanup,
+     *             session invalidation, and PostHog data removal.
+     *             This model method only strips PII on the user row.
+     * @see \App\Services\UserAnonymizationService::anonymize()
      */
     public function anonymize(): void
     {
-        $this->forceFill([
-            'name' => 'Deleted User',
-            'email' => 'anon-' . $this->id . '@anonymized.invalid',
-            'password' => null,
-            'phone' => null,
-            'avatar_url' => null,
-            'bio' => null,
-            'slug' => 'deleted-' . $this->id,
-            'gender' => null,
-            'pronouns' => null,
-            'location' => null,
-            'location_id' => null,
-            'privacy_settings' => null,
-            'notification_settings' => null,
-            'reliability_score' => null,
-            'reliability_computed_at' => null,
-            'profile_complete' => false,
-            'email_verified_at' => null,
-            'password_set_at' => null,
-            'privacy_policy_accepted_at' => null,
-            'terms_accepted_at' => null,
-            'anonymized_at' => now(),
-        ])->saveQuietly();
+        app(UserAnonymizationService::class)->anonymize($this);
     }
 
     // ── Helpers ────────────────────────────────────────

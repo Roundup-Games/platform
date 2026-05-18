@@ -274,8 +274,8 @@ test('invite by email logs structured context', function () {
             return str_contains($message, 'email invite')
                 && isset($context['game_id'])
                 && $context['game_id'] === $this->game->id
-                && isset($context['invitee_email'])
-                && $context['invitee_email'] === 'logged@example.com';
+                && isset($context['invitee_email_hash'])
+                && $context['invitee_email_hash'] === \App\Models\SuppressedInviteEmail::hashEmail('logged@example.com');
         })
         ->once();
 });

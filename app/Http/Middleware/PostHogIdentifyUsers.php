@@ -42,8 +42,17 @@ class PostHogIdentifyUsers
         // Gate all server-side PostHog calls behind analytics consent.
         // If the user has not accepted analytics cookies, skip identify
         // and capture entirely — consistent with the JS-side gating.
-        if (! $this->consentChecker->hasAnalyticsConsent($request)) {
+        $hasAnalyticsConsent = $this->consentChecker->hasAnalyticsConsent($request);
+
+        if (! $hasAnalyticsConsent) {
             return $next($request);
+        }
+
+        // Persist the consent decision on the user model so that
+        // UserAnonymizationService can check it without request/cookie
+        // context (e.g., from artisan or queued jobs).
+        if ($user && ! $user->analytics_consent) {
+            $user->forceFill(['analytics_consent' => true])->saveQuietly();
         }
 
         if ($user && $this->shouldIdentify($request)) {
@@ -58,6 +67,30 @@ class PostHogIdentifyUsers
         }
 
         return $next($request);
+    }
+
+    /**
+     * Handle post-response: if consent is absent but the persisted column
+     * is still true, correct the column. This keeps the DB in sync when
+     * a user revokes consent via the cookie banner.
+     */
+    public function terminate(Request $request, Response $response): void
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->analytics_consent) {
+            return;
+        }
+
+        // The cookie consent checker doesn't depend on response state,
+        // so we can safely re-check here.
+        if (! $this->consentChecker->hasAnalyticsConsent($request)) {
+            $user->forceFill(['analytics_consent' => false])->saveQuietly();
+
+            // Clear server-side identify flag so next consent-grant
+            // re-identifies properly.
+            session()->forget('posthog_server_identified');
+        }
     }
 
     /**

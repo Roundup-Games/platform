@@ -235,9 +235,16 @@ Route::prefix('{locale}')
         });
 
         // ── Invite Email Opt-out (public, rate-limited) ──
+        // Two-step flow: GET shows confirmation page, POST performs suppression.
+        // Prevents email scanners and link prefetchers from triggering false opt-outs.
 
-        Route::get('/invite-optout/{emailHash}', [InviteOptoutController::class, 'optout'])
-            ->name('invite.optout')
+        Route::get('/invite-optout/{emailHash}', [InviteOptoutController::class, 'show'])
+            ->name('invite.optout.show')
+            ->middleware('throttle:10,1')
+            ->where('emailHash', '[a-f0-9]{64}');
+
+        Route::post('/invite-optout/{emailHash}', [InviteOptoutController::class, 'confirm'])
+            ->name('invite.optout.confirm')
             ->middleware('throttle:10,1')
             ->where('emailHash', '[a-f0-9]{64}');
 
@@ -247,12 +254,14 @@ Route::prefix('{locale}')
             ->name('notifications.unsubscribe')
             ->middleware('signed');
 
-        // ── Data Export Download (signed URL, no auth required) ──
-        // Signed URL expires after 7 days; signature verification is done in controller.
+        // ── Data Export Download (signed URL + auth) ──────
+        // Signed URL expires after 7 days. Auth ensures only the data subject
+        // can download their own export — prevents leakage via browser history
+        // or URL forwarding.
 
         Route::get('/export/download/{user}', [ExportDownloadController::class, 'download'])
             ->name('export.download')
-            ->middleware('signed');
+            ->middleware(['signed', 'auth']);
 
         // ── Onboarding (authenticated, profile NOT complete) ──
 

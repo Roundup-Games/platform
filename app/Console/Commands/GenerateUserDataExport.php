@@ -36,12 +36,21 @@ class GenerateUserDataExport extends Command
     protected const SCHEMA_VERSION = '1.0.0';
 
     /**
-     * Files to exclude from the user model attributes.
+     * Profile attributes safe for data export.
+     *
+     * Whitelist approach: only explicitly listed fields are exported.
+     * When new columns are added to the User model, they must be
+     * reviewed before adding to this list — never export by default.
      */
-    protected const PROFILE_EXCLUDED_ATTRIBUTES = [
-        'password',
-        'remember_token',
-        'paddle_id',
+    protected const PROFILE_EXPORT_ATTRIBUTES = [
+        'id', 'name', 'email', 'slug', 'bio', 'pronouns', 'gender',
+        'preferred_language', 'profile_complete', 'location_id',
+        'avatar_url', 'reliability_score', 'reliability_computed_at',
+        'privacy_settings', 'notification_settings',
+        'gender_consent', 'analytics_consent',
+        'privacy_policy_accepted_at', 'terms_accepted_at',
+        'email_verified_at', 'password_set_at',
+        'created_at', 'updated_at',
     ];
 
     /**
@@ -51,9 +60,7 @@ class GenerateUserDataExport extends Command
     {
         $userUuid = $this->argument('user');
 
-        $user = User::withoutGlobalScope('not-anonymized')
-            ->where('id', $userUuid)
-            ->first();
+        $user = User::where('id', $userUuid)->first();
 
         if (! $user) {
             $this->error("User with UUID [{$userUuid}] not found.");
@@ -157,7 +164,7 @@ class GenerateUserDataExport extends Command
             $fileSize = Storage::disk('local')->size($storedPath);
 
             $this->info("Export stored at: {$storedPath}");
-            $this->info('File size: '.$this->formatBytes($fileSize));
+            $this->info('File size: '.format_bytes($fileSize));
 
             Log::info('User data export generated', [
                 'user_id' => $user->id,
@@ -182,14 +189,15 @@ class GenerateUserDataExport extends Command
     {
         $attributes = $user->attributesToArray();
 
-        foreach (self::PROFILE_EXCLUDED_ATTRIBUTES as $key) {
-            unset($attributes[$key]);
+        // Whitelist: only export known-safe fields.
+        $export = [];
+        foreach (self::PROFILE_EXPORT_ATTRIBUTES as $key) {
+            if (array_key_exists($key, $attributes)) {
+                $export[$key] = $attributes[$key];
+            }
         }
 
-        // Remove pivot-related internal keys
-        unset($attributes['pivot']);
-
-        return $attributes;
+        return $export;
     }
 
     protected function gatherLinkedAccounts(User $user): array
@@ -201,7 +209,9 @@ class GenerateUserDataExport extends Command
                 'provider' => $account->provider,
                 'provider_user_id' => $account->provider_user_id,
                 'token_expires_at' => $account->token_expires_at?->toIso8601String(),
-                'provider_meta' => $account->provider_meta,
+                // provider_meta is intentionally excluded — it may contain OAuth
+                // credentials (access tokens, refresh tokens) from provider flows.
+                // Only export provider name and provider-side user ID.
                 'created_at' => $account->created_at?->toIso8601String(),
                 'updated_at' => $account->updated_at?->toIso8601String(),
             ])
@@ -210,20 +220,34 @@ class GenerateUserDataExport extends Command
 
     protected function gatherGames(User $user): array
     {
-        $owned = $user->ownedGames()->get()->map($this->modelToArray(...));
+        // Whitelist game fields to avoid leaking other users' PII
+        $owned = $user->ownedGames()->get()->map(fn (Game $game) => [
+            'id' => $game->id,
+            'name' => $game->name,
+            'status' => $game->status?->value,
+            'date_time' => $game->date_time?->toIso8601String(),
+            'max_players' => $game->max_players,
+            'game_system_id' => $game->game_system_id,
+            'created_at' => $game->created_at?->toIso8601String(),
+        ]);
 
-        // Build participation query manually to avoid withTimestamps() expecting updated_at
+        // Build participation query with whitelisted fields
         $participated = Game::query()
             ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
             ->where('game_participants.user_id', $user->id)
-            ->select('games.*', 'game_participants.role as pivot_role', 'game_participants.status as pivot_status')
+            ->select('games.id', 'games.name', 'games.status', 'games.date_time',
+                     'game_participants.role as pivot_role', 'game_participants.status as pivot_status')
             ->get()
-            ->map(fn ($game) => array_merge($this->modelToArray($game), [
+            ->map(fn ($game) => [
+                'id' => $game->id,
+                'name' => $game->name,
+                'status' => $game->status,
+                'date_time' => $game->date_time?->toIso8601String(),
                 'pivot' => [
                     'role' => $game->pivot_role,
                     'status' => $game->pivot_status,
                 ],
-            ]));
+            ]);
 
         return [
             'owned' => $owned->toArray(),
@@ -233,20 +257,31 @@ class GenerateUserDataExport extends Command
 
     protected function gatherCampaigns(User $user): array
     {
-        $owned = $user->ownedCampaigns()->get()->map($this->modelToArray(...));
+        // Whitelist campaign fields to avoid leaking other users' PII
+        $owned = $user->ownedCampaigns()->get()->map(fn (Campaign $campaign) => [
+            'id' => $campaign->id,
+            'name' => $campaign->name,
+            'status' => $campaign->status?->value,
+            'game_system_id' => $campaign->game_system_id,
+            'created_at' => $campaign->created_at?->toIso8601String(),
+        ]);
 
-        // Build participation query manually to avoid withTimestamps() expecting updated_at
+        // Build participation query with whitelisted fields
         $participated = Campaign::query()
             ->join('campaign_participants', 'campaigns.id', '=', 'campaign_participants.campaign_id')
             ->where('campaign_participants.user_id', $user->id)
-            ->select('campaigns.*', 'campaign_participants.role as pivot_role', 'campaign_participants.status as pivot_status')
+            ->select('campaigns.id', 'campaigns.name', 'campaigns.status',
+                     'campaign_participants.role as pivot_role', 'campaign_participants.status as pivot_status')
             ->get()
-            ->map(fn ($campaign) => array_merge($this->modelToArray($campaign), [
+            ->map(fn ($campaign) => [
+                'id' => $campaign->id,
+                'name' => $campaign->name,
+                'status' => $campaign->status,
                 'pivot' => [
                     'role' => $campaign->pivot_role,
                     'status' => $campaign->pivot_status,
                 ],
-            ]));
+            ]);
 
         return [
             'owned' => $owned->toArray(),
@@ -256,8 +291,19 @@ class GenerateUserDataExport extends Command
 
     protected function gatherEvents(User $user): array
     {
-        $organized = $user->organizedEvents()->get()->map($this->modelToArray(...));
-        $registrations = $user->eventRegistrations()->get()->map(
+        $organized = $user->organizedEvents()->get()->map(fn ($event) => [
+            'id' => $event->id,
+            'name' => $event->name,
+            'slug' => $event->slug,
+            'status' => $event->status?->value,
+            'starts_at' => $event->starts_at?->toIso8601String(),
+            'ends_at' => $event->ends_at?->toIso8601String(),
+            'created_at' => $event->created_at?->toIso8601String(),
+        ]);
+        $registrations = $user->eventRegistrations()
+            ->with('event')
+            ->get()
+            ->map(
             fn (EventRegistration $reg) => [
                 'id' => $reg->id,
                 'event_id' => $reg->event_id,
@@ -280,10 +326,26 @@ class GenerateUserDataExport extends Command
 
     protected function gatherReviews(User $user): array
     {
-        $written = Review::where('reviewer_id', $user->id)->get()->map($this->modelToArray(...));
+        // Reviews written by this user — their own content
+        $written = Review::where('reviewer_id', $user->id)->get()->map(fn (Review $review) => [
+            'id' => $review->id,
+            'rating' => $review->rating,
+            'content' => $review->content,
+            'status' => $review->status?->value,
+            'created_at' => $review->created_at?->toIso8601String(),
+            'updated_at' => $review->updated_at?->toIso8601String(),
+        ]);
+
+        // Reviews received as GM — only include the review content, not the reviewer's PII
         $received = Review::whereHas('gmProfile', fn ($q) => $q->where('user_id', $user->id))
             ->get()
-            ->map($this->modelToArray(...));
+            ->map(fn (Review $review) => [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'content' => $review->content,
+                'status' => $review->status?->value,
+                'created_at' => $review->created_at?->toIso8601String(),
+            ]);
 
         return [
             'written' => $written->toArray(),
@@ -294,7 +356,11 @@ class GenerateUserDataExport extends Command
     protected function gatherTeams(User $user): array
     {
         return $user->teams()->get()->map(
-            fn (Team $team) => array_merge($this->modelToArray($team), [
+            fn (Team $team) => [
+                'id' => $team->id,
+                'name' => $team->name,
+                'slug' => $team->slug,
+                'created_at' => $team->created_at?->toIso8601String(),
                 'pivot' => [
                     'role' => $team->pivot->role,
                     'status' => $team->pivot->status,
@@ -303,7 +369,7 @@ class GenerateUserDataExport extends Command
                     'joined_at' => $team->pivot->joined_at,
                     'left_at' => $team->pivot->left_at,
                 ],
-            ]),
+            ],
         )->toArray();
     }
 
@@ -329,8 +395,10 @@ class GenerateUserDataExport extends Command
             ->get()
             ->map(fn (PushSubscription $sub) => [
                 'id' => $sub->id,
-                'endpoint' => $sub->endpoint,
-                'user_agent' => $sub->user_agent,
+                // Only export the push service hostname, not the full endpoint URL.
+                // The endpoint contains a bearer token that could be abused to
+                // send unauthorized push notifications if the export is intercepted.
+                'push_service_host' => $sub->endpoint ? parse_url($sub->endpoint, PHP_URL_HOST) : null,
                 'created_at' => $sub->created_at?->toIso8601String(),
                 'updated_at' => $sub->updated_at?->toIso8601String(),
             ])
@@ -445,7 +513,9 @@ class GenerateUserDataExport extends Command
             $zip->addFile($filePath, $relativePath);
         }
 
-        $zip->close();
+        if (! $zip->close()) {
+            throw new \RuntimeException("Failed to create ZIP archive at {$zipPath}: ".$zip->getStatusString());
+        }
 
         return $zipPath;
     }
@@ -455,7 +525,15 @@ class GenerateUserDataExport extends Command
         $storedName = 'exports/user-data-'.$user->id.'-'.now()->format('Ymd-His').'.zip';
 
         $disk = Storage::disk('local');
-        $disk->put($storedName, file_get_contents($zipPath));
+
+        // Stream the file to avoid loading the entire ZIP into memory.
+        $stream = fopen($zipPath, 'rb');
+        if ($stream === false) {
+            throw new \RuntimeException("Cannot read ZIP file at {$zipPath}");
+        }
+
+        $disk->writeStream($storedName, $stream);
+        fclose($stream);
 
         // Clean up the temp ZIP
         File::delete($zipPath);
@@ -463,27 +541,4 @@ class GenerateUserDataExport extends Command
         return $storedName;
     }
 
-    // ── Helpers ───────────────────────────────────────
-
-    protected function modelToArray(mixed $model): array
-    {
-        if (method_exists($model, 'attributesToArray')) {
-            return $model->attributesToArray();
-        }
-
-        return (array) $model;
-    }
-
-    protected function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
-
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-
-        return round($bytes, 2).' '.$units[$i];
-    }
 }

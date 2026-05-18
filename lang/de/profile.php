@@ -219,4 +219,16 @@ return [
 
     // Social Links
     'content_find_me_on' => 'Finde mich auf',
+
+    // Data Export
+    'title_privacy_and_data' => 'Privatsphäre & Daten',
+    'content_request_your_data_description' => 'Du hast das Recht, eine Kopie aller deiner persönlichen Daten anzufordern, die wir über dich speichern. Wir werden einen Export vorbereiten und dich benachrichtigen, wenn er zum Download bereitsteht.',
+    'action_request_my_data' => 'Meine Daten anfordern',
+    'content_data_export_pending' => 'Deine Datenexport-Anfrage wird bearbeitet. Du wirst benachrichtigt, wenn deine Daten zum Download bereitstehen.',
+    'flash_data_export_requested' => 'Deine Anfrage wurde eingereicht. Du wirst benachrichtigt, wenn deine Daten bereitstehen.',
+    'error_data_export_request_pending' => 'Du hast bereits eine ausstehende Datenexport-Anfrage.',
+    'error_data_export_request_failed' => 'Etwas ist schiefgelaufen. Bitte versuche es erneut oder kontaktiere den Support.',
+
+    // Account Deletion
+    'error_account_deletion_failed' => 'Beim Löschen deines Kontos ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere den Support.',
 ];

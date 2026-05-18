@@ -168,3 +168,52 @@ describe('PostHog consent gating — consent checker integration', function () {
         expect($checker->hasAnalyticsConsent($request))->toBeFalse();
     });
 });
+
+describe('Consent revocation persists to user model', function () {
+    test('terminate() sets analytics_consent false when cookie is absent', function () {
+        $user = User::factory()->create(['analytics_consent' => true]);
+
+        $posthogClient = $this->mock(PostHogClient::class);
+        $posthogClient->shouldNotReceive('identify');
+        $this->app->instance(PostHogClient::class, $posthogClient);
+
+        // Real consent checker — no cookie set (revoked)
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+
+        $middleware = $this->app->make(PostHogIdentifyUsers::class);
+
+        $symfonyRequest = SymfonyRequest::create('/games', 'GET');
+        $request = Request::createFromBase($symfonyRequest);
+        $request->setUserResolver(fn () => $user);
+
+        $response = $middleware->handle($request, fn () => makeMiddlewareResponse());
+
+        // Call terminate — should detect consent revoked and update user
+        $middleware->terminate($request, $response);
+
+        expect($user->fresh()->analytics_consent)->toBeFalse();
+    });
+
+    test('terminate() does not update when consent cookie is present', function () {
+        $user = User::factory()->create(['analytics_consent' => true]);
+
+        $posthogClient = $this->mock(PostHogClient::class);
+        $posthogClient->shouldReceive('isEnabled')->andReturn(false);
+        $this->app->instance(PostHogClient::class, $posthogClient);
+
+        // Consent checker with cookie present
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+
+        $middleware = $this->app->make(PostHogIdentifyUsers::class);
+
+        $symfonyRequest = SymfonyRequest::create('/games', 'GET');
+        $symfonyRequest->cookies->set('cookie_consent', json_encode(['analytics' => true]));
+        $request = Request::createFromBase($symfonyRequest);
+        $request->setUserResolver(fn () => $user);
+
+        $response = $middleware->handle($request, fn () => makeMiddlewareResponse());
+        $middleware->terminate($request, $response);
+
+        expect($user->fresh()->analytics_consent)->toBeTrue();
+    });
+});

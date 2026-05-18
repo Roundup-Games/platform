@@ -16,7 +16,7 @@ return [
 
     'heading_data_account' => 'Konto- und Profildaten',
     'content_data_account_purpose' => 'Um dein Konto zu erstellen und zu verwalten.',
-    'content_data_account_items' => 'Name, E-Mail-Adresse, Anzeigename, Profilfoto (optional), Bio (optional), Geschlecht (optional), Spracheinstellung.',
+    'content_data_account_items' => 'Name, E-Mail-Adresse, Anzeigename, Profilfoto (optional), Bio (optional), Geschlecht (optional — besondere Datenkategorie gemäß DSGVO Art. 9, nur mit deiner ausdrücklichen Einwilligung erhoben), Spracheinstellung.',
 
     'heading_data_location' => 'Standortdaten',
     'content_data_location_purpose' => 'Um Sessions, Spieler und Veranstaltungsorte in deiner Nähe vorzuschlagen.',
@@ -33,6 +33,14 @@ return [
     'heading_data_communication' => 'Kommunikationsdaten',
     'content_data_communication_purpose' => 'Um Nachrichten zwischen Nutzern zu senden und gewünschte Benachrichtigungen zuzustellen.',
     'content_data_communication_items' => 'Direktnachrichten zwischen Nutzern, Benachrichtigungseinstellungen und E-Mail-Zustellungsprotokolle.',
+
+    'heading_data_invitations' => 'Einladungsdaten',
+    'content_data_invitations_purpose' => 'Um Organisatoren zu ermöglichen, Personen zu Spielen und Kampagnen einzuladen.',
+    'content_data_invitations_items' => 'Wenn du jemanden per E-Mail einlädst, der kein Konto hat, speichern wir die E-Mail-Adresse im Teilnehmer-Datensatz. Eingeladene E-Mail-Adressen werden 90 Tage nach Ende des Spiels oder der Kampagne anonymisiert. Empfänger können sich jederzeit über einen Ein-Klick-Link in der Einladungs-E-Mail von zukünftigen Einladungen abmelden.',
+
+    'heading_data_sensitive' => 'Besondere Datenkategorien (DSGVO Art. 9)',
+    'content_data_sensitive_purpose' => 'Geschlecht ist die einzige besondere Datenkategorie, die wir erheben, und nur mit deiner ausdrücklichen Einwilligung.',
+    'content_data_sensitive_items' => 'Geschlecht wird als besondere personenbezogene Datenkategorie gemäß DSGVO Art. 9 Abs. 2 Buchst. a mit deiner ausdrücklichen, informierten Einwilligung bei der Registrierung erhoben. Die Angabe des Geschlechts ist vollständig optional. Du kannst die Einwilligung jederzeit in deinen Profileinstellungen widerrufen, wodurch deine Geschlechtsdaten sofort aus unseren Datensätzen entfernt werden. Geschlecht wird niemals in API-Antworten offengelegt oder an Dritte weitergegeben.',
 
     'heading_data_technical' => 'Technische und Nutzungsdaten',
     'content_data_technical_purpose' => 'Um die Sicherheit zu gewährleisten, Probleme zu diagnostizieren und die Plattform zu verbessern.',
@@ -89,7 +97,7 @@ return [
     // ── Datenspeicherung ───────────────────────────────
     'heading_data_retention' => 'Datenspeicherung',
     'content_retention_intro' => 'Wir bewahren deine Daten nur so lange auf, wie es erforderlich ist:',
-    'content_retention_account' => 'Kontodaten: Werden aufbewahrt, solange dein Konto aktiv ist. Innerhalb von 30 Tagen nach Kontolöschung gelöscht, es sei denn, gesetzliche Verpflichtungen erfordern eine längere Aufbewahrung.',
+    'content_retention_account' => 'Kontodaten: Werden aufbewahrt, solange dein Konto aktiv ist. Wenn du dein Konto löschst, werden deine personenbezogenen Daten (Name, E-Mail, Profilfoto und sonstige PII) entfernt und durch anonymisierte Kennungen ersetzt. Deine Bewertungen, Spielpartizipationsverlauf und Kampagnenbeiträge bleiben erhalten, um die Datenintegrität für andere Nutzer zu wahren. Nicht-personenbezogene Betriebsdaten können bei gesetzlicher Verpflichtung länger aufbewahrt werden.',
     'content_retention_activity' => 'Aktivitätsdaten: Anwesenheitsaufzeichnungen und Zuverlässigkeitswerte werden für die Lebensdauer des Kontos aufbewahrt, um die Bewertungsgenauigkeit zu gewährleisten.',
     'content_retention_analytics' => 'Analysedaten: PostHog-Daten werden bis zu 13 Monate aufbewahrt und dann automatisch gelöscht.',
     'content_retention_legal' => 'Gesetzliche Anforderungen: Finanzunterlagen und Vereinsmitgliedsdaten werden nach deutschem Recht aufbewahrt (in der Regel 6–10 Jahre).',

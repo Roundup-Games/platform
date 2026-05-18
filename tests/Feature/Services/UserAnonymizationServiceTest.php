@@ -36,10 +36,6 @@ describe('UserAnonymizationService integration', function () {
     beforeEach(function () {
         Queue::fake([DeletePostHogUserData::class]);
         Log::spy();
-
-        $this->mock(PostHogConsentChecker::class, function ($mock) {
-            $mock->shouldReceive('hasAnalyticsConsent')->andReturn(false);
-        });
     });
 
     it('hard-deletes Tier 1 private data', function () {
@@ -170,7 +166,7 @@ describe('UserAnonymizationService integration', function () {
             ->and(CampaignParticipant::find($participantId))->not->toBeNull();
     });
 
-    it('preserves reviews and reviewer relationship resolves via withoutGlobalScope', function () {
+    it('preserves reviews and reviewer relationship resolves normally', function () {
         $reviewer = User::factory()->create(['profile_complete' => true]);
         $gmUser = $this->createSubscribedGm();
         $gmProfile = $gmUser->gmProfile;
@@ -201,9 +197,8 @@ describe('UserAnonymizationService integration', function () {
         expect($fresh)->not->toBeNull()
             ->and($fresh->reviewer_id)->toBe($reviewerId);
 
-        // Reviewer resolves as 'Deleted User' when bypassing global scope
-        $loaded = Review::with(['reviewer' => fn ($q) => $q->withoutGlobalScope('not-anonymized')])
-            ->find($reviewId);
+        // Reviewer resolves as 'Deleted User' — no global scope needed
+        $loaded = Review::with('reviewer')->find($reviewId);
         expect($loaded->reviewer)->not->toBeNull()
             ->and($loaded->reviewer->name)->toBe('Deleted User');
     });
@@ -307,15 +302,16 @@ describe('UserAnonymizationService integration', function () {
         $service = app(UserAnonymizationService::class);
         $service->anonymize($user);
 
-        $fresh = User::withoutGlobalScope('not-anonymized')->find($userId);
+        $fresh = User::find($userId);
 
         expect($fresh->name)->toBe('Deleted User')
-            ->and($fresh->email)->toMatch('/^deleted-[0-9a-f-]+@anonymous$/')
+            ->and($fresh->email)->toMatch('/^deleted-[0-9a-f-]+@deleted\.roundup\.games$/')
             ->and($fresh->phone)->toBeNull()
             ->and($fresh->gender)->toBeNull()
             ->and($fresh->pronouns)->toBeNull()
             ->and($fresh->avatar_url)->toBeNull()
             ->and($fresh->bio)->toBeNull()
+            ->and($fresh->location)->toBeNull()
             ->and($fresh->location_id)->toBeNull()
             ->and($fresh->anonymized_at)->not->toBeNull()
             ->and($fresh->email_verified_at)->toBeNull()
@@ -323,7 +319,7 @@ describe('UserAnonymizationService integration', function () {
             ->and($fresh->isAnonymized())->toBeTrue();
     });
 
-    it('excludes anonymized user from default queries via global scope', function () {
+    it('excludes anonymized user from notAnonymized scope', function () {
         $active = User::factory()->create(['name' => 'Active User']);
         $target = User::factory()->create(['name' => 'Target User']);
         $targetId = $target->id;
@@ -331,13 +327,15 @@ describe('UserAnonymizationService integration', function () {
         $service = app(UserAnonymizationService::class);
         $service->anonymize($target);
 
-        $scopedIds = User::pluck('id');
+        $allIds = User::pluck('id');
+        $scopedIds = User::notAnonymized()->pluck('id');
 
-        expect($scopedIds)->toContain($active->id)
+        expect($allIds)->toContain($active->id, $targetId)
+            ->and($scopedIds)->toContain($active->id)
             ->and($scopedIds)->not->toContain($targetId);
     });
 
-    it('resolves anonymized user through eager-loaded relationships when bypassing scope', function () {
+    it('resolves anonymized user through eager-loaded relationships', function () {
         $owner = User::factory()->create([
             'profile_complete' => true,
             'name' => 'Game Owner',
@@ -359,9 +357,9 @@ describe('UserAnonymizationService integration', function () {
         $service = app(UserAnonymizationService::class);
         $service->anonymize($owner);
 
-        // Load game with participants and their user — bypass global scope on User
-        $loadedGame = Game::with(['participants.user' => fn ($q) => $q->withoutGlobalScope('not-anonymized')])
-            ->find($gameId);
+        // Load game with participants and their user — resolves normally
+        // since there's no global scope blocking anonymized user resolution.
+        $loadedGame = Game::with('participants.user')->find($gameId);
 
         expect($loadedGame)->not->toBeNull();
 
@@ -394,11 +392,7 @@ describe('UserAnonymizationService integration', function () {
     it('dispatches PostHog deletion job when user had analytics consent', function () {
         Queue::fake([DeletePostHogUserData::class]);
 
-        $this->mock(PostHogConsentChecker::class, function ($mock) {
-            $mock->shouldReceive('hasAnalyticsConsent')->andReturn(true);
-        });
-
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => true]);
 
         $service = app(UserAnonymizationService::class);
         $service->anonymize($user);
@@ -409,11 +403,7 @@ describe('UserAnonymizationService integration', function () {
     it('does not dispatch PostHog deletion when user had no analytics consent', function () {
         Queue::fake([DeletePostHogUserData::class]);
 
-        $this->mock(PostHogConsentChecker::class, function ($mock) {
-            $mock->shouldReceive('hasAnalyticsConsent')->andReturn(false);
-        });
-
-        $user = User::factory()->create();
+        $user = User::factory()->create(['analytics_consent' => false]);
 
         $service = app(UserAnonymizationService::class);
         $service->anonymize($user);
@@ -552,32 +542,31 @@ describe('UserAnonymizationService integration', function () {
             ->and(AttendanceReport::find($attendanceReport->id))->not->toBeNull();
 
         // ── Assert user PII stripped ──
-        $fresh = User::withoutGlobalScope('not-anonymized')->find($userId);
+        $fresh = User::find($userId);
         expect($fresh->name)->toBe('Deleted User')
-            ->and($fresh->email)->toMatch('/^deleted-[0-9a-f-]+@anonymous$/')
+            ->and($fresh->email)->toMatch('/^deleted-[0-9a-f-]+@deleted\.roundup\.games$/')
             ->and($fresh->phone)->toBeNull()
             ->and($fresh->gender)->toBeNull()
             ->and($fresh->pronouns)->toBeNull()
             ->and($fresh->avatar_url)->toBeNull()
             ->and($fresh->bio)->toBeNull()
+            ->and($fresh->location)->toBeNull()
             ->and($fresh->location_id)->toBeNull()
             ->and($fresh->anonymized_at)->not->toBeNull()
             ->and($fresh->isAnonymized())->toBeTrue();
 
-        // ── Assert global scope excludes user ──
-        expect(User::pluck('id'))->not->toContain($userId);
+        // ── Assert notAnonymized scope excludes user ──
+        expect(User::notAnonymized()->pluck('id'))->not->toContain($userId);
 
-        // ── Assert eager-loaded relationships resolve when bypassing scope ──
-        $loadedGame = Game::with(['participants.user' => fn ($q) => $q->withoutGlobalScope('not-anonymized')])
-            ->find($game->id);
+        // ── Assert eager-loaded relationships resolve normally ──
+        $loadedGame = Game::with('participants.user')->find($game->id);
         $participantRecord = $loadedGame->participants->firstWhere('user_id', $userId);
         expect($participantRecord)->not->toBeNull()
             ->and($participantRecord->user)->not->toBeNull()
             ->and($participantRecord->user->name)->toBe('Deleted User');
 
-        // Review still loads reviewer as Deleted User (bypassing scope)
-        $loadedReview = Review::with(['reviewer' => fn ($q) => $q->withoutGlobalScope('not-anonymized')])
-            ->find($review->id);
+        // Review still loads reviewer as Deleted User
+        $loadedReview = Review::with('reviewer')->find($review->id);
         expect($loadedReview->reviewer)->not->toBeNull()
             ->and($loadedReview->reviewer->name)->toBe('Deleted User');
 

@@ -171,6 +171,7 @@ class SitemapController extends Controller
             'profiles' => User::where('profile_complete', true)
                 ->whereNotNull('slug')
                 ->where('is_disabled', false)
+                ->whereNull('anonymized_at')
                 ->orderByDesc('updated_at'),
             default => null,
         };
@@ -392,6 +393,7 @@ class SitemapController extends Controller
         $users = User::where('profile_complete', true)
             ->whereNotNull('slug')
             ->where('is_disabled', false)
+            ->whereNull('anonymized_at')
             ->select('slug', 'updated_at')
             ->orderByDesc('updated_at')
             ->limit(self::MAX_ENTITIES_PER_SITEMAP)

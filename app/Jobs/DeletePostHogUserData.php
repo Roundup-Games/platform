@@ -53,16 +53,11 @@ class DeletePostHogUserData implements ShouldQueue
         }
 
         try {
-            // PostHog $delete removes all data for the distinct ID
+            // PostHog $delete removes all data for the distinct ID.
+            // No additional properties needed — $delete is a metadata-only event.
             $posthog->capture([
                 'distinctId' => $this->userId,
                 'event' => '$delete',
-                'properties' => [
-                    '$set' => [
-                        'deleted' => true,
-                        'deleted_at' => now()->toIso8601String(),
-                    ],
-                ],
             ]);
 
             Log::info('DeletePostHogUserData: deletion request sent', [

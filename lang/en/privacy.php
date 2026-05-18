@@ -16,7 +16,7 @@ return [
 
     'heading_data_account' => 'Account & Profile Data',
     'content_data_account_purpose' => 'To create and maintain your account.',
-    'content_data_account_items' => 'Name, email address, display name, profile photo (optional), bio (optional), gender (optional), language preference.',
+    'content_data_account_items' => 'Name, email address, display name, profile photo (optional), bio (optional), gender (optional — special-category data under GDPR Art. 9, collected with your explicit consent), language preference.',
 
     'heading_data_location' => 'Location Data',
     'content_data_location_purpose' => 'To suggest nearby sessions, players, and venues.',
@@ -33,6 +33,14 @@ return [
     'heading_data_communication' => 'Communication Data',
     'content_data_communication_purpose' => 'To send messages between users and deliver notifications you\'ve requested.',
     'content_data_communication_items' => 'Direct messages between users, notification preferences, and email delivery records.',
+
+    'heading_data_invitations' => 'Invitation Data',
+    'content_data_invitations_purpose' => 'To allow organizers to invite people to games and campaigns.',
+    'content_data_invitations_items' => 'When you invite someone by email who does not have an account, we store their email address in the participant record. Invitee emails are anonymized 90 days after the game or campaign ends. Recipients can opt out of future invitations at any time via a one-click link in the invitation email.',
+
+    'heading_data_sensitive' => 'Sensitive Data (GDPR Art. 9)',
+    'content_data_sensitive_purpose' => 'Gender is the only special-category data we collect, and only with your explicit consent.',
+    'content_data_sensitive_items' => 'Gender is collected as special-category personal data under GDPR Art. 9(2)(a) with your explicit, informed consent at registration. Providing gender is entirely optional. You may withdraw consent at any time from your profile settings, which will immediately remove your gender data from our records. Gender is never exposed in API responses or shared with third parties.',
 
     'heading_data_technical' => 'Technical & Usage Data',
     'content_data_technical_purpose' => 'To maintain security, diagnose issues, and improve the platform.',
@@ -89,7 +97,7 @@ return [
     // ── Data Retention ─────────────────────────────────
     'heading_data_retention' => 'Data Retention',
     'content_retention_intro' => 'We keep your data only as long as necessary:',
-    'content_retention_account' => 'Account data: Retained while your account is active. Deleted within 30 days of account deletion, unless legal obligations require longer retention.',
+    'content_retention_account' => 'Account data: Retained while your account is active. When you delete your account, your personal data (name, email, profile photo, and other PII) is removed and replaced with anonymized identifiers. Your reviews, game participation history, and campaign contributions are preserved to maintain data integrity for other users. Non-personal operational data may be retained longer where required by law.',
     'content_retention_activity' => 'Activity data: Attendance records and reliability scores are retained for the lifetime of the account to maintain scoring accuracy.',
     'content_retention_analytics' => 'Analytics data: PostHog data is retained for up to 13 months, then automatically deleted.',
     'content_retention_legal' => 'Legal requirements: Financial records and association membership data are retained as required by German law (typically 6–10 years).',

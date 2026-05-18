@@ -32,7 +32,7 @@ return [
         ],
         'analytics' => [
             'required' => false,
-            'default' => true,
+            'default' => false,
             'label_key' => 'cookie-consent.category_analytics_label',
             'description_key' => 'cookie-consent.category_analytics_description',
         ],

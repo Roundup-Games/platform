@@ -32,8 +32,8 @@ return [
     'error_your_account_has_been_disabled' => 'Your account has been disabled.',
 
     // Gender consent (GDPR Art. 9(2)(a))
-    'gender_consent_explanation' => 'I consent to my gender being used to help me discover relevant sessions (e.g., women-only spaces). This is optional — you can change or revoke this at any time in your profile settings.',
-    'gender_consent_revocation_note' => 'If you revoke consent, your gender will no longer be used for session recommendations. You can re-grant consent at any time.',
+    'content_gender_consent_explanation' => 'I consent to my gender being used to help me discover relevant sessions (e.g., women-only spaces). This is optional — you can change or revoke this at any time in your profile settings.',
+    'content_gender_consent_revocation_note' => 'If you revoke consent, your gender will no longer be used for session recommendations. You can re-grant consent at any time.',
 
     // Laravel/Breeze framework authentication messages
     'failed' => 'These credentials do not match our records.',

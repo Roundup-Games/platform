@@ -1,5 +1,13 @@
 <x-public-layout>
 
+    {{-- Legal review banner: shown until a legal professional reviews the text --}}
+    @if(!config('app.legal_text_reviewed', false))
+        <div class="bg-tertiary-container text-on-tertiary-container px-4 py-3 text-center text-sm">
+            <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">info</span>
+            {{ __('common.content_legal_draft_notice', ['date' => config('policies.privacy.last_updated')]) }}
+        </div>
+    @endif
+
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
         <div class="absolute inset-0 opacity-10">
@@ -49,13 +57,15 @@
                     'gaming' => 'data_gaming',
                     'activity' => 'data_activity',
                     'communication' => 'data_communication',
+                    'invitations' => 'data_invitations',
+                    'sensitive' => 'data_sensitive',
                     'technical' => 'data_technical',
                     'payment' => 'data_payment',
                 ] as $key => $prefix)
                     <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                         <h3 class="font-heading font-semibold text-on-surface text-lg mb-1">
                             <span class="material-symbols-outlined text-primary text-lg mr-1 align-middle" aria-hidden="true">
-                                {{ $key === 'account' ? 'person' : ($key === 'location' ? 'location_on' : ($key === 'gaming' ? 'casino' : ($key === 'activity' ? 'event_note' : ($key === 'communication' ? 'mail' : ($key === 'technical' ? 'settings' : 'payment'))))) }}
+                                {{ $key === 'account' ? 'person' : ($key === 'location' ? 'location_on' : ($key === 'gaming' ? 'casino' : ($key === 'activity' ? 'event_note' : ($key === 'communication' ? 'mail' : ($key === 'invitations' ? 'group_add' : ($key === 'sensitive' ? 'shield' : ($key === 'technical' ? 'settings' : 'payment'))))))) }}
                             </span>
                             {{ __('privacy.' . $prefix . '_heading') }}
                         </h3>

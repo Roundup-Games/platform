@@ -72,9 +72,10 @@ describe('ShortLink redirect — valid codes', function () {
 
         Queue::assertPushed(RecordShortLinkHit::class, function (RecordShortLinkHit $job) {
             // IP is hashed in constructor — verify it's a 64-char sha256, not raw
+            // Referer is sanitized to hostname only in constructor for privacy
             return strlen($job->hashedIpAddress) === 64
                 && $job->hashedIpAddress !== '127.0.0.1'
-                && $job->referer === 'https://google.com'
+                && $job->referer === 'google.com'
                 && $job->userAgent === 'Bot/Unknown';
         });
     });

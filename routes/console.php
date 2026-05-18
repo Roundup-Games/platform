@@ -144,3 +144,6 @@ Schedule::command('short-links:prune --days=90')->dailyAt('03:00')->onOneServer(
 
 // Privacy — anonymize invitee_email on participants whose entity ended 90+ days ago
 Schedule::command('anonymize:stale-invite-emails')->weekly()->sundays()->at('04:00')->onOneServer();
+
+// Privacy — prune expired data export ZIPs (older than 7 days)
+Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();

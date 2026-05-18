@@ -226,4 +226,7 @@ return [
     'flash_data_export_requested' => 'Your request has been submitted. You will be notified when your data is ready.',
     'error_data_export_request_pending' => 'You already have a pending data export request.',
     'error_data_export_request_failed' => 'Something went wrong. Please try again or contact support.',
+
+    // Account Deletion
+    'error_account_deletion_failed' => 'Something went wrong while deleting your account. Please try again or contact support.',
 ];

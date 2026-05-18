@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Carbon\Carbon;
 
 class PolicyUpdateNotice extends Component
 {
@@ -17,8 +18,8 @@ class PolicyUpdateNotice extends Component
             return;
         }
 
-        $privacyUpdated = config('policies.privacy.last_updated');
-        $termsUpdated = config('policies.terms.last_updated');
+        $privacyUpdated = Carbon::parse(config('policies.privacy.last_updated'));
+        $termsUpdated = Carbon::parse(config('policies.terms.last_updated'));
 
         $privacyNeedsAccept = $privacyUpdated
             && ($user->privacy_policy_accepted_at === null
@@ -39,18 +40,35 @@ class PolicyUpdateNotice extends Component
             return;
         }
 
-        $user->update([
-            'privacy_policy_accepted_at' => now(),
-            'terms_accepted_at' => now(),
-        ]);
+        $updates = [];
+
+        $privacyUpdated = Carbon::parse(config('policies.privacy.last_updated'));
+        if ($privacyUpdated
+            && ($user->privacy_policy_accepted_at === null
+                || $user->privacy_policy_accepted_at->lt($privacyUpdated))) {
+            $updates['privacy_policy_accepted_at'] = now();
+        }
+
+        $termsUpdated = Carbon::parse(config('policies.terms.last_updated'));
+        if ($termsUpdated
+            && ($user->terms_accepted_at === null
+                || $user->terms_accepted_at->lt($termsUpdated))) {
+            $updates['terms_accepted_at'] = now();
+        }
+
+        if (! empty($updates)) {
+            $user->update($updates);
+        }
 
         $this->showNotice = false;
     }
 
     public function dismiss(): void
     {
-        // Dismiss for this session only — notice reappears on next session
-        session()->flash('policy_notice_dismissed', true);
+        // Persist for the full session (not just one request). Flash data
+        // is consumed on the next request, so wire:navigate would immediately
+        // re-show the notice. session()->put survives until the session ends.
+        session()->put('policy_notice_dismissed', true);
         $this->showNotice = false;
     }
 

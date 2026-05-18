@@ -698,23 +698,30 @@ class ViewTicket extends BaseViewTicket
                 throw new \RuntimeException('Export command failed: '.$output);
             }
 
-            // The command outputs the stored path as the last line
-            $storedPath = $output;
+            // The command outputs info lines followed by the stored path as the last line.
+            // Extract only the final line to avoid including progress messages in the path.
+            $lines = array_filter(explode("\n", $output));
+            $storedPath = end($lines);
 
             if (empty($storedPath) || ! str_starts_with($storedPath, 'exports/')) {
-                throw new \RuntimeException('Export command did not return a valid file path.');
+                throw new \RuntimeException('Export command did not return a valid file path. Output: '.$output);
             }
 
-            // Step 2: Generate a signed download URL (valid for 7 days)
+            // Step 2: Generate a signed download URL with file token (valid for 7 days)
+            // The token binds the URL to this specific export file, preventing stale
+            // signed URLs from serving a different (newer) export.
             $downloadUrl = URL::signedRoute(
                 'export.download',
-                ['user' => $requester->id],
+                [
+                    'user' => $requester->id,
+                    'token' => \App\Http\Controllers\ExportDownloadController::deriveFileToken($storedPath),
+                ],
                 now()->addDays(7),
             );
 
             // Step 3: Create a reply with the download link
             $fileSize = Storage::disk('local')->size($storedPath);
-            $fileSizeFormatted = $this->formatBytes($fileSize);
+            $fileSizeFormatted = format_bytes($fileSize);
 
             $replyBody = "Your data export is ready for download.\n\n"
                 ."**File:** `user-data-{$requester->id}.zip` ({$fileSizeFormatted})\n"
@@ -727,6 +734,12 @@ class ViewTicket extends BaseViewTicket
 
                 // Add internal note with file path for audit
                 $ticketService->addNote($ticket, $admin, "Data export generated. File: {$storedPath}");
+
+                // Store export path in ticket metadata for direct download resolution
+                $ticket->update(['metadata' => array_merge($ticket->metadata ?? [], [
+                    'export_path' => $storedPath,
+                    'export_generated_at' => now()->toIso8601String(),
+                ])]);
 
                 // Resolve the ticket
                 $ticketService->resolve($ticket, $admin);
@@ -772,22 +785,6 @@ class ViewTicket extends BaseViewTicket
                 ->body($e->getMessage())
                 ->send();
         }
-    }
-
-    /**
-     * Format bytes into human-readable size.
-     */
-    protected function formatBytes(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $i = 0;
-
-        while ($bytes >= 1024 && $i < count($units) - 1) {
-            $bytes /= 1024;
-            $i++;
-        }
-
-        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
