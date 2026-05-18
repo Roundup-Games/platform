@@ -42,6 +42,7 @@
     <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.content_update_available')) }}',action:'{{ addslashes(__('pwa.action_update')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireScripts
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}
