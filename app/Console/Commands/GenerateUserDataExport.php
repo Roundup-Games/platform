@@ -367,8 +367,8 @@ class GenerateUserDataExport extends Command
                     'status' => $team->pivot->status,
                     'jersey_number' => $team->pivot->jersey_number,
                     'position' => $team->pivot->position,
-                    'joined_at' => $team->pivot->joined_at,
-                    'left_at' => $team->pivot->left_at,
+                    'joined_at' => $team->pivot->joined_at?->toIso8601String(),
+                    'left_at' => $team->pivot->left_at?->toIso8601String(),
                 ],
             ],
         )->toArray();
@@ -384,7 +384,6 @@ class GenerateUserDataExport extends Command
                 'event_type' => $log->event_type?->value,
                 'subject_type' => $log->subject_type,
                 'subject_id' => $log->subject_id,
-                'properties' => $log->properties,
                 'created_at' => $log->created_at?->toIso8601String(),
             ])
             ->toArray();
