@@ -16,7 +16,7 @@
         window.laravelCookieConsent = (function () {
             const COOKIE_NAME = '{{ $cookieConsentConfig["cookie_name"] }}';
             const COOKIE_LIFETIME = {{ $cookieConsentConfig["cookie_lifetime"] }};
-            const COOKIE_DOMAIN = '{{ config("session.domain") ?? request()->getHost() }}';
+            const COOKIE_DOMAIN = @json(config('session.domain'));
             const categories = @json($jsCategories);
 
             function getConsent() {
@@ -36,7 +36,7 @@
                 const encoded = encodeURIComponent(JSON.stringify(consent));
                 document.cookie = COOKIE_NAME + '=' + encoded
                     + ';expires=' + date.toUTCString()
-                    + ';domain=' + COOKIE_DOMAIN
+                    + (COOKIE_DOMAIN ? ';domain=' + COOKIE_DOMAIN : '')
                     + ';path=/'
                     + (location.protocol === 'https:' ? ';secure' : '')
                     + ';samesite=lax';

@@ -16,6 +16,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use ZipArchive;
 
 class GenerateUserDataExport extends Command
@@ -476,7 +477,7 @@ class GenerateUserDataExport extends Command
 
     protected function createTempDirectory(string $userId): string
     {
-        $tempDir = storage_path('app/tmp/export-'.$userId.'-'.now()->format('Ymd-His'));
+        $tempDir = storage_path('app/tmp/export-'.$userId.'-'.now()->format('Ymd-His').'-'.Str::random(8));
 
         File::ensureDirectoryExists($tempDir);
 
@@ -493,7 +494,7 @@ class GenerateUserDataExport extends Command
 
     protected function createZipArchive(string $sourceDir, User $user): string
     {
-        $zipFilename = 'user-data-'.$user->id.'-'.now()->format('Ymd-His').'.zip';
+        $zipFilename = 'user-data-'.$user->id.'-'.now()->format('Ymd-His').'-'.Str::random(8).'.zip';
         $zipPath = storage_path('app/tmp/'.$zipFilename);
 
         $zip = new ZipArchive;
@@ -522,7 +523,7 @@ class GenerateUserDataExport extends Command
 
     protected function storeZip(string $zipPath, User $user): string
     {
-        $storedName = 'exports/user-data-'.$user->id.'-'.now()->format('Ymd-His').'.zip';
+        $storedName = 'exports/user-data-'.$user->id.'-'.now()->format('Ymd-His').'-'.Str::random(8).'.zip';
 
         $disk = Storage::disk('local');
 

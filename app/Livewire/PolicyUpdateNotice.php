@@ -18,6 +18,12 @@ class PolicyUpdateNotice extends Component
             return;
         }
 
+        $dismissalKey = $this->dismissalKey($user);
+        if (session($dismissalKey)) {
+            $this->showNotice = false;
+            return;
+        }
+
         $privacyUpdated = Carbon::parse(config('policies.privacy.last_updated'));
         $termsUpdated = Carbon::parse(config('policies.terms.last_updated'));
 
@@ -65,20 +71,32 @@ class PolicyUpdateNotice extends Component
 
     public function dismiss(): void
     {
-        // Persist for the full session (not just one request). Flash data
-        // is consumed on the next request, so wire:navigate would immediately
-        // re-show the notice. session()->put survives until the session ends.
-        session()->put('policy_notice_dismissed', true);
+        $user = auth()->user();
+        if ($user) {
+            session()->put($this->dismissalKey($user), true);
+        }
         $this->showNotice = false;
     }
 
     public function render()
     {
-        // Respect session-dismiss for this request cycle
-        if (session('policy_notice_dismissed')) {
+        $user = auth()->user();
+        if ($user && session($this->dismissalKey($user))) {
             $this->showNotice = false;
         }
 
         return view('livewire.policy-update-notice');
+    }
+
+    /**
+     * Build a dismissal key scoped to the user and current policy versions,
+     * so a new policy update re-shows the notice even within the same session.
+     */
+    private function dismissalKey($user): string
+    {
+        $privacyVersion = config('policies.privacy.last_updated', '');
+        $termsVersion = config('policies.terms.last_updated', '');
+
+        return "policy_notice_dismissed.{$user->id}.{$privacyVersion}.{$termsVersion}";
     }
 }

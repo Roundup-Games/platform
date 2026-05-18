@@ -273,7 +273,7 @@ class Show extends Component
             $user->update(['email_verified_at' => null]);
             Log::info('Profile email changed', [
                 'user_id' => $user->id,
-                'new_email' => $validated['email'],
+                'email_changed' => true,
             ]);
         }
 
@@ -555,7 +555,10 @@ class Show extends Component
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
-            $this->addError('delete_password', __('profile.error_account_deletion_failed'));
+            $this->addError(
+                $user->hasPasswordSet() ? 'delete_password' : 'delete_confirmation',
+                __('profile.error_account_deletion_failed'),
+            );
 
             return;
         }
@@ -641,19 +644,6 @@ class Show extends Component
     {
         $user = Auth::user();
 
-        // Prevent duplicate open requests
-        $existingOpen = Ticket::where('requester_type', User::class)
-            ->where('requester_id', $user->id)
-            ->where('ticket_type', 'data_export_request')
-            ->open()
-            ->exists();
-
-        if ($existingOpen) {
-            $this->addError('dataExport', __('profile.error_data_export_request_pending'));
-
-            return;
-        }
-
         $department = Department::where('name', 'Account Support')->first();
         if (! $department) {
             Log::error('profile.data_export_department_missing');
@@ -662,21 +652,50 @@ class Show extends Component
             return;
         }
 
-        $ticket = Ticket::create([
-            'requester_type' => User::class,
-            'requester_id' => $user->id,
-            'subject' => "Data Export Request — {$user->name}",
-            'description' => 'User requested a full data export via profile settings.',
-            'status' => TicketStatus::Open->value,
-            'priority' => TicketPriority::Medium->value,
-            'department_id' => $department->id,
-            'ticket_type' => 'data_export_request',
-            'channel' => TicketChannel::Web->value,
-            'metadata' => [
-                'source' => 'profile_settings',
+        try {
+            $ticket = DB::transaction(function () use ($user, $department) {
+                $existing = Ticket::where('requester_type', User::class)
+                    ->where('requester_id', $user->id)
+                    ->where('ticket_type', 'data_export_request')
+                    ->open()
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    return null;
+                }
+
+                return Ticket::create([
+                    'requester_type' => User::class,
+                    'requester_id' => $user->id,
+                    'subject' => "Data Export Request — {$user->name}",
+                    'description' => 'User requested a full data export via profile settings.',
+                    'status' => TicketStatus::Open->value,
+                    'priority' => TicketPriority::Medium->value,
+                    'department_id' => $department->id,
+                    'ticket_type' => 'data_export_request',
+                    'channel' => TicketChannel::Web->value,
+                    'metadata' => [
+                        'source' => 'profile_settings',
+                        'user_id' => $user->id,
+                    ],
+                ]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('profile.data_export_create_failed', [
                 'user_id' => $user->id,
-            ],
-        ]);
+                'error' => $e->getMessage(),
+            ]);
+            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
+
+            return;
+        }
+
+        if ($ticket === null) {
+            $this->addError('dataExport', __('profile.error_data_export_request_pending'));
+
+            return;
+        }
 
         $this->hasPendingExportRequest = true;
 

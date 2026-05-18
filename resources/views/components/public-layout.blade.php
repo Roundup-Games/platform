@@ -246,7 +246,9 @@
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
                         <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_terms') }}</a>
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
-                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
+                        @if(config('cookie-consent.enabled'))
+                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
+                        @endif
                     </div>
                     <p>&copy; {{ date('Y') }} {{ config('company.legal_name') }}</p>
                 </div>

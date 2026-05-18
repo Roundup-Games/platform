@@ -17,18 +17,20 @@
                 <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('common.heading_policy_update') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_policy_update_body') }}</p>
                 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <a href="{{ route('privacy') }}" target="_blank" class="text-primary hover:underline font-medium">{{ __('common.content_policy_update_privacy_link') }}</a>
+                    <a href="{{ route('privacy') }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-medium">{{ __('common.content_policy_update_privacy_link') }}</a>
                     <span class="text-on-surface-variant/40" aria-hidden="true">·</span>
-                    <a href="{{ route('terms') }}" target="_blank" class="text-primary hover:underline font-medium">{{ __('common.content_policy_update_terms_link') }}</a>
+                    <a href="{{ route('terms') }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-medium">{{ __('common.content_policy_update_terms_link') }}</a>
                 </div>
                 <div class="mt-3 flex items-center gap-3">
                     <button
+                        type="button"
                         wire:click="accept"
                         class="px-4 py-2 text-sm font-semibold rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                         {{ __('common.action_accept') }}
                     </button>
                     <button
+                        type="button"
                         wire:click="dismiss"
                         class="px-4 py-2 text-sm font-medium rounded-xl text-on-surface-variant hover:bg-surface-container-highest transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
