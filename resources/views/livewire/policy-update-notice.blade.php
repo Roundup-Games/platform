@@ -12,7 +12,7 @@
      x-cloak>
     <div class="bg-surface-container-high border border-outline-variant/20 rounded-2xl shadow-xl p-5 mx-4">
         <div class="flex items-start gap-3">
-            <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">policy</span>
+            <span class="material-symbols-outlined text-primary text-xl mt-0.5 shrink-0" aria-hidden="true">gavel</span>
             <div class="flex-1 min-w-0">
                 <h3 class="font-heading text-sm font-semibold text-on-surface">{{ __('common.heading_policy_update') }}</h3>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('common.content_policy_update_body') }}</p>

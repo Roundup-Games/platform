@@ -65,7 +65,7 @@
                     <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                         <h3 class="font-heading font-semibold text-on-surface text-lg mb-1">
                             <span class="material-symbols-outlined text-primary text-lg mr-1 align-middle" aria-hidden="true">
-                                {{ $key === 'account' ? 'person' : ($key === 'location' ? 'location_on' : ($key === 'gaming' ? 'casino' : ($key === 'activity' ? 'event_note' : ($key === 'communication' ? 'mail' : ($key === 'invitations' ? 'group_add' : ($key === 'sensitive' ? 'shield' : ($key === 'technical' ? 'settings' : 'payment'))))))) }}
+                                {{ $key === 'account' ? 'person' : ($key === 'location' ? 'location_on' : ($key === 'gaming' ? 'casino' : ($key === 'activity' ? 'event_note' : ($key === 'communication' ? 'mail' : ($key === 'invitations' ? 'group_add' : ($key === 'sensitive' ? 'shield' : ($key === 'technical' ? 'settings' : 'account_balance_wallet'))))))) }}
                             </span>
                             {{ __('privacy.heading_' . $prefix) }}
                         </h3>
@@ -110,7 +110,7 @@
                     <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_necessary') }}</span>
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">analytics</span>
+                    <span class="material-symbols-outlined text-primary text-xl mt-0.5 flex-shrink-0" aria-hidden="true">monitoring</span>
                     <span class="text-on-surface-variant leading-relaxed">{{ __('privacy.content_cookies_analytics') }}</span>
                 </div>
             </div>

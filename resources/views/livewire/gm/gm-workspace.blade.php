@@ -331,7 +331,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 text-xs text-on-surface-variant ml-2 shrink-0">
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true">touch_app</span>
+                                <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
                                 {{ number_format($link->hit_count ?? 0) }}
                             </div>
                         </div>
