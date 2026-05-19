@@ -14,20 +14,23 @@ if [ "${DB_CONNECTION}" = "pgsql" ] && [ -n "${DB_HOST}" ]; then
     echo "Database ready."
 fi
 
-# Generate app key if not set — persist to .env so it survives restarts
+# Ensure APP_KEY is set — generate if missing, persist to .env file
+# The .env file is needed so artisan commands via `docker exec` can find it
+# (docker exec does NOT inherit S6's envdir — only docker-compose env_file vars)
 if [ -z "${APP_KEY}" ]; then
     echo "Generating APP_KEY..."
     GENERATED_KEY=$(php artisan key:generate --show)
     export APP_KEY="${GENERATED_KEY}"
+else
+    GENERATED_KEY="${APP_KEY}"
+fi
 
-    # Write to .env file so the key persists across container restarts
-    if [ -f .env ]; then
-        if grep -q '^APP_KEY=' .env; then
-            sed -i "s|^APP_KEY=.*|APP_KEY=${GENERATED_KEY}|" .env
-        else
-            echo "APP_KEY=${GENERATED_KEY}" >> .env
-        fi
-    fi
+# Write APP_KEY to .env file so docker exec sessions can use it
+touch .env
+if grep -q '^APP_KEY=' .env; then
+    sed -i "s|^APP_KEY=.*|APP_KEY=${GENERATED_KEY}|" .env
+else
+    echo "APP_KEY=${GENERATED_KEY}" >> .env
 fi
 
 # Run migrations
