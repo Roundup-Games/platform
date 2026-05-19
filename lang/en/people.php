@@ -51,6 +51,12 @@ return [
     'action_send_invite' => 'Send Invite',
     'content_pending_account_creation' => 'Pending account creation',
 
+    // Invite section hints
+    'content_invite_section_hint' => 'Add players to your session using one of the methods below.',
+    'content_invite_from_friends' => 'Search Your Friends',
+    'content_invite_friends_hint' => 'Select people you already follow. They\'ll get an in-app notification.',
+    'content_invite_email_hint' => 'Enter an email to invite someone new. They\'ll receive an email with a link to join.',
+
     'flash_email_invite_waitlisted' => 'Game is full — invitee added to waitlist.',
     'flash_email_invite_benched' => 'Session is full — invitee added to bench.',
     'flash_accepted_waitlisted' => 'Game is full — you\'ve been added to the waitlist and will be notified when a spot opens.',

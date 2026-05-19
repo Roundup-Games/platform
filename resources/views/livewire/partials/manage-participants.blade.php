@@ -41,60 +41,73 @@
 
         {{-- Invite Form --}}
         <section class="bg-surface-container-low rounded-xl shadow-ambient p-6 overflow-visible">
-            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+            <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-1 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">person_add</span>
                 {{ __('teams.content_invite_player') }}
             </h2>
+            <p class="text-sm text-on-surface-variant mb-5">{{ __('people.content_invite_section_hint') }}</p>
 
-            <form wire:submit="inviteParticipants" class="space-y-4">
-                <div>
-                    <livewire:components.friend-search
-                        :selected-ids="$selectedFriendIds"
-                    />
-                    @error('selectedFriendIds')
-                        <p class="mt-1 text-sm text-error">{{ $message }}</p>
-                    @enderror
+            {{-- Method 1: Search Friends --}}
+            <div class="rounded-lg bg-surface-container p-4 ring-1 ring-outline-variant/20">
+                <div class="flex items-center gap-2 mb-2.5">
+                    <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">group</span>
+                    <h3 class="text-sm font-semibold text-on-surface">{{ __('people.content_invite_from_friends') }}</h3>
                 </div>
+                <p class="text-xs text-on-surface-variant mb-3">{{ __('people.content_invite_friends_hint') }}</p>
 
-                {{-- Divider --}}
-                <div class="relative flex items-center my-4">
-                    <div class="flex-grow border-t border-outline-variant/30"></div>
-                    <span class="flex-shrink mx-3 text-xs text-on-surface-variant uppercase tracking-wider">{{ __('common.content_or') }}</span>
-                    <div class="flex-grow border-t border-outline-variant/30"></div>
-                </div>
-
-                {{-- Email invite --}}
-                <div>
-                    <label for="invite-email" class="block text-sm font-medium text-on-surface mb-1">
-                        {{ __('people.field_invite_by_email') }}
-                    </label>
-                    <div class="flex gap-2">
-                        <input
-                            type="email"
-                            id="invite-email"
-                            wire:model="inviteEmail"
-                            class="flex-1 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-                            placeholder="{{ __('people.placeholder_enter_email_address') }}"
-                            autocomplete="off"
+                <form wire:submit="inviteParticipants" class="space-y-3">
+                    <div>
+                        <livewire:components.friend-search
+                            :selected-ids="$selectedFriendIds"
                         />
-                        <button type="button"
-                            wire:click="inviteByEmail"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
-                            <span class="material-symbols-outlined text-base" aria-hidden="true">mail</span>
-                            {{ __('people.action_send_invite') }}
-                        </button>
+                        @error('selectedFriendIds')
+                            <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                        @enderror
                     </div>
-                    @error('inviteEmail')
-                        <p class="mt-1 text-sm text-error">{{ $message }}</p>
-                    @enderror
-                </div>
 
-                <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
-                    <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
-                    {{ __('teams.field_send_invite') }}
-                </button>
-            </form>
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                        {{ __('teams.field_send_invite') }}
+                    </button>
+                </form>
+            </div>
+
+            {{-- Divider --}}
+            <div class="relative flex items-center my-5">
+                <div class="flex-grow border-t border-outline-variant/30"></div>
+                <span class="flex-shrink mx-3 text-xs text-on-surface-variant uppercase tracking-wider">{{ __('common.content_or') }}</span>
+                <div class="flex-grow border-t border-outline-variant/30"></div>
+            </div>
+
+            {{-- Method 2: Email invite --}}
+            <div class="rounded-lg bg-surface-container p-4 ring-1 ring-outline-variant/20">
+                <div class="flex items-center gap-2 mb-2.5">
+                    <span class="material-symbols-outlined text-lg text-tertiary" aria-hidden="true">mail</span>
+                    <h3 class="text-sm font-semibold text-on-surface">{{ __('people.field_invite_by_email') }}</h3>
+                </div>
+                <p class="text-xs text-on-surface-variant mb-3">{{ __('people.content_invite_email_hint') }}</p>
+
+                <div class="flex gap-2">
+                    <input
+                        type="email"
+                        id="invite-email"
+                        wire:model="inviteEmail"
+                        class="flex-1 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+                        placeholder="{{ __('people.placeholder_enter_email_address') }}"
+                        autocomplete="off"
+                    />
+                    <button type="button"
+                        wire:click="inviteByEmail"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-tertiary text-on-tertiary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">mail</span>
+                        {{ __('people.action_send_invite') }}
+                    </button>
+                </div>
+                @error('inviteEmail')
+                    <p class="mt-1 text-sm text-error">{{ $message }}</p>
+                @enderror
+            </div>
         </section>
 
         {{-- Approved Participants --}}
