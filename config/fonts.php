@@ -90,6 +90,7 @@ return [
         // Social platform icons
         'photo_camera', 'smart_display', 'music_note', 'alternate_email',
         'cloud', 'card_membership', 'local_cafe', 'games', 'videocam',
+        'tag',
     ],
 
     /*
