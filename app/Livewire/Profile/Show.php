@@ -3,7 +3,6 @@
 namespace App\Livewire\Profile;
 
 use App\Enums\ContentLanguage;
-use App\Enums\NotificationCategory;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
@@ -11,21 +10,12 @@ use App\Models\User;
 use App\Rules\ValidUserName;
 use App\Services\DashboardCacheService;
 use App\Services\GmSocialLinkService;
-use App\Services\ProfileVisibilityResolver;
-use App\Services\UserAnonymizationService;
-use Escalated\Laravel\Enums\TicketChannel;
-use Escalated\Laravel\Enums\TicketPriority;
-use Escalated\Laravel\Enums\TicketStatus;
-use Escalated\Laravel\Models\Department;
-use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -56,9 +46,6 @@ class Show extends Component
 
     public ?string $locationId = null;
 
-    #[Locked]
-    public bool $userHasPassword;
-
     /** @var array<int> */
     public array $favoriteGameSystemIds = [];
 
@@ -71,42 +58,11 @@ class Show extends Component
     #[Validate(['nullable', 'image', 'max:1024'])]
     public $avatar;
 
-    // Password fields
-    public string $current_password = '';
-
-    public string $password = '';
-
-    public string $password_confirmation = '';
-
-    public bool $showPasswordForm = false;
-
-    // Account deletion
-    public bool $showDeleteForm = false;
-
-    public string $delete_password = '';
-
-    public string $delete_confirmation = '';
-
-    #[Locked]
-    public bool $hasPendingExportRequest = false;
-
-    /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
-    public array $privacySettings = [];
-
-    /** @var array<string, array{database: bool, mail: bool, push: bool}> Per-category notification channel preferences */
-    public array $notificationSettings = [];
-
     public bool $saved = false;
 
     public bool $preferencesSaved = false;
 
-    public bool $privacySaved = false;
-
-    public bool $notificationSaved = false;
-
     public bool $socialLinksSaved = false;
-
-    public int $pushSubscriptionCount = 0;
 
     /** @var array<string, array{handle: string, instance?: string}> Per-platform social link data */
     public array $socialLinks = [];
@@ -127,7 +83,6 @@ class Show extends Component
         $this->preferredLanguage = $user->preferred_language?->value ?? '';
         $this->bio = $user->bio ?? '';
         $this->locationId = $user->location_id;
-        $this->userHasPassword = $user->hasPasswordSet();
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
             ->wherePivot('preference_type', 'favorite')
             ->pluck('game_systems.id')
@@ -142,28 +97,6 @@ class Show extends Component
             return [$pref->vibe_preference_value->value => $pref->preference_type];
         })->toArray();
 
-        // Initialize privacy settings with defaults for unset fields
-        $storedSettings = $user->privacy_settings ?? [];
-        foreach (ProfileVisibilityResolver::FIELDS as $field) {
-            $default = $field === 'location' ? 'everyone' : 'friends';
-            $this->privacySettings[$field] = $storedSettings[$field] ?? $default;
-        }
-
-        // Initialize notification settings from stored preferences or defaults
-        $storedNotifications = $user->notification_settings ?? [];
-        $defaults = NotificationCategory::defaultSettings();
-        foreach (NotificationCategory::cases() as $category) {
-            $key = $category->value;
-            $this->notificationSettings[$key] = [
-                'database' => $storedNotifications[$key]['database'] ?? $defaults[$key]['database'],
-                'mail' => $storedNotifications[$key]['mail'] ?? $defaults[$key]['mail'],
-                'push' => $storedNotifications[$key]['push'] ?? ($defaults[$key]['push'] ?? false),
-            ];
-        }
-
-        // Count existing push subscriptions for the subscribe/unsubscribe UI
-        $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
-
         // Load social links for GMs
         $this->platforms = collect(config('platforms'))
             ->sortBy('sort_order')
@@ -172,13 +105,6 @@ class Show extends Component
         if ($user->isGM()) {
             $this->loadSocialLinks($user);
         }
-
-        // Check if user has a pending data export request ticket
-        $this->hasPendingExportRequest = Ticket::where('requester_type', User::class)
-            ->where('requester_id', $user->id)
-            ->where('ticket_type', 'data_export_request')
-            ->open()
-            ->exists();
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -251,7 +177,7 @@ class Show extends Component
             Log::info('Gender consent status changed', [
                 'user_id' => $user->id,
                 'consent_given' => $newConsent,
-                'gender_cleared' => $previousConsent && !$newConsent,
+                'gender_cleared' => $previousConsent && ! $newConsent,
             ]);
         }
 
@@ -409,166 +335,12 @@ class Show extends Component
         $this->preferencesSaved = true;
     }
 
-    public function savePrivacySettings(): void
-    {
-        $user = Auth::user();
-
-        $validated = $this->validate([
-            'privacySettings' => ['required', 'array'],
-            'privacySettings.*' => ['required', 'string', 'in:everyone,friends,nobody'],
-        ]);
-
-        // Only store fields that are part of the known FIELDS constant
-        $settings = [];
-        foreach (ProfileVisibilityResolver::FIELDS as $field) {
-            $settings[$field] = $validated['privacySettings'][$field] ?? 'everyone';
-        }
-
-        $user->update(['privacy_settings' => $settings]);
-
-        Log::info('Privacy settings updated', [
-            'user_id' => $user->id,
-            'settings' => $settings,
-        ]);
-
-        $this->privacySaved = true;
-    }
-
-    public function saveNotificationSettings(): void
-    {
-        $user = Auth::user();
-
-        $validated = $this->validate([
-            'notificationSettings' => ['required', 'array'],
-            'notificationSettings.*' => ['required', 'array'],
-            'notificationSettings.*.database' => ['required', 'boolean'],
-            'notificationSettings.*.mail' => ['required', 'boolean'],
-            'notificationSettings.*.push' => ['nullable', 'boolean'],
-        ]);
-
-        // Ensure every known category is present with all three channels
-        $settings = [];
-        $allValues = NotificationCategory::values();
-        foreach ($allValues as $categoryValue) {
-            $entry = $validated['notificationSettings'][$categoryValue] ?? ['database' => true, 'mail' => false, 'push' => false];
-            $settings[$categoryValue] = [
-                'database' => (bool) ($entry['database'] ?? true),
-                'mail' => (bool) ($entry['mail'] ?? false),
-                'push' => (bool) ($entry['push'] ?? false),
-            ];
-        }
-
-        $user->update(['notification_settings' => $settings]);
-
-        // Refresh push subscription count
-        $this->pushSubscriptionCount = $user->pushSubscriptions()->count();
-
-        Log::info('Notification settings updated', [
-            'user_id' => $user->id,
-        ]);
-
-        $this->notificationSaved = true;
-    }
-
-    public function changePassword(): void
-    {
-        $user = Auth::user();
-
-        if ($user->hasPasswordSet()) {
-            // Existing password — must confirm current
-            $this->validate([
-                'current_password' => ['required', 'string'],
-                'password' => ['required', 'string', 'min:8', 'confirmed'],
-            ]);
-
-            if (! Hash::check($this->current_password, $user->password)) {
-                Log::warning('Password change failed: incorrect current password', [
-                    'user_id' => $user->id,
-                ]);
-
-                $this->addError('current_password', 'The provided password is incorrect.');
-
-                return;
-            }
-        } else {
-            // No password set (OAuth user) — just set a new one
-            $this->validate([
-                'password' => ['required', 'string', 'min:8', 'confirmed'],
-            ]);
-        }
-
-        $user->update([
-            'password' => Hash::make($this->password),
-            'password_set_at' => now(),
-        ]);
-
-        $this->userHasPassword = true;
-
-        Log::info('Password changed', [
-            'user_id' => $user->id,
-            'had_password_before' => $user->getOriginal('password_set_at') !== null,
-        ]);
-
-        $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
-        session()->flash('password_updated', __('auth.flash_password_updated_successfully'));
-    }
-
     public function removeAvatar(): void
     {
         $user = Auth::user();
         $user->clearMediaCollection('avatar');
 
         Log::info('Avatar removed', ['user_id' => $user->id]);
-    }
-
-    public function deleteAccount(): void
-    {
-        $user = Auth::user();
-
-        if ($user->hasPasswordSet()) {
-            $this->validate([
-                'delete_password' => ['required', 'string'],
-            ]);
-
-            if (! Hash::check($this->delete_password, $user->password)) {
-                $this->addError('delete_password', 'The provided password is incorrect.');
-
-                return;
-            }
-        } else {
-            $this->validate([
-                'delete_confirmation' => ['required', 'string', 'in:DELETE'],
-            ], [
-                'delete_confirmation.in' => __('profile.content_please_type_delete_to_confirm_account_deletion'),
-            ]);
-        }
-
-        Log::info('Account anonymization initiated by user', [
-            'user_id' => $user->id,
-            'had_password' => $user->hasPasswordSet(),
-        ]);
-
-        try {
-            app(UserAnonymizationService::class)->anonymize($user);
-        } catch (\Throwable $e) {
-            Log::error('Account anonymization failed from profile UI', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-            $this->addError(
-                $user->hasPasswordSet() ? 'delete_password' : 'delete_confirmation',
-                __('profile.error_account_deletion_failed'),
-            );
-
-            return;
-        }
-
-        Auth::logout();
-
-        session()->invalidate();
-        session()->regenerateToken();
-
-        $this->redirect('/', navigate: false);
     }
 
     /**
@@ -637,84 +409,12 @@ class Show extends Component
         }
     }
 
-    /**
-     * Submit a data export request ticket from profile settings.
-     */
-    public function requestExport(): void
-    {
-        $user = Auth::user();
-
-        $department = Department::where('name', 'Account Support')->first();
-        if (! $department) {
-            Log::error('profile.data_export_department_missing');
-            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
-
-            return;
-        }
-
-        try {
-            $ticket = DB::transaction(function () use ($user, $department) {
-                $existing = Ticket::where('requester_type', User::class)
-                    ->where('requester_id', $user->id)
-                    ->where('ticket_type', 'data_export_request')
-                    ->open()
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existing) {
-                    return null;
-                }
-
-                return Ticket::create([
-                    'requester_type' => User::class,
-                    'requester_id' => $user->id,
-                    'subject' => "Data Export Request — {$user->name}",
-                    'description' => 'User requested a full data export via profile settings.',
-                    'status' => TicketStatus::Open->value,
-                    'priority' => TicketPriority::Medium->value,
-                    'department_id' => $department->id,
-                    'ticket_type' => 'data_export_request',
-                    'channel' => TicketChannel::Web->value,
-                    'metadata' => [
-                        'source' => 'profile_settings',
-                        'user_id' => $user->id,
-                    ],
-                ]);
-            });
-        } catch (\Throwable $e) {
-            Log::error('profile.data_export_create_failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
-
-            return;
-        }
-
-        if ($ticket === null) {
-            $this->addError('dataExport', __('profile.error_data_export_request_pending'));
-
-            return;
-        }
-
-        $this->hasPendingExportRequest = true;
-
-        Log::info('profile.data_export_requested', [
-            'ticket_id' => $ticket->id,
-            'ticket_reference' => $ticket->reference,
-            'user_id' => $user->id,
-        ]);
-
-        session()->flash('data_export_requested', __('profile.flash_data_export_requested'));
-    }
-
     public function render()
     {
         $user = Auth::user();
         $locationRecord = $this->locationId ? Location::find($this->locationId) : null;
 
         return view('livewire.profile.show', [
-            'linkedAccounts' => $user->linkedAccounts()->get(),
             'currentLocation' => $locationRecord,
             'avatarMedia' => $user->getFirstMedia('avatar'),
         ]);

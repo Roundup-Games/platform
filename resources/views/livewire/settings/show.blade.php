@@ -1,24 +1,22 @@
-<div class="py-6 sm:py-8" x-data="profileTabs()" x-init="init()">
+@section('title', __('profile.content_settings'))
+
+<div class="py-6 sm:py-8" x-data="settingsTabs()" x-init="init()">
 
     {{-- Page Header --}}
     <div class="max-w-2xl mx-auto mb-6">
-        <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('profile.content_my_profile') }}</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">{{ __('profile.action_manage_your_profile_and_preferences') }}</p>
+        <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('profile.content_settings') }}</h1>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('profile.action_manage_privacy_notifications_accounts') }}</p>
     </div>
 
     {{-- Tab Navigation --}}
     <div class="max-w-2xl mx-auto mb-6 sm:mb-8">
-        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Profile sections">
+        <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="Settings sections">
             @php
                 $tabConfig = [
-                    'profile' => ['label' => __('profile.field_avatar'), 'icon' => 'person'],
-                    'preferences' => ['label' => __('games.content_game_preferences'), 'icon' => 'casino'],
+                    'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],
+                    'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
+                    'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
                 ];
-
-                // GM Profile tab — only visible to GMs
-                if (Auth::user()->isGM()) {
-                    $tabConfig['gm_profile'] = ['label' => __('profile.field_gm_profile'), 'icon' => 'person_play'];
-                }
             @endphp
             @foreach($tabConfig as $tabId => $tab)
                 <button
@@ -52,13 +50,13 @@
         @endif
 
         {{-- ============================================================ --}}
-        {{-- TAB: Profile --}}
+        {{-- TAB: Privacy --}}
         {{-- ============================================================ --}}
-        <div x-show="activeTab === 'profile'" x-transition:enter="transition ease-out duration-200"
+        <div x-show="activeTab === 'privacy'" x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-             role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
+             role="tabpanel" id="panel-privacy" aria-labelledby="tab-privacy">
 
-            @if($saved)
+            @if($privacySaved)
                 <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
                      class="rounded-lg bg-secondary-container p-4 mb-6" role="status" aria-live="polite">
                     <p class="text-sm text-on-secondary-container flex items-center gap-2">
@@ -68,10 +66,8 @@
                 </div>
             @endif
 
-            @include('livewire.profile.partials._avatar-upload')
-
-            <form wire:submit="saveProfile" class="space-y-6">
-                @include('livewire.profile.partials._personal-info')
+            <form wire:submit="savePrivacySettings" class="space-y-6">
+                @include('livewire.profile.partials._privacy-form')
 
                 {{-- Save --}}
                 <div class="flex justify-end">
@@ -89,25 +85,24 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- TAB: Preferences --}}
+        {{-- TAB: Notifications --}}
         {{-- ============================================================ --}}
-        <div x-show="activeTab === 'preferences'" x-transition:enter="transition ease-out duration-200"
+        <div x-show="activeTab === 'notifications'" x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-             role="tabpanel" id="panel-preferences" aria-labelledby="tab-preferences">
+             role="tabpanel" id="panel-notifications" aria-labelledby="tab-notifications">
 
-            @if($preferencesSaved)
+            @if($notificationSaved)
                 <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 3000)"
                      class="rounded-lg bg-secondary-container p-4 mb-6" role="status" aria-live="polite">
                     <p class="text-sm text-on-secondary-container flex items-center gap-2">
                         <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
-                        {{ __('profile.flash_profile_updated_successfully') }}
+                        {{ __('notifications.flash_notification_preferences_saved') }}
                     </p>
                 </div>
             @endif
 
-            <form wire:submit="savePreferences" class="space-y-6">
-                @include('livewire.profile.partials._game-system-preferences')
-                @include('livewire.profile.partials._vibe-preferences')
+            <form wire:submit="saveNotificationSettings" class="space-y-6">
+                @include('livewire.profile.partials._notification-form')
 
                 {{-- Save --}}
                 <div class="flex justify-end">
@@ -125,16 +120,67 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- TAB: GM Profile (GM only) --}}
+        {{-- TAB: Account (Linked Accounts, Privacy & Data, Password, Danger Zone) --}}
         {{-- ============================================================ --}}
-        @if(Auth::user()->isGM())
-        <div x-show="activeTab === 'gm_profile'" x-transition:enter="transition ease-out duration-200"
+        <div x-show="activeTab === 'account'" x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-             role="tabpanel" id="panel-gm_profile" aria-labelledby="tab-gm_profile">
+             role="tabpanel" id="panel-account" aria-labelledby="tab-account">
 
-            @include('livewire.profile.partials._gm-profile-tab')
+            <div class="space-y-6">
+                @include('livewire.profile.partials._linked-accounts')
+
+                {{-- Privacy & Data: Data Export Request --}}
+                <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface mb-2 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">shield</span>
+                        {{ __('profile.title_privacy_and_data') }}
+                    </h2>
+                    <p class="text-sm text-on-surface-variant mb-4">
+                        {{ __('profile.content_request_your_data_description') }}
+                    </p>
+
+                    @if(session()->has('data_export_requested'))
+                        <div class="rounded-lg bg-secondary-container p-4 mb-4" role="status" aria-live="polite">
+                            <p class="text-sm text-on-secondary-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">check_circle</span>
+                                {{ session('data_export_requested') }}
+                            </p>
+                        </div>
+                    @endif
+
+                    @error('dataExport')
+                        <div class="rounded-lg bg-error-container p-4 mb-4" role="alert">
+                            <p class="text-sm text-on-error-container flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">error</span>
+                                {{ $message }}
+                            </p>
+                        </div>
+                    @enderror
+
+                    @if($hasPendingExportRequest)
+                        <div class="rounded-lg bg-surface-container-high p-4 flex items-center gap-3">
+                            <span class="material-symbols-outlined text-lg text-on-surface-variant animate-spin" aria-hidden="true">progress_activity</span>
+                            <p class="text-sm text-on-surface-variant">
+                                {{ __('profile.content_data_export_pending') }}
+                            </p>
+                        </div>
+                    @else
+                        <button wire:click="requestExport" wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-high transition-colors text-sm font-medium">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">download</span>
+                            <span wire:loading.remove>{{ __('profile.action_request_my_data') }}</span>
+                            <span wire:loading class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
+                                {{ __('common.content_saving') }}
+                            </span>
+                        </button>
+                    @endif
+                </section>
+
+                @include('livewire.profile.partials._password-form')
+                @include('livewire.profile.partials._danger-zone')
+            </div>
         </div>
-        @endif
 
     </div>{{-- /max-w-2xl --}}
 </div>

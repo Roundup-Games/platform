@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\Profile\Show;
+use App\Livewire\Settings\Show as SettingsShow;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
@@ -93,7 +94,7 @@ it('can change password with correct current password', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('current_password', 'password')
         ->set('password', 'newpassword123')
         ->set('password_confirmation', 'newpassword123')
@@ -110,7 +111,7 @@ it('rejects password change with incorrect current password', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('current_password', 'wrongpassword')
         ->set('password', 'newpassword123')
         ->set('password_confirmation', 'newpassword123')
@@ -124,7 +125,7 @@ it('OAuth user can set a password without confirming current', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->assertSet('userHasPassword', false)
         ->set('password', 'mynewpassword1')
         ->set('password_confirmation', 'mynewpassword1')
@@ -139,7 +140,7 @@ it('OAuth user password set updates userHasPassword to true', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     $component = Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->assertSet('userHasPassword', false)
         ->set('password', 'mynewpassword1')
         ->set('password_confirmation', 'mynewpassword1')
@@ -157,7 +158,7 @@ it('user with password can anonymize account with correct password', function ()
     ]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_password', 'password')
         ->call('deleteAccount');
 
@@ -172,7 +173,7 @@ it('user with password cannot delete account with wrong password', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_password', 'wrongpassword')
         ->call('deleteAccount')
         ->assertHasErrors(['delete_password']);
@@ -187,7 +188,7 @@ it('user with password must provide password to delete', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_password', '')
         ->call('deleteAccount')
         ->assertHasErrors(['delete_password']);
@@ -199,7 +200,7 @@ it('OAuth user can anonymize account by typing DELETE', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_confirmation', 'DELETE')
         ->call('deleteAccount');
 
@@ -211,7 +212,7 @@ it('OAuth user cannot delete account with wrong confirmation text', function () 
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_confirmation', 'delete')
         ->call('deleteAccount')
         ->assertHasErrors(['delete_confirmation']);
@@ -223,7 +224,7 @@ it('OAuth user cannot delete account with empty confirmation', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
-        ->test(Show::class)
+        ->test(SettingsShow::class)
         ->set('delete_confirmation', '')
         ->call('deleteAccount')
         ->assertHasErrors(['delete_confirmation']);
@@ -602,7 +603,7 @@ describe('Privacy Settings', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->assertSet('privacySettings', [
                 'location' => 'everyone',
                 'game_systems' => 'friends',
@@ -628,7 +629,7 @@ describe('Privacy Settings', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->assertSet('privacySettings.location', 'nobody')
             ->assertSet('privacySettings.game_systems', 'friends')
             ->assertSet('privacySettings.vibes', 'everyone')
@@ -647,7 +648,7 @@ describe('Privacy Settings', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->assertSet('privacySettings.location', 'nobody')
             ->assertSet('privacySettings.friends_list', 'friends')
             // Fields not in the stored settings should default to 'friends' (location → 'everyone')
@@ -674,7 +675,7 @@ describe('Privacy Settings', function () {
         ];
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->set('privacySettings', $newSettings)
             ->call('savePrivacySettings')
             ->assertSet('privacySaved', true);
@@ -696,7 +697,7 @@ describe('Privacy Settings', function () {
             }));
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->set('privacySettings', [
                 'location' => 'nobody',
                 'game_systems' => 'friends',
@@ -715,7 +716,7 @@ describe('Privacy Settings', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->set('privacySettings', [
                 'location' => 'invalid_value',
                 'game_systems' => 'friends',
@@ -735,7 +736,7 @@ describe('Privacy Settings', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(Show::class)
+            ->test(SettingsShow::class)
             ->set('privacySettings', [
                 'location' => 'everyone',
                 'game_systems' => 'friends',
@@ -755,14 +756,14 @@ describe('Privacy Settings', function () {
         ]);
     });
 
-    it('renders privacy settings section on the profile page', function () {
+    it('renders privacy settings section on the settings page', function () {
         $user = User::factory()->create([
             'profile_complete' => true,
             'privacy_settings' => null,
         ]);
 
         $this->actingAs($user)
-            ->get(route('profile.show'))
+            ->get(route('settings.show'))
             ->assertOk()
             ->assertSee('Privacy Settings')
             ->assertSee('Everyone')

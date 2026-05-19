@@ -24,7 +24,7 @@ beforeEach(function () {
 describe('Profile Data Export Request', function () {
     it('creates a data_export_request ticket from profile', function () {
         $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Profile\Show::class);
+            ->test(\App\Livewire\Settings\Show::class);
 
         $component->call('requestExport');
         $component->assertHasNoErrors();
@@ -38,13 +38,13 @@ describe('Profile Data Export Request', function () {
             ->and($ticket->department_id)->toBe($this->accountSupportDept->id)
             ->and($ticket->priority)->toBe(TicketPriority::Medium)
             ->and($ticket->channel)->toBe(TicketChannel::Web)
-            ->and($ticket->metadata['source'])->toBe('profile_settings')
+            ->and($ticket->metadata['source'])->toBe('settings')
             ->and($ticket->metadata['user_id'])->toBe($this->user->id);
     });
 
     it('prevents duplicate open export requests', function () {
         $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Profile\Show::class);
+            ->test(\App\Livewire\Settings\Show::class);
         $component->call('requestExport');
         $component->assertHasNoErrors();
 
@@ -61,7 +61,7 @@ describe('Profile Data Export Request', function () {
 
     it('allows new request after existing one is resolved', function () {
         $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Profile\Show::class);
+            ->test(\App\Livewire\Settings\Show::class);
         $component->call('requestExport');
 
         // Resolve the ticket
@@ -72,7 +72,7 @@ describe('Profile Data Export Request', function () {
 
         // Reload component — should see no pending request now
         $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Profile\Show::class);
+            ->test(\App\Livewire\Settings\Show::class);
         $component->call('requestExport');
         $component->assertHasNoErrors();
 

@@ -119,6 +119,10 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
                             {{ __('profile.content_profile') }}
                         </a>
+                        <a href="{{ route('settings.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('settings.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('settings.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>settings</span>
+                            {{ __('profile.content_settings') }}
+                        </a>
                         <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
                             {{ __('cookie-consent.nav_cookie_settings') }}
@@ -211,12 +215,19 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
                             {{ __('profile.content_profile') }}
                         </a>
+
+                        <a href="{{ route('settings.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('settings.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('settings.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>settings</span>
+                            {{ __('profile.content_settings') }}
+                        </a>
                     </nav>
 
                     {{-- User section at sidebar bottom --}}
                     <div class="border-t border-outline-variant/15 p-4">
                         <div class="flex items-center gap-3">
-                            <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
+                            <a href="{{ route('profile.show') }}" wire:navigate class="shrink-0">
+                                <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
+                            </a>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-on-surface truncate" data-ph-mask>{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-on-surface-variant truncate" data-ph-mask>{{ Auth::user()->email }}</p>
@@ -224,7 +235,7 @@
                         </div>
                         <div class="mt-3 flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <a href="{{ route('profile.show') }}" wire:navigate class="text-xs text-on-surface-variant hover:text-primary transition-colors">
+                                <a href="{{ route('settings.show') }}" wire:navigate class="text-xs text-on-surface-variant hover:text-primary transition-colors">
                                     <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">settings</span>
                                     {{ __('profile.content_settings') }}
                                 </a>

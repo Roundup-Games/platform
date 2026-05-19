@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\NotificationCategory;
-use App\Livewire\Profile\Show;
+use App\Livewire\Settings\Show;
 use App\Models\User;
 use Livewire\Livewire;
 

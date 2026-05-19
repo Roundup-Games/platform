@@ -34,7 +34,21 @@ document.addEventListener('alpine:init', () => {
         activeTab: 'profile',
         init() {
             const hash = window.location.hash?.slice(1);
-            if (hash && ['profile', 'preferences', 'privacy', 'notifications', 'account'].includes(hash)) {
+            if (hash && ['profile', 'preferences', 'gm_profile'].includes(hash)) {
+                this.activeTab = hash;
+            }
+            this.$watch('activeTab', (val) => { window.location.hash = val; });
+        },
+        setTab(tab) {
+            this.activeTab = tab;
+        }
+    }));
+
+    Alpine.data('settingsTabs', () => ({
+        activeTab: 'privacy',
+        init() {
+            const hash = window.location.hash?.slice(1);
+            if (hash && ['privacy', 'notifications', 'account'].includes(hash)) {
                 this.activeTab = hash;
             }
             this.$watch('activeTab', (val) => { window.location.hash = val; });

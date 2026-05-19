@@ -120,8 +120,11 @@ Route::prefix('{locale}')
             Route::get('/gm/session-zero/create', App\Livewire\GM\SessionZero\CreateSessionZero::class)->name('gm.session-zero.create');
             Route::get('/gm/session-zero/create/{game_id}', App\Livewire\GM\SessionZero\CreateSessionZero::class)->name('gm.session-zero.create-for-game');
 
-            // Profile page (Livewire — handles all profile management inline)
+            // Profile page (Livewire — handles profile info and game preferences)
             Route::get('/profile', App\Livewire\Profile\Show::class)->name('profile.show');
+
+            // Settings page (Livewire — handles privacy, notifications, linked accounts, password)
+            Route::get('/settings', App\Livewire\Settings\Show::class)->name('settings.show');
 
             // Support tickets (authenticated)
             Route::get('/support/account', App\Livewire\Support\ContactSupport::class)->name('support.account');
