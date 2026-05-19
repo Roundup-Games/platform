@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "bash build-tools/subset-icons.sh && vite build",
         "dev": "vite"
     },
     "devDependencies": {

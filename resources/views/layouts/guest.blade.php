@@ -32,7 +32,6 @@
 
         {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
         {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
-        <link rel="preload" href="/fonts/material-symbols-subset.woff2" as="font" type="font/woff2" crossorigin>
 
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])

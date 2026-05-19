@@ -31,7 +31,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 BUILD_TOOLS="build-tools"
 SOURCE_FONT="$BUILD_TOOLS/MaterialSymbolsOutlined.woff2"
 CODEPOINTS="$BUILD_TOOLS/material-symbols.codepoints"
-OUTPUT_DIR="public/fonts"
+OUTPUT_DIR="resources/fonts"
 OUTPUT_FONT="$OUTPUT_DIR/material-symbols-subset.woff2"
 VENV="$BUILD_TOOLS/.venv"
 SUBSET_SCRIPT="$BUILD_TOOLS/_subset_material.py"
@@ -196,6 +196,39 @@ def icon_to_ligature_variants(name):
     return forms
 
 
+def rebuild_ligature_coverage(font):
+    """Rebuild Coverage tables for all ligature lookups in GSUB.
+    
+    fontTools subsetter and instantiateVariableFont can leave Coverage
+    out-of-sync or empty after modifying ligatures. Without correct Coverage,
+    the text shaper never triggers the lookup → icons render as text.
+    
+    This must be called after every mutation of ligatures dict entries.
+    """
+    if 'GSUB' not in font:
+        return 0
+    fixed = 0
+    from fontTools.ttLib.tables import otTables
+    for lookup in font['GSUB'].table.LookupList.Lookup:
+        tables = []
+        if lookup.LookupType == 7:  # Extension
+            tables = [ext.ExtSubTable for ext in lookup.SubTable if ext.ExtensionLookupType == 4]
+        elif lookup.LookupType == 4:
+            tables = lookup.SubTable
+        for inner in tables:
+            if not hasattr(inner, 'ligatures'):
+                continue
+            first_glyphs = sorted(inner.ligatures.keys())
+            if not first_glyphs:
+                continue
+            # Rebuild Coverage from the actual first-glyph keys
+            cov = otTables.Coverage()
+            cov.glyphs = first_glyphs
+            inner.Coverage = cov
+            fixed += 1
+    return fixed
+
+
 def main():
     source_font = sys.argv[1]
     codepoints_file = sys.argv[2]
@@ -255,11 +288,20 @@ def main():
                                 new_ligatures[first] = new_list
                                 total_kept += len(new_list)
                         inner.ligatures = new_ligatures
+    # Rebuild Coverage — subsetter does not sync it after ligature pruning
+    c = rebuild_ligature_coverage(font)
+    if c:
+        print(f"  Rebuilt Coverage for {c} ligature subtables (post-prune)")
     print(f"  Ligatures kept: {total_kept}")
     
     # Instantiate: remove GRAD and opsz axes (not used in our CSS)
     # Keep FILL (0/1 for active/filled states) and wght (400/700)
     instantiateVariableFont(font, {"GRAD": 0, "opsz": 24}, overlap=True, inplace=True)
+    
+    # Rebuild Coverage — instancing can invalidate it
+    c = rebuild_ligature_coverage(font)
+    if c:
+        print(f"  Rebuilt Coverage for {c} ligature subtables (post-instance)")
     
     # Fix GSUB ligature component glyph names after instancing.
     # instancing renames digit_zero→zero, digit_one→one, etc.
@@ -288,6 +330,10 @@ def main():
                                     lig.Component = new_comp
     if renamed_count:
         print(f"  Fixed {renamed_count} post-instancing glyph references in GSUB")
+    # Rebuild Coverage — digit renaming may have changed first-glyph keys
+    c = rebuild_ligature_coverage(font)
+    if c:
+        print(f"  Rebuilt Coverage for {c} ligature subtables (post-rename)")
     
     # Save intermediate
     font.flavor = 'woff2'
@@ -307,6 +353,11 @@ def main():
     subsetter2.populate(text=text_content)  # preserve ligature target glyphs
     subsetter2.subset(font2)
     
+    # Rebuild Coverage — Pass 2 subsetter can strip or corrupt Coverage
+    c = rebuild_ligature_coverage(font2)
+    if c:
+        print(f"  Rebuilt Coverage for {c} ligature subtables (post-pass2)")
+    
     # Drop unused tables
     for tag in list(font2.keys()):
         if tag in ['HVAR', 'MVAR']:
@@ -320,20 +371,24 @@ def main():
     size = os.path.getsize(output_font)
     print(f"  Output: {size:,} bytes ({size // 1024} KB)")
     
-    # Check all icons have ligatures
+    # Check all icons have ligatures (Coverage is auto-derived by preWrite during compile)
     font3 = TTFont(output_font)
     lig_names_raw = set()
     for feat in font3['GSUB'].table.FeatureList.FeatureRecord:
         for idx in feat.Feature.LookupListIndex:
             lookup = font3['GSUB'].table.LookupList.Lookup[idx]
+            tables = []
             if lookup.LookupType == 7:
-                for ext in lookup.SubTable:
-                    inner = ext.ExtSubTable
-                    if inner.LookupType == 4:
-                        for first, lig_list in inner.ligatures.items():
-                            for lig in lig_list:
-                                comp = getattr(lig, 'Component', [])
-                                lig_names_raw.add(first + ''.join(comp))
+                tables = [ext.ExtSubTable for ext in lookup.SubTable if ext.ExtensionLookupType == 4]
+            elif lookup.LookupType == 4:
+                tables = lookup.SubTable
+            for inner in tables:
+                if not hasattr(inner, 'ligatures'):
+                    continue
+                for first, lig_list in inner.ligatures.items():
+                    for lig in lig_list:
+                        comp = getattr(lig, 'Component', [])
+                        lig_names_raw.add(first + ''.join(comp))
     
     missing = []
     for icon in sorted(icon_names):
