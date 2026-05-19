@@ -40,14 +40,14 @@ return [
     'seo_description_for_organizers' => 'Werkzeuge und Funktionen für Spielorganisatoren — plane Sessions, verwalte Spieler und baue deine Tabletop-Community auf.',
     'seo_description_home' => 'Finde Brettspiele, Tabletop-RPG-Sessions und Kampagnen in deiner Nähe. Entdecke lokale Spiel-Events, tritt einer Community bei und fang heute an.',
     'seo_description_how_it_works' => 'Erfahre, wie :brand dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden und zu organisieren.',
-    'seo_title_about' => 'Über :brand — Unsere Vision & Werte',
+    'seo_title_about' => 'Über uns — Unsere Vision & Werte',
     'seo_title_contact' => 'Kontakt',
     'seo_title_for_organizers' => 'Für Organisatoren',
     'seo_title_home' => 'Tabletop-Spiele & RPG-Sessions entdecken',
     'seo_title_how_it_works' => 'So funktioniert\'s',
 
     // ── Our Pledge ─────────────────────────────────────
-    'seo_title_our_pledge' => 'Unser Versprechen an die Community — :brand',
+    'seo_title_our_pledge' => 'Unser Versprechen an die Community',
     'seo_description_our_pledge' => 'Unser Versprechen zu Transparenz, Community-Investitionen und Open Source. :brand ist eine gemeinnützige, missionsgebundene Organisation für die Tabletop-Spiele-Community.',
     'seo_title_pledge_algorithms' => 'Offene Algorithmen & Code — Unser Versprechen',
     'seo_description_pledge_algorithms' => 'Wie unsere Matching-Algorithmen funktionieren, verständlich erklärt. Open-Source-Code zum Prüfen, Hinterfragen und Verbessern.',

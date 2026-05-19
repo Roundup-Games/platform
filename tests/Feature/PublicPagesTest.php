@@ -52,7 +52,7 @@ describe('AboutPage', function () {
             // nosemgrep: php.laravel.assert-see-escaped — intentional default escaping for HTML context.
             ->assertSee(__('pages.seo_title_about'))
             // Description is in a <meta> content attribute — use false to match raw value.
-            ->assertSee(__('pages.seo_description_about'), false);
+            ->assertSee(__('pages.seo_description_about', ['brand' => config('company.display_name')]), false);
     });
 
 });
