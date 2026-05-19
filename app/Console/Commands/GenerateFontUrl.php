@@ -53,29 +53,60 @@ class GenerateFontUrl extends Command
     /**
      * Scan Blade templates, PHP enums, and JS files for Material Symbol icon names.
      *
+     * Uses multiple regex patterns to cover:
+     * - Direct icon text in Blade spans (simple and with Blade expressions)
+     * - Enum match arms (self::X => 'icon')
+     * - PHP return statements (return 'icon')
+     * - PHP arrays ('icon' => 'name')
+     * - Blade ternary expressions ('icon1' ? 'icon2' : 'icon3')
+     * - JS inline icon spans
+     *
+     * All discovered names are validated against the codepoints file to filter
+     * false positives (e.g., 'dark' from theme toggling is not an icon).
+     *
      * @return string[]
      */
     private function scanForIcons(): array
     {
         $icons = [];
 
-        // Static icon names in Blade templates (between > and </span>)
-        $bladePattern = '/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</s';
-        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $bladePattern, $icons);
+        // 1. Static icon names in Blade templates — simple spans (no Blade expressions)
+        $bladeSimple = '/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</s';
+        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $bladeSimple, $icons);
 
-        // Icon names returned by PHP enum/method icon() methods
+        // 2. Blade spans with {{ }} expressions before the closing >
+        //    The simple regex breaks on > inside Blade expressions like:
+        //    {{ request()->routeIs('games.*') ? 'style="..."' : '' }}>icon</span>
+        $bladeWithExpr = '/material-symbols-outlined.*?\}\}>\s*([a-z_0-9]+)\s*</s';
+        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $bladeWithExpr, $icons);
+
+        // 3. Icon names in enum match arms: self::Tactical => 'target'
+        $enumMatchArm = "/self::\w+\s*=>\s*'([a-z_0-9]+)'/";
+        $this->scanDirectory(app_path('Enums'), '/\.php$/', $enumMatchArm, $icons);
+
+        // 4. Icon names returned by PHP enum/method icon() methods: return 'icon'
         $returnPattern = "/return '([a-z_0-9]+)'/";
         $this->scanDirectory(app_path('Enums'), '/\.php$/', $returnPattern, $icons);
 
-        // Icon names in PHP arrays (dashboard, navigation, etc.)
+        // 5. Icon names in PHP arrays (dashboard, navigation, tabs, social platforms, etc.)
         $arrayPattern = "/'icon'\s*=>\s*'([a-z_0-9]+)'/";
         $this->scanDirectory(app_path(), '/\.php$/', $arrayPattern, $icons);
+        $this->scanDirectory(config_path(), '/\.php$/', $arrayPattern, $icons);
 
-        // Icon names in JS files
+        // 6. Blade ternary expressions: 'icon1' ? 'icon2' : 'icon3' and 'icon1' : 'icon2'
+        //    These appear in dynamic icon rendering like:
+        //    {{ $option->is_base ? 'casino' : 'extension' }}
+        $ternaryFull = "/'([a-z_0-9]+)'\s*\?\s*'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'/";
+        $ternarySimple = "/'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'/";
+        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $ternaryFull, $icons);
+        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $ternarySimple, $icons);
+
+        // 7. Icon names in JS files
         $jsPattern = '/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</';
         $this->scanDirectory(resource_path('js'), '/\.(js|ts)$/', $jsPattern, $icons);
 
-        return array_unique(array_values($icons));
+        // Validate against codepoints to filter false positives
+        return $this->filterValidIcons($icons);
     }
 
     private function scanDirectory(string $dir, string $filePattern, string $matchPattern, array &$icons): void
@@ -95,11 +126,39 @@ class GenerateFontUrl extends Command
 
             $content = file_get_contents($file->getPathname());
             if (preg_match_all($matchPattern, $content, $matches)) {
-                foreach ($matches[1] as $icon) {
-                    $icons[$icon] = $icon;
+                foreach ($matches as $group) {
+                    foreach ($group as $icon) {
+                        $icons[$icon] = $icon;
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Filter icon names against the Material Symbols codepoints file.
+     *
+     * The scan picks up string literals that aren't icon names (e.g., 'dark'
+     * from theme toggling, 'board_game' from enum values). Only names present
+     * in the codepoints mapping are actual Material Symbol icons.
+     */
+    private function filterValidIcons(array $icons): array
+    {
+        $codepointsPath = base_path('build-tools/material-symbols.codepoints');
+
+        if (! file_exists($codepointsPath)) {
+            return array_unique(array_values($icons));
+        }
+
+        $valid = [];
+        foreach (file($codepointsPath) as $line) {
+            $parts = preg_split('/\s+/', trim($line));
+            if (count($parts) === 2) {
+                $valid[$parts[0]] = true;
+            }
+        }
+
+        return array_values(array_filter(array_unique(array_values($icons)), fn ($icon) => isset($valid[$icon])));
     }
 
     /**
@@ -110,12 +169,11 @@ class GenerateFontUrl extends Command
         $path = config_path('fonts.php');
         $content = file_get_contents($path);
 
-        // Find the last icon in the material_symbols array and append after it
-        $lastIcon = end($missing);
-        foreach (array_reverse($missing) as $icon) {
+        // Find the material_symbols array closing bracket and insert before it
+        foreach ($missing as $icon) {
             $content = preg_replace(
-                "/(\s*'pause_circle',\s*'search_off',)/",
-                "$1\n        '{$icon}',",
+                "/(\s*\],\s*\/\*.*?)$/m",
+                "        '{$icon}',\n$1",
                 $content,
                 1
             );
