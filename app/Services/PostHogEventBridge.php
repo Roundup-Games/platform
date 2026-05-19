@@ -49,6 +49,7 @@ class PostHogEventBridge
 
     public function __construct(
         private readonly PostHogClient $posthog,
+        private readonly PostHogConsentChecker $consentChecker,
     ) {}
 
     /**
@@ -63,6 +64,14 @@ class PostHogEventBridge
         array $properties = [],
     ): void {
         if (! $this->posthog->isEnabled()) {
+            return;
+        }
+
+        // Gate all server-side PostHog events behind analytics consent.
+        // Uses the request() helper since this is called during the request
+        // lifecycle (from ActivityLogService). Returns early if no consent
+        // cookie exists or analytics is not granted.
+        if (! $this->consentChecker->hasAnalyticsConsent()) {
             return;
         }
 
@@ -82,12 +91,15 @@ class PostHogEventBridge
             // Dispatch enrichment to queue — DB count queries run async.
             // Only dispatch for event types that have meaningful enrichment
             // to avoid wasting queue slots on no-op jobs.
+            // Consent is captured at dispatch time — the job won't fire
+            // for non-consenting users because forwardEvent() gates above.
             if (in_array($type, self::ENRICHED_TYPES, true)) {
                 EnrichPostHogProfile::dispatch(
                     $type->value,
                     $user->id,
                     $subject ? get_class($subject) : null,
                     $subject?->getKey(),
+                    true, // hasConsent — already verified above
                 );
             }
         } catch (\Throwable $e) {

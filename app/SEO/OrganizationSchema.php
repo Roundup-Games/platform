@@ -23,10 +23,10 @@ class OrganizationSchema extends CustomSchemaFluent
         $this->data = collect([
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
-            'name' => config('seo.site_name', 'Roundup Games'),
+            'name' => config('seo.site_name', config('company.display_name')),
             'url' => config('app.url'),
             'logo' => secure_url('icons/pwa-512x512.png'),
-            'description' => $SEOData->description ?? 'Roundup Games is a non-profit platform helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.',
+            'description' => $SEOData->description ?? (config('company.display_name') . ' is a non-profit platform helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.'),
             'sameAs' => [
                 'https://github.com/Roundup-Games/',
             ],

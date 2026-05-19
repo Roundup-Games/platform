@@ -175,6 +175,8 @@ class SocialGraphService
         $followsMe = $user->followers()->pluck('user_id');
         $mutualIds = $iFollow->intersect($followsMe);
 
-        return User::whereIn('id', $mutualIds)->get();
+        return User::whereIn('id', $mutualIds)
+            ->whereNull('anonymized_at')
+            ->get();
     }
 }

@@ -164,7 +164,7 @@ class GamesPage extends Component
     {
         seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
             title: __('games.seo_title_my_games'),
-            description: __('games.seo_description_my_games'),
+            description: __('games.seo_description_my_games', ['brand' => config('company.display_name')]),
             robots: 'noindex, nofollow',
         ));
 

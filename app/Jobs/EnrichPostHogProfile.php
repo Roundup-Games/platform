@@ -64,17 +64,28 @@ class EnrichPostHogProfile implements ShouldQueue
      * Store enum value as string for forward-compatible queue serialization.
      * Renaming or removing an ActivityType case won't cause deserialization
      * failures on queued jobs — the job logs a warning and skips.
+     *
+     * Consent is captured at dispatch time (during the request cycle when
+     * the cookie is available) and passed to the job. This avoids needing
+     * request context in the queued job handler.
      */
     public function __construct(
         public string $type,
         public string $userId,
         public ?string $subjectType = null,
         public mixed $subjectId = null,
+        public bool $hasConsent = true,
     ) {}
 
     public function handle(PostHogClient $posthog): void
     {
         if (! $posthog->isEnabled()) {
+            return;
+        }
+
+        // Consent is captured at dispatch time. If consent was not granted
+        // when the event was fired, skip enrichment entirely.
+        if (! $this->hasConsent) {
             return;
         }
 

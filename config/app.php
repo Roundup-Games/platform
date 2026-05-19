@@ -137,4 +137,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Legal Text Review Status
+    |--------------------------------------------------------------------------
+    |
+    | Whether AI-drafted legal text (privacy policy, terms) has been reviewed
+    | by a legal professional. When false, a draft notice banner is shown on
+    | legal pages. Set LEGAL_TEXT_REVIEWED=true in .env after review.
+    | Uses config() instead of env() so it works correctly with config:cache.
+    |
+    */
+
+    'legal_text_reviewed' => env('LEGAL_TEXT_REVIEWED', false),
+
 ];

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Roundup Games') }} — {{ __('profile.content_complete_your_profile') }}</title>
+        <title>{{ config('app.name', config('company.display_name')) }} — {{ __('profile.content_complete_your_profile') }}</title>
 
         {{-- Dark mode: apply class before paint to prevent flash --}}
         <script>

@@ -7,6 +7,7 @@ use App\Enums\RelationshipType;
 use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
 use App\Services\SocialGraphService;
+use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -39,6 +40,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'avatar_url',
     'profile_complete',
     'gender',
+    'gender_consent',
     'pronouns',
     'phone',
     'privacy_settings',
@@ -47,6 +49,8 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'reliability_computed_at',
     'profile_version',
     'profile_updated_at',
+    'privacy_policy_accepted_at',
+    'terms_accepted_at',
     'password_set_at',
     'is_disabled',
     'disabled_at',
@@ -58,7 +62,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'bio',
     'slug',
 ])]
-#[Hidden(['password', 'remember_token', 'paddle_id'])]
+#[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
 class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 {
     use Billable;
@@ -97,6 +101,8 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             'profile_version' => 'integer',
             'profile_updated_at' => 'datetime',
             'password_set_at' => 'datetime',
+            'privacy_policy_accepted_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'is_disabled' => 'boolean',
             'disabled_at' => 'datetime',
@@ -106,6 +112,9 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             'reliability_score' => 'array',
             'reliability_computed_at' => 'datetime',
             'max_links_per_entity' => 'integer',
+            'anonymized_at' => 'datetime',
+            'gender_consent' => 'boolean',
+            'analytics_consent' => 'boolean',
         ];
     }
 
@@ -499,6 +508,45 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
         return $slug;
     }
 
+    // ── Anonymization ──────────────────────────────────
+
+    /**
+     * Whether this user has been anonymized (account deleted).
+     */
+    public function isAnonymized(): bool
+    {
+        return $this->anonymized_at !== null;
+    }
+
+    /**
+     * Scope: exclude anonymized users from a query.
+     *
+     * Use this in any query that displays user-facing lists (discovery,
+     * search, directories, sitemaps) where anonymized users should not
+     * appear. Do NOT use this on relationship resolution queries — those
+     * need to load anonymized users normally (they show as "Deleted User").
+     *
+     * Usage: User::notAnonymized()->where(...)
+     */
+    public function scopeNotAnonymized($query): void
+    {
+        $query->whereNull('anonymized_at');
+    }
+
+    /**
+     * Anonymize the user in-place: strip PII, set anonymized_at.
+     *
+     * @deprecated Use UserAnonymizationService::anonymize() instead.
+     *             The service handles Tier 1 data deletion, media cleanup,
+     *             session invalidation, and PostHog data removal.
+     *             This model method only strips PII on the user row.
+     * @see \App\Services\UserAnonymizationService::anonymize()
+     */
+    public function anonymize(): void
+    {
+        app(UserAnonymizationService::class)->anonymize($this);
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     /**
@@ -563,7 +611,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
         $description = $this->bio
             ? Str::limit(strip_tags($this->bio), 160)
-            : "View {$this->name}'s profile on Roundup Games.";
+            : "View {$this->name}'s profile on " . config('company.display_name') . ".";
 
         $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
 

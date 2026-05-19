@@ -56,7 +56,9 @@ class ManageRoster extends Component
         $this->validateOnly('inviteEmail');
         $this->validateOnly('inviteRole');
 
-        $targetUser = User::where('email', $this->inviteEmail)->first();
+        $targetUser = User::where('email', $this->inviteEmail)
+            ->whereNull('anonymized_at')
+            ->first();
 
         if (! $targetUser) {
             $this->addError('inviteEmail', __('emails.error_no_user_found_with_that_email_address'));

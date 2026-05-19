@@ -31,6 +31,8 @@ class LinkedAccount extends Model
     protected function casts(): array
     {
         return [
+            'token' => 'encrypted',
+            'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
             'provider_meta' => 'array',
         ];

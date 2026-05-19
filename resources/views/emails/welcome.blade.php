@@ -1,9 +1,9 @@
 @component('mail::message')
-# {{ __('events.content_welcome_to_roundup_games') }} 🎲
+# {{ __('events.content_welcome_to_roundup_games', ['brand' => config('company.display_name')]) }} 🎲
 
 {{ __('common.field_hey_name', ['name' => $user->name]) }}
 
-{{ __('events.content_thanks_for_joining_roundup_games') }}
+{{ __('events.content_thanks_for_joining_roundup_games', ['brand' => config('company.display_name')]) }}
 
 ## {{ __('common.field_get_started') }}
 
@@ -21,5 +21,5 @@
 {{ __("emails.content_if_you_have_any_questions") }}
 
 {{ __('common.content_happy_gaming') }} 🎯
-Roundup Games
+{{ config('company.display_name') }}
 @endcomponent

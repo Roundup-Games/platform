@@ -22,6 +22,7 @@ class EntityInvitationEmail extends Mailable implements ShouldQueue
         public readonly string $inviterName,
         public readonly string $inviteeEmail,
         public readonly string $signupUrl,
+        public readonly ?string $optoutUrl = null,
     ) {}
 
     public function envelope(): Envelope

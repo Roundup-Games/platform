@@ -2,12 +2,12 @@
 
 return [
     // Manifest
-    'manifest_name' => 'Roundup Games',
+    'manifest_name' => ':brand',
     'manifest_short_name' => 'Roundup',
     'manifest_description' => 'Finde lokale Brettspiel-Sessions, RPG-Kampagnen und Tabletop-Communities in deiner Nähe. Gemeinnützig, Open Source, gebaut für echte Verbindungen.',
 
     // Install prompt — Chrome / Android
-    'install_title' => 'Roundup Games installieren',
+    'install_title' => ':brand installieren',
     'install_description' => 'Hol dir das volle Erlebnis mit schnellem Zugriff vom Startbildschirm.',
     'install_button' => 'Installieren',
     'install_dismiss' => 'Nicht jetzt',
@@ -20,7 +20,7 @@ return [
     'ios_install_dismiss' => 'Verstanden',
 
     // Install prompt — Firefox Android
-    'heading_firefox_install_title' => 'Roundup Games installieren',
+    'heading_firefox_install_title' => ':brand installieren',
     'content_firefox_install_step_1' => 'Tippe auf das Menü (⋮) in der Adressleiste',
     'content_firefox_install_step_2' => 'Tippe auf „Installieren", um die App zum Startbildschirm hinzuzufügen',
     'action_firefox_install_dismiss' => 'Verstanden',

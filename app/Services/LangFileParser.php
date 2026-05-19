@@ -397,6 +397,9 @@ class LangFileParser
             'Game Master Tools',
             'Game Master',
             'Moderation',
+            'Cookies & Tracking',
+            'Nominatim (Geocoding)',
+            'Parameter',
         ];
         if (in_array($value, $compoundCognates, true)) {
             return true;
@@ -411,6 +414,7 @@ class LangFileParser
             'Spam', 'optional',
             'Sandbox', 'Fantasy', 'Humor', 'Division', 'Status', 'Position',
             'Support', 'System', 'Neutral', 'Push', 'Name', 'Debriefing',
+            'Impressum', 'Marketing',
             // Game industry terms
             'TTRPG', 'OSR', 'Storytelling', 'Gameplay',
             'Rule of Cool', 'West Marches', 'Play-by-Post', 'Session Zero',

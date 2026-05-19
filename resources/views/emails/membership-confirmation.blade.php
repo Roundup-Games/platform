@@ -25,6 +25,6 @@
 
 {{ __('emails.content_if_you_have_questions_about') }}
 
-{{ __('events.content_thanks_for_supporting_roundup_games') }} 🎲
-Roundup Games
+{{ __('events.content_thanks_for_supporting_roundup_games', ['brand' => config('company.display_name')]) }} 🎲
+{{ config('company.display_name') }}
 @endcomponent

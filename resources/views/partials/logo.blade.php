@@ -12,7 +12,7 @@
     <source srcset="/images/logo-light-background{{ $suffix }}.webp" type="image/webp">
     <img
         src="/images/logo-light-background{{ $suffix }}.png"
-        alt="Roundup Games"
+        alt="{{ config('company.display_name') }}"
         width="{{ $w }}"
         height="{{ $h }}"
         class="{{ $class }}"
@@ -27,7 +27,7 @@
     <source srcset="/images/logo-dark-background{{ $suffix }}.webp" type="image/webp">
     <img
         src="/images/logo-dark-background{{ $suffix }}.png"
-        alt="Roundup Games"
+        alt="{{ config('company.display_name') }}"
         width="{{ $w }}"
         height="{{ $h }}"
         class="{{ $class }}"

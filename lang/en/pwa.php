@@ -2,12 +2,12 @@
 
 return [
     // Manifest
-    'manifest_name' => 'Roundup Games',
+    'manifest_name' => ':brand',
     'manifest_short_name' => 'Roundup',
     'manifest_description' => 'Find local board game sessions, RPG campaigns, and tabletop gaming communities near you. Non-profit, open source, built for real connection.',
 
     // Install prompt — Chrome / Android
-    'install_title' => 'Install Roundup Games',
+    'install_title' => 'Install :brand',
     'install_description' => 'Get the full experience with quick access from your home screen.',
     'install_button' => 'Install',
     'install_dismiss' => 'Not now',
@@ -20,7 +20,7 @@ return [
     'ios_install_dismiss' => 'Got it',
 
     // Install prompt — Firefox Android
-    'heading_firefox_install_title' => 'Install Roundup Games',
+    'heading_firefox_install_title' => 'Install :brand',
     'content_firefox_install_step_1' => 'Tap the menu (⋮) in the address bar',
     'content_firefox_install_step_2' => 'Tap \'Install\' to add to your home screen',
     'action_firefox_install_dismiss' => 'Got it',

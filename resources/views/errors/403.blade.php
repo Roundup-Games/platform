@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('common.status_not_authorized') }} — Roundup Games</title>
+    <title>{{ __('common.status_not_authorized') }} — {{ config('company.display_name') }}</title>
 
     <script>
         (function() {
@@ -37,7 +37,7 @@
             </a>
         </div>
 
-        <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} Roundup Games.</p>
+        <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} {{ config('company.display_name') }}.</p>
     </div>
 </body>
 </html>

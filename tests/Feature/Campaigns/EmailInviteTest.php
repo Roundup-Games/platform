@@ -245,8 +245,8 @@ test('invite by email logs structured context on campaign', function () {
             return str_contains($message, 'email invite')
                 && isset($context['campaign_id'])
                 && $context['campaign_id'] === $this->campaign->id
-                && isset($context['invitee_email'])
-                && $context['invitee_email'] === 'logged@example.com';
+                && isset($context['invitee_email_hash'])
+                && $context['invitee_email_hash'] === \App\Models\SuppressedInviteEmail::hashEmail('logged@example.com');
         })
         ->once();
 });

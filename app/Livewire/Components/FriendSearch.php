@@ -86,6 +86,7 @@ class FriendSearch extends Component
         }
 
         return User::whereIn('id', $friendIds)
+            ->notAnonymized()
             ->where(function ($q) use ($likeOperator, $escapedTerm) {
                 $q->where('name', $likeOperator, "%{$escapedTerm}%")
                     ->orWhere('email', $likeOperator, "%{$escapedTerm}%");
@@ -106,6 +107,7 @@ class FriendSearch extends Component
         }
 
         return User::whereIn('id', $this->selectedIds)
+            ->notAnonymized()
             ->orderBy('name')
             ->get();
     }

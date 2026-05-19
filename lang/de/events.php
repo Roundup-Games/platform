@@ -93,13 +93,13 @@ return [
     'field_min_players_per_team' => 'Min. Spieler pro Team',
     'field_max_players_per_team' => 'Max. Spieler pro Team',
     'field_team_size_min_max_players' => 'Teamgröße: :min–:max Spieler',
-    'content_thanks_for_joining_roundup_games' => 'Danke, dass du bei **Roundup Games** mitmachst — deinem Hub für die Organisation und Teilnahme an Brettspiel-Events, Kampagnen und Turnieren.',
-    'content_thanks_for_supporting_roundup_games' => 'Danke, dass du Roundup Games unterstützt!',
+    'content_thanks_for_joining_roundup_games' => 'Danke, dass du bei **:brand** mitmachst — deinem Hub für die Organisation und Teilnahme an Brettspiel-Events, Kampagnen und Turnieren.',
+    'content_thanks_for_supporting_roundup_games' => 'Danke, dass du :brand unterstützt!',
 
     'content_this_event_is_now_full' => 'Diese Veranstaltung ist ausgebucht.',
 
-    'content_welcome_back_to_roundup_games' => 'Willkommen zurück bei Roundup Games',
-    'content_welcome_to_roundup_games' => 'Willkommen bei Roundup Games!',
+    'content_welcome_back_to_roundup_games' => 'Willkommen zurück bei :brand',
+    'content_welcome_to_roundup_games' => 'Willkommen bei :brand!',
 
     'content_write_your_announcement' => 'Schreibe deine Ankündigung...',
     'content_yes_many_events_support_team' => 'Ja! Viele Veranstaltungen unterstützen Team-Anmeldungen. Erstelle ein Team, lade deine Mitglieder ein und meldet euch gemeinsam an.',

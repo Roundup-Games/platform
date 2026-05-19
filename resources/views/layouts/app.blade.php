@@ -14,7 +14,7 @@
             @endisset
         @endif
 
-        <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', 'Roundup Games') }}</title>
+        <title>@yield('title', __('profile.content_dashboard')) — {{ config('app.name', config('company.display_name')) }}</title>
 
         {{-- Favicons --}}
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
@@ -119,6 +119,10 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
                             {{ __('profile.content_profile') }}
                         </a>
+                        <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">cookie</span>
+                            {{ __('cookie-consent.nav_cookie_settings') }}
+                        </button>
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors">
@@ -224,6 +228,10 @@
                                     <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">settings</span>
                                     {{ __('profile.content_settings') }}
                                 </a>
+                                <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings text-xs text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                                    <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">cookie</span>
+                                    {{ __('cookie-consent.nav_cookie_settings') }}
+                                </button>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit" onclick="event.preventDefault(); this.closest('form').submit();" class="text-xs text-on-surface-variant hover:text-primary transition-colors">
@@ -268,6 +276,11 @@
         </div>
         {{-- Offline indicator (no server round-trips) --}}
         <x-offline-indicator />
+
+        {{-- Policy update notice for authenticated users --}}
+        @auth
+            <livewire:policy-update-notice />
+        @endauth
 
         {{-- PWA Install Prompt (only for authenticated + eligible users) --}}
         @auth

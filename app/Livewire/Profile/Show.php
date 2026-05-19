@@ -7,12 +7,23 @@ use App\Enums\NotificationCategory;
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
+use App\Models\User;
 use App\Rules\ValidUserName;
+use App\Services\DashboardCacheService;
+use App\Services\GmSocialLinkService;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\UserAnonymizationService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -26,10 +37,17 @@ class Show extends Component
 
     // Profile fields
     public string $name = '';
+
     public string $email = '';
+
     public string $slug = '';
+
     public string $gender = '';
+
+    public bool $gender_consent = false;
+
     public string $pronouns = '';
+
     public string $phone = '';
 
     public string $preferredLanguage = '';
@@ -55,15 +73,22 @@ class Show extends Component
 
     // Password fields
     public string $current_password = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
 
     public bool $showPasswordForm = false;
 
     // Account deletion
     public bool $showDeleteForm = false;
+
     public string $delete_password = '';
+
     public string $delete_confirmation = '';
+
+    #[Locked]
+    public bool $hasPendingExportRequest = false;
 
     /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
     public array $privacySettings = [];
@@ -72,9 +97,13 @@ class Show extends Component
     public array $notificationSettings = [];
 
     public bool $saved = false;
+
     public bool $preferencesSaved = false;
+
     public bool $privacySaved = false;
+
     public bool $notificationSaved = false;
+
     public bool $socialLinksSaved = false;
 
     public int $pushSubscriptionCount = 0;
@@ -92,6 +121,7 @@ class Show extends Component
         $this->email = $user->email;
         $this->slug = $user->slug ?? '';
         $this->gender = $user->gender ?? '';
+        $this->gender_consent = (bool) $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
         $this->preferredLanguage = $user->preferred_language?->value ?? '';
@@ -142,6 +172,13 @@ class Show extends Component
         if ($user->isGM()) {
             $this->loadSocialLinks($user);
         }
+
+        // Check if user has a pending data export request ticket
+        $this->hasPendingExportRequest = Ticket::where('requester_type', User::class)
+            ->where('requester_id', $user->id)
+            ->where('ticket_type', 'data_export_request')
+            ->open()
+            ->exists();
     }
 
     public function selectionChanged(string $preferenceType, array $selectedIds): void
@@ -192,9 +229,10 @@ class Show extends Component
             'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'gender' => ['nullable', 'string', 'max:50'],
+            'gender_consent' => ['boolean'],
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'preferredLanguage' => ['nullable', 'string', 'in:' . implode(',', ContentLanguage::values())],
+            'preferredLanguage' => ['nullable', 'string', 'in:'.implode(',', ContentLanguage::values())],
             'bio' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -203,10 +241,25 @@ class Show extends Component
         // Capture pre-update location for discovery cache change detection
         $oldLocationId = $user->location_id;
 
+        // GDPR Art. 9(2)(a): only store gender if explicit consent is given
+        $genderValue = $validated['gender_consent'] ? $validated['gender'] : null;
+
+        // Audit trail for consent changes (GDPR Art. 7 compliance)
+        $previousConsent = (bool) $user->gender_consent;
+        $newConsent = $validated['gender_consent'];
+        if ($previousConsent !== $newConsent) {
+            Log::info('Gender consent status changed', [
+                'user_id' => $user->id,
+                'consent_given' => $newConsent,
+                'gender_cleared' => $previousConsent && !$newConsent,
+            ]);
+        }
+
         $user->update([
             'name' => ValidUserName::sanitize($validated['name']),
             'email' => $validated['email'],
-            'gender' => $validated['gender'],
+            'gender' => $genderValue,
+            'gender_consent' => $validated['gender_consent'],
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] ?: null,
@@ -220,16 +273,16 @@ class Show extends Component
             $user->update(['email_verified_at' => null]);
             Log::info('Profile email changed', [
                 'user_id' => $user->id,
-                'new_email' => $validated['email'],
+                'email_changed' => true,
             ]);
         }
 
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
             $filename = $this->avatar->getClientOriginalName()
-                ?? ('avatar.' . ($this->avatar->extension() ?: 'jpg'));
+                ?? ('avatar.'.($this->avatar->extension() ?: 'jpg'));
             $user->addMedia($this->avatar->getRealPath())
-                ->usingName($user->name . ' avatar')
+                ->usingName($user->name.' avatar')
                 ->usingFileName($filename)
                 ->toMediaCollection('avatar');
 
@@ -247,12 +300,12 @@ class Show extends Component
             UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
 
             // Invalidate dashboard caches affected by location change
-            $dashboardCache = app(\App\Services\DashboardCacheService::class);
+            $dashboardCache = app(DashboardCacheService::class);
             $dashboardCache->invalidateForUser($user->id, ['opportunities']);
 
             // Invalidate trending for old and new geohash tiles
             if ($oldLocationId) {
-                $oldLocation = \App\Models\Location::find($oldLocationId);
+                $oldLocation = Location::find($oldLocationId);
                 if ($oldLocation && $oldLocation->geohash_4) {
                     $dashboardCache->invalidateTrendingForGeohash($oldLocation->geohash_4);
                 }
@@ -300,22 +353,24 @@ class Show extends Component
         ]);
         $user->gameSystemPreferences()->sync(array_replace($favoriteSync->toArray(), $avoidSync->toArray()));
 
-        // Save vibe preferences (delete-and-insert)
+        // Save vibe preferences (atomic delete-and-insert within transaction)
         $validVibeValues = VibeFlag::values();
-        $user->vibePreferences()->delete();
-        $inserts = [];
-        foreach ($this->vibePreferences as $flagValue => $type) {
-            if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
-                $inserts[] = [
-                    'user_id' => $user->id,
-                    'vibe_preference_value' => $flagValue,
-                    'preference_type' => $type,
-                ];
+        DB::transaction(function () use ($user, $validVibeValues) {
+            $user->vibePreferences()->delete();
+            $inserts = [];
+            foreach ($this->vibePreferences as $flagValue => $type) {
+                if ($type !== null && in_array($type, ['favorite', 'avoid']) && in_array($flagValue, $validVibeValues)) {
+                    $inserts[] = [
+                        'user_id' => $user->id,
+                        'vibe_preference_value' => $flagValue,
+                        'preference_type' => $type,
+                    ];
+                }
             }
-        }
-        if (!empty($inserts)) {
-            $user->vibePreferences()->createMany($inserts);
-        }
+            if (! empty($inserts)) {
+                $user->vibePreferences()->createMany($inserts);
+            }
+        });
 
         // Detect changes for discovery cache invalidation
         $vibesChanged = $oldVibePreferences !== $this->vibePreferences;
@@ -346,7 +401,7 @@ class Show extends Component
 
         // Invalidate dashboard opportunities cache when preferences change
         if ($vibesChanged || $gameSystemsChanged) {
-            app(\App\Services\DashboardCacheService::class)->invalidateForUser(
+            app(DashboardCacheService::class)->invalidateForUser(
                 $user->id, ['opportunities'],
             );
         }
@@ -451,7 +506,7 @@ class Show extends Component
 
         Log::info('Password changed', [
             'user_id' => $user->id,
-            'had_password_before' => $user->wasRecentlyCreated ? false : ! $user->wasChanged('password_set_at'),
+            'had_password_before' => $user->getOriginal('password_set_at') !== null,
         ]);
 
         $this->reset(['current_password', 'password', 'password_confirmation', 'showPasswordForm']);
@@ -488,15 +543,27 @@ class Show extends Component
             ]);
         }
 
-        Log::info('Account deletion initiated by user', [
+        Log::info('Account anonymization initiated by user', [
             'user_id' => $user->id,
-            'user_email' => $user->email,
             'had_password' => $user->hasPasswordSet(),
         ]);
 
-        Auth::logout();
+        try {
+            app(UserAnonymizationService::class)->anonymize($user);
+        } catch (\Throwable $e) {
+            Log::error('Account anonymization failed from profile UI', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->addError(
+                $user->hasPasswordSet() ? 'delete_password' : 'delete_confirmation',
+                __('profile.error_account_deletion_failed'),
+            );
 
-        $user->delete();
+            return;
+        }
+
+        Auth::logout();
 
         session()->invalidate();
         session()->regenerateToken();
@@ -541,7 +608,7 @@ class Show extends Component
         $validated = $this->validate($rules);
 
         try {
-            $service = app(\App\Services\GmSocialLinkService::class);
+            $service = app(GmSocialLinkService::class);
             // Transform keyed array ['twitter' => ['handle' => 'x']]
             // into the format syncLinksForUser expects: [['platform' => 'twitter', 'handle' => 'x']].
             $links = collect($validated['socialLinks'])->map(fn ($data, $platform) => [
@@ -558,7 +625,7 @@ class Show extends Component
             ]);
 
             $this->socialLinksSaved = true;
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
             Log::error('Failed to save GM social links', [
@@ -568,6 +635,77 @@ class Show extends Component
 
             $this->addError('socialLinks', __('profile.gm_social_links_error'));
         }
+    }
+
+    /**
+     * Submit a data export request ticket from profile settings.
+     */
+    public function requestExport(): void
+    {
+        $user = Auth::user();
+
+        $department = Department::where('name', 'Account Support')->first();
+        if (! $department) {
+            Log::error('profile.data_export_department_missing');
+            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
+
+            return;
+        }
+
+        try {
+            $ticket = DB::transaction(function () use ($user, $department) {
+                $existing = Ticket::where('requester_type', User::class)
+                    ->where('requester_id', $user->id)
+                    ->where('ticket_type', 'data_export_request')
+                    ->open()
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    return null;
+                }
+
+                return Ticket::create([
+                    'requester_type' => User::class,
+                    'requester_id' => $user->id,
+                    'subject' => "Data Export Request — {$user->name}",
+                    'description' => 'User requested a full data export via profile settings.',
+                    'status' => TicketStatus::Open->value,
+                    'priority' => TicketPriority::Medium->value,
+                    'department_id' => $department->id,
+                    'ticket_type' => 'data_export_request',
+                    'channel' => TicketChannel::Web->value,
+                    'metadata' => [
+                        'source' => 'profile_settings',
+                        'user_id' => $user->id,
+                    ],
+                ]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('profile.data_export_create_failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->addError('dataExport', __('profile.error_data_export_request_failed'));
+
+            return;
+        }
+
+        if ($ticket === null) {
+            $this->addError('dataExport', __('profile.error_data_export_request_pending'));
+
+            return;
+        }
+
+        $this->hasPendingExportRequest = true;
+
+        Log::info('profile.data_export_requested', [
+            'ticket_id' => $ticket->id,
+            'ticket_reference' => $ticket->reference,
+            'user_id' => $user->id,
+        ]);
+
+        session()->flash('data_export_requested', __('profile.flash_data_export_requested'));
     }
 
     public function render()

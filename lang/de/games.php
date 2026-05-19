@@ -387,5 +387,5 @@ return [
 
     // SEO
     'seo_title_my_games' => 'Meine Spiele',
-    'seo_description_my_games' => 'Verwalte deine Spiele, Einladungen und den Aktivitäts-Feed auf Roundup Games.',
+    'seo_description_my_games' => 'Verwalte deine Spiele, Einladungen und den Aktivitäts-Feed auf :brand.',
 ];

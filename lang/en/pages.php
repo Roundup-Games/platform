@@ -2,12 +2,12 @@
 
 return [
 
-    'action_join_roundup_games_today' => 'Join Roundup Games today',
+    'action_join_roundup_games_today' => 'Join :brand today',
     'content_about' => 'About',
 
     'content_about_heading_vision' => 'Bringing People Together, One Table at a Time',
 
-    'content_about_intro' => 'Roundup Games is a non-profit built on a simple premise: the people who organize your games, handle your data, and set community standards should be accountable to you — not to investors. We work in the open because trust can\'t be claimed. It has to be verifiable. And we focus on local, in-person play because that\'s where the deepest connections happen.',
+    'content_about_intro' => ':brand is a non-profit built on a simple premise: the people who organize your games, handle your data, and set community standards should be accountable to you — not to investors. We work in the open because trust can\'t be claimed. It has to be verifiable. And we focus on local, in-person play because that\'s where the deepest connections happen.',
 
     'content_about_what_drives_us' => 'What Drives Us',
     'content_all_rights_reserved' => 'All rights reserved.',
@@ -35,26 +35,26 @@ return [
     'field_start_hosting_it_s_free' => 'Start Hosting — It\'s Free',
     'field_your_next_adventure_starts_here' => 'Your next adventure starts here',
 
-    'seo_description_about' => 'Roundup Games is a non-profit, open-source platform dedicated to local, in-person tabletop gaming. Built on transparency, safety, and community.',
-    'seo_description_contact' => 'Have questions, feedback, or partnership ideas? Get in touch with the Roundup Games team — we\'re a non-profit built by and for tabletop gamers.',
+    'seo_description_about' => ':brand is a non-profit, open-source platform dedicated to local, in-person tabletop gaming. Built on transparency, safety, and community.',
+    'seo_description_contact' => 'Have questions, feedback, or partnership ideas? Get in touch with the :brand team — we\'re a non-profit built by and for tabletop gamers.',
     'seo_description_for_organizers' => 'Schedule sessions, manage players, and grow your tabletop gaming community. Free event tools and subscriptions for board game and RPG organizers.',
     'seo_description_home' => 'Find local board game sessions, D&D groups, and tabletop RPG campaigns near you. Join a welcoming community of players and start playing today.',
     'seo_description_how_it_works' => 'Learn how to find, join, and organize board games and tabletop RPG sessions near you. Create events, discover local players, and start playing.',
-    'seo_title_about' => 'About Roundup Games — Non-Profit Tabletop Gaming Community',
-    'seo_title_contact' => 'Contact Roundup Games — Questions, Feedback & Partnerships',
+    'seo_title_about' => 'About :brand — Non-Profit Tabletop Gaming Community',
+    'seo_title_contact' => 'Contact :brand — Questions, Feedback & Partnerships',
     'seo_title_for_organizers' => 'Game Organizer Tools — Host Board Game & RPG Sessions',
-    'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You — Roundup Games',
+    'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You — :brand',
     'seo_title_how_it_works' => 'How to Find & Join Local Board Game & RPG Groups — Roundup',
 
     // ── Our Pledge ─────────────────────────────────────
     'seo_title_our_pledge' => 'Our Pledge — Non-Profit, Open Source Gaming Community',
-    'seo_description_our_pledge' => 'Our commitment to transparency, open-source code, and community investment. Roundup Games is a non-profit, mission-locked platform for tabletop gaming.',
+    'seo_description_our_pledge' => 'Our commitment to transparency, open-source code, and community investment. :brand is a non-profit, mission-locked platform for tabletop gaming.',
     'seo_title_pledge_algorithms' => 'Open Algorithms & Matching Code — Transparent by Design',
     'seo_description_pledge_algorithms' => 'Every matching and scoring algorithm documented in plain language. Inspect the open-source code, understand the formulas, and hold us accountable.',
     'content_pledge_hero_heading' => 'Our Pledge to the Community',
     'content_pledge_hero_subtitle' => 'We believe trust is earned through transparency. This is our commitment to you — the players, organizers, and communities that make tabletop gaming special.',
     'content_pledge_nonprofit_heading' => 'Non-profit by Design',
-    'content_pledge_nonprofit_body' => 'Roundup Games has no investors and no exit strategy. We\'re mission-locked: every dollar the platform generates goes back into the community — funding local events, supporting organizers, and promoting tabletop gaming. Our success is measured by the connections we build, not by profits.',
+    'content_pledge_nonprofit_body' => ':brand has no investors and no exit strategy. We\'re mission-locked: every dollar the platform generates goes back into the community — funding local events, supporting organizers, and promoting tabletop gaming. Our success is measured by the connections we build, not by profits.',
     'content_pledge_nonprofit_detail_1' => 'No investors, no shareholders, no pressure to monetize your data',
     'content_pledge_nonprofit_detail_2' => 'Revenue is reinvested into community initiatives',
     'content_pledge_nonprofit_detail_3' => 'Mission-locked structure ensures we stay focused on what matters',
@@ -217,7 +217,7 @@ return [
     'content_about_why_local_heading' => 'Why Local Matters',
     'content_about_why_local_p1' => 'The best gaming experiences happen in person. When you sit across a table from someone — rolling dice, solving puzzles together, navigating a story as a team — you learn things about them that no video call can reveal.',
     'content_about_why_local_p2' => 'These are the moments that turn strangers into friends and friends into a community. But they only happen when people feel safe enough to show up.',
-    'content_about_why_local_p3' => 'That\'s why Roundup Games is built around local, in-person play. Not because we\'re opposed to digital gaming — but because we believe the tabletop is where the deepest connections are forged. Our platform exists to make those connections easier to find, safer to pursue, and open to everyone.',
+    'content_about_why_local_p3' => 'That\'s why :brand is built around local, in-person play. Not because we\'re opposed to digital gaming — but because we believe the tabletop is where the deepest connections are forged. Our platform exists to make those connections easier to find, safer to pursue, and open to everyone.',
 
     // ── How It Works: Safety bridge sentence (M043 S04 T02) ──
     'content_safety_bridge_trust' => 'Everything above exists for one reason: to make it safe to meet new people in person. When you can see who\'s hosting, read their history, and know the community holds organizers accountable, showing up to a table with strangers starts to feel a lot less strange.',

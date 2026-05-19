@@ -77,7 +77,7 @@ class ContactSupport extends Component
         return [
             'subject' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
-            'issueType' => ['required', 'string', 'in:' . implode(',', array_keys(self::ISSUE_TYPES))],
+            'issueType' => ['required', 'string', 'in:'.implode(',', array_keys(self::ISSUE_TYPES))],
         ];
     }
 
@@ -125,6 +125,9 @@ class ContactSupport extends Component
             'issue_type' => $this->issueType,
         ];
 
+        // Determine ticket type based on issue type
+        $ticketType = $this->issueType === 'data_request' ? 'data_export_request' : 'account_recovery';
+
         $ticket = Ticket::create([
             'requester_type' => User::class,
             'requester_id' => $user->id,
@@ -133,13 +136,14 @@ class ContactSupport extends Component
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
             'department_id' => $department->id,
-            'ticket_type' => 'account_recovery',
+            'ticket_type' => $ticketType,
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,
         ]);
 
-        // Apply account-recovery tag
-        $tag = Tag::where('name', 'account-recovery')->first();
+        // Apply appropriate tag based on ticket type
+        $tagName = $ticketType === 'data_export_request' ? 'data-export' : 'account-recovery';
+        $tag = Tag::where('name', $tagName)->first();
         if ($tag) {
             $ticket->tags()->syncWithoutDetaching([$tag->id]);
         }

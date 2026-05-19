@@ -95,6 +95,7 @@ class GmDirectory extends Component
         ));
 
         $query = GMProfile::where('is_active', true)
+            ->whereHas('user', fn ($q) => $q->whereNull('anonymized_at'))
             ->with('user')
             ->withCount('reviews');
 

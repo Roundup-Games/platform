@@ -282,7 +282,7 @@ class DashboardSmartPromptService
     {
         return [
             'type' => 'fallback_new',
-            'message' => __('profile.dashboard_prompt_msg_welcome'),
+            'message' => __('profile.dashboard_prompt_msg_welcome', ['brand' => config('company.display_name')]),
             'action_url' => route('games.index'),
             'action_label' => __('profile.dashboard_prompt_find_game'),
             'metadata' => [
