@@ -104,8 +104,9 @@ class UserResource extends Resource
                                     ->options([
                                         'male' => 'Male',
                                         'female' => 'Female',
-                                        'non_binary' => 'Non-binary',
+                                        'non-binary' => 'Non-binary',
                                         'prefer_not_to_say' => 'Prefer not to say',
+                                        'other' => 'Other',
                                     ]),
                                 TextInput::make('pronouns')
                                     ->maxLength(50),

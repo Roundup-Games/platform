@@ -99,7 +99,7 @@ it('advances to step 3 (Contact) from step 2 with valid gender and pronouns', fu
         ->assertSee('Contact information');
 });
 
-it('validates gender is required on step 2', function () {
+it('validates gender is optional on step 2', function () {
     $user = User::factory()->create(['profile_complete' => false]);
 
     Livewire::actingAs($user)
@@ -112,8 +112,69 @@ it('validates gender is required on step 2', function () {
         ->set('gender', '')
         ->set('pronouns', 'they/them')
         ->call('nextStep')
-        ->assertHasErrors('gender')
-        ->assertSet('step', 2);
+        ->assertHasNoErrors('gender')
+        ->assertSet('step', 3);
+});
+
+it('stores gender as null when consent is not given during onboarding', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep')
+        ->set('gender', 'female')
+        ->set('gender_consent', false)
+        ->set('pronouns', 'she/her')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->call('complete');
+
+    $fresh = $user->fresh();
+    expect($fresh->gender)->toBeNull()
+        ->and($fresh->gender_consent)->toBeFalse();
+});
+
+it('stores gender when consent is given during onboarding', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep')
+        ->set('gender', 'female')
+        ->set('gender_consent', true)
+        ->set('pronouns', 'she/her')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->call('complete');
+
+    $fresh = $user->fresh();
+    expect($fresh->gender)->toBe('female')
+        ->and($fresh->gender_consent)->toBeTrue();
+});
+
+it('clears gender on step validation when consent is not given', function () {
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    Livewire::actingAs($user)
+        ->test(CompleteProfile::class)
+        ->set('city', 'Berlin')
+        ->set('lat', 52.52)
+        ->set('lng', 13.405)
+        ->set('locationConfirmed', true)
+        ->call('nextStep')
+        ->set('gender', 'male')
+        ->set('gender_consent', false)
+        ->set('pronouns', 'he/him')
+        ->call('nextStep')
+        ->assertSet('gender', null);
 });
 
 it('validates pronouns is required on step 2', function () {
@@ -182,6 +243,7 @@ it('completes profile and redirects to dashboard', function () {
         ->set('locationConfirmed', true)
         ->call('nextStep')
         ->set('gender', 'non-binary')
+        ->set('gender_consent', true)
         ->set('pronouns', 'they/them')
         ->call('nextStep')
         ->set('phone', '+15551234567')
@@ -192,6 +254,7 @@ it('completes profile and redirects to dashboard', function () {
     $fresh = $user->fresh();
     expect($fresh->profile_complete)->toBeTrue()
         ->and($fresh->gender)->toBe('non-binary')
+        ->and($fresh->gender_consent)->toBeTrue()
         ->and($fresh->pronouns)->toBe('they/them')
         ->and($fresh->phone)->toBe('+15551234567')
         ->and($fresh->profile_version)->toBe(1)
@@ -290,10 +353,10 @@ it('validates all steps when completing from step 4 with invalid step 2 data', f
         ->call('nextStep')
         ->assertSet('step', 4);
 
-    // Manually clear gender (simulating tampered state)
-    $component->set('gender', '')
+    // Manually clear pronouns (required field, simulating tampered state)
+    $component->set('pronouns', '')
         ->call('complete')
-        ->assertHasErrors('gender');
+        ->assertHasErrors('pronouns');
 
     // Profile should NOT be complete
     expect($user->fresh()->profile_complete)->toBeFalse();

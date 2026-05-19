@@ -2,7 +2,7 @@
     <!-- Page Title -->
     <div class="mb-6 text-center">
         <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('auth.content_sign_in') }}</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">{{ __('events.content_welcome_back_to_roundup_games') }}</p>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('events.content_welcome_back_to_roundup_games', ['brand' => config('company.display_name')]) }}</p>
     </div>
 
     <!-- Session Status -->

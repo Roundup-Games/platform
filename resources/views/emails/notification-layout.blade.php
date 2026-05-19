@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{ $subject ?? __('notifications.email_default_subject') }}</title>
+    <title>{{ $subject ?? __('notifications.email_default_subject', ['brand' => config('company.display_name')]) }}</title>
     <style>
         /* Reset */
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
@@ -57,7 +57,7 @@
 
             {{-- Header --}}
             <div class="header">
-                <h1>{{ __('notifications.email_brand_name') }}</h1>
+                <h1>{{ __('notifications.email_brand_name', ['brand' => config('company.display_name')]) }}</h1>
             </div>
 
             {{-- Body Content --}}
@@ -79,7 +79,7 @@
                     @endisset
                     <a href="{{ config('app.url') }}/{{ app()->getLocale() }}/profile">{{ __('notifications.email_manage_settings') }}</a>
                 </p>
-                <p style="margin-top: 12px;">&copy; {{ date('Y') }} Roundup Games</p>
+                <p style="margin-top: 12px;">&copy; {{ date('Y') }} {{ config('company.display_name') }}</p>
             </div>
 
         </div>

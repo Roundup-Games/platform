@@ -154,7 +154,7 @@ class CampaignsPage extends Component
     {
         seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
             title: __('campaigns.seo_title_my_campaigns'),
-            description: __('campaigns.seo_description_my_campaigns'),
+            description: __('campaigns.seo_description_my_campaigns', ['brand' => config('company.display_name')]),
             robots: 'noindex, nofollow',
         ));
 

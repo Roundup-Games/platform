@@ -69,7 +69,7 @@ return [
         'shield', 'report', 'task_alt',
 
         // Settings & prefs
-        'settings', 'language', 'translate', 'dark_mode', 'light_mode',
+        'settings', 'cookie', 'language', 'translate', 'dark_mode', 'light_mode',
         'routine', 'palette', 'contract', 'contract_edit', 'title',
         'domain', 'business', 'computer', 'shopping_cart', 'payments',
         'install_mobile', 'ios_share', 'home', 'info', 'help',

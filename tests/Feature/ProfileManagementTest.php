@@ -24,6 +24,7 @@ it('can save profile information', function () {
         ->set('name', 'Updated Name')
         ->set('email', 'updated@example.com')
         ->set('gender', 'non-binary')
+        ->set('gender_consent', true)
         ->set('pronouns', 'they/them')
         ->set('phone', '+15559876543')
         ->call('saveProfile')
@@ -34,6 +35,7 @@ it('can save profile information', function () {
         ->name->toBe('Updated Name')
         ->email->toBe('updated@example.com')
         ->gender->toBe('non-binary')
+        ->gender_consent->toBeTrue()
         ->pronouns->toBe('they/them')
         ->phone->toBe('+15559876543');
 });
@@ -148,7 +150,7 @@ it('OAuth user password set updates userHasPassword to true', function () {
 
 // ── Account Deletion: Users With Passwords ────────────
 
-it('user with password can delete account with correct password', function () {
+it('user with password can anonymize account with correct password', function () {
     $user = User::factory()->create([
         'profile_complete' => true,
         'password_set_at' => now(),
@@ -159,7 +161,7 @@ it('user with password can delete account with correct password', function () {
         ->set('delete_password', 'password')
         ->call('deleteAccount');
 
-    expect($user->fresh())->toBeNull();
+    expect($user->fresh()->anonymized_at)->not->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 
@@ -193,7 +195,7 @@ it('user with password must provide password to delete', function () {
 
 // ── Account Deletion: OAuth Users (No Password) ───────
 
-it('OAuth user can delete account by typing DELETE', function () {
+it('OAuth user can anonymize account by typing DELETE', function () {
     $user = User::factory()->oauthUser()->create(['profile_complete' => true]);
 
     Livewire::actingAs($user)
@@ -201,7 +203,7 @@ it('OAuth user can delete account by typing DELETE', function () {
         ->set('delete_confirmation', 'DELETE')
         ->call('deleteAccount');
 
-    expect($user->fresh())->toBeNull();
+    expect($user->fresh()->anonymized_at)->not->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 
@@ -834,5 +836,58 @@ describe('Privacy Settings', function () {
 
         expect($user->fresh()->bio)->toBeNull();
     });
+
+// ── Gender consent management (GDPR Art. 9) ──────────
+
+it('stores gender as null when consent is not given on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender_consent' => false,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender', 'female')
+        ->set('gender_consent', false)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBeNull()
+        ->and($user->fresh()->gender_consent)->toBeFalse();
+});
+
+it('stores gender when consent is given on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender_consent' => false,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender', 'female')
+        ->set('gender_consent', true)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBe('female')
+        ->and($user->fresh()->gender_consent)->toBeTrue();
+});
+
+it('clears gender when consent is revoked on profile save', function () {
+    $user = User::factory()->create([
+        'profile_complete' => true,
+        'email_verified_at' => now(),
+        'gender' => 'female',
+        'gender_consent' => true,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Show::class)
+        ->set('gender_consent', false)
+        ->call('saveProfile');
+
+    expect($user->fresh()->gender)->toBeNull()
+        ->and($user->fresh()->gender_consent)->toBeFalse();
+});
 });
 

@@ -42,6 +42,7 @@
     <script>window.__pwaUpdateToast={message:'{{ addslashes(__('pwa.content_update_available')) }}',action:'{{ addslashes(__('pwa.action_update')) }}'};window.__pwaOfflineToast={queued:'{{ addslashes(__('pwa.offline_action_queued')) }}',offline:'{{ addslashes(__('pwa.offline_action_offline')) }}'};</script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireScripts
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}
@@ -173,7 +174,7 @@
                         @include('partials.logo', ['class' => 'h-8 w-auto'])
                     </a>
                     <p class="text-sm text-on-surface-variant max-w-xs">
-                        &copy; {{ date('Y') }} Roundup Games. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
+                        &copy; {{ date('Y') }} {{ config('company.display_name') }}. {{ __('common.content_the_digital_parlor_for_tabletop_enthusiasts') }}
                     </p>
                     <div class="flex gap-4 items-center">
                         <a href="{{ route('home') }}" wire:navigate class="text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ __('common.content_home') }}">
@@ -232,6 +233,24 @@
                             <a href="{{ route('register') }}" wire:navigate class="text-on-surface-variant hover:text-primary text-sm transition-colors">{{ __('auth.content_sign_up') }}</a>
                         @endauth
                     </div>
+                </div>
+            </div>
+
+            {{-- Bottom bar: legal links + cookie settings --}}
+            <div class="border-t border-outline-variant/10 px-8 sm:px-12 py-4">
+                <div class="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 justify-center">
+                        <a href="{{ route('impressum', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_impressum') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        <a href="{{ route('privacy', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_privacy') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_terms') }}</a>
+                        <span class="hidden sm:inline" aria-hidden="true">·</span>
+                        @if(config('cookie-consent.enabled'))
+                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
+                        @endif
+                    </div>
+                    <p>&copy; {{ date('Y') }} {{ config('company.legal_name') }}</p>
                 </div>
             </div>
 

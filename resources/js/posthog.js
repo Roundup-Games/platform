@@ -5,6 +5,8 @@
  * Reads API key and host from server-injected <meta> tags.
  *
  * Key design decisions:
+ * - Gated behind cookie consent: posthog.init() only fires when analytics consent is granted
+ * - Listens for cookieConsentChanged event so consent after page load activates tracking
  * - captureHistoryEvents: false — uses livewire:navigated hook instead for correct page titles
  * - PII is set server-side only; client-side identify() just links the session to user ID
  * - Session replay masks all inputs, images, and [data-ph-mask] elements for GDPR compliance
@@ -16,7 +18,29 @@ import posthog from 'posthog-js';
 const apiKey = document.querySelector('meta[name="posthog-api-key"]')?.content;
 const apiHost = document.querySelector('meta[name="posthog-api-host"]')?.content;
 
-if (apiKey && apiHost) {
+let posthogInitialized = false;
+
+/**
+ * Read the cookie_consent cookie and check if a specific category is granted.
+ */
+function hasConsented(category) {
+    const match = document.cookie.match('(^|;)\\s*cookie_consent\\s*=\\s*([^;]+)');
+    if (!match) return false;
+    try {
+        const consent = JSON.parse(decodeURIComponent(match.pop()));
+        return consent[category] === true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Initialize PostHog with all features. Called only once when consent is granted.
+ */
+function initPostHog() {
+    if (posthogInitialized) return;
+    if (!apiKey || !apiHost) return;
+
     posthog.init(apiKey, {
         api_host: apiHost,
         autocapture: true,
@@ -39,8 +63,10 @@ if (apiKey && apiHost) {
         advanced_disable_decide: false,
     });
 
-    if (import.meta.env.DEV && navigator.doNotTrack === '1') {
-        console.warn('[PostHog] Do Not Track is enabled — all tracking is disabled.');
+    posthogInitialized = true;
+
+    if (import.meta.env.DEV) {
+        console.log('[PostHog] Initialized with host:', apiHost);
     }
 
     // ── Surveys ──────────────────────────────────────────
@@ -104,14 +130,29 @@ if (apiKey && apiHost) {
             }
         },
     };
+}
 
-    if (import.meta.env.DEV) {
-        console.log('[PostHog] Initialized with host:', apiHost);
+/**
+ * Try to initialize PostHog if analytics consent is already granted.
+ */
+function tryInit() {
+    if (hasConsented('analytics')) {
+        initPostHog();
     }
-} else {
-    if (import.meta.env.DEV) {
-        console.log('[PostHog] Skipped — missing meta tags (api_key or api_host)');
-    }
+}
+
+// ── Consent-aware initialization ────────────────────────
+// 1. Try immediately (cookie may already be set from a previous visit)
+tryInit();
+
+// 2. Listen for consent changes (first-time consent or preference updates)
+document.addEventListener('cookieConsentChanged', (e) => {
+    tryInit();
+});
+
+// ── DNT warning (dev only) ──────────────────────────────
+if (import.meta.env.DEV && navigator.doNotTrack === '1') {
+    console.warn('[PostHog] Do Not Track is enabled — all tracking is disabled.');
 }
 
 export default posthog;

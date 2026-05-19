@@ -38,7 +38,7 @@ describe('RecordShortLinkHit job — hit recording', function () {
         // IP is hashed for PII compliance — verify it's a sha256 hash, not raw IP
         expect($hit->ip_address)->not->toBe('192.168.1.1');
         expect(strlen($hit->ip_address))->toBe(64); // sha256 hex
-        expect($hit->referer)->toBe('https://google.com');
+        expect($hit->referer)->toBe('google.com');
         expect($hit->user_agent)->toBe('Bot/Unknown');
         expect($hit->hit_at)->not->toBeNull();
     });
@@ -196,5 +196,74 @@ describe('RecordShortLinkHit job — configuration', function () {
         expect($job->tries)->toBe(3);
         expect($job->timeout)->toBe(30);
         expect($job->deleteWhenMissingModels)->toBeTrue();
+    });
+});
+
+// ── Referer sanitization (GDPR) ────────────────────────
+
+describe('RecordShortLinkHit job — referer sanitization', function () {
+    it('strips referer to hostname only, removing query params', function () {
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldReceive('capture')->once();
+
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            referer: 'https://google.com/search?q=test&utm_source=mail&uid=12345',
+        ))->handle($posthog);
+
+        $hit = ShortLinkHit::first();
+        expect($hit->referer)->toBe('google.com');
+        expect($hit->referer_domain)->toBe('google.com');
+    });
+
+    it('strips referer with path and fragment to hostname only', function () {
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldReceive('capture')->once();
+
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            referer: 'https://example.com/path/to/page#section',
+        ))->handle($posthog);
+
+        $hit = ShortLinkHit::first();
+        expect($hit->referer)->toBe('example.com');
+    });
+
+    it('falls back to raw referer when parse_url fails', function () {
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldReceive('capture')->once();
+
+        // Malformed string that parse_url can't extract a host from
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            referer: 'not-a-valid-url',
+        ))->handle($posthog);
+
+        $hit = ShortLinkHit::first();
+        expect($hit->referer)->toBe('not-a-valid-url');
+    });
+
+    it('handles null referer gracefully after sanitization', function () {
+        $posthog = $this->mock(PostHogClient::class);
+        $posthog->shouldReceive('capture')->once();
+
+        (new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            referer: null,
+        ))->handle($posthog);
+
+        $hit = ShortLinkHit::first();
+        expect($hit->referer)->toBeNull();
+        expect($hit->referer_domain)->toBeNull();
+    });
+
+    it('sanitizes referer before it enters the queue store', function () {
+        $job = new RecordShortLinkHit(
+            shortLinkId: $this->link->id,
+            referer: 'https://example.com/page?user=123',
+        );
+
+        // The public referer property should already be sanitized at construction
+        expect($job->referer)->toBe('example.com');
     });
 });

@@ -84,3 +84,25 @@ if (! function_exists('format_currency')) {
         return '$' . number_format($value, 2);
     }
 }
+
+/**
+ * Format bytes into a human-readable string (e.g. "1.5 MB").
+ *
+ * Shared by data export command and Filament ticket actions.
+ */
+function format_bytes(int $bytes): string
+{
+    if ($bytes < 0) {
+        $bytes = 0;
+    }
+
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $i = 0;
+
+    while ($bytes >= 1024 && $i < count($units) - 1) {
+        $bytes /= 1024;
+        $i++;
+    }
+
+    return round($bytes, 2).' '.$units[$i];
+}

@@ -51,6 +51,10 @@ class PublicProfile extends Component
 
     public function mount(User $user): void
     {
+        if ($user->isAnonymized()) {
+            abort(404);
+        }
+
         $this->profileUser = $user;
 
         $viewer = Auth::user();

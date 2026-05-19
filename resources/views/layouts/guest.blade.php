@@ -9,7 +9,7 @@
         {{-- PostHog Analytics meta tags (shared partial for consistent config/exclusion logic) --}}
         @include('partials.posthog-meta')
 
-        <title>{{ config('app.name', 'Roundup Games') }}</title>
+        <title>{{ config('app.name', config('company.display_name')) }}</title>
 
         {{-- Favicons --}}
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
@@ -47,7 +47,7 @@
             </div>
 
             {{-- Footer --}}
-            <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} Roundup Games. {{ __('pages.content_all_rights_reserved') }}</p>
+            <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} {{ config('company.display_name') }}. {{ __('pages.content_all_rights_reserved') }}</p>
         </div>
     </body>
 </html>

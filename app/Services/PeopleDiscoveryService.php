@@ -126,7 +126,10 @@ class PeopleDiscoveryService
     private function paginatedFromCache(array $cached, int $perPage, int $page): array
     {
         $userIds = array_column($cached, 'user_id');
-        $users = User::whereIn('id', $userIds)->get()->keyBy('id');
+        $users = User::whereIn('id', $userIds)
+            ->whereNull('anonymized_at')
+            ->get()
+            ->keyBy('id');
 
         $items = collect($cached)->map(function (array $cachedItem) use ($users) {
             $user = $users->get($cachedItem['user_id']);
@@ -216,7 +219,10 @@ class PeopleDiscoveryService
         }
 
         // Eager-load candidate users (1 query)
-        $candidateUsers = User::whereIn('id', $candidateIds)->get()->keyBy('id');
+        $candidateUsers = User::whereIn('id', $candidateIds)
+            ->whereNull('anonymized_at')
+            ->get()
+            ->keyBy('id');
 
         // Phase 2 — Bulk preference loading (4 queries via raw DB)
         $gameSystemPrefs = $this->loadGameSystemPreferences($candidateIds);

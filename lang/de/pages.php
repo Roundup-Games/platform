@@ -2,12 +2,12 @@
 
 return [
 
-    'action_join_roundup_games_today' => 'Noch heute bei Roundup Games anmelden',
+    'action_join_roundup_games_today' => 'Noch heute bei :brand anmelden',
     'content_about' => 'Über uns',
 
     'content_about_heading_vision' => 'Menschen zusammenbringen, einen Tisch nach dem anderen',
 
-    'content_about_intro' => 'Roundup Games ist eine gemeinnützige Organisation, die sich der Schaffung persönlicher Verbindungen durch Brett- und Tabletop-Spiele verschrieben hat. Wir glauben, dass Würfel werfen, Geschichten teilen und der direkte Austausch am Tisch Bindungen aufbaut, die Bildschirme nie erreichen können.',
+    'content_about_intro' => ':brand ist eine gemeinnützige Organisation, die sich der Schaffung persönlicher Verbindungen durch Brett- und Tabletop-Spiele verschrieben hat. Wir glauben, dass Würfel werfen, Geschichten teilen und der direkte Austausch am Tisch Bindungen aufbaut, die Bildschirme nie erreichen können.',
 
     'content_about_what_drives_us' => 'Was uns antreibt',
     'content_all_rights_reserved' => 'Alle Rechte vorbehalten.',
@@ -35,26 +35,26 @@ return [
     'field_start_hosting_it_s_free' => 'Jetzt anfangen — kostenlos',
     'field_your_next_adventure_starts_here' => 'Dein nächstes Abenteuer beginnt hier',
 
-    'seo_description_about' => 'Roundup Games ist eine gemeinnützige Organisation für persönliche Verbindungen durch Brett- und Tabletop-Spiele. Erfahre mehr über Transparenz, Sicherheit, Inklusivität und Community.',
-    'seo_description_contact' => 'Nimm Kontakt mit dem Roundup Games Team auf. Wir freuen uns auf deine Nachricht.',
+    'seo_description_about' => ':brand ist eine gemeinnützige Organisation für persönliche Verbindungen durch Brett- und Tabletop-Spiele. Erfahre mehr über Transparenz, Sicherheit, Inklusivität und Community.',
+    'seo_description_contact' => 'Nimm Kontakt mit dem :brand Team auf. Wir freuen uns auf deine Nachricht.',
     'seo_description_for_organizers' => 'Werkzeuge und Funktionen für Spielorganisatoren — plane Sessions, verwalte Spieler und baue deine Tabletop-Community auf.',
     'seo_description_home' => 'Finde Brettspiele, Tabletop-RPG-Sessions und Kampagnen in deiner Nähe. Entdecke lokale Spiel-Events, tritt einer Community bei und fang heute an.',
-    'seo_description_how_it_works' => 'Erfahre, wie Roundup Games dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden und zu organisieren.',
-    'seo_title_about' => 'Über Roundup Games — Unsere Vision & Werte',
+    'seo_description_how_it_works' => 'Erfahre, wie :brand dir hilft, Brett- und Tabletop-RPG-Spiele in deiner Nähe zu finden und zu organisieren.',
+    'seo_title_about' => 'Über :brand — Unsere Vision & Werte',
     'seo_title_contact' => 'Kontakt',
     'seo_title_for_organizers' => 'Für Organisatoren',
     'seo_title_home' => 'Tabletop-Spiele & RPG-Sessions entdecken',
     'seo_title_how_it_works' => 'So funktioniert\'s',
 
     // ── Our Pledge ─────────────────────────────────────
-    'seo_title_our_pledge' => 'Unser Versprechen an die Community — Roundup Games',
-    'seo_description_our_pledge' => 'Unser Versprechen zu Transparenz, Community-Investitionen und Open Source. Roundup Games ist eine gemeinnützige, missionsgebundene Organisation für die Tabletop-Spiele-Community.',
+    'seo_title_our_pledge' => 'Unser Versprechen an die Community — :brand',
+    'seo_description_our_pledge' => 'Unser Versprechen zu Transparenz, Community-Investitionen und Open Source. :brand ist eine gemeinnützige, missionsgebundene Organisation für die Tabletop-Spiele-Community.',
     'seo_title_pledge_algorithms' => 'Offene Algorithmen & Code — Unser Versprechen',
     'seo_description_pledge_algorithms' => 'Wie unsere Matching-Algorithmen funktionieren, verständlich erklärt. Open-Source-Code zum Prüfen, Hinterfragen und Verbessern.',
     'content_pledge_hero_heading' => 'Unser Versprechen an die Community',
     'content_pledge_hero_subtitle' => 'Wir glauben, dass Vertrauen durch Transparenz verdient wird. Das ist unser Versprechen an dich — die Spieler, Organisatoren und Communities, die Tabletop-Spiele besonders machen.',
     'content_pledge_nonprofit_heading' => 'Gemeinnützig vom Design her',
-    'content_pledge_nonprofit_body' => 'Roundup Games hat keine Investoren und keine Exit-Strategie. Wir sind missionsgetrieben: Jeder Euro, den die Plattform erwirtschaftet, fließt zurück in die Community — Förderung lokaler Events, Unterstützung von Organisatoren und die Verbreitung von Tabletop-Spielen. Unser Erfolg wird an den Verbindungen gemessen, die wir aufbauen, nicht an Gewinnen.',
+    'content_pledge_nonprofit_body' => ':brand hat keine Investoren und keine Exit-Strategie. Wir sind missionsgetrieben: Jeder Euro, den die Plattform erwirtschaftet, fließt zurück in die Community — Förderung lokaler Events, Unterstützung von Organisatoren und die Verbreitung von Tabletop-Spielen. Unser Erfolg wird an den Verbindungen gemessen, die wir aufbauen, nicht an Gewinnen.',
     'content_pledge_nonprofit_detail_1' => 'Keine Investoren, keine Aktionäre, kein Druck, deine Daten zu monetarisieren',
     'content_pledge_nonprofit_detail_2' => 'Einnahmen werden in Community-Projekte reinvestiert',
     'content_pledge_nonprofit_detail_3' => 'Die missionsgebundene Struktur stellt sicher, dass wir uns auf das Wesentliche konzentrieren',
@@ -202,7 +202,7 @@ return [
     'content_about_why_local_heading' => 'Warum lokal wichtig ist',
     'content_about_why_local_p1' => 'Die besten Spielerlebnisse passieren persönlich. Wenn du jemandem gegenübersitzt — gemeinsam Würfel wirfst, Rätsel löst, als Team eine Geschichte navigierst — lernst du Dinge über diese Person, die kein Videoanruf je enthüllen könnte.',
     'content_about_why_local_p2' => 'Das sind die Momente, die Fremde zu Freunden und Freunde zu einer Community machen. Aber sie passieren nur, wenn Menschen sich sicher genug fühlen aufzutauchen.',
-    'content_about_why_local_p3' => 'Deshalb ist Roundup Games um lokales, persönliches Spielen herum aufgebaut. Nicht weil wir gegen digitales Spielen sind — sondern weil wir glauben, dass am Tabletop die tiefsten Verbindungen geschmiedet werden. Unsere Plattform existiert, um diese Verbindungen leichter findbar, sicherer verfolgbar und für alle offen zu machen.',
+    'content_about_why_local_p3' => 'Deshalb ist :brand um lokales, persönliches Spielen herum aufgebaut. Nicht weil wir gegen digitales Spielen sind — sondern weil wir glauben, dass am Tabletop die tiefsten Verbindungen geschmiedet werden. Unsere Plattform existiert, um diese Verbindungen leichter findbar, sicherer verfolgbar und für alle offen zu machen.',
 
     // ── Values: 3 cards (M043 S03) ──
     'content_about_value_community_first_title' => 'Community zuerst',

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\ExportDownloadController;
+use App\Http\Controllers\InviteOptoutController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
@@ -88,6 +90,9 @@ Route::prefix('{locale}')
         Route::get('/for-organizers', [PageController::class, 'forOrganizers'])->name('for-organizers');
         Route::get('/contact', [PageController::class, 'contact'])->name('contact');
         Route::get('/safety-tools', [PageController::class, 'safetyTools'])->name('safety-tools');
+        Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
+        Route::get('/terms', [PageController::class, 'terms'])->name('terms');
+        Route::get('/impressum', [PageController::class, 'impressum'])->name('impressum');
         Route::get('/gms', App\Livewire\GM\GmDirectory::class)->name('gm.directory');
         Route::get('/game-systems', App\Livewire\GameSystems\GameSystemsPage::class)->name('game-systems');
         Route::get('/game-systems/request', App\Livewire\GameSystems\RequestGameSystemPage::class)
@@ -229,11 +234,34 @@ Route::prefix('{locale}')
                 ->name('billing.one-time-checkout');
         });
 
+        // ── Invite Email Opt-out (public, rate-limited) ──
+        // Two-step flow: GET shows confirmation page, POST performs suppression.
+        // Prevents email scanners and link prefetchers from triggering false opt-outs.
+
+        Route::get('/invite-optout/{emailHash}', [InviteOptoutController::class, 'show'])
+            ->name('invite.optout.show')
+            ->middleware('throttle:10,1')
+            ->where('emailHash', '[a-f0-9]{64}');
+
+        Route::post('/invite-optout/{emailHash}', [InviteOptoutController::class, 'confirm'])
+            ->name('invite.optout.confirm')
+            ->middleware('throttle:10,1')
+            ->where('emailHash', '[a-f0-9]{64}');
+
         // ── Notification Unsubscribe (signed URL, no auth required) ──
 
         Route::get('/notifications/unsubscribe/{user}/{category}', [NotificationController::class, 'unsubscribe'])
             ->name('notifications.unsubscribe')
             ->middleware('signed');
+
+        // ── Data Export Download (signed URL + auth) ──────
+        // Signed URL expires after 7 days. Auth ensures only the data subject
+        // can download their own export — prevents leakage via browser history
+        // or URL forwarding.
+
+        Route::get('/export/download/{user}', [ExportDownloadController::class, 'download'])
+            ->name('export.download')
+            ->middleware(['signed', 'auth']);
 
         // ── Onboarding (authenticated, profile NOT complete) ──
 

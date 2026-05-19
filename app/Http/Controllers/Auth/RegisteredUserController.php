@@ -48,6 +48,8 @@ class RegisteredUserController extends Controller
             'password_set_at' => now(),
             'profile_complete' => false,
             'slug' => User::generateUniqueSlug($sanitizedName),
+            'privacy_policy_accepted_at' => now(),
+            'terms_accepted_at' => now(),
         ]);
 
         event(new Registered($user));

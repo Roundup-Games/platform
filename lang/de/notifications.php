@@ -66,8 +66,8 @@ return [
     'push_disable_button' => 'Deaktivieren',
 
     // Gemeinsame E-Mail-Texte
-    'email_brand_name' => 'Roundup Games',
-    'email_default_subject' => 'Benachrichtigung von Roundup Games',
+    'email_brand_name' => ':brand',
+    'email_default_subject' => 'Benachrichtigung von :brand',
     'email_unsubscribe' => 'Abmelden',
     'email_manage_settings' => 'Benachrichtigungseinstellungen',
     'email_footer_reason' => 'Du erhältst diese E-Mail, da du Benachrichtigungen für diese Art von Aktivität aktiviert hast.',
@@ -114,7 +114,7 @@ return [
 
     // E-Mail-Betreffs — Soziales
     'subject_new_follower' => ':follower folgt dir jetzt',
-    'body_new_follower' => '**:follower** folgt dir jetzt auf Roundup Games. Schau dir ihr Profil an und sag Hallo!',
+    'body_new_follower' => '**:follower** folgt dir jetzt auf :brand. Schau dir ihr Profil an und sag Hallo!',
     'action_new_follower' => 'Profil anzeigen',
 
     // E-Mail-Betreffs — Einladungen

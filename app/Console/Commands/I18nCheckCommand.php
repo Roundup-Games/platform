@@ -157,6 +157,10 @@ class I18nCheckCommand extends Command
                         continue;
                     }
 
+                    if ($this->isExempted($domain, $key)) {
+                        continue;
+                    }
+
                     if ($parser->isUntranslated($primaryValues[$key] ?? '', $localeValues[$key])) {
                         $issues[] = [
                             'type' => 'untranslated',
@@ -251,5 +255,39 @@ class I18nCheckCommand extends Command
 
         $this->newLine();
         $this->warn("Found {$totalIssueCount} issue(s) across " . $grouped->count() . " categories.");
+    }
+
+    /**
+     * Check if a key is exempt from the untranslated check.
+     *
+     * Reads exemptions from config('i18n.untranslated_exemptions'), which maps
+     * domain names to arrays of key patterns. Supports glob-style wildcards
+     * (e.g. 'content_address_*').
+     */
+    private function isExempted(string $domain, string $key): bool
+    {
+        $exemptions = config('i18n.untranslated_exemptions', []);
+
+        if (! isset($exemptions[$domain])) {
+            return false;
+        }
+
+        foreach ($exemptions[$domain] as $pattern) {
+            if ($this->matchGlob($pattern, $key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Simple glob-style matching: * matches any sequence of characters.
+     */
+    private function matchGlob(string $pattern, string $subject): bool
+    {
+        $regex = '/^' . str_replace('\*', '.*', preg_quote($pattern, '/')) . '$/';
+
+        return (bool) preg_match($regex, $subject);
     }
 }

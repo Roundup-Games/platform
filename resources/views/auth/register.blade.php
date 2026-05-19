@@ -2,7 +2,7 @@
     <!-- Page Title -->
     <div class="mb-6 text-center">
         <h1 class="font-heading text-2xl font-bold text-on-surface">{{ __('profile.action_create_account') }}</h1>
-        <p class="mt-1 text-sm text-on-surface-variant">{{ __('pages.action_join_roundup_games_today') }}</p>
+        <p class="mt-1 text-sm text-on-surface-variant">{{ __('pages.action_join_roundup_games_today', ['brand' => config('company.display_name')]) }}</p>
     </div>
 
     <!-- Google OAuth -->

@@ -155,7 +155,7 @@ class PeoplePage extends Component
     public function unfollow(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser)) {
+        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 
@@ -168,7 +168,7 @@ class PeoplePage extends Component
     public function followBack(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser)) {
+        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 
@@ -212,7 +212,7 @@ class PeoplePage extends Component
     public function followFromNearby(string $userId): void
     {
         $target = User::find($userId);
-        if (! $target || $target->is($this->authUser)) {
+        if (! $target || $target->is($this->authUser) || $target->isAnonymized()) {
             return;
         }
 

@@ -112,7 +112,7 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'noreply@roundup.games'),
-        'name' => env('MAIL_FROM_NAME', 'Roundup Games'),
+        'name' => env('MAIL_FROM_NAME', config('company.display_name', 'Roundup Games')),
     ],
 
 ];

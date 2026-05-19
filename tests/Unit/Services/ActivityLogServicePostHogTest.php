@@ -9,6 +9,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\PostHogClient;
+use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,11 @@ beforeEach(function () {
 
     $this->posthogClient = new Tests\Helpers\TestablePostHogClient();
     $this->app->instance(PostHogClient::class, $this->posthogClient);
+
+    // Grant analytics consent by default
+    $consentChecker = $this->mock(PostHogConsentChecker::class);
+    $consentChecker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
+    $this->app->instance(PostHogConsentChecker::class, $consentChecker);
 });
 
 // ── log() forwards to PostHog ────────────────────────────
@@ -237,7 +243,7 @@ it('resolves PostHogEventBridge from container and calls forwardEvent', function
     ]);
 
     // Use a testable bridge registered in the container
-    $testBridge = new class(app(PostHogClient::class)) extends PostHogEventBridge {
+    $testBridge = new class(app(PostHogClient::class), app(PostHogConsentChecker::class)) extends PostHogEventBridge {
         public array $forwardedCalls = [];
 
         public function forwardEvent(

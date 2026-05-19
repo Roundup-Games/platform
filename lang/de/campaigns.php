@@ -185,5 +185,5 @@ return [
 
     // SEO
     'seo_title_my_campaigns' => 'Meine Kampagnen',
-    'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf Roundup Games.',
+    'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf :brand.',
 ];
