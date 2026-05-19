@@ -8,7 +8,7 @@ return [
     |
     | The complete list of Material Symbols Outlined icon names used across the
     | application. This drives the font subsetting in build-tools/subset-icons.sh,
-    | which reduces the font payload from ~1.1 MB (full set) to ~160 KB.
+    | which reduces the font payload from ~1.1 MB (full set) to ~50 KB.
     |
     | When adding new icons, append them here and re-run:
     |   bash build-tools/subset-icons.sh
@@ -19,13 +19,15 @@ return [
     | Icon names use snake_case as defined by Google:
     | https://fonts.google.com/icons?icon.style=Outlined
     |
+    | Run `php artisan fonts:audit` to check for gaps or dead entries.
+    |
     */
 
     'material_symbols' => [
         // Navigation & UI
         'menu', 'close', 'arrow_back', 'arrow_forward', 'arrow_upward',
         'chevron_right', 'expand_more', 'more_vert', 'open_in_new',
-        'cancel', 'search', 'filter_list', 'tune', 'refresh', 'sort',
+        'cancel', 'search', 'filter_list', 'tune', 'refresh',
 
         // Auth & user
         'person', 'person_add', 'person_edit', 'person_play', 'person_remove',
@@ -45,11 +47,11 @@ return [
         // Game systems & attributes
         'extension', 'category', 'fitness_center', 'straighten',
         'star', 'star_rate', 'emoji_events', 'bolt', 'trending_up',
-        'sell', 'signal_cellular_alt',
+        'sell', 'signal_cellular_alt', 'target',
 
         // Social & communication
         'forum', 'chat', 'mail', 'send', 'share', 'content_copy',
-        'link', 'link_off', 'add_link', 'link_off',
+        'link', 'link_off', 'add_link',
         'notifications', 'notifications_active', 'notifications_off', 'notifications_paused',
         'rate_review', 'thumb_up', 'thumb_down', 'favorite', 'favorite_border',
         'public', 'contact_support', 'flag',
@@ -66,7 +68,7 @@ return [
 
         // Safety & moderation
         'block', 'pan_tool', 'gavel', 'warning', 'error', 'lock', 'lock_open',
-        'shield', 'report', 'task_alt',
+        'shield', 'task_alt',
 
         // Settings & prefs
         'settings', 'cookie', 'language', 'translate', 'dark_mode', 'light_mode',
@@ -77,19 +79,18 @@ return [
         'volunteer_activism', 'how_to_reg',
 
         // Icons only in dynamic PHP code
-        'pause_circle', 'search_off',
-                'inbox', 'code', 'dashboard',
+        'pause_circle', 'search_off', 'inbox', 'code', 'dashboard',
 
         // Pledge & algorithms pages
         'account_balance', 'distance', 'insights', 'function',
         'lightbulb', 'account_tree', 'grid_on',
-        'functions',        
-        // Icons only in JS
-        'system_update',
+        'functions',
 
-        // Social platform icons
-        'photo_camera', 'smart_display', 'music_note', 'alternate_email',
-        'cloud', 'card_membership', 'local_cafe', 'games', 'videocam',
+        // Social platform icons (from config/platforms.php)
+        'alternate_email', 'photo_camera', 'smart_display', 'music_note',
+        'cloud', 'card_membership', 'local_cafe', 'games',
+
+        // Tag
         'tag',
     ],
 

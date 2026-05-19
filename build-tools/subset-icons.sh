@@ -75,15 +75,45 @@ CONFIG_ICONS=$(php -r "
 " 2>/dev/null || echo "")
 
 # 2. From static scan of Blade templates, PHP enums, and JS files
+#    Covers: simple spans, spans with Blade {{ }} expressions, enum match arms,
+#    PHP arrays, and Blade ternary expressions.
 SCAN_ICONS=$(
+    # Simple Blade spans (icon text directly after >)
     rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/views/ --no-filename -r '$1' 2>/dev/null || true
+    # Blade spans with {{ }} expressions before the closing >
+    rg -o 'material-symbols-outlined.*?\}\}>([a-z_0-9]+)<' resources/views/ --no-filename -r '$1' 2>/dev/null || true
+    # Enum return statements: return 'icon_name'
     rg -o "return '([a-z_0-9]+)'" app/Enums/ --no-filename -r '$1' 2>/dev/null || true
-    rg -o "'icon'\s*=>\s*'([a-z_0-9]+)'" app/ -r '$1' --no-filename 2>/dev/null || true
+    # Enum match arms: self::Variant => 'icon_name'
+    rg -o "self::\w+\s*=>\s*'([a-z_0-9]+)'" app/Enums/ --no-filename -r '$1' 2>/dev/null || true
+    # PHP arrays: 'icon' => 'icon_name' (in app/ and config/)
+    rg -o "'icon'\s*=>\s*'([a-z_0-9]+)'" app/ config/ -r '$1' --no-filename 2>/dev/null || true
+    # Blade ternary expressions: 'a' ? 'b' : 'c'
+    rg -o "'([a-z_0-9]+)'\s*\?\s*'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'" resources/views/ --no-filename -r '$1.$2.$3' 2>/dev/null || true
+    # Blade ternary simple: 'a' : 'b'
+    rg -o "'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'" resources/views/ --no-filename -r '$1.$2' 2>/dev/null || true
+    # JS inline icon spans
     rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/js/ --no-filename -r '$1' 2>/dev/null || true
 )
 
 # Combine and deduplicate
-ALL_ICONS=$(echo -e "${CONFIG_ICONS}\n${SCAN_ICONS}" | sort -u | sed '/^$/d')
+RAW_ICONS=$(echo -e "${CONFIG_ICONS}\n${SCAN_ICONS}" | sort -u | sed '/^$/d')
+
+# Filter against codepoints to remove false positives from string matching
+# (e.g., 'dark' from theme toggling, 'board_game' from enum values)
+if [[ -f "$CODEPOINTS" ]]; then
+    VALID_ICONS=$(
+        echo "$RAW_ICONS" | while read -r icon; do
+            if grep -q "^${icon} " "$CODEPOINTS" 2>/dev/null; then
+                echo "$icon"
+            fi
+        done
+    )
+    ALL_ICONS=$(echo "$VALID_ICONS" | sort -u | sed '/^$/d')
+else
+    ALL_ICONS="$RAW_ICONS"
+fi
+
 ICON_COUNT=$(echo "$ALL_ICONS" | wc -l | tr -d ' ')
 echo "Found $ICON_COUNT unique icon names"
 
