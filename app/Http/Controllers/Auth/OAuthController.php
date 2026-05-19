@@ -80,16 +80,24 @@ class OAuthController
             ->first();
 
         if ($linkedAccount) {
-            // Existing linked account — log the user in
-            $linkedAccount->update([
-                'token' => $socialiteUser->token,
-                'refresh_token' => $socialiteUser->refreshToken,
+            // Existing linked account — log the user in.
+            // Use a raw DB update to overwrite encrypted tokens. After an
+            // APP_KEY rotation, Eloquent's update() crashes because getDirty()
+            // tries to decrypt old token values with the new key (DecryptException:
+            // "The MAC is invalid"). A direct DB update bypasses model casts
+            // and encrypts with the current key via encrypt().
+            \DB::table('linked_accounts')->where('id', $linkedAccount->id)->update([
+                'token' => encrypt($socialiteUser->token),
+                'refresh_token' => encrypt($socialiteUser->refreshToken),
                 'token_expires_at' => null,
-                'provider_meta' => [
+                'provider_meta' => json_encode([
                     'nickname' => $socialiteUser->getNickname(),
                     'avatar' => $socialiteUser->getAvatar(),
-                ],
+                ]),
+                'updated_at' => now(),
             ]);
+
+            $linkedAccount->refresh();
 
             $user = $linkedAccount->user;
 
