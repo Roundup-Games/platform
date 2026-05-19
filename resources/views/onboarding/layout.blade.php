@@ -7,7 +7,7 @@
 
         <title>{{ config('app.name', config('company.display_name')) }} — {{ __('profile.content_complete_your_profile') }}</title>
 
-        {{-- Dark mode: apply class before paint to prevent flash --}}
+        {{-- Dark mode: apply class + critical background before paint to prevent flash --}}
         <script>
             (function() {
                 var t = localStorage.getItem('theme');
@@ -15,6 +15,11 @@
                 if (dark) document.documentElement.classList.add('dark');
             })();
         </script>
+        <meta name="color-scheme" content="dark light">
+        <style>
+            body { background-color: #fbf9f1; }
+            .dark body { background-color: #1b1c17; }
+        </style>
 
         {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
         <link rel="preload" href="/fonts/material-symbols-subset.woff2" as="font" type="font/woff2" crossorigin>
