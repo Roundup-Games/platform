@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use PostHog\ExceptionPayloadBuilder;
 use Throwable;
 
 /**
@@ -56,16 +57,22 @@ class PostHogExceptionReporter
         $distinctId = $this->resolveDistinctId();
         $fingerprint = $this->buildFingerprint($e);
 
+        // Build the structured exception list the PostHog ingestion endpoint requires.
+        // PostHog expects $exception_list as an array of objects with type/value/mechanism/stacktrace.
+        $exceptionList = ExceptionPayloadBuilder::buildExceptionList($e);
+        $exceptionList = ExceptionPayloadBuilder::overridePrimaryMechanism($exceptionList, [
+            'type' => 'manual',
+            'handled' => false,
+        ]);
+
         $this->posthog->capture([
             'distinctId' => $distinctId,
             'event' => '$exception',
             'properties' => [
-                // PostHog error tracking expects $exception_* properties
-                '$exception_type' => get_class($e),
-                '$exception_message' => $e->getMessage(),
+                // Structured exception list — required by PostHog ingestion
+                '$exception_list' => $exceptionList,
+                '$exception_handled' => ExceptionPayloadBuilder::getPrimaryHandled($exceptionList),
                 '$exception_source' => 'php',
-                '$exception_stack_trace' => $this->formatStackTrace($e),
-                '$exception_handled' => false,
                 '$exception_fingerprint' => $fingerprint,
                 // Request context
                 'request_url' => request()->fullUrl(),
@@ -190,20 +197,4 @@ class PostHogExceptionReporter
         return md5(get_class($e) . '|' . $e->getFile() . '|' . $e->getMessage());
     }
 
-    /**
-     * Format the stack trace for PostHog display.
-     * Truncates to prevent oversized payloads.
-     */
-    private function formatStackTrace(Throwable $e): string
-    {
-        $trace = $e->getTraceAsString();
-
-        // Limit to ~4000 chars to keep payload reasonable
-        if (strlen($trace) > 4000) {
-            $trace = substr($trace, 0, 4000) . "\n... [truncated]";
-        }
-
-        // Prepend the exception location (first frame)
-        return get_class($e) . " at " . $e->getFile() . ":" . $e->getLine() . "\n" . $trace;
-    }
 }
