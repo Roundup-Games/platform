@@ -24,6 +24,8 @@ class GmWorkspace extends Component
 {
     public ?GMProfile $gmProfile = null;
 
+    public ?string $confirmingAction = null;
+
     public function mount(): void
     {
         $user = Auth::user();

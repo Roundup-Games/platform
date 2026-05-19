@@ -176,12 +176,18 @@
                                         title="{{ __('common.action_edit') }}">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
                                 </button>
-                                <button wire:click="deleteAnnouncement('{{ $announcement->id }}')" wire:confirm="{{ __('events.flash_delete_this_announcement') }}"
-                                        class="p-1.5 rounded text-on-surface-variant hover:text-error transition-colors"
-                                        aria-label="{{ __('events.action_delete_announcement') }}"
-                                        title="{{ __('common.action_delete') }}">
-                                    <span class="material-symbols-outlined text-base" aria-hidden="true">delete</span>
-                                </button>
+                                <x-confirm-action
+                                    action="deleteAnnouncement('{{ $announcement->id }}')"
+                                    id="delete-announcement-{{ $announcement->id }}"
+                                    :icon="'delete'"
+                                    trigger-class="p-1.5 rounded text-on-surface-variant hover:text-error transition-colors"
+                                    :confirm-label="__('common.action_delete')"
+                                    :cancel-label="__('common.action_keep')"
+                                    :message="__('events.flash_delete_this_announcement')"
+                                    variant="inline"
+                                    severity="destructive"
+                                    confirm-icon="delete"
+                                />
                             </div>
                         </div>
                     </div>

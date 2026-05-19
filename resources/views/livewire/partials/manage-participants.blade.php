@@ -153,12 +153,19 @@
                                 @endif
                             @endif
                             @if($participant->role !== 'owner')
-                                <button wire:click="removeParticipant('{{ $participant->id }}')"
-                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
-                                    class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
-                                    {{ __('common.action_remove') }}
-                                </button>
+                                <x-confirm-action
+                                    action="removeParticipant('{{ $participant->id }}')"
+                                    id="remove-participant-{{ $participant->id }}"
+                                    :icon="'person_remove'"
+                                    :trigger-label="__('common.action_remove')"
+                                    trigger-class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1"
+                                    :confirm-label="__('common.action_remove')"
+                                    :cancel-label="__('common.action_keep')"
+                                    :message="__('events.flash_are_you_sure_you_want_to_remove_this_participant')"
+                                    variant="inline"
+                                    severity="destructive"
+                                    confirm-icon="person_remove"
+                                />
                             @endif
                         </div>
                     @endforeach
@@ -237,12 +244,19 @@
                                     </div>
                                 @endif
                             </div>
-                            <button wire:click="cancelInvite('{{ $invite->id }}')"
-                                wire:confirm="{{ __('common.flash_cancel_this_invite') }}"
-                                class="text-sm text-on-surface-variant hover:text-error transition-colors inline-flex items-center gap-1">
-                                <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
-                                {{ __('common.action_cancel') }}
-                            </button>
+                            <x-confirm-action
+                                action="cancelInvite('{{ $invite->id }}')"
+                                id="cancel-invite-{{ $invite->id }}"
+                                :icon="'cancel'"
+                                :trigger-label="__('common.action_cancel')"
+                                trigger-class="text-sm text-on-surface-variant hover:text-error transition-colors inline-flex items-center gap-1"
+                                :confirm-label="__('common.action_cancel_invite')"
+                                :cancel-label="__('common.action_keep')"
+                                :message="__('common.flash_cancel_this_invite')"
+                                variant="inline"
+                                severity="destructive"
+                                confirm-icon="cancel"
+                            />
                         </div>
                     @endforeach
                 </div>
@@ -275,12 +289,18 @@
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
                                     {{ __('games.action_promote_from_bench') }}
                                 </button>
-                                <button wire:click="manageRemoveFromWaitlist('{{ $participant->id }}')"
-                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
-                                    {{ __('common.action_remove') }}
-                                </button>
+                                <x-confirm-action
+                                    action="manageRemoveFromWaitlist('{{ $participant->id }}')"
+                                    id="remove-waitlist-{{ $participant->id }}"
+                                    :trigger-label="__('common.action_remove')"
+                                    trigger-class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity"
+                                    :confirm-label="__('common.action_remove')"
+                                    :cancel-label="__('common.action_keep')"
+                                    :message="__('events.flash_are_you_sure_you_want_to_remove_this_participant')"
+                                    variant="inline"
+                                    severity="destructive"
+                                    confirm-icon="person_remove"
+                                />
                             </div>
                         </div>
                     @endforeach
@@ -311,12 +331,18 @@
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
                                     {{ __('games.action_promote_from_bench') }}
                                 </button>
-                                <button wire:click="manageRemoveFromBench('{{ $participant->id }}')"
-                                    wire:confirm="{{ __('events.flash_are_you_sure_you_want_to_remove_this_participant') }}"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person_remove</span>
-                                    {{ __('common.action_remove') }}
-                                </button>
+                                <x-confirm-action
+                                    action="manageRemoveFromBench('{{ $participant->id }}')"
+                                    id="remove-bench-{{ $participant->id }}"
+                                    :trigger-label="__('common.action_remove')"
+                                    trigger-class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity"
+                                    :confirm-label="__('common.action_remove')"
+                                    :cancel-label="__('common.action_keep')"
+                                    :message="__('events.flash_are_you_sure_you_want_to_remove_this_participant')"
+                                    variant="inline"
+                                    severity="destructive"
+                                    confirm-icon="person_remove"
+                                />
                             </div>
                         </div>
                     @endforeach

@@ -173,35 +173,75 @@
                                 <td class="px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-1">
                                         @if($registration->status === 'pending')
-                                            <button wire:click="approve('{{ $registration->id }}')" wire:confirm="{{ __('events.flash_approve_this_registration') }}"
-                                                class="text-xs px-2 py-1 rounded bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity">
-                                                {{ __('events.action_approve') }}
-                                            </button>
-                                            <button wire:click="reject('{{ $registration->id }}')" wire:confirm="{{ __('events.content_reject_this_registration') }}"
-                                                class="text-xs px-2 py-1 rounded bg-error-container text-on-error-container hover:opacity-90 transition-opacity">
-                                                {{ __('common.action_reject') }}
-                                            </button>
+                                            <x-confirm-action
+                                                action="approve('{{ $registration->id }}')"
+                                                id="approve-registration-{{ $registration->id }}"
+                                                :trigger-label="__('events.action_approve')"
+                                                trigger-class="text-xs px-2 py-1 rounded bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+                                                :confirm-label="__('events.action_approve')"
+                                                :cancel-label="__('common.action_cancel')"
+                                                :message="__('events.flash_approve_this_registration')"
+                                                variant="inline"
+                                                severity="neutral"
+                                                confirm-icon="check"
+                                            />
+                                            <x-confirm-action
+                                                action="reject('{{ $registration->id }}')"
+                                                id="reject-registration-{{ $registration->id }}"
+                                                :trigger-label="__('common.action_reject')"
+                                                trigger-class="text-xs px-2 py-1 rounded bg-error-container text-on-error-container hover:opacity-90 transition-opacity"
+                                                :confirm-label="__('common.action_reject')"
+                                                :cancel-label="__('common.action_keep')"
+                                                :message="__('events.content_reject_this_registration')"
+                                                variant="inline"
+                                                severity="destructive"
+                                                confirm-icon="block"
+                                            />
                                         @endif
 
                                         @if($registration->payment_status === 'pending' && $registration->status !== 'cancelled')
-                                            <button wire:click="confirmPayment('{{ $registration->id }}')" wire:confirm="{{ __('billing.flash_mark_payment_as_received') }}"
-                                                class="text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:opacity-90 transition-opacity">
-                                                {{ __('billing.status_paid') }}
-                                            </button>
+                                            <x-confirm-action
+                                                action="confirmPayment('{{ $registration->id }}')"
+                                                id="confirm-payment-{{ $registration->id }}"
+                                                :trigger-label="__('billing.status_paid')"
+                                                trigger-class="text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:opacity-90 transition-opacity"
+                                                :confirm-label="__('billing.status_paid')"
+                                                :cancel-label="__('common.action_cancel')"
+                                                :message="__('billing.flash_mark_payment_as_received')"
+                                                variant="inline"
+                                                severity="neutral"
+                                                confirm-icon="check"
+                                            />
                                         @endif
 
                                         @if($registration->payment_status === 'paid')
-                                            <button wire:click="markRefunded('{{ $registration->id }}')" wire:confirm="{{ __('billing.flash_mark_this_payment_as_refunded') }}"
-                                                class="text-xs px-2 py-1 rounded bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors">
-                                                {{ __('billing.content_refund') }}
-                                            </button>
+                                            <x-confirm-action
+                                                action="markRefunded('{{ $registration->id }}')"
+                                                id="mark-refunded-{{ $registration->id }}"
+                                                :trigger-label="__('billing.content_refund')"
+                                                trigger-class="text-xs px-2 py-1 rounded bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                                                :confirm-label="__('billing.content_refund')"
+                                                :cancel-label="__('common.action_keep')"
+                                                :message="__('billing.flash_mark_this_payment_as_refunded')"
+                                                variant="inline"
+                                                severity="destructive"
+                                                confirm-icon="undo"
+                                            />
                                         @endif
 
                                         @if($registration->status !== 'cancelled')
-                                            <button wire:click="cancelRegistration('{{ $registration->id }}')" wire:confirm="{{ __('events.flash_cancel_this_registration') }}"
-                                                class="text-xs px-2 py-1 rounded text-on-surface-variant hover:text-error transition-colors">
-                                                {{ __('common.action_cancel') }}
-                                            </button>
+                                            <x-confirm-action
+                                                action="cancelRegistration('{{ $registration->id }}')"
+                                                id="cancel-registration-{{ $registration->id }}"
+                                                :trigger-label="__('common.action_cancel')"
+                                                trigger-class="text-xs px-2 py-1 rounded text-on-surface-variant hover:text-error transition-colors"
+                                                :confirm-label="__('common.action_cancel')"
+                                                :cancel-label="__('common.action_keep')"
+                                                :message="__('events.flash_cancel_this_registration')"
+                                                variant="inline"
+                                                severity="destructive"
+                                                confirm-icon="cancel"
+                                            />
                                         @endif
 
                                         {{-- Internal notes toggle --}}

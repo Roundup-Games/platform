@@ -28,6 +28,7 @@ class CampaignsPage extends Component
 
     // ── Edit Campaign State ──────────────────────────────
     public ?string $editingCampaignId = null;
+    public ?string $confirmingAction = null;
     public string $edit_name = '';
     public string $edit_description = '';
     public ?string $edit_session_duration = '';

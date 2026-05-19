@@ -43,6 +43,8 @@ class CampaignDetail extends Component
     #[Locked]
     public ?int $validatedShortLinkId = null;
 
+    public ?string $confirmingAction = null;
+
     public function mount(string $id): void
     {
         $campaign = Campaign::findOrFail($id);

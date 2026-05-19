@@ -38,6 +38,8 @@ class EventAnnouncements extends Component
     // ── Filters ───────────────────────────────────────
     public string $filterStatus = ''; // all, published, draft
 
+    public ?string $confirmingAction = null;
+
     public function mount(string $slug): void
     {
         $this->event = Event::where('slug', $slug)->firstOrFail();

@@ -16,6 +16,7 @@ class ManageEvent extends Component
 {
     public Event $event;
 
+    public ?string $confirmingAction = null;
     // ── Tab tracking ──────────────────────────────────
     public string $activeTab = 'details';
 

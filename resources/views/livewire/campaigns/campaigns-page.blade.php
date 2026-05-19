@@ -96,13 +96,19 @@
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
                                         <span class="hidden sm:inline">{{ __('campaigns.action_complete_campaign') }}</span>
                                     </button>
-                                    <button wire:click="cancelCampaign('{{ $campaign->id }}')"
-                                            wire:confirm="{{ __('campaigns.confirm_cancel_campaign') }}"
-                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
-                                            aria-label="{{ __('campaigns.action_cancel_campaign') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">cancel</span>
-                                        <span class="hidden sm:inline">{{ __('campaigns.action_cancel_campaign') }}</span>
-                                    </button>
+                                    <x-confirm-action
+                                        action="cancelCampaign('{{ $campaign->id }}')"
+                                        id="cancel-campaign-{{ $campaign->id }}"
+                                        :icon="'cancel'"
+                                        :trigger-label="__('campaigns.action_cancel_campaign')"
+                                        trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                        :confirm-label="__('campaigns.action_cancel_campaign')"
+                                        :cancel-label="__('common.action_keep')"
+                                        :message="__('campaigns.confirm_cancel_campaign')"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="cancel"
+                                    />
                                 </div>
                             @endif
                         </div>

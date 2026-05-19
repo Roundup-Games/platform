@@ -30,6 +30,7 @@ class GamesPage extends Component
 
     // ── Edit Game State ────────────────────────────────
     public ?string $editingGameId = null;
+    public ?string $confirmingAction = null;
     public string $edit_name = '';
     public string $edit_description = '';
     public ?string $edit_expected_duration = '';

@@ -47,6 +47,13 @@ trait ManagesParticipants
     public string $inviteEmail = '';
 
     /**
+     * Tracks which inline confirmation is currently active.
+     * Format: "{action}-{id}" e.g. "remove-participant-123".
+     * Only one confirmation can be active at a time.
+     */
+    public ?string $confirmingAction = null;
+
+    /**
      * Livewire validation rules (v4 pattern — no #[Validate] attributes).
      */
     public function rules(): array

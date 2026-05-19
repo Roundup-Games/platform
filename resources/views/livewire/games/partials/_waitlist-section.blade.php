@@ -8,12 +8,19 @@
             <div class="flex-1">
                 <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('games.action_join_waitlist') }}</h2>
                 <p class="mt-1 text-sm text-on-surface-variant">{{ __('games.content_waitlist_position', ['position' => $waitlistPosition]) }}</p>
-                <button wire:click="leaveWaitlist('{{ $userWaitlistParticipant->id }}')"
-                    wire:confirm="{{ __('games.flash_confirm_leave_waitlist') }}"
-                    class="mt-3 inline-flex items-center gap-1 text-sm text-error hover:text-error/80 underline underline-offset-2 transition-colors">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>
-                    {{ __('games.action_leave_waitlist') }}
-                </button>
+                <x-confirm-action
+                    action="leaveWaitlist('{{ $userWaitlistParticipant->id }}')"
+                    id="leave-waitlist-{{ $userWaitlistParticipant->id }}"
+                    :icon="'logout'"
+                    :trigger-label="__('games.action_leave_waitlist')"
+                    trigger-class="mt-3 inline-flex items-center gap-1 text-sm text-error hover:text-error/80 underline underline-offset-2 transition-colors"
+                    :confirm-label="__('games.action_leave_waitlist')"
+                    :cancel-label="__('common.action_keep')"
+                    :message="__('games.flash_confirm_leave_waitlist')"
+                    variant="compact"
+                    severity="destructive"
+                    confirm-icon="logout"
+                />
             </div>
         </div>
     </section>
@@ -35,12 +42,19 @@
                         <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
                         {{ __('games.action_confirm_spot') }}
                     </button>
-                    <button wire:click="declineWaitlistSpot('{{ $userPendingParticipant->id }}')"
-                        wire:confirm="{{ __('people.flash_confirm_decline_invitation') }}"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors">
-                        <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
-                        {{ __('games.action_decline_spot') }}
-                    </button>
+                    <x-confirm-action
+                        action="declineWaitlistSpot('{{ $userPendingParticipant->id }}')"
+                        id="decline-waitlist-spot-{{ $userPendingParticipant->id }}"
+                        :icon="'close'"
+                        :trigger-label="__('games.action_decline_spot')"
+                        trigger-class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors"
+                        :confirm-label="__('games.action_decline_spot')"
+                        :cancel-label="__('common.action_keep')"
+                        :message="__('people.flash_confirm_decline_invitation')"
+                        variant="compact"
+                        severity="destructive"
+                        confirm-icon="close"
+                    />
                 </div>
             </div>
         </div>

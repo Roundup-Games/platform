@@ -14,6 +14,8 @@ class BillingPortal extends Component
 {
     public ?string $portalUrl = null;
 
+    public ?string $confirmingAction = null;
+
     public function mount(): void
     {
         $user = Auth::user();
