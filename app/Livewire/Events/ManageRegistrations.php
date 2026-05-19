@@ -34,6 +34,8 @@ class ManageRegistrations extends Component
 
     public ?string $editingRegistrationId = null;
 
+    public ?string $confirmingAction = null;
+
     public function mount(string $slug): void
     {
         $this->event = Event::where('slug', $slug)->firstOrFail();

@@ -12,12 +12,19 @@
                         <span class="material-symbols-outlined text-base" aria-hidden="true">check</span>
                         {{ __('common.action_accept') }}
                     </button>
-                    <button wire:click="declineInvitation('{{ $userInvitation->id }}')"
-                        wire:confirm="{{ __('people.flash_confirm_decline_invitation') }}"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors">
-                        <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
-                        {{ __('common.action_decline') }}
-                    </button>
+                    <x-confirm-action
+                        action="declineInvitation('{{ $userInvitation->id }}')"
+                        id="decline-invitation-{{ $userInvitation->id }}"
+                        :icon="'close'"
+                        :trigger-label="__('common.action_decline')"
+                        trigger-class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant text-sm font-medium rounded-lg hover:bg-error-container hover:text-on-error-container transition-colors"
+                        :confirm-label="__('common.action_decline')"
+                        :cancel-label="__('common.action_keep')"
+                        :message="__('people.flash_confirm_decline_invitation')"
+                        variant="compact"
+                        severity="destructive"
+                        confirm-icon="close"
+                    />
                 </div>
             </div>
         </div>

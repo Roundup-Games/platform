@@ -62,12 +62,18 @@
                     </button>
 
                     {{-- Revoke button --}}
-                    <button wire:click="revokeShortLink({{ $link->id }})"
-                        wire:confirm="{{ __('common.confirmation_revoke_link') }}"
-                        class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors"
-                        title="{{ __('common.action_revoke_link') }}">
-                        <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
-                    </button>
+                    <x-confirm-action
+                        action="revokeShortLink({{ $link->id }})"
+                        id="revoke-short-link-{{ $link->id }}"
+                        :icon="'link_off'"
+                        trigger-class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors"
+                        :confirm-label="__('common.action_revoke_link')"
+                        :cancel-label="__('common.action_keep')"
+                        :message="__('common.confirmation_revoke_link')"
+                        variant="inline"
+                        severity="destructive"
+                        confirm-icon="link_off"
+                    />
                 </div>
             @endforeach
         </div>

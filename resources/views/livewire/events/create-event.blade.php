@@ -288,10 +288,16 @@
                                     <p class="text-sm text-on-surface-variant">{{ $division['description'] }}</p>
                                 @endif
                             </div>
-                            <button wire:click="removeDivision({{ $i }})" wire:confirm="{{ __('events.flash_remove_this_division') }}"
-                                    class="text-on-surface-variant hover:text-error transition-colors" aria-label="{{ __('events.aria_remove_division') }}">
-                                <span class="material-symbols-outlined text-xl" aria-hidden="true">delete</span>
-                            </button>
+                            <x-confirm-action
+                                action="removeDivision({{ $i }})"
+                                id="remove-division-{{ $i }}"
+                                :icon="'delete'"
+                                trigger-class="text-on-surface-variant hover:text-error transition-colors"
+                                :confirm-label="__('common.action_remove')"
+                                :cancel-label="__('common.action_keep')"
+                                variant="compact"
+                                severity="destructive"
+                            />
                         </div>
                     @endforeach
                 </div>

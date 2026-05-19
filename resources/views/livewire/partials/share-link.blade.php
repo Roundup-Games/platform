@@ -36,20 +36,34 @@
                 </button>
 
                 {{-- Regenerate button --}}
-                <button wire:click="regenerateShareLink"
-                    wire:confirm="{{ __('common.confirmation_regenerate_link') }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>
-                    {{ __('common.action_regenerate_link') }}
-                </button>
+                <x-confirm-action
+                    action="regenerateShareLink"
+                    id="regenerate-share-link"
+                    :icon="'refresh'"
+                    :trigger-label="__('common.action_regenerate_link')"
+                    trigger-class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"
+                    :confirm-label="__('common.action_regenerate_link')"
+                    :cancel-label="__('common.action_cancel')"
+                    :message="__('common.confirmation_regenerate_link')"
+                    variant="inline"
+                    severity="caution"
+                    confirm-icon="refresh"
+                />
 
                 {{-- Revoke button --}}
-                <button wire:click="revokeShareLink"
-                    wire:confirm="{{ __('common.confirmation_revoke_link') }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">link_off</span>
-                    {{ __('common.action_revoke_link') }}
-                </button>
+                <x-confirm-action
+                    action="revokeShareLink"
+                    id="revoke-share-link"
+                    :icon="'link_off'"
+                    :trigger-label="__('common.action_revoke_link')"
+                    trigger-class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-error-container text-on-error-container hover:opacity-90 transition-opacity"
+                    :confirm-label="__('common.action_revoke_link')"
+                    :cancel-label="__('common.action_keep')"
+                    :message="__('common.confirmation_revoke_link')"
+                    variant="inline"
+                    severity="destructive"
+                    confirm-icon="link_off"
+                />
             </div>
         </div>
     @else

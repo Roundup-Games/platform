@@ -13,6 +13,7 @@ use Livewire\Component;
 class CreateEvent extends Component
 {
     public int $step = 1;
+    public ?string $confirmingAction = null;
     public const MAX_STEPS = 5;
 
     public string $name = '';

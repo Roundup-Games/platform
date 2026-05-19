@@ -108,13 +108,19 @@
                                         <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
                                         <span class="hidden sm:inline">{{ __('games.action_complete_game') }}</span>
                                     </button>
-                                    <button wire:click="cancelGame('{{ $game->id }}')"
-                                            wire:confirm="{{ __('games.confirm_cancel_game') }}"
-                                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
-                                            aria-label="{{ __('games.action_cancel_game') }}">
-                                        <span class="material-symbols-outlined text-base" aria-hidden="true">cancel</span>
-                                        <span class="hidden sm:inline">{{ __('games.action_cancel_game') }}</span>
-                                    </button>
+                                    <x-confirm-action
+                                        action="cancelGame('{{ $game->id }}')"
+                                        id="cancel-game-{{ $game->id }}"
+                                        :icon="'cancel'"
+                                        :trigger-label="__('games.action_cancel_game')"
+                                        trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                        :confirm-label="__('games.action_cancel_game')"
+                                        :cancel-label="__('common.action_keep')"
+                                        :message="__('games.confirm_cancel_game')"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="cancel"
+                                    />
                                 </div>
                             @else
                                 <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">

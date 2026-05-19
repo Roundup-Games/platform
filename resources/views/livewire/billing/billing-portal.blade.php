@@ -64,15 +64,31 @@
                     {{-- Actions --}}
                     <div class="flex flex-wrap gap-3 pt-2">
                         @if($subscription->onGracePeriod())
-                            <button wire:click="resumeSubscription" wire:confirm="{{ __('billing.flash_are_you_sure_you_want_to_resume_your_subscription') }}"
-                                    class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">
-                                {{ __('billing.action_resume_subscription') }}
-                            </button>
+                            <x-confirm-action
+                                action="resumeSubscription"
+                                id="resume-subscription"
+                                :trigger-label="__('billing.action_resume_subscription')"
+                                trigger-class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium"
+                                :confirm-label="__('billing.action_resume_subscription')"
+                                :cancel-label="__('common.action_cancel')"
+                                :message="__('billing.flash_are_you_sure_you_want_to_resume_your_subscription')"
+                                variant="standalone"
+                                severity="neutral"
+                                confirm-icon="play_arrow"
+                            />
                         @else
-                            <button wire:click="cancelSubscription" wire:confirm="{{ __("billing.error_are_you_sure_you_want_to_cancel_you_ll_keep_access") }}"
-                                    class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium">
-                                {{ __('billing.action_cancel_subscription') }}
-                            </button>
+                            <x-confirm-action
+                                action="cancelSubscription"
+                                id="cancel-subscription"
+                                :trigger-label="__('billing.action_cancel_subscription')"
+                                trigger-class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium"
+                                :confirm-label="__('billing.action_cancel_subscription')"
+                                :cancel-label="__('common.action_cancel')"
+                                :message="__('billing.error_are_you_sure_you_want_to_cancel_you_ll_keep_access')"
+                                variant="standalone"
+                                severity="destructive"
+                                confirm-icon="block"
+                            />
                         @endif
 
                         @if($portalUrl)
@@ -118,10 +134,18 @@
                 </div>
                 <div>
                     @if($gmSubscription->isActive())
-                        <button wire:click="cancelGmSubscription" wire:confirm="{{ __('billing.error_are_you_sure_you_want_to_deactivate_your_gm_tools') }}"
-                                class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium">
-                            {{ __('billing.action_deactivate') }}
-                        </button>
+                        <x-confirm-action
+                            action="cancelGmSubscription"
+                            id="cancel-gm-subscription"
+                            :trigger-label="__('billing.action_deactivate')"
+                            trigger-class="px-4 py-2 border border-error/40 text-error rounded-lg hover:bg-error-container transition-colors text-sm font-medium"
+                            :confirm-label="__('billing.action_deactivate')"
+                            :cancel-label="__('common.action_cancel')"
+                            :message="__('billing.error_are_you_sure_you_want_to_deactivate_your_gm_tools')"
+                            variant="standalone"
+                            severity="destructive"
+                            confirm-icon="block"
+                        />
                     @else
                         <button wire:click="reactivateGmSubscription"
                                 class="px-4 py-2 bg-primary text-on-primary rounded-lg shadow-ambient hover:brightness-110 active:scale-95 transition-all text-sm font-medium">

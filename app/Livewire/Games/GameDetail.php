@@ -58,6 +58,8 @@ class GameDetail extends Component
     #[Locked]
     public ?int $validatedShortLinkId = null;
 
+    public ?string $confirmingAction = null;
+
     public function mount(string $id): void
     {
         $game = Game::findOrFail($id);

@@ -58,30 +58,62 @@
                     {{ trans_choice('events.content_count_registrations', $event->registrations()->count()) }}
                 </span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
                 @if($event->status === 'draft')
-                    <button wire:click="publishEvent" wire:confirm="{{ __('events.action_publish_this_event') }}"
-                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-tertiary text-on-tertiary hover:opacity-90 transition-opacity">
-                        {{ __('common.action_publish') }}
-                    </button>
+                    <x-confirm-action
+                        action="publishEvent"
+                        id="publish-event"
+                        :trigger-label="__('common.action_publish')"
+                        trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-tertiary text-on-tertiary hover:opacity-90 transition-opacity"
+                        :confirm-label="__('common.action_publish')"
+                        :cancel-label="__('common.action_cancel')"
+                        :message="__('events.action_publish_this_event')"
+                        variant="standalone"
+                        severity="neutral"
+                        confirm-icon="publish"
+                    />
                 @endif
                 @if(in_array($event->status, ['draft', 'published']))
-                    <button wire:click="openRegistration" wire:confirm="{{ __('events.action_open_registration_for_this_event') }}"
-                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-secondary text-on-secondary hover:opacity-90 transition-opacity">
-                        {{ __('events.action_open_registration') }}
-                    </button>
+                    <x-confirm-action
+                        action="openRegistration"
+                        id="open-registration"
+                        :trigger-label="__('events.action_open_registration')"
+                        trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-secondary text-on-secondary hover:opacity-90 transition-opacity"
+                        :confirm-label="__('events.action_open_registration')"
+                        :cancel-label="__('common.action_cancel')"
+                        :message="__('events.action_open_registration_for_this_event')"
+                        variant="standalone"
+                        severity="neutral"
+                        confirm-icon="how_to_reg"
+                    />
                 @endif
                 @if($event->status === 'registration_open')
-                    <button wire:click="closeRegistration" wire:confirm="{{ __('events.action_confirm_close_registration') }}"
-                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
-                        {{ __('events.action_close_registration') }}
-                    </button>
+                    <x-confirm-action
+                        action="closeRegistration"
+                        id="close-registration"
+                        :trigger-label="__('events.action_close_registration')"
+                        trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+                        :confirm-label="__('events.action_close_registration')"
+                        :cancel-label="__('common.action_cancel')"
+                        :message="__('events.action_confirm_close_registration')"
+                        variant="standalone"
+                        severity="caution"
+                        confirm-icon="lock"
+                    />
                 @endif
                 @if($event->status !== 'cancelled' && $event->status !== 'completed')
-                    <button wire:click="cancelEvent" wire:confirm="{{ __('events.content_cancel_this_event_this_will') }}"
-                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-error-container text-on-error-container hover:opacity-90 transition-opacity">
-                        {{ __('events.action_cancel_event') }}
-                    </button>
+                    <x-confirm-action
+                        action="cancelEvent"
+                        id="cancel-event"
+                        :trigger-label="__('events.action_cancel_event')"
+                        trigger-class="px-3 py-1.5 rounded-lg text-sm font-medium bg-error-container text-on-error-container hover:opacity-90 transition-opacity"
+                        :confirm-label="__('events.action_cancel_event')"
+                        :cancel-label="__('common.action_keep')"
+                        :message="__('events.content_cancel_this_event_this_will')"
+                        variant="standalone"
+                        severity="destructive"
+                        confirm-icon="cancel"
+                    />
                 @endif
             </div>
         </div>
@@ -333,10 +365,16 @@
                                             <p class="text-sm text-on-surface-variant">{{ $division['description'] }}</p>
                                         @endif
                                     </div>
-                                    <button wire:click="removeDivision({{ $i }})" wire:confirm="{{ __('events.flash_remove_this_division') }}"
-                                            class="text-on-surface-variant hover:text-error transition-colors" aria-label="{{ __('events.aria_remove_division') }}">
-                                        <span class="material-symbols-outlined text-xl" aria-hidden="true">delete</span>
-                                    </button>
+                                    <x-confirm-action
+                                        action="removeDivision({{ $i }})"
+                                        id="remove-division-{{ $i }}"
+                                        :icon="'delete'"
+                                        trigger-class="text-on-surface-variant hover:text-error transition-colors"
+                                        :confirm-label="__('common.action_remove')"
+                                        :cancel-label="__('common.action_keep')"
+                                        variant="compact"
+                                        severity="destructive"
+                                    />
                                 </div>
                             @endforeach
                         </div>
