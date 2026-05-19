@@ -117,6 +117,13 @@ fi
 ICON_COUNT=$(echo "$ALL_ICONS" | wc -l | tr -d ' ')
 echo "Found $ICON_COUNT unique icon names"
 
+if [[ "$ICON_COUNT" -lt 50 ]]; then
+    echo -e "${RED}Error:${NC} Only $ICON_COUNT icons found (expected ~180+)."
+    echo "  This usually means PHP or rg (ripgrep) is not available."
+    echo "  The subset font must be pre-built before Docker build."
+    exit 1
+fi
+
 # ── Write icon list to temp file for the Python script ──────────────────────
 ICON_FILE=$(mktemp)
 echo "$ALL_ICONS" > "$ICON_FILE"
