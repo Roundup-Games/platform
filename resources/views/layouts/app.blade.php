@@ -112,7 +112,7 @@
                             {{ __('billing.content_billing') }}
                         </a>
 
-                        {{-- Separator --}}
+                        {{-- Separator: account actions --}}
                         <div class="border-t border-outline-variant/15 my-2"></div>
 
                         <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium {{ request()->routeIs('profile.*') ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary' }}">
@@ -135,13 +135,18 @@
                             </button>
                         </form>
 
-                        {{-- Theme toggle for mobile --}}
-                        <div class="pt-2 flex justify-end items-center gap-3">
+                        {{-- Utility row: language + theme --}}
+                        <div class="pt-3 mt-2 border-t border-outline-variant/15 flex items-center justify-between">
                             @php
                                 $mobileOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
-                                $mobileCurrentPath = '/' . request()->path();
+                                $mobileLocaleLabel = app()->getLocale() === 'en' ? 'Deutsch' : 'English';
+                                $mobileSegments = explode('/', request()->path(), 2);
+                                $mobileRedirectPath = '/' . $mobileOtherLocale . '/' . ($mobileSegments[1] ?? '');
                             @endphp
-                            <a href="{{ route('locale.switch', ['locale' => $mobileOtherLocale, 'redirect' => $mobileCurrentPath]) }}" class="font-heading text-sm font-medium text-on-surface-variant hover:text-primary transition-colors uppercase">{{ strtoupper($mobileOtherLocale) }}</a>
+                            <a href="{{ route('locale.switch', ['locale' => $mobileOtherLocale, 'redirect' => $mobileRedirectPath]) }}" class="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors" aria-label="{{ $mobileLocaleLabel }}">
+                                <span class="material-symbols-outlined text-lg" aria-hidden="true">translate</span>
+                                <span class="font-medium">{{ strtoupper($mobileOtherLocale) }}</span>
+                            </a>
                             <x-theme-toggle size="small" />
                         </div>
                     </div>
@@ -163,11 +168,6 @@
                         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2">
                             @include('partials.logo', ['class' => 'h-10 w-auto'])
                         </a>
-                        @php
-                            $otherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
-                            $currentPath = '/' . request()->path();
-                        @endphp
-                        <a href="{{ route('locale.switch', ['locale' => $otherLocale, 'redirect' => $currentPath]) }}" class="ml-auto font-heading text-sm font-medium text-on-surface-variant hover:text-primary transition-colors uppercase">{{ strtoupper($otherLocale) }}</a>
                     </div>
 
                     {{-- Navigation --}}
@@ -210,48 +210,67 @@
                             <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('billing.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>account_balance_wallet</span>
                             {{ __('billing.content_billing') }}
                         </a>
-
-                        <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('profile.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('profile.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>person</span>
-                            {{ __('profile.content_profile') }}
-                        </a>
-
-                        <a href="{{ route('settings.show') }}" wire:navigate class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 {{ request()->routeIs('settings.*') ? 'bg-surface-container-lowest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-primary font-medium' }}">
-                            <span class="material-symbols-outlined text-lg" aria-hidden="true" {{ request()->routeIs('settings.*') ? 'style="font-variation-settings: \'FILL\' 1"' : '' }}>settings</span>
-                            {{ __('profile.content_settings') }}
-                        </a>
                     </nav>
 
-                    {{-- User section at sidebar bottom --}}
-                    <div class="border-t border-outline-variant/15 p-4">
-                        <div class="flex items-center gap-3">
-                            <a href="{{ route('profile.show') }}" wire:navigate class="shrink-0">
-                                <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
-                            </a>
+                    {{-- Account card at sidebar bottom --}}
+                    @php
+                        $otherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
+                        $localeLabel = app()->getLocale() === 'en' ? 'Deutsch' : 'English';
+                        // Build redirect path in the TARGET locale so LocaleController accepts it.
+                        // request()->path() returns "en/dashboard" — swap the locale segment.
+                        $segments = explode('/', request()->path(), 2);
+                        $redirectPath = '/' . $otherLocale . '/' . ($segments[1] ?? '');
+                    @endphp
+                    <div class="border-t border-outline-variant/15 p-4 mt-auto">
+                        {{-- User identity --}}
+                        <a href="{{ route('profile.show') }}" wire:navigate class="flex items-center gap-3 group">
+                            <x-user-avatar :user="Auth::user()" size="w-9 h-9" text-size="text-sm" />
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-on-surface truncate" data-ph-mask>{{ Auth::user()->name }}</p>
+                                <p class="text-sm font-medium text-on-surface truncate group-hover:text-primary transition-colors" data-ph-mask>{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-on-surface-variant truncate" data-ph-mask>{{ Auth::user()->email }}</p>
                             </div>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <a href="{{ route('settings.show') }}" wire:navigate class="text-xs text-on-surface-variant hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">settings</span>
-                                    {{ __('profile.content_settings') }}
-                                </a>
-                                <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings text-xs text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
-                                    <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">cookie</span>
-                                    {{ __('cookie-consent.nav_cookie_settings') }}
-                                </button>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" onclick="event.preventDefault(); this.closest('form').submit();" class="text-xs text-on-surface-variant hover:text-primary transition-colors">
-                                        <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">logout</span>
-                                        {{ __('auth.content_log_out') }}
-                                    </button>
-                                </form>
-                            </div>
+                        </a>
+
+                        {{-- Icon button row --}}
+                        <div class="mt-3 flex items-center gap-1">
+                            <a href="{{ route('profile.show') }}" wire:navigate
+                               title="{{ __('profile.content_profile') }}"
+                               class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors {{ request()->routeIs('profile.*') ? 'bg-surface-container-high text-primary' : '' }}"
+                               aria-label="{{ __('profile.content_profile') }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">person</span>
+                            </a>
+                            <a href="{{ route('settings.show') }}" wire:navigate
+                               title="{{ __('profile.content_settings') }}"
+                               class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors {{ request()->routeIs('settings.*') ? 'bg-surface-container-high text-primary' : '' }}"
+                               aria-label="{{ __('profile.content_settings') }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">settings</span>
+                            </a>
+                            <a href="{{ route('locale.switch', ['locale' => $otherLocale, 'redirect' => $redirectPath]) }}"
+                               title="{{ $localeLabel }}"
+                               class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
+                               aria-label="{{ $localeLabel }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
+                            </a>
+                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()"
+                                    title="{{ __('cookie-consent.nav_cookie_settings') }}"
+                                    class="js-cookie-consent-settings inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors cursor-pointer"
+                                    aria-label="{{ __('cookie-consent.nav_cookie_settings') }}">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">cookie</span>
+                            </button>
+
+                            <div class="flex-1"></div>
+
                             <x-theme-toggle size="small" />
+
+                            <form method="POST" action="{{ route('logout') }}" class="inline-flex">
+                                @csrf
+                                <button type="submit"
+                                        title="{{ __('auth.content_log_out') }}"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors"
+                                        aria-label="{{ __('auth.content_log_out') }}">
+                                    <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </aside>
