@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "bash build-tools/subset-icons.sh && vite build",
+        "build": "if command -v bash >/dev/null 2>&1 && [ -f build-tools/subset-icons.sh ]; then bash build-tools/subset-icons.sh; fi && vite build",
         "dev": "vite"
     },
     "devDependencies": {
