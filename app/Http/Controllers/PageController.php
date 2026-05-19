@@ -45,7 +45,7 @@ class PageController extends Controller
         $schema->markup[OrganizationSchema::class][] = fn (OrganizationSchema $s) => $s;
 
         seo(new SEOData(
-            title: __('pages.seo_title_home', ['brand' => config('company.display_name')]),
+            title: __('pages.seo_title_home'),
             description: __('pages.seo_description_home'),
             schema: $schema,
         ));
@@ -56,7 +56,7 @@ class PageController extends Controller
     public function about()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_about', ['brand' => config('company.display_name')]),
+            title: __('pages.seo_title_about'),
             description: __('pages.seo_description_about', ['brand' => config('company.display_name')]),
         ));
 
@@ -89,7 +89,7 @@ class PageController extends Controller
     public function contact()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_contact', ['brand' => config('company.display_name')]),
+            title: __('pages.seo_title_contact'),
             description: __('pages.seo_description_contact', ['brand' => config('company.display_name')]),
         ));
 
@@ -99,7 +99,7 @@ class PageController extends Controller
     public function ourPledge()
     {
         seo(new SEOData(
-            title: __('pages.seo_title_our_pledge', ['brand' => config('company.display_name')]),
+            title: __('pages.seo_title_our_pledge'),
             description: __('pages.seo_description_our_pledge', ['brand' => config('company.display_name')]),
         ));
 

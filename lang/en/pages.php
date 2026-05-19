@@ -40,11 +40,11 @@ return [
     'seo_description_for_organizers' => 'Schedule sessions, manage players, and grow your tabletop gaming community. Free event tools and subscriptions for board game and RPG organizers.',
     'seo_description_home' => 'Find local board game sessions, D&D groups, and tabletop RPG campaigns near you. Join a welcoming community of players and start playing today.',
     'seo_description_how_it_works' => 'Learn how to find, join, and organize board games and tabletop RPG sessions near you. Create events, discover local players, and start playing.',
-    'seo_title_about' => 'About :brand — Non-Profit Tabletop Gaming Community',
-    'seo_title_contact' => 'Contact :brand — Questions, Feedback & Partnerships',
+    'seo_title_about' => 'About Us — Non-Profit Tabletop Gaming Community',
+    'seo_title_contact' => 'Contact Us — Questions, Feedback & Partnerships',
     'seo_title_for_organizers' => 'Game Organizer Tools — Host Board Game & RPG Sessions',
-    'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You — :brand',
-    'seo_title_how_it_works' => 'How to Find & Join Local Board Game & RPG Groups — Roundup',
+    'seo_title_home' => 'Find Tabletop Games & RPG Sessions Near You',
+    'seo_title_how_it_works' => 'How to Find & Join Local Board Game & RPG Groups',
 
     // ── Our Pledge ─────────────────────────────────────
     'seo_title_our_pledge' => 'Our Pledge — Non-Profit, Open Source Gaming Community',
