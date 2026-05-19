@@ -20,7 +20,7 @@
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
 
-        {{-- Dark mode: apply class before paint to prevent flash --}}
+        {{-- Dark mode: apply class + critical background before paint to prevent flash --}}
         <script>
             (function() {
                 var t = localStorage.getItem('theme');
@@ -28,6 +28,11 @@
                 if (dark) document.documentElement.classList.add('dark');
             })();
         </script>
+        <meta name="color-scheme" content="dark light">
+        <style>
+            body { background-color: #fbf9f1; }
+            .dark body { background-color: #1b1c17; }
+        </style>
 
         {{-- Fonts: self-hosted Inter (body) + Noto Serif (headings) + Material Symbols (icons) via @font-face in app.css --}}
         {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
