@@ -31,7 +31,6 @@
     {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
     <link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/noto-serif-latin-var.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/fonts/material-symbols-subset.woff2" as="font" type="font/woff2" crossorigin>
 
     {{-- DNS prefetch for external image CDN --}}
     <link rel="dns-prefetch" href="https://spg-images.s3.us-west-1.amazonaws.com">

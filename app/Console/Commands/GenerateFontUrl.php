@@ -75,8 +75,6 @@ class GenerateFontUrl extends Command
         $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $bladeSimple, $icons);
 
         // 2. Blade spans with {{ }} expressions before the closing >
-        //    The simple regex breaks on > inside Blade expressions like:
-        //    {{ request()->routeIs('games.*') ? 'style="..."' : '' }}>icon</span>
         $bladeWithExpr = '/material-symbols-outlined.*?\}\}>\s*([a-z_0-9]+)\s*</s';
         $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $bladeWithExpr, $icons);
 
@@ -84,29 +82,187 @@ class GenerateFontUrl extends Command
         $enumMatchArm = "/self::\w+\s*=>\s*'([a-z_0-9]+)'/";
         $this->scanDirectory(app_path('Enums'), '/\.php$/', $enumMatchArm, $icons);
 
-        // 4. Icon names returned by PHP enum/method icon() methods: return 'icon'
-        $returnPattern = "/return '([a-z_0-9]+)'/";
-        $this->scanDirectory(app_path('Enums'), '/\.php$/', $returnPattern, $icons);
+        // 4. Icon names inside icon() / getIcon() method bodies only.
+        //    Extract method body, then find return 'name' within it.
+        $this->scanIconMethods(app_path(), $icons);
 
-        // 5. Icon names in PHP arrays (dashboard, navigation, tabs, social platforms, etc.)
+        // 5. Icon names in PHP arrays ('icon' => 'name')
         $arrayPattern = "/'icon'\s*=>\s*'([a-z_0-9]+)'/";
         $this->scanDirectory(app_path(), '/\.php$/', $arrayPattern, $icons);
         $this->scanDirectory(config_path(), '/\.php$/', $arrayPattern, $icons);
 
-        // 6. Blade ternary expressions: 'icon1' ? 'icon2' : 'icon3' and 'icon1' : 'icon2'
-        //    These appear in dynamic icon rendering like:
-        //    {{ $option->is_base ? 'casino' : 'extension' }}
-        $ternaryFull = "/'([a-z_0-9]+)'\s*\?\s*'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'/";
-        $ternarySimple = "/'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'/";
-        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $ternaryFull, $icons);
-        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $ternarySimple, $icons);
-
-        // 7. Icon names in JS files
+        // 6. Icon names in JS files
         $jsPattern = '/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</';
         $this->scanDirectory(resource_path('js'), '/\.(js|ts)$/', $jsPattern, $icons);
 
+        // 7. Blade ternary expressions for icons — only inside {{ }} echo blocks
+        //    that appear within material-symbols-outlined span contexts.
+        //    Scans line-by-line: finds material-symbols-outlined spans, then
+        //    extracts quoted strings from ternary {{ }} expressions within.
+        $this->scanBladeIconTernaries(resource_path('views'), $icons);
+
         // Validate against codepoints to filter false positives
         return $this->filterValidIcons($icons);
+    }
+
+    /**
+     * Scan PHP files for icon names inside icon() or getIcon() method bodies.
+     *
+     * Extracts method body text using brace-depth tracking (handles nested braces),
+     * then matches `return 'name'` and match-arm `=> 'name'` within it.
+     */
+    private function scanIconMethods(string $dir, array &$icons): void
+    {
+        if (! is_dir($dir)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $content = file_get_contents($file->getPathname());
+
+            // Find all icon method declarations
+            if (! preg_match_all('/function\s+(?:get)?[Ii]con\s*\([^)]*\)\s*(?::\s*\w+\s*)?\{/', $content, $matches, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            foreach ($matches[0] as $match) {
+                $body = $this->extractMethodBody($content, $match[1] + strlen($match[0]));
+                if ($body === null) {
+                    continue;
+                }
+
+                // Match return 'name' inside the method body
+                if (preg_match_all("/return\s+'([a-z_0-9]+)'/", $body, $returnMatches)) {
+                    foreach ($returnMatches[1] as $icon) {
+                        $icons[$icon] = $icon;
+                    }
+                }
+
+                // Match enum-style match arms: self::X => 'name'
+                if (preg_match_all("/self::\w+\s*=>\s*'([a-z_0-9]+)'/", $body, $armMatches)) {
+                    foreach ($armMatches[1] as $icon) {
+                        $icons[$icon] = $icon;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Extract a method body starting from the byte after the opening brace.
+     * Uses brace-depth tracking to handle nested braces correctly.
+     */
+    private function extractMethodBody(string $content, int $startAfterBrace): ?string
+    {
+        $len = strlen($content);
+        $depth = 1;
+        $i = $startAfterBrace;
+
+        while ($i < $len && $depth > 0) {
+            $ch = $content[$i];
+
+            if ($ch === '{') {
+                $depth++;
+            } elseif ($ch === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($content, $startAfterBrace, $i - $startAfterBrace);
+                }
+            } elseif ($ch === "'") {
+                // Skip string literal to avoid counting braces inside strings
+                $i++;
+                while ($i < $len && $content[$i] !== "'") {
+                    if ($content[$i] === '\\') {
+                        $i++; // skip escaped char
+                    }
+                    $i++;
+                }
+            } elseif ($ch === '"') {
+                $i++;
+                while ($i < $len && $content[$i] !== '"') {
+                    if ($content[$i] === '\\') {
+                        $i++;
+                    }
+                    $i++;
+                }
+            }
+
+            $i++;
+        }
+
+        return null;
+    }
+
+    /**
+     * Scan Blade templates for icon names inside ternary {{ }} expressions
+     * within material-symbols-outlined spans.
+     *
+     * Handles multi-line spans where the {{ }} expression spans lines.
+     * Collects text from material-symbols-outlined through </span>, then
+     * extracts the result-side quoted strings from ternary ? : expressions.
+     */
+    private function scanBladeIconTernaries(string $dir, array &$icons): void
+    {
+        if (! is_dir($dir)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'php' || ! str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $content = file_get_contents($file->getPathname());
+
+            // Find all material-symbols-outlined span blocks (may be multi-line)
+            if (! preg_match_all('/material-symbols-outlined[^>]*>.*?<\/span>/s', $content, $blocks)) {
+                continue;
+            }
+
+            foreach ($blocks[0] as $block) {
+                // Extract Blade {{ }} expressions that contain ternaries with icon names
+                // Pattern: {{ expr ? 'icon_a' : 'icon_b' }} or {{ expr ? 'icon_a' : (expr2 ? 'icon_b' : 'icon_c') }}
+                // We want strings on the result side of ternaries, not in conditions.
+                // The safest approach: match the specific pattern of a quoted string
+                // immediately after ? or : in a ternary within {{ }}
+                if (! preg_match_all('/\{\{!?((?:[^{}]|\{[^{}]*\})*)\}\}/s', $block, $echoes)) {
+                    continue;
+                }
+
+                foreach ($echoes[1] as $echo) {
+                    // Must contain both ? and : to be a ternary
+                    if (! str_contains($echo, '?') || ! str_contains($echo, ':')) {
+                        continue;
+                    }
+
+                    // Match result-side strings: after ? (before :) and after :
+                    // Pattern: ? 'icon_a' ... : 'icon_b'
+                    // This captures strings that are the immediate result of a ternary
+                    if (preg_match_all("/\?\s*'([a-z_0-9]+)'/", $echo, $trueMatches)) {
+                        foreach ($trueMatches[1] as $icon) {
+                            $icons[$icon] = $icon;
+                        }
+                    }
+                    if (preg_match_all("/:\s*'([a-z_0-9]+)'/", $echo, $falseMatches)) {
+                        foreach ($falseMatches[1] as $icon) {
+                            $icons[$icon] = $icon;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private function scanDirectory(string $dir, string $filePattern, string $matchPattern, array &$icons): void

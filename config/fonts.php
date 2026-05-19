@@ -68,7 +68,7 @@ return [
 
         // Safety & moderation
         'block', 'pan_tool', 'gavel', 'warning', 'error', 'lock', 'lock_open',
-        'shield', 'task_alt',
+        'task_alt',
 
         // Settings & prefs
         'settings', 'cookie', 'language', 'translate', 'dark_mode', 'light_mode',
