@@ -21,7 +21,7 @@
     <div class="min-h-screen flex flex-col items-center justify-center bg-surface px-6">
         {{-- Brand --}}
         <a href="/" wire:navigate class="mb-8">
-            <span class="text-3xl font-heading font-bold text-primary tracking-tight">Roundup<span class="text-on-surface">Games</span></span>
+            @include('partials.logo', ['class' => 'h-10 w-auto'])
         </a>
 
         {{-- Card --}}
