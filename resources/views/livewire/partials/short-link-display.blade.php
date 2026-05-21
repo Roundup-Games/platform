@@ -16,6 +16,10 @@
             this.copiedId = linkId;
             setTimeout(() => { this.copiedId = null; this.copying = false; }, 2000);
         }).catch(() => { this.copying = false; });
+    },
+    createLink() {
+        this.showCreateForm = false;
+        $wire.createShortLink(this.newLabel || null).then(() => { this.newLabel = '' });
     }
 }">
     {{-- Header --}}
@@ -30,7 +34,7 @@
             @foreach($shortLinks as $link)
                 @php
                     $fullUrl = $shortLinkBaseUrl . '/' . $link->code;
-                    $maskedCode = substr($link->code, 0, 3) . '••••';
+                    $maskedCode = strlen($link->code) > 3 ? substr($link->code, 0, 3) . '••••' : '••••';
                 @endphp
                 <div class="flex items-center gap-3 p-3 bg-surface-container-high rounded-lg">
                     <span class="material-symbols-outlined text-lg text-primary shrink-0" aria-hidden="true">link</span>
@@ -99,9 +103,9 @@
                     x-model="newLabel"
                     placeholder="{{ __('common.placeholder_link_label') }}"
                     class="flex-1 min-w-0 px-3 py-1.5 text-sm rounded-lg bg-surface-container-high text-on-surface border border-outline-variant focus:border-primary focus:outline-none"
-                    @keydown.enter="showCreateForm = false; $wire.createShortLink(newLabel || null).then(() => { newLabel = '' })"
+                    @keydown.enter="createLink()"
                     @keydown.escape="showCreateForm = false; newLabel = ''" />
-                <button @click="showCreateForm = false; $wire.createShortLink(newLabel || null).then(() => { newLabel = '' })"
+                <button @click="createLink()"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
                     {{ __('common.action_create') }}

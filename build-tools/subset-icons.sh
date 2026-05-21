@@ -48,20 +48,20 @@ echo "=== Material Symbols Subsetting ==="
 if [[ ! -f "$SOURCE_FONT" ]]; then
     echo -e "${RED}Error:${NC} Source font not found: $SOURCE_FONT"
     echo "Download it from:"
-    echo "  curl -sL 'https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.woff2' -o $SOURCE_FONT"
+    echo "  curl -sL 'https://github.com/google/material-design-icons/raw/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.woff2' -o \"$SOURCE_FONT\""
     exit 1
 fi
 
 if [[ ! -f "$CODEPOINTS" ]]; then
     echo -e "${RED}Error:${NC} Codepoints mapping not found: $CODEPOINTS"
     echo "Download it from:"
-    echo "  curl -sL 'https://raw.githubusercontent.com/google/material-design-icons/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.codepoints' -o $CODEPOINTS"
+    echo "  curl -sL 'https://raw.githubusercontent.com/google/material-design-icons/master/variablefont/MaterialSymbolsOutlined%5BFILL%2CGRAD%2Copsz%2Cwght%5D.codepoints' -o \"$CODEPOINTS\""
     exit 1
 fi
 
 if [[ ! -f "$VENV/bin/python3" ]]; then
     echo -e "${RED}Error:${NC} Python venv not found. Set up the venv:"
-    echo "  python3 -m venv $VENV && source $VENV/bin/activate && pip install fonttools brotli"
+    echo "  python3 -m venv \"$VENV\" && source \"$VENV/bin/activate\" && pip install fonttools brotli"
     exit 1
 fi
 
@@ -76,7 +76,7 @@ CONFIG_ICONS=$(php -r "
 
 # 2. From static scan of Blade templates, PHP enums, and JS files
 #    Covers: simple spans, spans with Blade {{ }} expressions, enum match arms,
-#    PHP arrays, and Blade ternary expressions.
+#    PHP arrays.
 SCAN_ICONS=$(
     # Simple Blade spans (icon text directly after >)
     rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/views/ --no-filename -r '$1' 2>/dev/null || true
@@ -88,10 +88,6 @@ SCAN_ICONS=$(
     rg -o "self::\w+\s*=>\s*'([a-z_0-9]+)'" app/Enums/ --no-filename -r '$1' 2>/dev/null || true
     # PHP arrays: 'icon' => 'icon_name' (in app/ and config/)
     rg -o "'icon'\s*=>\s*'([a-z_0-9]+)'" app/ config/ -r '$1' --no-filename 2>/dev/null || true
-    # Blade ternary expressions: 'a' ? 'b' : 'c'
-    rg -o "'([a-z_0-9]+)'\s*\?\s*'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'" resources/views/ --no-filename -r '$1.$2.$3' 2>/dev/null || true
-    # Blade ternary simple: 'a' : 'b'
-    rg -o "'([a-z_0-9]+)'\s*:\s*'([a-z_0-9]+)'" resources/views/ --no-filename -r '$1.$2' 2>/dev/null || true
     # JS inline icon spans
     rg -o 'material-symbols-outlined[^>]*>([a-z_0-9]+)<' resources/js/ --no-filename -r '$1' 2>/dev/null || true
 )
