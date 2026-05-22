@@ -18,11 +18,15 @@ use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\EventStatusType;
+use Spatie\Translatable\HasTranslations;
 
 class Campaign extends Model
 {
     use HasFactory;
     use HasSEO;
+    use HasTranslations;
+
+    public array $translatable = ['name', 'description'];
     protected $keyType = 'string';
     public $incrementing = false;
 

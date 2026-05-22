@@ -14,7 +14,7 @@ use Spatie\SchemaOrg\Organization as SchemaOrganization;
 use Spatie\SchemaOrg\PostalAddress;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use App\Traits\HasTranslations;
+use Spatie\Translatable\HasTranslations;
 use App\Traits\StringMorphMediaKey;
 use App\Relations\StringKeyMorphMany;
 
@@ -29,13 +29,13 @@ class Team extends Model implements HasMedia
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $translatable = ['description'];
+    public array $translatable = ['description'];
 
     protected $fillable = [
         'id',
         'name', 'slug', 'description', 'city', 'country', 'logo_url',
         'primary_color', 'secondary_color', 'founded_year', 'website',
-        'social_links', 'is_active', 'created_by',
+        'social_links', 'is_active', 'created_by', 'language',
     ];
 
     protected function casts(): array

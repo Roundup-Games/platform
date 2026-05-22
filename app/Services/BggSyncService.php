@@ -141,9 +141,9 @@ class BggSyncService
         $gameSystem = GameSystem::updateOrCreate(
             ['bgg_id' => $data['bgg_id']],
             [
-                'name' => $data['name'],
+                'name' => ['en' => $data['name']],
                 'slug' => $slug,
-                'description' => $data['description'],
+                'description' => ['en' => $data['description']],
                 'type' => $data['bgg_type'],
                 'bgg_type' => $data['bgg_type'],
                 'year_released' => $data['year_released'],
@@ -183,7 +183,7 @@ class BggSyncService
                     $gameSystem->update(['base_game_id' => $baseGame->id]);
                     Log::info('BGG sync: auto-fetched missing base game for expansion', [
                         'base_game_bgg_id' => $data['base_game_bgg_id'],
-                        'base_game_name' => $baseGame->name,
+                        'base_game_name' => $baseGame->getTranslation('name', 'en'),
                         'expansion_bgg_id' => $data['bgg_id'],
                     ]);
                 }

@@ -4,12 +4,12 @@ return array (
   0 => 
   array (
     'slug' => 'dungeons-and-dragons-5e',
-    'name' => 'Dungeons & Dragons 5e',
-    'description' => 'Dungeons & Dragons 5e is the world\'s most popular tabletop roleplaying game! With a legacy spanning 50 years, to the dawn of the fantasy RPG hobby, dozens of high-profile actual play shows, and a name synonymous with playful nerd-dom in pop culture, D&D\'s fifth edition has hit the mainstream. This latest edition builds on the legacy of its predecessors with streamlined rules, lavish art, a wealth of character and setting options, and a massive community of player-driven customization, third-party publishers, and homebrewed rules.
+    'name' => array('en' => 'Dungeons & Dragons 5e'),
+    'description' => array('en' => 'Dungeons & Dragons 5e is the world\'s most popular tabletop roleplaying game! With a legacy spanning 50 years, to the dawn of the fantasy RPG hobby, dozens of high-profile actual play shows, and a name synonymous with playful nerd-dom in pop culture, D&D\'s fifth edition has hit the mainstream. This latest edition builds on the legacy of its predecessors with streamlined rules, lavish art, a wealth of character and setting options, and a massive community of player-driven customization, third-party publishers, and homebrewed rules.
 
 In D&D, you and a table of friends take on the roles of fantasy heroes to fight monsters, seek treasure, grow in power, and hopefully save the world! One player, the Dungeon Master, or DM, acts as the rest of the world, including environments, non-player characters, monsters, and villains. The DM describes a situation, players say what they do, maybe they roll some dice, and the DM tells them how the world responds. As they adventure, characters grow, leveling up as they gain experience and becoming more and more powerful. They\'ll go from hometown heroes to nigh on demigods, shaping the destiny of the world as they know it.
 
-Whether it\'s epic fantasy like Lord of the Rings, sword-and-sorcery like Conan, or heroic high fantasy like The Legend of Zelda or Final Fantasy, Dungeons & Dragons can make it happen. The game\'s "three pillars" of combat, exploration, and roleplay allow you and your table to calibrate your experience. Play in a setting you love, whether it’s the Forgotten Realms, Critical Role’s Wildemount/Exandria, your own steampunk-themed world where wizards ride dinosaurs, or anything in between—your imagination truly is the limit!',
+Whether it\'s epic fantasy like Lord of the Rings, sword-and-sorcery like Conan, or heroic high fantasy like The Legend of Zelda or Final Fantasy, Dungeons & Dragons can make it happen. The game\'s "three pillars" of combat, exploration, and roleplay allow you and your table to calibrate your experience. Play in a setting you love, whether it’s the Forgotten Realms, Critical Role’s Wildemount/Exandria, your own steampunk-themed world where wizards ride dinosaurs, or anything in between—your imagination truly is the limit!'),
     'creator' => 'Originally created by Wizards of the Coast',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/b5bde75b-ad52-46ca-b839-59de0b0c633f',
     'player_range' => '4-6 Players',
@@ -389,10 +389,10 @@ Some characters can cast magic spells, each of which has its own rules, but migh
   1 => 
   array (
     'slug' => 'daggerheart',
-    'name' => 'Daggerheart',
-    'description' => 'Daggerheart is a fantasy tabletop roleplaying game of brave heroics and vibrant worlds that are built together with your gaming group. Create a shared story with your adventuring party, and shape your world through rich, long-term campaign play.
+    'name' => array('en' => 'Daggerheart'),
+    'description' => array('en' => 'Daggerheart is a fantasy tabletop roleplaying game of brave heroics and vibrant worlds that are built together with your gaming group. Create a shared story with your adventuring party, and shape your world through rich, long-term campaign play.
 
-In addition to dice, Daggerheart’s card system makes it easy to get started and satisfying to grow your abilities by bringing your characters’ background and capabilities to your fingertips. Ancestry and Community cards describe where you come from and how your experience shapes your customs and values. Meanwhile, your Subclass and Domain cards grant your character plenty of tantalizing abilities to choose from as your character evolves. Craft your unique character through the cards you choose and the story you tell, and become the hero you want to be!',
+In addition to dice, Daggerheart’s card system makes it easy to get started and satisfying to grow your abilities by bringing your characters’ background and capabilities to your fingertips. Ancestry and Community cards describe where you come from and how your experience shapes your customs and values. Meanwhile, your Subclass and Domain cards grant your character plenty of tantalizing abilities to choose from as your character evolves. Craft your unique character through the cards you choose and the story you tell, and become the hero you want to be!'),
     'creator' => 'Designed by Spenser Starke, Carlos Cisco, Rowan Hall, John Harper, Matthew Mercer, Alex Uboldi, and Michael Underwood',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/6ea600f3-79ae-4ca6-a44a-4ad157f04151',
     'player_range' => '3-6 Players',
@@ -552,12 +552,12 @@ Any group worth playing with should be respectful and understanding of your conc
   2 => 
   array (
     'slug' => 'pathfinder-2e',
-    'name' => 'Pathfinder 2e',
-    'description' => 'Pathfinder 2nd Edition is a fantasy tabletop roleplaying game in which players create heroic characters to embark on dangerous adventures. You might play as a noble elven wizard, a roguish halfling scoundrel, or a stout dwarven warrior, just to name a few. Pathfinder is legendary for the incredible variety of options players can choose from; there are over three dozen character classes alone, so intrepid players might just as well choose the sword-and-sorcery wielding Magus, the spooky Witch, or the gritty Gunslinger! One player, the Game Master (GM), acts as the rest of the world those heroes explore. 
+    'name' => array('en' => 'Pathfinder 2e'),
+    'description' => array('en' => 'Pathfinder 2nd Edition is a fantasy tabletop roleplaying game in which players create heroic characters to embark on dangerous adventures. You might play as a noble elven wizard, a roguish halfling scoundrel, or a stout dwarven warrior, just to name a few. Pathfinder is legendary for the incredible variety of options players can choose from; there are over three dozen character classes alone, so intrepid players might just as well choose the sword-and-sorcery wielding Magus, the spooky Witch, or the gritty Gunslinger! One player, the Game Master (GM), acts as the rest of the world those heroes explore. 
 
 The GM presents encounters with memorable characters, mystical places, terrible monsters, and myriad other challenges to overcome. The players decide on a course of action using their characters’ skills, magic spells, or equipment—the only limit on what they can attempt is their imagination! Often, they’ll need to roll dice to find out whether they succeed or fail. But no matter what, the players’ choices result in a unique story of which they are both author and audience.
 
-Pathfinder Second Edition revamps the rules from the game’s first edition, making character creation, adventuring, and combat more intuitive and easy to learn. In a word, Pathfinder 2e is MORE: more classes, more ancestries, more spells, abilities, feats, and items! More options for actions on your turn, more choices, and bigger numbers! It and its predecessor remain as two of the most popular roleplaying games in the world!',
+Pathfinder Second Edition revamps the rules from the game’s first edition, making character creation, adventuring, and combat more intuitive and easy to learn. In a word, Pathfinder 2e is MORE: more classes, more ancestries, more spells, abilities, feats, and items! More options for actions on your turn, more choices, and bigger numbers! It and its predecessor remain as two of the most popular roleplaying games in the world!'),
     'creator' => 'Originally created by Paizo',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/c03600ea-ff10-40ab-a258-a32fcec1702a',
     'player_range' => '3-6 Players',
@@ -933,10 +933,10 @@ Pathfinder 2e outlines a number of actions players can take in and out of combat
   3 => 
   array (
     'slug' => 'call-of-cthulhu',
-    'name' => 'Call of Cthulhu',
-    'description' => 'Call of Cthulhu is a classic tabletop roleplaying game of eldritch horror based on the works of H.P. Lovecraft. Just behind the veil of reality lie ancient horrors beyond human comprehension: immortal elder gods sunken to the deepest places, cosmic entities drifting dreaming among the stars, impossible ideas waiting for a fragile human psyche to take root in. You play as an investigator, a mostly normal person (at first) who\'s simply too curious for their own good. You\'ll pull at threads perhaps best left untouched to uncover the secrets of a world bigger than mortal minds were meant to know. You might unmask cults who wish to wake dread sleeping things, learn the true nature of an alien parasite, or try to deduce what might cause an entire town to all walk into the sea. Your own exposure to all this things may not drive you to madness yourself--if you\'re lucky.
+    'name' => array('en' => 'Call of Cthulhu'),
+    'description' => array('en' => 'Call of Cthulhu is a classic tabletop roleplaying game of eldritch horror based on the works of H.P. Lovecraft. Just behind the veil of reality lie ancient horrors beyond human comprehension: immortal elder gods sunken to the deepest places, cosmic entities drifting dreaming among the stars, impossible ideas waiting for a fragile human psyche to take root in. You play as an investigator, a mostly normal person (at first) who\'s simply too curious for their own good. You\'ll pull at threads perhaps best left untouched to uncover the secrets of a world bigger than mortal minds were meant to know. You might unmask cults who wish to wake dread sleeping things, learn the true nature of an alien parasite, or try to deduce what might cause an entire town to all walk into the sea. Your own exposure to all this things may not drive you to madness yourself--if you\'re lucky.
 
-Call of Cthulhu is typically set in 1920s America, around the time of Lovecraft\'s stories, but its flexible and versatile system and a long history of supplements allow setting your eldritch mystery nearly anytime, anywhere. A classless, skill-based system allows players to fully customize their investigator, and a robust Sanity mechanic tracks your gradual (but likely inevitable) descent into madness as you delve deeper into the mythos. As one of the most popular roleplaying games of all time, Call of Cthulhu dares players to plumb its depths, and unearth its mysteries. Never mind that all who came before you have lost their minds; surely, your fate will be different.',
+Call of Cthulhu is typically set in 1920s America, around the time of Lovecraft\'s stories, but its flexible and versatile system and a long history of supplements allow setting your eldritch mystery nearly anytime, anywhere. A classless, skill-based system allows players to fully customize their investigator, and a robust Sanity mechanic tracks your gradual (but likely inevitable) descent into madness as you delve deeper into the mythos. As one of the most popular roleplaying games of all time, Call of Cthulhu dares players to plumb its depths, and unearth its mysteries. Never mind that all who came before you have lost their minds; surely, your fate will be different.'),
     'creator' => 'Originally created by Sandy Petersen',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/66e8bbf6-e43f-4f84-9754-7278d0a7babf',
     'player_range' => '3-6 Players',
@@ -1228,8 +1228,8 @@ Combat is quite lethal in Call of Cthulhu, as a horror game about normal human b
   4 => 
   array (
     'slug' => 'vampire-the-masquerade-5e',
-    'name' => 'Vampire: The Masquerade 5th Edition',
-    'description' => 'Vampire: The Masquerade presents a more dramatic, contemplative world than most tabletop roleplaying games (TTRPGs). While the average TTRPG experience is a Dungeons & Dragons inspired one (fighting monsters and getting treasure), Vampire is about simply surviving and keeping a piece of yourself intact. Players in Vampire become the titular mythological figure in a version of our modern world. And while near-immortality and superpowers seems cool, they come at the cost of existing in a secret society where hunters and other clans are out to get you. And there’s also the whole hungering for blood thing. In a typical Vampire game, holding onto humanity is just as tough as fending off foes.',
+    'name' => array('en' => 'Vampire: The Masquerade 5th Edition'),
+    'description' => array('en' => 'Vampire: The Masquerade presents a more dramatic, contemplative world than most tabletop roleplaying games (TTRPGs). While the average TTRPG experience is a Dungeons & Dragons inspired one (fighting monsters and getting treasure), Vampire is about simply surviving and keeping a piece of yourself intact. Players in Vampire become the titular mythological figure in a version of our modern world. And while near-immortality and superpowers seems cool, they come at the cost of existing in a secret society where hunters and other clans are out to get you. And there’s also the whole hungering for blood thing. In a typical Vampire game, holding onto humanity is just as tough as fending off foes.'),
     'creator' => 'Originally created by Renegade Game Studios',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/da0e76c4-e85f-479b-a4f8-3aab4b16ff4e',
     'player_range' => '3-5 Players',
@@ -1514,12 +1514,12 @@ However, the Ventrue’s pride can also be their greatest weakness, driving them
   5 => 
   array (
     'slug' => 'shadowdark-rpg',
-    'name' => 'Shadowdark RPG',
-    'description' => 'Shadowdark is a new take on the classic genre of dungeon fantasy tabletop roleplaying games, designed with modern sensibilities built over 50 years of iteration. At its core, the game streamlines the basic system of Dungeons & Dragons 5th edition (with plenty of inspiration both from earlier versions and the Old School Renaissance movement, or OSR) to make the game faster, more intuitive, and more dangerous. 
+    'name' => array('en' => 'Shadowdark RPG'),
+    'description' => array('en' => 'Shadowdark is a new take on the classic genre of dungeon fantasy tabletop roleplaying games, designed with modern sensibilities built over 50 years of iteration. At its core, the game streamlines the basic system of Dungeons & Dragons 5th edition (with plenty of inspiration both from earlier versions and the Old School Renaissance movement, or OSR) to make the game faster, more intuitive, and more dangerous. 
 
 Players take on the role of fantastic sword-and-sorcery heroes, who wield weapons, skills, and magic both arcane and divine in pursuit of wealth and glory. They\'ll delve into dark, ancient dungeons crawling with monsters and full of forgotten treasure with only their wits, their strength, and the light of their torches to guide them. Combat is quick and deadly, requiring players to think creatively and eke out any advantage they can to triumph over lethal and terrifying monsters.
 
-Shadowdark includes elements of survival horror as well, like the "torch timer," where your characters torches only burn for one hour of real world time, meaning your party is in a race against the creeping darkness to escape the dungeon alive! If you\'re looking for a cross between modern D&D and OSR games, Shadowdark is your game!',
+Shadowdark includes elements of survival horror as well, like the "torch timer," where your characters torches only burn for one hour of real world time, meaning your party is in a race against the creeping darkness to escape the dungeon alive! If you\'re looking for a cross between modern D&D and OSR games, Shadowdark is your game!'),
     'creator' => 'Originally created by: Kelsey Dionne of The Arcane Library',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/f58e86b8-a3ae-47ff-a9f9-51f5af6bb731',
     'player_range' => '3-6 Players',
@@ -1691,12 +1691,12 @@ Characters gain experience and level up based on how much treasure they can succ
   6 => 
   array (
     'slug' => 'pathfinder-1e',
-    'name' => 'Pathfinder 1e',
-    'description' => 'Pathfinder 1st Edition is a tabletop roleplaying game in which players create heroic characters to embark on fantasy adventures. You might play as a noble elven wizard, a roguish halfling scoundrel, or a stout dwarven warrior, just to name a few. But Pathfinder is famous for the incredible variety of options players can choose from; there are two dozen character classes alone, so intrepid players might just as well choose the sword-and-sorcery wielding magus, the inspiring skald, or the gritty gunslinger! One player, the Game Master (GM), acts as the rest of the world those heroes explore. 
+    'name' => array('en' => 'Pathfinder 1e'),
+    'description' => array('en' => 'Pathfinder 1st Edition is a tabletop roleplaying game in which players create heroic characters to embark on fantasy adventures. You might play as a noble elven wizard, a roguish halfling scoundrel, or a stout dwarven warrior, just to name a few. But Pathfinder is famous for the incredible variety of options players can choose from; there are two dozen character classes alone, so intrepid players might just as well choose the sword-and-sorcery wielding magus, the inspiring skald, or the gritty gunslinger! One player, the Game Master (GM), acts as the rest of the world those heroes explore. 
 
 The GM presents encounters with memorable characters, mystical places, terrible monsters, and myriad other challenges to overcome. The players decide on a course of action using their characters’ skills, magic spells, or equipment—the only limit on what they can attempt is their imagination! Often, they’ll need to roll dice to find out whether they succeed or fail. But no matter what, the players’ choices result in a unique story of which they are both author and audience.
 
-Pathfinder maximizes choices at almost every turn; character builds are an art unto themselves, an expansive list of feats, spells, and other options means players never lack for possibilities. And a robust system for adventuring, exploring, and tactical, grid-based combat offers mechanical support for anything and everything your heroes might attempt. Pathfinder’s publisher Paizo has since released a second edition, but the first edition (or 1E) remains one of the most popular roleplaying games in the world!',
+Pathfinder maximizes choices at almost every turn; character builds are an art unto themselves, an expansive list of feats, spells, and other options means players never lack for possibilities. And a robust system for adventuring, exploring, and tactical, grid-based combat offers mechanical support for anything and everything your heroes might attempt. Pathfinder’s publisher Paizo has since released a second edition, but the first edition (or 1E) remains one of the most popular roleplaying games in the world!'),
     'creator' => 'Originally created by Paizo',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/3c59470e-fcd4-42bb-9827-fba2dfe904ec',
     'player_range' => '3–6 Players',
@@ -1979,12 +1979,12 @@ Combat works mostly using the core mechanic, except the target number represents
   7 => 
   array (
     'slug' => 'cyberpunk-red',
-    'name' => 'Cyberpunk Red',
-    'description' => 'Welcome to Night City, 2045. In this alternate Earth, widespread economic and ecological disaster paved the way for the rise of sovereign megacorporations, powerful street gangs, and corrupt politicians to take control. Neon-lit urban sprawl covers population centers, where the underclass labors under the yoke of corporate wage slavery while the wealthy augment themselves with cybernetic implants, enjoy cutting-edge technology, and do designer drugs. But Cyberpunk Red is a tabletop roleplaying game, so where you do you fit in?
+    'name' => array('en' => 'Cyberpunk Red'),
+    'description' => array('en' => 'Welcome to Night City, 2045. In this alternate Earth, widespread economic and ecological disaster paved the way for the rise of sovereign megacorporations, powerful street gangs, and corrupt politicians to take control. Neon-lit urban sprawl covers population centers, where the underclass labors under the yoke of corporate wage slavery while the wealthy augment themselves with cybernetic implants, enjoy cutting-edge technology, and do designer drugs. But Cyberpunk Red is a tabletop roleplaying game, so where you do you fit in?
 
 You play a cyberpunk, a rebel surviving on the edge of society by their highly valuable set of skills. You might be a hacker, a cyborg road warrior, an assassin, street doc, or fixer; but will you use your talents for a big payday from corporate interests? Or fight back against a rigged system and liberate the people?
 
-Cyberpunk Red is the latest installment in a series of tabletop roleplaying games that have directly inspired video games and television shows like Cyberpunk 2077 and Cyberpunk Edgerunners.',
+Cyberpunk Red is the latest installment in a series of tabletop roleplaying games that have directly inspired video games and television shows like Cyberpunk 2077 and Cyberpunk Edgerunners.'),
     'creator' => 'Originally created by Mike Pondsmith',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/bfd96f52-de91-47a4-b0db-0604f481c937',
     'player_range' => '3-5 Players',
@@ -2209,10 +2209,10 @@ Characters start with a role, which has a unique ability and defines their place
   8 => 
   array (
     'slug' => 'monster-of-the-week',
-    'name' => 'Monster of the Week',
-    'description' => 'Monster of the Week is a tabletop roleplaying game about a group of monster hunters taking on the terrors that prey on humanity. Inspired by media like Buffy the Vampire Slayer, The X-Files, and Supernatural, players create hunters based on classic archetypes of the genre. They might take on the Chosen, a hero with a grand destiny; the Divine, an angel or holy warrior here to protect humanity; the Monstrous, fighting against their own evil nature; the Professional “man-in-black”; and many more! One player, the Keeper or Game Master (GM), takes on the role of the world those characters inhabit. They’ll create the mysteries the hunters must investigate, the environments they’ll explore, and the victims, meddling authorities, and of course, the monsters they’ll face.
+    'name' => array('en' => 'Monster of the Week'),
+    'description' => array('en' => 'Monster of the Week is a tabletop roleplaying game about a group of monster hunters taking on the terrors that prey on humanity. Inspired by media like Buffy the Vampire Slayer, The X-Files, and Supernatural, players create hunters based on classic archetypes of the genre. They might take on the Chosen, a hero with a grand destiny; the Divine, an angel or holy warrior here to protect humanity; the Monstrous, fighting against their own evil nature; the Professional “man-in-black”; and many more! One player, the Keeper or Game Master (GM), takes on the role of the world those characters inhabit. They’ll create the mysteries the hunters must investigate, the environments they’ll explore, and the victims, meddling authorities, and of course, the monsters they’ll face.
 
-Every monster exists at the center of a mystery that the players must solve to even have a chance of taking them on; investigators can only discover the monster\'s weakness through play, and must exploit that weakness to defeat the monster once and for all! You might even connect the dots on your conspiracy board to find that all these monsters connect to a massive central mystery, and try to stop their reign of terror once and for all!',
+Every monster exists at the center of a mystery that the players must solve to even have a chance of taking them on; investigators can only discover the monster\'s weakness through play, and must exploit that weakness to defeat the monster once and for all! You might even connect the dots on your conspiracy board to find that all these monsters connect to a massive central mystery, and try to stop their reign of terror once and for all!'),
     'creator' => 'Originally created by Michael Sands',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/5b12af5a-2faf-40c5-a244-29cb1ca599ea',
     'player_range' => '3-5 Players',
@@ -2417,12 +2417,12 @@ Before you make characters, decide with your group what kind of monster hunting 
   9 => 
   array (
     'slug' => 'lancer',
-    'name' => 'Lancer',
-    'description' => 'Ever wanted to build and pilot a giant robot into battle against other giant robots? Lancer is your game. In this tabletop roleplaying game of grid-based tactical combat and high drama, you\'ll construct a custom war machine from some of the coolest designs ever put to paper, engage in mechanized warfare, and forge a blood bond with your companions in the heat of the battlefield!
+    'name' => array('en' => 'Lancer'),
+    'description' => array('en' => 'Ever wanted to build and pilot a giant robot into battle against other giant robots? Lancer is your game. In this tabletop roleplaying game of grid-based tactical combat and high drama, you\'ll construct a custom war machine from some of the coolest designs ever put to paper, engage in mechanized warfare, and forge a blood bond with your companions in the heat of the battlefield!
 
 Lancer is set 15,000 years from the present day, where a revolutionary interplanetary state, Union, struggles to win a better world for the whole of humanity. You’ll not see the project complete, but you’ll put your shoulder to the wheel, struggle, and advance.
 
-There are many pilots in the galaxy, but only one of you. Your character is a lancer, a mech ace renowned for their skill in their machine. Developed half a millennia prior to the current day of Lancer’s setting, mechanized chassis—mechs—have redefined how war is fought across the Orion Arm. Under your command, your mech is a weapon unparalleled, and with your mech and your comrades by your side, you’ll write your own story.',
+There are many pilots in the galaxy, but only one of you. Your character is a lancer, a mech ace renowned for their skill in their machine. Developed half a millennia prior to the current day of Lancer’s setting, mechanized chassis—mechs—have redefined how war is fought across the Orion Arm. Under your command, your mech is a weapon unparalleled, and with your mech and your comrades by your side, you’ll write your own story.'),
     'creator' => 'Originally created by Miguel Lopez, Tom Bloom',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/d16b96b9-0100-4a57-b6ac-4ba29a839b1e',
     'player_range' => '3-5 Players',
@@ -2579,12 +2579,12 @@ Characters in Lancer can customize their mechs, which means each mech frame will
   10 => 
   array (
     'slug' => 'draw-steel',
-    'name' => 'Draw Steel',
-    'description' => 'Fight monsters in spectacular clashes in the high fantasy world of Orden! Play determined heroes who press on against the odds, digging deep to access their most powerful abilities the more desperate the situation becomes. Play battle-hardened warriors, spell-slinging wizards, and psionic raiders from another time!
+    'name' => array('en' => 'Draw Steel'),
+    'description' => array('en' => 'Fight monsters in spectacular clashes in the high fantasy world of Orden! Play determined heroes who press on against the odds, digging deep to access their most powerful abilities the more desperate the situation becomes. Play battle-hardened warriors, spell-slinging wizards, and psionic raiders from another time!
 
 Draw Steel describes itself as a game of tactical, cinematic, heroic fantasy. It focuses on fighting monsters in map-and-miniature-based combat encounters where characters generate resources as battles go on, and as they continue to fight without resting. An emphasis on positioning, movement both intentional and forced, and momentum create a sense of dynamism in every battle, and the promise of even greater powers and rewards if the heroes press their luck and keep fighting fosters a constant tension between blazing ahead or stopping to rest. 
 
-A system of tiered success with automatic hits in combat eliminates wasted turns, but the double edged sword of enemies constantly eating away the players\' resources pushes them to win fights quickly. A treasure trove of character options offers the opportunity to build a character who performs just the way you imagine in combat, plus build strategies with your teammates to maximize your abilities. The game also includes rules for major negotiations and noncombat action sequences, but wears its heart on its sleeve: it\'s all about fighting the monsters.',
+A system of tiered success with automatic hits in combat eliminates wasted turns, but the double edged sword of enemies constantly eating away the players\' resources pushes them to win fights quickly. A treasure trove of character options offers the opportunity to build a character who performs just the way you imagine in combat, plus build strategies with your teammates to maximize your abilities. The game also includes rules for major negotiations and noncombat action sequences, but wears its heart on its sleeve: it\'s all about fighting the monsters.'),
     'creator' => 'Originally created by James Introcaso and Matt Colville',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/cfe9ab13-ac19-49a7-9860-5b7a8feef330',
     'player_range' => '3-6 Players',
@@ -2771,11 +2771,11 @@ Players can influence the results of power rolls by leveraging relevant skills t
   11 => 
   array (
     'slug' => 'star-wars-rpg-ffg',
-    'name' => 'Star Wars RPG by Fantasy Flight Games',
-    'description' => 'A long time ago, in a galaxy far, far away, a heroic group of spacefarers faced the forces of evil in an epic struggle that still inspires us today! The Star Wars Roleplaying Game lets you play out a fantastical space opera in one of the most beloved universes of all time. The Star Wars Roleplaying Game is a tabletop game played with a set of special narrative dice where players can create their own Jedi, scoundrel, alien, bounty hunter, and lots more to go on adventures in the world of the Star Wars films. One player, the Game Master (GM), acts as the rest of the galaxy, playing as the characters’ allies and enemies, and creating scenarios and obstacles for them to overcome.
+    'name' => array('en' => 'Star Wars RPG by Fantasy Flight Games'),
+    'description' => array('en' => 'A long time ago, in a galaxy far, far away, a heroic group of spacefarers faced the forces of evil in an epic struggle that still inspires us today! The Star Wars Roleplaying Game lets you play out a fantastical space opera in one of the most beloved universes of all time. The Star Wars Roleplaying Game is a tabletop game played with a set of special narrative dice where players can create their own Jedi, scoundrel, alien, bounty hunter, and lots more to go on adventures in the world of the Star Wars films. One player, the Game Master (GM), acts as the rest of the galaxy, playing as the characters’ allies and enemies, and creating scenarios and obstacles for them to overcome.
 
 Published by Fantasy Flight Games, the Star Wars Roleplaying Game is composed of three intercompatible games designed for different settings: Edge of the Empire, for playing smugglers and bounty hunters like Han Solo or Boba Fett; Age of Rebellion for playing rebel freedom fighters against the Galactic Empire like Luke Skywalker and Poe Dameron; and Force and Destiny for playing Jedi fleeing from the Empire’s reach, like Yoda and Obi-Wan Kenobi.
-',
+'),
     'creator' => 'Originally created by Fantasy Flight Games',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/fb5f2a03-baf8-4d10-a48a-48c87f6e7bcb',
     'player_range' => '3–5 Players',
@@ -3101,12 +3101,12 @@ Once you understand the dice system, you\'ll understand most of the rules in Sta
   12 => 
   array (
     'slug' => 'cosmere-roleplaying-game',
-    'name' => 'Cosmere Roleplaying Game',
-    'description' => 'Play in the fantastical worlds of Brandon Sanderson\'s Cosmere universe, the shared cosmology of The Stormlight Archive, the Mistborn series, and more! The Cosmere RPG is a tabletop roleplaying game in which players assume the roles of heroes fighting for the fates of these beloved settings. Defend your ideals with force of arms, wield spiritual Investiture to use magic power, and unlock the mysteries of the Cosmere and the godlike Shards who shape its affairs.
+    'name' => array('en' => 'Cosmere Roleplaying Game'),
+    'description' => array('en' => 'Play in the fantastical worlds of Brandon Sanderson\'s Cosmere universe, the shared cosmology of The Stormlight Archive, the Mistborn series, and more! The Cosmere RPG is a tabletop roleplaying game in which players assume the roles of heroes fighting for the fates of these beloved settings. Defend your ideals with force of arms, wield spiritual Investiture to use magic power, and unlock the mysteries of the Cosmere and the godlike Shards who shape its affairs.
 
 Using a familiar d20-based system with the addition of the story-twisting Plot Die, the Cosmere RPG draws on the extensive lore of Sanderson\'s work to offer players unique character options, heroic paths, and magical abilities to create compelling characters who instantly belong to this fantastical world. Each sourcebook contains options unique to its world; for example, the Stormlight Handbook includes rules for playing a Knight Radiant, forging a bond with a spren spirit, and wielding magical surges.
 
-The Cosmere Roleplaying Game is a "living" game world, meaning it will continue to expand as Sanderson collaborates with the designers to add new worlds, new magic, and new technology to the Cosmere. The handbook and setting guide for the Stormlight Archive was released in 2025, with Mistborn slated for 2026. Elantris and a "worldhopper" book are also planned for release.',
+The Cosmere Roleplaying Game is a "living" game world, meaning it will continue to expand as Sanderson collaborates with the designers to add new worlds, new magic, and new technology to the Cosmere. The handbook and setting guide for the Stormlight Archive was released in 2025, with Mistborn slated for 2026. Elantris and a "worldhopper" book are also planned for release.'),
     'creator' => 'Originally created by Johnny O\'Neal and Andrew Fischer',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/4027fec1-ae00-4b46-b3bb-4d5024f1e36e',
     'player_range' => '3-6 Players',
@@ -3348,9 +3348,9 @@ Using magic also works with the core mechanic; once players have access to magic
   13 => 
   array (
     'slug' => 'fabula-ultima',
-    'name' => 'Fabula Ultima',
-    'description' => 'Fabula Ultima is a Tabletop Roleplaying Game inspired by Japanese-style console RPGs, or JRPGs.  In Fabula Ultima, you and your friends will tell epic stories of would-be heroes and fearsome villains, set in fantasy worlds brimming with magic, wondrous locations, and uniquely bizarre monsters!
-This is a game about larger-than-life heroes and tragic antagonists. There is no predetermined plot, scenario, or "adventure", and the heroes\' actions, motivations, and objectives will drive the story forward while the Game Master reacts to their choices and places obstacles on their path, often in the form of powerful villains with their own devious agendas, which will change time and time again as the protagonists manage (or fail) to thwart their plans.',
+    'name' => array('en' => 'Fabula Ultima'),
+    'description' => array('en' => 'Fabula Ultima is a Tabletop Roleplaying Game inspired by Japanese-style console RPGs, or JRPGs.  In Fabula Ultima, you and your friends will tell epic stories of would-be heroes and fearsome villains, set in fantasy worlds brimming with magic, wondrous locations, and uniquely bizarre monsters!
+This is a game about larger-than-life heroes and tragic antagonists. There is no predetermined plot, scenario, or "adventure", and the heroes\' actions, motivations, and objectives will drive the story forward while the Game Master reacts to their choices and places obstacles on their path, often in the form of powerful villains with their own devious agendas, which will change time and time again as the protagonists manage (or fail) to thwart their plans.'),
     'creator' => 'Originally created by Emanuele Galletto',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e0297314-98f3-4598-a092-e11a81f1066f',
     'player_range' => '3-5 Players',
@@ -3544,10 +3544,10 @@ Instead, you will build your own story together little by little, and you will b
   14 => 
   array (
     'slug' => 'savage-worlds',
-    'name' => 'Savage Worlds',
-    'description' => 'Savage Worlds is a tabletop roleplaying game of pulp action, fast and furious play, and universal rules. There are a number of settings built specifically for Savage Worlds, including the weird west Deadlands, piratical 50 Fathoms, and action-horror Rippers. But Savage Worlds includes robust support for creating your own setting or converting an existing one as well! The rules are generic and universal, meaning any genre or setting could be adapted to and played in Savage Worlds. The tone of these games will be action-oriented, pulpy, and focus on dynamic heroes who can pull off amazing feats, but beyond that, there\'s little Savage Worlds can\'t handle. Adventure fantasy, superheroes, sword-and-sorcery, even multiversal science-fantasy setting Rifts all adapt easily to the Savage Worlds framework.
+    'name' => array('en' => 'Savage Worlds'),
+    'description' => array('en' => 'Savage Worlds is a tabletop roleplaying game of pulp action, fast and furious play, and universal rules. There are a number of settings built specifically for Savage Worlds, including the weird west Deadlands, piratical 50 Fathoms, and action-horror Rippers. But Savage Worlds includes robust support for creating your own setting or converting an existing one as well! The rules are generic and universal, meaning any genre or setting could be adapted to and played in Savage Worlds. The tone of these games will be action-oriented, pulpy, and focus on dynamic heroes who can pull off amazing feats, but beyond that, there\'s little Savage Worlds can\'t handle. Adventure fantasy, superheroes, sword-and-sorcery, even multiversal science-fantasy setting Rifts all adapt easily to the Savage Worlds framework.
 
-Savage Worlds\' rules are quick but comprehensive, covering everything from dramatic action scenes like chases and combat to interpersonal interludes where characters can interact in downtime. The game offers the freedom to the players and game master to create any setting they can imagine, and populate it with characters who, with a little luck, can accomplish the impossible.',
+Savage Worlds\' rules are quick but comprehensive, covering everything from dramatic action scenes like chases and combat to interpersonal interludes where characters can interact in downtime. The game offers the freedom to the players and game master to create any setting they can imagine, and populate it with characters who, with a little luck, can accomplish the impossible.'),
     'creator' => 'Originally created by Shane Lacy Hensley',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/08bc50b4-8d39-4e2e-a788-05ee78563bd4',
     'player_range' => '3-5 Players',
@@ -3692,10 +3692,10 @@ In combat, initiative is determined by dealing playing cards, then going down th
   15 => 
   array (
     'slug' => 'delta-green',
-    'name' => 'Delta Green',
-    'description' => 'Born of the U.S. government’s 1928 raid on the degenerate coastal town of Innsmouth, Massachusetts, the covert agency known as Delta Green opposes the forces of darkness with honor but without glory. Delta Green agents fight to save humanity from unnatural horrors—often at a shattering personal cost.
+    'name' => array('en' => 'Delta Green'),
+    'description' => array('en' => 'Born of the U.S. government’s 1928 raid on the degenerate coastal town of Innsmouth, Massachusetts, the covert agency known as Delta Green opposes the forces of darkness with honor but without glory. Delta Green agents fight to save humanity from unnatural horrors—often at a shattering personal cost.
 
-In Delta Green: The Role-Playing Game, the players are those agents. They fight to keep terrors from beyond space and time from infecting the world and claiming human lives and sanity. The Handler is the game moderator who creates and interprets their world, presents the unnatural horror that they investigate, and describes the awful aftermath of their sacrifices.',
+In Delta Green: The Role-Playing Game, the players are those agents. They fight to keep terrors from beyond space and time from infecting the world and claiming human lives and sanity. The Handler is the game moderator who creates and interprets their world, presents the unnatural horror that they investigate, and describes the awful aftermath of their sacrifices.'),
     'creator' => 'Originally created by Dennis Detwiller, Christopher Gunning, Shane Ivey, Greg Stolze',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/c256b7a4-d89c-4ee6-b081-692b91a8c495',
     'player_range' => '3-5 Players',
@@ -3855,10 +3855,10 @@ insanity and death, it’s easy to conclude that some hypotheses should not be t
   16 => 
   array (
     'slug' => 'marvel-multiverse-role-playing-game',
-    'name' => 'Marvel Multiverse Role-Playing Game',
-    'description' => 'Swing like Spider-man, fly like Iron Man, lead like Captain America, and brawl like the Hulk in the Marvel Multiverse Role-Playing Game! Play as your favorite hero from the Marvel universe or create a custom character of your very own to team up, fight bad guys, and explore the multiverse. 
+    'name' => array('en' => 'Marvel Multiverse Role-Playing Game'),
+    'description' => array('en' => 'Swing like Spider-man, fly like Iron Man, lead like Captain America, and brawl like the Hulk in the Marvel Multiverse Role-Playing Game! Play as your favorite hero from the Marvel universe or create a custom character of your very own to team up, fight bad guys, and explore the multiverse. 
 
-Using the d616 system, a bespoke dice mechanic created for the game, you can go from street-level heroes to cosmic saviors of the multiverse over an epic comic book-style campaign complete with dastardly supervillains, shadowy organizations, and threats from beyond our world. With tons of options for powers and abilities, the Marvel Multiverse Role-Playing Game is a highly customizable, streamlined option for four-color super stories set in the Marvel universe or beyond.',
+Using the d616 system, a bespoke dice mechanic created for the game, you can go from street-level heroes to cosmic saviors of the multiverse over an epic comic book-style campaign complete with dastardly supervillains, shadowy organizations, and threats from beyond our world. With tons of options for powers and abilities, the Marvel Multiverse Role-Playing Game is a highly customizable, streamlined option for four-color super stories set in the Marvel universe or beyond.'),
     'creator' => 'Originally created by Matt Forbeck',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/a8154c87-b113-4267-a3f0-8490fbf4c2ea',
     'player_range' => '2-6 Players',
@@ -4068,10 +4068,10 @@ Characters also have their powers to help them, and can spend a resource called 
   17 => 
   array (
     'slug' => 'dungeon-crawl-classics',
-    'name' => 'Dungeon Crawl Classics',
-    'description' => 'You’re no hero.
+    'name' => array('en' => 'Dungeon Crawl Classics'),
+    'description' => array('en' => 'You’re no hero.
 You’re an adventurer: a reaver, a cutpurse, a heathen-slayer, a tight-lipped warlock guarding long-dead secrets. You seek gold and glory, winning it with sword and spell, caked in the blood and filth of the weak, the dark, the demons, and the vanquished. There are treasures to be won deep underneath, and you shall have them. 
-Return to the glory days of fantasy with the Dungeon Crawl Classics Role-Playing Game. Adventure as 1974 intended, with modern rules grounded in the origins of sword & sorcery. Fast play, cryptic secrets, and a mysterious past await you.',
+Return to the glory days of fantasy with the Dungeon Crawl Classics Role-Playing Game. Adventure as 1974 intended, with modern rules grounded in the origins of sword & sorcery. Fast play, cryptic secrets, and a mysterious past await you.'),
     'creator' => 'Originally created by Joseph Goodman',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/b2cae261-6f86-4ddb-aab1-7e4bcf2a5270',
     'player_range' => '4-6 Players',
@@ -4221,12 +4221,12 @@ Return to the glory days of fantasy with the Dungeon Crawl Classics Role-Playing
   18 => 
   array (
     'slug' => 'warhammer-fantasy-roleplay',
-    'name' => 'Warhammer Fantasy Roleplay',
-    'description' => 'Warhammer Fantasy Roleplay takes you back to the Old World. Get the gang together, create your (anti)heroes, and set off to face vile corruption, scheming plotters, and terrifying creatures intent on destruction.
+    'name' => array('en' => 'Warhammer Fantasy Roleplay'),
+    'description' => array('en' => 'Warhammer Fantasy Roleplay takes you back to the Old World. Get the gang together, create your (anti)heroes, and set off to face vile corruption, scheming plotters, and terrifying creatures intent on destruction.
 
 The Old World is a grim and perilous place. Its vast mountain ranges are teeming with warlike Orcs and Goblins. The deep forests are the home of marauding Beastmen. The corrupting force of Chaos leeches into the world, the result of a tragic accident when the world was young. The insidious taint of Chaos leaves folk hideously altered, and liable to seek solace in the worship of Daemons and the Ruinous Powers of the Chaos gods. The followers of Chaos gather in the north, armies of reavers and monsters that threaten to overwhelm the world. But they also reside in secret in the towns and cities of the Old World: an enemy within plotting to overthrow civilization and establish their own regime in its place.
 
-Nations such as the Empire stand defiant against the darkness. Its people come from all walks of life, from landed aristocracy to the urban poor. Most are heedless of the true dangers that beset their world; they imagine themselves safe within city walls and merely try to make a good living for themselves. But there are those adventurous folk who, driven through desperation or ambition, seek to confront dangers and win renown.',
+Nations such as the Empire stand defiant against the darkness. Its people come from all walks of life, from landed aristocracy to the urban poor. Most are heedless of the true dangers that beset their world; they imagine themselves safe within city walls and merely try to make a good living for themselves. But there are those adventurous folk who, driven through desperation or ambition, seek to confront dangers and win renown.'),
     'creator' => 'Originally created by Dominic McDowall, Andy Law',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/8175266c-386b-45c0-9b39-eca2387bc107',
     'player_range' => '3-5 Players',
@@ -4388,10 +4388,10 @@ All in all, this is a Warhammer game so combat is a huge part of how you’ll sp
   19 => 
   array (
     'slug' => 'fallout-the-roleplaying-game',
-    'name' => 'Fallout: The Roleplaying Game',
-    'description' => 'How will you re-shape the world? Will you join with a plucky band of survivors to fight off all comers and carve out your own settlement? Will you team up with pre-existing factions like the Brotherhood of Steel or Super Mutants to enforce your own ideals on the wasteland? Ghoul or robot, paladin or raider, it’s your choice - and the consequences are yours.
+    'name' => array('en' => 'Fallout: The Roleplaying Game'),
+    'description' => array('en' => 'How will you re-shape the world? Will you join with a plucky band of survivors to fight off all comers and carve out your own settlement? Will you team up with pre-existing factions like the Brotherhood of Steel or Super Mutants to enforce your own ideals on the wasteland? Ghoul or robot, paladin or raider, it’s your choice - and the consequences are yours.
 
-Create your own survivors, super mutants, ghouls, and even Mister Handy robots, and immerse yourselves in the iconic post-nuclear apocalyptic world, while gamemasters guide their group through unique Fallout stories. This 2d20 edition of Fallout is as close to the bottlecap-bartering, wasteland wandering, Brotherhood battling excitement of Fallout you can get.',
+Create your own survivors, super mutants, ghouls, and even Mister Handy robots, and immerse yourselves in the iconic post-nuclear apocalyptic world, while gamemasters guide their group through unique Fallout stories. This 2d20 edition of Fallout is as close to the bottlecap-bartering, wasteland wandering, Brotherhood battling excitement of Fallout you can get.'),
     'creator' => 'Originally created by Nathan Dowdell, Donathin Frye, Sam Webb',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/72c18489-9cba-4e3e-819b-eb00449766ad',
     'player_range' => '4-6 Players',
@@ -4572,12 +4572,12 @@ Many models exist, and you could come from any of the Mister Handy, Mister Gutsy
   20 => 
   array (
     'slug' => 'dungeons-dragons-3-35e',
-    'name' => 'Dungeons & Dragons 3/3.5e',
-    'description' => 'In August 2000, Wizards of the Coast published the first new edition of Dungeons & Dragons in eleven years. Three years after they acquired TSR, the publisher of 2nd Edition, D&D 3e marked the beginning of Wizards\' stewardship of the game. This edition introduced Skills, Feats, new classes, and standardized rules that would come to be known as the D20 System, arguably the most influential game system of all time. 
+    'name' => array('en' => 'Dungeons & Dragons 3/3.5e'),
+    'description' => array('en' => 'In August 2000, Wizards of the Coast published the first new edition of Dungeons & Dragons in eleven years. Three years after they acquired TSR, the publisher of 2nd Edition, D&D 3e marked the beginning of Wizards\' stewardship of the game. This edition introduced Skills, Feats, new classes, and standardized rules that would come to be known as the D20 System, arguably the most influential game system of all time. 
 
 Three years later, a revised version of the 3e rules was released that made lots of small changes to the rules, and expanding on the Dungeon Master\'s Guide and Monster Manual. This version, known as 3.5e, sought to address balancing and gameplay issues from 3e, and made many changes to help improve the game. With its numerous character options, piles of splatbooks full of new rules, races, classes, prestige classes, spells, items, monsters, and ideas, and crunchy rules, D&D 3.5 brought massive popularity to character building and theorycrafting. It\'s a system players love to tinker with and optimize, and learn the details of to maximize their mastery.
 
-Even 25 years later, there are players who still swear by Dungeons & Dragons 3.5, and dozens if not hundreds of other games, including such giants as D&D 5e and Pathfinder, can trace their direct lineage to it.',
+Even 25 years later, there are players who still swear by Dungeons & Dragons 3.5, and dozens if not hundreds of other games, including such giants as D&D 5e and Pathfinder, can trace their direct lineage to it.'),
     'creator' => 'Originally created by Monte Cook, Skip Williams, and Jonathan Tweet',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/ddbea734-c1b4-4685-b9fc-9052bdccd429',
     'player_range' => '3-5 Players',
@@ -4808,11 +4808,11 @@ D&D 3.5 has plenty of specific rules to simulate a large number of possible situ
   21 => 
   array (
     'slug' => 'blades-in-the-dark',
-    'name' => 'Blades in the Dark',
-    'description' => 'A crew of scoundrels gathers round a stolen blueprint as they plan their big score. Their target has them outnumbered and outgunned; they’re just a no-name street gang up against the rich and powerful. But they have something their mark never expects: the stone-cold audacity. The guts to risk everything. And a desperate hunger to get rich or die trying.
+    'name' => array('en' => 'Blades in the Dark'),
+    'description' => array('en' => 'A crew of scoundrels gathers round a stolen blueprint as they plan their big score. Their target has them outnumbered and outgunned; they’re just a no-name street gang up against the rich and powerful. But they have something their mark never expects: the stone-cold audacity. The guts to risk everything. And a desperate hunger to get rich or die trying.
 
 Blades in the Dark is a tabletop roleplaying game about building a criminal empire in the industrial fantasy city of Duskwall. Inspired by video games like Thief, Dishonored, and Bloodborne, as well as crime drama films and television like Heat, Breaking Bad, and Peaky Blinders, players create scrappy scoundrels who commit crimes in a haunted city. They might play a smooth-talking Slide, a bloody Cutter, an ingenious Leech, or a weird Whisper (among others) to lie, cheat, and steal their way to the top. They’ll also create a Crew, the gang they operate, and which, through a series of criminal jobs, will attempt to conquer the city’s underworld. One player, the Game Master (GM), takes on the role of the world those players inhabit; they’ll play as the rival gangs, wealthy nobles, and corrupt Bluecoats that pressure the player characters from all sides; the haunted, sunless, industrial city of Duskwall; and the ghosts, demons, and occult forces that lurk behind it all.
-',
+'),
     'creator' => 'Originally created by John Harper',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/4da28cfb-4bcb-43cb-9cd3-c3050cf51aff',
     'player_range' => '3-5 Players',
@@ -5006,14 +5006,14 @@ Play in Blades in the Dark comes in phases: free play, where players interact wi
   22 => 
   array (
     'slug' => 'alien-the-roleplaying-game',
-    'name' => 'Alien: The Roleplaying Game',
-    'description' => 'Space is no place for the faint of heart. Gamma rays and neutrino bursts erupt from dying stars to cook you alive, black holes tear you apart, and the void itself boils your blood and seizes your brain. Try to scream and no one can hear you—hold your breath and you rupture your lungs.
+    'name' => array('en' => 'Alien: The Roleplaying Game'),
+    'description' => array('en' => 'Space is no place for the faint of heart. Gamma rays and neutrino bursts erupt from dying stars to cook you alive, black holes tear you apart, and the void itself boils your blood and seizes your brain. Try to scream and no one can hear you—hold your breath and you rupture your lungs.
 
 It\'s not as empty as you’d think, either. Rival governments wage a cold war while greedy corporations vie for resources. Colonists reach for the stars and gamble with their lives—each new world tamed is either feast or famine. And there are things lurking in the shadows of every asteroid—things strange and different and deadly. Things alien.
 
 This is the official ALIEN tabletop roleplaying game—a universe of body horror and corporate brinkmanship, where synthetic people play god while space truckers and marines serve host to newborn ghoulish creatures. It’s a harsh and unforgiving universe and you are nothing if not expendable. 
 
-Based on the acclaimed science-fiction and horror film series, the ALIEN RPG is built for both tense, dramatic, deadly single-session adventures in cinematic play and longer, slow-burn continuous expeditions in campaign play. Experience the thrill of your own personal alien nightmare for a one-shot, or explore the terrors of ALIEN universe over the course of a full campaign. Stay alive if you can.',
+Based on the acclaimed science-fiction and horror film series, the ALIEN RPG is built for both tense, dramatic, deadly single-session adventures in cinematic play and longer, slow-burn continuous expeditions in campaign play. Experience the thrill of your own personal alien nightmare for a one-shot, or explore the terrors of ALIEN universe over the course of a full campaign. Stay alive if you can.'),
     'creator' => 'Originally created by Gaska, Tomas Härenstam, Nils Karlén, Kosta Kostulas, Dave Semark, and Matthew Tyler-Jones',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/24ee6032-cf99-45c1-97f6-7553f6e0ff7b',
     'player_range' => '2-6 Players',
@@ -5215,12 +5215,12 @@ You\'ll also have to carefully manage resources, like ammunition, oxygen, food, 
   23 => 
   array (
     'slug' => 'star-wars-5e',
-    'name' => 'Star Wars 5e',
-    'description' => 'Star Wars and Dungeons & Dragons have both captured the imaginations of nerds since the 1970s; it was only a matter of time until someone put them together! Star Wars 5E is an unofficial, fan-made conversion of the D&D rules for the Star Wars universe. 
+    'name' => array('en' => 'Star Wars 5e'),
+    'description' => array('en' => 'Star Wars and Dungeons & Dragons have both captured the imaginations of nerds since the 1970s; it was only a matter of time until someone put them together! Star Wars 5E is an unofficial, fan-made conversion of the D&D rules for the Star Wars universe. 
 
 SW5E includes new and adapted classes, alien species, backgrounds, feats, and items, as well as adapts spells into force powers and tech powers. Rules for starships and space combat allow players to play out the iconic stellar dogfights of the movies, a collection of monsters, villains, and factions help GMs create their own wretched hives of scum and villainy, and the familiar combat rules of D&D give a tactical arena for battles of lasers and lightsabers (making the noises with your mouth optional).
 
-Whether pre-prequel, post-sequel, or exploring what happened offscreen during the events of the movies, SW5E expands the universe! If you want to play in a familiar setting with a familiar system, Star Wars 5E might just be for you.',
+Whether pre-prequel, post-sequel, or exploring what happened offscreen during the events of the movies, SW5E expands the universe! If you want to play in a familiar setting with a familiar system, Star Wars 5E might just be for you.'),
     'creator' => 'Originally created by Galiphile',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/bc8a20c7-fe75-42e2-80c0-4c189c15b72b',
     'player_range' => '3-6 Players',
@@ -5381,10 +5381,10 @@ With class and abilities established, you can name and describe your character, 
   24 => 
   array (
     'slug' => 'dragonbane',
-    'name' => 'Dragonbane',
-    'description' => 'Dragonbane is a classic fantasy tabletop roleplaying game full of magic, mystery, and adventure. It is designed from the ground up to facilitate fast and furious play. Dragonbane can be brutal, with unpredictable monsters and deadly challenges to threaten even veteran adventures, with a sprinkling of vibrant silliness to keep the laughs and good times rolling. Avaricious dragons war with ancient demons, orcs and goblins threaten the Misty Vale, and one of your allies in this fight is an anthropomorphic duck.
+    'name' => array('en' => 'Dragonbane'),
+    'description' => array('en' => 'Dragonbane is a classic fantasy tabletop roleplaying game full of magic, mystery, and adventure. It is designed from the ground up to facilitate fast and furious play. Dragonbane can be brutal, with unpredictable monsters and deadly challenges to threaten even veteran adventures, with a sprinkling of vibrant silliness to keep the laughs and good times rolling. Avaricious dragons war with ancient demons, orcs and goblins threaten the Misty Vale, and one of your allies in this fight is an anthropomorphic duck.
 
-Dragonbane is a translation of Drakar och Demoner, Scandinavia’s first and biggest tabletop RPG, originally launched in 1982. This new and reimagined edition has one foot firmly planted in the heritage of decades of Swedish gaming and the other in the modern and innovative game design for which Free League Publishing is known worldwide. If you\'re coming to Dragonbane from another fantasy game, you\'ll find it familiar enough to catch on quick, but with a delightful twist of both darkness and humor that will make it feel immediately unique.',
+Dragonbane is a translation of Drakar och Demoner, Scandinavia’s first and biggest tabletop RPG, originally launched in 1982. This new and reimagined edition has one foot firmly planted in the heritage of decades of Swedish gaming and the other in the modern and innovative game design for which Free League Publishing is known worldwide. If you\'re coming to Dragonbane from another fantasy game, you\'ll find it familiar enough to catch on quick, but with a delightful twist of both darkness and humor that will make it feel immediately unique.'),
     'creator' => 'Originally created by Tomas Härenstam, Andreas Marklund, Krister Sundelin',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/7f499cb4-ff0b-4664-a91e-98459947c11d',
     'player_range' => '1-6 Players',
@@ -5611,12 +5611,12 @@ Generally, combat works similarly to other rolls in the game: roll a d20 under y
   25 => 
   array (
     'slug' => 'vaesen',
-    'name' => 'Vaesen',
-    'description' => 'In dark forests, beyond the mountains, by black lakes in hidden groves. At your doorstep. In the shadows, something stirs. Strange beings. Twisted creatures, lurking at the edge of vision. Watching. Waiting. Unseen by most, but not by you. You see them for what they really are. Vaesen.
+    'name' => array('en' => 'Vaesen'),
+    'description' => array('en' => 'In dark forests, beyond the mountains, by black lakes in hidden groves. At your doorstep. In the shadows, something stirs. Strange beings. Twisted creatures, lurking at the edge of vision. Watching. Waiting. Unseen by most, but not by you. You see them for what they really are. Vaesen.
 
 Welcome to the Mythic North – northern Europe of the nineteenth century, but not as we know it today. A land where the myths are real. A cold reach covered by vast forests, its few cities lonely beacons of industry and enlightenment – a new civilization dawning. But in the countryside, the old ways still hold sway. There, people know what lurks in the dark.
 
-They know to fear it.',
+They know to fear it.'),
     'creator' => 'Originally created by Nils Hintze',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/49e31818-125c-45fa-9064-683157fe22b6',
     'player_range' => '2-6 Players',
@@ -5797,10 +5797,10 @@ While player characters may be capable in a fight, confronting, defeating, or ba
   26 => 
   array (
     'slug' => 'legend-in-the-mist',
-    'name' => 'Legend in the Mist',
-    'description' => 'Legend in the Mist is a rustic fantasy RPG based on the award-winning and groundbreaking narrative game engine of City of Mist.
+    'name' => array('en' => 'Legend in the Mist'),
+    'description' => array('en' => 'Legend in the Mist is a rustic fantasy RPG based on the award-winning and groundbreaking narrative game engine of City of Mist.
 
-Spin a fireside tale of unlikely villagers setting out on a quest into a greater unknown world, rife with peril and mystery, in the vein of The Lord of the Rings, The Wheel of Time, Princess Mononoke, and many other classic fantasy stories, or create your own legendary realms with the game’s open-ended system and one-roll-to-rule-them-all easy to learn gameplay',
+Spin a fireside tale of unlikely villagers setting out on a quest into a greater unknown world, rife with peril and mystery, in the vein of The Lord of the Rings, The Wheel of Time, Princess Mononoke, and many other classic fantasy stories, or create your own legendary realms with the game’s open-ended system and one-roll-to-rule-them-all easy to learn gameplay'),
     'creator' => 'Originally created by Amít Moshe',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/ddf0b354-d5d6-4bc5-a7e2-60b5d710690a',
     'player_range' => '3-5 Players',
@@ -5899,12 +5899,12 @@ Spin a fireside tale of unlikely villagers setting out on a quest into a greater
   27 => 
   array (
     'slug' => 'masks-a-new-generation',
-    'name' => 'Masks: A New Generation',
-    'description' => 'A giant robot is smashing down Main Street. Your best friend tried to kiss you. Your mom thinks your grades need work. Your mentor thinks your team is bringing you down. Oh, and your costume is ripped.
+    'name' => array('en' => 'Masks: A New Generation'),
+    'description' => array('en' => 'A giant robot is smashing down Main Street. Your best friend tried to kiss you. Your mom thinks your grades need work. Your mentor thinks your team is bringing you down. Oh, and your costume is ripped.
 
 Just another day in Halcyon City...
 
-Masks: A New Generation is a superhero roleplaying game in which a team of young heroes fights villains, saves lives, and tries to figure out who they are—noble paragons? Dark avengers? Or regular kids? All against the backdrop of Halcyon City, the greatest city in the world.',
+Masks: A New Generation is a superhero roleplaying game in which a team of young heroes fights villains, saves lives, and tries to figure out who they are—noble paragons? Dark avengers? Or regular kids? All against the backdrop of Halcyon City, the greatest city in the world.'),
     'creator' => 'Originally created by Brendan Conway',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/015bdf01-3fa4-4d2a-a60e-60b72f06c446',
     'player_range' => NULL,
@@ -6084,8 +6084,8 @@ Masks: A New Generation is a superhero roleplaying game in which a team of young
   28 => 
   array (
     'slug' => 'old-school-essentials',
-    'name' => 'Old-School Essentials',
-    'description' => 'Old-School Essentials is an award-winning role-playing game of fantastic adventure, monsters, and magic. Players delve into forbidden crypts and forsaken ruins, explore haunted forests and perilous mountain ranges, sail the high seas in search of lost lands, recover fabulous treasures, and unearth secrets of ancient magic.',
+    'name' => array('en' => 'Old-School Essentials'),
+    'description' => array('en' => 'Old-School Essentials is an award-winning role-playing game of fantastic adventure, monsters, and magic. Players delve into forbidden crypts and forsaken ruins, explore haunted forests and perilous mountain ranges, sail the high seas in search of lost lands, recover fabulous treasures, and unearth secrets of ancient magic.'),
     'creator' => 'Originally created by Gavin Norman',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/18560ce6-0a53-4ca6-a3aa-076c5230112c',
     'player_range' => '3-6 Players',
@@ -6229,10 +6229,10 @@ Masks: A New Generation is a superhero roleplaying game in which a team of young
   29 => 
   array (
     'slug' => 'starfinder',
-    'name' => 'Starfinder',
-    'description' => 'Gather a crew of expert spacefarers with a diverse set of origins and skills, get a ship, and fly the stars! Starfinder is a tabletop roleplaying game of heroic science-fantasy adventure. Players take on the roles of fantasy creatures familiar or alien, and adopt one of over a dozen character classes with various skills and powers, from the battle-hardened Soldier and savvy Mechanic, to the space-wizard Mystic and stellar-powered Solarian! One player, the Game Master (GM) plays as the rest of the vast universe, including the player characters’ allies and opposition, and presents scenarios and obstacles for them to overcome. 
+    'name' => array('en' => 'Starfinder'),
+    'description' => array('en' => 'Gather a crew of expert spacefarers with a diverse set of origins and skills, get a ship, and fly the stars! Starfinder is a tabletop roleplaying game of heroic science-fantasy adventure. Players take on the roles of fantasy creatures familiar or alien, and adopt one of over a dozen character classes with various skills and powers, from the battle-hardened Soldier and savvy Mechanic, to the space-wizard Mystic and stellar-powered Solarian! One player, the Game Master (GM) plays as the rest of the vast universe, including the player characters’ allies and opposition, and presents scenarios and obstacles for them to overcome. 
 
-Starfinder takes place in the far future of Golarion, the fantasy setting of its predecessor and spiritual sibling Pathfinder 1st Edition. The rules of Pathfinder and Starfinder are compatible—characters can easily convert from one to the other! Magic and advanced technology coexist in the setting, allowing for space wizards, psychic starship pilots, and elite warriors to share the same crew quarters. Starfinder adds exciting new rules for interstellar travel and starship combat in addition to a bevy of high-tech gear, space magic spells, and character options to an already packed system!',
+Starfinder takes place in the far future of Golarion, the fantasy setting of its predecessor and spiritual sibling Pathfinder 1st Edition. The rules of Pathfinder and Starfinder are compatible—characters can easily convert from one to the other! Magic and advanced technology coexist in the setting, allowing for space wizards, psychic starship pilots, and elite warriors to share the same crew quarters. Starfinder adds exciting new rules for interstellar travel and starship combat in addition to a bevy of high-tech gear, space magic spells, and character options to an already packed system!'),
     'creator' => 'Originally created by Paizo',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/0d660195-5ba3-48f8-83e8-86d3fc3e5341',
     'player_range' => '3–6 Players',
@@ -6504,10 +6504,10 @@ Rolling to employ your character\'s skills uses the core mechanic and is the mai
   30 => 
   array (
     'slug' => 'candela-obscura',
-    'name' => 'Candela Obscura',
-    'description' => 'Candela Obscura is a tabletop roleplaying game, or TTRPG, about a circle of paranormal investigators who analyze occult phenomena in the turn-of-the-nineteenth century industrial fantasy city of Newfaire. In this game of monstrous gaslamp horror, players create intrepid characters who solve mysteries and defeat monsters with their various skills and specialties. They might play a smooth-talking Face with a knack for mesmerism, a soldiering Muscle bearing scars from the Great War, an ingenious Scholar of magick from the university, the sly Slink of a private detective or a Weird spirit medium. This crew, called the Circle, will take on jobs to set right the problems caused by supernatural phenomena. 
+    'name' => array('en' => 'Candela Obscura'),
+    'description' => array('en' => 'Candela Obscura is a tabletop roleplaying game, or TTRPG, about a circle of paranormal investigators who analyze occult phenomena in the turn-of-the-nineteenth century industrial fantasy city of Newfaire. In this game of monstrous gaslamp horror, players create intrepid characters who solve mysteries and defeat monsters with their various skills and specialties. They might play a smooth-talking Face with a knack for mesmerism, a soldiering Muscle bearing scars from the Great War, an ingenious Scholar of magick from the university, the sly Slink of a private detective or a Weird spirit medium. This crew, called the Circle, will take on jobs to set right the problems caused by supernatural phenomena. 
 
-One player, the Lightkeeper or Game Master (GM), takes on the role of the world those players inhabit. They’ll play as the eponymous Lightkeeper, a character who dispenses assignments and information from the occult organization Candela Obscura. They’ll also play the environment, the city, and of course, the mysterious and even malevolent forces the Circle is called to confront.‍',
+One player, the Lightkeeper or Game Master (GM), takes on the role of the world those players inhabit. They’ll play as the eponymous Lightkeeper, a character who dispenses assignments and information from the occult organization Candela Obscura. They’ll also play the environment, the city, and of course, the mysterious and even malevolent forces the Circle is called to confront.‍'),
     'creator' => 'Originally created by Spenser Starke, Rowan Hall, Christopher Grey, Tracey Harrison, Taliesin Jaffe',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/cdb951e6-825f-4f7c-ba04-ff6c1f7ef9e2',
     'player_range' => '3-5 Players',
@@ -6740,12 +6740,12 @@ Piece by piece, player characters will uncover the secret of the mystery they fa
   31 => 
   array (
     'slug' => 'werewolf-the-apocalypse-5th-edition',
-    'name' => 'Werewolf: The Apocalypse 5th Edition',
-    'description' => 'Gaia is dying. The ices melt, while the seas swell. The heat rises, while the forests wither. Extinction threatens millions, in favor of the few. The Garou — warlike shapeshifters torn be­tween Rage and spirit, between Wolf and Man, and champions of the earth-mother — have failed. The Apocalypse is here.
+    'name' => array('en' => 'Werewolf: The Apocalypse 5th Edition'),
+    'description' => array('en' => 'Gaia is dying. The ices melt, while the seas swell. The heat rises, while the forests wither. Extinction threatens millions, in favor of the few. The Garou — warlike shapeshifters torn be­tween Rage and spirit, between Wolf and Man, and champions of the earth-mother — have failed. The Apocalypse is here.
 
 Yet, a new generation of Garou now call upon their Rage to confront the forces of destruction, avarice, and greed ravaging the earth-mother. With tooth and claw the Garou will wrest her from the brink of death — or follow her enemies to the grave. Will you answer their howl? What legends will the Garou sing of you? When will you Rage?
 
-In Werewolf: The Apocalypse, you play as the Garou, a creature of flesh and spirit, blessed and cursed with primal rage. Born to fight and die in a desperate war to protect Gaia — the very living earth — you engage in an unequal battle against the greed and power-hunger of human civilization that has trapped the world in a choking web of technology and corruption.',
+In Werewolf: The Apocalypse, you play as the Garou, a creature of flesh and spirit, blessed and cursed with primal rage. Born to fight and die in a desperate war to protect Gaia — the very living earth — you engage in an unequal battle against the greed and power-hunger of human civilization that has trapped the world in a choking web of technology and corruption.'),
     'creator' => 'Originally created by Justin Achilli, Basheer Ghouse, Christopher Gunning, Dylan Jennings, Sasanehsaeh Jennings, Khaldoun Khelil, Karim Muammar, Juhana Pettersson, Pam Punzalan, Bianca Savazzi',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/1f3f86d3-8e15-41ff-85f9-55f32067af78',
     'player_range' => '3-5 Players',
@@ -6863,10 +6863,10 @@ In Werewolf: The Apocalypse, you play as the Garou, a creature of flesh and spir
   32 => 
   array (
     'slug' => 'the-one-ring-2e',
-    'name' => 'The One Ring 2e',
-    'description' => 'It is the year 2965 of the Third Age and the Shadow is returning. Twenty-four years ago, the Battle of the Five Armies inaugurated a new era of prosperity for the Free Peoples. But twenty years is a long time for peace to last, and in many dark corners of the earth a shadow is lengthening once again...
+    'name' => array('en' => 'The One Ring 2e'),
+    'description' => array('en' => 'It is the year 2965 of the Third Age and the Shadow is returning. Twenty-four years ago, the Battle of the Five Armies inaugurated a new era of prosperity for the Free Peoples. But twenty years is a long time for peace to last, and in many dark corners of the earth a shadow is lengthening once again...
 
-The One Ring 2e is a tabletop roleplaying game set in Middle-earth between the events of The Hobbit and The Lord of the Rings trilogy. Players take on the roles of heroic figures from among the men, elves, dwarves, and even hobbits to fend off the looming specter of Sauron\'s return. Monsters stalk the night, armies begin to gather, and evil threatens the borders of the free lands. Will you add your names to the long annals of the heroes of the Third Age?',
+The One Ring 2e is a tabletop roleplaying game set in Middle-earth between the events of The Hobbit and The Lord of the Rings trilogy. Players take on the roles of heroic figures from among the men, elves, dwarves, and even hobbits to fend off the looming specter of Sauron\'s return. Monsters stalk the night, armies begin to gather, and evil threatens the borders of the free lands. Will you add your names to the long annals of the heroes of the Third Age?'),
     'creator' => 'Originally created by Francesco Nepitello, Marco Maggi',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/dce4326b-66ea-4ee8-8597-02f4e6b12f14',
     'player_range' => '2-6 Players',
@@ -7057,12 +7057,12 @@ And it wouldn\'t be Tolkien without an emphasis on journeys! Every member of the
   33 => 
   array (
     'slug' => 'gurps',
-    'name' => 'GURPS',
-    'description' => 'GURPS, or the Generic Universal RolePlaying System, is a classic tabletop roleplaying game first released in 1986. Now in its fourth edition, GURPS carries on the legacy of a game that can do anything. With a basic set of rules for general play, plus a host of modular additions, supplements, settings, character options, and easy-to-homebrew mechanics, GURPS is designed to play any kind of game imaginable. Any genre, any setting, any high concept is possible for the players and game master who can choose the rules that are right for them and customize their game to their exact tastes.
+    'name' => array('en' => 'GURPS'),
+    'description' => array('en' => 'GURPS, or the Generic Universal RolePlaying System, is a classic tabletop roleplaying game first released in 1986. Now in its fourth edition, GURPS carries on the legacy of a game that can do anything. With a basic set of rules for general play, plus a host of modular additions, supplements, settings, character options, and easy-to-homebrew mechanics, GURPS is designed to play any kind of game imaginable. Any genre, any setting, any high concept is possible for the players and game master who can choose the rules that are right for them and customize their game to their exact tastes.
 
 From venerable publisher Steve Jackson Games, GURPS is legendary for the sheer volume of support from its creator; for almost any setting, element, genre, or character you can imagine, there exists a supplement for it. In addition to popular settings like Terry Pratchett\'s Discworld and Robert E. Howard\'s Conan, GURPS has supplementary books for magic, martial arts, fantasy, horror, superheroes, spaceships, dinosaurs, historical settings, high-tech, low-tech, and many, many more.
 
-GURPS doesn\'t use classes, instead relying on a skill-based system. Most rolls use 3d6, attempting to roll under a target number increased by stats, skills, perks and advantages purchased with allotted points at character creation and through advancement. Thanks again to the huge amount of playable material for the game, if you can imagine a character, there\'s a way to build them in GURPS.',
+GURPS doesn\'t use classes, instead relying on a skill-based system. Most rolls use 3d6, attempting to roll under a target number increased by stats, skills, perks and advantages purchased with allotted points at character creation and through advancement. Thanks again to the huge amount of playable material for the game, if you can imagine a character, there\'s a way to build them in GURPS.'),
     'creator' => 'Originally created by Steve Jackson',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/fd0d49d6-7e53-4251-8e14-7aa6c3eba718',
     'player_range' => '3-5 Players',
@@ -7160,12 +7160,12 @@ Finally, purchase some equipment based on the starting currency allotted in your
   34 => 
   array (
     'slug' => 'thirsty-sword-lesbians',
-    'name' => 'Thirsty Sword Lesbians',
-    'description' => 'Thirsty Sword Lesbians is a tabletop roleplaying game that wears its heart on its sleeve. The name alone tells you exactly what you\'ll find inside: sapphic duelists seeking to cross swords and go corps-a-corps with flirtatious friends, tempting rivals, and even hot baddies! Based on the popular Powered by the Apocalypse framework, Thirsty Sword Lesbians is built to play out narrative-focused action adventure stories fraught with physical, emotional, and romantic tension.
+    'name' => array('en' => 'Thirsty Sword Lesbians'),
+    'description' => array('en' => 'Thirsty Sword Lesbians is a tabletop roleplaying game that wears its heart on its sleeve. The name alone tells you exactly what you\'ll find inside: sapphic duelists seeking to cross swords and go corps-a-corps with flirtatious friends, tempting rivals, and even hot baddies! Based on the popular Powered by the Apocalypse framework, Thirsty Sword Lesbians is built to play out narrative-focused action adventure stories fraught with physical, emotional, and romantic tension.
 
 Character playbooks like the Beast, the Devoted, the Scoundrel and Witches both Natural and Spooky each revolve around a central personal conflict, and can adapt to any setting your table wants to play in. TSL provides a few options, including cyberpunk, steampunk, fantasy, and space opera, but encourages building your own campaign concept and setting, complete with a Toxic Power for your heroes to fight back against.
 
-It\'s dramatic, story-focused, romantically-charged action at its finest. They\'re thirsty, they\'re lesbians, and they\'ve got swords! What more do you need to know?',
+It\'s dramatic, story-focused, romantically-charged action at its finest. They\'re thirsty, they\'re lesbians, and they\'ve got swords! What more do you need to know?'),
     'creator' => 'Originally created by April Kit Walsh',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/3faa9edf-798f-4a39-92f1-57d45e78250a',
     'player_range' => '3-6 Players',
@@ -7349,12 +7349,12 @@ As you play, you might gain "strings" on characters, a resource representing emo
   35 => 
   array (
     'slug' => 'pokemon-tabletop-united',
-    'name' => 'Pokemon Tabletop United',
-    'description' => 'Pokémon Tabletop United is a fan-made roleplaying game set in the universe of Pokémon. Players create adventuring Trainers who embark on a journey alongside their Pokémon to catch, train, and bond with these magnificent creatures. Perhaps, along the way, they\'ll become the very best, like no one ever was!
+    'name' => array('en' => 'Pokemon Tabletop United'),
+    'description' => array('en' => 'Pokémon Tabletop United is a fan-made roleplaying game set in the universe of Pokémon. Players create adventuring Trainers who embark on a journey alongside their Pokémon to catch, train, and bond with these magnificent creatures. Perhaps, along the way, they\'ll become the very best, like no one ever was!
 
 One element of Pokémon Tabletop United that differs from the video games and television show it\'s based on is that Trainers take a much more active role in adventuring and especially combat. Player characters in PTU are expected to fight alongside their Pokémon in tactical, grid-based encounters. The game does allow for alternative modes of play where only Pokémon battle, but generally assumes Trainers will participate as well.
 
-A massive collection of fan-made supplements and an updated Pokédex cataloguing the game statistics of every Pokémon offers a sweeping breadth of options for player character classes, team compositions, moves, and every element from the games and beyond. Surf, breed, fish, dig for fossils, craft Poké Balls and other items, challenge the local gym leader or league, build a secret base, fight criminal organizations, and enter contests in the wonderful world of Pokémon!',
+A massive collection of fan-made supplements and an updated Pokédex cataloguing the game statistics of every Pokémon offers a sweeping breadth of options for player character classes, team compositions, moves, and every element from the games and beyond. Surf, breed, fish, dig for fossils, craft Poké Balls and other items, challenge the local gym leader or league, build a secret base, fight criminal organizations, and enter contests in the wonderful world of Pokémon!'),
     'creator' => 'Originally created by Paradox, aka Doxy',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/34661b87-5d5c-4ba4-842c-a0556f168e31',
     'player_range' => '2-4 Players',
@@ -7451,8 +7451,8 @@ Trainers and their Pokémon can also benefit from equipment and held items, as w
   36 => 
   array (
     'slug' => 'cypher-systems',
-    'name' => 'Cypher System',
-    'description' => 'Cypher System is a groundbreaking tabletop game engine that allows for incredible flexibility to play any type of campaign, in any genre. One can play in the system’s flagship setting “Numenera” or in the worlds of popular podcasts such as “The Magnus Archives” and “Old Gods of Appalachia”. Additional settings can include Post-apocalyptic, sci fi, fantasy, cyberpunk, horror– if  you can name it the Cypher System has it! Regardless of the genre, Cypher System games feature a narrative forward play experience that emphasizes discovery, problem solving, character growth, and meaningful roleplay over defeating monsters and getting XP. Character creation is simple yet elegant, as players make a three-part sentence describing who they are going to play. The rules are simple enough for beginners to learn quickly, and sophisticated and deep enough for veterans to unleash their creativity in surprising new ways. ',
+    'name' => array('en' => 'Cypher System'),
+    'description' => array('en' => 'Cypher System is a groundbreaking tabletop game engine that allows for incredible flexibility to play any type of campaign, in any genre. One can play in the system’s flagship setting “Numenera” or in the worlds of popular podcasts such as “The Magnus Archives” and “Old Gods of Appalachia”. Additional settings can include Post-apocalyptic, sci fi, fantasy, cyberpunk, horror– if  you can name it the Cypher System has it! Regardless of the genre, Cypher System games feature a narrative forward play experience that emphasizes discovery, problem solving, character growth, and meaningful roleplay over defeating monsters and getting XP. Character creation is simple yet elegant, as players make a three-part sentence describing who they are going to play. The rules are simple enough for beginners to learn quickly, and sophisticated and deep enough for veterans to unleash their creativity in surprising new ways. '),
     'creator' => 'Originally created by Monte Cook, Bruce R. Cordell, Sean K. Reynolds',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/3e83d46f-a904-4cbb-a200-5c423dccd8bf',
     'player_range' => '2-6 Players',
@@ -7575,10 +7575,10 @@ Trainers and their Pokémon can also benefit from equipment and held items, as w
   37 => 
   array (
     'slug' => 'avatar-legends-the-rpg',
-    'name' => 'Avatar Legends: The RPG',
-    'description' => 'Water. Earth. Fire. Air. Avatar Legends: The Roleplaying Game is set in the universe of the animated television series Avatar: The Last Airbender and The Legend of Korra. Players take on the roles of a diverse team of heroes who use martial arts to bend the four elements (or rely on their wits or technology), fight back against injustice, and bring balance to the world. Each character has a central internal conflict they must grapple with in addition to the challenges, action, and physical battles they face on their adventures, and they\'ll learn new techniques and philosophies as they grow and ultimately change forever.
+    'name' => array('en' => 'Avatar Legends: The RPG'),
+    'description' => array('en' => 'Water. Earth. Fire. Air. Avatar Legends: The Roleplaying Game is set in the universe of the animated television series Avatar: The Last Airbender and The Legend of Korra. Players take on the roles of a diverse team of heroes who use martial arts to bend the four elements (or rely on their wits or technology), fight back against injustice, and bring balance to the world. Each character has a central internal conflict they must grapple with in addition to the challenges, action, and physical battles they face on their adventures, and they\'ll learn new techniques and philosophies as they grow and ultimately change forever.
 
-You can set your game of Avatar Legends in any era of the world of Avatar: Korra\'s age, full of technological advancement, shifting governments, and spiritual turmoil; Aang\'s era, rebuilding the world in the wake of devastating war; the Hundred Year War itself, where you\'ll resist the Fire Nation\'s imperial ambitions; or the Roku era, as nations grow in strength and tensions rise. Adventures can span the wide world and visit locations new and familiar: Wan Shi Tong\'s library, the Air Temples, even the Spirit World! All the while characters learn new techniques, develop complex relationships, and struggle to find balance within themselves and without.',
+You can set your game of Avatar Legends in any era of the world of Avatar: Korra\'s age, full of technological advancement, shifting governments, and spiritual turmoil; Aang\'s era, rebuilding the world in the wake of devastating war; the Hundred Year War itself, where you\'ll resist the Fire Nation\'s imperial ambitions; or the Roku era, as nations grow in strength and tensions rise. Adventures can span the wide world and visit locations new and familiar: Wan Shi Tong\'s library, the Air Temples, even the Spirit World! All the while characters learn new techniques, develop complex relationships, and struggle to find balance within themselves and without.'),
     'creator' => 'Originally created by Brendan Conway, James Mendez Hodes, Yeonsoo Julian Kim, Sharang Biswas, Daniel Kwan, and Sen-Foong Lim',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/69f22b80-d910-476f-b175-3f1b5d996b36',
     'player_range' => '3-5 Players',
@@ -7873,12 +7873,12 @@ In combat, players have access to several techniques (and can train and learn mo
   38 => 
   array (
     'slug' => 'monsterhearts-2',
-    'name' => 'Monsterhearts 2',
-    'description' => 'By the time they hit adolescence, most people have gotten over their fear of the dark. They spend their midnight hour on gushy phone calls, diary ramblings, and wet dreams. They fall asleep peacefully, assured that the shadows hold no monsters.
+    'name' => array('en' => 'Monsterhearts 2'),
+    'description' => array('en' => 'By the time they hit adolescence, most people have gotten over their fear of the dark. They spend their midnight hour on gushy phone calls, diary ramblings, and wet dreams. They fall asleep peacefully, assured that the shadows hold no monsters.
 
 But the shadows do hold monsters. You know because you’re one of them. Wickedness dwells within your heart, hunger courses through your veins. High school weighs on you and teen drama puts you on edge, but you have power. What do you do next?
 
-Monsterhearts 2 lets you and your friends create stories about sexy monsters, teenage angst, personal horror, and secret love triangles. When you play, you explore the terror and confusion of having a body that is changing without your permission.',
+Monsterhearts 2 lets you and your friends create stories about sexy monsters, teenage angst, personal horror, and secret love triangles. When you play, you explore the terror and confusion of having a body that is changing without your permission.'),
     'creator' => 'Originally created by Avery Alder',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e45a6411-98eb-41a1-b746-0b66d8446261',
     'player_range' => '3-5 Players',
@@ -8024,8 +8024,8 @@ There is a certain beauty to what you’ve become. Your gaunt body, its unnatura
   39 => 
   array (
     'slug' => 'alien-rpg-evolved-edition',
-    'name' => 'Alien RPG Evolved Edition',
-    'description' => 'Space is no place for the faint of heart. Gamma rays and neutrino bursts erupt from dying stars to cook you alive, black holes tear you apart, and the void itself boils your blood and seizes your brain. Try to scream and no one can hear you—hold your breath and you rupture your lungs.
+    'name' => array('en' => 'Alien RPG Evolved Edition'),
+    'description' => array('en' => 'Space is no place for the faint of heart. Gamma rays and neutrino bursts erupt from dying stars to cook you alive, black holes tear you apart, and the void itself boils your blood and seizes your brain. Try to scream and no one can hear you—hold your breath and you rupture your lungs.
 
 It\'s not as empty as you’d think, either. Rival governments wage a cold war while greedy corporations vie for resources. Colonists reach for the stars and gamble with their lives—each new world tamed is either feast or famine. And there are things lurking in the shadows of every asteroid—things strange and different and deadly. Things alien.
 
@@ -8033,7 +8033,7 @@ This is updated, expanded, and revised edition of the official Alien tabletop ro
 
 The new edition includes life path character generation, to create a character\'s entire history from scratch, new rules for stealth, stress, and panic, updated combat rules and new weapons, items, ships, and armor, several modular rules for dangerous situations, a full campaign setting, and rules for solo play.
 
-Based on the acclaimed science-fiction and horror film series, the ALIEN RPG is built for both tense, dramatic, deadly single-session adventures in cinematic play and longer, slow-burn continuous expeditions in campaign play. Experience the thrill of your own personal alien nightmare for a one-shot, or explore the terrors of ALIEN universe over the course of a full campaign. Stay alive if you can.',
+Based on the acclaimed science-fiction and horror film series, the ALIEN RPG is built for both tense, dramatic, deadly single-session adventures in cinematic play and longer, slow-burn continuous expeditions in campaign play. Experience the thrill of your own personal alien nightmare for a one-shot, or explore the terrors of ALIEN universe over the course of a full campaign. Stay alive if you can.'),
     'creator' => 'Originally created by Tomas Härenstam',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/002aa53d-a6af-487d-a103-63855bde63b7',
     'player_range' => '1-5 Players',
@@ -8140,8 +8140,8 @@ As you explore derelict spaceships and doomed colonies, movement, stealth, and c
   40 => 
   array (
     'slug' => 'hunter-the-reckoning',
-    'name' => 'Hunter: The Reckoning',
-    'description' => 'A Storytelling Game of Desperate Measures. You saw what you shouldn’t have, the veil pulled back from the secret world and the monsters who prowl it. You chronicled the tragedies they wrought, these monsters, and the victims upon whom they preyed. You grasped the extent of their influence and witnessed the corruption of the organizations formed to keep them in check. And you vowed to do something about it. Tonight, you act. It’s time for a Reckoning.',
+    'name' => array('en' => 'Hunter: The Reckoning'),
+    'description' => array('en' => 'A Storytelling Game of Desperate Measures. You saw what you shouldn’t have, the veil pulled back from the secret world and the monsters who prowl it. You chronicled the tragedies they wrought, these monsters, and the victims upon whom they preyed. You grasped the extent of their influence and witnessed the corruption of the organizations formed to keep them in check. And you vowed to do something about it. Tonight, you act. It’s time for a Reckoning.'),
     'creator' => 'Originally created by Justin Achilli',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/5ef34fb0-b940-4d94-9b59-76728218edc7',
     'player_range' => '4-5 Players',
@@ -8274,10 +8274,10 @@ As you explore derelict spaceships and doomed colonies, movement, stealth, and c
   41 => 
   array (
     'slug' => 'pirate-borg',
-    'name' => 'Pirate Borg',
-    'description' => 'A scurvy-ridden, rules light, art heavy tabletop RPG.
+    'name' => array('en' => 'Pirate Borg'),
+    'description' => array('en' => 'A scurvy-ridden, rules light, art heavy tabletop RPG.
 Inspired by history, fantasy, horror and rum. Your cutlass & flintlock won’t save you from the hordes of skeletons, the Kraken, or even your own crew. 
-Find a ship. Recruit some crew. Raid, pillage, plunder, and otherwise pilfer your weasley black guts out. Get a bigger ship. Kill some things. Upgrade your ship. Sneak into a fort. Raid a port. Acquire treasure. Bury said treasure. Become infamous. Search for someone else’s treasure. Flee in terror from unfathomable creatures from the deep. Drink all of the rum. Die on the high seas. Roll a new character and do it all again.',
+Find a ship. Recruit some crew. Raid, pillage, plunder, and otherwise pilfer your weasley black guts out. Get a bigger ship. Kill some things. Upgrade your ship. Sneak into a fort. Raid a port. Acquire treasure. Bury said treasure. Become infamous. Search for someone else’s treasure. Flee in terror from unfathomable creatures from the deep. Drink all of the rum. Die on the high seas. Roll a new character and do it all again.'),
     'creator' => 'Originally created by Luke Stratton',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/fe884825-5dc6-4737-9a8f-2194fbeccc37',
     'player_range' => '2-6 Players',
@@ -8442,10 +8442,10 @@ Free versions are available, or they have alternate versions of them on their Pa
   42 => 
   array (
     'slug' => 'alice-is-missing',
-    'name' => 'Alice is Missing',
-    'description' => 'Alice is Missing is a silent role-playing game about the disappearance of Alice Briarwood, a high school junior in the small town of Silent Falls.
+    'name' => array('en' => 'Alice is Missing'),
+    'description' => array('en' => 'Alice is Missing is a silent role-playing game about the disappearance of Alice Briarwood, a high school junior in the small town of Silent Falls.
 
-The game is played live and without verbal communication. Players inhabit their character for the entirety of the 90-minute play session, and instead of speaking, send text messages back and forth to the other characters in a group chat, as well as individually, as though they aren’t in the same place together.',
+The game is played live and without verbal communication. Players inhabit their character for the entirety of the 90-minute play session, and instead of speaking, send text messages back and forth to the other characters in a group chat, as well as individually, as though they aren’t in the same place together.'),
     'creator' => 'Originally created by Spenser Starke',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e3a86549-47fb-4b58-81ad-6ecc13e378e4',
     'player_range' => '3-5 Players',
@@ -8577,12 +8577,12 @@ The game is played live and without verbal communication. Players inhabit their 
   43 => 
   array (
     'slug' => 'star-trek-adventures-second-edition',
-    'name' => 'Star Trek Adventures - Second Edition',
-    'description' => 'The Star Trek Adventures roleplaying game takes you to the final frontier!
+    'name' => array('en' => 'Star Trek Adventures - Second Edition'),
+    'description' => array('en' => 'The Star Trek Adventures roleplaying game takes you to the final frontier!
 
 From the 21st through to the 32nd century, join Starfleet, the Klingon Empire, the Romulan Star Empire, and countless other civilizations, and journey across the Star Trek universe with your crew. Explore strange new worlds, encounter fantastical alien life-forms, and engage in dramatic adventures in a detailed and immersive Galaxy.
 
-Tell your stories and unravel the mysteries of the unknown!',
+Tell your stories and unravel the mysteries of the unknown!'),
     'creator' => 'Originally created by Nathan Dowdell',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/d17ccc2c-96f2-4f55-9e71-9db3ebb90c91',
     'player_range' => '4-6 Players',
@@ -8680,10 +8680,10 @@ Tell your stories and unravel the mysteries of the unknown!',
   44 => 
   array (
     'slug' => 'kids-on-bikes',
-    'name' => 'Kids on Bikes',
-    'description' => 'In Kids on Bikes, players take on the roles of everyday people grappling with strange, terrifying, and powerful forces that they cannot defeat, control, or even fully understand. It isn\'t just a tabletop roleplaying game; it\'s a collaborative worldbuilding game too! Players work together to create the small town in which their game is set and its unique brand of strangeness. Are there UFO sightings and alien abductions? Mysterious science labs doing secret experiments? An underground criminal enterprise? You\'ll have to play to find the truth!
+    'name' => array('en' => 'Kids on Bikes'),
+    'description' => array('en' => 'In Kids on Bikes, players take on the roles of everyday people grappling with strange, terrifying, and powerful forces that they cannot defeat, control, or even fully understand. It isn\'t just a tabletop roleplaying game; it\'s a collaborative worldbuilding game too! Players work together to create the small town in which their game is set and its unique brand of strangeness. Are there UFO sightings and alien abductions? Mysterious science labs doing secret experiments? An underground criminal enterprise? You\'ll have to play to find the truth!
 
-Inspired by kids\' coming-of-age tales like Stranger Things, E.T., and The Goonies, Kids on Bikes stars an intrepid band of young people who will stop at nothing to solve mysteries, stop injustices, protect their friends and save their town! The game even allows you to create a communally controlled Powered Character (like E.T. or Eleven) to add another dimension to your games. Kids on Bikes is rules-light, quick to pick up, and focused on collaborative storytelling. So what are you waiting for? Hop on your bike and solve that case!',
+Inspired by kids\' coming-of-age tales like Stranger Things, E.T., and The Goonies, Kids on Bikes stars an intrepid band of young people who will stop at nothing to solve mysteries, stop injustices, protect their friends and save their town! The game even allows you to create a communally controlled Powered Character (like E.T. or Eleven) to add another dimension to your games. Kids on Bikes is rules-light, quick to pick up, and focused on collaborative storytelling. So what are you waiting for? Hop on your bike and solve that case!'),
     'creator' => 'Originally created by Jonathan Gilmour and Doug Levandowski',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e31ac542-22d4-4a72-974e-77b9c4d8b3f7',
     'player_range' => '2-6 Players',
@@ -8920,12 +8920,12 @@ Finally, if your game includes a powered character, you\'ll create their powers 
   45 => 
   array (
     'slug' => 'star-trek-adventures',
-    'name' => 'Star Trek Adventures - First Edition',
-    'description' => 'Welcome to your new assignment, Captain. Your continuing mission, to explore strange new worlds, seek out new life and new civilizations, to boldly go where no one has gone before…
+    'name' => array('en' => 'Star Trek Adventures - First Edition'),
+    'description' => array('en' => 'Welcome to your new assignment, Captain. Your continuing mission, to explore strange new worlds, seek out new life and new civilizations, to boldly go where no one has gone before…
 
 Star Trek Adventures takes you to the Final Frontier of the Galaxy, where new discoveries await keen explorers of Starfleet. Your duties may take you to the edges of known space, or to Federation colonies in need, to the borders of neighbouring galactic powers or into the eye of interstellar phenomena. Your ship and your crew epitomise the best Starfleet and the United Federation of Planets has to offer, and you are needed more than ever.
 
-A new threat looms from across the Gamma Quadrant, as it is confirmed by Commander Sisko and his crew that the Dominion, led by the Founders, represent a significant threat to the Alpha Quadrant. Tension is already high in the region of Bajor and Deep Space 9, as the Maquis continue to act against the Cardassian-Federation peace treaty, with Captain Janeway and the crew of the U.S.S. Voyager preparing for their mission in the Badlands. It is a volatile time for the Federation and new crews have never been in higher demand.',
+A new threat looms from across the Gamma Quadrant, as it is confirmed by Commander Sisko and his crew that the Dominion, led by the Founders, represent a significant threat to the Alpha Quadrant. Tension is already high in the region of Bajor and Deep Space 9, as the Maquis continue to act against the Cardassian-Federation peace treaty, with Captain Janeway and the crew of the U.S.S. Voyager preparing for their mission in the Badlands. It is a volatile time for the Federation and new crews have never been in higher demand.'),
     'creator' => 'Originally created by Nathan Dowdell',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/a5832875-ce54-4599-bb23-6e9e4761c021',
     'player_range' => '4-6 Players',
@@ -9041,12 +9041,12 @@ A new threat looms from across the Gamma Quadrant, as it is confirmed by Command
   46 => 
   array (
     'slug' => 'mork-borg',
-    'name' => 'Mörk Borg',
-    'description' => 'MÖRK BORG is a pitch-black apocalyptic fantasy RPG about lost souls and fools seeking redemption, forgiveness or the last remaining riches in a bleak and dying world.
+    'name' => array('en' => 'Mörk Borg'),
+    'description' => array('en' => 'MÖRK BORG is a pitch-black apocalyptic fantasy RPG about lost souls and fools seeking redemption, forgiveness or the last remaining riches in a bleak and dying world.
 
 Who are you? The tomb-robber with silver glittering between cracked fingernails? The mystic who would bend the world’s heart away from it’s inevitable end? Confront power-draining necromancers, skulking skeletal warriors and backstabbing wickheads. Wander the Valley of the Unfortunate Undead, the catacombs beneath the Bergen Chrypt or the bedevilled Sarkash forest. But leave hope behind – the world’s cruel fate is sealed, and all your vain heroic efforts are destined to end in death and dismay. Or are they?
 
-MÖRK BORG is a rules-light, everything-else-dark game of Pyrrhic victories, lethal combat, terrifying monsters, and pervasive doom. It\'s legendary for its slick visuals, minimalist rules, and maximalist aesthetic design. MÖRK BORG has inspired dozens of other games in various settings and genres, always with a twist of apocalyptic darkness. The original is set in the ruins of a fantasy world that draws on Scandinavian folklore and prophecies of the end of the world.',
+MÖRK BORG is a rules-light, everything-else-dark game of Pyrrhic victories, lethal combat, terrifying monsters, and pervasive doom. It\'s legendary for its slick visuals, minimalist rules, and maximalist aesthetic design. MÖRK BORG has inspired dozens of other games in various settings and genres, always with a twist of apocalyptic darkness. The original is set in the ruins of a fantasy world that draws on Scandinavian folklore and prophecies of the end of the world.'),
     'creator' => 'Originally created by Pelle Nilsson and Johan Nohr',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/ce8d8ce3-6cea-4773-943b-22fa4d77eda2',
     'player_range' => '3-6 Players',
@@ -9216,10 +9216,10 @@ The rules are rather simple as well: to accomplish a task, succeed at a test by 
   47 => 
   array (
     'slug' => 'fate',
-    'name' => 'Fate',
-    'description' => 'Fate Core is a tabletop roleplaying game about proactive, capable people who lead dramatic lives. Create your characters and develop instant group dynamics with a unique phased character generation system, then use those characters as a springboard to storytelling and worldbuilding.
+    'name' => array('en' => 'Fate'),
+    'description' => array('en' => 'Fate Core is a tabletop roleplaying game about proactive, capable people who lead dramatic lives. Create your characters and develop instant group dynamics with a unique phased character generation system, then use those characters as a springboard to storytelling and worldbuilding.
 
-Playing Fate is like acting as the writers\' room for a dramatic movie or television show, where each player is responsible for their character\'s story. Each character, NPC, and even the world itself is composed of narrative Aspects that players and the GM can invoke to create drama.',
+Playing Fate is like acting as the writers\' room for a dramatic movie or television show, where each player is responsible for their character\'s story. Each character, NPC, and even the world itself is composed of narrative Aspects that players and the GM can invoke to create drama.'),
     'creator' => 'Originally created by Leonard Balsera, Rob Donoghue, and Fred Hicks',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/1c18b6c4-1f88-4aba-993e-b174a5503cdd',
     'player_range' => '2-5 Player',
@@ -9325,8 +9325,8 @@ Playing Fate is like acting as the writers\' room for a dramatic movie or televi
   48 => 
   array (
     'slug' => 'brindlewood-bay',
-    'name' => 'Brindlewood Bay',
-    'description' => 'Brindlewood Bay is a tabletop roleplaying game that combines Murder, She Wrote with H.P. Lovecraft. In it, you play a group of elderly women, members of the local Murder Mavens Mystery Book Club, who help the authorities solve murder cases in a picturesque New England Town. Over the course of their investigations, they become aware of a dark occult conspiracy that connects the cases, and will eventually have to face that conspiracy in order to save their community. The game is low-prep and easy to play no matter your experience with tabletop roleplaying games.',
+    'name' => array('en' => 'Brindlewood Bay'),
+    'description' => array('en' => 'Brindlewood Bay is a tabletop roleplaying game that combines Murder, She Wrote with H.P. Lovecraft. In it, you play a group of elderly women, members of the local Murder Mavens Mystery Book Club, who help the authorities solve murder cases in a picturesque New England Town. Over the course of their investigations, they become aware of a dark occult conspiracy that connects the cases, and will eventually have to face that conspiracy in order to save their community. The game is low-prep and easy to play no matter your experience with tabletop roleplaying games.'),
     'creator' => 'Originally created by Jason Cordova',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/a0bb8ff2-4076-4fad-820e-14340b3038f5',
     'player_range' => '2-4 Players',
@@ -9421,8 +9421,8 @@ Playing Fate is like acting as the writers\' room for a dramatic movie or televi
   49 => 
   array (
     'slug' => 'forbidden-lands',
-    'name' => 'Forbidden Lands',
-    'description' => 'Forbidden Lands is a new take on classic fantasy roleplaying. In this sandbox survival roleplaying game, you’re not heroes sent on missions dictated by others – instead, you are raiders and rogues bent on making your own mark on a cursed world. You will discover lost tombs, fight terrible monsters, wander the wild lands, and if you live long enough, build your own stronghold to defend.',
+    'name' => array('en' => 'Forbidden Lands'),
+    'description' => array('en' => 'Forbidden Lands is a new take on classic fantasy roleplaying. In this sandbox survival roleplaying game, you’re not heroes sent on missions dictated by others – instead, you are raiders and rogues bent on making your own mark on a cursed world. You will discover lost tombs, fight terrible monsters, wander the wild lands, and if you live long enough, build your own stronghold to defend.'),
     'creator' => 'Originally created by Tomas Härenstam',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e9e2673f-bc83-471b-be91-4f7b42e270d9',
     'player_range' => '2-6 Players',
@@ -9607,11 +9607,11 @@ after. You are a Rogue.',
   50 => 
   array (
     'slug' => 'city-of-mist',
-    'name' => 'City of Mist',
-    'description' => 'Here\'s the lowdown: City of Mist is set in a modern city where legends are real people. Heroes, tricksters, and monsters are reborn inside ordinary people, regular Joes and Janes, who gain supernatural powers connected to their legendary alter-egos.
+    'name' => array('en' => 'City of Mist'),
+    'description' => array('en' => 'Here\'s the lowdown: City of Mist is set in a modern city where legends are real people. Heroes, tricksters, and monsters are reborn inside ordinary people, regular Joes and Janes, who gain supernatural powers connected to their legendary alter-egos.
 Someone is running the show in this City, and it\'s up to you to find out who. Hit the streets. Collect the clues. Face small-time villains and demi-gods in epic showdowns. Solve not just the case, but also your own personal mystery and the secrets at the core of this very City.
 
-This is your City: gritty, corrupt, and rife with magic and mystery.',
+This is your City: gritty, corrupt, and rife with magic and mystery.'),
     'creator' => 'Originally created by Amít Moshe',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/1020dc29-9456-42d2-92a4-e5af9556e39e',
     'player_range' => '3-5 Players',
@@ -9718,12 +9718,12 @@ Described using tags, your abilities, gear, and personality are completely uniqu
   51 => 
   array (
     'slug' => 'dune-adventures-in-the-imperium',
-    'name' => 'Dune: Adventures in the Imperium',
-    'description' => 'The Dune: Adventures in the Imperium roleplaying game takes you into a far future beyond anything you have imagined, where fear is the mind killer so be sure to keep your wits about you. The Imperium is a place of deadly duels, feudal politics, and mysterious abilities, noble Houses politic constantly for power, influence, and vengeance in a universe where a blade can change the fortunes of millions. Build your House, carve your place in the universe or rebuild an ancient lineage and fight for the Imperial throne. 
+    'name' => array('en' => 'Dune: Adventures in the Imperium'),
+    'description' => array('en' => 'The Dune: Adventures in the Imperium roleplaying game takes you into a far future beyond anything you have imagined, where fear is the mind killer so be sure to keep your wits about you. The Imperium is a place of deadly duels, feudal politics, and mysterious abilities, noble Houses politic constantly for power, influence, and vengeance in a universe where a blade can change the fortunes of millions. Build your House, carve your place in the universe or rebuild an ancient lineage and fight for the Imperial throne. 
 
 Take your characters on a journey through the storied worlds of Frank Herbert\'s sci-fi masterpiece, inhabit elite agents working for noble Houses where Mentats, Swordmasters, Spies, Bene Gesserit Sisters, Devious Advisors, or even desert Fremen join together to follow your banner.  
 
-Whoever you choose to be, remember that those that control the spice control the universe. ',
+Whoever you choose to be, remember that those that control the spice control the universe. '),
     'creator' => 'Originally created by Nathan Dowdell',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/ffb13a91-c19e-4dac-97c5-f737f20ae550',
     'player_range' => '3-4 Players',
@@ -9948,10 +9948,10 @@ Dune: Adventures in the Imperium includes rules for both “agent-level” play,
   52 => 
   array (
     'slug' => 'power-rangers-roleplaying-game',
-    'name' => 'Power Rangers Roleplaying Game',
-    'description' => 'Become a Power Ranger and protect Angel Grove and the Earth against the evil forces of Rita Repulsa, Lord Zedd, Master Vile, and more in the epic world of Power Rangers! Whether you interrupt Rita’s monster attacks in her attempt of world domination or defeat the forces of the Machine Empire from invading Earth, there is no limit to the heroic stories you will tell.
+    'name' => array('en' => 'Power Rangers Roleplaying Game'),
+    'description' => array('en' => 'Become a Power Ranger and protect Angel Grove and the Earth against the evil forces of Rita Repulsa, Lord Zedd, Master Vile, and more in the epic world of Power Rangers! Whether you interrupt Rita’s monster attacks in her attempt of world domination or defeat the forces of the Machine Empire from invading Earth, there is no limit to the heroic stories you will tell.
 
-In the Power Rangers Roleplaying Game, create your ultimate Power Ranger persona by combining personal traits, childhood influences, and your chosen Ranger color to make a hero worthy of the Power!',
+In the Power Rangers Roleplaying Game, create your ultimate Power Ranger persona by combining personal traits, childhood influences, and your chosen Ranger color to make a hero worthy of the Power!'),
     'creator' => 'Originally created by Bryan C.P. Steele, TJ Storm, Elisa Teague',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/7ae0185e-4a85-4513-89f0-107353ae1ec8',
     'player_range' => '3-6 Players',
@@ -10097,9 +10097,9 @@ If the Weapon you are using relates to a Specialization that you have in your Sk
   53 => 
   array (
     'slug' => 'tales-of-the-valiant',
-    'name' => 'Tales of the Valiant',
-    'description' => 'Welcome to the Labyrinth, infinite worlds linked by twisting corridors of magic. Here, you find realms like Midgard, Hades, the Dreadful Domains, and homebrew creations tied together by the mysterious will of the Maze. These countless worlds rarely resemble one another on the surface, but share a unifying truth—heroes shape them.
-The Tales of the Valiant RPG is a Black Flag Roleplaying Game from Kobold Press. This means it keeps all the best parts of D&D 5e and adds a Kobold Press spin to the well-loved game. It combines the Creative Commons foundation of 5th Edition with new elements to create a powerful Kobold-style 5E with teeth.',
+    'name' => array('en' => 'Tales of the Valiant'),
+    'description' => array('en' => 'Welcome to the Labyrinth, infinite worlds linked by twisting corridors of magic. Here, you find realms like Midgard, Hades, the Dreadful Domains, and homebrew creations tied together by the mysterious will of the Maze. These countless worlds rarely resemble one another on the surface, but share a unifying truth—heroes shape them.
+The Tales of the Valiant RPG is a Black Flag Roleplaying Game from Kobold Press. This means it keeps all the best parts of D&D 5e and adds a Kobold Press spin to the well-loved game. It combines the Creative Commons foundation of 5th Edition with new elements to create a powerful Kobold-style 5E with teeth.'),
     'creator' => 'Originally created by Kobold Press',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/b6a005ad-bccb-4e01-a17f-acaae3f2509f',
     'player_range' => '3-5 Players',
@@ -10326,12 +10326,12 @@ back-and-forth way throughout the game.',
   54 => 
   array (
     'slug' => 'kids-on-brooms',
-    'name' => 'Kids on Brooms',
-    'description' => 'If you\'ve ever dreamed of receiving the invitation to an institution of magic and entering a fantastical hidden world of witches and wizards, Kids on Brooms is the game for you.
+    'name' => array('en' => 'Kids on Brooms'),
+    'description' => array('en' => 'If you\'ve ever dreamed of receiving the invitation to an institution of magic and entering a fantastical hidden world of witches and wizards, Kids on Brooms is the game for you.
 
 Kids on Brooms is a collaborative role-playing game about students at a magical school--a place full of mystery, danger, and thrilling adventure. From dealing with strict professors to facing down mythical beasts, players will ride brooms, brew potions, and cast powerful magic as they uncover the incredible secrets their school and its inhabitants hold. 
 
-Built using the ENnie Award-Winning Kids on Bikes framework, it is a rules-light, narrative-first storytelling game perfect for new players and gaming veterans alike!',
+Built using the ENnie Award-Winning Kids on Bikes framework, it is a rules-light, narrative-first storytelling game perfect for new players and gaming veterans alike!'),
     'creator' => 'Originally created by Jonathan Gilmour, Doug Levandowski, and Spenser Starke',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/2c43633a-51fd-459e-ba17-d53ae5506f59',
     'player_range' => '2-6 Players',
@@ -10559,12 +10559,12 @@ Kids on Brooms also has a free-form system for casting spells and brewing potion
   55 => 
   array (
     'slug' => 'the-walking-dead-universe-roleplaying-game',
-    'name' => 'The Walking Dead Universe Roleplaying Game',
-    'description' => 'The Walking Dead has always been about characters facing impossible choices in an unforgiving world. In The Walking Dead Universe Roleplaying Game, you face these choices head on. You can play at any point in the timeline – encountering familiar faces and locations, or new ones – but the hardest choice will always be the same: Who are you going to be?
+    'name' => array('en' => 'The Walking Dead Universe Roleplaying Game'),
+    'description' => array('en' => 'The Walking Dead has always been about characters facing impossible choices in an unforgiving world. In The Walking Dead Universe Roleplaying Game, you face these choices head on. You can play at any point in the timeline – encountering familiar faces and locations, or new ones – but the hardest choice will always be the same: Who are you going to be?
 
 You play as people struggling to survive in a hostile world. Challenges appear from everywhere – from the lack of essential supplies, from conflicts brewing within the group, from hidden construction flaws in your safe haven, or from approaching walkers hungering for your flesh.
 
-In this tabletop roleplaying game based on The Walking Dead series of graphic novels, television, and video games, you have the opportunity to answer the question: what would you do to survive the end of the world?',
+In this tabletop roleplaying game based on The Walking Dead series of graphic novels, television, and video games, you have the opportunity to answer the question: what would you do to survive the end of the world?'),
     'creator' => 'Originally created by Gustaf Ekelund, Martin Grip, Mattias Johnsson Haake, Nils Hintze, Tomas Härenstam',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/0ec9af43-cb99-4ddc-886c-4f1de1b58894',
     'player_range' => '1-6 Players',
@@ -10772,14 +10772,14 @@ The Walking Dead Universe RPG also includes rules for Havens, places temporarily
   56 => 
   array (
     'slug' => 'tales-from-the-loop',
-    'name' => 'Tales From the Loop',
-    'description' => 'Roleplaying in the ’80s That Never Was:
+    'name' => array('en' => 'Tales From the Loop'),
+    'description' => array('en' => 'Roleplaying in the ’80s That Never Was:
 
 In 1954, the Swedish government ordered the construction of the world’s largest particle accelerator. The facility was complete in 1969, located deep below the pastoral countryside of Mälaröarna. The local population called this marvel of technology The Loop.
 
 In this roleplaying game, you play teenagers in the late 1980s, solving Mysteries connected to the Loop. Choose between character Types such as the Bookworm, the Troublemaker, the Popular Kid and the Weirdo. Everyday Life is full of nagging parents, never-ending homework and classmates bullying and being bullied. Explore the secrets of the Loop in two main game settings – one based on the Swedish Mälaren Islands, the other on Boulder City, Nevada.
 
-The Mysteries let the characters encounter the strange machines and weird creatures that have come to haunt the countryside after the Loop was built. The kids get to escape their everyday problems and be part of something meaningful and magical – but also dangerous.',
+The Mysteries let the characters encounter the strange machines and weird creatures that have come to haunt the countryside after the Loop was built. The kids get to escape their everyday problems and be part of something meaningful and magical – but also dangerous.'),
     'creator' => 'Originally created by Simon Stålenhag, Oz Mills',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e802503b-b042-4699-8afa-95ae6e1be6a5',
     'player_range' => NULL,
@@ -10939,8 +10939,8 @@ Since you’re average kids, you need to deal with average kid problems. Part of
   57 => 
   array (
     'slug' => 'girl-by-moonlight',
-    'name' => 'Girl By Moonlight',
-    'description' => 'Girl by Moonlight is a game about the tragic struggles and defiant triumphs of a group of magical girls resisting an oppressive society. It explores the heartbreak of denying who you really are, and the transcendent power of relationships and community.',
+    'name' => array('en' => 'Girl By Moonlight'),
+    'description' => array('en' => 'Girl by Moonlight is a game about the tragic struggles and defiant triumphs of a group of magical girls resisting an oppressive society. It explores the heartbreak of denying who you really are, and the transcendent power of relationships and community.'),
     'creator' => 'Originally created by Andrew Gillis',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/a3fb80e5-76f8-417c-a5e7-771bf900516b',
     'player_range' => '3-6 Players',
@@ -11086,12 +11086,12 @@ them, but will that potential be realized? They struggle with the weight of thei
   58 => 
   array (
     'slug' => 'slugblaster',
-    'name' => 'Slugblaster',
-    'description' => 'When a couple of teens first discovered they could use their hoverboards to open portals to other dimensions, they had no idea it was the beginning of a cultural phenomenon: Slugblasting. It\'s an action sport, a youth subculture, a movement, a big business, a moral panic—and the coolest thing ever. Young slugblasters customize their gear, hack their tech, circuit-bend their rayguns, and go on extradimensional adventures after school. Burn through zones of thin reality to other worlds, run from alien monsters, film a demo reel of new tricks, salvage lost tech from higher planes, hit up a huge party, and get home before your parents get mad at you—or you get caught by the interdimensional authorities.
+    'name' => array('en' => 'Slugblaster'),
+    'description' => array('en' => 'When a couple of teens first discovered they could use their hoverboards to open portals to other dimensions, they had no idea it was the beginning of a cultural phenomenon: Slugblasting. It\'s an action sport, a youth subculture, a movement, a big business, a moral panic—and the coolest thing ever. Young slugblasters customize their gear, hack their tech, circuit-bend their rayguns, and go on extradimensional adventures after school. Burn through zones of thin reality to other worlds, run from alien monsters, film a demo reel of new tricks, salvage lost tech from higher planes, hit up a huge party, and get home before your parents get mad at you—or you get caught by the interdimensional authorities.
 
 Slugblaster casts players as a teenage friend group that has formed a crew to seek fame and fortune, gain rep and renown, and just maybe make it big. They\'ll go on runs to vibrant and dangerous other worlds to accomplish goals, getting into trouble and taking slams when things go wrong. Get style points by doing tricks, and try to make it back home without bringing trouble with you. All the while, your crew grows closer together, gains a reputation, makes friends, makes enemies, rises up in the fast-paced world of slugblasting, and perhaps even grows up.
 
-The game runs on a streamlined version of the Forged in the Dark dice pool system, and blends lighthearted gonzo sci-fi with the bittersweet slice-of-life stories of a coming-of-age tale. Slugblaster is an exuberant game about the roller coaster of being a teenager, searching for an identity, and becoming who you are. Oh, and blasting alien slugs with a laser gun. Duh.',
+The game runs on a streamlined version of the Forged in the Dark dice pool system, and blends lighthearted gonzo sci-fi with the bittersweet slice-of-life stories of a coming-of-age tale. Slugblaster is an exuberant game about the roller coaster of being a teenager, searching for an identity, and becoming who you are. Oh, and blasting alien slugs with a laser gun. Duh.'),
     'creator' => 'Originally created by Mikey Hamm',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/3fdf4a39-a493-4af3-b39e-62d8d7151f0d',
     'player_range' => '1-5 Players',
@@ -11202,8 +11202,8 @@ It\'s not all bad though; slugblasters can always avoid consequences by saying "
   59 => 
   array (
     'slug' => 'blade-runner-the-roleplaying-game',
-    'name' => 'Blade Runner: The Roleplaying Game',
-    'description' => 'A neon-noir wonderland that’ll take your breath away. One way or another.
+    'name' => array('en' => 'Blade Runner: The Roleplaying Game'),
+    'description' => array('en' => 'A neon-noir wonderland that’ll take your breath away. One way or another.
 
 An evocative world of conflicts and contrasts that dares to ask the hard questions and investigate the powers of empathy, the poisons of fear, and the burdens of being human during inhumane times. An iconic and unforgiving playground of endless possibilities that picks you up, slaps you in the face, and tells you to wake up.
 
@@ -11211,7 +11211,7 @@ Time to live. Or time to die.
 
 Blade Runner The Roleplaying Game propels you into the streets of Los Angeles as Blade Runners with unique specialties, personalities – and memories.
 
-The game pushes the boundaries of investigative gameplay in tabletop RPGs, giving you a range of tools to solve an array of cases far beyond retiring Replicants. Beyond the core casework, the RPG showcases the key themes of Blade Runner – sci-fi action, corporate intrigue, existential character drama, and moral conflict. It challenges you to question your friends, empathize with your enemies, and explore the poisons and perseverance of hope and humanity during inhumane times.',
+The game pushes the boundaries of investigative gameplay in tabletop RPGs, giving you a range of tools to solve an array of cases far beyond retiring Replicants. Beyond the core casework, the RPG showcases the key themes of Blade Runner – sci-fi action, corporate intrigue, existential character drama, and moral conflict. It challenges you to question your friends, empathize with your enemies, and explore the poisons and perseverance of hope and humanity during inhumane times.'),
     'creator' => 'Originally created by Tomas Härenstam, Joe LeFavi',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/4dddcbe4-d147-4905-9845-1602b2b2a614',
     'player_range' => '2-5 Players',
@@ -11372,8 +11372,8 @@ The game pushes the boundaries of investigative gameplay in tabletop RPGs, givin
   60 => 
   array (
     'slug' => 'cyborg',
-    'name' => 'CY_BORG',
-    'description' => 'The world is ending. ⸐
+    'name' => array('en' => 'CY_BORG'),
+    'description' => array('en' => 'The world is ending. ⸐
 Again and again and again and again and again a̶n̴͗d̵̥͒ ̸̎ă̶ġ̸a̵̢͗i̶͙̓n̸̡̔ ă̵̢̫̥̺̻̞n̵͔̽̿̏̓͋͠͝d̴̢̪̟͊ ̵̡̺̖̰̯͖̞̓̑̐̈́̍̋a̶̤̘̖͗͐̀̔̚̚g̴̛͇̻̦̻͇̲̈́̏à̷̩̫͒ḯ̷̡̱̀̀̀͠ṇ̶̦̔͜.
 
 Constantly in flux; shifting, distorting, always reborn as something worse. Destruction by ecological catastrophes, the fallout of history’s belligerence; by modern man-made Miseries or the blood spilled by the reckless machine of capitalist supremacy. Mankind’s greatest ability truly is to destroy itself in creative ways. Designer demise, consumer-customized death, endlessly on repeat.
@@ -11386,7 +11386,7 @@ Welcome to the year 20X3.
 
 Welcome to the City of Y!̸͆̅̌”̶͌̉#̸͇̞̻̌̚”̶̨̻̘̇̉̊͆̈́͒̌̆̓̕͜#̶̖̣̘̻͖̥͕̙̀̃̈́́̄̕̕͜͠2̶̧̻̺̝̥̮̣̒͒̂͐͐̍́́͘̕̕4̴̿̌’̷̛̙͍̠̙̿
 
-The Cy.',
+The Cy.'),
     'creator' => 'Originally created by Christian Sahlén, Johan Nohr',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/5ca5a2f7-ac20-4ef6-8e20-e76ddf5a3daa',
     'player_range' => '2-6 Players',
@@ -11517,12 +11517,12 @@ The Cy.',
   61 => 
   array (
     'slug' => 'scum-and-villainy',
-    'name' => 'Scum and Villainy',
-    'description' => 'Unwise deals. Blaster fights. High adventure among the stars. Welcome to the world of Scum and Villainy.
+    'name' => array('en' => 'Scum and Villainy'),
+    'description' => array('en' => 'Unwise deals. Blaster fights. High adventure among the stars. Welcome to the world of Scum and Villainy.
 
 Scum and Villainy is a Forged in the Dark game about a spaceship crew trying to make ends meet under the iron-fisted rule of the Galactic Hegemony.
 
-Work with the members of your crew to thrive despite powerful criminal syndicates, warring noble families, dangerous aliens, and strange mystics. Explore the ruins of lost civilizations for fun and profit. Can your motley crew hold it together long enough to strike it big and insure your fame across the sector?',
+Work with the members of your crew to thrive despite powerful criminal syndicates, warring noble families, dangerous aliens, and strange mystics. Explore the ruins of lost civilizations for fun and profit. Can your motley crew hold it together long enough to strike it big and insure your fame across the sector?'),
     'creator' => 'Originally created by Stras Acimovic, John LeBoeuf-Little',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/d8fb4bb9-53c7-4a7e-ab4d-0be8555e4a70',
     'player_range' => '3-6 Players',
@@ -11697,8 +11697,8 @@ Work with the members of your crew to thrive despite powerful criminal syndicate
   62 => 
   array (
     'slug' => 'coriolis-the-third-horizon',
-    'name' => 'Coriolis – The Third Horizon',
-    'description' => 'Coriolis – The Third Horizon is a science fiction role playing game set in a remote cluster of star systems called The Third Horizon. It is a place ravaged by conflicts and war, but also home to proud civilizations, both new and old. Here, the so called First Come colonists of old worship the Icons, while the newly arrived Zenithians pursue an aggressive imperialistic agenda through trade and military power.',
+    'name' => array('en' => 'Coriolis – The Third Horizon'),
+    'description' => array('en' => 'Coriolis – The Third Horizon is a science fiction role playing game set in a remote cluster of star systems called The Third Horizon. It is a place ravaged by conflicts and war, but also home to proud civilizations, both new and old. Here, the so called First Come colonists of old worship the Icons, while the newly arrived Zenithians pursue an aggressive imperialistic agenda through trade and military power.'),
     'creator' => 'Originally created by Tomas Härenstam, Nils Karlén, Kosta Kostulas, Christian Granath',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/be8a9e67-31cb-4cb5-89bc-87bbc5ed5f50',
     'player_range' => '2-6 Players',
@@ -11864,10 +11864,10 @@ Work with the members of your crew to thrive despite powerful criminal syndicate
   63 => 
   array (
     'slug' => 'cbrpnk',
-    'name' => 'CBR+PNK',
-    'description' => 'CBR+PNK (pronounced "cyberpunk") is a minimalist, one-shot roleplaying game about a team of "runners"—mercenaries, criminals, and/or activists on the edge of a dystopian society—pulling one last job. Each game follows a new crew of veteran characters working for a mysterious figure called The Operator, a fixer using them as expendable assets in the war against the elite of a high-tech corporatocracy. 
+    'name' => array('en' => 'CBR+PNK'),
+    'description' => array('en' => 'CBR+PNK (pronounced "cyberpunk") is a minimalist, one-shot roleplaying game about a team of "runners"—mercenaries, criminals, and/or activists on the edge of a dystopian society—pulling one last job. Each game follows a new crew of veteran characters working for a mysterious figure called The Operator, a fixer using them as expendable assets in the war against the elite of a high-tech corporatocracy. 
 
-CBR+PNK uses a streamlined version of the Forged in the Dark system to jump players right into the action and launch them full force into the culmination of their runner\'s career. Runners can take advantage of aftermarket cybernetic modifications, specialized gear, weapons and armor, and even flashbacks to retroactive plans to overcome their opposition. Manage your stress, keep your tech running smooth, don\'t glitch out—and don\'t die. Together, your crew will play to find out the fates of these runners on the highest-stakes mission of their lives!',
+CBR+PNK uses a streamlined version of the Forged in the Dark system to jump players right into the action and launch them full force into the culmination of their runner\'s career. Runners can take advantage of aftermarket cybernetic modifications, specialized gear, weapons and armor, and even flashbacks to retroactive plans to overcome their opposition. Manage your stress, keep your tech running smooth, don\'t glitch out—and don\'t die. Together, your crew will play to find out the fates of these runners on the highest-stakes mission of their lives!'),
     'creator' => 'Originally created by Emanoel Melo',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/d24354b5-c0a1-46ba-8fb5-661691275342',
     'player_range' => '2-5 Players',
@@ -11950,10 +11950,10 @@ Runners also have access to a number of items on the job. Rather than declare wh
   64 => 
   array (
     'slug' => 'otherscape',
-    'name' => ':Otherscape',
-    'description' => 'In the not-so-distant future, the constant bombardment of technological stimuli, known as the Noise, have made human minds so overloaded and numb, that previously hidden occult forces can now operate in the open.
+    'name' => array('en' => ':Otherscape'),
+    'description' => array('en' => 'In the not-so-distant future, the constant bombardment of technological stimuli, known as the Noise, have made human minds so overloaded and numb, that previously hidden occult forces can now operate in the open.
 
-:Otherscape is a fantasy-cyberpunk role-playing game that combines supernatural powers inspired by mythology and legend with the gritty neon-lit streets of a sprawling futuristic Megacity. It takes your game group on a rollercoaster ride of gunfights, vehicle chases, cyberspace heists, urban wasteland exploration, clashes of mythology and technology, faction wars, and philosophical questions about the nature of being human — and how to transcend it.',
+:Otherscape is a fantasy-cyberpunk role-playing game that combines supernatural powers inspired by mythology and legend with the gritty neon-lit streets of a sprawling futuristic Megacity. It takes your game group on a rollercoaster ride of gunfights, vehicle chases, cyberspace heists, urban wasteland exploration, clashes of mythology and technology, faction wars, and philosophical questions about the nature of being human — and how to transcend it.'),
     'creator' => 'Originally created by Amít Moshe',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/4201a914-3647-4769-b01d-df512d1379a1',
     'player_range' => NULL,
@@ -12035,12 +12035,12 @@ When performing any actions, players need only add up the number of descriptors 
   65 => 
   array (
     'slug' => 'the-wildsea',
-    'name' => 'The Wildsea',
-    'description' => 'Centuries ago, an explosive growth of greenery called the Verdancy overtook the land, covering it in a canopy of massive trees. Survivors retreated to islands that rose above the canopy or temporary "spits" on top of it. Now, with the help of great ships that tear across the treetops with powered chainsaw blades, intrepid crews seek adventure on the wildsea: exploring lost places, traveling and trading, hunting beasts and bounties, salvaging treasures of the world left behind, and seeking the secret whispers: words with a will of their own.
+    'name' => array('en' => 'The Wildsea'),
+    'description' => array('en' => 'Centuries ago, an explosive growth of greenery called the Verdancy overtook the land, covering it in a canopy of massive trees. Survivors retreated to islands that rose above the canopy or temporary "spits" on top of it. Now, with the help of great ships that tear across the treetops with powered chainsaw blades, intrepid crews seek adventure on the wildsea: exploring lost places, traveling and trading, hunting beasts and bounties, salvaging treasures of the world left behind, and seeking the secret whispers: words with a will of their own.
 
 The Wildsea presents a singularly unique fantasy setting in modern tabletop roleplaying games. Player characters can choose their species from among cactus-folk, moth people, the soul of a wrecked ship in a salvaged body, and a hivemind of sentient spiders, among others. They form the crew of a ship that "sails" the canopy of skyscraper-sized trees that cover the land via massive chainsaw, and may in fact be itself a living thing. Together they face the perils of the wildsea\'s fauna, flora, settlements, and rival crews using their wits, tools, skills, and whispers. These mystical secrets are living ideas that, when spoken, can discover new information, twist the situation, or even force a change upon reality itself.
 
-All of this creative energy is packaged within an elegant d6 dice pool system, with mechanics to support montages, extended challenges, combat, chases, negotiations, exploration, traversal, and journeying across the wildsea. Rolling the dice introduces triumphs, conflicts, disasters, and twists naturally into the narrative. Add in a treasure trove of evocative art and adventure hooks, and The Wildsea is a jewel of contemporary RPG design.',
+All of this creative energy is packaged within an elegant d6 dice pool system, with mechanics to support montages, extended challenges, combat, chases, negotiations, exploration, traversal, and journeying across the wildsea. Rolling the dice introduces triumphs, conflicts, disasters, and twists naturally into the narrative. Add in a treasure trove of evocative art and adventure hooks, and The Wildsea is a jewel of contemporary RPG design.'),
     'creator' => NULL,
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/5bf8bf3c-f89a-4e73-8add-52934efe059d',
     'player_range' => '3-5 Players',
@@ -12263,8 +12263,8 @@ Characters advance by pursuing their drives, and accumulate resources to aid the
   66 => 
   array (
     'slug' => 'mutant-year-zero',
-    'name' => 'Mutant: Year Zero',
-    'description' => 'Mutant: Year Zero takes you to the world after the great Apocalypse. Humanity’s proud civilization has fallen. The cities are dead wastelands, winds sweeping along empty streets turned into graveyards. But life ­remains. Among the ruins, the People live. You are the heirs of humanity – but not quite human anymore. Your bodies and minds are capable of superhuman feats. You are mutants.',
+    'name' => array('en' => 'Mutant: Year Zero'),
+    'description' => array('en' => 'Mutant: Year Zero takes you to the world after the great Apocalypse. Humanity’s proud civilization has fallen. The cities are dead wastelands, winds sweeping along empty streets turned into graveyards. But life ­remains. Among the ruins, the People live. You are the heirs of humanity – but not quite human anymore. Your bodies and minds are capable of superhuman feats. You are mutants.'),
     'creator' => 'Originally created by Tomas Härenstam',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/e2f518d3-246a-4ba3-8fba-ed30c5398ca8',
     'player_range' => '2-6 Players',
@@ -12435,13 +12435,13 @@ Where in the world the Zone and the Ark are located is up to you – why not pla
   67 => 
   array (
     'slug' => 'death-in-space',
-    'name' => 'Death in Space',
-    'description' => 'The world is broken. In a collapsing universe, your crew is your only family. Death in Space takes you to a grimy blue-collar future in a universe filled with risk, but also opportunity.
+    'name' => array('en' => 'Death in Space'),
+    'description' => array('en' => 'The world is broken. In a collapsing universe, your crew is your only family. Death in Space takes you to a grimy blue-collar future in a universe filled with risk, but also opportunity.
 
 Death in Space is a game about adventure and uncertain journeys out into the darkness of space, where the void whispers to the unlucky and imbues travelers’ bodies with strange powers. It is about you and your crew making a home of your spacecraft or station, your only sanctuary in a dangerous universe. Most of all, it is about surviving in an abandoned frontier system where resources are scarce, and competition is fierce.
 
 Engage in power struggles and build your crew’s reputation. Salvage and steal to endure a ruthless universe. And above all, do anything you can to get that next job. Your life will depend on it.
-',
+'),
     'creator' => 'Originally created by Christian Plogfors, Carl Niblaeus',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/6473e59f-40dd-46c3-b04b-69a6fcf40ab9',
     'player_range' => '2-6 Players',
@@ -12558,8 +12558,8 @@ The focal point of civilization in Tenebris is the Iron Ring, a structure orbiti
   68 => 
   array (
     'slug' => 'fablecraft',
-    'name' => 'Fablecraft',
-    'description' => 'Fablecraft is a fully virtual tabletop RPG. It’s easy for GMs and players to learn, whether you\'ve slain many dragons or are completely new to the genre. Fablecraft features its own system, gorgeous human-made art, pre-built campaigns that eliminate prep, and a growing list of homebrew tools.',
+    'name' => array('en' => 'Fablecraft'),
+    'description' => array('en' => 'Fablecraft is a fully virtual tabletop RPG. It’s easy for GMs and players to learn, whether you\'ve slain many dragons or are completely new to the genre. Fablecraft features its own system, gorgeous human-made art, pre-built campaigns that eliminate prep, and a growing list of homebrew tools.'),
     'creator' => 'Originally created by David Hohusen, Andrew Habers',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/4c3aded2-8740-4319-8059-cfdceb65356f',
     'player_range' => NULL,
@@ -12693,12 +12693,12 @@ The focal point of civilization in Tenebris is the Iron Ring, a structure orbiti
   69 => 
   array (
     'slug' => 'the-last-caravan-a-cars-and-aliens-rpg',
-    'name' => 'The Last Caravan: A Cars and Aliens RPG',
-    'description' => 'The invasion came less than a year ago. Swift and brutal, the aliens and humans bombed each other for two months before the dust had time to settle. It\'s hard to say who won—earth is ravaged and the debris from the alien mothership clouded the atmosphere to create the harshest winter in a thousand years. Now your caravan must cross this landscape, a road trip across North America, following rumors of a safe haven on the other side of the continent. Amongst the threat of alien invaders, xenofauna, and new factions arising from the ashes of war, can you find the strength you need to make the journey?
+    'name' => array('en' => 'The Last Caravan: A Cars and Aliens RPG'),
+    'description' => array('en' => 'The invasion came less than a year ago. Swift and brutal, the aliens and humans bombed each other for two months before the dust had time to settle. It\'s hard to say who won—earth is ravaged and the debris from the alien mothership clouded the atmosphere to create the harshest winter in a thousand years. Now your caravan must cross this landscape, a road trip across North America, following rumors of a safe haven on the other side of the continent. Amongst the threat of alien invaders, xenofauna, and new factions arising from the ashes of war, can you find the strength you need to make the journey?
 
 The Last Caravan is a roleplaying game of ordinary people finding their heroism on a midwinter road trip, exploring the landscape of a North America ravaged by an alien invasion. Your group might play as a family, a group of researchers, or veterans of the Two Months\' War. Individual characters are regular people forced to apply their skills to an extraordinary situation; perhaps a medic, a mechanic, a hunter, a talker—you can even play as the childlike Innocent or the caravan\'s dog!
 
-The Last Caravan uses the Forged in the Dark system to tell a collaborative story of these people finding the strength to continue on, exploring the world in the wake of war, and fighting for a new life in a harsh world. ',
+The Last Caravan uses the Forged in the Dark system to tell a collaborative story of these people finding the strength to continue on, exploring the world in the wake of war, and fighting for a new life in a harsh world. '),
     'creator' => 'Originally Created by Ted Bushman',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/9fad61d1-fd44-47a6-8266-6e2c8782a59a',
     'player_range' => '2-6 Players',
@@ -12826,10 +12826,10 @@ Play proceeds in phases: Travel, where characters are on the road, supplying, re
   70 => 
   array (
     'slug' => 'die-the-roleplaying-game',
-    'name' => 'DIE: The Roleplaying Game',
-    'description' => 'DIE RPG is a roleplaying game based on the comic of the same name by Kieron Gillen and Stephanie Hans – and it too has been made by Kieron Gillen and Stephanie Hans! In DIE, you play a group of authentically flawed and desperate real-world people (Personas) who are sucked into a cursed roleplaying game and take on the form of heroes, villains and power players (Paragons). 
+    'name' => array('en' => 'DIE: The Roleplaying Game'),
+    'description' => array('en' => 'DIE RPG is a roleplaying game based on the comic of the same name by Kieron Gillen and Stephanie Hans – and it too has been made by Kieron Gillen and Stephanie Hans! In DIE, you play a group of authentically flawed and desperate real-world people (Personas) who are sucked into a cursed roleplaying game and take on the form of heroes, villains and power players (Paragons). 
 
-Some of you might want to get back to the real world for whatever’s waiting for you there. Some of you might want to stay in a reality where you can finally get what you want out of life. You all have to agree whether you stay or go, and dead people can’t vote. It can get pretty bloody.',
+Some of you might want to get back to the real world for whatever’s waiting for you there. Some of you might want to stay in a reality where you can finally get what you want out of life. You all have to agree whether you stay or go, and dead people can’t vote. It can get pretty bloody.'),
     'creator' => 'Originally created by Kieron Gillen, Stephanie Hans',
     'hero_image' => 'https://spg-images.s3.us-west-1.amazonaws.com/8f1fa98d-ece5-40f7-9009-35c217d84eea',
     'player_range' => '4-6 Players',
