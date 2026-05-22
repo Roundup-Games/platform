@@ -80,7 +80,7 @@ class CompleteProfile extends Component
         $user = Auth::user();
 
         if ($user->profile_complete) {
-            $this->redirectRoute('dashboard');
+            $this->redirect('/' . app()->getLocale() . '/dashboard');
 
             return;
         }
@@ -339,7 +339,11 @@ class CompleteProfile extends Component
             UpdateUserDiscoveryCache::dispatch($freshUser->id, 'location_change');
         }
 
-        $this->redirectRoute('dashboard');
+        // Use explicit locale-prefixed redirect instead of redirectRoute('dashboard').
+        // Livewire update requests hit /livewire/update (outside the {locale} route group),
+        // so URL::defaults is not set by SetLocale and falls back to the fallback locale.
+        $locale = app()->getLocale();
+        $this->redirect('/' . $locale . '/dashboard');
     }
 
     public function render()
