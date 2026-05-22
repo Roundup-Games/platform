@@ -2,17 +2,20 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\EventStatus;
 use App\Models\Event;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
 use Livewire\WithPagination;
 
 #[Layout('components.public-layout')]
 class EventListing extends Component
 {
     use EscapesLikeWildcards;
+    use QueriesTranslatableColumns;
     use WithPagination;
 
     #[Url(as: 'q')]
@@ -57,11 +60,20 @@ class EventListing extends Component
     {
         $query = Event::query()
             ->where('is_public', true)
-            ->whereIn('status', ['published', 'registration_open', 'registration_closed', 'in_progress'])
+            ->whereIn('status', [
+                EventStatus::Published,
+                EventStatus::RegistrationOpen,
+                EventStatus::RegistrationClosed,
+                EventStatus::InProgress,
+            ])
             ->when($this->search, fn ($q) => $q->where(function ($q) {
+                // Translatable columns (name) use QueriesTranslatableColumns which
+                // handles escaping internally — pass raw $this->search.
+                // Non-translatable columns (city, venue_name) use the traditional
+                // escapeLikeWildcards + likeOperator pattern.
                 $escaped = $this->escapeLikeWildcards($this->search);
-                $q->where('name', $this->likeOperator(), "%{$escaped}%")
-                  ->orWhere('city', $this->likeOperator(), "%{$escaped}%")
+                $this->whereTranslatableLike($q, 'name', $this->search);
+                $q->orWhere('city', $this->likeOperator(), "%{$escaped}%")
                   ->orWhere('venue_name', $this->likeOperator(), "%{$escaped}%");
             }))
             ->when($this->type, fn ($q) => $q->where('type', $this->type))
@@ -73,8 +85,7 @@ class EventListing extends Component
 
             // Featured events first, then by start_date
             ->orderByDesc('is_featured')
-            ->orderBy('start_date')
-            ->with('translations');
+            ->orderBy('start_date');
 
         $events = $query->paginate(12);
 

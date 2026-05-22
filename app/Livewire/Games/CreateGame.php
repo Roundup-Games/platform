@@ -11,6 +11,7 @@ use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Services\ShortLinkService;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -23,11 +24,19 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateGame extends Component
 {
+    use BuildsTranslatableFormFields;
+
     /** Optional query parameter: game ID to clone from */
     #[Url]
     public ?string $clone = null;
 
     public string $name = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['name', 'description'];
+    }
 
     public ?string $game_type = null;
 
@@ -346,13 +355,20 @@ class CreateGame extends Component
             $benchMode = false;
         }
 
+        // Build translatable values for name and description only
+        $translatable = $this->buildTranslatableValues(
+            ['name', 'description'],
+            $validated['language'],
+            $validated,
+        );
+
         $game = Game::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
-            'name' => $validated['name'],
+            'name' => $translatable['name'],
             'game_type' => $validated['game_type'],
             'date_time' => $validated['date_time'],
-            'description' => $validated['description'],
+            'description' => $translatable['description'],
             'expected_duration' => $validated['expected_duration'] ?: 2,
             'price' => $validated['price'] ?: 0,
             'language' => $validated['language'],

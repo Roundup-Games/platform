@@ -74,7 +74,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 bg-surface">
 
         {{-- Language mismatch banner --}}
-        <x-language-mismatch-banner :entity-language="$event->content_language" />
+        <x-language-mismatch-banner :entity-language="$event->language" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -171,7 +171,7 @@
                             </span>
                         @else
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-surface-container text-on-surface-variant">
-                                {{ __('events.content_registration') }} {{ __(ucfirst(str_replace('_', ' ', $event->status))) }}
+                                {{ __('events.content_registration') }} {{ __(ucfirst(str_replace('_', ' ', $event->status->value))) }}
                             </span>
                         @endif
                     </div>

@@ -18,9 +18,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
 class TeamResource extends Resource
 {
+    use Translatable;
+
     protected static ?string $model = Team::class;
 
     protected static ?int $navigationSort = 2;

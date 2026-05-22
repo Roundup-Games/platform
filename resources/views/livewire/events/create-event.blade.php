@@ -57,12 +57,12 @@
 
             <div>
                 <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
-                <select id="content-language" wire:model="content_language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
                     @foreach(\App\Enums\ContentLanguage::cases() as $lang)
                         <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
                     @endforeach
                 </select>
-                @error('content_language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                @error('language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
             <div>
@@ -78,6 +78,23 @@
                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                 @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
+
+            {{-- Translations via locale-switcher --}}
+            @php
+                $allLocales = $this->getAllLocales();
+                $baselineLocale = $this->getBaselineLocale();
+            @endphp
+            <x-forms.translatable-section
+                :fields="[
+                    ['name' => 'name', 'label' => __('events.field_event_name')],
+                    ['name' => 'short_description', 'label' => __('common.field_short_description'), 'maxlength' => 500],
+                    ['name' => 'description', 'label' => __('common.field_full_description'), 'type' => 'textarea', 'rows' => 5],
+                ]"
+                :active-locale="$activeLocale"
+                :baseline-locale="$baselineLocale"
+                :all-locales="$allLocales"
+                inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+            />
 
             <div>
                 <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.content_event_type') }}</label>

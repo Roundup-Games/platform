@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Http\Middleware\AuthenticateFilament;
 use App\Filament\Plugins\AppEscalatedFilamentPlugin;
+use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -43,6 +44,10 @@ class AdminPanelProvider extends PanelProvider
                     ->navigationGroup('Support')
                     ->agentGate('escalated-agent')
                     ->adminGate('escalated-admin')
+            )
+            ->plugin(
+                SpatieTranslatablePlugin::make()
+                    ->defaultLocales(config('app.available_locales', ['en']))
             )
             ->middleware([
                 EncryptCookies::class,

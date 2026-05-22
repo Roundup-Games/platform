@@ -19,9 +19,12 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
 class GameSystemResource extends Resource
 {
+    use Translatable;
+
     protected static ?string $model = GameSystem::class;
 
     protected static ?int $navigationSort = 2;

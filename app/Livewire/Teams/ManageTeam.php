@@ -3,6 +3,7 @@
 namespace App\Livewire\Teams;
 
 use App\Models\Team;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -12,6 +13,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class ManageTeam extends Component
 {
+    use BuildsTranslatableFormFields;
+
     public Team $team;
 
     #[Validate('required|string|max:255')]
@@ -19,6 +22,12 @@ class ManageTeam extends Component
 
     #[Validate('nullable|string|max:1000')]
     public string $description = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['description'];
+    }
 
     #[Validate('nullable|string|max:255')]
     public string $city = '';
@@ -50,6 +59,9 @@ class ManageTeam extends Component
         $this->primary_color = $team->primary_color ?? '';
         $this->secondary_color = $team->secondary_color ?? '';
         $this->founded_year = $team->founded_year ?? '';
+
+        // Load secondary locale translations for description
+        $this->loadTranslatableValues($team, ['description']);
     }
 
     public function save(): void
@@ -58,7 +70,23 @@ class ManageTeam extends Component
 
         $validated = $this->validate();
 
-        $this->team->update($validated);
+        // Build translatable value for description only
+        $primaryLocale = $this->team->language ?? app()->getLocale();
+        $translatable = $this->buildTranslatableValues(
+            ['description'],
+            $primaryLocale,
+            $validated,
+        );
+
+        $this->team->update([
+            'name' => $validated['name'],
+            'description' => $translatable['description'],
+            'city' => $validated['city'],
+            'country' => $validated['country'],
+            'primary_color' => $validated['primary_color'],
+            'secondary_color' => $validated['secondary_color'],
+            'founded_year' => $validated['founded_year'],
+        ]);
 
         Log::info('Team updated', [
             'team_id' => $this->team->id,

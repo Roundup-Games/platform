@@ -4,6 +4,7 @@ namespace App\Livewire\Events;
 
 use App\Models\Event;
 use App\Models\EventAnnouncement;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -15,6 +16,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class EventAnnouncements extends Component
 {
+    use BuildsTranslatableFormFields;
     use WithPagination;
 
     public Event $event;
@@ -23,11 +25,21 @@ class EventAnnouncements extends Component
     public bool $showForm = false;
     public ?string $editingId = null;
 
+    // Inherit the event's language as the baseline locale for translations.
+    // The BuildsTranslatableFormFields trait's getBaselineLocale() reads this.
+    public string $language = 'en';
+
     #[Validate('required|string|max:255')]
     public string $title = '';
 
     #[Validate('required|string')]
     public string $content = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['title', 'content'];
+    }
 
     #[Validate('boolean')]
     public bool $is_pinned = false;
@@ -44,6 +56,10 @@ class EventAnnouncements extends Component
     {
         $this->event = Event::where('slug', $slug)->firstOrFail();
         $this->authorize('update', $this->event);
+
+        // Inherit the event's language so the locale switcher and translation
+        // loading use the correct baseline locale (not app()->getLocale()).
+        $this->language = $this->event->language ?? 'en';
     }
 
     // ── Computed ──────────────────────────────────────
@@ -96,6 +112,9 @@ class EventAnnouncements extends Component
         $this->is_pinned = $announcement->is_pinned;
         $this->is_published = $announcement->is_published;
         $this->showForm = true;
+
+        // Load secondary locale translations (uses event's language)
+        $this->loadTranslatableValues($announcement, ['title', 'content'], $this->event->language);
     }
 
     public function save(): void
@@ -103,11 +122,18 @@ class EventAnnouncements extends Component
         $this->validate();
         $this->authorize('update', $this->event);
 
+        $primaryLanguage = $this->event->language ?? 'en';
+        $translatable = $this->buildTranslatableValues(
+            ['title', 'content'],
+            $primaryLanguage,
+            ['title' => $this->title, 'content' => $this->content],
+        );
+
         if ($this->editingId) {
             $announcement = $this->findAnnouncement($this->editingId);
             $announcement->update([
-                'title' => $this->title,
-                'content' => $this->content,
+                'title' => $translatable['title'],
+                'content' => $translatable['content'],
                 'is_pinned' => $this->is_pinned,
                 'is_published' => $this->is_published,
             ]);
@@ -121,8 +147,8 @@ class EventAnnouncements extends Component
             $announcement = EventAnnouncement::create([
                 'event_id' => $this->event->id,
                 'author_id' => Auth::id(),
-                'title' => $this->title,
-                'content' => $this->content,
+                'title' => $translatable['title'],
+                'content' => $translatable['content'],
                 'is_pinned' => $this->is_pinned,
                 'is_published' => $this->is_published,
             ]);

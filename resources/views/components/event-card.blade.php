@@ -56,7 +56,7 @@
 
                 {{-- Language --}}
                 <div class="mt-1">
-                    <x-language-chip :language="$event->content_language" />
+                    <x-language-chip :language="$event->language" />
                 </div>
             </div>
 

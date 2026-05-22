@@ -4,6 +4,7 @@ namespace App\Livewire\Components;
 
 use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -30,6 +31,7 @@ use Livewire\Component;
 class GameSystemPreferencePicker extends Component
 {
     use EscapesLikeWildcards;
+    use QueriesTranslatableColumns;
 
     #[Locked]
     public string $preferenceType = 'favorite';
@@ -70,7 +72,6 @@ class GameSystemPreferencePicker extends Component
         }
 
         $term = trim($this->search);
-        $driver = GameSystem::query()->getQuery()->getConnection()->getDriverName();
 
         // Only search base games (boardgame or null bgg_type)
         $query = GameSystem::where(function ($q) {
@@ -78,17 +79,18 @@ class GameSystemPreferencePicker extends Component
                 ->orWhereNull('bgg_type');
         });
 
-        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        // Translatable search uses its own escaping; keep $escapedTerm for
+        // the raw SQL prefix-match sort which needs pre-escaped LIKE input.
         $escapedTerm = $this->escapeLikeWildcards($term);
 
-        $query->where('name', $likeOperator, "%{$escapedTerm}%");
+        $query->where(function ($q) use ($term) {
+            $this->whereTranslatableLike($q, 'name', $term);
+        });
 
-        // Sort: prefix matches first, then by BGG rank, then by rating
-        if ($driver === 'pgsql') {
-            $query->orderByRaw('CASE WHEN name ILIKE ? THEN 0 ELSE 1 END', ["{$escapedTerm}%"]);
-        } else {
-            $query->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', ["{$escapedTerm}%"]);
-        }
+        // Sort: prefix matches first, then by BGG rank, then by rating.
+        // PostgreSQL-specific: name->>? uses JSONB extraction operator.
+        $locale = app()->getLocale();
+        $query->orderByRaw('CASE WHEN name->>? ILIKE ? THEN 0 ELSE 1 END', [$locale, "{$escapedTerm}%"]);
 
         return $query
             ->withCount('expansions')

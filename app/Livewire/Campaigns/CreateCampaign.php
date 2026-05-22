@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
 use App\Services\ShortLinkService;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,7 +22,14 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateCampaign extends Component
 {
+    use BuildsTranslatableFormFields;
     public string $name = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['name', 'description'];
+    }
 
     public ?string $game_system_id = null;
 
@@ -200,12 +208,19 @@ class CreateCampaign extends Component
             $benchMode = false;
         }
 
+        // Build translatable values for name and description only
+        $translatable = $this->buildTranslatableValues(
+            ['name', 'description'],
+            $validated['language'],
+            $validated,
+        );
+
         $campaign = Campaign::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
             'location_id' => $this->location_id,
-            'name' => $validated['name'],
-            'description' => $validated['description'],
+            'name' => $translatable['name'],
+            'description' => $translatable['description'],
             'recurrence' => $validated['recurrence'],
             'time_of_day' => $validated['time_of_day'],
             'session_duration' => $validated['session_duration'] ?: null,

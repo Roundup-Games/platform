@@ -4,6 +4,7 @@ namespace App\Livewire\Events;
 
 use App\Enums\ContentLanguage;
 use App\Models\Event;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -12,6 +13,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateEvent extends Component
 {
+    use BuildsTranslatableFormFields;
+
     public int $step = 1;
     public ?string $confirmingAction = null;
     public const MAX_STEPS = 5;
@@ -23,7 +26,7 @@ class CreateEvent extends Component
     public string $start_date = '';
     public string $end_date = '';
 
-    public string $content_language = 'en';
+    public string $language = 'en';
 
     public string $venue_name = '';
     public string $venue_address = '';
@@ -59,6 +62,16 @@ class CreateEvent extends Component
         $this->authorize('create', Event::class);
         $this->start_date = now()->addDays(14)->format('Y-m-d');
         $this->end_date = now()->addDays(16)->format('Y-m-d');
+
+        // Initialize active locale to baseline
+        if (empty($this->activeLocale)) {
+            $this->activeLocale = $this->language;
+        }
+    }
+
+    public function getTranslatableFields(): array
+    {
+        return ['name', 'description', 'short_description'];
     }
 
     public function nextStep(): void
@@ -116,13 +129,19 @@ class CreateEvent extends Component
         $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
         $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
 
+        $translatable = $this->buildTranslatableValues(
+            ['name', 'description', 'short_description'],
+            $this->language,
+            ['name' => $this->name, 'description' => $this->description, 'short_description' => $this->short_description],
+        );
+
         $event = Event::create(array_filter([
-            'name' => $this->name,
-            'short_description' => $this->short_description ?: null,
-            'description' => $this->description ?: null,
+            'name' => $translatable['name'],
+            'short_description' => $translatable['short_description'],
+            'description' => $translatable['description'],
             'type' => $this->type,
             'status' => 'draft',
-            'content_language' => $this->content_language,
+            'language' => $this->language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'venue_name' => $this->venue_name ?: null,
@@ -165,15 +184,21 @@ class CreateEvent extends Component
     private function validateStep(int $step): void
     {
         $rules = match ($step) {
-            1 => [
-                'name' => 'required|string|max:255',
-                'short_description' => 'nullable|string|max:500',
-                'description' => 'nullable|string',
-                'type' => 'required|in:tournament,league,camp,clinic,social,other',
-                'start_date' => 'required|date|after:today',
-                'end_date' => 'required|date|after_or_equal:start_date',
-                'content_language' => 'required|in:' . implode(',', ContentLanguage::values()),
-            ],
+            1 => array_merge(
+                [
+                    'name' => 'required|string|max:255',
+                    'short_description' => 'nullable|string|max:500',
+                    'description' => 'nullable|string',
+                    'type' => 'required|in:tournament,league,camp,clinic,social,other',
+                    'start_date' => 'required|date|after:today',
+                    'end_date' => 'required|date|after_or_equal:start_date',
+                    'language' => 'required|in:' . implode(',', ContentLanguage::values()),
+                ],
+                $this->translatableValidationRules(
+                    ['name' => 'required|string|max:255', 'short_description' => 'nullable|string|max:500', 'description' => 'nullable|string'],
+                    $this->language,
+                ),
+            ),
             2 => [
                 'venue_name' => 'nullable|string|max:255',
                 'venue_address' => 'nullable|string',
