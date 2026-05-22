@@ -164,7 +164,7 @@ class LangFileParser
         $dynamicCount = 0;
         $dynamicFiles = [];
 
-        $directories = [base_path('app'), base_path('resources')];
+        $directories = [base_path('app'), base_path('resources'), base_path('config')];
 
         foreach ($directories as $baseDir) {
             if (! is_dir($baseDir)) {
@@ -185,38 +185,55 @@ class LangFileParser
                 $relativePath = str_replace(base_path() . '/', '', $file->getPathname());
 
                 // Static patterns: __('domain.key') and __("domain.key")
-                if (preg_match_all("/__\(\s*'([a-z_]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                // Domain names may contain hyphens (e.g. cookie-consent)
+                if (preg_match_all("/__\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath);
                     }
                 }
 
-                if (preg_match_all('/__\(\s*"([a-z_]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath);
                     }
                 }
 
                 // Also match trans_choice('domain.key', ...) and trans('domain.key')
-                if (preg_match_all("/trans_choice\(\s*'([a-z_]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                if (preg_match_all("/trans_choice\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath);
                     }
                 }
 
-                if (preg_match_all("/trans_choice\(\s*\"([a-z_]+\.[a-z0-9_-]+)\"/", $content, $matches)) {
+                if (preg_match_all("/trans_choice\(\s*\"([a-z_-]+\.[a-z0-9_-]+)\"/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath);
                     }
                 }
 
-                if (preg_match_all("/\btrans\(\s*'([a-z_]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                if (preg_match_all("/\btrans\(\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
                     foreach ($matches[1] as $key) {
                         $this->addKeyReference($keys, $key, $relativePath);
                     }
                 }
 
-                // Dynamic patterns: __($variable)
+                if (preg_match_all('/\btrans\(\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                // Config-indirect references: translation keys assigned to config fields
+                // like 'label_key', 'description_key', etc. These are resolved at runtime
+                // by packages and never appear in __() calls directly.
+                // Only register the specific value assigned to these fields, not all
+                // domain.key strings in the file.
+                if (preg_match_all("/['\"](?:label_key|description_key|title_key|message_key)['\"]\\s*=>\\s*['\"]([a-z_-]+\\.[a-z0-9_-]+)['\"]/", $content, $matches)) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath . ' (config-indirect)');
+                    }
+                }
+
                 // Skip self — LangFileParser matches its own regex patterns
                 if (str_contains($relativePath, 'LangFileParser.php')) {
                     continue;
@@ -231,7 +248,7 @@ class LangFileParser
                 // Extracts the partial prefix so dead-string detection can match keys starting with it.
                 // e.g. __('games.status_' . $game->status) → registers 'games.status_' as dynamic prefix
                 // Also handles: __("domain.prefix_" . $var)
-                if (preg_match_all("/__\(\s*'([a-z_]+\.[a-z0-9_-]*_)'\\s*\\.\\s*\\\$/", $content, $matches)) {
+                if (preg_match_all("/__\(\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\.\\s*\\\$/", $content, $matches)) {
                     foreach ($matches[1] as $prefix) {
                         $dot = strpos($prefix, '.');
                         $domain = substr($prefix, 0, $dot);
@@ -240,8 +257,49 @@ class LangFileParser
                     }
                 }
 
-                if (preg_match_all('/__\(\s*"([a-z_]+\.[a-z0-9_-]*_)"\s*\.\s*\$/', $content, $matches)) {
+                if (preg_match_all('/__\(\s*"([a-z_-]+\.[a-z0-9_-]*_)"\s*\.\s*\$/', $content, $matches)) {
                     foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
+                // Ternary-constructed keys: __($cond ? 'domain.key_a' : 'domain.key_b')
+                // Both branches are statically known — register them as used.
+                if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary)');
+                    }
+                }
+
+                if (preg_match_all('/__\([^)]*\?\s*"([a-z_-]+\.[a-z0-9_-]+)"\s*:\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches)) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary)');
+                    }
+                }
+
+                // Mixed ternary: string key on one branch, concatenation on the other
+                // e.g. __($status === 'confirm' ? 'domain.title_confirm' : 'domain.title_' . $status)
+                if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\./", $content, $matches)) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath . ' (ternary-static-branch)');
+                        // Register the dynamic prefix for the other branch
+                        $prefix = $matches[2][$i];
+                        $dot = strpos($prefix, '.');
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
+                if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]*_)'\\s*\\.\\s*[^:]+\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches)) {
+                    for ($i = 0; $i < count($matches[2]); $i++) {
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath . ' (ternary-static-branch)');
+                        $prefix = $matches[1][$i];
                         $dot = strpos($prefix, '.');
                         $domain = substr($prefix, 0, $dot);
                         $keyPrefix = substr($prefix, $dot + 1);
