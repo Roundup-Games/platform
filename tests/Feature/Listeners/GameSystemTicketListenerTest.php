@@ -160,7 +160,7 @@ class GameSystemTicketListenerTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Verify GameSystem was created
-        $gameSystem = GameSystem::where('name', 'Wingspan')->first();
+        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -180,7 +180,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::where('name', 'Wingspan')->first();
+        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
         $this->assertNotNull($gameSystem);
 
         // Verify notification was sent
@@ -204,7 +204,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::where('name', 'Terraforming Mars')->first();
+        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Terraforming Mars'])->first();
         $this->assertNotNull($gameSystem);
         $this->assertStringContainsString('terraforming-mars', $gameSystem->slug);
     }
@@ -227,7 +227,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::where('name', 'Dungeons & Dragons')->first();
+        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Dungeons & Dragons'])->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('ttrpg', $gameSystem->type);
     }
@@ -288,7 +288,7 @@ class GameSystemTicketListenerTest extends TestCase
     public function test_duplicate_sends_duplicate_notification(): void
     {
         $existingSystem = GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
         ]);
 
@@ -323,7 +323,7 @@ class GameSystemTicketListenerTest extends TestCase
     public function test_duplicate_does_not_send_rejection_notification(): void
     {
         $existingSystem = GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
         ]);
 
@@ -397,7 +397,7 @@ class GameSystemTicketListenerTest extends TestCase
 
         // Create a GameSystem that would be returned by BGG sync
         GameSystem::factory()->create([
-            'name' => 'Ticket to Ride',
+            'name' => ['en' => 'Ticket to Ride'],
             'slug' => 'ticket-to-ride',
             'bgg_id' => 12345,
         ]);
@@ -442,7 +442,7 @@ class GameSystemTicketListenerTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Should fall back to manual creation
-        $gameSystem = GameSystem::where('name', 'Custom Game')->first();
+        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Custom Game'])->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
     }

@@ -19,9 +19,9 @@ function capacityCreateFullPublicGame(User $owner, GameSystem $system, int $maxP
     $game = Game::create([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Full Public Game',
+        'name' => ['en' => 'Full Public Game'],
         'date_time' => now()->addDays(7),
-        'description' => 'A test game',
+        'description' => ['en' => 'A test game'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',
@@ -76,9 +76,9 @@ describe('ApplyToGame capacity guard', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Public Game With Capacity',
+            'name' => ['en' => 'Public Game With Capacity'],
             'date_time' => now()->addDays(7),
-            'description' => 'A test game',
+            'description' => ['en' => 'A test game'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'scheduled',

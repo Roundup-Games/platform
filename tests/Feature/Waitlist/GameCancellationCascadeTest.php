@@ -23,9 +23,9 @@ function createGameForCancellation(User $owner, GameSystem $system, int $maxPlay
     $game = Game::create([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Test Game',
+        'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(10),
-        'description' => 'A test game',
+        'description' => ['en' => 'A test game'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',
@@ -155,9 +155,9 @@ describe('host cancellation offence', function () {
         $game = Game::create([
             'owner_id' => $host->id,
             'game_system_id' => $gameSystem->id,
-            'name' => 'Late Cancel Game',
+            'name' => ['en' => 'Late Cancel Game'],
             'date_time' => now()->addHours(12),
-            'description' => 'A test game',
+            'description' => ['en' => 'A test game'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'canceled',

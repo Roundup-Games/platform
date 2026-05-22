@@ -11,14 +11,14 @@ use function Pest\Laravel\{actingAs};
 describe('BoardGamesDiscovery', function () {
     it('shows only games — no campaigns appear', function () {
         Game::factory()->create([
-            'name' => 'Public Board Game',
+            'name' => ['en' => 'Public Board Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Hidden Campaign',
+            'name' => ['en' => 'Hidden Campaign'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -29,11 +29,11 @@ describe('BoardGamesDiscovery', function () {
     });
 
     it('filters by game system', function () {
-        $system1 = GameSystem::factory()->create(['name' => 'Ticket to Ride']);
-        $system2 = GameSystem::factory()->create(['name' => 'Wingspan']);
+        $system1 = GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride']]);
+        $system2 = GameSystem::factory()->create(['name' => ['en' => 'Wingspan']]);
 
         Game::factory()->create([
-            'name' => 'TTR Game',
+            'name' => ['en' => 'TTR Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -41,7 +41,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Wingspan Game',
+            'name' => ['en' => 'Wingspan Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -64,7 +64,7 @@ describe('BoardGamesDiscovery', function () {
 
         // Only create a boardgame system game — recommendations should include it
         Game::factory()->create([
-            'name' => 'Recommended Board Game',
+            'name' => ['en' => 'Recommended Board Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -84,7 +84,7 @@ describe('BoardGamesDiscovery', function () {
         $user->favoriteGameSystems()->attach($ttrpgSystem->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'TTRPG Only Game',
+            'name' => ['en' => 'TTRPG Only Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -99,7 +99,7 @@ describe('BoardGamesDiscovery', function () {
 
     it('filters by experience level', function () {
         Game::factory()->create([
-            'name' => 'Beginner Game',
+            'name' => ['en' => 'Beginner Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -107,7 +107,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Expert Game',
+            'name' => ['en' => 'Expert Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -122,7 +122,7 @@ describe('BoardGamesDiscovery', function () {
 
     it('filters by language', function () {
         Game::factory()->create([
-            'name' => 'English Game',
+            'name' => ['en' => 'English Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -130,7 +130,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'German Game',
+            'name' => ['en' => 'German Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -145,7 +145,7 @@ describe('BoardGamesDiscovery', function () {
 
     it('filters by complexity range', function () {
         Game::factory()->create([
-            'name' => 'Light Game',
+            'name' => ['en' => 'Light Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -153,7 +153,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Heavy Game',
+            'name' => ['en' => 'Heavy Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -174,7 +174,7 @@ describe('BoardGamesDiscovery', function () {
         $user->favoriteGameSystems()->attach($favSystem->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Fav System Game',
+            'name' => ['en' => 'Fav System Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -182,7 +182,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Other System Game',
+            'name' => ['en' => 'Other System Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -208,7 +208,7 @@ describe('BoardGamesDiscovery', function () {
         $user->favoriteGameSystems()->attach($avoidSystem->id, ['preference_type' => 'avoid']);
 
         Game::factory()->create([
-            'name' => 'Fav Game',
+            'name' => ['en' => 'Fav Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -216,7 +216,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Avoid Game',
+            'name' => ['en' => 'Avoid Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -242,7 +242,7 @@ describe('BoardGamesDiscovery', function () {
         $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Recommended Board Game',
+            'name' => ['en' => 'Recommended Board Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -250,7 +250,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Hidden Campaign',
+            'name' => ['en' => 'Hidden Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $system->id,
@@ -274,7 +274,7 @@ describe('BoardGamesDiscovery', function () {
         $otherSystem = GameSystem::factory()->create(['type' => 'boardgame']);
 
         Game::factory()->create([
-            'name' => 'Categorized Game',
+            'name' => ['en' => 'Categorized Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -282,7 +282,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Uncategorized Game',
+            'name' => ['en' => 'Uncategorized Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -302,7 +302,7 @@ describe('BoardGamesDiscovery', function () {
         $otherSystem = GameSystem::factory()->create(['type' => 'boardgame']);
 
         Game::factory()->create([
-            'name' => 'Mechanic Game',
+            'name' => ['en' => 'Mechanic Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -310,7 +310,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'No Mechanic Game',
+            'name' => ['en' => 'No Mechanic Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -334,7 +334,7 @@ describe('BoardGamesDiscovery', function () {
         $otherSystem->categories()->attach($category->id);
 
         Game::factory()->create([
-            'name' => 'Both Filters Game',
+            'name' => ['en' => 'Both Filters Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -342,7 +342,7 @@ describe('BoardGamesDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Category Only Game',
+            'name' => ['en' => 'Category Only Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),

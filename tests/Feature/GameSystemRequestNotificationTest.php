@@ -63,7 +63,7 @@ describe('Database channel persistence', function () {
         $ticket = createGameSystemRequestTicket($this->user, $this->department, [
             'subject' => 'Game System Request: Catan',
         ]);
-        $gameSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
 
         $this->user->notifyNow(new GameSystemRequestApproved($ticket, $gameSystem));
 
@@ -116,7 +116,7 @@ describe('Database channel persistence', function () {
         $ticket = createGameSystemRequestTicket($this->user, $this->department, [
             'subject' => 'Game System Request: Catan',
         ]);
-        $existingSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
+        $existingSystem = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
 
         $this->user->notifyNow(new GameSystemRequestDuplicate($ticket, $existingSystem));
 
@@ -139,7 +139,7 @@ describe('Mail channel rendering', function () {
         $ticket = createGameSystemRequestTicket($user, $this->department, [
             'subject' => 'Game System Request: Catan',
         ]);
-        $gameSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
 
         $mail = (new GameSystemRequestApproved($ticket, $gameSystem))->toMail($user);
 
@@ -182,7 +182,7 @@ describe('Mail channel rendering', function () {
         $ticket = createGameSystemRequestTicket($user, $this->department, [
             'subject' => 'Game System Request: Catan',
         ]);
-        $existingSystem = GameSystem::factory()->create(['name' => 'Catan', 'slug' => 'catan']);
+        $existingSystem = GameSystem::factory()->create(['name' => ['en' => 'Catan'], 'slug' => 'catan']);
 
         $mail = (new GameSystemRequestDuplicate($ticket, $existingSystem))->toMail($user);
 
@@ -200,7 +200,7 @@ describe('End-to-end dispatch via NotificationService', function () {
         $ticket = createGameSystemRequestTicket($user, $this->department, [
             'subject' => 'Game System Request: Twilight Imperium',
         ]);
-        $gameSystem = GameSystem::factory()->create(['name' => 'Twilight Imperium', 'slug' => 'twilight-imperium']);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Twilight Imperium'], 'slug' => 'twilight-imperium']);
 
         app(NotificationService::class)->send(
             $user,
@@ -243,7 +243,7 @@ describe('End-to-end dispatch via NotificationService', function () {
         $ticket = createGameSystemRequestTicket($user, $this->department, [
             'subject' => 'Game System Request: Checkers',
         ]);
-        $existingSystem = GameSystem::factory()->create(['name' => 'Checkers', 'slug' => 'checkers']);
+        $existingSystem = GameSystem::factory()->create(['name' => ['en' => 'Checkers'], 'slug' => 'checkers']);
 
         app(NotificationService::class)->send(
             $user,

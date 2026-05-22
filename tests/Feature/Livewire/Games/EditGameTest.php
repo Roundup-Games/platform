@@ -20,9 +20,9 @@ function createOwnedGame(User $owner, GameSystem $system, array $overrides = [])
     return Game::create(array_merge([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Test Game',
+        'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(7),
-        'description' => 'Original description',
+        'description' => ['en' => 'Original description'],
         'expected_duration' => 2,
         'visibility' => 'public',
         'status' => 'scheduled',

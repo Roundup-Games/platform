@@ -296,7 +296,7 @@ describe('Manage Registrations Edge Cases', function () {
 describe('Event Detail Window Display', function () {
     it('shows registration closed message when window has expired', function () {
         $event = Event::factory()->create([
-            'name' => 'Closed Window Event',
+            'name' => ['en' => 'Closed Window Event'],
             'is_public' => true,
             'status' => 'registration_closed',
             'registration_opens_at' => now()->subDays(14),
@@ -310,7 +310,7 @@ describe('Event Detail Window Display', function () {
     it('shows near capacity warning when event is 90%+ full', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create([
-            'name' => 'Near Full Event',
+            'name' => ['en' => 'Near Full Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'registration_type' => 'individual',

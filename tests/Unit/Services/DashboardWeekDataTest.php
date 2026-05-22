@@ -480,7 +480,7 @@ class DashboardWeekDataTest extends TestCase
     #[Test]
     public function game_data_includes_game_system_name(): void
     {
-        $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
@@ -498,7 +498,7 @@ class DashboardWeekDataTest extends TestCase
     #[Test]
     public function game_data_includes_campaign_name_when_linked(): void
     {
-        $campaign = Campaign::factory()->create(['name' => 'Waterdeep Chronicles']);
+        $campaign = Campaign::factory()->create(['name' => ['en' => 'Waterdeep Chronicles']]);
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
@@ -565,13 +565,13 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
             'date_time' => $dayDate->copy()->setHour(14),
-            'name' => 'Afternoon Game',
+            'name' => ['en' => 'Afternoon Game'],
         ]);
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
             'date_time' => $dayDate->copy()->setHour(19),
-            'name' => 'Evening Game',
+            'name' => ['en' => 'Evening Game'],
         ]);
 
         $result = $this->service->computeWeekData($user);

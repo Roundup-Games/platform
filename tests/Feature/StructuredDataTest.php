@@ -23,7 +23,7 @@ describe('BreadcrumbBuilder', function () {
 
     it('builds correct breadcrumb trail for game-systems.show', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'D&D 5e',
+            'name' => ['en' => 'D&D 5e'],
             'slug' => 'dd-5e-breadcrumb-' . Str::random(6),
         ]);
 
@@ -42,8 +42,8 @@ describe('BreadcrumbBuilder', function () {
 describe('GameSystem Product Schema', function () {
     it('renders Product JSON-LD with name and description', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Catan',
-            'description' => '<p>A classic resource management board game</p>',
+            'name' => ['en' => 'Catan'],
+            'description' => ['en' => '<p>A classic resource management board game</p>'],
             'slug' => 'catan-prod-' . Str::random(6),
         ]);
 
@@ -165,8 +165,8 @@ describe('GameSystem Product Schema', function () {
 describe('Game Event Schema', function () {
     it('renders Event JSON-LD with name and startDate on public game', function () {
         $game = Game::factory()->create([
-            'name' => 'Epic Board Game Night',
-            'description' => 'Join us for an epic session',
+            'name' => ['en' => 'Epic Board Game Night'],
+            'description' => ['en' => 'Join us for an epic session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'expected_duration' => 3.0,
@@ -287,8 +287,8 @@ describe('Game Event Schema', function () {
 describe('Campaign Event Schema', function () {
     it('renders Event JSON-LD for active public campaign', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'Weekly D&D Campaign',
-            'description' => 'An ongoing adventure',
+            'name' => ['en' => 'Weekly D&D Campaign'],
+            'description' => ['en' => 'An ongoing adventure'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -530,8 +530,8 @@ describe('User Person Schema', function () {
             'slug' => 'systems-user-' . Str::random(6),
         ]);
 
-        $system1 = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $system2 = GameSystem::factory()->create(['name' => 'Pathfinder 2e']);
+        $system1 = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
+        $system2 = GameSystem::factory()->create(['name' => ['en' => 'Pathfinder 2e']]);
 
         $user->favoriteGameSystems()->attach([
             $system1->id => ['preference_type' => 'favorite'],
@@ -590,8 +590,8 @@ describe('User Person Schema', function () {
 describe('JSON-LD Structural Validation', function () {
     it('GameSystem page emits valid JSON-LD with Product, AggregateRating, FAQPage, and BreadcrumbList', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Struct Test Game',
-            'description' => '<p>A test game for structural validation</p>',
+            'name' => ['en' => 'Struct Test Game'],
+            'description' => ['en' => '<p>A test game for structural validation</p>'],
             'slug' => 'struct-test-' . Str::random(6),
             'sp_rating' => 4.3,
             'sp_review_count' => 42,
@@ -652,8 +652,8 @@ describe('JSON-LD Structural Validation', function () {
         ]);
         $owner = User::factory()->create(['name' => 'Event Host']);
         $game = Game::factory()->create([
-            'name' => 'Structured Event Test',
-            'description' => 'A test event',
+            'name' => ['en' => 'Structured Event Test'],
+            'description' => ['en' => 'A test event'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'expected_duration' => 2.5,
@@ -716,7 +716,7 @@ describe('JSON-LD Structural Validation', function () {
 
     it('Campaign page emits valid Event JSON-LD', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'Campaign Event Test',
+            'name' => ['en' => 'Campaign Event Test'],
             'visibility' => 'public',
             'status' => 'active',
         ]);

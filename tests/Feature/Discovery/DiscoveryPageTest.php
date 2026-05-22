@@ -15,14 +15,14 @@ describe('DiscoveryPage', function () {
 
     it('shows both games and campaigns in all mode', function () {
         $game = Game::factory()->create([
-            'name' => 'Public Game Session',
+            'name' => ['en' => 'Public Game Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         $campaign = Campaign::factory()->create([
-            'name' => 'Public Campaign',
+            'name' => ['en' => 'Public Campaign'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -34,14 +34,14 @@ describe('DiscoveryPage', function () {
 
     it('filters to games only when mode is games', function () {
         Game::factory()->create([
-            'name' => 'Visible Game',
+            'name' => ['en' => 'Visible Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Hidden Campaign',
+            'name' => ['en' => 'Hidden Campaign'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -54,14 +54,14 @@ describe('DiscoveryPage', function () {
 
     it('filters to campaigns only when mode is campaigns', function () {
         Game::factory()->create([
-            'name' => 'Hidden Game',
+            'name' => ['en' => 'Hidden Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Visible Campaign',
+            'name' => ['en' => 'Visible Campaign'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -74,14 +74,14 @@ describe('DiscoveryPage', function () {
 
     it('filters by search query', function () {
         Game::factory()->create([
-            'name' => 'Dragonslayer Quest',
+            'name' => ['en' => 'Dragonslayer Quest'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Game::factory()->create([
-            'name' => 'Unrelated Session',
+            'name' => ['en' => 'Unrelated Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -95,14 +95,14 @@ describe('DiscoveryPage', function () {
 
     it('hides private games and campaigns', function () {
         Game::factory()->create([
-            'name' => 'Private Game',
+            'name' => ['en' => 'Private Game'],
             'visibility' => 'private',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Private Campaign',
+            'name' => ['en' => 'Private Campaign'],
             'visibility' => 'private',
             'status' => 'active',
         ]);
@@ -120,7 +120,7 @@ describe('DiscoveryPage', function () {
         $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Recommended Game',
+            'name' => ['en' => 'Recommended Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -135,14 +135,14 @@ describe('DiscoveryPage', function () {
 
     it('filters games by date this week', function () {
         Game::factory()->create([
-            'name' => 'This Week Game',
+            'name' => ['en' => 'This Week Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(5)),
         ]);
 
         Game::factory()->create([
-            'name' => 'Next Month Game',
+            'name' => ['en' => 'Next Month Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addMonths(2),
@@ -156,14 +156,14 @@ describe('DiscoveryPage', function () {
 
     it('filters campaigns by recurrence', function () {
         Campaign::factory()->create([
-            'name' => 'Weekly Campaign',
+            'name' => ['en' => 'Weekly Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'recurrence' => 'weekly',
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Monthly Campaign',
+            'name' => ['en' => 'Monthly Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'recurrence' => 'monthly',
@@ -219,7 +219,7 @@ describe('DiscoveryPage', function () {
 
     it('filters vibe flags across both games and campaigns', function () {
         Game::factory()->create([
-            'name' => 'Cooperative Game',
+            'name' => ['en' => 'Cooperative Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -227,14 +227,14 @@ describe('DiscoveryPage', function () {
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Cooperative Campaign',
+            'name' => ['en' => 'Cooperative Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'vibe_flags' => ['cooperative', 'story-rich'],
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Competitive Campaign',
+            'name' => ['en' => 'Competitive Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'vibe_flags' => ['competitive', 'tactical'],
@@ -249,16 +249,16 @@ describe('DiscoveryPage', function () {
 
     it('searches across both games and campaigns by description', function () {
         Game::factory()->create([
-            'name' => 'Regular Game',
-            'description' => 'An epic adventure through forgotten realms',
+            'name' => ['en' => 'Regular Game'],
+            'description' => ['en' => 'An epic adventure through forgotten realms'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Regular Campaign',
-            'description' => 'A completely different sci-fi setting',
+            'name' => ['en' => 'Regular Campaign'],
+            'description' => ['en' => 'A completely different sci-fi setting'],
             'visibility' => 'public',
             'status' => 'active',
         ]);
@@ -271,13 +271,13 @@ describe('DiscoveryPage', function () {
 
     it('recommends games for expansion game systems when user favors base game', function () {
         $user = User::factory()->create(['profile_complete' => true]);
-        $baseSystem = GameSystem::factory()->create(['name' => 'Base Game']);
-        $expansion = GameSystem::factory()->create(['name' => 'Expansion', 'base_game_id' => $baseSystem->id]);
+        $baseSystem = GameSystem::factory()->create(['name' => ['en' => 'Base Game']]);
+        $expansion = GameSystem::factory()->create(['name' => ['en' => 'Expansion'], 'base_game_id' => $baseSystem->id]);
 
         $user->favoriteGameSystems()->attach($baseSystem->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Expansion Game',
+            'name' => ['en' => 'Expansion Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -294,7 +294,7 @@ describe('DiscoveryPage', function () {
 
     it('recommendations boost vibe items across both games and campaigns', function () {
         $user = User::factory()->create(['profile_complete' => true]);
-        $system = GameSystem::factory()->create(['name' => 'Vibe System']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Vibe System']]);
 
         $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
         $user->vibePreferences()->create([
@@ -303,7 +303,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Boosted Game',
+            'name' => ['en' => 'Boosted Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -312,7 +312,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Boosted Campaign',
+            'name' => ['en' => 'Boosted Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $system->id,
@@ -320,7 +320,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Fallback Game',
+            'name' => ['en' => 'Fallback Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(4),
@@ -350,15 +350,15 @@ describe('DiscoveryPage', function () {
 
     it('implied favorites from expansion are excluded if expansion system is also avoided', function () {
         $user = User::factory()->create(['profile_complete' => true]);
-        $baseSystem = GameSystem::factory()->create(['name' => 'Base System']);
-        $expansion = GameSystem::factory()->create(['name' => 'Expansion', 'base_game_id' => $baseSystem->id]);
+        $baseSystem = GameSystem::factory()->create(['name' => ['en' => 'Base System']]);
+        $expansion = GameSystem::factory()->create(['name' => ['en' => 'Expansion'], 'base_game_id' => $baseSystem->id]);
 
         $user->favoriteGameSystems()->attach($baseSystem->id, ['preference_type' => 'favorite']);
         // Avoid the expansion — avoid wins over implied favorite
         $user->avoidedGameSystems()->attach($expansion->id, ['preference_type' => 'avoid']);
 
         Game::factory()->create([
-            'name' => 'Base System Game',
+            'name' => ['en' => 'Base System Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -366,7 +366,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Expansion Game',
+            'name' => ['en' => 'Expansion Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(4),
@@ -459,7 +459,7 @@ describe('DiscoveryPage', function () {
             'longitude' => 13.4100,
         ]);
         Game::factory()->create([
-            'name' => 'Nearby Berlin Game',
+            'name' => ['en' => 'Nearby Berlin Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -472,7 +472,7 @@ describe('DiscoveryPage', function () {
             'longitude' => 11.5820,
         ]);
         Game::factory()->create([
-            'name' => 'Far Munich Game',
+            'name' => ['en' => 'Far Munich Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),

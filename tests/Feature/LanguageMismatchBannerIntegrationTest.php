@@ -80,7 +80,7 @@ describe('Language mismatch banner on detail pages', function () {
         $organizer = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
             'organizer_id' => $organizer->id,
-            'content_language' => 'de',
+            'language' => 'de',
             'is_public' => true,
         ]);
 

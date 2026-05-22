@@ -60,7 +60,7 @@ describe('CreateGame — TTRPG Selection', function () {
 
 describe('CreateGame — Type Switching', function () {
     it('clears type-specific fields when switching types', function () {
-        $system = GameSystem::factory()->create(['name' => 'Catan']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
 
         createGameComponent()
             ->call('selectType', 'board_game')
@@ -106,13 +106,10 @@ describe('CreateGame — Board Game Creation', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Board Game Night',
-            'owner_id' => $user->id,
-            'game_type' => 'board_game',
-        ]);
-
-        $game = Game::where('name', 'Board Game Night')->first();
+        $game = Game::whereRaw("name->>'en' = ?", ['Board Game Night'])->first();
+        expect($game)->not->toBeNull()
+            ->and($game->owner_id)->toBe($user->id)
+            ->and($game->game_type->value)->toBe('board_game');
         expect($game->safety_rules)->toBe(['comfort_notes' => 'Keep it light and fun']);
     })->group('smoke');
 });
@@ -136,14 +133,12 @@ describe('CreateGame — TTRPG Creation', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Dungeon Crawl',
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-            'experience_level' => 'intermediate',
-        ]);
+        $game = Game::whereRaw("name->>'en' = ?", ['Dungeon Crawl'])->first();
+        expect($game)->not->toBeNull()
+            ->and($game->owner_id)->toBe($user->id)
+            ->and($game->game_type->value)->toBe('ttrpg')
+            ->and($game->experience_level)->toBe('intermediate');
 
-        $game = Game::where('name', 'Dungeon Crawl')->first();
         expect($game->safety_rules['tools'])->toContain('x-card', 'lines-veils');
     })->group('smoke');
 
@@ -210,14 +205,14 @@ describe('CreateGame — Analytics', function () {
 describe('CreateGame — Clone Source', function () {
     it('pre-fills all fields from a TTRPG clone source except date_time', function () {
         $user = createGameTestUser();
-        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
         $location = \App\Models\Location::factory()->create();
 
         $source = Game::factory()->create([
             'owner_id' => $user->id,
             'game_type' => 'ttrpg',
-            'name' => 'Epic Campaign',
-            'description' => 'An epic adventure awaits',
+            'name' => ['en' => 'Epic Campaign'],
+            'description' => ['en' => 'An epic adventure awaits'],
             'game_system_id' => $system->id,
             'location_id' => $location->id,
             'price' => 5.00,
@@ -258,12 +253,12 @@ describe('CreateGame — Clone Source', function () {
 
     it('pre-fills board game clone with comfort notes and clears TTRPG fields on type switch', function () {
         $user = createGameTestUser();
-        $system = GameSystem::factory()->create(['name' => 'Catan']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
 
         $source = Game::factory()->create([
             'owner_id' => $user->id,
             'game_type' => 'board_game',
-            'name' => 'Board Night',
+            'name' => ['en' => 'Board Night'],
             'game_system_id' => $system->id,
             'expected_duration' => 1.5,
             'safety_rules' => ['comfort_notes' => 'Keep it light'],
@@ -313,7 +308,7 @@ describe('CreateGame — Clone Source', function () {
         $source = Game::factory()->create([
             'owner_id' => $user->id,
             'game_type' => 'ttrpg',
-            'name' => 'Repeat Session',
+            'name' => ['en' => 'Repeat Session'],
             'max_players' => 5,
         ]);
 
@@ -323,15 +318,111 @@ describe('CreateGame — Clone Source', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Repeat Session',
-            'owner_id' => $user->id,
-            'game_type' => 'ttrpg',
-        ]);
-
-        // Ensure the clone created a new game, not updated the source
-        $games = Game::where('name', 'Repeat Session')->get();
+        $games = Game::whereRaw("name->>'en' = ?", ['Repeat Session'])->get();
         expect($games)->toHaveCount(2);
     });
 
+});
+
+// ═══════════════════════════════════════════════════════════
+// TRANSLATABLE FIELDS — NAME & DESCRIPTION ONLY
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateGame — Translatable Fields', function () {
+    it('stores name and description as JSON translations with primary locale', function () {
+        $user = createGameTestUser();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->set('name', 'English Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 4)
+            ->set('language', 'en')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::whereRaw("name->>'en' = ?", ['English Game'])->first();
+        expect($game)->not->toBeNull()
+            ->and($game->getTranslation('name', 'en'))->toBe('English Game');
+    });
+
+    it('stores German translation alongside primary English content', function () {
+        $user = createGameTestUser();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class)
+            ->call('selectType', 'board_game')
+            ->set('name', 'English Game')
+            ->set('description', 'English description')
+            ->set('pendingTranslations.de.name', 'Deutsches Spiel')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 4)
+            ->set('language', 'en')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::whereRaw("name->>'en' = ?", ['English Game'])->first();
+        expect($game)->not->toBeNull()
+            ->and($game->getTranslation('name', 'en'))->toBe('English Game')
+            ->and($game->getTranslation('name', 'de'))->toBe('Deutsches Spiel')
+            ->and($game->getTranslation('description', 'en'))->toBe('English description')
+            ->and($game->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
+    });
+
+    it('stores name and description for German-primary game with no _de fields needed', function () {
+        $user = createGameTestUser();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(CreateGame::class)
+            ->call('selectType', 'ttrpg')
+            ->set('name', 'Deutsches Abenteuer')
+            ->set('description', 'Ein großes Abenteuer')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 5)
+            ->set('language', 'de')
+            ->call('save')
+            ->assertRedirect();
+
+        $game = Game::whereRaw("name->>'de' = ?", ['Deutsches Abenteuer'])->first();
+        expect($game)->not->toBeNull()
+            ->and($game->language)->toBe('de')
+            ->and($game->getTranslation('name', 'de'))->toBe('Deutsches Abenteuer')
+            ->and($game->getTranslation('description', 'de'))->toBe('Ein großes Abenteuer');
+    });
+
+    it('accepts valid pendingTranslations.de fields without errors', function () {
+        createGameComponent()
+            ->call('selectType', 'board_game')
+            ->set('name', 'Test Game')
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 4)
+            ->set('language', 'en')
+            ->set('pendingTranslations.de.name', 'Deutsches Spiel')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+
+    it('renders pendingTranslations fields for name and description in the form', function () {
+        $html = createGameComponent()
+            ->call('selectType', 'board_game')
+            ->html();
+
+        expect($html)
+            ->toContain('pendingTranslations')
+            ->toContain('switchLocale');
+    });
+
+    it('does NOT render _de fields for non-translatable fields', function () {
+        $html = createGameComponent()
+            ->call('selectType', 'ttrpg')
+            ->html();
+
+        expect($html)
+            ->not->toContain('safety_rules_de')
+            ->not->toContain('minimum_requirements_de')
+            ->not->toContain('recap_de');
+    });
 });

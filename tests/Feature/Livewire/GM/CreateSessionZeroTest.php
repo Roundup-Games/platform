@@ -91,7 +91,7 @@ describe('CreateSessionZero Form Rendering', function () {
         $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
-            'name' => 'Dragon Heist',
+            'name' => ['en' => 'Dragon Heist'],
         ]);
 
         $this->actingAs($gm)
@@ -105,7 +105,7 @@ describe('CreateSessionZero Form Rendering', function () {
         $otherGm = $this->createSubscribedGm(['name' => 'Other GM']);
         $game = Game::factory()->create([
             'owner_id' => $otherGm->id,
-            'name' => 'Other Game',
+            'name' => ['en' => 'Other Game'],
         ]);
 
         Livewire::actingAs($gm)

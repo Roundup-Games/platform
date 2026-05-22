@@ -26,7 +26,7 @@ describe('RegisterForEvent', function () {
     it('renders registration form for open events', function () {
         $user = User::factory()->create(['profile_complete' => true]);
         $event = Event::factory()->create([
-            'name' => 'Open Tournament',
+            'name' => ['en' => 'Open Tournament'],
             'status' => 'registration_open',
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDays(7),

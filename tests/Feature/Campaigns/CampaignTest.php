@@ -64,15 +64,14 @@ describe('CreateCampaign Component', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'Curse of Strahd',
-            'owner_id' => $user->id,
-            'game_system_id' => $system->id,
-            'recurrence' => 'weekly',
-            'time_of_day' => '20:00',
-            'visibility' => 'protected',
-            'status' => 'active',
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('Curse of Strahd');
+        expect($campaign->owner_id)->toBe($user->id);
+        expect($campaign->game_system_id)->toBe($system->id);
+        expect($campaign->recurrence)->toBe('weekly');
+        expect($campaign->time_of_day)->toBe('20:00');
+        expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
+        expect($campaign->status)->toBe(\App\Enums\CampaignStatus::Active);
     });
 
     it('creates campaign with minimum required fields', function () {
@@ -86,11 +85,9 @@ describe('CreateCampaign Component', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'Simple Campaign',
-            'owner_id' => $user->id,
-            'status' => 'active',
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('Simple Campaign');
+        expect($campaign->status)->toBe(\App\Enums\CampaignStatus::Active);
     });
 
     it('gates public visibility for non-approved users', function () {
@@ -105,7 +102,7 @@ describe('CreateCampaign Component', function () {
             ->call('save');
 
         // Should be downgraded to protected since user lacks can_create_public_entries
-        $campaign = Campaign::where('name', 'Gated Campaign')->first();
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
         expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
     });
 
@@ -117,7 +114,7 @@ describe('CreateCampaign Component', function () {
 
 describe('Campaign Detail Route', function () {
     it('shows public campaign via Livewire component', function () {
-        $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => 'Open Campaign']);
+        $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => ['en' => 'Open Campaign']]);
 
         Livewire\Livewire::test(\App\Livewire\Campaigns\PublicCampaignDetail::class, ['id' => $campaign->id])
             ->assertOk()
@@ -222,11 +219,12 @@ describe('AddSessionToCampaign — Creation', function () {
             ->assertRedirect();
 
         assertDatabaseHas('games', [
-            'name' => 'Session 3 — The Lost Temple',
             'campaign_id' => $campaign->id,
             'owner_id' => $owner->id,
             'status' => 'scheduled',
         ]);
+        $game = Game::where('campaign_id', $campaign->id)->where('owner_id', $owner->id)->firstOrFail();
+        expect($game->name)->toBe('Session 3 — The Lost Temple');
     });
 
     it('inherits campaign metadata on created game', function () {
@@ -314,5 +312,96 @@ describe('AddSessionToCampaign — Creation', function () {
             ->set('name', 'Boardgame System Session')
             ->set('date_time', now()->addMonths(4)->format('Y-m-d H:i'))
             ->call('save');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CREATE CAMPAIGN — TRANSLATABLE FIELDS (name & description only)
+// ═══════════════════════════════════════════════════════════
+
+describe('CreateCampaign — Translatable Fields', function () {
+    it('stores name and description as JSON translations with primary locale', function () {
+        $user = campaignTestCreateOwner();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'English Campaign')
+            ->set('description', 'English description')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('language', 'en')
+            ->call('save')
+            ->assertRedirect();
+
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('English Campaign')
+            ->and($campaign->getTranslation('description', 'en'))->toBe('English description');
+    });
+
+    it('stores German translation alongside primary English content', function () {
+        $user = campaignTestCreateOwner();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'English Campaign')
+            ->set('description', 'English description')
+            ->set('pendingTranslations.de.name', 'Deutsche Kampagne')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('language', 'en')
+            ->call('save')
+            ->assertRedirect();
+
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('English Campaign')
+            ->and($campaign->getTranslation('name', 'de'))->toBe('Deutsche Kampagne')
+            ->and($campaign->getTranslation('description', 'en'))->toBe('English description')
+            ->and($campaign->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
+    });
+
+    it('stores name and description for German-primary campaign', function () {
+        $user = campaignTestCreateOwner();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Deutsche Kampagne')
+            ->set('description', 'Eine großartige Kampagne')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('language', 'de')
+            ->call('save')
+            ->assertRedirect();
+
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'de'))->toBe('Deutsche Kampagne')
+            ->and($campaign->getTranslation('description', 'de'))->toBe('Eine großartige Kampagne');
+    });
+
+    it('accepts valid pendingTranslations.de fields without errors', function () {
+        $user = campaignTestCreateOwner();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->set('name', 'Test Campaign')
+            ->set('recurrence', 'weekly')
+            ->set('time_of_day', '19:00')
+            ->set('language', 'en')
+            ->set('pendingTranslations.de.name', 'Deutsche Kampagne')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->call('save')
+            ->assertHasNoErrors();
+    });
+
+    it('does NOT expose _de fields for safety_rules or minimum_requirements', function () {
+        $user = campaignTestCreateOwner();
+
+        $html = Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->html();
+
+        expect($html)
+            ->not->toContain('safety_rules_de')
+            ->not->toContain('minimum_requirements_de');
     });
 });

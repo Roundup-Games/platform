@@ -150,14 +150,14 @@ class DashboardFeedDataTest extends TestCase
 
         $older = Game::factory()->create([
             'owner_id' => $friend->id,
-            'name' => 'Older Game',
+            'name' => ['en' => 'Older Game'],
             'status' => GameStatus::Scheduled,
             'created_at' => now()->subDay(),
         ]);
 
         $newer = Game::factory()->create([
             'owner_id' => $friend->id,
-            'name' => 'Newer Game',
+            'name' => ['en' => 'Newer Game'],
             'status' => GameStatus::Scheduled,
             'created_at' => now(),
         ]);
@@ -304,7 +304,7 @@ class DashboardFeedDataTest extends TestCase
             'location' => ['type' => 'offline'],
             'date_time' => now()->addDays(3),
             'created_at' => now()->subDay(),
-            'name' => 'Popular Game',
+            'name' => ['en' => 'Popular Game'],
         ]);
         GameParticipant::factory()->create([
             'game_id' => $popularGame->id,

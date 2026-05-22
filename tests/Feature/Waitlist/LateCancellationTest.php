@@ -23,9 +23,9 @@ function createGameForLateCancel(User $owner, GameSystem $system, array $overrid
     return Game::create([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Test Game',
+        'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(7),
-        'description' => 'A test game',
+        'description' => ['en' => 'A test game'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',

@@ -104,7 +104,7 @@ describe('CreateEvent', function () {
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::where('name', 'Test Tournament')->first();
+        $event = Event::whereRaw("name->>'en' = ?", ['Test Tournament'])->first();
         expect($event)->not->toBeNull();
         expect($event->organizer_id)->toBe($user->id);
         expect($event->status)->toBe(EventStatus::Draft);
@@ -134,7 +134,7 @@ describe('CreateEvent', function () {
             ->set('registration_type', 'team')
             ->call('create');
 
-        $event = Event::where('name', 'Division Event')->first();
+        $event = Event::whereRaw("name->>'en' = ?", ['Division Event'])->first();
         expect($event->divisions)->toHaveCount(2);
         expect($event->divisions[0]['name'])->toBe('Open');
     });
@@ -156,7 +156,7 @@ describe('CreateEvent', function () {
             ->set('rules', "Rule one\nRule two\nRule three")
             ->call('create');
 
-        $event = Event::where('name', 'Rules Event')->first();
+        $event = Event::whereRaw("name->>'en' = ?", ['Rules Event'])->first();
         expect($event->rules)->toHaveCount(3);
         expect($event->rules[0])->toBe('Rule one');
     });
@@ -182,7 +182,7 @@ describe('CreateEvent', function () {
             ->set('registration_closes_at', $closesAt)
             ->call('create');
 
-        $event = Event::where('name', 'Window Event')->first();
+        $event = Event::whereRaw("name->>'en' = ?", ['Window Event'])->first();
         expect($event->registration_opens_at)->not->toBeNull();
         expect($event->registration_closes_at)->not->toBeNull();
     });
@@ -265,7 +265,7 @@ describe('ManageEvent', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
             ->call('publishEvent');
 
-        expect($event->fresh()->status)->toBe('published');
+        expect($event->fresh()->status)->toBe(EventStatus::Published);
     });
 
     it('opens registration', function () {
@@ -279,7 +279,7 @@ describe('ManageEvent', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
             ->call('openRegistration');
 
-        expect($event->fresh()->status)->toBe('registration_open');
+        expect($event->fresh()->status)->toBe(EventStatus::RegistrationOpen);
     });
 
     it('closes registration', function () {
@@ -293,7 +293,7 @@ describe('ManageEvent', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
             ->call('closeRegistration');
 
-        expect($event->fresh()->status)->toBe('registration_closed');
+        expect($event->fresh()->status)->toBe(EventStatus::RegistrationClosed);
     });
 
     it('cancels an event', function () {
@@ -307,7 +307,7 @@ describe('ManageEvent', function () {
         Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
             ->call('cancelEvent');
 
-        expect($event->fresh()->status)->toBe('cancelled');
+        expect($event->fresh()->status)->toBe(EventStatus::Cancelled);
     });
 });
 

@@ -84,7 +84,7 @@ it('maps each ActivityType to the correct PostHog event name through ActivityLog
 
 it('enriches GameCreated with game_system, visibility, and max_players properties', function () {
     $user = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'Pathfinder 2e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Pathfinder 2e']]);
     $game = Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,
@@ -119,7 +119,7 @@ it('enriches GameCreated with game_system, visibility, and max_players propertie
 
 it('enriches PlayerJoined with game_system and participant_role', function () {
     $user = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
     $game = Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,
@@ -283,7 +283,7 @@ it('does not forward when API key is null', function () {
 
 it('bridge captures server-side events distinct from autocapture UI events', function () {
     $user = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
     $game = Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,
@@ -370,7 +370,7 @@ it('dispatches EnrichPostHogProfile for team group analytics on GameCreated', fu
         'joined_at' => now(),
     ]);
 
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
     $game = Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,
@@ -392,7 +392,7 @@ it('dispatches EnrichPostHogProfile for team group analytics on GameCreated', fu
 
 it('enriches CampaignCreated with game_system and visibility', function () {
     $user = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'Call of Cthulhu']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Call of Cthulhu']]);
     $campaign = Campaign::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,
@@ -419,7 +419,7 @@ it('enriches CampaignCreated with game_system and visibility', function () {
 it('enriches ReviewReceived with rating and game_system', function () {
     $reviewer = User::factory()->create();
     $gameOwner = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
     $game = Game::factory()->create([
         'owner_id' => $gameOwner->id,
         'game_system_id' => $gameSystem->id,
@@ -469,7 +469,7 @@ it('enriches FollowReceived with actual follower count from DB', function () {
 it('tracks user journey: game created → player joined → session scheduled', function () {
     $owner = User::factory()->create();
     $player = User::factory()->create();
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
 
     // Create game without triggering observers — we're testing explicit
     // service calls, not observer-triggered automatic logging.
@@ -614,7 +614,7 @@ it('enriches team group via EnrichPostHogProfile job for team member', function 
         'joined_at' => now(),
     ]);
 
-    $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
+    $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
     $game = Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $gameSystem->id,

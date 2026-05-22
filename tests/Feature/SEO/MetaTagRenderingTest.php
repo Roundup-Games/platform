@@ -13,7 +13,7 @@ use function Pest\Laravel\{get, actingAs};
 
 describe('GameSystem Detail Meta Tags', function () {
     it('renders correct title tag', function () {
-        $system = GameSystem::factory()->create(['name' => 'Dungeons & Dragons 5e']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Dungeons & Dragons 5e']]);
 
         $response = get(route('game-systems.show', $system->slug));
         $response->assertOk();
@@ -22,8 +22,8 @@ describe('GameSystem Detail Meta Tags', function () {
 
     it('renders meta description from model description', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Test System',
-            'description' => 'An exciting tabletop RPG system.',
+            'name' => ['en' => 'Test System'],
+            'description' => ['en' => 'An exciting tabletop RPG system.'],
         ]);
 
         $response = get(route('game-systems.show', $system->slug));
@@ -33,7 +33,7 @@ describe('GameSystem Detail Meta Tags', function () {
     });
 
     it('renders og:title with entity name', function () {
-        $system = GameSystem::factory()->create(['name' => 'OG Title System']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'OG Title System']]);
 
         $response = get(route('game-systems.show', $system->slug));
         $response->assertOk();
@@ -42,8 +42,8 @@ describe('GameSystem Detail Meta Tags', function () {
 
     it('renders og:description meta tag', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'OG Desc System',
-            'description' => 'OG description content',
+            'name' => ['en' => 'OG Desc System'],
+            'description' => ['en' => 'OG description content'],
         ]);
 
         $response = get(route('game-systems.show', $system->slug));
@@ -172,7 +172,7 @@ describe('Event Detail Meta Tags', function () {
 describe('Game Detail Meta Tags', function () {
     it('renders correct title tag', function () {
         $game = Game::factory()->create([
-            'name' => 'Epic Board Game Night',
+            'name' => ['en' => 'Epic Board Game Night'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -183,8 +183,8 @@ describe('Game Detail Meta Tags', function () {
 
     it('renders meta description from game description', function () {
         $game = Game::factory()->create([
-            'name' => 'Fun Game',
-            'description' => 'An exciting evening of board games for all skill levels.',
+            'name' => ['en' => 'Fun Game'],
+            'description' => ['en' => 'An exciting evening of board games for all skill levels.'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -196,7 +196,7 @@ describe('Game Detail Meta Tags', function () {
 
     it('renders og:title with entity name', function () {
         $game = Game::factory()->create([
-            'name' => 'OG Game',
+            'name' => ['en' => 'OG Game'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -207,8 +207,8 @@ describe('Game Detail Meta Tags', function () {
 
     it('renders og:description meta tag', function () {
         $game = Game::factory()->create([
-            'name' => 'OG Desc Game',
-            'description' => 'OG game description content',
+            'name' => ['en' => 'OG Desc Game'],
+            'description' => ['en' => 'OG game description content'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -253,7 +253,7 @@ describe('Game Detail Meta Tags', function () {
 describe('Campaign Detail Meta Tags', function () {
     it('renders correct title tag', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'Curse of Strahd Campaign',
+            'name' => ['en' => 'Curse of Strahd Campaign'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -264,8 +264,8 @@ describe('Campaign Detail Meta Tags', function () {
 
     it('renders meta description from campaign description', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'Described Campaign',
-            'description' => 'A gothic horror adventure set in the land of Barovia.',
+            'name' => ['en' => 'Described Campaign'],
+            'description' => ['en' => 'A gothic horror adventure set in the land of Barovia.'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -277,7 +277,7 @@ describe('Campaign Detail Meta Tags', function () {
 
     it('renders og:title with entity name', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'OG Campaign',
+            'name' => ['en' => 'OG Campaign'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -512,8 +512,8 @@ describe('Static Pages Meta Tags', function () {
 describe('Edge Cases', function () {
     it('strips HTML tags from game description in meta tag', function () {
         $game = Game::factory()->create([
-            'name' => 'HTML Game',
-            'description' => '<p>Join us for <strong>epic</strong> gaming!</p><br>Sign up now.',
+            'name' => ['en' => 'HTML Game'],
+            'description' => ['en' => '<p>Join us for <strong>epic</strong> gaming!</p><br>Sign up now.'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -527,8 +527,8 @@ describe('Edge Cases', function () {
 
     it('strips HTML tags from campaign description in meta tag', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'HTML Campaign',
-            'description' => '<h2>Dark Horror</h2><p>A <em>thrilling</em> adventure</p>',
+            'name' => ['en' => 'HTML Campaign'],
+            'description' => ['en' => '<h2>Dark Horror</h2><p>A <em>thrilling</em> adventure</p>'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -542,7 +542,7 @@ describe('Edge Cases', function () {
 
     it('handles ampersand in game name correctly', function () {
         $game = Game::factory()->create([
-            'name' => 'Catan & Carcassonne Night',
+            'name' => ['en' => 'Catan & Carcassonne Night'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -553,7 +553,7 @@ describe('Edge Cases', function () {
 
     it('handles ampersand in sitemap XML correctly', function () {
         $game = Game::factory()->create([
-            'name' => 'Catan & Carcassonne',
+            'name' => ['en' => 'Catan & Carcassonne'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -567,8 +567,8 @@ describe('Edge Cases', function () {
 
     it('handles double quotes in description', function () {
         $game = Game::factory()->create([
-            'name' => 'Quoted Game',
-            'description' => 'A "fantastic" evening of games',
+            'name' => ['en' => 'Quoted Game'],
+            'description' => ['en' => 'A "fantastic" evening of games'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -582,8 +582,8 @@ describe('Edge Cases', function () {
 
     it('gracefully handles empty description', function () {
         $game = Game::factory()->create([
-            'name' => 'No Desc Game',
-            'description' => '',
+            'name' => ['en' => 'No Desc Game'],
+            'description' => ['en' => ''],
             'visibility' => Visibility::Public,
         ]);
 

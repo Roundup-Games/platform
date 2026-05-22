@@ -16,7 +16,7 @@ describe('GameSystemsPage', function () {
 
     it('shows game systems in a grid', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Gloomhaven',
+            'name' => ['en' => 'Gloomhaven'],
             'bgg_rank' => 1,
             'bgg_average_rating' => 8.75,
             'bgg_average_weight' => 3.86,
@@ -32,13 +32,13 @@ describe('GameSystemsPage', function () {
 
     it('shows active session count badge', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Dungeons & Dragons',
+            'name' => ['en' => 'Dungeons & Dragons'],
             'bgg_rank' => 5,
         ]);
 
         Game::factory()->create([
             'game_system_id' => $system->id,
-            'name' => 'Active Session',
+            'name' => ['en' => 'Active Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -51,15 +51,15 @@ describe('GameSystemsPage', function () {
 
     it('sorts by platform_score with zero scores last', function () {
         $unranked = GameSystem::factory()->create([
-            'name' => 'Unranked Game',
+            'name' => ['en' => 'Unranked Game'],
             'platform_score' => 0,
         ]);
         $midScored = GameSystem::factory()->create([
-            'name' => 'Mid Scored Game',
+            'name' => ['en' => 'Mid Scored Game'],
             'platform_score' => 50,
         ]);
         $topScored = GameSystem::factory()->create([
-            'name' => 'Top Scored Game',
+            'name' => ['en' => 'Top Scored Game'],
             'platform_score' => 100,
         ]);
 
@@ -68,8 +68,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('filters by search query', function () {
-        GameSystem::factory()->create(['name' => 'Catan']);
-        GameSystem::factory()->create(['name' => 'Ticket to Ride']);
+        GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
+        GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('search', 'Catan')
@@ -78,8 +78,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('filters by player count range', function () {
-        $solo = GameSystem::factory()->create(['name' => 'Solo Game', 'min_players' => 1, 'max_players' => 1]);
-        $party = GameSystem::factory()->create(['name' => 'Party Game', 'min_players' => 4, 'max_players' => 10]);
+        $solo = GameSystem::factory()->create(['name' => ['en' => 'Solo Game'], 'min_players' => 1, 'max_players' => 1]);
+        $party = GameSystem::factory()->create(['name' => ['en' => 'Party Game'], 'min_players' => 4, 'max_players' => 10]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('min_players', 5)
@@ -88,8 +88,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('filters by complexity range', function () {
-        $light = GameSystem::factory()->create(['name' => 'Light Game', 'bgg_average_weight' => 1.50]);
-        $heavy = GameSystem::factory()->create(['name' => 'Heavy Game', 'bgg_average_weight' => 4.20]);
+        $light = GameSystem::factory()->create(['name' => ['en' => 'Light Game'], 'bgg_average_weight' => 1.50]);
+        $heavy = GameSystem::factory()->create(['name' => ['en' => 'Heavy Game'], 'bgg_average_weight' => 4.20]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('complexity_min', '3.5')
@@ -99,9 +99,9 @@ describe('GameSystemsPage', function () {
 
     it('filters by category', function () {
         $category = GameSystemCategory::create(['name' => 'Strategy', 'slug' => 'strategy']);
-        $strategy = GameSystem::factory()->create(['name' => 'Strategy Game']);
+        $strategy = GameSystem::factory()->create(['name' => ['en' => 'Strategy Game']]);
         $strategy->categories()->attach($category);
-        $party = GameSystem::factory()->create(['name' => 'Party Game']);
+        $party = GameSystem::factory()->create(['name' => ['en' => 'Party Game']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('toggleCategory', $category->id)
@@ -111,9 +111,9 @@ describe('GameSystemsPage', function () {
 
     it('filters by mechanic', function () {
         $mechanic = GameSystemMechanic::create(['name' => 'Deck Building', 'slug' => 'deck-building']);
-        $deckBuilder = GameSystem::factory()->create(['name' => 'Deck Builder']);
+        $deckBuilder = GameSystem::factory()->create(['name' => ['en' => 'Deck Builder']]);
         $deckBuilder->mechanics()->attach($mechanic);
-        $worker = GameSystem::factory()->create(['name' => 'Worker Placement']);
+        $worker = GameSystem::factory()->create(['name' => ['en' => 'Worker Placement']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('toggleMechanic', $mechanic->id)
@@ -122,8 +122,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('clears all filters', function () {
-        GameSystem::factory()->create(['name' => 'Alpha Game']);
-        GameSystem::factory()->create(['name' => 'Beta Game']);
+        GameSystem::factory()->create(['name' => ['en' => 'Alpha Game']]);
+        GameSystem::factory()->create(['name' => ['en' => 'Beta Game']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('search', 'Alpha')
@@ -141,7 +141,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('clicking a system links to its detail page', function () {
-        $system = GameSystem::factory()->create(['name' => 'Linkable Game']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Linkable Game']]);
 
         get(route('game-systems'))
             ->assertOk()
@@ -168,8 +168,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('filters by type boardgame', function () {
-        $boardGame = GameSystem::factory()->create(['name' => 'Chess Classic', 'type' => 'boardgame']);
-        $ttrpg = GameSystem::factory()->create(['name' => 'Dragon Quest RPG', 'type' => 'ttrpg']);
+        $boardGame = GameSystem::factory()->create(['name' => ['en' => 'Chess Classic'], 'type' => 'boardgame']);
+        $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'Dragon Quest RPG'], 'type' => 'ttrpg']);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('setType', 'boardgame')
@@ -178,8 +178,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('filters by type ttrpg', function () {
-        $boardGame = GameSystem::factory()->create(['name' => 'Checkers Fun', 'type' => 'boardgame']);
-        $ttrpg = GameSystem::factory()->create(['name' => 'Epic Adventures', 'type' => 'ttrpg']);
+        $boardGame = GameSystem::factory()->create(['name' => ['en' => 'Checkers Fun'], 'type' => 'boardgame']);
+        $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'Epic Adventures'], 'type' => 'ttrpg']);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('setType', 'ttrpg')
@@ -188,8 +188,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('shows all types when type is all', function () {
-        GameSystem::factory()->create(['name' => 'Board Game One', 'type' => 'boardgame']);
-        GameSystem::factory()->create(['name' => 'TTRPG One', 'type' => 'ttrpg']);
+        GameSystem::factory()->create(['name' => ['en' => 'Board Game One'], 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => ['en' => 'TTRPG One'], 'type' => 'ttrpg']);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('type', 'all')
@@ -198,8 +198,8 @@ describe('GameSystemsPage', function () {
     });
 
     it('type filter is included in clearFilters', function () {
-        GameSystem::factory()->create(['name' => 'Board Game X', 'type' => 'boardgame']);
-        GameSystem::factory()->create(['name' => 'TTRPG Y', 'type' => 'ttrpg']);
+        GameSystem::factory()->create(['name' => ['en' => 'Board Game X'], 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => ['en' => 'TTRPG Y'], 'type' => 'ttrpg']);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('setType', 'boardgame')
@@ -217,9 +217,9 @@ describe('GameSystemsPage', function () {
     });
 
     it('falls back to name sort when all scores are 0', function () {
-        $alpha = GameSystem::factory()->create(['name' => 'Alpha Game', 'platform_score' => 0]);
-        $beta = GameSystem::factory()->create(['name' => 'Beta Game', 'platform_score' => 0]);
-        $gamma = GameSystem::factory()->create(['name' => 'Gamma Game', 'platform_score' => 0]);
+        $alpha = GameSystem::factory()->create(['name' => ['en' => 'Alpha Game'], 'platform_score' => 0]);
+        $beta = GameSystem::factory()->create(['name' => ['en' => 'Beta Game'], 'platform_score' => 0]);
+        $gamma = GameSystem::factory()->create(['name' => ['en' => 'Gamma Game'], 'platform_score' => 0]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->assertSeeInOrder(['Alpha Game', 'Beta Game', 'Gamma Game']);
@@ -227,9 +227,9 @@ describe('GameSystemsPage', function () {
 
     it('category filters scope to selected type', function () {
         $strategy = GameSystemCategory::create(['name' => 'Strategy', 'slug' => 'strategy']);
-        $boardGame = GameSystem::factory()->create(['name' => 'Strategy Board Game', 'type' => 'boardgame']);
+        $boardGame = GameSystem::factory()->create(['name' => ['en' => 'Strategy Board Game'], 'type' => 'boardgame']);
         $boardGame->categories()->attach($strategy);
-        $ttrpg = GameSystem::factory()->create(['name' => 'Strategy TTRPG', 'type' => 'ttrpg']);
+        $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'Strategy TTRPG'], 'type' => 'ttrpg']);
         $ttrpg->categories()->attach($strategy);
 
         // When filtering by boardgame type, only boardgame systems should show
@@ -245,10 +245,10 @@ describe('GameSystemsPage', function () {
 
     it('filters by play style in TTRPG mode via category slugs', function () {
         $imaginative = GameSystemCategory::create(['name' => 'Imaginative', 'slug' => 'imaginative']);
-        $narrativeSystem = GameSystem::factory()->create(['name' => 'Narrative RPG', 'type' => 'ttrpg']);
+        $narrativeSystem = GameSystem::factory()->create(['name' => ['en' => 'Narrative RPG'], 'type' => 'ttrpg']);
         $narrativeSystem->categories()->attach($imaginative);
 
-        $otherSystem = GameSystem::factory()->create(['name' => 'Other RPG', 'type' => 'ttrpg']);
+        $otherSystem = GameSystem::factory()->create(['name' => ['en' => 'Other RPG'], 'type' => 'ttrpg']);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('setType', 'ttrpg')
@@ -258,7 +258,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('togglePlayStyle adds and removes play styles', function () {
-        GameSystem::factory()->create(['name' => 'Test']);
+        GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->call('togglePlayStyle', 'narrative-first')
@@ -268,7 +268,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('play styles are included in clearFilters', function () {
-        GameSystem::factory()->create(['name' => 'Test']);
+        GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
         Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class)
             ->set('play_styles', ['horror'])
@@ -277,7 +277,7 @@ describe('GameSystemsPage', function () {
     });
 
     it('play styles count as active filters', function () {
-        GameSystem::factory()->create(['name' => 'Test']);
+        GameSystem::factory()->create(['name' => ['en' => 'Test']]);
 
         $component = Livewire\Livewire::test(App\Livewire\GameSystems\GameSystemsPage::class);
         expect($component->instance()->hasActiveFilters())->toBeFalse();

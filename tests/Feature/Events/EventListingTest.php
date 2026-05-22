@@ -12,7 +12,7 @@ describe('EventListing', function () {
     // smoke: events listing shows public events
     it('lists public events', function () {
         $event = Event::factory()->create([
-            'name' => 'Spring Tournament',
+            'name' => ['en' => 'Spring Tournament'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -23,7 +23,7 @@ describe('EventListing', function () {
 
     it('hides excluded events from listing', function ($overrides) {
         Event::factory()->create(array_merge([
-            'name' => 'Excluded Event',
+            'name' => ['en' => 'Excluded Event'],
             'is_public' => true,
             'status' => 'registration_open',
         ], $overrides));
@@ -37,8 +37,8 @@ describe('EventListing', function () {
     ]);
 
     it('searches by name', function () {
-        Event::factory()->create(['name' => 'Alpha Tournament', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Beta League', 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Alpha Tournament'], 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Beta League'], 'is_public' => true, 'status' => 'registration_open']);
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
             ->set('search', 'Alpha')
@@ -47,8 +47,8 @@ describe('EventListing', function () {
     });
 
     it('filters by type', function () {
-        Event::factory()->create(['name' => 'Tourney A', 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Camp B', 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Tourney A'], 'type' => 'tournament', 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Camp B'], 'type' => 'camp', 'is_public' => true, 'status' => 'registration_open']);
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
             ->set('type', 'tournament')
@@ -57,8 +57,8 @@ describe('EventListing', function () {
     });
 
     it('filters by upcoming date', function () {
-        Event::factory()->create(['name' => 'Future Event', 'start_date' => now()->addDays(30), 'is_public' => true, 'status' => 'registration_open']);
-        Event::factory()->create(['name' => 'Past Event', 'start_date' => now()->subDays(30), 'end_date' => now()->subDays(28), 'is_public' => true, 'status' => 'completed']);
+        Event::factory()->create(['name' => ['en' => 'Future Event'], 'start_date' => now()->addDays(30), 'is_public' => true, 'status' => 'registration_open']);
+        Event::factory()->create(['name' => ['en' => 'Past Event'], 'start_date' => now()->subDays(30), 'end_date' => now()->subDays(28), 'is_public' => true, 'status' => 'completed']);
 
         Livewire\Livewire::test(App\Livewire\Events\EventListing::class)
             ->set('date', 'upcoming')
@@ -67,8 +67,8 @@ describe('EventListing', function () {
     });
 
     it('shows featured events first', function () {
-        $regular = Event::factory()->create(['name' => 'Regular Event', 'is_featured' => false, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(10)]);
-        $featured = Event::factory()->create(['name' => 'Featured Event', 'is_featured' => true, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(20)]);
+        $regular = Event::factory()->create(['name' => ['en' => 'Regular Event'], 'is_featured' => false, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(10)]);
+        $featured = Event::factory()->create(['name' => ['en' => 'Featured Event'], 'is_featured' => true, 'is_public' => true, 'status' => 'registration_open', 'start_date' => now()->addDays(20)]);
 
         $component = Livewire\Livewire::test(App\Livewire\Events\EventListing::class);
         $events = $component->viewData('events');
@@ -82,7 +82,7 @@ describe('EventListing', function () {
 describe('EventDetail', function () {
     it('renders the event detail page for a public event', function () {
         $event = Event::factory()->create([
-            'name' => 'Grand Tournament',
+            'name' => ['en' => 'Grand Tournament'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -94,7 +94,7 @@ describe('EventDetail', function () {
 
     it('shows divisions', function () {
         $event = Event::factory()->create([
-            'name' => 'Division Event',
+            'name' => ['en' => 'Division Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'divisions' => [
@@ -111,7 +111,7 @@ describe('EventDetail', function () {
 
     it('shows schedule items', function () {
         $event = Event::factory()->create([
-            'name' => 'Scheduled Event',
+            'name' => ['en' => 'Scheduled Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'schedule' => [
@@ -129,7 +129,7 @@ describe('EventDetail', function () {
     it('shows capacity bar with registration counts', function () {
         $organizer = User::factory()->create();
         $event = Event::factory()->create([
-            'name' => 'Capacity Event',
+            'name' => ['en' => 'Capacity Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'registration_type' => 'team',
@@ -155,7 +155,7 @@ describe('EventDetail', function () {
 
     it('shows fees correctly', function () {
         $event = Event::factory()->create([
-            'name' => 'Paid Event',
+            'name' => ['en' => 'Paid Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'team_registration_fee' => 25000, // $250.00
@@ -169,7 +169,7 @@ describe('EventDetail', function () {
 
     it('shows published announcements', function () {
         $event = Event::factory()->create([
-            'name' => 'Announced Event',
+            'name' => ['en' => 'Announced Event'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -177,16 +177,16 @@ describe('EventDetail', function () {
         EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $event->organizer_id,
-            'title' => 'Welcome!',
-            'content' => 'This event will be amazing.',
+            'title' => ['en' => 'Welcome!'],
+            'content' => ['en' => 'This event will be amazing.'],
             'is_published' => true,
         ]);
 
         EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $event->organizer_id,
-            'title' => 'Draft Note',
-            'content' => 'This should not be visible.',
+            'title' => ['en' => 'Draft Note'],
+            'content' => ['en' => 'This should not be visible.'],
             'is_published' => false,
         ]);
 
@@ -206,8 +206,8 @@ describe('EventDetail', function () {
         EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $event->organizer_id,
-            'title' => 'Regular Announcement',
-            'content' => 'Content A',
+            'title' => ['en' => 'Regular Announcement'],
+            'content' => ['en' => 'Content A'],
             'is_published' => true,
             'is_pinned' => false,
         ]);
@@ -215,8 +215,8 @@ describe('EventDetail', function () {
         EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $event->organizer_id,
-            'title' => 'Pinned Announcement',
-            'content' => 'Content B',
+            'title' => ['en' => 'Pinned Announcement'],
+            'content' => ['en' => 'Content B'],
             'is_published' => true,
             'is_pinned' => true,
         ]);
@@ -229,7 +229,7 @@ describe('EventDetail', function () {
 
     it('shows early bird discount when within deadline', function () {
         $event = Event::factory()->create([
-            'name' => 'Early Bird Event',
+            'name' => ['en' => 'Early Bird Event'],
             'is_public' => true,
             'status' => 'registration_open',
             'team_registration_fee' => 10000,

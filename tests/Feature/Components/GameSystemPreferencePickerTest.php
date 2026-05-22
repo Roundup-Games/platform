@@ -13,7 +13,7 @@ use Livewire\Livewire;
 function prefCreateBaseGame(array $overrides = []): GameSystem
 {
     return GameSystem::factory()->create(array_merge([
-        'name' => 'Test Base Game',
+        'name' => ['en' => 'Test Base Game'],
         'bgg_type' => 'boardgame',
         'base_game_id' => null,
         'bgg_rank' => null,
@@ -24,7 +24,7 @@ function prefCreateBaseGame(array $overrides = []): GameSystem
 function prefCreateExpansion(GameSystem $base, array $overrides = []): GameSystem
 {
     return GameSystem::factory()->create(array_merge([
-        'name' => 'Test Expansion',
+        'name' => ['en' => 'Test Expansion'],
         'bgg_type' => 'boardgameexpansion',
         'base_game_id' => $base->id,
         'bgg_rank' => null,
@@ -58,8 +58,8 @@ describe('Search', function () {
 
     it('sorts results by prefix match then BGG rank', function () {
         $user = prefCreateUser();
-        prefCreateBaseGame(['name' => 'Europe: Ticket to Ride', 'bgg_rank' => 50]);
-        prefCreateBaseGame(['name' => 'Ticket to Ride', 'bgg_rank' => 100]);
+        prefCreateBaseGame(['name' => ['en' => 'Europe: Ticket to Ride'], 'bgg_rank' => 50]);
+        prefCreateBaseGame(['name' => ['en' => 'Ticket to Ride'], 'bgg_rank' => 100]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -78,7 +78,7 @@ describe('Search', function () {
 describe('Selection (add)', function () {
     it('dispatches selection-changed event with updated array', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -97,7 +97,7 @@ describe('Selection (add)', function () {
 describe('Removal', function () {
     it('removes a system from selectedIds', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -108,7 +108,7 @@ describe('Removal', function () {
 
     it('dispatches selection-changed event on remove', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -122,7 +122,7 @@ describe('Removal', function () {
 
     it('clears conflict message on remove', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, ['conflictIds' => [$base->id]])
@@ -139,7 +139,7 @@ describe('Removal', function () {
 describe('Conflict Detection', function () {
     it('warns when adding a system that is in conflictIds', function (string $preferenceType) {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, [
@@ -153,8 +153,8 @@ describe('Conflict Detection', function () {
 
     it('warns when adding expansion to avoid whose base is favorited', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $expansion = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $expansion = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, [
@@ -175,7 +175,7 @@ describe('Conflict Detection', function () {
 describe('Dropdown Behavior', function () {
     it('clears conflict message when search changes', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, ['conflictIds' => [$base->id]])
@@ -235,8 +235,8 @@ describe('Request Link', function () {
 describe('Profile Integration', function () {
     it('saves both favorites and avoids and both are preserved on reload', function () {
         $user = prefCreateUser();
-        $fav1 = prefCreateBaseGame(['name' => 'Favorite Game']);
-        $avoid1 = prefCreateBaseGame(['name' => 'Avoided Game']);
+        $fav1 = prefCreateBaseGame(['name' => ['en' => 'Favorite Game']]);
+        $avoid1 = prefCreateBaseGame(['name' => ['en' => 'Avoided Game']]);
 
         // Save with both favorites and avoids
         Livewire::actingAs($user)
@@ -263,8 +263,8 @@ describe('Profile Integration', function () {
 
     it('sync bug fix: existing avoids are not wiped when saving favorites', function () {
         $user = prefCreateUser();
-        $fav1 = prefCreateBaseGame(['name' => 'Favorite Game']);
-        $avoid1 = prefCreateBaseGame(['name' => 'Avoided Game']);
+        $fav1 = prefCreateBaseGame(['name' => ['en' => 'Favorite Game']]);
+        $avoid1 = prefCreateBaseGame(['name' => ['en' => 'Avoided Game']]);
 
         // First save: set both favorites and avoids
         Livewire::actingAs($user)
@@ -275,7 +275,7 @@ describe('Profile Integration', function () {
             ->assertHasNoErrors();
 
         // Second save: only update favorites (avoids not changed)
-        $fav2 = prefCreateBaseGame(['name' => 'New Favorite']);
+        $fav2 = prefCreateBaseGame(['name' => ['en' => 'New Favorite']]);
         Livewire::actingAs($user)
             ->test(Show::class)
             ->set('favoriteGameSystemIds', [$fav1->id, $fav2->id])
@@ -294,7 +294,7 @@ describe('Profile Integration', function () {
 
     it('conflict scenario: favorite then avoid — save works with avoid taking priority', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         // Set same game as both favorite and avoid — only one row per game_system
         // Avoid wins when both are specified for the same game
@@ -325,8 +325,8 @@ describe('Profile Integration', function () {
 
     it('loads existing preferences on mount', function () {
         $user = prefCreateUser();
-        $fav1 = prefCreateBaseGame(['name' => 'Favorite']);
-        $avoid1 = prefCreateBaseGame(['name' => 'Avoided']);
+        $fav1 = prefCreateBaseGame(['name' => ['en' => 'Favorite']]);
+        $avoid1 = prefCreateBaseGame(['name' => ['en' => 'Avoided']]);
 
         // Set preferences directly
         $user->gameSystemPreferences()->attach([
@@ -350,7 +350,7 @@ describe('Profile Integration', function () {
 describe('Parent selectionChanged', function () {
     it('updates favoriteGameSystemIds when favorite picker dispatches selection-changed', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(Show::class)
@@ -360,7 +360,7 @@ describe('Parent selectionChanged', function () {
 
     it('updates avoidedGameSystemIds when avoid picker dispatches selection-changed', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(Show::class)
@@ -376,8 +376,8 @@ describe('Parent selectionChanged', function () {
 describe('Expansion Sub-Picker', function () {
     it('shows expansion picker when base game with expansions is selected from search', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -389,7 +389,7 @@ describe('Expansion Sub-Picker', function () {
 
     it('adds directly when base game has no expansions', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Chess']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -401,9 +401,9 @@ describe('Expansion Sub-Picker', function () {
 
     it('expansionOptions returns base game first then expansions by rank', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan', 'bgg_rank' => 38]);
-        $exp1 = prefCreateExpansion($base, ['name' => 'Catan: Seafarers', 'bgg_rank' => 200]);
-        $exp2 = prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights', 'bgg_rank' => 150]);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan'], 'bgg_rank' => 38]);
+        $exp1 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers'], 'bgg_rank' => 200]);
+        $exp2 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights'], 'bgg_rank' => 150]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -420,8 +420,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('pickExpansion adds the expansion to selectedIds and closes sub-picker', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -435,8 +435,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('pickExpansion can select the base game from the sub-picker', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -449,8 +449,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('blocks favoriting expansion when base is avoided', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, [
@@ -466,8 +466,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('allows avoiding a specific expansion under a favorite base', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class, [
@@ -481,8 +481,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('search changes cancel the expansion sub-picker', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -495,8 +495,8 @@ describe('Expansion Sub-Picker', function () {
 
     it('selectedSystems shows base game context for expansions', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPreferencePicker::class)
@@ -516,9 +516,9 @@ describe('Expansion Sub-Picker', function () {
 describe('Resolution — Per-Expansion Granularity', function () {
     it('favorite base implies all expansions unless explicitly avoided', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp1 = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        $exp2 = prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp1 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+        $exp2 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights']]);
 
         $user->gameSystemPreferences()->attach([
             $base->id => ['preference_type' => 'favorite'],
@@ -532,9 +532,9 @@ describe('Resolution — Per-Expansion Granularity', function () {
 
     it('avoiding a specific expansion removes it from implied favorites', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp1 = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        $exp2 = prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp1 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+        $exp2 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights']]);
 
         $user->gameSystemPreferences()->attach([
             $base->id => ['preference_type' => 'favorite'],
@@ -553,9 +553,9 @@ describe('Resolution — Per-Expansion Granularity', function () {
 
     it('avoided base implies all expansions are avoided', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp1 = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        $exp2 = prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp1 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+        $exp2 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights']]);
 
         $user->gameSystemPreferences()->attach([
             $base->id => ['preference_type' => 'avoid'],
@@ -572,9 +572,9 @@ describe('Resolution — Per-Expansion Granularity', function () {
 
     it('full profile save round-trip with expansion-level avoids', function () {
         $user = prefCreateUser();
-        $base = prefCreateBaseGame(['name' => 'Catan']);
-        $exp1 = prefCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        $exp2 = prefCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
+        $base = prefCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $exp1 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+        $exp2 = prefCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights']]);
 
         // Favorite the base, avoid one expansion
         Livewire::actingAs($user)
