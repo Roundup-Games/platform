@@ -9,7 +9,6 @@ return [
     'action_reject_optional' => 'Optionale ablehnen',
     'action_save_selected' => 'Auswahl speichern',
     'action_accept_all' => 'Alle akzeptieren',
-    'action_cookie_settings' => 'Cookie-Einstellungen',
 
     // Categories
     'category_necessary_label' => 'Notwendig',

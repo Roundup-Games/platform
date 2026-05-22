@@ -9,7 +9,6 @@ return [
     'action_reject_optional' => 'Reject Optional',
     'action_save_selected' => 'Save Selected',
     'action_accept_all' => 'Accept All',
-    'action_cookie_settings' => 'Cookie Settings',
 
     // Categories
     'category_necessary_label' => 'Necessary',

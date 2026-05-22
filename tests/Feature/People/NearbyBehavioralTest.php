@@ -110,7 +110,7 @@ class NearbyBehavioralTest extends TestCase
 
     public function test_candidate_with_single_game_system_match_shows_shared_reason(): void
     {
-        $gameSystem = GameSystem::factory()->create(['name' => 'Terraforming Mars']);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'Terraforming Mars']]);
 
         $viewerLocation = $this->createLocationAt(self::LAT, self::LNG);
         $viewer = User::factory()->create([

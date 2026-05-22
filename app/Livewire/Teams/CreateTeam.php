@@ -4,6 +4,7 @@ namespace App\Livewire\Teams;
 
 use App\Models\Team;
 use App\Models\TeamMember;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -13,11 +14,18 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateTeam extends Component
 {
+    use BuildsTranslatableFormFields;
     #[Validate('required|string|max:255')]
     public string $name = '';
 
     #[Validate('nullable|string|max:1000')]
     public string $description = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['description'];
+    }
 
     #[Validate('nullable|string|max:255')]
     public string $city = '';
@@ -39,9 +47,31 @@ class CreateTeam extends Component
         $this->authorize('create', Team::class);
 
         $validated = $this->validate();
+        $this->validate(
+            $this->translatableValidationRules(
+                ['description' => 'nullable|string|max:1000'],
+                app()->getLocale(),
+            ),
+        );
+
+        // Teams inherit the creator's locale as their language baseline.
+        // This ensures translatable fields (description) are keyed correctly.
+        $primaryLocale = app()->getLocale();
+        $translatable = $this->buildTranslatableValues(
+            ['description'],
+            $primaryLocale,
+            $validated,
+        );
 
         $team = Team::create([
-            ...$validated,
+            'name' => $validated['name'],
+            'description' => $translatable['description'],
+            'city' => $validated['city'],
+            'country' => $validated['country'],
+            'primary_color' => $validated['primary_color'],
+            'secondary_color' => $validated['secondary_color'],
+            'founded_year' => $validated['founded_year'],
+            'language' => $primaryLocale,
             'created_by' => Auth::id(),
             'is_active' => true,
         ]);

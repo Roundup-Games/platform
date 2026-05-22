@@ -179,7 +179,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
 
         // Pre-create the GameSystem that would result from sync
         GameSystem::factory()->create([
-            'name' => 'Ticket to Ride',
+            'name' => ['en' => 'Ticket to Ride'],
             'slug' => 'ticket-to-ride',
             'bgg_id' => 12345,
         ]);
@@ -301,7 +301,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
         });
 
         GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
             'bgg_id' => 12345,
         ]);
@@ -391,7 +391,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
         });
 
         GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
             'bgg_id' => 12345,
         ]);
@@ -434,7 +434,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
         $event = new \Escalated\Laravel\Events\TicketResolved($ticket, null);
         app(\App\Listeners\HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::where('name', 'Wingspan')->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
 

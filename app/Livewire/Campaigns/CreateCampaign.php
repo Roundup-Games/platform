@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
 use App\Services\ShortLinkService;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -21,7 +22,14 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class CreateCampaign extends Component
 {
+    use BuildsTranslatableFormFields;
     public string $name = '';
+
+    // ── Translatable fields ──
+    public function getTranslatableFields(): array
+    {
+        return ['name', 'description'];
+    }
 
     public ?string $game_system_id = null;
 
@@ -60,7 +68,7 @@ class CreateCampaign extends Component
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => 'required|string|max:255',
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'location_id' => 'nullable|uuid|exists:locations,id',
@@ -78,7 +86,10 @@ class CreateCampaign extends Component
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
             'bench_mode' => 'boolean',
-        ];
+        ], $this->translatableValidationRules(
+            ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:10000'],
+            $this->language,
+        ));
     }
 
     // ── Event Listeners ──────────────────────────────────
@@ -200,12 +211,19 @@ class CreateCampaign extends Component
             $benchMode = false;
         }
 
+        // Build translatable values for name and description only
+        $translatable = $this->buildTranslatableValues(
+            ['name', 'description'],
+            $validated['language'],
+            $validated,
+        );
+
         $campaign = Campaign::create([
             'owner_id' => Auth::id(),
             'game_system_id' => $validated['game_system_id'],
             'location_id' => $this->location_id,
-            'name' => $validated['name'],
-            'description' => $validated['description'],
+            'name' => $translatable['name'],
+            'description' => $translatable['description'],
             'recurrence' => $validated['recurrence'],
             'time_of_day' => $validated['time_of_day'],
             'session_duration' => $validated['session_duration'] ?: null,

@@ -99,13 +99,12 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Epic One-Shot Adventure',
-            'owner_id' => $user->id,
-            'game_system_id' => $system->id,
-            'visibility' => 'protected',
-            'status' => 'scheduled',
-        ]);
+        $game = Game::where('name->en', 'Epic One-Shot Adventure')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->owner_id)->toBe($user->id)
+            ->and($game->game_system_id)->toBe($system->id)
+            ->and($game->visibility->value)->toBe('protected')
+            ->and($game->status->value)->toBe('scheduled');
     });
 
     it('creates game with minimum required fields only', function () {
@@ -120,13 +119,11 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Quick Game',
-            'owner_id' => $user->id,
-            'status' => 'scheduled',
-        ]);
+        $game = Game::where('name->en', 'Quick Game')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->owner_id)->toBe($user->id)
+            ->and($game->status->value)->toBe('scheduled');
 
-        $game = Game::where('name', 'Quick Game')->first();
         expect($game->expected_duration)->toBe(2.0) // board game type default
             ->and($game->price)->toBe(0.0); // default
     });
@@ -144,7 +141,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::where('name', 'Location Test')->first();
+        $game = Game::where('name->en', 'Location Test')->first();
         expect($game->location_id)->toBe($location->id);
     });
 
@@ -156,7 +153,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
 
 describe('Game Detail Route', function () {
     it('shows public game via Livewire component', function () {
-        $game = gameTestCreateGame(['visibility' => 'public', 'name' => 'Open Session']);
+        $game = gameTestCreateGame(['visibility' => 'public', 'name' => ['en' => 'Open Session']]);
 
         // Use Livewire directly since the layout has auth()-dependent code
         Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
@@ -165,7 +162,7 @@ describe('Game Detail Route', function () {
     });
 
     it('shows public game to authenticated user via route', function () {
-        $game = gameTestCreateGame(['visibility' => 'public', 'name' => 'Open Session']);
+        $game = gameTestCreateGame(['visibility' => 'public', 'name' => ['en' => 'Open Session']]);
         $user = User::factory()->create();
 
         actingAs($user)
@@ -564,10 +561,9 @@ describe('CreateGame — Duration', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        assertDatabaseHas('games', [
-            'name' => 'No Duration',
-            'expected_duration' => 2.0,
-        ]);
+        $game = Game::where('name->en', 'No Duration')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->expected_duration)->toBe(2.0);
     });
 
     it('rounds duration to nearest 0.5 on update', function () {
@@ -594,10 +590,9 @@ describe('CreateGame — Duration', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        assertDatabaseHas('games', [
-            'name' => 'Auto Duration',
-            'expected_duration' => 2,
-        ]);
+        $game = Game::where('name->en', 'Auto Duration')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->expected_duration)->toBe(2.0);
     });
 
 });
@@ -636,7 +631,7 @@ describe('CreateGame — Vibe Flags', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::where('name', 'Vibey Game')->first();
+        $game = Game::where('name->en', 'Vibey Game')->first();
         expect($game->vibe_flags)->toContain('atmospheric', 'roleplay-heavy', 'horror')
             ->and($game->vibe_flags)->not->toContain('cooperative');
     });
@@ -657,7 +652,7 @@ describe('CreateGame — Vibe Flags', function () {
             ->call('save');
 
         // Invalid flag silently filtered; valid one stored
-        $game = Game::where('name', 'Test')->first();
+        $game = Game::where('name->en', 'Test')->first();
         expect($game->vibe_flags)->toContain('atmospheric')
             ->and($game->vibe_flags)->not->toContain('not-a-real-flag');
     });
@@ -685,12 +680,11 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
             ->assertSet('complexity', '2.5')
             ->call('save');
 
-        assertDatabaseHas('games', [
-            'name' => 'Full Auto Game',
-            'expected_duration' => 3,
-            'min_players' => 3,
-            'max_players' => 6,
-        ]);
+        $game = Game::where('name->en', 'Full Auto Game')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->expected_duration)->toBe(3.0)
+            ->and($game->min_players)->toBe(3)
+            ->and($game->max_players)->toBe(6);
     });
 });
 
@@ -712,10 +706,9 @@ describe('CreateGame — Visibility Gating', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Public Game',
-            'visibility' => 'public',
-        ]);
+        $game = Game::where('name->en', 'Public Game')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->visibility->value)->toBe('public');
     });
 
     it('demotes public to private when user lacks can_create_public_entries', function () {
@@ -731,10 +724,9 @@ describe('CreateGame — Visibility Gating', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Attempted Public',
-            'visibility' => 'private',
-        ]);
+        $game = Game::where('name->en', 'Attempted Public')->first();
+        expect($game)->not->toBeNull()
+            ->and($game->visibility->value)->toBe('private');
     });
 
 });
@@ -788,7 +780,7 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
 
 describe('GameDetail Component — Campaign Context', function () {
     it('shows campaign link when game belongs to campaign', function () {
-        $campaign = \App\Models\Campaign::factory()->create(['name' => 'The Grand Adventure']);
+        $campaign = \App\Models\Campaign::factory()->create(['name' => ['en' => 'The Grand Adventure']]);
         $game = gameTestCreateGame([
             'campaign_id' => $campaign->id,
             'visibility' => 'public',

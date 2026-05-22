@@ -2,105 +2,81 @@
 
 use App\Models\Event;
 use App\Models\EventAnnouncement;
+use App\Models\GameSystemCategory;
+use App\Models\GameSystemMechanic;
 use App\Models\Team;
-use App\Models\Translation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Relations\Relation;
 
-// ── HasTranslations Trait ─────────────────────────────
+// ── Spatie HasTranslations ───────────────────────────
 
-describe('HasTranslations Trait', function () {
-// smoke: set/get translation round-trip
+describe('Spatie HasTranslations', function () {
     it('can set and get a translation', function () {
-        $event = Event::factory()->create(['name' => 'English Name']);
-        $event->setTranslation('de', 'name', 'Deutscher Name');
+        $event = Event::factory()->create(['name' => ['en' => 'English Name']]);
+        $event->setTranslation('name', 'de', 'Deutscher Name');
 
-        expect($event->getTranslation('de', 'name'))->toBe('Deutscher Name');
+        expect($event->getTranslation('name', 'de'))->toBe('Deutscher Name');
     })->group('smoke');
 
-    it('falls back to entity attribute for app locale', function () {
-        $event = Event::factory()->create(['name' => 'English Name']);
+    it('falls back to app locale when requested locale is missing', function () {
+        $event = Event::factory()->create(['name' => ['en' => 'English Name']]);
 
-        // getTranslation for the current app locale falls back to the entity attribute
-        expect($event->getTranslation(app()->getLocale(), 'name'))->toBe('English Name');
+        // With fallback enabled (default), returns English value
+        expect($event->getTranslation('name', 'de'))->toBe('English Name');
     });
 
-    it('returns null for missing translation in non-app locale', function () {
-        $event = Event::factory()->create(['name' => 'English Name']);
+    it('returns null for missing translation when fallback is disabled', function () {
+        $event = Event::factory()->create(['name' => ['en' => 'English Name']]);
 
-        expect($event->getTranslation('de', 'name'))->toBeNull();
+        // de translation was never set
+        $result = $event->getTranslationWithoutFallback('name', 'de');
+        expect($result === null || $result === '')->toBeTrue();
     });
 
     it('can set multiple translations at once', function () {
         $event = Event::factory()->create([
-            'name' => 'English Name',
-            'description' => 'English Description',
+            'name' => ['en' => 'English Name'],
         ]);
 
-        $event->setTranslation('de', 'name', 'Deutscher Name');
-        $event->setTranslation('de', 'description', 'Deutsche Beschreibung');
+        $event->setTranslation('name', 'de', 'Deutscher Name');
+        $event->setTranslation('description', 'de', 'Deutsche Beschreibung');
 
-        expect($event->getTranslation('de', 'name'))->toBe('Deutscher Name');
-        expect($event->getTranslation('de', 'description'))->toBe('Deutsche Beschreibung');
+        expect($event->getTranslation('name', 'de'))->toBe('Deutscher Name');
+        expect($event->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
     });
 
-    it('handles JSON (array-cast) fields correctly', function () {
-        $event = Event::factory()->create(['rules' => ['Rule 1', 'Rule 2']]);
-
-        $deRules = ['Regel 1', 'Regel 2'];
-        $event->setTranslation('de', 'rules', $deRules);
-
-        $retrieved = $event->getTranslation('de', 'rules');
-        expect($retrieved)->toBe(['Regel 1', 'Regel 2']);
-    });
-
-    it('can get all translations for a locale', function () {
+    it('can get all translations for a field', function () {
         $event = Event::factory()->create([
-            'name' => 'English Name',
-            'description' => 'English Description',
-            'short_description' => 'Short EN',
+            'name' => ['en' => 'English Name'],
         ]);
 
-        $event->setTranslation('de', 'name', 'Deutscher Name');
-        $event->setTranslation('de', 'description', 'Deutsche Beschreibung');
+        $event->setTranslation('name', 'de', 'Deutscher Name');
 
-        $translations = $event->getTranslationsForLocale('de');
+        $translations = $event->getTranslations('name');
 
-        expect($translations)->toHaveKey('name')
-            ->and($translations['name'])->toBe('Deutscher Name')
-            ->and($translations)->toHaveKey('description')
-            ->and($translations['description'])->toBe('Deutsche Beschreibung')
-            // Missing DE translation falls back to entity attribute
-            ->and($translations)->toHaveKey('short_description')
-            ->and($translations['short_description'])->toBe('Short EN');
+        expect($translations)->toHaveKey('en')
+            ->and($translations['en'])->toBe('English Name')
+            ->and($translations)->toHaveKey('de')
+            ->and($translations['de'])->toBe('Deutscher Name');
     });
 
     it('updates an existing translation', function () {
-        $event = Event::factory()->create(['name' => 'English Name']);
+        $event = Event::factory()->create(['name' => ['en' => 'English Name']]);
 
-        $event->setTranslation('de', 'name', 'Deutscher Name');
-        expect($event->getTranslation('de', 'name'))->toBe('Deutscher Name');
+        $event->setTranslation('name', 'de', 'Deutscher Name');
+        expect($event->getTranslation('name', 'de'))->toBe('Deutscher Name');
 
-        $event->setTranslation('de', 'name', 'Aktualisierter Name');
-        expect($event->getTranslation('de', 'name'))->toBe('Aktualisierter Name');
-
-        // Should only be one translation row, not two
-        expect(
-            Translation::where('translatable_type', 'event')
-                ->where('translatable_id', $event->id)
-                ->where('locale', 'de')
-                ->where('field', 'name')
-                ->count()
-        )->toBe(1);
+        $event->setTranslation('name', 'de', 'Aktualisierter Name');
+        expect($event->getTranslation('name', 'de'))->toBe('Aktualisierter Name');
     });
 
     it('persists translations to the database', function () {
-        $event = Event::factory()->create(['name' => 'English Name']);
-        $event->setTranslation('de', 'name', 'Deutscher Name');
+        $event = Event::factory()->create(['name' => ['en' => 'English Name']]);
+        $event->setTranslation('name', 'de', 'Deutscher Name');
+        $event->save();
 
         // Reload from DB to ensure persistence
         $freshEvent = Event::find($event->id);
-        expect($freshEvent->getTranslation('de', 'name'))->toBe('Deutscher Name');
+        expect($freshEvent->getTranslation('name', 'de'))->toBe('Deutscher Name');
     });
 });
 
@@ -109,89 +85,82 @@ describe('HasTranslations Trait', function () {
 describe('EventAnnouncement Translations', function () {
     it('can set and get translations on an announcement', function () {
         $user = User::factory()->create();
-        $event = Event::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $user->id]);
         $announcement = EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $user->id,
-            'title' => 'English Title',
-            'content' => '<p>English content</p>',
+            'title' => ['en' => 'English Title'],
+            'content' => ['en' => '<p>English content</p>'],
         ]);
 
-        $announcement->setTranslation('de', 'title', 'Deutscher Titel');
-        $announcement->setTranslation('de', 'content', '<p>Deutscher Inhalt</p>');
+        $announcement->setTranslation('title', 'de', 'Deutscher Titel');
+        $announcement->setTranslation('content', 'de', '<p>Deutscher Inhalt</p>');
 
-        expect($announcement->getTranslation('de', 'title'))->toBe('Deutscher Titel');
-        expect($announcement->getTranslation('de', 'content'))->toBe('<p>Deutscher Inhalt</p>');
+        expect($announcement->getTranslation('title', 'de'))->toBe('Deutscher Titel');
+        expect($announcement->getTranslation('content', 'de'))->toBe('<p>Deutscher Inhalt</p>');
     });
 
-    it('falls back to entity attribute for app locale on announcement', function () {
+    it('falls back to app locale for announcement', function () {
         $user = User::factory()->create();
-        $event = Event::factory()->create();
+        $event = Event::factory()->create(['organizer_id' => $user->id]);
         $announcement = EventAnnouncement::create([
             'event_id' => $event->id,
             'author_id' => $user->id,
-            'title' => 'English Title',
-            'content' => '<p>English content</p>',
+            'title' => ['en' => 'English Title'],
+            'content' => ['en' => '<p>English content</p>'],
         ]);
 
-        expect($announcement->getTranslation(app()->getLocale(), 'title'))->toBe('English Title');
+        expect($announcement->getTranslation('title', app()->getLocale()))->toBe('English Title');
     });
 });
 
-// ── Int PK Model (Team) Translations ──────────────────
+// ── Team Translations (description only) ──────────────
 
-describe('Mixed PK Types', function () {
-    it('works with int PK model (Team)', function () {
+describe('Team Translations', function () {
+    it('works with description-only translatable field', function () {
         $user = User::factory()->create();
         $team = Team::create([
             'name' => 'Test Team',
-            'description' => 'English description',
+            'description' => ['en' => 'English description'],
             'is_active' => true,
             'created_by' => $user->id,
         ]);
 
-        $team->setTranslation('de', 'description', 'Deutsche Beschreibung');
+        $team->setTranslation('description', 'de', 'Deutsche Beschreibung');
+        $team->save();
 
         // Reload from DB
         $freshTeam = Team::find($team->id);
-        expect($freshTeam->getTranslation('de', 'description'))->toBe('Deutsche Beschreibung');
-
-        // Verify the morph map uses 'team' alias, not full class name
-        $translation = Translation::where('translatable_type', 'team')
-            ->where('translatable_id', (string) $team->id)
-            ->where('locale', 'de')
-            ->where('field', 'description')
-            ->first();
-
-        expect($translation)->not->toBeNull()
-            ->and($translation->value)->toBe('Deutsche Beschreibung');
+        expect($freshTeam->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
     });
 });
 
-// ── Morph Map Aliases ─────────────────────────────────
+// ── Non-translatable translatedName() (lang-file based) ─────
 
-describe('Morph Map Aliases', function () {
-    it('uses short morph map aliases for translatable models', function () {
-        expect(Relation::getMorphedModel('event'))->toBe(Event::class)
-            ->and(Relation::getMorphedModel('event_announcement'))->toBe(EventAnnouncement::class)
-            ->and(Relation::getMorphedModel('team'))->toBe(Team::class);
+describe('translatedName() via lang keys', function () {
+    it('returns DB name when no lang key exists for GameSystemCategory', function () {
+        $cat = new GameSystemCategory(['name' => 'Fantasy', 'slug' => 'fantasy']);
+        // No lang key for discovery.cat_fantasy → falls back to $this->name
+        expect($cat->translatedName())->toBe('Fantasy');
     });
 
-    it('stores translations using the morph map alias', function () {
-        $event = Event::factory()->create(['name' => 'Test Event']);
-        $event->setTranslation('de', 'name', 'Testveranstaltung');
+    it('returns DB name when no lang key exists for GameSystemMechanic', function () {
+        $mech = new GameSystemMechanic(['name' => 'Dice Rolling', 'slug' => 'dice-rolling']);
+        expect($mech->translatedName())->toBe('Dice Rolling');
+    });
 
-        $translation = Translation::firstWhere([
-            'translatable_type' => 'event',
-            'translatable_id' => $event->id,
-            'locale' => 'de',
-            'field' => 'name',
-        ]);
+    it('returns translated value when lang key exists for category', function () {
+        $cat = new GameSystemCategory(['name' => 'Fantasy', 'slug' => 'fantasy']);
+        // Temporarily add a lang key
+        app('translator')->addLines(['discovery.cat_fantasy' => 'Fantasy (Translated)'], 'en');
+        app()->setLocale('en');
+        expect($cat->translatedName())->toBe('Fantasy (Translated)');
+    });
 
-        expect($translation)->not->toBeNull()
-            ->and($translation->translatable_type)->toBe('event')
-            ->and($translation->value)->toBe('Testveranstaltung');
+    it('returns translated value when lang key exists for mechanic', function () {
+        $mech = new GameSystemMechanic(['name' => 'Dice Rolling', 'slug' => 'dice-rolling']);
+        app('translator')->addLines(['discovery.mech_dice-rolling' => 'Würfel werfen'], 'en');
+        app()->setLocale('en');
+        expect($mech->translatedName())->toBe('Würfel werfen');
     });
 });
-
-

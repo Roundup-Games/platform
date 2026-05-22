@@ -31,7 +31,7 @@ function guestTestCreatePublicGame(array $overrides = []): Game
         'game_system_id' => $system->id,
         'visibility' => 'public',
         'status' => 'scheduled',
-        'name' => 'Public Test Game ' . uniqid(),
+        'name' => ['en' => 'Public Test Game ' . uniqid()],
         'location' => [
             'type' => 'in_person',
             'details' => '123 Main Street, Berlin, Germany',
@@ -49,7 +49,7 @@ function guestTestCreatePublicCampaign(array $overrides = []): Campaign
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
         'visibility' => 'public',
-        'name' => 'Public Test Campaign ' . uniqid(),
+        'name' => ['en' => 'Public Test Campaign ' . uniqid()],
         ...$overrides,
     ]);
 }

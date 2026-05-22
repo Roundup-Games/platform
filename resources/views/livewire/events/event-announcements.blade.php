@@ -71,6 +71,22 @@
                     @error('content') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Translations via locale-switcher --}}
+                @php
+                    $allLocales = $this->getAllLocales();
+                    $baselineLocale = $this->getBaselineLocale();
+                @endphp
+                <x-forms.translatable-section
+                    :fields="[
+                        ['name' => 'title', 'label' => __('common.field_title')],
+                        ['name' => 'content', 'label' => __('common.content_content'), 'type' => 'textarea', 'rows' => 5],
+                    ]"
+                    :active-locale="$activeLocale"
+                    :baseline-locale="$baselineLocale"
+                    :all-locales="$allLocales"
+                    inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                />
+
                 <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" wire:model="is_published" class="rounded border-outline text-primary focus:ring-primary/20" />

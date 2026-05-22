@@ -134,7 +134,7 @@ describe('Static Pages Sitemap', function () {
 
 describe('Game Systems Sitemap', function () {
     it('includes game systems with en and de locale URLs', function () {
-        $system = GameSystem::factory()->create(['name' => 'Sitemap Test System']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Sitemap Test System']]);
         $baseUrl = config('app.url');
 
         $content = get('/sitemap-game-systems.xml')->content();
@@ -490,7 +490,7 @@ describe('Cache Invalidation', function () {
     it('serves fresh content after cache invalidation', function () {
         Cache::flush();
 
-        $system1 = GameSystem::factory()->create(['name' => 'Before Invalidation']);
+        $system1 = GameSystem::factory()->create(['name' => ['en' => 'Before Invalidation']]);
         $firstContent = get('/sitemap-game-systems.xml')->content();
         expect($firstContent)->toContain("/game-systems/{$system1->slug}");
 
@@ -498,7 +498,7 @@ describe('Cache Invalidation', function () {
         Cache::forget('seo:sitemap:game-systems');
 
         // Create a new system after invalidation
-        $system2 = GameSystem::factory()->create(['name' => 'After Invalidation']);
+        $system2 = GameSystem::factory()->create(['name' => ['en' => 'After Invalidation']]);
 
         $secondContent = get('/sitemap-game-systems.xml')->content();
         expect($secondContent)->toContain("/game-systems/{$system2->slug}");

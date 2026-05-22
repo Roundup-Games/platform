@@ -17,8 +17,8 @@ function createPublicCampaign(User $owner, GameSystem $system, array $overrides 
     return Campaign::factory()->create(array_merge([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Test Campaign',
-        'description' => 'Test description',
+        'name' => ['en' => 'Test Campaign'],
+        'description' => ['en' => 'Test description'],
         'visibility' => 'public',
         'status' => 'active',
         'language' => 'en',

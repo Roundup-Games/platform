@@ -8,6 +8,7 @@ use App\Filament\Resources\EventResource\RelationManagers\RegistrationsRelationM
 use App\Filament\Resources\EventResource\RelationManagers\AnnouncementsRelationManager;
 use App\Models\Event;
 use App\Enums\ContentLanguage;
+use App\Enums\EventStatus;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Schemas\Components\Grid;
@@ -25,9 +26,12 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
 class EventResource extends Resource
 {
+    use Translatable;
+
     protected static ?string $model = Event::class;
 
     protected static ?int $navigationSort = 5;
@@ -74,7 +78,7 @@ class EventResource extends Resource
                                     ])
                                     ->default('draft')
                                     ->required(),
-                                Select::make('content_language')
+                                Select::make('language')
                                     ->label('Content Language')
                                     ->options(collect(ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),
@@ -224,13 +228,13 @@ class EventResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'published' => 'info',
-                        'registration_open' => 'success',
-                        'registration_closed' => 'warning',
-                        'in_progress' => 'warning',
-                        'completed' => 'gray',
-                        'cancelled' => 'danger',
+                    ->color(fn (EventStatus $state): string => match ($state) {
+                        EventStatus::Published => 'info',
+                        EventStatus::RegistrationOpen => 'success',
+                        EventStatus::RegistrationClosed => 'warning',
+                        EventStatus::InProgress => 'warning',
+                        EventStatus::Completed => 'gray',
+                        EventStatus::Cancelled => 'danger',
                         default => 'gray',
                     }),
                 IconColumn::make('is_public')

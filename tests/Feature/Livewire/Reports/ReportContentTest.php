@@ -51,7 +51,7 @@ function createReportableGame(): array
     $owner = User::factory()->create(['profile_complete' => true]);
     $game = Game::factory()->create([
         'owner_id' => $owner->id,
-        'name' => 'Test Game Session',
+        'name' => ['en' => 'Test Game Session'],
     ]);
 
     return compact('owner', 'game');
@@ -62,7 +62,7 @@ function createReportableCampaign(): array
     $owner = User::factory()->create(['profile_complete' => true]);
     $campaign = Campaign::factory()->create([
         'owner_id' => $owner->id,
-        'name' => 'Test Campaign',
+        'name' => ['en' => 'Test Campaign'],
     ]);
 
     return compact('owner', 'campaign');

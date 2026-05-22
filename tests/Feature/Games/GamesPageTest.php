@@ -35,7 +35,7 @@ describe('GamesPage — Guest Access', function () {
 describe('GamesPage — My Games Display', function () {
     it('shows owned games with name', function () {
         $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => 'Test Game Session']);
+        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'Test Game Session']]);
 
         actingAs($user)
             ->get('/en/games')
@@ -191,7 +191,7 @@ describe('GamesPage — Games I\'m In Display', function () {
     it('shows games where user is an approved player', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Joined Game']);
+        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => ['en' => 'Joined Game']]);
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -207,7 +207,7 @@ describe('GamesPage — Games I\'m In Display', function () {
 
     it('does not show owned games in Games I\'m In', function () {
         $user = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => 'My Own Game']);
+        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'My Own Game']]);
 
         actingAs($user)
             ->get('/en/games')
@@ -235,7 +235,7 @@ describe('GamesPage — Open Invitations Display', function () {
     it('shows section heading when invitations exist', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Invite Game']);
+        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => ['en' => 'Invite Game']]);
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -252,7 +252,7 @@ describe('GamesPage — Open Invitations Display', function () {
     it('shows game name for pending invitations', function () {
         $user = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Invite Me Game']);
+        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => ['en' => 'Invite Me Game']]);
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -507,7 +507,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $friend = gamesPageCreateUser();
         // User follows friend
         \App\Models\UserRelationship::follow($user, $friend);
-        $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => 'Friend Created Game']);
+        $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Friend Created Game']]);
 
         actingAs($user)
             ->get('/en/games')
@@ -520,7 +520,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $friend = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
         \App\Models\UserRelationship::follow($user, $friend);
-        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => 'Game Friend Joined']);
+        $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => ['en' => 'Game Friend Joined']]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
@@ -538,7 +538,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
         \App\Models\UserRelationship::follow($user, $friend);
-        $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => 'Completed Game', 'status' => 'completed']);
+        $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Completed Game'], 'status' => 'completed']);
 
         actingAs($user)
             ->get('/en/games')
@@ -549,7 +549,7 @@ describe('GamesPage — Community Activity Feed', function () {
     it('does not show activity from unfollowed users', function () {
         $user = gamesPageCreateUser();
         $stranger = gamesPageCreateUser();
-        $game = gamesPageCreateGame(['owner_id' => $stranger->id, 'name' => 'Stranger Game']);
+        $game = gamesPageCreateGame(['owner_id' => $stranger->id, 'name' => ['en' => 'Stranger Game']]);
 
         actingAs($user)
             ->get('/en/games')
@@ -561,7 +561,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $friend = gamesPageCreateUser();
         \App\Models\UserRelationship::follow($user, $friend);
         // Viewer owns this game — should not appear as "friend joined"
-        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => 'My Own Game For Feed']);
+        $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'My Own Game For Feed']]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,

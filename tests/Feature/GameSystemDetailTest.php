@@ -12,9 +12,9 @@ describe('GameSystemDetail - mount and resolution', function () {
     // smoke: game system detail page renders by slug
     it('resolves game system by slug and renders', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
-            'description' => 'A competitive bird-collection engine-building game',
+            'description' => ['en' => 'A competitive bird-collection engine-building game'],
         ]);
 
         get("/en/game-systems/{$system->slug}")
@@ -48,10 +48,10 @@ describe('GameSystemDetail - eager loaded relationships', function () {
     it('eager loads expansions for base game', function () {
         $base = GameSystem::factory()->create([
             'slug' => 'base-game',
-            'name' => 'Base Game',
+            'name' => ['en' => 'Base Game'],
         ]);
         $expansion = GameSystem::factory()->create([
-            'name' => 'Base Game: Expansion 1',
+            'name' => ['en' => 'Base Game: Expansion 1'],
             'base_game_id' => $base->id,
             'slug' => 'base-game-expansion-1',
         ]);
@@ -64,10 +64,10 @@ describe('GameSystemDetail - eager loaded relationships', function () {
     it('eager loads base game for expansion', function () {
         $base = GameSystem::factory()->create([
             'slug' => 'base-parent',
-            'name' => 'Parent Game',
+            'name' => ['en' => 'Parent Game'],
         ]);
         $expansion = GameSystem::factory()->create([
-            'name' => 'Child Expansion',
+            'name' => ['en' => 'Child Expansion'],
             'base_game_id' => $base->id,
             'slug' => 'child-expansion',
         ]);

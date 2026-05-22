@@ -24,6 +24,7 @@ use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Escalated\Laravel\Events\TicketClosed;
 use Escalated\Laravel\Events\TicketResolved;
+use Spatie\Translatable\Facades\Translatable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -119,6 +120,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Spatie translatable fallback — any available locale if the requested one is missing
+        Translatable::fallback(
+            fallbackLocale: 'en',
+            fallbackAny: true,
+        );
+
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);

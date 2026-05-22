@@ -22,8 +22,8 @@ class CampaignFactory extends Factory
         return [
             'owner_id' => User::factory(),
             'game_system_id' => GameSystem::factory(),
-            'name' => fake()->words(3, true) . ' Campaign',
-            'description' => fake()->paragraph(),
+            'name' => ['en' => fake()->words(3, true) . ' Campaign'],
+            'description' => ['en' => fake()->paragraph()],
             'visibility' => 'public',
             'recurrence' => 'weekly',
             'time_of_day' => '19:00',

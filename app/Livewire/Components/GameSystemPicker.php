@@ -4,6 +4,7 @@ namespace App\Livewire\Components;
 
 use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -31,6 +32,7 @@ use Livewire\Component;
 class GameSystemPicker extends Component
 {
     use EscapesLikeWildcards;
+    use QueriesTranslatableColumns;
     #[Locked]
     public string $fieldId = 'game-system';
 
@@ -110,7 +112,6 @@ class GameSystemPicker extends Component
         }
 
         $term = trim($this->search);
-        $driver = GameSystem::query()->getQuery()->getConnection()->getDriverName();
 
         // Filter by type column (boardgame / ttrpg)
         $query = GameSystem::where('type', $this->gameType);
@@ -123,26 +124,25 @@ class GameSystemPicker extends Component
             $query->whereNull('base_game_id');
         }
 
-        $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
+        // Translatable search uses its own escaping; keep $escapedTerm for
+        // the raw SQL prefix-match sort which needs pre-escaped LIKE input.
         $escapedTerm = $this->escapeLikeWildcards($term);
 
         // Match on name directly, or match expansions whose name contains the term
         // (expansion search only for board games)
-        $query->where(function ($q) use ($likeOperator, $escapedTerm) {
-            $q->where('name', $likeOperator, "%{$escapedTerm}%");
+        $query->where(function ($q) use ($term) {
+            $this->whereTranslatableLike($q, 'name', $term);
             if ($this->gameType === 'boardgame') {
-                $q->orWhereHas('expansions', function ($q) use ($likeOperator, $escapedTerm) {
-                    $q->where('name', $likeOperator, "%{$escapedTerm}%");
+                $q->orWhereHas('expansions', function ($q) use ($term) {
+                    $this->whereTranslatableLike($q, 'name', $term);
                 });
             }
         });
 
-        // Sort: prefix matches first, then by BGG rank, then by rating
-        if ($driver === 'pgsql') {
-            $query->orderByRaw('CASE WHEN name ILIKE ? THEN 0 ELSE 1 END', ["{$escapedTerm}%"]);
-        } else {
-            $query->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', ["{$escapedTerm}%"]);
-        }
+        // Sort: prefix matches first, then by BGG rank, then by rating.
+        // PostgreSQL-specific: name->>? uses JSONB extraction operator.
+        $locale = app()->getLocale();
+        $query->orderByRaw('CASE WHEN name->>? ILIKE ? THEN 0 ELSE 1 END', [$locale, "{$escapedTerm}%"]);
 
         $query = $query
             ->orderBy('bgg_rank', 'asc')

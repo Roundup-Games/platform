@@ -16,6 +16,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\SchemaOrg\Product;
 use Spatie\SchemaOrg\AggregateRating;
 use App\Traits\StringMorphMediaKey;
+use Spatie\Translatable\HasTranslations;
 
 class GameSystem extends Model implements HasMedia
 {
@@ -23,6 +24,9 @@ class GameSystem extends Model implements HasMedia
     use HasSEO;
     use InteractsWithMedia;
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
+    use HasTranslations;
+
+    public array $translatable = ['name', 'description'];
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -75,7 +79,7 @@ class GameSystem extends Model implements HasMedia
                 $gameSystem->id = (string) Str::orderedUuid();
             }
             if (empty($gameSystem->slug)) {
-                $gameSystem->slug = Str::slug($gameSystem->name);
+                $gameSystem->slug = Str::slug($gameSystem->getTranslation('name', 'en'));
             }
             if (empty($gameSystem->type)) {
                 $gameSystem->type = 'boardgame';

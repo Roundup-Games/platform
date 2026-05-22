@@ -10,12 +10,12 @@ beforeEach(function () {
 
 it('syncs all game systems with bgg_ids', function () {
     // Create 3 GameSystem records with bgg_ids
-    GameSystem::factory()->create(['name' => 'Game A', 'bgg_id' => 174430]);
-    GameSystem::factory()->create(['name' => 'Game B', 'bgg_id' => 224517]);
-    GameSystem::factory()->create(['name' => 'Game C', 'bgg_id' => 12345]);
+    GameSystem::factory()->create(['name' => ['en' => 'Game A'], 'bgg_id' => 174430]);
+    GameSystem::factory()->create(['name' => ['en' => 'Game B'], 'bgg_id' => 224517]);
+    GameSystem::factory()->create(['name' => ['en' => 'Game C'], 'bgg_id' => 12345]);
 
     // Create one without bgg_id — should be excluded
-    GameSystem::factory()->create(['name' => 'No BGG', 'bgg_id' => null]);
+    GameSystem::factory()->create(['name' => ['en' => 'No BGG'], 'bgg_id' => null]);
 
     $multiXml = <<<XML
     <?xml version="1.0" encoding="UTF-8"?>
@@ -104,7 +104,7 @@ it('handles empty database gracefully', function () {
 });
 
 it('returns failure exit code when sync has errors', function () {
-    GameSystem::factory()->create(['name' => 'Failing Game', 'bgg_id' => 174430]);
+    GameSystem::factory()->create(['name' => ['en' => 'Failing Game'], 'bgg_id' => 174430]);
 
     Http::fake([
         'boardgamegeek.com/*' => Http::response('Server Error', 500),

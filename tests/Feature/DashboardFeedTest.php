@@ -191,7 +191,7 @@ describe('Community Feed — trending subsection', function () {
             'date_time' => now()->addDays(3),
             'location_id' => $location->id,
             'max_players' => 4,
-            'name' => 'Trending Test Game',
+            'name' => ['en' => 'Trending Test Game'],
         ]);
         Cache::put("dashboard:trending:{$geohash4}", [
             'games' => [
@@ -285,7 +285,7 @@ describe('Community Feed — trending subsection', function () {
             'date_time' => now()->addDays(5),
             'location_id' => $location->id,
             'max_players' => 5,
-            'name' => 'Fire Icon Game',
+            'name' => ['en' => 'Fire Icon Game'],
         ]);
         Cache::put("dashboard:trending:{$geohash4}", [
             'games' => [
@@ -348,7 +348,7 @@ describe('Community Feed — action verbs', function () {
         Game::factory()->create([
             'owner_id' => $friend->id,
             'status' => 'completed',
-            'name' => 'Finished Game',
+            'name' => ['en' => 'Finished Game'],
         ]);
 
         Livewire::test(\App\Livewire\Dashboard::class)

@@ -7,6 +7,7 @@ use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -17,6 +18,7 @@ use Livewire\WithPagination;
 class GameSystemsPage extends Component
 {
     use EscapesLikeWildcards;
+    use QueriesTranslatableColumns;
     use WithPagination;
 
     // ── Filters ────────────────────────────────────────
@@ -179,10 +181,8 @@ class GameSystemsPage extends Component
 
         // Search by name
         $query->when($this->search, fn ($q) => $q->where(function ($q) {
-            $escaped = $this->escapeLikeWildcards($this->search);
-            $op = $this->likeOperator();
-            $q->where('name', $op, "%{$escaped}%")
-              ->orWhere('description', $op, "%{$escaped}%");
+            $this->whereTranslatableLike($q, 'name', $this->search);
+            $this->orWhereTranslatableLike($q, 'description', $this->search);
         }));
 
         // Player count range

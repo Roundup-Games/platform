@@ -31,9 +31,9 @@ describe('Game creation — safety rules persistence', function () {
         $game = Game::create([
             'owner_id' => $user->id,
             'game_system_id' => $system->id,
-            'name' => 'Safety Tools Test Game',
+            'name' => ['en' => 'Safety Tools Test Game'],
             'date_time' => now()->addDays(3),
-            'description' => 'A game with safety tools',
+            'description' => ['en' => 'A game with safety tools'],
             'expected_duration' => 3,
             'price' => 0,
             'language' => 'en',
@@ -79,8 +79,8 @@ describe('Campaign creation — safety rules persistence', function () {
         $campaign = Campaign::create([
             'owner_id' => $user->id,
             'game_system_id' => $system->id,
-            'name' => 'Safety Tools Test Campaign',
-            'description' => 'A campaign with safety tools',
+            'name' => ['en' => 'Safety Tools Test Campaign'],
+            'description' => ['en' => 'A campaign with safety tools'],
             'recurrence' => 'weekly',
             'time_of_day' => '19:00',
             'session_duration' => 3,
@@ -257,7 +257,7 @@ describe('Campaign detail page — safety tools display', function () {
 describe('Discovery page — safety tools filter', function () {
     it('filters games by safety tool', function () {
         Game::factory()->create([
-            'name' => 'Safe Game Session',
+            'name' => ['en' => 'Safe Game Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -269,7 +269,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Unsafe Game Session',
+            'name' => ['en' => 'Unsafe Game Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -284,7 +284,7 @@ describe('Discovery page — safety tools filter', function () {
 
     it('filters campaigns by safety tool', function () {
         Campaign::factory()->create([
-            'name' => 'Safe Campaign',
+            'name' => ['en' => 'Safe Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'safety_rules' => [
@@ -295,7 +295,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Unsafe Campaign',
+            'name' => ['en' => 'Unsafe Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'safety_rules' => null,
@@ -310,7 +310,7 @@ describe('Discovery page — safety tools filter', function () {
 
     it('requires all selected safety tools to match (AND logic)', function () {
         Game::factory()->create([
-            'name' => 'Partial Match Game',
+            'name' => ['en' => 'Partial Match Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -322,7 +322,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Full Match Game',
+            'name' => ['en' => 'Full Match Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -342,7 +342,7 @@ describe('Discovery page — safety tools filter', function () {
 
     it('toggling a safety tool off removes it from filter', function () {
         Game::factory()->create([
-            'name' => 'Tool Match Game',
+            'name' => ['en' => 'Tool Match Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -354,7 +354,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'No Tools Game',
+            'name' => ['en' => 'No Tools Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -376,7 +376,7 @@ describe('Discovery page — safety tools filter', function () {
 
     it('clearFilters resets safety_tools filter', function () {
         Game::factory()->create([
-            'name' => 'Filtered Game',
+            'name' => ['en' => 'Filtered Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -388,7 +388,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Unfiltered Game',
+            'name' => ['en' => 'Unfiltered Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),

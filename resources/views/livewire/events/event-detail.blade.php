@@ -16,15 +16,15 @@
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
                     {{ __(ucfirst($event->type)) }}
                 </span>
-                @if($event->status === 'registration_open')
+                @if($event->status->value === 'registration_open')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('events.content_registration_open_badge') }}
                     </span>
-                @elseif($event->status === 'in_progress')
+                @elseif($event->status->value === 'in_progress')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('common.content_in_progress_badge') }}
                     </span>
-                @elseif($event->status === 'registration_closed')
+                @elseif($event->status->value === 'registration_closed')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('events.content_registration_closed_badge') }}
                     </span>
@@ -74,7 +74,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 bg-surface">
 
         {{-- Language mismatch banner --}}
-        <x-language-mismatch-banner :entity-language="$event->content_language" />
+        <x-language-mismatch-banner :entity-language="$event->language" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -171,7 +171,7 @@
                             </span>
                         @else
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-surface-container text-on-surface-variant">
-                                {{ __('events.content_registration') }} {{ __(ucfirst(str_replace('_', ' ', $event->status))) }}
+                                {{ __('events.content_registration') }} {{ __(ucfirst(str_replace('_', ' ', $event->status->value))) }}
                             </span>
                         @endif
                     </div>

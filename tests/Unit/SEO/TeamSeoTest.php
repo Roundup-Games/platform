@@ -16,7 +16,7 @@ describe('Team getDynamicSEOData', function () {
 
     it('returns description from team description field', function () {
         $team = Team::factory()->create([
-            'description' => 'A competitive tabletop gaming team.',
+            'description' => ['en' => 'A competitive tabletop gaming team.'],
             'is_active' => true,
         ]);
 
@@ -28,7 +28,7 @@ describe('Team getDynamicSEOData', function () {
     it('limits description to 160 characters', function () {
         $longDescription = str_repeat('A very long team description. ', 20);
         $team = Team::factory()->create([
-            'description' => $longDescription,
+            'description' => ['en' => $longDescription],
             'is_active' => true,
         ]);
 

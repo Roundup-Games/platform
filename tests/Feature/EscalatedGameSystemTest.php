@@ -144,7 +144,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // GameSystem was created
-        $gameSystem = GameSystem::where('name', 'Wingspan')->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem, 'Expected GameSystem to be created on approval');
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -177,7 +177,7 @@ class EscalatedGameSystemTest extends TestCase
 
         // Pre-create the GameSystem that would result from sync
         GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
             'bgg_id' => 266192,
         ]);
@@ -214,7 +214,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Falls back to manual creation
-        $gameSystem = GameSystem::where('name', 'Custom Game')->first();
+        $gameSystem = GameSystem::where('name->en', 'Custom Game')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
     }
@@ -302,7 +302,7 @@ class EscalatedGameSystemTest extends TestCase
     public function test_ticket_closed_as_duplicate_sends_duplicate_notification(): void
     {
         $existingSystem = GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
         ]);
 
@@ -386,7 +386,7 @@ class EscalatedGameSystemTest extends TestCase
 
         // Pre-create GameSystem that BGG sync would produce
         GameSystem::factory()->create([
-            'name' => 'Ticket to Ride',
+            'name' => ['en' => 'Ticket to Ride'],
             'slug' => 'ticket-to-ride',
             'bgg_id' => 12345,
         ]);
@@ -470,7 +470,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Step 3: GameSystem exists
-        $gameSystem = GameSystem::where('name', 'Catan')->first();
+        $gameSystem = GameSystem::where('name->en', 'Catan')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -505,7 +505,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Step 3: No GameSystem created
-        $this->assertNull(GameSystem::where('name', 'Bad Game')->first());
+        $this->assertNull(GameSystem::where('name->en', 'Bad Game')->first());
 
         // Step 4: User received rejection notification
         $notification = $this->user->notifications()
@@ -519,7 +519,7 @@ class EscalatedGameSystemTest extends TestCase
     public function test_full_lifecycle_submit_duplicate_user_redirected(): void
     {
         $existingSystem = GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'slug' => 'wingspan',
         ]);
 

@@ -19,7 +19,7 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\EventStatusType;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use App\Enums\EventStatus;
-use App\Traits\HasTranslations;
+use Spatie\Translatable\HasTranslations;
 use App\Traits\StringMorphMediaKey;
 use App\Relations\StringKeyMorphMany;
 
@@ -31,7 +31,7 @@ class Event extends Model implements HasMedia
     use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use HasTranslations;
 
-    protected $translatable = ['name', 'description', 'short_description', 'rules', 'schedule'];
+    public array $translatable = ['name', 'description', 'short_description'];
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -51,7 +51,7 @@ class Event extends Model implements HasMedia
     ];
 
     protected $fillable = [
-        'name', 'slug', 'description', 'short_description', 'type', 'status', 'content_language',
+        'name', 'slug', 'description', 'short_description', 'type', 'status', 'language',
         'venue_name', 'venue_address', 'city', 'country', 'postal_code', 'location_id',
         'start_date', 'end_date', 'registration_opens_at', 'registration_closes_at',
         'registration_type', 'max_teams', 'max_participants',
@@ -97,7 +97,10 @@ class Event extends Model implements HasMedia
                 $event->id = (string) Str::uuid();
             }
             if (empty($event->slug)) {
-                $event->slug = Str::slug($event->name) . '-' . Str::random(6);
+                // name is a spatie JSON column — getTranslation extracts the locale key.
+                // Falls back to the raw attribute if the value isn't JSON yet (spatie handles this).
+                $locale = $event->language ?? 'en';
+                $event->slug = Str::slug($event->getTranslation('name', $locale)) . '-' . Str::random(6);
             }
         });
 
@@ -191,7 +194,7 @@ class Event extends Model implements HasMedia
 
     public function scopeRegistrationOpen($query)
     {
-        return $query->where('status', 'registration_open');
+        return $query->where('status', EventStatus::RegistrationOpen);
     }
 
     public function scopeUpcoming($query)
@@ -213,7 +216,7 @@ class Event extends Model implements HasMedia
 
     public function isRegistrationOpen(): bool
     {
-        if ($this->status !== 'registration_open') {
+        if ($this->status !== EventStatus::RegistrationOpen) {
             return false;
         }
 
@@ -249,13 +252,19 @@ class Event extends Model implements HasMedia
 
     public function getDynamicSEOData(): SEOData
     {
-        $description = $this->short_description
-            ?? Str::limit(strip_tags($this->description ?? ''), 160)
-            ?: null;
+        $shortDescription = $this->short_description;
+        $description = (! blank($shortDescription))
+            ? $shortDescription
+            : (filled($this->description) ? Str::limit(strip_tags($this->description), 160) : null);
 
         $image = $this->getFirstMediaUrl('banner', 'large') ?: asset('images/og-default.jpg');
 
-        $isPublic = $this->is_public && in_array($this->status, ['published', 'registration_open', 'registration_closed', 'in_progress']);
+        $isPublic = $this->is_public && in_array($this->status, [
+            EventStatus::Published,
+            EventStatus::RegistrationOpen,
+            EventStatus::RegistrationClosed,
+            EventStatus::InProgress,
+        ]);
         $robots = $isPublic
             ? 'index, follow'
             : 'noindex, nofollow';
@@ -268,7 +277,7 @@ class Event extends Model implements HasMedia
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
+                ->description(filled($this->description) ? Str::limit(strip_tags($this->description), 500) : null)
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
@@ -281,7 +290,7 @@ class Event extends Model implements HasMedia
             }
 
             // Cancelled events
-            if ($this->status === 'cancelled') {
+            if ($this->status === EventStatus::Cancelled) {
                 $event->eventStatus(EventStatusType::EventCancelled);
             }
 

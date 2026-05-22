@@ -24,9 +24,9 @@ test('game isBenchMode reads from bench_mode column - default false', function (
     $game = Game::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
-        'name' => 'Test Game',
+        'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(10),
-        'description' => 'Test',
+        'description' => ['en' => 'Test'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',
@@ -43,9 +43,9 @@ test('game isBenchMode returns true when bench_mode is true', function () {
     $game = Game::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
-        'name' => 'Test Game',
+        'name' => ['en' => 'Test Game'],
         'date_time' => now()->addDays(10),
-        'description' => 'Test',
+        'description' => ['en' => 'Test'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',
@@ -63,8 +63,8 @@ test('campaign isBenchMode reads from bench_mode column - default false', functi
     $campaign = Campaign::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
-        'name' => 'Test Campaign',
-        'description' => 'Test',
+        'name' => ['en' => 'Test Campaign'],
+        'description' => ['en' => 'Test'],
         'visibility' => 'public',
         'status' => 'active',
         'language' => 'en',
@@ -82,8 +82,8 @@ test('campaign isBenchMode returns false when bench_mode is false', function () 
     $campaign = Campaign::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
-        'name' => 'Test Campaign',
-        'description' => 'Test',
+        'name' => ['en' => 'Test Campaign'],
+        'description' => ['en' => 'Test'],
         'visibility' => 'public',
         'status' => 'active',
         'language' => 'en',
@@ -139,8 +139,8 @@ function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $ben
     $campaign = Campaign::create([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Full Campaign',
-        'description' => 'Test',
+        'name' => ['en' => 'Full Campaign'],
+        'description' => ['en' => 'Test'],
         'visibility' => 'public',
         'status' => 'active',
         'language' => 'en',
@@ -177,9 +177,9 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
         'campaign_id' => $campaignId,
-        'name' => 'Full Game',
+        'name' => ['en' => 'Full Game'],
         'date_time' => now()->addDays(7),
-        'description' => 'Test',
+        'description' => ['en' => 'Test'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',
@@ -271,8 +271,8 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Open Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Open Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -320,8 +320,8 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Protected Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Protected Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'protected',
             'status' => 'active',
             'language' => 'en',
@@ -439,9 +439,9 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Open Game',
+            'name' => ['en' => 'Open Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'Test',
+            'description' => ['en' => 'Test'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -488,9 +488,9 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Protected Game',
+            'name' => ['en' => 'Protected Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'Test',
+            'description' => ['en' => 'Test'],
             'expected_duration' => 3,
             'visibility' => 'protected',
             'status' => 'scheduled',
@@ -555,8 +555,8 @@ describe('Campaign session inherits bench_mode from campaign', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Bench Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Bench Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -596,8 +596,8 @@ describe('Campaign session inherits bench_mode from campaign', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Waitlist Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Waitlist Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -637,8 +637,8 @@ describe('Campaign session inherits bench_mode from campaign', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Waitlist Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Waitlist Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -680,8 +680,8 @@ describe('ApplyToCampaign negative cases', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'My Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'My Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -706,8 +706,8 @@ describe('ApplyToCampaign negative cases', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Private Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Private Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'private',
             'status' => 'active',
             'language' => 'en',
@@ -729,8 +729,8 @@ describe('ApplyToCampaign negative cases', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Public Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Public Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -765,9 +765,9 @@ describe('ApplyToGame negative cases', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'My Game',
+            'name' => ['en' => 'My Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'Test',
+            'description' => ['en' => 'Test'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -791,9 +791,9 @@ describe('ApplyToGame negative cases', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Private Game',
+            'name' => ['en' => 'Private Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'Test',
+            'description' => ['en' => 'Test'],
             'expected_duration' => 3,
             'visibility' => 'private',
             'status' => 'scheduled',
@@ -814,9 +814,9 @@ describe('ApplyToGame negative cases', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Public Game',
+            'name' => ['en' => 'Public Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'Test',
+            'description' => ['en' => 'Test'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -890,8 +890,8 @@ describe('CampaignApplication status reflects review state', function () {
         $campaign = Campaign::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Open Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Open Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -991,7 +991,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::where('name', 'GM Bench Game')->first()->bench_mode)->toBeTrue();
+        expect(Game::where('name->en', 'GM Bench Game')->first()->bench_mode)->toBeTrue();
     });
 
     // ── 2. GM creates standalone game with bench_mode=false → stored as false ──
@@ -1008,7 +1008,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::where('name', 'GM No Bench Game')->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'GM No Bench Game')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 3. Non-GM creates game with bench_mode=true → forced to false, warning ─
@@ -1027,7 +1027,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::where('name', 'Tampered Game')->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'Tampered Game')->first()->bench_mode)->toBeFalse();
 
         Log::shouldHaveReceived('warning')
             ->with('Non-GM user attempted to enable bench_mode on game creation', \Mockery::on(function ($ctx) use ($user) {
@@ -1051,7 +1051,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::where('name', 'Non-GM Default Game')->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'Non-GM Default Game')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 5. GM creates campaign with bench_mode=true → stored as true (default) ─
@@ -1068,7 +1068,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::where('name', 'GM Bench Campaign')->first()->bench_mode)->toBeTrue();
+        expect(Campaign::where('name->en', 'GM Bench Campaign')->first()->bench_mode)->toBeTrue();
     });
 
     // ── 6. GM creates campaign with bench_mode=false → stored as false ─────────
@@ -1085,7 +1085,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::where('name', 'GM No Bench Campaign')->first()->bench_mode)->toBeFalse();
+        expect(Campaign::where('name->en', 'GM No Bench Campaign')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 7. Non-GM creates campaign with bench_mode=true → forced to false ──────
@@ -1104,7 +1104,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::where('name', 'Tampered Campaign')->first()->bench_mode)->toBeFalse();
+        expect(Campaign::where('name->en', 'Tampered Campaign')->first()->bench_mode)->toBeFalse();
 
         Log::shouldHaveReceived('warning')
             ->with('Non-GM user attempted to enable bench_mode on campaign creation', \Mockery::on(function ($ctx) use ($user) {
@@ -1122,8 +1122,8 @@ describe('Bench mode toggle matrix', function () {
         $campaign = Campaign::create([
             'owner_id' => $gm->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Inherit Bench Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Inherit Bench Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -1156,8 +1156,8 @@ describe('Bench mode toggle matrix', function () {
         $campaign = Campaign::create([
             'owner_id' => $gm->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Waitlist Campaign',
-            'description' => 'Test',
+            'name' => ['en' => 'Waitlist Campaign'],
+            'description' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'active',
             'language' => 'en',
@@ -1197,7 +1197,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::where('name', 'Immutable Bench Game')->first();
+        $game = Game::where('name->en', 'Immutable Bench Game')->first();
         expect($game->bench_mode)->toBeTrue();
 
         // Verify no game edit/update route exists in the route collection

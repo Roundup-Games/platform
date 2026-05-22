@@ -176,7 +176,7 @@ describe('getPaginatedForUser', function () {
 
 describe('display strings', function () {
     it('handles notification types without actors (status changes)', function () {
-        $game = \App\Models\Game::factory()->create(['name' => 'Epic Quest']);
+        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Epic Quest']]);
         $this->user->notify(new \App\Notifications\GameCancelled($game));
 
         $groups = $this->service->getGroupedForUser($this->user);
@@ -188,7 +188,7 @@ describe('display strings', function () {
 
     it('handles invitation display strings with entity context', function () {
         $inviter = User::factory()->create(['name' => 'Dana']);
-        $game = \App\Models\Game::factory()->create(['name' => 'Test Game']);
+        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Test Game']]);
 
         $this->user->notify(new GameInvitation($game, $inviter));
 
@@ -200,7 +200,7 @@ describe('display strings', function () {
 
     it('handles participant joined with entity context', function () {
         $participant = User::factory()->create(['name' => 'Eve']);
-        $game = \App\Models\Game::factory()->create(['name' => 'My Game']);
+        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'My Game']]);
 
         $this->user->notify(new ParticipantJoined($participant, $game, 'game'));
 

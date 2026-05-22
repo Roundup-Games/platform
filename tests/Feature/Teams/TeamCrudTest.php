@@ -83,6 +83,22 @@ describe('CreateTeam', function () {
         ]);
     })->group('smoke');
 
+    it('stores German description translation on create', function () {
+        $user = teamCrudCreateUserWithTeamPermission();
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Teams\CreateTeam::class)
+            ->set('name', 'Deutsch Team')
+            ->set('description', 'English description')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->call('save');
+
+        $team = Team::where('name', 'Deutsch Team')->first();
+        expect($team)->not->toBeNull()
+            ->and($team->getTranslation('description', 'en'))->toBe('English description')
+            ->and($team->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
+    });
+
 });
 
 // ── BrowseTeams ─────────────────────────────────────────
@@ -280,6 +296,59 @@ describe('ManageTeam', function () {
             ->assertForbidden();
 
         assertDatabaseHas('teams', ['id' => $team->id]);
+    });
+
+    it('stores German description translation on update', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+        $team = Team::factory()->create([
+            'is_active' => true,
+            'created_by' => $user->id,
+            'name' => 'Translatable Team',
+        ]);
+
+        TeamMember::create([
+            'team_id' => $team->id,
+            'user_id' => $user->id,
+            'role' => 'captain',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->set('description', 'English description')
+            ->set('pendingTranslations.de.description', 'Deutsche Beschreibung')
+            ->call('save')
+            ->assertSet('saved', true);
+
+        $team->refresh();
+        expect($team->getTranslation('description', 'en'))->toBe('English description')
+            ->and($team->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');
+    });
+
+    it('loads existing German translation into pendingTranslations on mount', function () {
+        $user = User::factory()->create(['profile_complete' => true]);
+        $team = Team::factory()->create([
+            'is_active' => true,
+            'created_by' => $user->id,
+            'name' => 'Existing Trans Team',
+        ]);
+        $team->setTranslation('description', 'en', 'English desc');
+        $team->setTranslation('description', 'de', 'Deutsche Beschreibung');
+        $team->save();
+
+        TeamMember::create([
+            'team_id' => $team->id,
+            'user_id' => $user->id,
+            'role' => 'captain',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        Livewire\Livewire::actingAs($user)
+            ->test(App\Livewire\Teams\ManageTeam::class, ['slug' => $team->slug])
+            ->assertSet('description', 'English desc')
+            ->assertSet('pendingTranslations.de.description', 'Deutsche Beschreibung');
     });
 
 
