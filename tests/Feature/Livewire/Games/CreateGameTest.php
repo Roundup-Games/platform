@@ -106,7 +106,7 @@ describe('CreateGame — Board Game Creation', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Board Game Night'])->first();
+        $game = Game::where('name->en', 'Board Game Night')->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
             ->and($game->game_type->value)->toBe('board_game');
@@ -133,7 +133,7 @@ describe('CreateGame — TTRPG Creation', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Dungeon Crawl'])->first();
+        $game = Game::where('name->en', 'Dungeon Crawl')->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
             ->and($game->game_type->value)->toBe('ttrpg')
@@ -318,7 +318,7 @@ describe('CreateGame — Clone Source', function () {
             ->call('save')
             ->assertRedirect();
 
-        $games = Game::whereRaw("name->>'en' = ?", ['Repeat Session'])->get();
+        $games = Game::where('name->en', 'Repeat Session')->get();
         expect($games)->toHaveCount(2);
     });
 
@@ -342,7 +342,7 @@ describe('CreateGame — Translatable Fields', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['English Game'])->first();
+        $game = Game::where('name->en', 'English Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->getTranslation('name', 'en'))->toBe('English Game');
     });
@@ -363,7 +363,7 @@ describe('CreateGame — Translatable Fields', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['English Game'])->first();
+        $game = Game::where('name->en', 'English Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->getTranslation('name', 'en'))->toBe('English Game')
             ->and($game->getTranslation('name', 'de'))->toBe('Deutsches Spiel')

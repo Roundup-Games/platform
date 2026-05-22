@@ -32,6 +32,7 @@ class EditGameSystem extends EditRecord
     {
         return [
             LocaleSwitcher::make(),
+            ...parent::getHeaderActions(),
             DeleteAction::make(),
             Action::make('resyncBgg')
                 ->label('Re-sync from BGG')

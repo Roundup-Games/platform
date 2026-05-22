@@ -68,7 +68,7 @@ class CreateCampaign extends Component
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => 'required|string|max:255',
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'location_id' => 'nullable|uuid|exists:locations,id',
@@ -86,7 +86,10 @@ class CreateCampaign extends Component
             'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
             'bench_mode' => 'boolean',
-        ];
+        ], $this->translatableValidationRules(
+            ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:10000'],
+            $this->language,
+        ));
     }
 
     // ── Event Listeners ──────────────────────────────────

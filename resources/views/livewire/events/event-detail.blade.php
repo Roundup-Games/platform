@@ -16,15 +16,15 @@
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary">
                     {{ __(ucfirst($event->type)) }}
                 </span>
-                @if($event->status === 'registration_open')
+                @if($event->status->value === 'registration_open')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('events.content_registration_open_badge') }}
                     </span>
-                @elseif($event->status === 'in_progress')
+                @elseif($event->status->value === 'in_progress')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('common.content_in_progress_badge') }}
                     </span>
-                @elseif($event->status === 'registration_closed')
+                @elseif($event->status->value === 'registration_closed')
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/30 text-on-primary">
                         {{ __('events.content_registration_closed_badge') }}
                     </span>

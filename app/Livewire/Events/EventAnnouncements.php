@@ -123,6 +123,13 @@ class EventAnnouncements extends Component
         $this->authorize('update', $this->event);
 
         $primaryLanguage = $this->event->language ?? 'en';
+        $this->validate(
+            $this->translatableValidationRules(
+                ['title' => 'required|string|max:255', 'content' => 'required|string'],
+                $primaryLanguage,
+            ),
+        );
+
         $translatable = $this->buildTranslatableValues(
             ['title', 'content'],
             $primaryLanguage,

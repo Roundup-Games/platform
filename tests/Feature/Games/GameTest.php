@@ -99,7 +99,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Epic One-Shot Adventure'])->first();
+        $game = Game::where('name->en', 'Epic One-Shot Adventure')->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
             ->and($game->game_system_id)->toBe($system->id)
@@ -119,7 +119,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Quick Game'])->first();
+        $game = Game::where('name->en', 'Quick Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->owner_id)->toBe($user->id)
             ->and($game->status->value)->toBe('scheduled');
@@ -141,7 +141,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Location Test'])->first();
+        $game = Game::where('name->en', 'Location Test')->first();
         expect($game->location_id)->toBe($location->id);
     });
 
@@ -561,7 +561,7 @@ describe('CreateGame — Duration', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::whereRaw("name->>'en' = ?", ['No Duration'])->first();
+        $game = Game::where('name->en', 'No Duration')->first();
         expect($game)->not->toBeNull()
             ->and($game->expected_duration)->toBe(2.0);
     });
@@ -590,7 +590,7 @@ describe('CreateGame — Duration', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Auto Duration'])->first();
+        $game = Game::where('name->en', 'Auto Duration')->first();
         expect($game)->not->toBeNull()
             ->and($game->expected_duration)->toBe(2.0);
     });
@@ -631,7 +631,7 @@ describe('CreateGame — Vibe Flags', function () {
             ->set('max_players', 6)
             ->call('save');
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Vibey Game'])->first();
+        $game = Game::where('name->en', 'Vibey Game')->first();
         expect($game->vibe_flags)->toContain('atmospheric', 'roleplay-heavy', 'horror')
             ->and($game->vibe_flags)->not->toContain('cooperative');
     });
@@ -652,7 +652,7 @@ describe('CreateGame — Vibe Flags', function () {
             ->call('save');
 
         // Invalid flag silently filtered; valid one stored
-        $game = Game::whereRaw("name->>'en' = ?", ['Test'])->first();
+        $game = Game::where('name->en', 'Test')->first();
         expect($game->vibe_flags)->toContain('atmospheric')
             ->and($game->vibe_flags)->not->toContain('not-a-real-flag');
     });
@@ -680,7 +680,7 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
             ->assertSet('complexity', '2.5')
             ->call('save');
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Full Auto Game'])->first();
+        $game = Game::where('name->en', 'Full Auto Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->expected_duration)->toBe(3.0)
             ->and($game->min_players)->toBe(3)
@@ -706,7 +706,7 @@ describe('CreateGame — Visibility Gating', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Public Game'])->first();
+        $game = Game::where('name->en', 'Public Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->visibility->value)->toBe('public');
     });
@@ -724,7 +724,7 @@ describe('CreateGame — Visibility Gating', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Attempted Public'])->first();
+        $game = Game::where('name->en', 'Attempted Public')->first();
         expect($game)->not->toBeNull()
             ->and($game->visibility->value)->toBe('private');
     });

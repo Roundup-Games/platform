@@ -202,7 +202,7 @@ describe('CreateEvent Translations', function () {
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::whereRaw("name->>'en' = ?", ['English Only Event'])->first();
+        $event = Event::where('name->en', 'English Only Event')->first();
         expect($event)->not->toBeNull()
             ->and($event->language)->toBe('en');
     });
@@ -445,7 +445,7 @@ describe('Locale Switcher — CreateGame', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = \App\Models\Game::whereRaw("name->>'en' = ?", ['English Game'])->first();
+        $game = \App\Models\Game::where('name->en', 'English Game')->first();
         expect($game)->not->toBeNull()
             ->and($game->getTranslation('name', 'de'))->toBe('Deutsches Spiel')
             ->and($game->getTranslation('description', 'de'))->toBe('Deutsche Beschreibung');

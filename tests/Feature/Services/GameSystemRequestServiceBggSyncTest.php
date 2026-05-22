@@ -434,7 +434,7 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
         $event = new \Escalated\Laravel\Events\TicketResolved($ticket, null);
         app(\App\Listeners\HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
 

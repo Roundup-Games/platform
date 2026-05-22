@@ -75,13 +75,21 @@ return new class extends Migration
 
     public function up(): void
     {
-        // 1. Drop the old translations table (empty — no data loss)
-        Schema::dropIfExists('translations');
+        // 1. Drop the old translations table only when confirmed empty
+        if (Schema::hasTable('translations')) {
+            $hasRows = DB::table('translations')->exists();
+            if ($hasRows) {
+                throw new \RuntimeException(
+                    'Refusing to drop non-empty translations table. Migrate data before rerunning.'
+                );
+            }
+            Schema::drop('translations');
+        }
 
         // 2. Wrap existing text values in JSON locale objects AND convert column types.
         //    Combined into a single ALTER TABLE per column to halve lock duration:
         //    each column's UPDATE + type change happens atomically.
-        //    Regex check prevents double-wrapping on re-run.
+        //    All non-NULL values are unconditionally wrapped via jsonb_build_object('en', ...).
         //
         //    PERF NOTE: ALTER COLUMN TYPE JSONB triggers a full table rewrite on
         //    PostgreSQL. At current scale (< 10K rows per table) this completes in
@@ -90,12 +98,21 @@ return new class extends Migration
         foreach ($this->translatableColumns as $table => $columns) {
             DB::transaction(function () use ($table, $columns) {
                 foreach ($columns as [$column, $nullable]) {
+                    // Skip columns already converted to JSONB (rerun safety).
+                    $dataType = DB::selectOne("
+                        SELECT data_type FROM information_schema.columns
+                        WHERE table_name = ? AND column_name = ?
+                    ", [$table, $column])?->data_type;
+
+                    if ($dataType !== 'character varying' && $dataType !== 'text') {
+                        continue;
+                    }
+
                     DB::statement("
                         ALTER TABLE {$table}
                         ALTER COLUMN {$column} TYPE JSONB
                         USING CASE
                             WHEN {$column} IS NULL THEN NULL
-                            WHEN {$column}::text ~ '^\s*[\{\[]' THEN {$column}::jsonb
                             ELSE jsonb_build_object('en', {$column}::text)
                         END
                     ");

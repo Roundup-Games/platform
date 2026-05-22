@@ -69,6 +69,12 @@ class ManageTeam extends Component
         $this->authorize('update', $this->team);
 
         $validated = $this->validate();
+        $this->validate(
+            $this->translatableValidationRules(
+                ['description' => 'nullable|string|max:1000'],
+                $this->team->language ?? app()->getLocale(),
+            ),
+        );
 
         // Build translatable value for description only
         $primaryLocale = $this->team->language ?? app()->getLocale();

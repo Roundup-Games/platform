@@ -81,7 +81,7 @@ class CreateGame extends Component
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => 'required|string|max:255',
             'game_type' => 'required|string|in:' . implode(',', GameType::values()),
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
@@ -105,7 +105,10 @@ class CreateGame extends Component
             'min_reliability_preference' => 'nullable|numeric|min:0|max:100',
             'complexity' => 'nullable|numeric|min:0|max:5',
             'bench_mode' => 'boolean',
-        ];
+        ], $this->translatableValidationRules(
+            ['name' => 'required|string|max:255', 'description' => 'nullable|string|max:5000'],
+            $this->language,
+        ));
     }
 
     // ── Event Listeners ──────────────────────────────────

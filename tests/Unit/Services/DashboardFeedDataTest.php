@@ -148,14 +148,14 @@ class DashboardFeedDataTest extends TestCase
             'type' => RelationshipType::Follow,
         ]);
 
-        $older = Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $friend->id,
             'name' => ['en' => 'Older Game'],
             'status' => GameStatus::Scheduled,
             'created_at' => now()->subDay(),
         ]);
 
-        $newer = Game::factory()->create([
+        Game::factory()->create([
             'owner_id' => $friend->id,
             'name' => ['en' => 'Newer Game'],
             'status' => GameStatus::Scheduled,

@@ -144,7 +144,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // GameSystem was created
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem, 'Expected GameSystem to be created on approval');
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -214,7 +214,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Falls back to manual creation
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Custom Game'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Custom Game')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
     }
@@ -470,7 +470,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Step 3: GameSystem exists
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Catan'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Catan')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -505,7 +505,7 @@ class EscalatedGameSystemTest extends TestCase
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Step 3: No GameSystem created
-        $this->assertNull(GameSystem::whereRaw("name->>'en' = ?", ['Bad Game'])->first());
+        $this->assertNull(GameSystem::where('name->en', 'Bad Game')->first());
 
         // Step 4: User received rejection notification
         $notification = $this->user->notifications()

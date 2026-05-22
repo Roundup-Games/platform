@@ -104,7 +104,7 @@ describe('CreateEvent', function () {
             ->call('create')
             ->assertRedirect();
 
-        $event = Event::whereRaw("name->>'en' = ?", ['Test Tournament'])->first();
+        $event = Event::where('name->en', 'Test Tournament')->first();
         expect($event)->not->toBeNull();
         expect($event->organizer_id)->toBe($user->id);
         expect($event->status)->toBe(EventStatus::Draft);
@@ -134,7 +134,7 @@ describe('CreateEvent', function () {
             ->set('registration_type', 'team')
             ->call('create');
 
-        $event = Event::whereRaw("name->>'en' = ?", ['Division Event'])->first();
+        $event = Event::where('name->en', 'Division Event')->first();
         expect($event->divisions)->toHaveCount(2);
         expect($event->divisions[0]['name'])->toBe('Open');
     });
@@ -156,7 +156,7 @@ describe('CreateEvent', function () {
             ->set('rules', "Rule one\nRule two\nRule three")
             ->call('create');
 
-        $event = Event::whereRaw("name->>'en' = ?", ['Rules Event'])->first();
+        $event = Event::where('name->en', 'Rules Event')->first();
         expect($event->rules)->toHaveCount(3);
         expect($event->rules[0])->toBe('Rule one');
     });
@@ -182,7 +182,7 @@ describe('CreateEvent', function () {
             ->set('registration_closes_at', $closesAt)
             ->call('create');
 
-        $event = Event::whereRaw("name->>'en' = ?", ['Window Event'])->first();
+        $event = Event::where('name->en', 'Window Event')->first();
         expect($event->registration_opens_at)->not->toBeNull();
         expect($event->registration_closes_at)->not->toBeNull();
     });

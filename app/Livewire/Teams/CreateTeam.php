@@ -47,6 +47,12 @@ class CreateTeam extends Component
         $this->authorize('create', Team::class);
 
         $validated = $this->validate();
+        $this->validate(
+            $this->translatableValidationRules(
+                ['description' => 'nullable|string|max:1000'],
+                app()->getLocale(),
+            ),
+        );
 
         // Teams inherit the creator's locale as their language baseline.
         // This ensures translatable fields (description) are keyed correctly.

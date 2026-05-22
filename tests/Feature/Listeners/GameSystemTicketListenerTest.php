@@ -160,7 +160,7 @@ class GameSystemTicketListenerTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Verify GameSystem was created
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('boardgame', $gameSystem->type);
         $this->assertEquals('manual', $gameSystem->source);
@@ -180,7 +180,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Wingspan'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Wingspan')->first();
         $this->assertNotNull($gameSystem);
 
         // Verify notification was sent
@@ -204,7 +204,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Terraforming Mars'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Terraforming Mars')->first();
         $this->assertNotNull($gameSystem);
         $this->assertStringContainsString('terraforming-mars', $gameSystem->slug);
     }
@@ -227,7 +227,7 @@ class GameSystemTicketListenerTest extends TestCase
         $event = new TicketResolvedEvent($ticket, null);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Dungeons & Dragons'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Dungeons & Dragons')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('ttrpg', $gameSystem->type);
     }
@@ -442,7 +442,7 @@ class GameSystemTicketListenerTest extends TestCase
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Should fall back to manual creation
-        $gameSystem = GameSystem::whereRaw("name->>'en' = ?", ['Custom Game'])->first();
+        $gameSystem = GameSystem::where('name->en', 'Custom Game')->first();
         $this->assertNotNull($gameSystem);
         $this->assertEquals('manual', $gameSystem->source);
     }

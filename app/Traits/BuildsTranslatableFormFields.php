@@ -206,8 +206,8 @@ trait BuildsTranslatableFormFields
 
             foreach ($this->getSecondaryLocalesFor($baselineLocale) as $locale) {
                 // Priority: pendingTranslations store → legacy _de property → input
-                $value = data_get($this, "pendingTranslations.{$locale}.{$field}", '');
-                if (empty($value)) {
+                $value = data_get($this, "pendingTranslations.{$locale}.{$field}");
+                if ($value === null || $value === '') {
                     $prop = "{$field}_{$locale}";
                     if (property_exists($this, $prop)) {
                         $value = (string) $this->{$prop};
@@ -215,7 +215,7 @@ trait BuildsTranslatableFormFields
                         $value = $input[$prop];
                     }
                 }
-                if (!empty($value)) {
+                if ($value !== null && $value !== '') {
                     $translations[$locale] = $value;
                 }
             }
@@ -277,15 +277,24 @@ trait BuildsTranslatableFormFields
         foreach ($fieldRules as $field => $baseRules) {
             $rules[$field] = $baseRules;
 
+            // Derive secondary-locale rules from the base rules:
+            // replace 'required' with 'nullable' (secondary locales are optional)
+            // but preserve all other constraints (max, min, etc.).
+            // Non-string rules (objects, closures) pass through unchanged.
+            $secondaryRules = collect(is_array($baseRules) ? $baseRules : explode('|', $baseRules))
+                ->map(fn ($rule) => is_string($rule) && $rule === 'required' ? 'nullable' : $rule)
+                ->values()
+                ->all();
+
             foreach ($this->getSecondaryLocalesFor($primaryLanguage) as $locale) {
                 // Legacy: add rules for _de properties if they exist
                 $prop = "{$field}_{$locale}";
                 if (property_exists($this, $prop)) {
-                    $rules[$prop] = ['nullable', 'string'];
+                    $rules[$prop] = $secondaryRules;
                 }
 
                 // New: add rules for pendingTranslations nested keys
-                $rules["pendingTranslations.{$locale}.{$field}"] = ['nullable', 'string'];
+                $rules["pendingTranslations.{$locale}.{$field}"] = $secondaryRules;
             }
         }
         return $rules;

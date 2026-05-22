@@ -991,7 +991,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::whereRaw("name->>'en' = ?", ['GM Bench Game'])->first()->bench_mode)->toBeTrue();
+        expect(Game::where('name->en', 'GM Bench Game')->first()->bench_mode)->toBeTrue();
     });
 
     // ── 2. GM creates standalone game with bench_mode=false → stored as false ──
@@ -1008,7 +1008,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::whereRaw("name->>'en' = ?", ['GM No Bench Game'])->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'GM No Bench Game')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 3. Non-GM creates game with bench_mode=true → forced to false, warning ─
@@ -1027,7 +1027,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::whereRaw("name->>'en' = ?", ['Tampered Game'])->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'Tampered Game')->first()->bench_mode)->toBeFalse();
 
         Log::shouldHaveReceived('warning')
             ->with('Non-GM user attempted to enable bench_mode on game creation', \Mockery::on(function ($ctx) use ($user) {
@@ -1051,7 +1051,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Game::whereRaw("name->>'en' = ?", ['Non-GM Default Game'])->first()->bench_mode)->toBeFalse();
+        expect(Game::where('name->en', 'Non-GM Default Game')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 5. GM creates campaign with bench_mode=true → stored as true (default) ─
@@ -1068,7 +1068,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::whereRaw("name->>'en' = ?", ['GM Bench Campaign'])->first()->bench_mode)->toBeTrue();
+        expect(Campaign::where('name->en', 'GM Bench Campaign')->first()->bench_mode)->toBeTrue();
     });
 
     // ── 6. GM creates campaign with bench_mode=false → stored as false ─────────
@@ -1085,7 +1085,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::whereRaw("name->>'en' = ?", ['GM No Bench Campaign'])->first()->bench_mode)->toBeFalse();
+        expect(Campaign::where('name->en', 'GM No Bench Campaign')->first()->bench_mode)->toBeFalse();
     });
 
     // ── 7. Non-GM creates campaign with bench_mode=true → forced to false ──────
@@ -1104,7 +1104,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        expect(Campaign::whereRaw("name->>'en' = ?", ['Tampered Campaign'])->first()->bench_mode)->toBeFalse();
+        expect(Campaign::where('name->en', 'Tampered Campaign')->first()->bench_mode)->toBeFalse();
 
         Log::shouldHaveReceived('warning')
             ->with('Non-GM user attempted to enable bench_mode on campaign creation', \Mockery::on(function ($ctx) use ($user) {
@@ -1197,7 +1197,7 @@ describe('Bench mode toggle matrix', function () {
             ->call('save')
             ->assertRedirect();
 
-        $game = Game::whereRaw("name->>'en' = ?", ['Immutable Bench Game'])->first();
+        $game = Game::where('name->en', 'Immutable Bench Game')->first();
         expect($game->bench_mode)->toBeTrue();
 
         // Verify no game edit/update route exists in the route collection

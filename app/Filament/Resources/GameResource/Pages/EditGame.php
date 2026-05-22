@@ -5,6 +5,7 @@ namespace App\Filament\Resources\GameResource\Pages;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Services\SeoCacheService;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
 use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable;
@@ -21,6 +22,8 @@ class EditGame extends EditRecord
     {
         return [
             LocaleSwitcher::make(),
+            ...parent::getHeaderActions(),
+            DeleteAction::make(),
         ];
     }
 
