@@ -7,7 +7,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 describe('Event getDynamicSEOData', function () {
     it('returns title from event name', function () {
         $event = Event::factory()->create([
-            'name' => 'Grand Tournament 2025',
+            'name' => ['en' => 'Grand Tournament 2025'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -20,8 +20,8 @@ describe('Event getDynamicSEOData', function () {
 
     it('returns description from short_description when present', function () {
         $event = Event::factory()->create([
-            'short_description' => 'Join us for the biggest event of the year!',
-            'description' => 'This is a longer description that should be ignored.',
+            'short_description' => ['en' => 'Join us for the biggest event of the year!'],
+            'description' => ['en' => 'This is a longer description that should be ignored.'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -34,7 +34,7 @@ describe('Event getDynamicSEOData', function () {
     it('falls back to stripped description when short_description is absent', function () {
         $event = Event::factory()->create([
             'short_description' => null,
-            'description' => 'A detailed description of the event.',
+            'description' => ['en' => 'A detailed description of the event.'],
             'is_public' => true,
             'status' => 'registration_open',
         ]);
@@ -48,7 +48,7 @@ describe('Event getDynamicSEOData', function () {
         $longDescription = str_repeat('Long event description. ', 20);
         $event = Event::factory()->create([
             'short_description' => null,
-            'description' => $longDescription,
+            'description' => ['en' => $longDescription],
             'is_public' => true,
             'status' => 'registration_open',
         ]);

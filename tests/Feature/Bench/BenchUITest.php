@@ -132,9 +132,9 @@ test('host does not see bench section on standalone game', function () {
     $game = Game::create([
         'owner_id' => $this->owner->id,
         'game_system_id' => $this->gameSystem->id,
-        'name' => 'Standalone Game',
+        'name' => ['en' => 'Standalone Game'],
         'date_time' => now()->addDays(7),
-        'description' => 'Standalone',
+        'description' => ['en' => 'Standalone'],
         'expected_duration' => 3,
         'visibility' => 'public',
         'status' => 'scheduled',

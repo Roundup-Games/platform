@@ -369,7 +369,7 @@ describe('Profile Visibility Robots', function () {
 
 describe('Admin Override Robots Precedence', function () {
     it('admin noindex override takes precedence over dynamic index', function () {
-        $system = GameSystem::factory()->create(['name' => 'Override Test']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Override Test']]);
         $system->seo->update(['robots' => 'noindex, nofollow']);
 
         $response = get(route('game-systems.show', $system->slug));
@@ -381,7 +381,7 @@ describe('Admin Override Robots Precedence', function () {
     });
 
     it('clearing robots override restores dynamic value', function () {
-        $system = GameSystem::factory()->create(['name' => 'Clear Override']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Clear Override']]);
         $system->seo->update(['robots' => 'noindex, nofollow']);
 
         // Verify override applied

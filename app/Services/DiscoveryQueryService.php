@@ -7,10 +7,10 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
+use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
  */
 class DiscoveryQueryService
 {
+    use QueriesTranslatableColumns;
     // ── Constants (synced with config/discovery.php) ───
 
     /** Available radius options in km */
@@ -46,10 +47,8 @@ class DiscoveryQueryService
     public function applySharedFilters($query, string $priceColumn, array $filters): void
     {
         $query->when(!empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
-            $escaped = $this->escapeLikeWildcards($filters['search']);
-            $op = $this->likeOperator();
-            $q->where('name', $op, "%{$escaped}%")
-              ->orWhere('description', $op, "%{$escaped}%");
+            $this->whereTranslatableLike($q, 'name', $filters['search']);
+            $this->orWhereTranslatableLike($q, 'description', $filters['search']);
         }));
 
         $query->when(!empty($filters['game_system_id']), fn ($q) => $q->where('game_system_id', $filters['game_system_id']));
@@ -644,7 +643,7 @@ class DiscoveryQueryService
             ->get(['id', 'name', 'slug']);
     }
 
-    // ── SQL helpers (inlined from EscapesLikeWildcards trait) ──
+    // ── SQL helpers ────────────────────────────────────
 
     /**
      * Apply overflow (waitlist + bench) count subqueries to a game or campaign query.
@@ -657,24 +656,4 @@ class DiscoveryQueryService
             ->withCount(['participants as benched_count' => fn ($q) => $q->where('status', 'benched')]);
     }
 
-    /**
-     * Escape SQL LIKE wildcard characters (%, _) in user-provided search strings.
-     */
-    private function escapeLikeWildcards(string $search): string
-    {
-        return str_replace(
-            ['\\', '%', '_'],
-            ['\\\\', '\\%', '\\_'],
-            $search,
-        );
-    }
-
-    /**
-     * Return the case-insensitive LIKE operator for the current database driver.
-     * PostgreSQL requires 'ilike' for case-insensitive matching; MySQL's 'like' is already case-insensitive.
-     */
-    private function likeOperator(): string
-    {
-        return DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-    }
 }

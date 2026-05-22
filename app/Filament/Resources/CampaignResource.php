@@ -20,9 +20,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
 class CampaignResource extends Resource
 {
+    use Translatable;
+
     protected static ?string $model = Campaign::class;
 
     protected static ?int $navigationSort = 4;

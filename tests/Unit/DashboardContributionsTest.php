@@ -183,12 +183,12 @@ class DashboardContributionsTest extends TestCase
         $campaign1 = Campaign::factory()->create([
             'owner_id' => $user->id,
             'status' => CampaignStatus::Active,
-            'name' => 'Short Campaign',
+            'name' => ['en' => 'Short Campaign'],
         ]);
         $campaign2 = Campaign::factory()->create([
             'owner_id' => $user->id,
             'status' => CampaignStatus::Active,
-            'name' => 'Long Campaign',
+            'name' => ['en' => 'Long Campaign'],
         ]);
 
         // campaign1: 2 completed games
@@ -231,7 +231,7 @@ class DashboardContributionsTest extends TestCase
         $campaign = Campaign::factory()->create([
             'owner_id' => $user->id,
             'status' => CampaignStatus::Active,
-            'name' => 'Empty Campaign',
+            'name' => ['en' => 'Empty Campaign'],
         ]);
 
         // Only scheduled games — no completed

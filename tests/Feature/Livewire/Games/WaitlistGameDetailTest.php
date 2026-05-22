@@ -436,9 +436,9 @@ describe('UI state rendering', function () {
         $game = Game::create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Campaign Game',
+            'name' => ['en' => 'Campaign Game'],
             'date_time' => now()->addDays(7),
-            'description' => 'A campaign game',
+            'description' => ['en' => 'A campaign game'],
             'expected_duration' => 3,
             'visibility' => 'public',
             'status' => 'scheduled',

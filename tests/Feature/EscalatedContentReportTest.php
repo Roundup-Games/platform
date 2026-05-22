@@ -85,7 +85,7 @@ it('reports a game and creates ticket with game context', function () {
     $gm = User::factory()->create(['profile_complete' => true, 'name' => 'GameMaster']);
     $game = Game::factory()->create([
         'owner_id' => $gm->id,
-        'name' => 'Suspicious Game',
+        'name' => ['en' => 'Suspicious Game'],
         'status' => GameStatus::Scheduled,
     ]);
     $reporter = User::factory()->create(['profile_complete' => true]);
@@ -116,7 +116,7 @@ it('reports a campaign and creates ticket with campaign context', function () {
     $owner = User::factory()->create(['profile_complete' => true, 'name' => 'CampaignOwner']);
     $campaign = Campaign::factory()->create([
         'owner_id' => $owner->id,
-        'name' => 'Spam Campaign',
+        'name' => ['en' => 'Spam Campaign'],
         'status' => CampaignStatus::Active,
     ]);
     $reporter = User::factory()->create(['profile_complete' => true]);

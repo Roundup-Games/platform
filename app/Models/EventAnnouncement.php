@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Traits\HasTranslations;
+use Spatie\Translatable\HasTranslations;
 
 class EventAnnouncement extends Model
 {
@@ -13,7 +13,7 @@ class EventAnnouncement extends Model
 
     use HasTranslations;
 
-    protected $translatable = ['title', 'content'];
+    public array $translatable = ['title', 'content'];
 
     protected static function booted(): void
     {

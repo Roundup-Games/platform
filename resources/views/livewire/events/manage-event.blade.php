@@ -51,15 +51,15 @@
                         'cancelled' => 'bg-error-container text-on-error-container',
                     ];
                 @endphp
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColors[$event->status] ?? 'bg-surface-container text-on-surface-variant' }}">
-                    {{ ucfirst(str_replace('_', ' ', $event->status)) }}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $statusColors[$event->status->value] ?? 'bg-surface-container text-on-surface-variant' }}">
+                    {{ ucfirst(str_replace('_', ' ', $event->status->value)) }}
                 </span>
                 <span class="text-sm text-on-surface-variant">
                     {{ trans_choice('events.content_count_registrations', $event->registrations()->count()) }}
                 </span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                @if($event->status === 'draft')
+                @if($event->status->value === 'draft')
                     <x-confirm-action
                         action="publishEvent"
                         id="publish-event"
@@ -73,7 +73,7 @@
                         confirm-icon="publish"
                     />
                 @endif
-                @if(in_array($event->status, ['draft', 'published']))
+                @if(in_array($event->status->value, ['draft', 'published']))
                     <x-confirm-action
                         action="openRegistration"
                         id="open-registration"
@@ -87,7 +87,7 @@
                         confirm-icon="how_to_reg"
                     />
                 @endif
-                @if($event->status === 'registration_open')
+                @if($event->status->value === 'registration_open')
                     <x-confirm-action
                         action="closeRegistration"
                         id="close-registration"
@@ -101,7 +101,7 @@
                         confirm-icon="lock"
                     />
                 @endif
-                @if($event->status !== 'cancelled' && $event->status !== 'completed')
+                @if($event->status->value !== 'cancelled' && $event->status->value !== 'completed')
                     <x-confirm-action
                         action="cancelEvent"
                         id="cancel-event"
@@ -138,12 +138,12 @@
                 <div class="space-y-4">
                     <div>
                         <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
-                        <select id="content-language" wire:model="content_language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
+                        <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
                             @foreach(\App\Enums\ContentLanguage::cases() as $lang)
                                 <option value="{{ $lang->value }}">{{ $lang->label() }}</option>
                             @endforeach
                         </select>
-                        @error('content_language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                        @error('language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -164,6 +164,23 @@
                                   class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
                         @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- Translations via locale-switcher --}}
+                    @php
+                        $allLocales = $this->getAllLocales();
+                        $baselineLocale = $this->getBaselineLocale();
+                    @endphp
+                    <x-forms.translatable-section
+                        :fields="[
+                            ['name' => 'name', 'label' => __('events.field_event_name')],
+                            ['name' => 'short_description', 'label' => __('common.field_short_description'), 'maxlength' => 500],
+                            ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 5],
+                        ]"
+                        :active-locale="$activeLocale"
+                        :baseline-locale="$baselineLocale"
+                        :all-locales="$allLocales"
+                        inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                    />
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="event-type" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('discovery.content_type') }}</label>

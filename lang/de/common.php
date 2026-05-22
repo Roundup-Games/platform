@@ -114,7 +114,7 @@ return [
     'content_jpg_png_gif_or_webp_max_sizemb' => 'JPG, PNG, GIF oder WebP. Max. :size MB.',
     'content_jpg_png_or_gif_max_1mb' => 'JPG, PNG oder GIF. Max. 1 MB.',
     'content_language' => 'Sprache',
-    'content_language_mismatch_banner' => 'Dieser Inhalt ist auf :language, was von Ihrer aktuellen Sprachauswahl abweicht.',
+    'content_language_mismatch_banner' => 'Diese Veranstaltung wird auf :language durchgeführt',
     'content_language_required' => 'Sprache *',
     'content_league' => 'Liga',
     'content_male' => 'Männlich',
@@ -399,4 +399,9 @@ return [
     'content_policy_update_terms_link' => 'Nutzungsbedingungen',
 
     'content_legal_draft_notice' => 'Dieses Dokument wurde zuletzt am :date aktualisiert und wartet auf die Überprüfung durch den Rechtsbeistand. Es stellt keine endgültige Rechtsberatung dar.',
+
+    // ── Locale Switcher / Translations ─────────────────
+    'content_translations' => 'Übersetzungen',
+    'action_copy_from_baseline' => ':field aus Primärsprache kopieren',
+    'action_copy_from_baseline_short' => 'Aus Primärsprache kopieren',
 ];

@@ -19,7 +19,7 @@ class EventFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->words(3, true),
+            'name' => ['en' => fake()->words(3, true)],
             'type' => fake()->randomElement(['tournament', 'league', 'camp', 'clinic', 'social', 'other']),
             'status' => 'registration_open',
             'start_date' => now()->addDays(fake()->numberBetween(7, 60)),

@@ -101,8 +101,8 @@ class GmDirectoryTest extends TestCase
 
     public function test_filter_by_game_system(): void
     {
-        $system = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $otherSystem = GameSystem::factory()->create(['name' => 'Pathfinder']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
+        $otherSystem = GameSystem::factory()->create(['name' => ['en' => 'Pathfinder']]);
 
         $gm1 = $this->createActiveGm();
         Game::factory()->create([

@@ -71,11 +71,9 @@ describe('CreateGame — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Non-GM Default',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $game = Game::where('owner_id', $user->id)->firstOrFail();
+        expect($game->getTranslation('name', 'en'))->toBe('Non-GM Default');
+        expect($game->bench_mode)->toBeFalse();
     });
 
     it('non-GM user attempting bench_mode=true gets silently forced to false', function () {
@@ -93,11 +91,9 @@ describe('CreateGame — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'Tampered Game',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $game = Game::where('owner_id', $user->id)->firstOrFail();
+        expect($game->getTranslation('name', 'en'))->toBe('Tampered Game');
+        expect($game->bench_mode)->toBeFalse();
 
         // Verify the security warning was logged
         Log::shouldHaveReceived('warning')
@@ -120,11 +116,9 @@ describe('CreateGame — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'GM Bench Game',
-            'owner_id' => $user->id,
-            'bench_mode' => true,
-        ]);
+        $game = Game::where('owner_id', $user->id)->firstOrFail();
+        expect($game->getTranslation('name', 'en'))->toBe('GM Bench Game');
+        expect($game->bench_mode)->toBeTrue();
     });
 
     it('GM user can set bench_mode=false', function () {
@@ -140,11 +134,9 @@ describe('CreateGame — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('games', [
-            'name' => 'GM No Bench',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $game = Game::where('owner_id', $user->id)->firstOrFail();
+        expect($game->getTranslation('name', 'en'))->toBe('GM No Bench');
+        expect($game->bench_mode)->toBeFalse();
     });
 });
 
@@ -171,11 +163,9 @@ describe('CreateCampaign — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'Non-GM Campaign',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('Non-GM Campaign');
+        expect($campaign->bench_mode)->toBeFalse();
     });
 
     it('non-GM user attempting bench_mode=true gets silently forced to false', function () {
@@ -197,11 +187,9 @@ describe('CreateCampaign — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'Tampered Campaign',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('Tampered Campaign');
+        expect($campaign->bench_mode)->toBeFalse();
 
         // Verify the security warning was logged
         Log::shouldHaveReceived('warning')
@@ -228,11 +216,9 @@ describe('CreateCampaign — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'GM Bench Campaign',
-            'owner_id' => $user->id,
-            'bench_mode' => true,
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('GM Bench Campaign');
+        expect($campaign->bench_mode)->toBeTrue();
     });
 
     it('GM user can set bench_mode=false', function () {
@@ -252,10 +238,8 @@ describe('CreateCampaign — bench_mode GM gate', function () {
             ->call('save')
             ->assertRedirect();
 
-        assertDatabaseHas('campaigns', [
-            'name' => 'GM No Bench Campaign',
-            'owner_id' => $user->id,
-            'bench_mode' => false,
-        ]);
+        $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
+        expect($campaign->getTranslation('name', 'en'))->toBe('GM No Bench Campaign');
+        expect($campaign->bench_mode)->toBeFalse();
     });
 });

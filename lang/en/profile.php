@@ -7,7 +7,6 @@ return [
     'action_create_free_account' => 'Create Free Account',
     'action_delete_account' => 'Delete Account',
     'action_go_to_your_dashboard' => 'Go to Your Dashboard',
-    'action_manage_your_account_information_preferences' => 'Manage your account information and preferences.',
     'action_manage_your_profile_and_preferences' => 'Manage your profile and game preferences.',
     'action_manage_privacy_notifications_accounts' => 'Manage your privacy, notifications, and linked accounts.',
     'action_set_your_preferences' => 'Set your preferences',

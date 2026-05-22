@@ -48,7 +48,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
-            'name' => 'Dragon Heist',
+            'name' => ['en' => 'Dragon Heist'],
             'date_time' => now()->addDays(3),
             'status' => GameStatus::Scheduled,
         ]);
@@ -77,7 +77,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         foreach (['Game A', 'Game B', 'Game C'] as $name) {
             $game = Game::factory()->create([
                 'owner_id' => $owner->id,
-                'name' => $name,
+                'name' => ['en' => $name],
                 'date_time' => now()->addDays(3),
                 'status' => GameStatus::Scheduled,
             ]);
@@ -102,7 +102,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         $campaign = Campaign::factory()->create([
             'owner_id' => $owner->id,
-            'name' => 'Lost Mine Campaign',
+            'name' => ['en' => 'Lost Mine Campaign'],
             'status' => 'active',
         ]);
 
@@ -130,7 +130,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Tavern Brawl',
+            'name' => ['en' => 'Tavern Brawl'],
             'date_time' => now()->addHours(3),
             'status' => GameStatus::Scheduled,
         ]);
@@ -148,7 +148,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Far Future Game',
+            'name' => ['en' => 'Far Future Game'],
             'date_time' => now()->addHours(48),
             'status' => GameStatus::Scheduled,
         ]);
@@ -165,7 +165,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
-            'name' => 'Participant Session',
+            'name' => ['en' => 'Participant Session'],
             'date_time' => now()->addHours(2),
             'status' => GameStatus::Scheduled,
         ]);
@@ -189,7 +189,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Curse of Strahd',
+            'name' => ['en' => 'Curse of Strahd'],
             'status' => GameStatus::Completed,
             'recap' => null,
             'updated_at' => now()->subHours(24),
@@ -210,7 +210,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create();
         Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Has Recap Game',
+            'name' => ['en' => 'Has Recap Game'],
             'status' => GameStatus::Completed,
             'recap' => 'Great session!',
             'updated_at' => now()->subHours(24),
@@ -246,7 +246,7 @@ class DashboardSmartPromptServiceTest extends TestCase
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
-            'name' => 'Participant Recap',
+            'name' => ['en' => 'Participant Recap'],
             'status' => GameStatus::Completed,
             'recap' => null,
             'updated_at' => now()->subHours(12),
@@ -498,14 +498,14 @@ class DashboardSmartPromptServiceTest extends TestCase
         // Both pending invitation AND upcoming session within 24h
         $upcomingGame = Game::factory()->create([
             'owner_id' => $user->id,
-            'name' => 'Upcoming',
+            'name' => ['en' => 'Upcoming'],
             'date_time' => now()->addHours(3),
             'status' => GameStatus::Scheduled,
         ]);
 
         $inviteGame = Game::factory()->create([
             'owner_id' => $owner->id,
-            'name' => 'Invite Game',
+            'name' => ['en' => 'Invite Game'],
             'date_time' => now()->addDays(3),
             'status' => GameStatus::Scheduled,
         ]);

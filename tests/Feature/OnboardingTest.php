@@ -263,9 +263,9 @@ it('completes profile and redirects to dashboard', function () {
 
 it('syncs favorite game systems on completion', function () {
     $user = User::factory()->create(['profile_complete' => false]);
-    $gs1 = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
-    $gs2 = GameSystem::create(['name' => 'Pathfinder', 'slug' => 'pathfinder']);
-    $gs3 = GameSystem::create(['name' => 'Call of Cthulhu', 'slug' => 'call-of-cthulhu']);
+    $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
+    $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
+    $gs3 = GameSystem::create(['name' => ['en' => 'Call of Cthulhu'], 'slug' => 'call-of-cthulhu']);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)
@@ -377,8 +377,8 @@ it('pre-fills existing user data from OAuth on mount', function () {
 
 it('replaces game system preferences on re-sync', function () {
     $user = User::factory()->create(['profile_complete' => false]);
-    $gs1 = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
-    $gs2 = GameSystem::create(['name' => 'Pathfinder', 'slug' => 'pathfinder']);
+    $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
+    $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
 
     // First attach gs1
     $user->gameSystemPreferences()->attach($gs1->id, ['preference_type' => 'favorite']);
@@ -432,7 +432,7 @@ it('allows logout route for incomplete user', function () {
 
 it('rejects invalid game system IDs during onboarding', function () {
     $user = User::factory()->create(['profile_complete' => false]);
-    $gs = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
+    $gs = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
 
     // Use a non-existent game system ID
     Livewire::actingAs($user)
@@ -472,8 +472,8 @@ it('rejects all non-existent game system IDs during onboarding', function () {
 
 it('accepts valid game system IDs during onboarding', function () {
     $user = User::factory()->create(['profile_complete' => false]);
-    $gs1 = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e']);
-    $gs2 = GameSystem::create(['name' => 'Pathfinder', 'slug' => 'pathfinder']);
+    $gs1 = GameSystem::create(['name' => ['en' => 'D&D 5e'], 'slug' => 'dnd-5e']);
+    $gs2 = GameSystem::create(['name' => ['en' => 'Pathfinder'], 'slug' => 'pathfinder']);
 
     Livewire::actingAs($user)
         ->test(CompleteProfile::class)

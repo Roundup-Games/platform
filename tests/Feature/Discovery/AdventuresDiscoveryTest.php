@@ -14,7 +14,7 @@ describe('AdventuresDiscovery', function () {
         $ttrpgSystem = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
-            'name' => 'Public TTRPG Game',
+            'name' => ['en' => 'Public TTRPG Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -22,7 +22,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Campaign::factory()->create([
-            'name' => 'Public TTRPG Campaign',
+            'name' => ['en' => 'Public TTRPG Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $ttrpgSystem->id,
@@ -38,7 +38,7 @@ describe('AdventuresDiscovery', function () {
         $ttrpgSystem = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
-            'name' => 'Board Game Session',
+            'name' => ['en' => 'Board Game Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -46,7 +46,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'TTRPG Session',
+            'name' => ['en' => 'TTRPG Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -72,7 +72,7 @@ describe('AdventuresDiscovery', function () {
         // No categories attached — won't match any play style
 
         Game::factory()->create([
-            'name' => 'Narrative Game',
+            'name' => ['en' => 'Narrative Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -80,7 +80,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Tactical Game',
+            'name' => ['en' => 'Tactical Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -111,7 +111,7 @@ describe('AdventuresDiscovery', function () {
         $tacticalSystem->categories()->attach([$highFantasy->id]);
 
         Game::factory()->create([
-            'name' => 'Narrative Game',
+            'name' => ['en' => 'Narrative Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -119,7 +119,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Horror Game',
+            'name' => ['en' => 'Horror Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(4),
@@ -127,7 +127,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Tactical Game',
+            'name' => ['en' => 'Tactical Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -145,14 +145,14 @@ describe('AdventuresDiscovery', function () {
     it('filters by session_type: campaign only', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
         $campaign = Campaign::factory()->create([
-            'name' => 'Active Campaign',
+            'name' => ['en' => 'Active Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $system->id,
         ]);
 
         Game::factory()->create([
-            'name' => 'One-shot Game',
+            'name' => ['en' => 'One-shot Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -161,7 +161,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Campaign Session',
+            'name' => ['en' => 'Campaign Session'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -180,14 +180,14 @@ describe('AdventuresDiscovery', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Campaign::factory()->create([
-            'name' => 'Active Campaign',
+            'name' => ['en' => 'Active Campaign'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $system->id,
         ]);
 
         Game::factory()->create([
-            'name' => 'One-shot Game',
+            'name' => ['en' => 'One-shot Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -205,7 +205,7 @@ describe('AdventuresDiscovery', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
-            'name' => 'Session Zero Included',
+            'name' => ['en' => 'Session Zero Included'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -214,7 +214,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'No Session Zero',
+            'name' => ['en' => 'No Session Zero'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -234,14 +234,14 @@ describe('AdventuresDiscovery', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Campaign::factory()->create([
-            'name' => 'Campaign Alpha',
+            'name' => ['en' => 'Campaign Alpha'],
             'visibility' => 'public',
             'status' => 'active',
             'game_system_id' => $system->id,
         ]);
 
         Game::factory()->create([
-            'name' => 'One-shot Beta',
+            'name' => ['en' => 'One-shot Beta'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -268,7 +268,7 @@ describe('AdventuresDiscovery', function () {
         $user->favoriteGameSystems()->attach($boardgameSystem->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Recommended TTRPG',
+            'name' => ['en' => 'Recommended TTRPG'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -276,7 +276,7 @@ describe('AdventuresDiscovery', function () {
         ]);
 
         Game::factory()->create([
-            'name' => 'Boardgame System Game',
+            'name' => ['en' => 'Boardgame System Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -301,7 +301,7 @@ describe('AdventuresDiscovery', function () {
         $user->favoriteGameSystems()->attach($boardgameSystem->id, ['preference_type' => 'favorite']);
 
         Game::factory()->create([
-            'name' => 'Boardgame Only Game',
+            'name' => ['en' => 'Boardgame Only Game'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -319,7 +319,7 @@ describe('AdventuresDiscovery', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
-            'name' => 'Test Adventure',
+            'name' => ['en' => 'Test Adventure'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -341,7 +341,7 @@ describe('AdventuresDiscovery', function () {
         $system = GameSystem::factory()->create(['type' => 'ttrpg']);
 
         Game::factory()->create([
-            'name' => 'Test',
+            'name' => ['en' => 'Test'],
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),

@@ -17,9 +17,10 @@ class TeamFactory extends Factory
     {
         return [
             'name' => fake()->unique()->company() . ' FC',
-            'description' => fake()->optional()->sentence(),
+            'description' => ['en' => fake()->optional()->sentence()],
             'city' => fake()->optional()->city(),
             'country' => fake()->optional()->countryCode(),
+            'language' => 'en',
             'is_active' => true,
             'created_by' => User::factory(),
         ];

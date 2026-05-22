@@ -69,7 +69,7 @@ class DashboardInvalidationTest extends TestCase
         Cache::put($cacheKey, ['data' => true], 300);
 
         // Update the game — should trigger saved hook
-        $game->update(['name' => 'Updated Game Name']);
+        $game->update(['name' => ['en' => 'Updated Game Name']]);
 
         $this->assertNull(Cache::get($cacheKey));
     }

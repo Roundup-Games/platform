@@ -8,7 +8,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 describe('Game getDynamicSEOData', function () {
     it('returns title from game name', function () {
         $game = Game::factory()->create([
-            'name' => 'Epic Board Game Night',
+            'name' => ['en' => 'Epic Board Game Night'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -20,7 +20,7 @@ describe('Game getDynamicSEOData', function () {
 
     it('returns description from game description', function () {
         $game = Game::factory()->create([
-            'description' => 'An exciting evening of board games for all skill levels.',
+            'description' => ['en' => 'An exciting evening of board games for all skill levels.'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -32,7 +32,7 @@ describe('Game getDynamicSEOData', function () {
     it('limits description to 160 characters', function () {
         $longDescription = str_repeat('A very long game description. ', 20);
         $game = Game::factory()->create([
-            'description' => $longDescription,
+            'description' => ['en' => $longDescription],
             'visibility' => Visibility::Public,
         ]);
 
@@ -43,7 +43,7 @@ describe('Game getDynamicSEOData', function () {
 
     it('returns null description from empty string description', function () {
         $game = Game::factory()->create([
-            'description' => '',
+            'description' => ['en' => ''],
             'visibility' => Visibility::Public,
         ]);
 

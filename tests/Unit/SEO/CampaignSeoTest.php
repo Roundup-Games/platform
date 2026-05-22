@@ -9,7 +9,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 describe('Campaign getDynamicSEOData', function () {
     it('returns title from campaign name', function () {
         $campaign = Campaign::factory()->create([
-            'name' => 'Curse of Strahd Campaign',
+            'name' => ['en' => 'Curse of Strahd Campaign'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -21,7 +21,7 @@ describe('Campaign getDynamicSEOData', function () {
 
     it('returns description from campaign description', function () {
         $campaign = Campaign::factory()->create([
-            'description' => 'A gothic horror adventure set in the land of Barovia.',
+            'description' => ['en' => 'A gothic horror adventure set in the land of Barovia.'],
             'visibility' => Visibility::Public,
         ]);
 
@@ -33,7 +33,7 @@ describe('Campaign getDynamicSEOData', function () {
     it('limits description to 160 characters', function () {
         $longDescription = str_repeat('A very long campaign description. ', 20);
         $campaign = Campaign::factory()->create([
-            'description' => $longDescription,
+            'description' => ['en' => $longDescription],
             'visibility' => Visibility::Public,
         ]);
 

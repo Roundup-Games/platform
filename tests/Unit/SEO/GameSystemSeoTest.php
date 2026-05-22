@@ -5,7 +5,7 @@ use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 describe('GameSystem getDynamicSEOData', function () {
     it('returns title from model name', function () {
-        $system = GameSystem::factory()->create(['name' => 'Dungeons & Dragons 5e']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Dungeons & Dragons 5e']]);
 
         $seo = $system->getDynamicSEOData();
 
@@ -15,7 +15,7 @@ describe('GameSystem getDynamicSEOData', function () {
 
     it('returns description from model description field', function () {
         $system = GameSystem::factory()->create([
-            'description' => 'A fantastic tabletop role-playing game with deep lore.',
+            'description' => ['en' => 'A fantastic tabletop role-playing game with deep lore.'],
         ]);
 
         $seo = $system->getDynamicSEOData();
@@ -26,7 +26,7 @@ describe('GameSystem getDynamicSEOData', function () {
 
     it('limits description to 160 characters', function () {
         $longDescription = str_repeat('This is a long description. ', 20);
-        $system = GameSystem::factory()->create(['description' => $longDescription]);
+        $system = GameSystem::factory()->create(['description' => ['en' => $longDescription]]);
 
         $seo = $system->getDynamicSEOData();
 
@@ -68,7 +68,7 @@ describe('GameSystem getDynamicSEOData', function () {
     });
 
     it('includes schema with Product type', function () {
-        $system = GameSystem::factory()->create(['name' => 'Test RPG']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Test RPG']]);
 
         $seo = $system->getDynamicSEOData();
 

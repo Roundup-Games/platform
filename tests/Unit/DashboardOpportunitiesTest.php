@@ -41,8 +41,8 @@ class DashboardOpportunitiesTest extends TestCase
         Log::spy();
 
         // Create game systems
-        $this->gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e']);
-        $this->otherGameSystem = GameSystem::factory()->create(['name' => 'Warhammer 40k']);
+        $this->gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
+        $this->otherGameSystem = GameSystem::factory()->create(['name' => ['en' => 'Warhammer 40k']]);
 
         // Create a location in Berlin
         $this->location = Location::factory()->create([
@@ -688,7 +688,7 @@ class DashboardOpportunitiesTest extends TestCase
         Campaign::factory()->create([
             'owner_id' => User::factory()->create(['name' => 'Campaign Host'])->id,
             'game_system_id' => $this->gameSystem->id,
-            'name' => 'Weekly Dragons',
+            'name' => ['en' => 'Weekly Dragons'],
             'recurrence' => 'weekly',
             'status' => CampaignStatus::Active,
             'visibility' => Visibility::Public,

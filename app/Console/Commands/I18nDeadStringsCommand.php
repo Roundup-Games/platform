@@ -120,22 +120,6 @@ class I18nDeadStringsCommand extends Command
      */
     private function filterDynamicKnownKeys(array $deadKeys, array $usage): array
     {
-        // Key prefixes used via dynamic __() construction
-        $dynamicPrefixes = [
-            // NotificationQueryService: __('notifications.verb_' . Str::snake($type))
-            'verb_',
-            // NotificationQueryService: __('notifications.email_' . ...)
-            'email_',
-            // NotificationQueryService: display pattern construction
-            'display_',
-            // NotificationQueryService: state/channel construction
-            'state_', 'channel_',
-            // GameSystemCategory: __('discovery.cat_' . $this->slug)
-            'cat_',
-            // GameSystemMechanic: __('discovery.mech_' . $this->slug)
-            'mech_',
-        ];
-
         // Specific keys used in static files (manifest.json, offline.html)
         // that don't go through PHP's __()
         $staticFileKeys = [
@@ -149,7 +133,9 @@ class I18nDeadStringsCommand extends Command
             'pwa.offline_try_again',
         ];
 
-        // Domains where all keys with certain prefixes are dynamic
+        // Domains where all keys with certain prefixes are dynamic.
+        // These are constructed via match() blocks or variable assignment
+        // before __() — patterns the regex scanner can't follow.
         $dynamicDomainPrefixes = [
             'notifications' => ['verb_', 'email_', 'display_', 'state_', 'channel_', 'hint_'],
             'discovery' => ['cat_', 'mech_', 'play_style_'],
@@ -157,10 +143,10 @@ class I18nDeadStringsCommand extends Command
             'support' => ['field_issue_', 'field_billing_issue_'],
         ];
 
-        // Specific keys used via ternary + __($variable) in PHP code.
-        // These are constructed at runtime (e.g. $key = cond ? 'a' : 'b'; __($key))
-        // and cannot be detected by the static regex scanner.
-        $dynamicTernaryKeys = [
+        // Specific keys used via variable-based ternary or match() blocks
+        // that the regex ternary scanner can't detect (key is assigned to
+        // a variable first, then passed to __()).
+        $dynamicVariableKeys = [
             // SessionReminder.php: $titleKey/$bodyKey ternary for 24h vs immediate
             'notifications.push_title_session_reminder',
             'notifications.push_body_session_reminder',
@@ -185,7 +171,7 @@ class I18nDeadStringsCommand extends Command
             'profile.dashboard_feed_action_scheduled_session',
         ];
 
-        return array_values(array_filter($deadKeys, function ($dead) use ($dynamicPrefixes, $staticFileKeys, $dynamicDomainPrefixes, $dynamicTernaryKeys, $usage) {
+        return array_values(array_filter($deadKeys, function ($dead) use ($staticFileKeys, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {
             $dotted = $dead['dotted'];
 
             // Check static file usage
@@ -193,8 +179,8 @@ class I18nDeadStringsCommand extends Command
                 return false;
             }
 
-            // Check dynamic ternary-constructed keys
-            if (in_array($dotted, $dynamicTernaryKeys, true)) {
+            // Check variable-based dynamic keys
+            if (in_array($dotted, $dynamicVariableKeys, true)) {
                 return false;
             }
 

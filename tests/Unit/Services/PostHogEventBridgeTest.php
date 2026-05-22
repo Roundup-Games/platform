@@ -42,7 +42,7 @@ beforeEach(function () {
 function makeGameWithSystem(array $gameAttrs = [], array $systemAttrs = []): Game
 {
     $systemId = $systemAttrs['id'] ?? Str::uuid()->toString();
-    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => 'D&D 5e'], $systemAttrs));
+    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => ['en' => 'D&D 5e']], $systemAttrs));
     $game = Game::factory()->make(array_merge([
         'id' => Str::uuid()->toString(),
         'game_system_id' => $systemId,
@@ -55,7 +55,7 @@ function makeGameWithSystem(array $gameAttrs = [], array $systemAttrs = []): Gam
 function makeCampaignWithSystem(array $campaignAttrs = [], array $systemAttrs = []): Campaign
 {
     $systemId = $systemAttrs['id'] ?? Str::uuid()->toString();
-    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => 'D&D 5e'], $systemAttrs));
+    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => ['en' => 'D&D 5e']], $systemAttrs));
     $campaign = Campaign::factory()->make(array_merge([
         'id' => Str::uuid()->toString(),
         'game_system_id' => $systemId,
@@ -308,7 +308,7 @@ it('extracts player joined properties from GameParticipant subject', function ()
     Queue::fake();
 
     $user = User::factory()->make(['id' => 1]);
-    $game = makeGameWithSystem(systemAttrs: ['name' => 'D&D 5e']);
+    $game = makeGameWithSystem(systemAttrs: ['name' => ['en' => 'D&D 5e']]);
 
     $participant = GameParticipant::factory()->make([
         'game_id' => $game->id,

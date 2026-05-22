@@ -7,6 +7,7 @@ use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -17,6 +18,7 @@ use Livewire\WithPagination;
 class CampaignListing extends Component
 {
     use EscapesLikeWildcards;
+    use QueriesTranslatableColumns;
     use WithPagination;
 
     #[Url(as: 'q')]
@@ -161,9 +163,8 @@ class CampaignListing extends Component
 
         // Search by name/description
         $query->when($this->search, fn ($q) => $q->where(function ($q) {
-            $escaped = $this->escapeLikeWildcards($this->search);
-            $q->where('name', $this->likeOperator(), "%{$escaped}%")
-              ->orWhere('description', $this->likeOperator(), "%{$escaped}%");
+            $this->whereTranslatableLike($q, 'name', $this->search);
+            $this->orWhereTranslatableLike($q, 'description', $this->search);
         }));
 
         // Game system filter

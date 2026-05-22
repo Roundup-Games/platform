@@ -55,4 +55,10 @@ return [
     'flash_email_invite_benched' => 'Sitzung ist voll — Eingeladener wurde zur Bank hinzugefügt.',
     'flash_accepted_waitlisted' => 'Spiel ist voll — Du wurdest zur Warteliste hinzugefügt und wirst benachrichtigt, wenn ein Platz frei wird.',
     'flash_accepted_benched' => 'Sitzung ist voll — Du wurdest zur Bank hinzugefügt und wirst benachrichtigt, wenn ein Platz frei wird.',
+
+    // Einladungsabschnitt-Hinweise
+    'content_invite_section_hint' => 'Füge Spieler zu deiner Sitzung hinzu, mit einer der folgenden Methoden.',
+    'content_invite_from_friends' => 'Freunde suchen',
+    'content_invite_friends_hint' => 'Wähle Leute, denen du bereits folgst. Sie erhalten eine In-App-Benachrichtigung.',
+    'content_invite_email_hint' => 'Gib eine E-Mail-Adresse ein, um jemanden einzuladen. Die Person erhält eine E-Mail mit einem Link zum Beitreten.',
 ];

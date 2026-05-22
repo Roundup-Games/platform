@@ -69,11 +69,11 @@ describe('GameSystem BGG Relationships', function () {
 describe('Expansion Hierarchy', function () {
     it('creates base game with expansion and resolves relationships', function () {
         $baseGame = GameSystem::factory()->create([
-            'name' => 'Catan',
+            'name' => ['en' => 'Catan'],
             'bgg_type' => 'boardgame',
         ]);
         $expansion = GameSystem::factory()->create([
-            'name' => 'Catan: Seafarers',
+            'name' => ['en' => 'Catan: Seafarers'],
             'bgg_type' => 'boardgameexpansion',
             'base_game_id' => $baseGame->id,
         ]);
@@ -90,15 +90,15 @@ describe('Expansion Hierarchy', function () {
     });
 
     it('supports multiple expansions on a single base game', function () {
-        $baseGame = GameSystem::factory()->create(['name' => 'Ticket to Ride']);
-        $exp1 = GameSystem::factory()->create(['name' => 'Ticket to Ride: Europe', 'base_game_id' => $baseGame->id]);
-        $exp2 = GameSystem::factory()->create(['name' => 'Ticket to Ride: USA 1910', 'base_game_id' => $baseGame->id]);
+        $baseGame = GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride']]);
+        $exp1 = GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride: Europe'], 'base_game_id' => $baseGame->id]);
+        $exp2 = GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride: USA 1910'], 'base_game_id' => $baseGame->id]);
 
         expect($baseGame->expansions)->toHaveCount(2);
     });
 
     it('returns null baseGame when not an expansion', function () {
-        $standalone = GameSystem::factory()->create(['name' => 'Pandemic']);
+        $standalone = GameSystem::factory()->create(['name' => ['en' => 'Pandemic']]);
 
         expect($standalone->baseGame)->toBeNull()
             ->and($standalone->expansions)->toHaveCount(0);
@@ -113,14 +113,14 @@ describe('Expansion Hierarchy', function () {
 
 describe('GameSystem TTRPG Support', function () {
     it('defaults type to boardgame when not set', function () {
-        $system = GameSystem::factory()->create(['name' => 'Test Default Type']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Test Default Type']]);
 
         expect($system->type)->toBe('boardgame');
     });
 
     it('creates TTRPG system with all new fields', function () {
         $system = GameSystem::factory()->create([
-            'name' => 'Dungeons & Dragons 5e',
+            'name' => ['en' => 'Dungeons & Dragons 5e'],
             'type' => 'ttrpg',
             'source' => 'startplaying',
             'source_slug' => 'dnd-5e',
@@ -150,7 +150,7 @@ describe('GameSystem TTRPG Support', function () {
     });
 
     it('allows nullable TTRPG fields', function () {
-        $system = GameSystem::factory()->create(['name' => 'Board Game Only']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Board Game Only']]);
 
         expect($system->source)->toBeNull()
             ->and($system->source_slug)->toBeNull()
@@ -165,9 +165,9 @@ describe('GameSystem TTRPG Support', function () {
     });
 
     it('filters with scopeTtrpg', function () {
-        GameSystem::factory()->create(['name' => 'TTRPG 1', 'type' => 'ttrpg']);
-        GameSystem::factory()->create(['name' => 'Board Game 1', 'type' => 'boardgame']);
-        GameSystem::factory()->create(['name' => 'TTRPG 2', 'type' => 'ttrpg']);
+        GameSystem::factory()->create(['name' => ['en' => 'TTRPG 1'], 'type' => 'ttrpg']);
+        GameSystem::factory()->create(['name' => ['en' => 'Board Game 1'], 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => ['en' => 'TTRPG 2'], 'type' => 'ttrpg']);
 
         $ttrpgs = GameSystem::ttrpg()->get();
 
@@ -176,9 +176,9 @@ describe('GameSystem TTRPG Support', function () {
     });
 
     it('filters with scopeBoardgame', function () {
-        GameSystem::factory()->create(['name' => 'BG Scope A', 'type' => 'boardgame']);
-        GameSystem::factory()->create(['name' => 'BG Scope TTRPG', 'type' => 'ttrpg']);
-        GameSystem::factory()->create(['name' => 'BG Scope B', 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => ['en' => 'BG Scope A'], 'type' => 'boardgame']);
+        GameSystem::factory()->create(['name' => ['en' => 'BG Scope TTRPG'], 'type' => 'ttrpg']);
+        GameSystem::factory()->create(['name' => ['en' => 'BG Scope B'], 'type' => 'boardgame']);
 
         $boardgames = GameSystem::boardgame()->get();
 
@@ -187,8 +187,8 @@ describe('GameSystem TTRPG Support', function () {
     });
 
     it('isTtrpg accessor returns correct boolean', function () {
-        $ttrpg = GameSystem::factory()->create(['name' => 'TTRPG Check', 'type' => 'ttrpg']);
-        $bg = GameSystem::factory()->create(['name' => 'BG Check', 'type' => 'boardgame']);
+        $ttrpg = GameSystem::factory()->create(['name' => ['en' => 'TTRPG Check'], 'type' => 'ttrpg']);
+        $bg = GameSystem::factory()->create(['name' => ['en' => 'BG Check'], 'type' => 'boardgame']);
 
         expect($ttrpg->isTtrpg())->toBeTrue()
             ->and($bg->isTtrpg())->toBeFalse();

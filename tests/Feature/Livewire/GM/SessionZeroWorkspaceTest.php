@@ -49,7 +49,7 @@ describe('GmWorkspace Session Zero Surveys', function () {
         $gm = $this->createSubscribedGm();
         $game = Game::factory()->create([
             'owner_id' => $gm->id,
-            'name' => 'Dragon Heist',
+            'name' => ['en' => 'Dragon Heist'],
         ]);
 
         SessionZeroSurvey::factory()->create([

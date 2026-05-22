@@ -25,7 +25,7 @@ describe('Rendering', function () {
             'longitude' => 13.4120,
         ]);
         $gameSystem = GameSystem::factory()->create([
-            'name' => 'Dungeons & Dragons 5e',
+            'name' => ['en' => 'Dungeons & Dragons 5e'],
             'bgg_rank' => 42,
         ]);
         Game::factory()->create([
@@ -33,7 +33,7 @@ describe('Rendering', function () {
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Friday Night D&D',
+            'name' => ['en' => 'Friday Night D&D'],
             'max_players' => 5,
         ]);
 
@@ -68,32 +68,32 @@ describe('Rendering', function () {
         ]);
 
         // High-ranked game system (rank 5)
-        $topSystem = GameSystem::factory()->create(['name' => 'Top Game', 'bgg_rank' => 5]);
+        $topSystem = GameSystem::factory()->create(['name' => ['en' => 'Top Game'], 'bgg_rank' => 5]);
         // Lower-ranked game system (rank 500)
-        $lowerSystem = GameSystem::factory()->create(['name' => 'Lower Game', 'bgg_rank' => 500]);
+        $lowerSystem = GameSystem::factory()->create(['name' => ['en' => 'Lower Game'], 'bgg_rank' => 500]);
         // No rank
-        $noRankSystem = GameSystem::factory()->create(['name' => 'No Rank Game', 'bgg_rank' => null]);
+        $noRankSystem = GameSystem::factory()->create(['name' => ['en' => 'No Rank Game'], 'bgg_rank' => null]);
 
         Game::factory()->create([
             'location_id' => $location->id,
             'game_system_id' => $lowerSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Lower Ranked Session',
+            'name' => ['en' => 'Lower Ranked Session'],
         ]);
         Game::factory()->create([
             'location_id' => $location->id,
             'game_system_id' => $topSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Top Ranked Session',
+            'name' => ['en' => 'Top Ranked Session'],
         ]);
         Game::factory()->create([
             'location_id' => $location->id,
             'game_system_id' => $noRankSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'No Rank Session',
+            'name' => ['en' => 'No Rank Session'],
         ]);
 
         $component = Livewire::test(NearbySessions::class)
@@ -118,13 +118,13 @@ describe('Rendering', function () {
             'location_id' => $location->id,
             'status' => 'scheduled',
             'visibility' => 'private',
-            'name' => 'Private Session',
+            'name' => ['en' => 'Private Session'],
         ]);
         Game::factory()->create([
             'location_id' => $location->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Public Session',
+            'name' => ['en' => 'Public Session'],
         ]);
 
         $component = Livewire::test(NearbySessions::class)
@@ -184,12 +184,12 @@ describe('Campaign inclusion', function () {
             'latitude' => 52.5230,
             'longitude' => 13.4120,
         ]);
-        $gameSystem = GameSystem::factory()->create(['name' => 'D&D 5e', 'bgg_rank' => 1]);
+        $gameSystem = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e'], 'bgg_rank' => 1]);
         $campaign = Campaign::factory()->create([
             'game_system_id' => $gameSystem->id,
             'visibility' => 'public',
             'status' => 'active',
-            'name' => 'Weekly D&D Campaign',
+            'name' => ['en' => 'Weekly D&D Campaign'],
         ]);
 
         // Campaign session at nearby location
@@ -250,7 +250,7 @@ describe('Distance formatting', function () {
             'location_id' => $location->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Nearby Game',
+            'name' => ['en' => 'Nearby Game'],
         ]);
 
         $component = Livewire::test(NearbySessions::class)
@@ -274,7 +274,7 @@ describe('BGG rank badge', function () {
             'longitude' => 13.4120,
         ]);
         $gameSystem = GameSystem::factory()->create([
-            'name' => 'Gloomhaven',
+            'name' => ['en' => 'Gloomhaven'],
             'bgg_rank' => 1,
         ]);
         Game::factory()->create([
@@ -305,7 +305,7 @@ describe('Fallback radius', function () {
             'location_id' => $farLocation->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'name' => 'Distant Session',
+            'name' => ['en' => 'Distant Session'],
         ]);
 
         $component = Livewire::test(NearbySessions::class)

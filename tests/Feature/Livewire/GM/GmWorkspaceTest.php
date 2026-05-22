@@ -73,7 +73,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
             'owner_id' => $gm->id,
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
-            'name' => 'Dragon Lair Assault',
+            'name' => ['en' => 'Dragon Lair Assault'],
         ]);
 
         $this->actingAs($gm)
@@ -88,7 +88,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
             'owner_id' => $gm->id,
             'status' => 'scheduled',
             'date_time' => now()->addDays(10),
-            'name' => 'Far Future Session',
+            'name' => ['en' => 'Far Future Session'],
         ]);
 
         $this->actingAs($gm)
@@ -103,7 +103,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
             'owner_id' => $gm->id,
             'status' => 'completed',
             'date_time' => now()->addDays(2),
-            'name' => 'Completed Session',
+            'name' => ['en' => 'Completed Session'],
         ]);
 
         $this->actingAs($gm)
@@ -120,7 +120,7 @@ describe('GmWorkspace Upcoming Sessions', function () {
             'owner_id' => $otherGm->id,
             'status' => 'scheduled',
             'date_time' => now()->addDays(2),
-            'name' => 'Other GMs Session',
+            'name' => ['en' => 'Other GMs Session'],
         ]);
 
         $this->actingAs($gm)

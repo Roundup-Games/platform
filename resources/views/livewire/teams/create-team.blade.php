@@ -30,6 +30,21 @@
                     @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Translations via locale-switcher --}}
+                @php
+                    $allLocales = $this->getAllLocales();
+                    $baselineLocale = $this->getBaselineLocale();
+                @endphp
+                <x-forms.translatable-section
+                    :fields="[
+                        ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3],
+                    ]"
+                    :active-locale="$activeLocale"
+                    :baseline-locale="$baselineLocale"
+                    :all-locales="$allLocales"
+                    inputClass="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant"
+                />
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="team-city" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_city') }}</label>

@@ -18,8 +18,8 @@ class GameSystemFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->unique()->words(2, true) . ' RPG',
-            'description' => fake()->sentence(),
+            'name' => ['en' => fake()->unique()->words(2, true) . ' RPG'],
+            'description' => ['en' => fake()->sentence()],
             'type' => 'boardgame',
             'bgg_id' => fake()->unique()->randomNumber(6, true),
             'bgg_type' => null,

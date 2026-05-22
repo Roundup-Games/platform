@@ -16,7 +16,7 @@ beforeEach(function () {
 function pickerCreateBaseGame(array $overrides = []): GameSystem
 {
     return GameSystem::factory()->create(array_merge([
-        'name' => 'Test Base Game',
+        'name' => ['en' => 'Test Base Game'],
         'bgg_type' => 'boardgame',
         'base_game_id' => null,
         'bgg_rank' => null,
@@ -27,7 +27,7 @@ function pickerCreateBaseGame(array $overrides = []): GameSystem
 function pickerCreateExpansion(GameSystem $base, array $overrides = []): GameSystem
 {
     return GameSystem::factory()->create(array_merge([
-        'name' => 'Test Expansion',
+        'name' => ['en' => 'Test Expansion'],
         'bgg_type' => 'boardgameexpansion',
         'base_game_id' => $base->id,
         'bgg_rank' => null,
@@ -47,7 +47,7 @@ function pickerCreateUser(): User
 describe('Search', function () {
     it('finds base games by name', function () {
         $user = pickerCreateUser();
-        pickerCreateBaseGame(['name' => 'Wingspan', 'bgg_rank' => 38]);
+        pickerCreateBaseGame(['name' => ['en' => 'Wingspan'], 'bgg_rank' => 38]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -61,7 +61,7 @@ describe('Search', function () {
     it('excludes standalone expansions from results', function () {
         $user = pickerCreateUser();
         GameSystem::factory()->create([
-            'name' => 'Some Expansion',
+            'name' => ['en' => 'Some Expansion'],
             'bgg_type' => 'boardgameexpansion',
             'base_game_id' => null,
         ]);
@@ -76,8 +76,8 @@ describe('Search', function () {
 
     it('finds base game when searching by expansion name', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Carcassonne']);
-        pickerCreateExpansion($base, ['name' => 'Carcassonne: Traders & Builders']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Carcassonne']]);
+        pickerCreateExpansion($base, ['name' => ['en' => 'Carcassonne: Traders & Builders']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -90,9 +90,9 @@ describe('Search', function () {
 
     it('shows expansion count in results', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan']);
-        pickerCreateExpansion($base, ['name' => 'Catan: Seafarers']);
-        pickerCreateExpansion($base, ['name' => 'Catan: Cities & Knights']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Catan']]);
+        pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
+        pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -112,7 +112,7 @@ describe('Search', function () {
 describe('Selection', function () {
     it('selects a base game without expansions directly', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -125,8 +125,8 @@ describe('Selection', function () {
 
     it('shows expansion picker for base games with expansions', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan']);
-        pickerCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Catan']]);
+        pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -138,8 +138,8 @@ describe('Selection', function () {
 
     it('allows selecting an expansion from the expansion picker', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan']);
-        $expansion = pickerCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Catan']]);
+        $expansion = pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -152,7 +152,7 @@ describe('Selection', function () {
 
     it('clears selection via clearSelection method', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -171,9 +171,9 @@ describe('Selection', function () {
 describe('Expansion Picker', function () {
     it('lists base game first then expansions sorted by rank', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan', 'bgg_rank' => 100]);
-        $exp1 = pickerCreateExpansion($base, ['name' => 'Catan: Seafarers', 'bgg_rank' => 200]);
-        $exp2 = pickerCreateExpansion($base, ['name' => 'Catan: Cities & Knights', 'bgg_rank' => 150]);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Catan'], 'bgg_rank' => 100]);
+        $exp1 = pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers'], 'bgg_rank' => 200]);
+        $exp2 = pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Cities & Knights'], 'bgg_rank' => 150]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -197,7 +197,7 @@ describe('Expansion Picker', function () {
 describe('Favorites', function () {
     it('shows user favorite game systems', function () {
         $user = pickerCreateUser();
-        $system = pickerCreateBaseGame(['name' => 'Favorite Game']);
+        $system = pickerCreateBaseGame(['name' => ['en' => 'Favorite Game']]);
         $user->favoriteGameSystems()->attach($system->id, ['preference_type' => 'favorite']);
 
         $component = Livewire::actingAs($user)
@@ -210,8 +210,8 @@ describe('Favorites', function () {
 
     it('excludes expansions from favorites list', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Base']);
-        $expansion = pickerCreateExpansion($base, ['name' => 'Expansion']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Base']]);
+        $expansion = pickerCreateExpansion($base, ['name' => ['en' => 'Expansion']]);
 
         $user->favoriteGameSystems()->attach($expansion->id, ['preference_type' => 'favorite']);
 
@@ -237,8 +237,8 @@ describe('Favorites', function () {
 describe('Dropdown Behavior', function () {
     it('resets expansion picker when search changes', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Catan']);
-        pickerCreateExpansion($base, ['name' => 'Catan: Seafarers']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Catan']]);
+        pickerCreateExpansion($base, ['name' => ['en' => 'Catan: Seafarers']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -251,7 +251,7 @@ describe('Dropdown Behavior', function () {
 
     it('clears selection when closeDropdown detects mismatched search text', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -271,7 +271,7 @@ describe('Dropdown Behavior', function () {
 describe('Mount', function () {
     it('pre-populates search text from existing value', function () {
         $user = pickerCreateUser();
-        $system = pickerCreateBaseGame(['name' => 'Pre-existing Game']);
+        $system = pickerCreateBaseGame(['name' => ['en' => 'Pre-existing Game']]);
 
         $component = Livewire::actingAs($user)
             ->test(GameSystemPicker::class, ['value' => $system->id]);
@@ -315,7 +315,7 @@ describe('Request Link', function () {
 describe('Parent Sync', function () {
     it('dispatches value-updated event on selection', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -325,7 +325,7 @@ describe('Parent Sync', function () {
 
     it('dispatches value-updated with null on clear', function () {
         $user = pickerCreateUser();
-        $base = pickerCreateBaseGame(['name' => 'Chess']);
+        $base = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         Livewire::actingAs($user)
             ->test(GameSystemPicker::class)
@@ -343,12 +343,12 @@ describe('Game Type Parameter', function () {
     it('filters search results to ttrpg type', function () {
         $user = pickerCreateUser();
         GameSystem::factory()->create([
-            'name' => 'Dungeons & Dragons',
+            'name' => ['en' => 'Dungeons & Dragons'],
             'type' => 'ttrpg',
             'base_game_id' => null,
         ]);
         GameSystem::factory()->create([
-            'name' => 'Wingspan',
+            'name' => ['en' => 'Wingspan'],
             'type' => 'boardgame',
             'base_game_id' => null,
         ]);
@@ -365,11 +365,11 @@ describe('Game Type Parameter', function () {
     it('filters favorites to ttrpg type', function () {
         $user = pickerCreateUser();
         $ttrpg = GameSystem::factory()->create([
-            'name' => 'Pathfinder',
+            'name' => ['en' => 'Pathfinder'],
             'type' => 'ttrpg',
             'base_game_id' => null,
         ]);
-        $boardGame = pickerCreateBaseGame(['name' => 'Chess']);
+        $boardGame = pickerCreateBaseGame(['name' => ['en' => 'Chess']]);
 
         $user->favoriteGameSystems()->attach($ttrpg->id, ['preference_type' => 'favorite']);
         $user->favoriteGameSystems()->attach($boardGame->id, ['preference_type' => 'favorite']);
@@ -385,12 +385,12 @@ describe('Game Type Parameter', function () {
     it('skips expansion picker for ttrpg even when game has expansions', function () {
         $user = pickerCreateUser();
         $base = GameSystem::factory()->create([
-            'name' => 'D&D 5e',
+            'name' => ['en' => 'D&D 5e'],
             'type' => 'ttrpg',
             'base_game_id' => null,
         ]);
         GameSystem::factory()->create([
-            'name' => 'D&D Player\'s Handbook',
+            'name' => ['en' => "D&D Player's Handbook"],
             'type' => 'ttrpg',
             'base_game_id' => $base->id,
         ]);

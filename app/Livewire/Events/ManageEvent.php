@@ -5,6 +5,7 @@ namespace App\Livewire\Events;
 use App\Enums\ContentLanguage;
 use App\Models\Event;
 use App\Services\ScopedRoleService;
+use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +15,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class ManageEvent extends Component
 {
+    use BuildsTranslatableFormFields;
+
     public Event $event;
 
     public ?string $confirmingAction = null;
@@ -21,7 +24,7 @@ class ManageEvent extends Component
     public string $activeTab = 'details';
 
     // ── Content language ──────────────────────────────
-    public string $content_language = 'en';
+    public string $language = 'en';
 
     // ── Basic Info ────────────────────────────────────
     public string $name = '';
@@ -99,10 +102,16 @@ class ManageEvent extends Component
             'contact_phone' => 'nullable|string|max:30',
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
-            'content_language' => 'required|in:' . implode(',', ContentLanguage::values()),
+            'language' => 'required|in:' . implode(',', ContentLanguage::values()),
         ];
 
-        return $baseRules;
+        return array_merge(
+            $baseRules,
+            $this->translatableValidationRules(
+                ['name' => 'required|string|max:255', 'short_description' => 'nullable|string|max:500', 'description' => 'nullable|string'],
+                $this->language,
+            ),
+        );
     }
 
     public function mount(string $slug): void
@@ -148,7 +157,15 @@ class ManageEvent extends Component
         $this->is_featured = $e->is_featured;
 
         // Content language
-        $this->content_language = $e->content_language ?? 'en';
+        $this->language = $e->language ?? 'en';
+
+        // Load secondary locale translations via trait
+        $this->loadTranslatableValues($e, ['name', 'description', 'short_description']);
+    }
+
+    public function getTranslatableFields(): array
+    {
+        return ['name', 'description', 'short_description'];
     }
 
     // ── Tab Navigation ────────────────────────────────
@@ -193,16 +210,16 @@ class ManageEvent extends Component
         $this->validate($this->rules());
 
         // Validate status transition if status changed
-        $oldStatus = $this->event->getOriginal('status');
-        if ($this->status !== $oldStatus && ! Event::isValidStatusTransition($oldStatus, $this->status)) {
+        $oldStatusValue = $this->resolveStatusString($this->event->getOriginal('status'));
+        if ($this->status !== $oldStatusValue && ! Event::isValidStatusTransition($oldStatusValue, $this->status)) {
             Log::warning('Invalid event status transition attempted', [
                 'event_id' => $this->event->id,
-                'from' => $oldStatus,
+                'from' => $oldStatusValue,
                 'to' => $this->status,
                 'user_id' => Auth::id(),
             ]);
             throw ValidationException::withMessages([
-                'status' => __('events.error_cannot_change_event_status_from_from_to_to', ['from' => $oldStatus, 'to' => $this->status]),
+                'status' => __('events.error_cannot_change_event_status_from_from_to_to', ['from' => $oldStatusValue, 'to' => $this->status]),
             ]);
         }
 
@@ -225,13 +242,19 @@ class ManageEvent extends Component
         $parsedRules = $this->rules ? array_filter(array_map('trim', explode("\n", $this->rules))) : null;
         $parsedSchedule = $this->schedule ? array_filter(array_map('trim', explode("\n", $this->schedule))) : null;
 
+        $translatable = $this->buildTranslatableValues(
+            ['name', 'description', 'short_description'],
+            $this->language,
+            ['name' => $this->name, 'description' => $this->description, 'short_description' => $this->short_description],
+        );
+
         $this->event->update(array_filter([
-            'name' => $this->name,
-            'short_description' => $this->short_description ?: null,
-            'description' => $this->description ?: null,
+            'name' => $translatable['name'],
+            'short_description' => $translatable['short_description'],
+            'description' => $translatable['description'],
             'type' => $this->type,
             'status' => $this->status,
-            'content_language' => $this->content_language,
+            'language' => $this->language,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'venue_name' => $this->venue_name ?: null,
@@ -275,7 +298,7 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
-        $oldStatus = $this->event->getOriginal('status');
+        $oldStatus = $this->resolveStatusString($this->event->getOriginal('status'));
         if (! Event::isValidStatusTransition($oldStatus, 'published')) {
             Log::warning('Invalid event status transition attempted', [
                 'event_id' => $this->event->id,
@@ -303,7 +326,7 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
-        $oldStatus = $this->event->getOriginal('status');
+        $oldStatus = $this->resolveStatusString($this->event->getOriginal('status'));
         if (! Event::isValidStatusTransition($oldStatus, 'registration_open')) {
             Log::warning('Invalid event status transition attempted', [
                 'event_id' => $this->event->id,
@@ -335,7 +358,7 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
-        $oldStatus = $this->event->getOriginal('status');
+        $oldStatus = $this->resolveStatusString($this->event->getOriginal('status'));
         if (! Event::isValidStatusTransition($oldStatus, 'registration_closed')) {
             Log::warning('Invalid event status transition attempted', [
                 'event_id' => $this->event->id,
@@ -363,7 +386,7 @@ class ManageEvent extends Component
     {
         $this->authorize('update', $this->event);
 
-        $oldStatus = $this->event->getOriginal('status');
+        $oldStatus = $this->resolveStatusString($this->event->getOriginal('status'));
         if (! Event::isValidStatusTransition($oldStatus, 'cancelled')) {
             Log::warning('Invalid event status transition attempted', [
                 'event_id' => $this->event->id,
@@ -385,6 +408,15 @@ class ManageEvent extends Component
         ]);
 
         session()->flash('success', __('events.flash_event_cancelled'));
+    }
+
+    /**
+     * Resolve a status value (which may be a BackedEnum from getOriginal()
+     * or a string from Livewire) to its string value for comparison and logging.
+     */
+    private function resolveStatusString(mixed $status): string
+    {
+        return $status instanceof \BackedEnum ? $status->value : (string) $status;
     }
 
     public function render()

@@ -20,8 +20,8 @@ function createOwnedCampaign(User $owner, GameSystem $system, array $overrides =
     return Campaign::create(array_merge([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => 'Test Campaign',
-        'description' => 'Original description',
+        'name' => ['en' => 'Test Campaign'],
+        'description' => ['en' => 'Original description'],
         'session_duration' => 3,
         'visibility' => 'public',
         'status' => 'active',

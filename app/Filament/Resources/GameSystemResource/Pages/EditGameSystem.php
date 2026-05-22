@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\GameSystemResource\Pages;
 
 use App\Exceptions\BggApiException;
+use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameSystemResource;
 use App\Services\BggSyncService;
 use App\Services\SeoCacheService;
@@ -11,9 +12,15 @@ use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
+use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
+use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable;
 
 class EditGameSystem extends EditRecord
 {
+    use TransformsLocaleSwitchWithoutValidation, Translatable {
+        TransformsLocaleSwitchWithoutValidation::updatedActiveLocale insteadof Translatable;
+    }
+
     protected static string $resource = GameSystemResource::class;
 
     protected function afterSave(): void
@@ -24,6 +31,8 @@ class EditGameSystem extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            LocaleSwitcher::make(),
+            ...parent::getHeaderActions(),
             DeleteAction::make(),
             Action::make('resyncBgg')
                 ->label('Re-sync from BGG')

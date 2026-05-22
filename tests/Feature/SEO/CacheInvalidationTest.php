@@ -23,7 +23,7 @@ beforeEach(function () {
 
 describe('Sitemap cache lifecycle', function () {
     it('GameSystem: populate → update → cache cleared → regenerate reflects new data', function () {
-        $system = GameSystem::factory()->create(['name' => 'Alpha System']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Alpha System']]);
 
         // Step 1: Generate sitemap (cache populated)
         $response = get('/sitemap-game-systems.xml');
@@ -51,7 +51,7 @@ describe('Sitemap cache lifecycle', function () {
 
     it('Event: populate → update → cache cleared → regenerate reflects new data', function () {
         $event = Event::factory()->create([
-            'name' => 'Original Event',
+            'name' => ['en' => 'Original Event'],
             'status' => 'published',
             'is_public' => true,
         ]);
@@ -327,7 +327,7 @@ describe('New model creation invalidates cache', function () {
         get('/sitemap-game-systems.xml')->assertOk();
         $this->seoCache->setIndex('<idx/>');
 
-        GameSystem::factory()->create(['name' => 'Brand New System']);
+        GameSystem::factory()->create(['name' => ['en' => 'Brand New System']]);
 
         expect($this->seoCache->getSitemap('game-systems'))->toBeNull();
         expect($this->seoCache->getIndex())->toBeNull();
@@ -364,7 +364,7 @@ describe('New model creation invalidates cache', function () {
 
 describe('Stale data removal', function () {
     it('confirms old XML is not served after model update', function () {
-        $system = GameSystem::factory()->create(['name' => 'Old Name']);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Old Name']]);
         $oldSlug = $system->slug;
 
         // Populate
