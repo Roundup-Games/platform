@@ -404,9 +404,4 @@ return [
     'content_translations' => 'Übersetzungen',
     'action_copy_from_baseline' => ':field aus Primärsprache kopieren',
     'action_copy_from_baseline_short' => 'Aus Primärsprache kopieren',
-    'status_copied' => 'Kopiert!',
-    'locale_switcher_switch_to' => 'Wechseln zu :locale',
-    'locale_switcher_current' => 'Aktuelle Sprache: :locale',
-    'locale_switcher_copy_from_baseline' => ':field aus Primärsprache kopieren',
-    'locale_switcher_baseline' => 'Primärsprache',
 ];
