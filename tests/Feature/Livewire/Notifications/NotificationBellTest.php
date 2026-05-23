@@ -8,20 +8,16 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class NotificationBellTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private User $user;
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
+        parent::setUp();
         $this->user = User::factory()->create([
             'profile_complete' => true,
             'email_verified_at' => now(),

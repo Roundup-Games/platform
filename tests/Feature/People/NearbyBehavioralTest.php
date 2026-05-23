@@ -9,14 +9,10 @@ use App\Services\PeopleDiscoveryService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class NearbyBehavioralTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     // Central Berlin (Mitte) — all candidates share this geohash-4 tile
     private const LAT = 52.5163;
@@ -24,7 +20,7 @@ class NearbyBehavioralTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
+        parent::setUp();
         Cache::flush();
     }
 

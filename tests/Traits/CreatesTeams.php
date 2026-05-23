@@ -38,21 +38,4 @@ trait CreatesTeams
         return ['captain' => $captain, 'team' => $team];
     }
 
-    /**
-     * Add a member to a team with the specified role.
-     * Returns ['user' => User, 'member' => TeamMember].
-     */
-    public function addTeamMember(Team $team, string $role = 'player', array $userAttrs = []): array
-    {
-        $user = User::factory()->create(['profile_complete' => true, ...$userAttrs]);
-        $member = TeamMember::create([
-            'team_id' => $team->id,
-            'user_id' => $user->id,
-            'role' => $role,
-            'status' => 'active',
-            'joined_at' => now(),
-        ]);
-
-        return ['user' => $user, 'member' => $member];
-    }
 }

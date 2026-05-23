@@ -10,20 +10,16 @@ use App\Models\User;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class ReliabilityScoreServiceTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private ReliabilityScoreService $service;
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
+        parent::setUp();
         $this->service = app(ReliabilityScoreService::class);
     }
 

@@ -12,12 +12,10 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class MyRequestsPageTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale;
 
     protected function setUp(): void
     {

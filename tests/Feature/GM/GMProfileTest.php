@@ -9,20 +9,15 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
-use Tests\Traits\SetsUpLocale;
 
 class GMProfileTest extends TestCase
 {
     use DatabaseTransactions;
     use CreatesUsers;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
-
+        parent::setUp();
         Role::firstOrCreate([
             'name' => 'Game Master',
             'guard_name' => 'web',
@@ -167,6 +162,5 @@ class GMProfileTest extends TestCase
 
         $this->assertDatabaseMissing('gm_profiles', ['id' => $profileId]);
     }
-
 
 }

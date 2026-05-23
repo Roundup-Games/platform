@@ -10,14 +10,10 @@ use App\Models\User;
 use App\Services\ReviewAggregateService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class ReviewAggregateServiceTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private ReviewAggregateService $service;
     private GMProfile $gmProfile;
@@ -25,7 +21,7 @@ class ReviewAggregateServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
+        parent::setUp();
         $this->service = app(ReviewAggregateService::class);
 
         $this->gmUser = User::factory()->create();

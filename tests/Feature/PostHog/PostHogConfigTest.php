@@ -2,10 +2,6 @@
 
 use Illuminate\Support\Facades\Config;
 
-beforeEach(function () {
-    URL::defaults(['locale' => 'en']);
-});
-
 describe('PostHog config file', function () {
     test('loads with correct defaults', function () {
         $config = include config_path('posthog.php');

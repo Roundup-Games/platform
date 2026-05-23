@@ -104,4 +104,74 @@ class GeohashTest extends TestCase
         $b = Geohash::tilePrefix(52.60, 13.405, 5);
         $this->assertNotSame($a, $b);
     }
+
+    // 13. Known coordinate encoding — verified against multiple implementations
+    public function test_encodes_berlin_to_exact_hash(): void
+    {
+        $hash = Geohash::encode(52.5163, 13.3777, 5);
+        $this->assertEquals('u33db', $hash);
+    }
+
+    // 14. Zero-zero encoding
+    public function test_encodes_zero_zero(): void
+    {
+        $hash = Geohash::encode(0, 0, 5);
+        $this->assertEquals('s0000', $hash);
+    }
+
+    // 15. Negative coordinates — Sydney
+    public function test_encodes_negative_coordinates(): void
+    {
+        $hash = Geohash::encode(-33.8688, 151.2093, 5);
+        $this->assertEquals('r3gx2', $hash);
+    }
+
+    // 16. European city proximity — nearby points share longer prefixes
+    #[DataProvider('europeanCityProvider')]
+    public function test_nearby_cities_share_geohash_prefixes(float $lat1, float $lng1, float $lat2, float $lng2, int $sharedPrefix): void
+    {
+        $hash1 = Geohash::encode($lat1, $lng1, 8);
+        $hash2 = Geohash::encode($lat2, $lng2, 8);
+
+        $shared = 0;
+        for ($i = 0; $i < min(strlen($hash1), strlen($hash2)); $i++) {
+            if ($hash1[$i] === $hash2[$i]) {
+                $shared++;
+            } else {
+                break;
+            }
+        }
+
+        $this->assertGreaterThanOrEqual($sharedPrefix, $shared,
+            "Points ({$lat1},{$lng1}) and ({$lat2},{$lng2}) should share at least {$sharedPrefix} geohash characters. Got: {$hash1} vs {$hash2}");
+    }
+
+    public static function europeanCityProvider(): array
+    {
+        return [
+            'Berlin central vs nearby' => [52.5200, 13.4050, 52.5100, 13.3900, 4],
+            'Munich vs Berlin' => [48.1351, 11.5820, 52.5200, 13.4050, 1],
+            'Vienna vs Munich' => [48.2082, 16.3738, 48.1351, 11.5820, 2],
+        ];
+    }
+
+    // 17. Tile prefix is start of full hash
+    public function test_tile_prefix_is_start_of_full_hash(): void
+    {
+        $fullHash = Geohash::encode(52.5163, 13.3777, 12);
+        $prefix = Geohash::tilePrefix(52.5163, 13.3777, 5);
+        $this->assertEquals(substr($fullHash, 0, 5), $prefix);
+    }
+
+    // 18. Prefix bounds grows with shorter prefix
+    public function test_prefix_bounds_grows_with_shorter_prefix(): void
+    {
+        $bounds4 = Geohash::prefixBounds(Geohash::tilePrefix(52.5163, 13.3777, 4));
+        $bounds5 = Geohash::prefixBounds(Geohash::tilePrefix(52.5163, 13.3777, 5));
+
+        $span4 = ($bounds4['maxLat'] - $bounds4['minLat']);
+        $span5 = ($bounds5['maxLat'] - $bounds5['minLat']);
+
+        $this->assertGreaterThan($span5, $span4, 'Shorter prefix should have larger bounds');
+    }
 }

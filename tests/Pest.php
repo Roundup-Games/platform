@@ -18,6 +18,20 @@ use Tests\TestCase;
 |
 */
 
+/*
+| Test directories that need DatabaseTransactions + locale defaults.
+| Feature/ gets blanket coverage. Unit/ subdirectories that touch
+| the DB, facades, or container are listed individually.
+|
+| Pure unit directories (Unit/Dto, Unit/Enums, Unit/Rules) don't
+| need this config — they extend nothing and have no DB.
+*/
+
+$unitDirsNeedingTransactions = [
+    'Unit/SEO',
+    'Unit/Services',
+];
+
 pest()->extend(TestCase::class)
     ->use(DatabaseTransactions::class)
     ->beforeEach(function () {
@@ -25,26 +39,14 @@ pest()->extend(TestCase::class)
     })
     ->in('Feature');
 
-pest()->extend(TestCase::class)
-    ->use(DatabaseTransactions::class)
-    ->beforeEach(function () {
-        URL::defaults(['locale' => 'en']);
-    })
-    ->in('Unit/Notifications');
-
-pest()->extend(TestCase::class)
-    ->use(DatabaseTransactions::class)
-    ->beforeEach(function () {
-        URL::defaults(['locale' => 'en']);
-    })
-    ->in('Unit/SEO');
-
-pest()->extend(TestCase::class)
-    ->use(DatabaseTransactions::class)
-    ->beforeEach(function () {
-        URL::defaults(['locale' => 'en']);
-    })
-    ->in('Unit/Services');
+foreach ($unitDirsNeedingTransactions as $dir) {
+    pest()->extend(TestCase::class)
+        ->use(DatabaseTransactions::class)
+        ->beforeEach(function () {
+            URL::defaults(['locale' => 'en']);
+        })
+    ->in($dir);
+}
 
 /*
 |--------------------------------------------------------------------------

@@ -20,22 +20,16 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class GameSystemTicketListenerTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private User $user;
     private Department $department;
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
-
         parent::setUp();
 
         $this->user = User::factory()->create([

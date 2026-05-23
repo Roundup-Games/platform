@@ -11,14 +11,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class ViewSessionZeroTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private SessionZeroSurvey $survey;
 
@@ -28,8 +24,7 @@ class ViewSessionZeroTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
-
+        parent::setUp();
         $this->gmUser = User::factory()->create(['profile_complete' => true]);
         $this->gmProfile = GMProfile::factory()->create([
             'user_id' => $this->gmUser->id,

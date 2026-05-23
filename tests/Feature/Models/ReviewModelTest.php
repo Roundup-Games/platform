@@ -5,12 +5,10 @@ namespace Tests\Feature\Models;
 use App\Models\Review;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class ReviewModelTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale;
 
     // ── State Logic ───────────────────────────────────────────
 
