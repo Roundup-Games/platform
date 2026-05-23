@@ -426,7 +426,7 @@
                                     {{ $game->name }}
                                 </p>
                                 <p class="text-xs text-on-surface-variant">
-                                    {{ __('attendance.dashboard_recap_by', ['name' => $game->owner?->name]) }}
+                                    {{ __('attendance.dashboard_recap_by', ['name' => $game->owner_name]) }}
                                 </p>
                             </div>
                             <span aria-hidden="true" class="material-symbols-outlined text-primary text-lg ml-2" style="font-variation-settings: 'FILL' 1">arrow_forward</span>
