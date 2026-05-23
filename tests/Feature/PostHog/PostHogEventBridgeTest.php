@@ -20,7 +20,9 @@ use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\Helpers\TestablePostHogClient;
 
 beforeEach(function () {
@@ -34,6 +36,44 @@ beforeEach(function () {
     $consentChecker->shouldReceive('hasAnalyticsConsent')->andReturn(true);
     $this->app->instance(PostHogConsentChecker::class, $consentChecker);
 });
+
+/**
+ * Helper to make a Game with gameSystem relation pre-loaded
+ * to avoid lazy-load DB queries with synthetic IDs.
+ */
+function makeGameWithSystem(array $gameAttrs = [], array $systemAttrs = []): Game
+{
+    $systemId = $systemAttrs['id'] ?? Str::uuid()->toString();
+    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => ['en' => 'D&D 5e']], $systemAttrs));
+    $game = Game::factory()->make(array_merge([
+        'id' => Str::uuid()->toString(),
+        'game_system_id' => $systemId,
+    ], $gameAttrs));
+    $game->setRelation('gameSystem', $gameSystem);
+
+    return $game;
+}
+
+function makeCampaignWithSystem(array $campaignAttrs = [], array $systemAttrs = []): Campaign
+{
+    $systemId = $systemAttrs['id'] ?? Str::uuid()->toString();
+    $gameSystem = GameSystem::factory()->make(array_merge(['id' => $systemId, 'name' => ['en' => 'D&D 5e']], $systemAttrs));
+    $campaign = Campaign::factory()->make(array_merge([
+        'id' => Str::uuid()->toString(),
+        'game_system_id' => $systemId,
+    ], $campaignAttrs));
+    $campaign->setRelation('gameSystem', $gameSystem);
+
+    return $campaign;
+}
+
+/**
+ * Get the last captured call from the test client.
+ */
+function lastCapture(TestablePostHogClient $client): array
+{
+    return $client->capturedCalls[array_key_last($client->capturedCalls)];
+}
 
 // ── Event name mapping via full integration ─────────────
 
@@ -703,4 +743,187 @@ it('skips EnrichPostHogProfile job when hasConsent is false', function () {
     // No identify or capture calls made
     expect($this->posthogClient->identifyCalls)->toHaveCount(0);
     expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+});
+
+// ── Merged from Unit — isolation tests ──────────────────
+// These test PostHogEventBridge directly (without ActivityLogService)
+// to cover edge cases in property extraction and error handling.
+
+it('logs warning on capture failure', function () {
+    Log::shouldReceive('channel')->with('daily')->andReturnSelf();
+    Log::shouldReceive('warning')
+        ->once()
+        ->with('posthog.event_bridge.failed', Mockery::on(function ($ctx) {
+            return $ctx['event_type'] === 'game_created'
+                && $ctx['error'] === 'PostHog down';
+        }));
+
+    $throwingClient = new class extends TestablePostHogClient {
+        public function capture(array $payload): void
+        {
+            throw new RuntimeException('PostHog down');
+        }
+    };
+    $this->app->instance(PostHogClient::class, $throwingClient);
+
+    $user = User::factory()->make(['id' => 1]);
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::GameCreated, $user);
+});
+
+it('detects offline location correctly via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $game = makeGameWithSystem(
+        gameAttrs: ['location' => ['type' => 'physical', 'details' => 'Game Store']],
+    );
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::GameCreated, $user, $game);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['is_online'])->toBeFalse()
+        ->and($props['location_type'])->toBe('physical');
+});
+
+it('handles null location gracefully via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $game = makeGameWithSystem(gameAttrs: ['location' => null]);
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::GameCreated, $user, $game);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['is_online'])->toBeFalse()
+        ->and($props['location_type'])->toBeNull();
+});
+
+it('falls back to game properties when PlayerJoined subject is a Game via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $game = makeGameWithSystem(gameAttrs: ['location' => ['type' => 'online']]);
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::PlayerJoined, $user, $game);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['game_id'])->toBe($game->id)
+        ->and($props['is_online'])->toBeTrue();
+});
+
+it('extracts session scheduled properties with date via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $game = makeGameWithSystem(
+        gameAttrs: [
+            'date_time' => now()->parse('2025-08-15 19:00:00'),
+            'location' => ['type' => 'physical'],
+        ],
+        systemAttrs: ['name' => 'D&D 5e'],
+    );
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::SessionScheduled, $user, $game);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['game_system'])->toBe('D&D 5e')
+        ->and($props['scheduled_date'])->toBe('2025-08-15')
+        ->and($props['location_type'])->toBe('physical')
+        ->and($props['is_online'])->toBeFalse();
+});
+
+it('extracts invitation properties for game subject via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $game = makeGameWithSystem(gameAttrs: ['owner_id' => 99]);
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::InvitationReceived, $user, $game);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['source_type'])->toBe('game')
+        ->and($props['source_id'])->toBe($game->id)
+        ->and($props['inviter_id'])->toBe(99);
+});
+
+it('extracts invitation properties for campaign subject via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $campaign = makeCampaignWithSystem(campaignAttrs: ['owner_id' => 50]);
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::InvitationAccepted, $user, $campaign);
+
+    $props = $this->posthogClient->capturedCalls[0]['properties'];
+    expect($props['source_type'])->toBe('campaign')
+        ->and($props['source_id'])->toBe($campaign->id)
+        ->and($props['inviter_id'])->toBe(50);
+});
+
+it('handles null subject gracefully for all event types via bridge', function () {
+    $user = User::factory()->make(['id' => 1]);
+
+    foreach (ActivityType::cases() as $type) {
+        $client = new TestablePostHogClient();
+        $this->app->instance(PostHogClient::class, $client);
+
+        Queue::fake();
+
+        $bridge = $this->app->make(PostHogEventBridge::class);
+        $bridge->forwardEvent($type, $user, null);
+
+        expect($client->capturedCalls)->toHaveCount(1);
+    }
+});
+
+it('handles wrong subject type for game properties via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $wrongSubject = makeCampaignWithSystem();
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::GameCreated, $user, $wrongSubject);
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    expect($this->posthogClient->capturedCalls[0]['properties'])->not->toHaveKey('game_id');
+});
+
+it('dispatches EnrichPostHogProfile with null subject via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 7]);
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::SessionRecapped, $user);
+
+    Queue::assertPushed(EnrichPostHogProfile::class, function ($job) {
+        return $job->type === ActivityType::SessionRecapped->value
+            && $job->userId === '7'
+            && $job->subjectType === null
+            && $job->subjectId === null;
+    });
+});
+
+it('dispatches EnrichPostHogProfile with campaign subject type via bridge', function () {
+    Queue::fake();
+
+    $user = User::factory()->make(['id' => 1]);
+    $campaign = makeCampaignWithSystem();
+
+    $bridge = $this->app->make(PostHogEventBridge::class);
+    $bridge->forwardEvent(ActivityType::CampaignCreated, $user, $campaign);
+
+    Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($campaign) {
+        return $job->type === ActivityType::CampaignCreated->value
+            && $job->subjectType === 'App\\Models\\Campaign'
+            && $job->subjectId === $campaign->id;
+    });
 });

@@ -13,14 +13,10 @@ use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class GameSystemRequestServiceBggSyncTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private User $user;
     private Department $department;
@@ -28,8 +24,6 @@ class GameSystemRequestServiceBggSyncTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
-
         parent::setUp();
 
         $this->user = User::factory()->create([

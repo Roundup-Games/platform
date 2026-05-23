@@ -13,20 +13,16 @@ use App\Models\User;
 use App\Services\ReviewEligibilityService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-use Tests\Traits\SetsUpLocale;
 
 class ReviewEligibilityServiceTest extends TestCase
 {
     use DatabaseTransactions;
-    use SetsUpLocale {
-        SetsUpLocale::setUp as setUpLocale;
-    }
 
     private ReviewEligibilityService $service;
 
     protected function setUp(): void
     {
-        $this->setUpLocale();
+        parent::setUp();
         $this->service = app(ReviewEligibilityService::class);
     }
 

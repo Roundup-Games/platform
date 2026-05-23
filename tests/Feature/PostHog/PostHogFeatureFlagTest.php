@@ -291,6 +291,138 @@ class PostHogFeatureFlagTest extends TestCase
         $this->assertTrue($second);
         $this->assertCount(1, $this->posthogClient->featureFlagCalls);
     }
+
+    // ── Merged from Unit — isolation tests ───────────────
+
+    #[Test]
+    public function check_flag_returns_default_when_posthog_throws_exception(): void
+    {
+        $service = $this->bindNullReturningClientAndGetService();
+
+        $result = $service->checkFlag('my-flag', '42', 'fallback');
+
+        $this->assertSame('fallback', $result);
+    }
+
+    #[Test]
+    public function check_flag_resolves_user_id_from_auth_when_not_provided(): void
+    {
+        $user = \App\Models\User::factory()->make(['id' => 99]);
+        auth()->login($user);
+
+        $this->posthogClient->setFlagResult('my-flag', 'variant-b');
+
+        $service = app(PostHogFeatureFlag::class);
+
+        $result = $service->checkFlag('my-flag');
+
+        $this->assertSame('variant-b', $result);
+        $this->assertCount(1, $this->posthogClient->featureFlagCalls);
+        $this->assertSame(['key' => 'my-flag', 'distinctId' => '99'], $this->posthogClient->featureFlagCalls[0]);
+    }
+
+    #[Test]
+    public function check_flag_returns_default_when_api_key_is_missing(): void
+    {
+        $this->posthogClient->setEnabled(false);
+
+        $service = app(PostHogFeatureFlag::class);
+
+        $result = $service->checkFlag('my-flag', '42', 'no-key');
+
+        $this->assertSame('no-key', $result);
+        $this->assertCount(0, $this->posthogClient->featureFlagCalls);
+    }
+
+    #[Test]
+    public function check_flag_evaluates_separately_for_different_users(): void
+    {
+        $this->posthogClient->setFlagResult('multi-user-flag', true);
+
+        $service = app(PostHogFeatureFlag::class);
+
+        $this->assertTrue($service->checkFlag('multi-user-flag', '1'));
+
+        // Override for second user
+        $this->posthogClient->setFlagResult('multi-user-flag', false);
+        $this->assertFalse($service->checkFlag('multi-user-flag', '2'));
+
+        $this->assertCount(2, $this->posthogClient->featureFlagCalls);
+    }
+
+    #[Test]
+    public function clear_cache_resets_cached_flags(): void
+    {
+        $this->posthogClient->setFlagResult('clear-flag', true);
+
+        $service = app(PostHogFeatureFlag::class);
+
+        $service->checkFlag('clear-flag', '42');
+        $this->assertCount(1, $this->posthogClient->featureFlagCalls);
+
+        $service->clearCache();
+        $result = $service->checkFlag('clear-flag', '42');
+
+        $this->assertTrue($result);
+        // Called again after cache clear
+        $this->assertCount(2, $this->posthogClient->featureFlagCalls);
+    }
+
+    #[Test]
+    public function is_on_returns_false_on_posthog_failure(): void
+    {
+        $service = $this->bindNullReturningClientAndGetService();
+
+        $this->assertFalse($service->isOn('bool-flag', '42'));
+    }
+
+    #[Test]
+    public function get_variant_returns_default_when_flag_is_boolean(): void
+    {
+        $this->posthogClient->setFlagResult('experiment', true);
+
+        $service = app(PostHogFeatureFlag::class);
+
+        $this->assertSame('control', $service->getVariant('experiment', '42', 'control'));
+    }
+
+    #[Test]
+    public function get_variant_returns_default_on_posthog_failure(): void
+    {
+        $service = $this->bindNullReturningClientAndGetService();
+
+        $this->assertSame('control', $service->getVariant('experiment', '42', 'control'));
+    }
+
+    #[Test]
+    public function evaluation_failure_returns_default_value(): void
+    {
+        $service = $this->bindNullReturningClientAndGetService();
+
+        // When PostHogClient catches an SDK error, it returns null,
+        // which checkFlag maps to the default value.
+        $result = $service->checkFlag('broken-flag', '42', 'fallback');
+
+        $this->assertSame('fallback', $result);
+    }
+
+    /**
+     * Bind a client that returns null from getFeatureFlag (mimicking caught SDK error).
+     */
+    private function bindNullReturningClientAndGetService(): PostHogFeatureFlag
+    {
+        $nullClient = new class extends TestablePostHogClient {
+            public function getFeatureFlag(string $key, string $distinctId): string|bool|null
+            {
+                return null;
+            }
+        };
+
+        $this->app->instance(PostHogClient::class, $nullClient);
+        $this->app->forgetInstance(PostHogFeatureFlag::class);
+
+        return app(PostHogFeatureFlag::class);
+    }
 }
 
 // ── Test Livewire components ────────────────────────────

@@ -428,6 +428,13 @@ describe('getPlatforms', function () {
 
         expect($orders)->toBe($sortedOrders);
     });
+
+    it('each platform has required configuration keys', function () {
+        $platforms = $this->service->getPlatforms();
+        foreach ($platforms as $key => $config) {
+            expect($config)->toHaveKeys(['name', 'url_template', 'handle_pattern', 'icon', 'sort_order']);
+        }
+    });
 });
 
 // ── getDisplayUrl ───────────────────────────────────────

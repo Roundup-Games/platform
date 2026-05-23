@@ -2,10 +2,14 @@
 
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Helpers\TestablePostHogClient;
 
@@ -50,10 +54,8 @@ describe('5xx exception pipeline', function () {
         expect($this->posthogClient->capturedCalls)->toHaveCount(1);
         $payload = $this->posthogClient->capturedCalls[0];
         expect($payload['event'])->toBe('$exception')
-            ->and($payload['properties']['$exception_type'])->toBe(RuntimeException::class)
-            ->and($payload['properties']['$exception_message'])->toBe('Test error')
+            ->and($payload['properties'])->toHaveKey('$exception_list')
             ->and($payload['properties']['$exception_source'])->toBe('php')
-            ->and($payload['properties'])->toHaveKey('$exception_stack_trace')
             ->and($payload['properties'])->toHaveKey('$exception_fingerprint')
             ->and($payload['properties'])->toHaveKey('request_url')
             ->and($payload['properties'])->toHaveKey('exception_file')
@@ -157,4 +159,58 @@ describe('PostHog disabled state', function () {
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(0);
     });
+});
+
+// ── Merged from Unit — isolation tests ──────────────────
+// These test PostHogExceptionReporter directly (not via ExceptionHandler pipeline)
+// to cover edge cases that Laravel's $internalDontReport filters out.
+
+it('uses authenticated user ID as distinct ID via reporter', function () {
+    $user = \App\Models\User::factory()->make(['id' => 42]);
+    Auth::shouldReceive('user')->andReturn($user);
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new RuntimeException('auth test'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    expect($this->posthogClient->capturedCalls[0]['distinctId'])->toBe('42');
+});
+
+it('skips AuthenticationException via reporter', function () {
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new AuthenticationException('Unauthenticated'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+});
+
+it('skips TokenMismatchException via reporter', function () {
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new TokenMismatchException('CSRF token mismatch'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+});
+
+it('reports 500 HttpException directly via reporter', function () {
+    Auth::logout();
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new HttpException(500, 'Internal Server Error'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    $payload = $this->posthogClient->capturedCalls[0];
+    expect($payload['properties'])->toHaveKey('$exception_list')
+        ->and($payload['properties']['$exception_list'][0]['type'])->toBe(HttpException::class);
+});
+
+it('builds stack trace starting with exception class and location via reporter', function () {
+    Auth::logout();
+
+    $reporter = app(PostHogExceptionReporter::class);
+    $reporter->report(new RuntimeException('Stack test'));
+
+    expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    $exceptionList = $this->posthogClient->capturedCalls[0]['properties']['$exception_list'];
+    expect($exceptionList)->toHaveCount(1)
+        ->and($exceptionList[0]['type'])->toBe(RuntimeException::class)
+        ->and($exceptionList[0])->toHaveKey('stacktrace');
 });
