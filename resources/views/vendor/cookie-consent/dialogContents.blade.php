@@ -7,7 +7,7 @@
         <div class="rounded-2xl bg-surface-container-highest border border-outline-variant/30 shadow-lg p-5 sm:p-6">
             {{-- Header --}}
             <div class="flex items-center gap-2 mb-3">
-                <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">cookie</span>
+                <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">shield</span>
                 <h2 class="text-base font-semibold text-on-surface">{{ __('cookie-consent.heading_banner_title') }}</h2>
             </div>
 
