@@ -32,6 +32,15 @@ class PublicCampaignDetail extends Component
     {
         $campaign = Campaign::findOrFail($id);
         $this->authorize('view', $campaign);
+
+        // Authenticated users should use the dashboard campaign detail (with join/apply CTA)
+        if (Auth::check()) {
+            $query = array_filter(['share' => request()->query('share')]);
+            $this->redirect(route('campaigns.show', array_merge([$campaign->id], $query)), navigate: true);
+
+            return;
+        }
+
         $this->campaign = $campaign;
 
         // Capture valid share token on initial page load

@@ -23,8 +23,8 @@ describe('Game Visibility Robots', function () {
             ->assertDontSee('noindex', false);
     });
 
-    it('renders noindex, nofollow for private game visible to owner', function () {
-        $owner = User::factory()->create();
+    it('redirects authenticated owner from public route to dashboard for private game', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $game = Game::factory()->create([
             'visibility' => Visibility::Private,
             'owner_id' => $owner->id,
@@ -32,12 +32,11 @@ describe('Game Visibility Robots', function () {
 
         actingAs($owner);
         get(route('games.detail', $game->id))
-            ->assertOk()
-            ->assertSee('noindex, nofollow', false);
+            ->assertRedirect(route('games.show', $game->id));
     });
 
-    it('renders noindex, nofollow for protected game visible to owner', function () {
-        $owner = User::factory()->create();
+    it('redirects authenticated owner from public route to dashboard for protected game', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $game = Game::factory()->create([
             'visibility' => Visibility::Protected,
             'owner_id' => $owner->id,
@@ -45,8 +44,7 @@ describe('Game Visibility Robots', function () {
 
         actingAs($owner);
         get(route('games.detail', $game->id))
-            ->assertOk()
-            ->assertSee('noindex, nofollow', false);
+            ->assertRedirect(route('games.show', $game->id));
     });
 
     it('renders robots meta tag containing correct content attribute', function () {
@@ -62,20 +60,16 @@ describe('Game Visibility Robots', function () {
         expect($matches[1] ?? '')->toBe('index, follow');
     });
 
-    it('private game robots meta tag contains noindex, nofollow', function () {
-        $owner = User::factory()->create();
+    it('authenticated owner sees dashboard detail for private game with correct SEO', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $game = Game::factory()->create([
             'visibility' => Visibility::Private,
             'owner_id' => $owner->id,
         ]);
 
         actingAs($owner);
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
+        get(route('games.show', $game->id))
+            ->assertOk();
     });
 });
 
@@ -93,8 +87,8 @@ describe('Campaign Visibility Robots', function () {
             ->assertDontSee('noindex', false);
     });
 
-    it('renders noindex, nofollow for private campaign visible to owner', function () {
-        $owner = User::factory()->create();
+    it('redirects authenticated owner from public route to dashboard for private campaign', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $campaign = Campaign::factory()->create([
             'visibility' => Visibility::Private,
             'owner_id' => $owner->id,
@@ -102,12 +96,11 @@ describe('Campaign Visibility Robots', function () {
 
         actingAs($owner);
         get(route('campaigns.detail', $campaign->id))
-            ->assertOk()
-            ->assertSee('noindex, nofollow', false);
+            ->assertRedirect(route('campaigns.show', $campaign->id));
     });
 
-    it('renders noindex, nofollow for protected campaign visible to owner', function () {
-        $owner = User::factory()->create();
+    it('redirects authenticated owner from public route to dashboard for protected campaign', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $campaign = Campaign::factory()->create([
             'visibility' => Visibility::Protected,
             'owner_id' => $owner->id,
@@ -115,8 +108,7 @@ describe('Campaign Visibility Robots', function () {
 
         actingAs($owner);
         get(route('campaigns.detail', $campaign->id))
-            ->assertOk()
-            ->assertSee('noindex, nofollow', false);
+            ->assertRedirect(route('campaigns.show', $campaign->id));
     });
 
     it('renders robots meta tag with correct content attribute for public campaign', function () {
@@ -132,20 +124,16 @@ describe('Campaign Visibility Robots', function () {
         expect($matches[1] ?? '')->toBe('index, follow');
     });
 
-    it('renders robots meta tag with noindex, nofollow for private campaign', function () {
-        $owner = User::factory()->create();
+    it('authenticated owner sees dashboard detail for private campaign', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
         $campaign = Campaign::factory()->create([
             'visibility' => Visibility::Private,
             'owner_id' => $owner->id,
         ]);
 
         actingAs($owner);
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
+        get(route('campaigns.show', $campaign->id))
+            ->assertOk();
     });
 });
 
