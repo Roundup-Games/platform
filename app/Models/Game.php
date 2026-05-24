@@ -253,8 +253,9 @@ class Game extends Model
     /**
      * Scope to games visible to a given user (or guest).
      *
-     * Guests see public only. Authenticated users see public + protected.
-     * Private games are never included in listings (handled by policies).
+     * Guests see public only. Authenticated users see public + protected
+     * items owned by their connections (friends, teammates) or where they
+     * are a participant. Private items are never included in listings.
      */
     public function scopeVisibleTo($query, ?User $viewer = null)
     {
@@ -262,9 +263,18 @@ class Game extends Model
             return $query->where('visibility', 'public');
         }
 
-        return $query->where(function ($q) {
+        $allowedOwnerIds = app(\App\Services\SocialGraphService::class)
+            ->getAllowedOwnerIdsForProtectedContent($viewer);
+
+        return $query->where(function ($q) use ($allowedOwnerIds, $viewer) {
             $q->where('visibility', 'public')
-              ->orWhere('visibility', 'protected');
+              ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
+                  $q->where('visibility', 'protected')
+                    ->where(function ($q) use ($allowedOwnerIds, $viewer) {
+                        $q->whereIn('owner_id', $allowedOwnerIds)
+                          ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
+                    });
+              });
         });
     }
 

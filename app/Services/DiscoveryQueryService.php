@@ -88,23 +88,16 @@ class DiscoveryQueryService
     /**
      * Build the base games query with visibility, status, date, and shared filters.
      *
-     * @param  array  $filters  Shared filter array
-     * @param  \App\Models\User|null  $user  Current user for visibility scoping
-     * @param  float  $radius  Search radius in km (0 = no proximity filter)
-     * @param  float|null  $lat  Guest latitude
-     * @param  float|null  $lng  Guest longitude
-     * @param  bool  $hasLocation  Whether guest location is available
-     * @param  string|null  $date  Date filter ('upcoming', 'this_week', 'this_month')
+     * Visibility logic:
+     *  - Public: visible to everyone.
+     *  - Protected ("Connections Only"): visible to the owner, their mutual follows (friends),
+     *    teammates on active teams, and existing participants.
+     *  - Private: excluded from discovery entirely.
      */
     public function buildGamesQuery(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date)
     {
         $query = Game::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+            ->where($this->buildVisibilityClause($user))
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->with(['owner', 'gameSystem', 'campaign'])
@@ -132,23 +125,13 @@ class DiscoveryQueryService
     /**
      * Build the base campaigns query with visibility, status, and shared filters.
      *
-     * @param  array  $filters  Shared filter array
-     * @param  \App\Models\User|null  $user  Current user for visibility scoping
-     * @param  float  $radius  Search radius in km
-     * @param  float|null  $lat  Guest latitude
-     * @param  float|null  $lng  Guest longitude
-     * @param  bool  $hasLocation  Whether guest location is available
-     * @param  string|null  $recurrence  Recurrence filter for campaigns
+     * Visibility logic mirrors buildGamesQuery — protected campaigns are restricted
+     * to the owner's connections (friends, teammates) and existing participants.
      */
     public function buildCampaignsQuery(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence)
     {
         $query = Campaign::query()
-            ->where(function ($q) use ($user) {
-                $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere('visibility', 'protected');
-                }
-            })
+            ->where($this->buildVisibilityClause($user, 'campaigns'))
             ->where('status', 'active')
             ->with(['owner', 'gameSystem'])
             ->with(['sessions' => fn ($q) => $q->where('status', 'scheduled')->where('date_time', '>', now())->orderBy('date_time')->limit(1)])
@@ -466,12 +449,7 @@ class DiscoveryQueryService
             return null;
         }
 
-        $visibilityClause = function ($q) use ($user) {
-            $q->where('visibility', 'public');
-            if ($user) {
-                $q->orWhere('visibility', 'protected');
-            }
-        };
+        $visibilityClause = $this->buildVisibilityClauseCallback($user);
 
         // Helper to tag items with discoverable_type
         $tagItems = function ($items, string $type) {
@@ -654,6 +632,58 @@ class DiscoveryQueryService
         return $query
             ->withCount(['participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted')])
             ->withCount(['participants as benched_count' => fn ($q) => $q->where('status', 'benched')]);
+    }
+
+    /**
+     * Build a connection-aware visibility clause for games or campaigns.
+     *
+     * Public items are visible to everyone.
+     * Protected items are visible only to the owner's connections (friends, teammates)
+     * and existing participants.
+     *
+     * @param  \App\Models\User|null  $user  Current viewer
+     * @param  string  $table  Table name for participant subquery ('games' or 'campaigns')
+     */
+    private function buildVisibilityClause($user, string $table = 'games'): \Closure
+    {
+        return function ($q) use ($user, $table) {
+            $q->where('visibility', 'public');
+
+            if ($user) {
+                $q->orWhere(function ($q) use ($user, $table) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($user, $table) {
+                            $allowedOwnerIds = app(SocialGraphService::class)
+                                ->getAllowedOwnerIdsForProtectedContent($user);
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                        });
+                });
+            }
+        };
+    }
+
+    /**
+     * Build a connection-aware visibility callback for inline use in query builders.
+     * Returns the same logic as buildVisibilityClause but as a standalone callable.
+     */
+    private function buildVisibilityClauseCallback($user): \Closure
+    {
+        return function ($q) use ($user) {
+            $q->where('visibility', 'public');
+
+            if ($user) {
+                $q->orWhere(function ($q) use ($user) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($user) {
+                            $allowedOwnerIds = app(SocialGraphService::class)
+                                ->getAllowedOwnerIdsForProtectedContent($user);
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
+                        });
+                });
+            }
+        };
     }
 
 }

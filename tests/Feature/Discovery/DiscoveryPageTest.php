@@ -521,4 +521,117 @@ describe('DiscoveryPage', function () {
         $component->assertSet('guestLat', 48.1351);
     });
 
+    // ── Protected Visibility (Connections Only) ─────────
+
+    it('hides protected games from users not connected to the owner', function () {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create(['profile_complete' => true]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'Protected Session'],
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($stranger);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertDontSee('Protected Session');
+    });
+
+    it('hides protected campaigns from users not connected to the owner', function () {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create(['profile_complete' => true]);
+
+        Campaign::factory()->create([
+            'name' => ['en' => 'Protected Campaign'],
+            'visibility' => 'protected',
+            'status' => 'active',
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($stranger);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertDontSee('Protected Campaign');
+    });
+
+    it('shows protected games to mutual followers of the owner', function () {
+        $owner = User::factory()->create();
+        $friend = User::factory()->create(['profile_complete' => true]);
+
+        // Create mutual follow (both follow each other)
+        \App\Models\UserRelationship::follow($friend, $owner);
+        \App\Models\UserRelationship::follow($owner, $friend);
+
+        Game::factory()->create([
+            'name' => ['en' => 'Friends Only Session'],
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($friend);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Friends Only Session');
+    });
+
+    it('shows protected games to existing participants regardless of connection', function () {
+        $owner = User::factory()->create();
+        $participant = User::factory()->create(['profile_complete' => true]);
+
+        $game = Game::factory()->create([
+            'name' => ['en' => 'Joined Protected Session'],
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        // Add user as participant
+        \App\Models\GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $participant->id,
+            'status' => 'approved',
+        ]);
+
+        actingAs($participant);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('Joined Protected Session');
+    });
+
+    it('shows protected games to the owner themselves', function () {
+        $owner = User::factory()->create(['profile_complete' => true]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'My Protected Session'],
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'owner_id' => $owner->id,
+        ]);
+
+        actingAs($owner);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertSee('My Protected Session');
+    });
+
+    it('hides protected games from guests', function () {
+        Game::factory()->create([
+            'name' => ['en' => 'Guest Hidden Session'],
+            'visibility' => 'protected',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+            ->assertDontSee('Guest Hidden Session');
+    });
+
 });
