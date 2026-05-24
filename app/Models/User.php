@@ -460,8 +460,10 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
      */
     public static function generateSlug(string $name): string
     {
-        // Remove emojis and special characters, keep letters, numbers, spaces, and hyphens
-        $slug = preg_replace('/[^\p{L}\p{N}\s-]/u', '', $name);
+        // Transliterate to ASCII first (ü→ue, ö→oe, ä→ae, é→e, etc.)
+        $slug = static::transliterate($name);
+        // Remove anything that's not ASCII letters, numbers, spaces, or hyphens
+        $slug = preg_replace('/[^a-zA-Z0-9\s-]/', '', $slug);
         // Replace spaces with hyphens
         $slug = preg_replace('/\s+/', '-', trim($slug));
         // Collapse consecutive hyphens
@@ -472,6 +474,55 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
         $slug = trim($slug, '-');
 
         return $slug;
+    }
+
+    /**
+     * Transliterate Unicode characters to ASCII equivalents.
+     * Covers Germanic (ä→ae, ö→oe, ü→ue, ß→ss), Nordic, Slavic,
+     * and other common European characters using iconv with //TRANSLIT.
+     */
+    protected static function transliterate(string $text): string
+    {
+        // iconv with //TRANSLIT handles locale-aware transliteration
+        $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+
+        // Fallback if iconv fails or produces unexpected results
+        if ($transliterated === false) {
+            // Manual fallback for common cases
+            $map = [
+                'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue',
+                'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
+                'ß' => 'ss',
+                'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
+                'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
+                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                'á' => 'a', 'à' => 'a', 'â' => 'a',
+                'í' => 'i', 'ì' => 'i', 'î' => 'i',
+                'ó' => 'o', 'ò' => 'o', 'ô' => 'o',
+                'ú' => 'u', 'ù' => 'u', 'û' => 'u',
+                'ñ' => 'n', 'ç' => 'c',
+                'ž' => 'z', 'š' => 's', 'č' => 'c', 'ř' => 'r',
+                'ď' => 'd', 'ť' => 't', 'ň' => 'n',
+                'ł' => 'l', 'ś' => 's', 'ź' => 'z',
+            ];
+            return strtr($text, $map);
+        }
+
+        // iconv on some systems produces single-char transliteration (ü→u instead of ü→ue).
+        // Apply German-specific expansions after iconv for correct ae/oe/ue output.
+        $textLower = mb_strtolower($text);
+        $germanMap = ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss'];
+        foreach ($germanMap as $char => $expanded) {
+            if (mb_strpos($textLower, $char) !== false) {
+                $transliterated = str_ireplace(
+                    [mb_strtoupper($char), $char],
+                    [mb_strtoupper($expanded), $expanded],
+                    $transliterated
+                );
+            }
+        }
+
+        return $transliterated;
     }
 
     /**
