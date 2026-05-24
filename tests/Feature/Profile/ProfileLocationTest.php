@@ -83,7 +83,7 @@ it('shows add location prompt when user has no location', function () {
     Livewire::actingAs($user)
         ->test(Show::class)
         ->assertSet('locationId', null)
-        ->assertSee('Add Location');
+        ->assertSee(__('location.action_set_your_location'));
 });
 
 // ── Location Removal ──────────────────────────────────
@@ -306,4 +306,121 @@ it('persists location via Show after LocationPicker resolves it', function () {
         ->assertHasNoErrors();
 
     expect($user->fresh()->location_id)->toBe($resolvedLocationId);
+});
+
+// ── LocationPicker Mode Parameter ─────────────────────
+
+it('shows neighborhood field in profile mode', function () {
+    $html = Livewire::test(LocationPicker::class, ['locationId' => null])
+        ->call('startEditing')
+        ->html();
+
+    expect($html)->toContain(__('location.field_neighborhood'));
+});
+
+it('shows address field with optional label in session mode', function () {
+    $html = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'session'])
+        ->call('startEditing')
+        ->html();
+
+    expect($html)->toContain(__('location.field_address_optional'));
+});
+
+it('defaults to profile mode when no mode specified', function () {
+    $component = Livewire::test(LocationPicker::class, ['locationId' => null]);
+
+    expect($component->get('mode'))->toBe('profile');
+});
+
+it('falls back to profile mode for invalid mode value', function () {
+    $component = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'invalid']);
+
+    expect($component->get('mode'))->toBe('profile');
+});
+
+it('auto-fills address from browser location in session mode', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([
+            'address' => [
+                'city' => 'Berlin',
+                'road' => 'Alexanderstraße',
+                'house_number' => '7',
+                'country' => 'Germany',
+                'country_code' => 'de',
+            ],
+        ], 200),
+    ]);
+
+    Cache::flush();
+
+    $component = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'session'])
+        ->call('handleBrowserLocation', 52.52, 13.405);
+
+    expect($component->get('city'))->toBe('Berlin')
+        ->and($component->get('address'))->toBe('7 Alexanderstraße');
+});
+
+it('does not auto-fill address from browser location in profile mode', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([
+            'address' => [
+                'city' => 'Berlin',
+                'road' => 'Alexanderstraße',
+                'house_number' => '7',
+                'country' => 'Germany',
+                'country_code' => 'de',
+            ],
+        ], 200),
+    ]);
+
+    Cache::flush();
+
+    $component = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'profile'])
+        ->call('handleBrowserLocation', 52.52, 13.405);
+
+    expect($component->get('city'))->toBe('Berlin')
+        ->and($component->get('address'))->toBe('');
+});
+
+it('auto-fills address from guest location in session mode', function () {
+    Http::fake([
+        '*nominatim*' => Http::response([
+            'address' => [
+                'city' => 'Berlin',
+                'road' => 'Friedrichstraße',
+                'house_number' => '123',
+                'country' => 'Germany',
+                'country_code' => 'de',
+            ],
+        ], 200),
+    ]);
+
+    Cache::flush();
+
+    $component = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'session'])
+        ->call('onGuestLocationUpdated', 52.52, 13.405, 'localStorage');
+
+    expect($component->get('city'))->toBe('Berlin')
+        ->and($component->get('address'))->toBe('123 Friedrichstraße');
+});
+
+it('shows no location set text when empty', function () {
+    $html = Livewire::test(LocationPicker::class, ['locationId' => null])
+        ->html();
+
+    expect($html)->toContain(__('location.content_location_not_set'));
+});
+
+it('shows set your location CTA in profile mode', function () {
+    $html = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'profile'])
+        ->html();
+
+    expect($html)->toContain(__('location.action_set_your_location'));
+});
+
+it('shows add location CTA in session mode', function () {
+    $html = Livewire::test(LocationPicker::class, ['locationId' => null, 'mode' => 'session'])
+        ->html();
+
+    expect($html)->toContain(__('location.action_add_location'));
 });

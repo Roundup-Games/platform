@@ -292,9 +292,15 @@ return [
     'request_cta_link' => 'Spielsystem anfragen',
     'request_cta_catalog_header' => 'Du findest nicht, was du suchst?',
 
-    // Zuverlässigkeitspräferenz
+    // Zuverlässigkeitspräferenz / Anwesenheitstoleranz
+    'field_attendance_tolerance' => 'Anwesenheitstoleranz',
+    'hint_attendance_tolerance' => 'Wie streng soll die Anwesenheit für diese Session sein? Dies ist eine weiche Präferenz, kein harter Filter.',
+    'attendance_any' => 'Offen — alle willkommen',
+    'attendance_relaxed' => 'Locker — zuverlässige Spieler bevorzugt',
+    'attendance_moderate' => 'Mittel — regelmäßige Anwesenheit bevorzugt',
+    'attendance_strict' => 'Streng — hochzuverlässige Spieler priorisieren',
     'field_reliability_preference' => 'Anwesenheitspräferenz',
-    'hint_reliability_preference' => 'Optional: Bevorzuge Spieler mit einer Mindest-Anwesenheitsrate (%). Dies ist eine weiche Präferenz, kein harter Filter.',
+    'hint_reliability_preference' => 'Wie streng soll die Anwesenheit für diese Session sein? Dies ist eine weiche Präferenz, kein harter Filter.',
     'content_host_prefers_attendance' => 'Host bevorzugt ≥:percent% Anwesenheit',
 
     // Nachbericht

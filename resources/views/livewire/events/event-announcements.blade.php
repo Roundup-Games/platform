@@ -57,34 +57,21 @@
             </h3>
 
             <div class="space-y-4">
-                <div>
-                    <label for="announcement-title" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_title') }}</label>
-                    <input type="text" id="announcement-title" wire:model="title" placeholder="{{ __('events.content_announcement_title') }}"
-                           class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                    @error('title') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label for="announcement-content" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.content_content') }}</label>
-                    <textarea id="announcement-content" wire:model="content" rows="5" placeholder="{{ __('events.content_write_your_announcement') }}"
-                              class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                    @error('content') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                </div>
-
-                {{-- Translations via locale-switcher --}}
+                {{-- Translatable fields (title + content) rendered via locale-aware section --}}
                 @php
                     $allLocales = $this->getAllLocales();
                     $baselineLocale = $this->getBaselineLocale();
                 @endphp
                 <x-forms.translatable-section
                     :fields="[
-                        ['name' => 'title', 'label' => __('common.field_title')],
-                        ['name' => 'content', 'label' => __('common.content_content'), 'type' => 'textarea', 'rows' => 5],
+                        ['name' => 'title', 'label' => __('common.field_title'), 'placeholder' => __('events.content_announcement_title')],
+                        ['name' => 'content', 'label' => __('common.content_content'), 'type' => 'textarea', 'rows' => 5, 'placeholder' => __('events.content_write_your_announcement')],
                     ]"
                     :active-locale="$activeLocale"
                     :baseline-locale="$baselineLocale"
                     :all-locales="$allLocales"
-                    inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
+                    :required="['title']"
+                    inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                 />
 
                 <div class="flex items-center gap-6">

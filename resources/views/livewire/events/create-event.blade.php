@@ -49,13 +49,6 @@
             <h2 class="text-lg font-medium text-on-surface font-heading">{{ __('profile.content_basic_information') }}</h2>
 
             <div>
-                <label for="event-name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_event_name') }}</label>
-                <input type="text" id="event-name" wire:model="name" placeholder="{{ __('events.placeholder_event_name') }}"
-                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
                 <label for="content-language" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_content_language') }}</label>
                 <select id="content-language" wire:model="language" class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm">
                     @foreach(\App\Enums\ContentLanguage::cases() as $lang)
@@ -65,34 +58,21 @@
                 @error('language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
             </div>
 
-            <div>
-                <label for="event-short-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_short_description') }}</label>
-                <input type="text" id="event-short-description" wire:model="short_description" maxlength="500" placeholder="{{ __('events.placeholder_one_liner_for_listings') }}"
-                       class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                @error('short_description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label for="event-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_full_description') }}</label>
-                <textarea id="event-description" wire:model="description" rows="5" placeholder="{{ __('events.placeholder_detailed_event_description') }}"
-                          class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-            </div>
-
-            {{-- Translations via locale-switcher --}}
+            {{-- Translatable fields (name + short_description + description) rendered via locale-aware section --}}
             @php
                 $allLocales = $this->getAllLocales();
                 $baselineLocale = $this->getBaselineLocale();
             @endphp
             <x-forms.translatable-section
                 :fields="[
-                    ['name' => 'name', 'label' => __('events.field_event_name')],
-                    ['name' => 'short_description', 'label' => __('common.field_short_description'), 'maxlength' => 500],
-                    ['name' => 'description', 'label' => __('common.field_full_description'), 'type' => 'textarea', 'rows' => 5],
+                    ['name' => 'name', 'label' => __('events.field_event_name'), 'placeholder' => __('events.placeholder_event_name')],
+                    ['name' => 'short_description', 'label' => __('common.field_short_description'), 'maxlength' => 500, 'placeholder' => __('events.placeholder_one_liner_for_listings')],
+                    ['name' => 'description', 'label' => __('common.field_full_description'), 'type' => 'textarea', 'rows' => 5, 'placeholder' => __('events.placeholder_detailed_event_description')],
                 ]"
                 :active-locale="$activeLocale"
                 :baseline-locale="$baselineLocale"
                 :all-locales="$allLocales"
+                :required="['name']"
                 inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface placeholder:text-outline focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
             />
 

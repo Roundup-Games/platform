@@ -17,27 +17,20 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="team-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('teams.field_team_name') }}</label>
-                    <input type="text" id="team-name" wire:model="name" placeholder="e.g. Roundup Ravens"
+                    <label for="team-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('teams.field_team_name') }} <span class="text-error">*</span></label>
+                    <input type="text" id="team-name" wire:model="name" placeholder="{{ __('teams.placeholder_team_name') }}"
                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
-                <div>
-                    <label for="team-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                    <textarea id="team-description" wire:model="description" rows="3" placeholder="A short description of your team..."
-                              class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant"></textarea>
-                    @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                </div>
-
-                {{-- Translations via locale-switcher --}}
+                {{-- Translatable fields (description) rendered via locale-aware section --}}
                 @php
                     $allLocales = $this->getAllLocales();
                     $baselineLocale = $this->getBaselineLocale();
                 @endphp
                 <x-forms.translatable-section
                     :fields="[
-                        ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3],
+                        ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3, 'placeholder' => __('teams.placeholder_team_description')],
                     ]"
                     :active-locale="$activeLocale"
                     :baseline-locale="$baselineLocale"
@@ -48,14 +41,14 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="team-city" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_city') }}</label>
-                        <input type="text" id="team-city" wire:model="city" placeholder="e.g. Austin"
+                        <input type="text" id="team-city" wire:model="city" placeholder="{{ __('teams.placeholder_city') }}"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('city') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="team-country" class="block text-sm font-medium text-on-surface mb-1">{{ __('location.field_country') }}</label>
-                        <input type="text" id="team-country" wire:model="country" placeholder="e.g. USA" maxlength="3"
+                        <input type="text" id="team-country" wire:model="country" placeholder="{{ __('teams.placeholder_country') }}" maxlength="3"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('country') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
@@ -66,7 +59,7 @@
                         <label for="team-primary-color" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_primary_color') }}</label>
                         <div class="flex items-center gap-2">
                             <input type="color" id="team-primary-color" wire:model="primary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
-                            <input type="text" wire:model="primary_color" maxlength="7" placeholder="#B8860B"
+                            <input type="text" wire:model="primary_color" maxlength="7" placeholder="{{ __('teams.placeholder_primary_color') }}"
                                    class="flex-1 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         </div>
                         @error('primary_color') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -76,7 +69,7 @@
                         <label for="team-secondary-color" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_secondary_color') }}</label>
                         <div class="flex items-center gap-2">
                             <input type="color" id="team-secondary-color" wire:model="secondary_color" class="h-10 w-10 rounded cursor-pointer border-0 p-0" />
-                            <input type="text" wire:model="secondary_color" maxlength="7" placeholder="#FFFFFF"
+                            <input type="text" wire:model="secondary_color" maxlength="7" placeholder="{{ __('teams.placeholder_secondary_color') }}"
                                    class="flex-1 rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         </div>
                         @error('secondary_color') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
@@ -84,7 +77,7 @@
 
                     <div>
                         <label for="team-founded-year" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_founded_year') }}</label>
-                        <input type="text" id="team-founded-year" wire:model="founded_year" maxlength="4" placeholder="e.g. 2024"
+                        <input type="text" id="team-founded-year" wire:model="founded_year" maxlength="4" placeholder="{{ __('teams.placeholder_founded_year') }}"
                                class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                         @error('founded_year') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
