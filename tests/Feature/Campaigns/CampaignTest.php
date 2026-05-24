@@ -187,13 +187,8 @@ describe('AddSessionToCampaign — Authorization', function () {
             ->assertForbidden();
     });
 
-    it('requires create game permission on save', function () {
-        // Create an owner who has 'create campaign' but NOT 'create game'
-        seedPermissions();
+    it('allows campaign owner with complete profile to add game sessions', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
-        setPermissionsTeamId(1);
-        $owner->givePermissionTo('create campaign');
-        $owner->unsetRelations();
 
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
@@ -202,7 +197,7 @@ describe('AddSessionToCampaign — Authorization', function () {
             ->set('name', 'Test Session')
             ->set('date_time', '2026-05-01 19:00')
             ->call('save')
-            ->assertForbidden();
+            ->assertRedirect();
     });
 });
 

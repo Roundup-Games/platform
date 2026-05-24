@@ -4,6 +4,7 @@ namespace Tests\Feature\GM;
 
 use App\Enums\GameType;
 use App\Models\GMProfile;
+use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\GmRoleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -34,6 +35,24 @@ class GmRoleServiceTest extends TestCase
     }
 
     // ── Helpers ────────────────────────────────────────
+
+    // ── Helpers ────────────────────────────────────────
+
+    private function seedGmPlan(): void
+    {
+        MembershipType::updateOrCreate(
+            ['name' => 'Game Master'],
+            [
+                'description' => 'GM tools plan',
+                'price_cents' => 0,
+                'duration_months' => 0,
+                'status' => 'active',
+                'type' => 'local',
+                'paddle_price_id' => null,
+                'metadata' => ['gm_plan' => true],
+            ],
+        );
+    }
 
     // ── Subscription Gate ──────────────────────────────
 
@@ -91,6 +110,89 @@ class GmRoleServiceTest extends TestCase
         $this->assertFalse($user->fresh()->hasRole('Game Master'));
         $this->assertFalse($user->gmProfile->fresh()->is_active);
         $this->assertNotNull(GMProfile::where('user_id', $user->id)->first());
+    }
+
+    // ── can_create_public_entries Flag ─────────────────
+
+    public function test_assign_gm_role_grants_can_create_public_entries(): void
+    {
+        $user = $this->createSubscribedUser();
+        $this->assertFalse((bool) $user->can_create_public_entries);
+
+        $this->service->assignGMRole($user);
+
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_activate_gm_subscription_grants_can_create_public_entries(): void
+    {
+        $this->seedGmPlan();
+        $user = $this->createSubscribedUser();
+        $this->assertFalse((bool) $user->can_create_public_entries);
+
+        $result = $this->service->activateGmSubscription($user);
+        $this->assertTrue($result);
+
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_revoke_gm_role_revokes_can_create_public_entries(): void
+    {
+        $user = $this->createSubscribedUser();
+        $this->service->assignGMRole($user);
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+
+        $this->service->revokeGMRole($user);
+
+        $this->assertFalse($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_deactivate_gm_subscription_revokes_can_create_public_entries(): void
+    {
+        $this->seedGmPlan();
+        $user = $this->createSubscribedUser();
+
+        $result = $this->service->activateGmSubscription($user);
+        $this->assertTrue($result);
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+
+        $this->service->deactivateGmSubscription($user);
+
+        $this->assertFalse($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_subscription_lapse_revokes_can_create_public_entries(): void
+    {
+        $user = $this->createSubscribedUser();
+        $this->service->assignGMRole($user);
+        $this->assertTrue($user->fresh()->can_create_public_entries);
+
+        $this->service->handleSubscriptionLapse($user);
+
+        $this->assertFalse($user->fresh()->can_create_public_entries);
+    }
+
+    public function test_resubscribe_regrants_can_create_public_entries(): void
+    {
+        $user = $this->createSubscribedUser();
+        $this->service->assignGMRole($user);
+        $this->service->handleSubscriptionLapse($user);
+        $this->assertFalse($user->fresh()->can_create_public_entries);
+
+        // Resubscribe
+        Cashier::$subscriptionModel::create([
+            'billable_type' => get_class($user),
+            'billable_id' => $user->id,
+            'type' => 'default',
+            'paddle_id' => 'sub_resub_' . Str::random(12),
+            'status' => 'active',
+            'trial_ends_at' => null,
+            'paused_at' => null,
+            'ends_at' => null,
+        ]);
+
+        $this->service->assignGMRole($user->fresh());
+        $this->assertTrue($user->fresh()->can_create_public_entries);
     }
 
     // ── Role Assignment Transaction Safety ─────────────

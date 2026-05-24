@@ -55,6 +55,10 @@ class GmRoleService
                 ],
             );
 
+            // Grant public game/campaign creation for active GMs
+            $user->can_create_public_entries = true;
+            $user->save();
+
             // Assign the GM role at global scope
             if (! $user->hasRole(self::ROLE_NAME)) {
                 $user->assignRole($role);
@@ -101,6 +105,10 @@ class GmRoleService
             if ($user->hasRole(self::ROLE_NAME)) {
                 $user->removeRole(self::ROLE_NAME);
             }
+
+            // Revoke public game/campaign creation
+            $user->can_create_public_entries = false;
+            $user->save();
 
             // Deactivate the GMProfile
             $profile = $user->gmProfile;
@@ -150,6 +158,10 @@ class GmRoleService
                 $user->assignRole($role);
             }
 
+            // Grant public game/campaign creation for active GMs
+            $user->can_create_public_entries = true;
+            $user->save();
+
             // Create or reactivate the GMProfile
             $profile = GMProfile::firstOrNew(['user_id' => $user->id]);
             $profile->is_active = true;
@@ -177,6 +189,10 @@ class GmRoleService
             if ($user->hasRole(self::ROLE_NAME)) {
                 $user->removeRole(self::ROLE_NAME);
             }
+
+            // Revoke public game/campaign creation
+            $user->can_create_public_entries = false;
+            $user->save();
 
             $profile = $user->gmProfile;
             if ($profile && $profile->is_active) {

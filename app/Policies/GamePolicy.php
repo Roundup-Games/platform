@@ -74,11 +74,12 @@ class GamePolicy
     }
 
     /**
-     * Create a game: any authenticated user with permission.
+     * Create a game: any authenticated user with a complete profile.
+     * Admin roles (Games Admin, Platform Admin) are already handled by before().
      */
     public function create(User $user): bool
     {
-        return $this->checkPermission($user, 'create game');
+        return $user->profile_complete;
     }
 
     /**
