@@ -290,6 +290,7 @@ return [
     'flash_bench_removed' => 'Spieler von der Bank entfernt.',
     'error_participant_not_waitlisted' => 'Dieser Teilnehmer ist nicht auf der Warteliste.',
     'error_participant_not_benched' => 'Dieser Teilnehmer ist nicht auf der Bank.',
+    'error_participant_not_applicant' => 'Dieser Teilnehmer ist kein Bewerber.',
     'flash_now_following' => 'Du folgst jetzt :name.',
     'flash_unfollowed' => 'Du folgst :name nicht mehr.',
     'flash_follower_removed' => 'Du hast :name aus deinen Followern entfernt.',

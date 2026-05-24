@@ -12,7 +12,6 @@ use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,80 +20,26 @@ use Livewire\WithPagination;
 class DiscoveryPage extends Component
 {
     use HasGuestLocation;
+    use ManagesDiscoveryFilters;
     use WithPagination;
 
     // Mode
     #[Url]
     public string $mode = 'all';
 
-    // Shared filters
-    #[Url(as: 'q')]
-    public string $search = '';
-    #[Url]
-    public ?string $game_system_id = null;
-    #[Url]
-    public string $experience_level = '';
-    #[Url]
-    public array $vibe_flags = [];
-    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid' */
-    public array $vibePreferences = [];
+    // Page-specific filters
     #[Url]
     public array $safety_tools = [];
-    #[Url]
-    public string $language = '';
-    #[Url]
-    public ?string $complexity_min = null;
-    #[Url]
-    public ?string $complexity_max = null;
-    #[Url]
-    public string $price = '';
     #[Url]
     public array $category_ids = [];
     #[Url]
     public array $mechanic_ids = [];
-
-    // Proximity
-    #[Url(as: 'radius')]
-    public float $radius = 0;
-    public bool $usingFallbackRadius = false;
 
     // Entity-specific filters
     #[Url]
     public string $date = '';
     #[Url]
     public string $recurrence = '';
-
-    // Lifecycle
-
-    public function mount(): void
-    {
-        $user = Auth::user();
-        if (!$this->language) {
-            $this->language = ($user && $user->preferred_language)
-                ? $user->preferred_language->value
-                : app()->getLocale();
-        }
-
-        // Build vibePreferences from URL vibe_flags (all treated as favorites)
-        foreach (VibeFlag::cases() as $flag) {
-            if (in_array($flag->value, $this->vibe_flags, true)) {
-                $this->vibePreferences[$flag->value] = 'favorite';
-            } else {
-                $this->vibePreferences[$flag->value] = null;
-            }
-        }
-
-        // Pre-select vibe flags from user preferences (only if no URL values already set)
-        if ($user && empty($this->vibe_flags)) {
-            $resolvedVibes = $user->resolvedVibePreferences();
-            if (!empty($resolvedVibes['favorites'])) {
-                foreach ($resolvedVibes['favorites'] as $flagValue) {
-                    $this->vibePreferences[$flagValue] = 'favorite';
-                }
-                $this->vibe_flags = $resolvedVibes['favorites'];
-            }
-        }
-    }
 
     // Updating hooks
 
@@ -120,16 +65,6 @@ class DiscoveryPage extends Component
     public function setRecurrence(string $recurrence): void
     {
         $this->recurrence = $recurrence;
-        $this->resetPage();
-    }
-
-    public function setRadius(float $radius): void
-    {
-        if ($radius != 0 && !in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
-            return;
-        }
-        $this->radius = $radius;
-        $this->usingFallbackRadius = false;
         $this->resetPage();
     }
 
@@ -174,28 +109,6 @@ class DiscoveryPage extends Component
         foreach (VibeFlag::cases() as $flag) {
             $this->vibePreferences[$flag->value] = null;
         }
-        $this->resetPage();
-    }
-
-    // Event listeners
-
-    #[On('value-updated')]
-    public function onGameSystemUpdated($value): void
-    {
-        $this->game_system_id = $value;
-        $this->resetPage();
-    }
-
-    #[On('vibe-preferences-changed')]
-    public function onVibePreferencesChanged(array $preferences): void
-    {
-        $this->vibePreferences = $preferences;
-        // Extract only favorites for the query filter
-        $this->vibe_flags = collect($preferences)
-            ->filter(fn ($value) => $value === 'favorite')
-            ->keys()
-            ->values()
-            ->all();
         $this->resetPage();
     }
 

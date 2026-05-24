@@ -6,13 +6,10 @@ use App\Dto\PushPayload;
 
 use App\Models\User;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class GameSystemRequestRejected extends Notification
+class GameSystemRequestRejected extends BaseNotification
 {
     use HasUnsubscribeLink;
 
@@ -22,18 +19,6 @@ class GameSystemRequestRejected extends Notification
     public function __construct(
         public Ticket $ticket,
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     * When dispatched via NotificationService, channels are resolved
-     * from user preferences; this serves as a fallback default.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the game system name from the ticket subject.

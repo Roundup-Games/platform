@@ -5,8 +5,6 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Notification;
 
 /**
  * Push-only notification sent to game participants when their session
@@ -15,7 +13,7 @@ use Illuminate\Notifications\Notification;
  * Dispatched by the SendSessionReminders artisan command, not by user actions.
  * Intentionally has no mail or database representation — push-only by design.
  */
-class SessionReminder extends Notification
+class SessionReminder extends BaseNotification
 {
     /**
      * @param  Game  $game  The game that is starting soon
@@ -25,17 +23,6 @@ class SessionReminder extends Notification
         public Game $game,
         public string $window = '1h',
     ) {}
-
-    /**
-     * Push-only delivery. The command sends directly via PushChannel,
-     * but this provides a fallback via() for Laravel's notification system.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class];
-    }
 
     /**
      * Get the database representation of the notification.

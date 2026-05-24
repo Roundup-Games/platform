@@ -3,25 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
 /**
  * Notification sent to a user when their account has been suspended by admin moderation.
  * Triggered by admin "Suspend User" action on a content report ticket.
  */
-class AccountSuspended extends Notification
+class AccountSuspended extends BaseNotification
 {
     public function __construct(
         public string $reason,
     ) {}
-
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

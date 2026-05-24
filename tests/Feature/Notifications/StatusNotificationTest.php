@@ -9,10 +9,8 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Notifications\CampaignCancelled;
-use App\Notifications\CampaignCompleted;
-use App\Notifications\GameCancelled;
-use App\Notifications\GameCompleted;
+use App\Notifications\EntityCancelled;
+use App\Notifications\EntityCompleted;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -44,7 +42,7 @@ describe('Cancel game → GameCancelled', function () {
             ->call('cancelGame', $game->id);
 
         foreach ([$player1, $player2] as $player) {
-            $notifications = $player->notifications()->where('type', GameCancelled::class)->get();
+            $notifications = $player->notifications()->where('type', EntityCancelled::class)->get();
             expect($notifications)->toHaveCount(1);
 
             $data = $notifications->first()->data;
@@ -55,7 +53,7 @@ describe('Cancel game → GameCancelled', function () {
         }
 
         // Owner should NOT receive notification
-        expect($owner->notifications()->where('type', GameCancelled::class)->count())->toBe(0);
+        expect($owner->notifications()->where('type', EntityCancelled::class)->count())->toBe(0);
     });
 
     it('does not dispatch to pending or rejected participants', function () {
@@ -77,8 +75,8 @@ describe('Cancel game → GameCancelled', function () {
             ->test(\App\Livewire\Games\GamesPage::class)
             ->call('cancelGame', $game->id);
 
-        expect($pending->notifications()->where('type', GameCancelled::class)->count())->toBe(0);
-        expect($rejected->notifications()->where('type', GameCancelled::class)->count())->toBe(0);
+        expect($pending->notifications()->where('type', EntityCancelled::class)->count())->toBe(0);
+        expect($rejected->notifications()->where('type', EntityCancelled::class)->count())->toBe(0);
 });
 
 
@@ -106,7 +104,7 @@ describe('Complete game → GameCompleted', function () {
             ->test(\App\Livewire\Games\GamesPage::class)
             ->call('completeGame', $game->id);
 
-        $notifications = $player->notifications()->where('type', GameCompleted::class)->get();
+        $notifications = $player->notifications()->where('type', EntityCompleted::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
@@ -115,7 +113,7 @@ describe('Complete game → GameCompleted', function () {
             ->and($data['entity_name'])->toBe($game->name)
             ->and($data)->toHaveKey('action_url');
 
-        expect($owner->notifications()->where('type', GameCompleted::class)->count())->toBe(0);
+        expect($owner->notifications()->where('type', EntityCompleted::class)->count())->toBe(0);
     });
 
     it('does not dispatch when game is not scheduled', function () {
@@ -135,7 +133,7 @@ describe('Complete game → GameCompleted', function () {
             ->test(\App\Livewire\Games\GamesPage::class)
             ->call('completeGame', $game->id);
 
-        expect($player->notifications()->where('type', GameCompleted::class)->count())->toBe(0);
+        expect($player->notifications()->where('type', EntityCompleted::class)->count())->toBe(0);
     });
 
 

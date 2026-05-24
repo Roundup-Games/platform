@@ -214,7 +214,7 @@ class UserAnonymizationService
                 foreach ($participants as $participant) {
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new \App\Notifications\GameCancelled($game),
+                        new \App\Notifications\EntityCancelled($game),
                         NotificationCategory::GameCancelled,
                     );
                 }
@@ -250,7 +250,7 @@ class UserAnonymizationService
                 foreach ($participants as $participant) {
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new \App\Notifications\CampaignCancelled($campaign),
+                        new \App\Notifications\EntityCancelled($campaign),
                         NotificationCategory::CampaignCancelled,
                     );
                 }

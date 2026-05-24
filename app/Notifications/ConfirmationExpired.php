@@ -5,26 +5,15 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class ConfirmationExpired extends Notification
+class ConfirmationExpired extends BaseNotification
 {
     use HasUnsubscribeLink, RoutesGameOrCampaign;
 
     public function __construct(
         public Game|Campaign $entity,
     ) {}
-
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

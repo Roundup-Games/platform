@@ -4,10 +4,7 @@ namespace Tests\Feature\PostHog;
 
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
-use App\Traits\EvaluatesFeatureFlags;
 use Illuminate\Support\Facades\Blade;
-use Livewire\Component;
-use Livewire\Livewire;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\TestablePostHogClient;
@@ -16,8 +13,7 @@ use Tests\TestCase;
 /**
  * Feature-level integration tests for PostHog feature flags.
  *
- * Covers Blade directives, the EvaluatesFeatureFlags Livewire trait,
- * and end-to-end flag evaluation through the HTTP/service container.
+ * Covers Blade directives and end-to-end flag evaluation through the HTTP/service container.
  *
  * Unit-level service tests live in tests/Unit/Services/PostHogFeatureFlagTest.php.
  */
@@ -194,53 +190,6 @@ class PostHogFeatureFlagTest extends TestCase
 
         $this->assertStringNotContainsString('<p>Dark</p>', $html);
         $this->assertStringContainsString('<p>Not dark</p>', $html);
-    }
-
-    // ── EvaluatesFeatureFlags Livewire trait ─────────────
-
-    #[Test]
-    public function livewire_trait_feature_flag_is_on_delegates_to_service(): void
-    {
-        $mock = Mockery::mock(PostHogFeatureFlag::class);
-        $mock->shouldReceive('isOn')
-            ->with('my-flag')
-            ->once()
-            ->andReturn(true);
-
-        $this->app->instance(PostHogFeatureFlag::class, $mock);
-
-        Livewire::test(FeatureFlagTestComponent::class)
-            ->assertSet('flagResult', true);
-    }
-
-    #[Test]
-    public function livewire_trait_feature_flag_variant_delegates_to_service(): void
-    {
-        $mock = Mockery::mock(PostHogFeatureFlag::class);
-        $mock->shouldReceive('getVariant')
-            ->with('experiment', null, '')
-            ->once()
-            ->andReturn('variant-b');
-
-        $this->app->instance(PostHogFeatureFlag::class, $mock);
-
-        Livewire::test(FeatureFlagVariantTestComponent::class)
-            ->assertSet('variantResult', 'variant-b');
-    }
-
-    #[Test]
-    public function livewire_trait_feature_flag_returns_default_on_failure(): void
-    {
-        $mock = Mockery::mock(PostHogFeatureFlag::class);
-        $mock->shouldReceive('checkFlag')
-            ->with('failing-flag', null, 'default-val')
-            ->once()
-            ->andReturn('default-val');
-
-        $this->app->instance(PostHogFeatureFlag::class, $mock);
-
-        Livewire::test(FeatureFlagDefaultTestComponent::class)
-            ->assertSet('rawResult', 'default-val');
     }
 
     // ── Service graceful fallback in HTTP context ────────
@@ -422,58 +371,5 @@ class PostHogFeatureFlagTest extends TestCase
         $this->app->forgetInstance(PostHogFeatureFlag::class);
 
         return app(PostHogFeatureFlag::class);
-    }
-}
-
-// ── Test Livewire components ────────────────────────────
-
-class FeatureFlagTestComponent extends Component
-{
-    use EvaluatesFeatureFlags;
-
-    public bool $flagResult = false;
-
-    public function mount(): void
-    {
-        $this->flagResult = $this->featureFlagIsOn('my-flag');
-    }
-
-    public function render(): string
-    {
-        return '<div></div>';
-    }
-}
-
-class FeatureFlagVariantTestComponent extends Component
-{
-    use EvaluatesFeatureFlags;
-
-    public string $variantResult = '';
-
-    public function mount(): void
-    {
-        $this->variantResult = $this->featureFlagVariant('experiment');
-    }
-
-    public function render(): string
-    {
-        return '<div></div>';
-    }
-}
-
-class FeatureFlagDefaultTestComponent extends Component
-{
-    use EvaluatesFeatureFlags;
-
-    public mixed $rawResult = null;
-
-    public function mount(): void
-    {
-        $this->rawResult = $this->featureFlag('failing-flag', 'default-val');
-    }
-
-    public function render(): string
-    {
-        return '<div></div>';
     }
 }

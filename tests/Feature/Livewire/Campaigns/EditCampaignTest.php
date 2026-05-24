@@ -6,7 +6,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Notifications\CampaignUpdated;
+use App\Notifications\EntityUpdated;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -97,7 +97,7 @@ describe('Save Campaign Edit', function () {
 
         Notification::assertSentTo(
             $participant,
-            CampaignUpdated::class,
+            EntityUpdated::class,
             fn ($notification) => in_array(__('campaigns.field_campaign_name'), $notification->changedFields)
         );
     });

@@ -3,27 +3,19 @@
 namespace App\Notifications;
 
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
 /**
  * Notification sent to a user when their content has been removed by admin moderation.
  * Triggered by admin "Remove Content" action on a content report ticket.
  */
-class ContentRemoved extends Notification
+class ContentRemoved extends BaseNotification
 {
     public function __construct(
         public string $entityType,
         public string $entityName,
         public string $reason,
     ) {}
-
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

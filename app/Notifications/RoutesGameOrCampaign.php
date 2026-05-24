@@ -3,12 +3,12 @@
 namespace App\Notifications;
 
 use App\Models\Campaign;
-use App\Models\Game;
 
 /**
  * Shared routing logic for notifications that support both Game and Campaign entities.
  *
- * Centralizes the repeated instanceof checks and route resolution used by
+ * Centralizes the repeated instanceof checks and route resolution.
+ * Used by EntityCancelled, EntityCompleted, EntityInvitation, EntityUpdated,
  * WaitlistPromoted, ConfirmationExpired, and WaitlistExpiredRejected.
  */
 trait RoutesGameOrCampaign

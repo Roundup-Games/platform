@@ -4,19 +4,17 @@ namespace App\Livewire\Games;
 
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
-use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Notifications\GameCancelled;
-use App\Notifications\GameCompleted;
-use App\Notifications\GameInvitation;
-use App\Notifications\GameUpdated;
-use App\Notifications\ParticipantJoined;
+use App\Notifications\EntityCancelled;
+use App\Notifications\EntityCompleted;
+use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\AttendanceService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
+use App\Services\ParticipantService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -145,7 +143,7 @@ class GamesPage extends Component
                 foreach ($participants as $participant) {
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new GameUpdated($game, $changedLabels),
+                        new EntityUpdated($game, $changedLabels),
                         NotificationCategory::GameUpdated,
                     );
                 }
@@ -243,7 +241,7 @@ class GamesPage extends Component
             foreach ($approvedParticipants as $participant) {
                 app(NotificationService::class)->send(
                     $participant->user,
-                    new GameCancelled($game),
+                    new EntityCancelled($game),
                     NotificationCategory::GameCancelled
                 );
             }
@@ -288,7 +286,7 @@ class GamesPage extends Component
             foreach ($approvedParticipants as $participant) {
                 app(NotificationService::class)->send(
                     $participant->user,
-                    new GameCompleted($game),
+                    new EntityCompleted($game),
                     NotificationCategory::GameCompleted
                 );
             }
@@ -317,107 +315,36 @@ class GamesPage extends Component
     public function acceptInvitation(string $participantId): void
     {
         $participant = GameParticipant::findOrFail($participantId);
-
-        if ($participant->user_id !== Auth::id()) {
-            session()->flash('error', __('games.error_not_your_invitation'));
-            return;
-        }
-
-        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
-            session()->flash('error', __('games.error_invitation_invalid'));
-            return;
-        }
-
         $game = $participant->game;
 
-        if ($game->max_players) {
-            $currentPlayers = $game->participants()
-                ->where('role', 'player')
-                ->where('status', 'approved')
-                ->count();
-            if ($currentPlayers >= $game->max_players) {
-                session()->flash('error', __('games.error_game_full'));
-                return;
-            }
+        $result = app(ParticipantService::class)->acceptInvitation(
+            $participant,
+            $game,
+            Auth::user(),
+        );
+
+        if ($result->success) {
+            session()->flash('success', __($result->messageKey, $result->messageParams));
+        } elseif ($result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
         }
-
-        $participant->role = 'player';
-        $participant->status = ParticipantStatus::Approved;
-        $participant->save();
-
-        Log::info('Invitation accepted', [
-            'game_id' => $game->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'previous_role' => 'invited',
-            'new_role' => 'player',
-            'previous_status' => 'pending',
-            'new_status' => 'approved',
-        ]);
-
-        // Notify game owner that a participant joined
-        try {
-            $owner = $game->owner;
-            $acceptingUser = Auth::user();
-            if ($owner && $owner->id !== $acceptingUser->id) {
-                app(NotificationService::class)->send(
-                    $owner,
-                    new ParticipantJoined($acceptingUser, $game, 'game'),
-                    NotificationCategory::ParticipantJoined
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_joined_dispatch_failed', [
-                'game_id' => $game->id,
-                'participant_id' => $participant->user_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        // Mark the related GameInvitation notification as read
-        try {
-            app(NotificationService::class)->markReadByType(
-                Auth::user(),
-                GameInvitation::class,
-                $game->id,
-                'game_id'
-            );
-        } catch (\Throwable $e) {
-            Log::error('notification.mark_read_on_accept_failed', [
-                'game_id' => $game->id,
-                'user_id' => $participant->user_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        session()->flash('success', __('games.flash_invitation_accepted'));
     }
 
     public function declineInvitation(string $participantId): void
     {
         $participant = GameParticipant::findOrFail($participantId);
+        $game = $participant->game;
 
-        if ($participant->user_id !== Auth::id()) {
-            session()->flash('error', __('games.error_not_your_invitation'));
-            return;
+        $result = app(ParticipantService::class)->declineInvitation(
+            $participant,
+            $game,
+            Auth::user(),
+        );
+
+        if ($result->success) {
+            session()->flash('success', __($result->messageKey, $result->messageParams));
+        } elseif ($result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
         }
-
-        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
-            session()->flash('error', __('games.error_invitation_invalid'));
-            return;
-        }
-
-        $participant->status = ParticipantStatus::Rejected;
-        $participant->save();
-
-        Log::info('Invitation declined', [
-            'game_id' => $participant->game_id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'previous_status' => 'pending',
-            'new_status' => 'rejected',
-        ]);
-
-        session()->flash('success', __('games.flash_invitation_declined'));
     }
 }

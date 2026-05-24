@@ -8,8 +8,7 @@ use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use App\Notifications\CampaignInvitation;
-use App\Notifications\GameInvitation;
+use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\TeamMemberRemoved;
@@ -69,8 +68,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
         ]);
 
         // Create an unread GameInvitation notification for the invitee
-        $invitee->notifyNow(new GameInvitation($game, $owner));
-        expect($invitee->unreadNotifications()->where('type', GameInvitation::class)->count())->toBe(1);
+        $invitee->notifyNow(new EntityInvitation($game, $owner));
+        expect($invitee->unreadNotifications()->where('type', EntityInvitation::class)->count())->toBe(1);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
@@ -84,7 +83,7 @@ describe('Accept game invitation → ParticipantJoined', function () {
             ->call('acceptInvitation', (string) $participant->id);
 
         // GameInvitation notification should now be marked as read
-        expect($invitee->unreadNotifications()->where('type', GameInvitation::class)->count())->toBe(0);
+        expect($invitee->unreadNotifications()->where('type', EntityInvitation::class)->count())->toBe(0);
     });
 
     it('does not dispatch when owner has blocked the participant', function () {

@@ -4,7 +4,7 @@ namespace Tests\Unit\Notifications;
 
 use App\Models\Game;
 use App\Models\User;
-use App\Notifications\GameInvitation;
+use App\Notifications\EntityInvitation;
 use App\Notifications\SessionReminder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;
@@ -55,7 +55,7 @@ class PushLocaleTest extends TestCase
         $inviter = User::factory()->create();
         $notifiable = User::factory()->create();
 
-        $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
+        $payload = (new EntityInvitation($game, $inviter))->toPush($notifiable);
 
         $this->assertStringContainsString('/en/dashboard/games/', $payload->url);
     }
@@ -69,7 +69,7 @@ class PushLocaleTest extends TestCase
         $inviter = User::factory()->create();
         $notifiable = User::factory()->create();
 
-        $payload = (new GameInvitation($game, $inviter))->toPush($notifiable);
+        $payload = (new EntityInvitation($game, $inviter))->toPush($notifiable);
 
         $this->assertStringContainsString('/de/dashboard/games/', $payload->url);
     }
@@ -83,7 +83,7 @@ class PushLocaleTest extends TestCase
         $inviter = User::factory()->create();
         $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
 
-        $mail = (new GameInvitation($game, $inviter))->toMail($notifiable);
+        $mail = (new EntityInvitation($game, $inviter))->toMail($notifiable);
 
         // The action URL in the mail should use the notifiable's preferred language
         $this->assertStringContainsString('/de/dashboard/games/', $mail->actionUrl);
@@ -96,7 +96,7 @@ class PushLocaleTest extends TestCase
         $inviter = User::factory()->create();
         $notifiable = User::factory()->create(['preferred_language' => \App\Enums\ContentLanguage::De]);
 
-        $data = (new GameInvitation($game, $inviter))->toDatabase($notifiable);
+        $data = (new EntityInvitation($game, $inviter))->toDatabase($notifiable);
 
         $this->assertStringContainsString('/de/dashboard/games/', $data['action_url']);
     }

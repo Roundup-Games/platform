@@ -225,7 +225,7 @@ class NotificationsPageTest extends TestCase
             'owner_id' => $inviter->id,
             'status' => 'scheduled',
         ]);
-        $this->user->notify(new \App\Notifications\GameInvitation(
+        $this->user->notify(new \App\Notifications\EntityInvitation(
             $game,
             $inviter,
         ));

@@ -3,27 +3,19 @@
 namespace App\Notifications;
 
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
 /**
  * Notification sent to a user when they receive a warning about community guidelines.
  * Triggered by admin "Warn" action on a content report ticket.
  */
-class ContentReportWarning extends Notification
+class ContentReportWarning extends BaseNotification
 {
     public function __construct(
         public string $entityType,
         public string $entityName,
         public string $reason,
     ) {}
-
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

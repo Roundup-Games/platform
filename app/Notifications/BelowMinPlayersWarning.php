@@ -5,12 +5,9 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class BelowMinPlayersWarning extends Notification
+class BelowMinPlayersWarning extends BaseNotification
 {
     use HasUnsubscribeLink;
 
@@ -19,14 +16,6 @@ class BelowMinPlayersWarning extends Notification
         public int $currentCount,
         public int $minPlayers,
     ) {}
-
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

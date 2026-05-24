@@ -3,22 +3,21 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class ApplicationRejected extends BaseNotification
+class EntityCompleted extends BaseNotification
 {
     use HasUnsubscribeLink;
+    use RoutesGameOrCampaign;
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Model  $entity  The Game or Campaign entity
-     * @param  string  $entityType  'game' or 'campaign'
-     * @param  User  $rejector  The user who rejected the application
+     * @param  Game|Campaign  $entity  The game or campaign that was completed
      */
     public function __construct(
-        public $entity,
-        public string $entityType,
-        public User $rejector,
+        public Game|Campaign $entity,
     ) {}
 
     /**
@@ -27,17 +26,18 @@ class ApplicationRejected extends BaseNotification
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
 
         return (new MailMessage)
-            ->subject(__('notifications.subject_application_rejected', [
-                'entity' => $this->entity->name,
+            ->subject(__("notifications.subject_{$type}_completed", [
+                $type => $this->entity->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
-            ->line(__('notifications.body_application_rejected', [
-                'entity' => $this->entity->name,
+            ->line(__("notifications.body_{$type}_completed", [
+                $type => $this->entity->name,
             ]))
-            ->action(__('notifications.action_application_rejected'), route('games.index', ['locale' => $locale]))
-            ->line($this->unsubscribeLine($notifiable, 'application_rejected'));
+            ->action(__("notifications.action_{$type}_completed"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]))
+            ->line($this->unsubscribeLine($notifiable, "{$type}_completed"));
     }
 
     /**
@@ -48,24 +48,24 @@ class ApplicationRejected extends BaseNotification
     public function toDatabase(object $notifiable): array
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
 
         return [
-            'type' => 'application_rejected',
-            'entity_type' => $this->entityType,
+            'type' => "{$type}_completed",
+            'entity_type' => $type,
             'entity_id' => $this->entity->id,
             'entity_name' => $this->entity->name,
-            'rejector_id' => $this->rejector->id,
-            'rejector_name' => $this->rejector->name,
-            'action_url' => route('games.index', ['locale' => $locale]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
         ];
     }
 
     /**
      * Get the actor for block-list checking by NotificationService.
+     * Returns the entity owner as the closest actor for status changes.
      */
-    public function getActor(): User
+    public function getActor(): ?User
     {
-        return $this->rejector;
+        return $this->entity->owner;
     }
 
     /**

@@ -6,7 +6,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Notifications\GameUpdated;
+use App\Notifications\EntityUpdated;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -98,7 +98,7 @@ describe('Save Game Edit', function () {
 
         Notification::assertSentTo(
             $participant,
-            GameUpdated::class,
+            EntityUpdated::class,
             fn ($notification) => in_array(__('games.field_name'), $notification->changedFields)
         );
     });
@@ -114,7 +114,7 @@ describe('Save Game Edit', function () {
             ->set('edit_name', 'Changed Name')
             ->call('saveGameEdit');
 
-        Notification::assertNotSentTo($this->owner, GameUpdated::class);
+        Notification::assertNotSentTo($this->owner, EntityUpdated::class);
     });
 
     it('does not send notification when nothing changed', function () {
