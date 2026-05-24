@@ -188,10 +188,16 @@ function gameTestCreateUserWithPermission(string $permission = 'create game', bo
 {
     seedPermissions();
     $user = User::factory()->create(['profile_complete' => true, 'can_create_public_entries' => $canCreatePublic]);
-    setPermissionsTeamId(1);
-    $user->givePermissionTo($permission);
-    $user->unsetRelations();
-    setPermissionsTeamId(1);
+
+    // Game/Campaign creation now checks profile_complete, not the 'create game' permission.
+    // Keep the permission grant for update/delete policy tests that still use it.
+    if ($permission !== 'create game') {
+        setPermissionsTeamId(1);
+        $user->givePermissionTo($permission);
+        $user->unsetRelations();
+        setPermissionsTeamId(1);
+    }
+
     return $user;
 }
 
