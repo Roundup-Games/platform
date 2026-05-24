@@ -18,12 +18,22 @@
                 <x-form-section-header :number="1" :icon="'edit_note'" :title="__('campaigns.content_campaign_details')" />
 
                 <div class="space-y-4">
-                    <div>
-                        <label for="campaign-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_campaign_name') }} <span class="text-error">*</span></label>
-                        <input type="text" id="campaign-name" wire:model="name" placeholder="e.g. Shadows of Waterdeep"
-                               class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                        @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
+                    {{-- Translatable fields (name + description) rendered via locale-aware section --}}
+                    @php
+                        $allLocales = $this->getAllLocales();
+                        $baselineLocale = $this->getBaselineLocale();
+                    @endphp
+                    <x-forms.translatable-section
+                        :fields="[
+                            ['name' => 'name', 'label' => __('campaigns.field_campaign_name'), 'placeholder' => 'e.g. Shadows of Waterdeep'],
+                            ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 4, 'placeholder' => 'Describe the campaign setting, tone, and what to expect...'],
+                        ]"
+                        :active-locale="$activeLocale"
+                        :baseline-locale="$baselineLocale"
+                        :all-locales="$allLocales"
+                        :required="['name']"
+                        inputClass="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+                    />
 
                     <div>
                         <livewire:components.game-system-picker
@@ -34,29 +44,6 @@
                             wire:model.live="game_system_id"
                         />
                     </div>
-
-                    <div>
-                        <label for="campaign-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                        <textarea id="campaign-description" wire:model="description" rows="4" placeholder="Describe the campaign setting, tone, and what to expect..."
-                                  class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
-                        @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Translations via locale-switcher --}}
-                    @php
-                        $allLocales = $this->getAllLocales();
-                        $baselineLocale = $this->getBaselineLocale();
-                    @endphp
-                    <x-forms.translatable-section
-                        :fields="[
-                            ['name' => 'name', 'label' => __('campaigns.field_campaign_name')],
-                            ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 4],
-                        ]"
-                        :active-locale="$activeLocale"
-                        :baseline-locale="$baselineLocale"
-                        :all-locales="$allLocales"
-                        inputClass="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-                    />
                 </div>
             </section>
 
@@ -158,8 +145,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-on-surface mb-1">{{ __('location.content_location') }}</label>
-                        <livewire:components.location-picker :location-id="$location_id" />
+                        <livewire:components.location-picker :location-id="$location_id" mode="session" />
                     </div>
                 </div>
             </section>

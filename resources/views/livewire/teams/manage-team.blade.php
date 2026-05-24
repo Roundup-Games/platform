@@ -27,20 +27,13 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="team-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('teams.field_team_name') }}</label>
+                    <label for="team-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('teams.field_team_name') }} <span class="text-error">*</span></label>
                     <input type="text" id="team-name" wire:model="name"
                            class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant" />
                     @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                 </div>
 
-                <div>
-                    <label for="team-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                    <textarea id="team-description" wire:model="description" rows="3"
-                              class="w-full rounded-md bg-surface-container-high border border-transparent shadow-sm focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface placeholder:text-on-surface-variant"></textarea>
-                    @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                </div>
-
-                {{-- Translations via locale-switcher --}}
+                {{-- Translatable fields (description) rendered via locale-aware section --}}
                 @php
                     $allLocales = $this->getAllLocales();
                     $baselineLocale = $this->getBaselineLocale();

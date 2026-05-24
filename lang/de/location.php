@@ -29,4 +29,12 @@ return [
     'error_please_confirm_your_location_to_continue' => 'Bitte bestätige deinen Standort, um fortzufahren.',
     'placeholder_street_address_neighborhood' => 'Straße, Hausnummer, Stadtteil',
     'hint_address_private' => 'Nur deine Stadt wird für andere Spieler sichtbar sein. Deine Adresse bleibt privat.',
+    'hint_session_location' => 'Wo findet diese Session statt? Wähle einen Ort, den Teilnehmer leicht finden können.',
+    'hint_profile_location' => 'Dies hilft Spielern, Spiele in deiner Nähe zu finden. Nur deine Stadt ist für andere sichtbar.',
+    'content_location_not_set' => 'Kein Standort festgelegt',
+    'content_we_think_you_re_in_city_is_that_right' => 'Wir glauben, du bist in :city — stimmt das?',
+    'field_neighborhood' => 'Stadtteil',
+    'placeholder_neighborhood_optional' => 'Stadtteil oder Viertel (optional)',
+    'hint_neighborhood_profile' => 'Hilft Spielern, Spiele in der Nähe zu finden. Wird nicht anderen angezeigt, es sei denn, du teilst es.',
+    'field_address_optional' => 'Adresse (optional)',
 ];

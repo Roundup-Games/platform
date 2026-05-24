@@ -146,26 +146,7 @@
                         @error('language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label for="event-name" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('events.field_event_name') }}</label>
-                        <input type="text" id="event-name" wire:model="name"
-                               class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                        @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label for="event-short-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_short_description') }}</label>
-                        <input type="text" id="event-short-description" wire:model="short_description" maxlength="500"
-                               class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm" />
-                        @error('short_description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label for="event-description" class="block text-sm font-medium text-on-surface-variant mb-1">{{ __('common.field_description') }}</label>
-                        <textarea id="event-description" wire:model="description" rows="5"
-                                  class="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"></textarea>
-                        @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Translations via locale-switcher --}}
+                    {{-- Translatable fields (name + short_description + description) rendered via locale-aware section --}}
                     @php
                         $allLocales = $this->getAllLocales();
                         $baselineLocale = $this->getBaselineLocale();
@@ -179,6 +160,7 @@
                         :active-locale="$activeLocale"
                         :baseline-locale="$baselineLocale"
                         :all-locales="$allLocales"
+                        :required="['name']"
                         inputClass="w-full bg-surface-container-high border border-transparent rounded-md text-on-surface focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20 shadow-sm"
                     />
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

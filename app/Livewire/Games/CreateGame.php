@@ -303,6 +303,17 @@ class CreateGame extends Component
     }
 
     #[Computed]
+    public function attendanceToleranceOptions(): array
+    {
+        return [
+            '' => __('games.attendance_any'),
+            '70' => __('games.attendance_relaxed'),
+            '85' => __('games.attendance_moderate'),
+            '95' => __('games.attendance_strict'),
+        ];
+    }
+
+    #[Computed]
     public function canCreatePublic(): bool
     {
         $user = Auth::user();

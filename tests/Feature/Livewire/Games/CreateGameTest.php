@@ -405,9 +405,11 @@ describe('CreateGame — Translatable Fields', function () {
             ->assertHasNoErrors();
     });
 
-    it('renders pendingTranslations fields for name and description in the form', function () {
+    it('renders pendingTranslations fields when switching to a non-baseline locale', function () {
         $html = createGameComponent()
             ->call('selectType', 'board_game')
+            ->set('language', 'en')
+            ->call('switchLocale', 'de')
             ->html();
 
         expect($html)
@@ -424,5 +426,18 @@ describe('CreateGame — Translatable Fields', function () {
             ->not->toContain('safety_rules_de')
             ->not->toContain('minimum_requirements_de')
             ->not->toContain('recap_de');
+    });
+
+    it('renders attendance tolerance select with all options', function () {
+        $html = createGameComponent()
+            ->call('selectType', 'board_game')
+            ->html();
+
+        expect($html)
+            ->toContain(__('games.attendance_any'))
+            ->toContain(__('games.attendance_relaxed'))
+            ->toContain(__('games.attendance_moderate'))
+            ->toContain(__('games.attendance_strict'))
+            ->toContain(__('games.field_attendance_tolerance'));
     });
 });

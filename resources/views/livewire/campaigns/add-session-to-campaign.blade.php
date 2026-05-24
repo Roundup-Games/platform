@@ -18,7 +18,7 @@
 
                 <div class="space-y-4">
                     <div>
-                        <label for="session-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }}</label>
+                        <label for="session-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }} <span class="text-error">*</span></label>
                         <input type="text" id="session-name" wire:model="name" placeholder="e.g. Session 3 — The Lost Temple"
                                class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
                         @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror

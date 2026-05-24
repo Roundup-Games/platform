@@ -67,12 +67,22 @@
                     <x-form-section-header :number="1" :icon="'edit_note'" :title="__('games.content_game_details')" />
 
                     <div class="space-y-4">
-                        <div>
-                            <label for="game-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_session_name') }} <span class="text-error">*</span></label>
-                            <input type="text" id="game-name" wire:model="name" placeholder="{{ __('games.placeholder_game_name') }}"
-                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                            @error('name') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
+                        {{-- Translatable fields (name + description) rendered via locale-aware section --}}
+                        @php
+                            $allLocales = $this->getAllLocales();
+                            $baselineLocale = $this->getBaselineLocale();
+                        @endphp
+                        <x-forms.translatable-section
+                            :fields="[
+                                ['name' => 'name', 'label' => __('campaigns.field_session_name'), 'placeholder' => __('games.placeholder_game_name')],
+                                ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3, 'placeholder' => __('games.placeholder_game_description')],
+                            ]"
+                            :active-locale="$activeLocale"
+                            :baseline-locale="$baselineLocale"
+                            :all-locales="$allLocales"
+                            :required="['name']"
+                            inputClass="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+                        />
 
                         <div>
                             <label for="game-date-time" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_date_time') }} <span class="text-error">*</span></label>
@@ -92,29 +102,6 @@
                                 wire:key="game-system-picker-{{ $game_type ?? 'default' }}"
                             />
                         </div>
-
-                        <div>
-                            <label for="game-description" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_description') }}</label>
-                            <textarea id="game-description" wire:model="description" rows="3" placeholder="{{ __('games.placeholder_game_description') }}"
-                                      class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
-                            @error('description') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-
-                        {{-- Translations via locale-switcher --}}
-                        @php
-                            $allLocales = $this->getAllLocales();
-                            $baselineLocale = $this->getBaselineLocale();
-                        @endphp
-                        <x-forms.translatable-section
-                            :fields="[
-                                ['name' => 'name', 'label' => __('campaigns.field_session_name')],
-                                ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3],
-                            ]"
-                            :active-locale="$activeLocale"
-                            :baseline-locale="$baselineLocale"
-                            :all-locales="$allLocales"
-                            inputClass="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-                        />
                     </div>
                 </section>
 
@@ -194,7 +181,7 @@
                     <x-form-section-header :number="3" :icon="'location_on'" :title="__('location.content_location')" />
 
                     <div>
-                        <livewire:components.location-picker :location-id="$location_id" />
+                        <livewire:components.location-picker :location-id="$location_id" mode="session" />
                     </div>
                 </section>
 
@@ -241,10 +228,14 @@
                         @endif
 
                         <div>
-                            <label for="game-reliability" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_reliability_preference') }}</label>
-                            <input type="number" id="game-reliability" wire:model="min_reliability_preference" min="0" max="100" step="5" placeholder=""
-                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_reliability_preference') }}</p>
+                            <label for="game-attendance" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_attendance_tolerance') }}</label>
+                            <select id="game-attendance" wire:model="min_reliability_preference"
+                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
+                                @foreach($this->attendanceToleranceOptions as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_attendance_tolerance') }}</p>
                             @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                         </div>
                     </div>

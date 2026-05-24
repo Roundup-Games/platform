@@ -40,6 +40,13 @@ class LocationPicker extends Component
     #[Locked]
     public ?string $locationId = null;
 
+    /** Mode: 'profile' (city-focused, casual) or 'session' (precise address for findability) */
+    #[Locked]
+    public string $mode = 'profile';
+
+    // Optional hint text shown above the location picker (overrides default)
+    public ?string $hint = null;
+
     // Internal state
     public string $city = '';
     public string $address = '';
@@ -49,9 +56,10 @@ class LocationPicker extends Component
     public bool $locationConfirmed = false;
     public bool $editing = false;
 
-    public function mount(?string $locationId = null): void
+    public function mount(?string $locationId = null, string $mode = 'profile'): void
     {
         $this->locationId = $locationId;
+        $this->mode = in_array($mode, ['profile', 'session']) ? $mode : 'profile';
 
         if ($locationId) {
             $location = Location::find($locationId);
@@ -85,6 +93,7 @@ class LocationPicker extends Component
                 if ($result && isset($result['address'])) {
                     $addr = $result['address'];
                     $this->city = $addr['city'] ?? $addr['town'] ?? $addr['village'] ?? $addr['municipality'] ?? '';
+                    $this->fillSessionAddressFromGeocode($addr);
                 }
             } catch (\Throwable $e) {
                 Log::warning('Reverse geocoding failed in LocationPicker', [
@@ -138,6 +147,7 @@ class LocationPicker extends Component
 
     /**
      * Receive browser geolocation coordinates from JS bridge.
+     * Reverse-geocodes to find the closest city and optionally fills the address.
      */
     public function handleBrowserLocation(float $lat, float $lng): void
     {
@@ -152,6 +162,7 @@ class LocationPicker extends Component
             if ($result && isset($result['address'])) {
                 $addr = $result['address'];
                 $this->city = $addr['city'] ?? $addr['town'] ?? $addr['village'] ?? $addr['municipality'] ?? '';
+                $this->fillSessionAddressFromGeocode($addr);
             }
         } catch (\Throwable $e) {
             Log::warning('Reverse geocoding failed in LocationPicker findMyLocation', [
@@ -299,5 +310,20 @@ class LocationPicker extends Component
     public function render()
     {
         return view('livewire.components.location-picker');
+    }
+
+    /**
+     * Auto-fill the address field from reverse-geocode data in session mode.
+     * Only fills if the address is currently empty to avoid overwriting user input.
+     */
+    private function fillSessionAddressFromGeocode(array $addr): void
+    {
+        if ($this->mode === 'session' && empty($this->address)) {
+            $road = $addr['road'] ?? null;
+            $houseNumber = $addr['house_number'] ?? null;
+            if ($road) {
+                $this->address = trim(($houseNumber ? $houseNumber . ' ' : '') . $road);
+            }
+        }
     }
 }
