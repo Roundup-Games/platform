@@ -236,11 +236,7 @@ class GameDetail extends Component
                     }
                 }
 
-                $approvedCount = $game->participants()
-                    ->where('status', ParticipantStatus::Approved->value)
-                    ->count();
-
-                $isFull = $game->max_players !== null && $approvedCount >= $game->max_players;
+                $isFull = $this->participantService()->isAtCapacity($game);
 
                 $baseData = [
                     'game_id' => $game->id,
@@ -430,8 +426,7 @@ class GameDetail extends Component
     #[Computed]
     public function isGameFull(): bool
     {
-        return $this->game->max_players !== null
-            && $this->game->participants->where('status', ParticipantStatus::Approved->value)->count() >= $this->game->max_players;
+        return $this->participantService()->isAtCapacity($this->game);
     }
 
     #[Computed]

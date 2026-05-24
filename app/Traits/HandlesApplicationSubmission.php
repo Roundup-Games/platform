@@ -8,6 +8,7 @@ use App\Enums\Visibility;
 use App\Models\User;
 use App\Notifications\NewApplication;
 use App\Services\NotificationService;
+use App\Services\ParticipantService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -105,11 +106,8 @@ trait HandlesApplicationSubmission
                 $freshEntity = $entityClass::find($entityId);
                 $isPublic = $freshEntity->visibility === Visibility::Public;
 
-                // Check if entity is full
-                $approvedCount = $participantClass::where($foreignKey, $entityId)
-                    ->where('status', 'approved')
-                    ->count();
-                $isFull = $freshEntity->max_players !== null && $approvedCount >= $freshEntity->max_players;
+                // Check if entity is full (includes owner in count via ParticipantService)
+                $isFull = app(ParticipantService::class)->isAtCapacity($freshEntity);
 
                 // Store for post-transaction flash message and logging
                 $txDecisions->isPublic = $isPublic;
