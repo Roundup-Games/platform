@@ -10,8 +10,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Notifications\CampaignInvitation;
-use App\Notifications\GameInvitation;
+use App\Notifications\EntityInvitation;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
 use Illuminate\Support\Facades\URL;
@@ -51,7 +50,7 @@ describe('Game Invitation → GameInvitation', function () {
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
-        $notifications = $friend->notifications()->where('type', GameInvitation::class)->get();
+        $notifications = $friend->notifications()->where('type', EntityInvitation::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
@@ -82,7 +81,7 @@ describe('Game Invitation → GameInvitation', function () {
             ->call('inviteParticipants');
 
         // No longer friends (block removed follow), so invite is skipped entirely
-        expect($friend->notifications()->where('type', GameInvitation::class)->count())->toBe(0);
+        expect($friend->notifications()->where('type', EntityInvitation::class)->count())->toBe(0);
     });
 
     it('does not dispatch when preferences are off', function () {
@@ -107,7 +106,7 @@ describe('Game Invitation → GameInvitation', function () {
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
-        expect($friend->notifications()->where('type', GameInvitation::class)->count())->toBe(0);
+        expect($friend->notifications()->where('type', EntityInvitation::class)->count())->toBe(0);
     });
 
 
@@ -127,7 +126,7 @@ describe('Game Invitation → GameInvitation', function () {
             ->set('selectedFriendIds', [$stranger->id])
             ->call('inviteParticipants');
 
-        expect($stranger->notifications()->where('type', GameInvitation::class)->count())->toBe(0);
+        expect($stranger->notifications()->where('type', EntityInvitation::class)->count())->toBe(0);
     });
 
     it('dispatches to multiple friends at once', function () {
@@ -148,8 +147,8 @@ describe('Game Invitation → GameInvitation', function () {
             ->set('selectedFriendIds', [$friend1->id, $friend2->id])
             ->call('inviteParticipants');
 
-        expect($friend1->notifications()->where('type', GameInvitation::class)->count())->toBe(1);
-        expect($friend2->notifications()->where('type', GameInvitation::class)->count())->toBe(1);
+        expect($friend1->notifications()->where('type', EntityInvitation::class)->count())->toBe(1);
+        expect($friend2->notifications()->where('type', EntityInvitation::class)->count())->toBe(1);
     });
 });
 
@@ -175,7 +174,7 @@ describe('Campaign Invitation → CampaignInvitation', function () {
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
-        $notifications = $friend->notifications()->where('type', CampaignInvitation::class)->get();
+        $notifications = $friend->notifications()->where('type', EntityInvitation::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;

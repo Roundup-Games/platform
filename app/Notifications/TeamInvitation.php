@@ -5,12 +5,9 @@ namespace App\Notifications;
 use App\Models\Team;
 use App\Models\User;
 use App\Dto\PushPayload;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class TeamInvitation extends Notification
+class TeamInvitation extends BaseNotification
 {
     use HasUnsubscribeLink;
 
@@ -22,18 +19,6 @@ class TeamInvitation extends Notification
         public Team $team,
         public User $inviter,
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     * When dispatched via NotificationService, channels are resolved
-     * from user preferences; this serves as a fallback default.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.

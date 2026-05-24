@@ -4,36 +4,23 @@ namespace App\Notifications;
 
 use App\Dto\PushPayload;
 use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class CampaignInvitation extends Notification
+class EntityInvitation extends BaseNotification
 {
     use HasUnsubscribeLink;
+    use RoutesGameOrCampaign;
 
     /**
-     * @param  Campaign  $campaign  The campaign the user is invited to
+     * @param  Game|Campaign  $entity  The game or campaign the user is invited to
      * @param  User  $inviter  The user who sent the invitation
      */
     public function __construct(
-        public Campaign $campaign,
+        public Game|Campaign $entity,
         public User $inviter,
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     * When dispatched via NotificationService, channels are resolved
-     * from user preferences; this serves as a fallback default.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.
@@ -41,37 +28,42 @@ class CampaignInvitation extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
-        $actionUrl = route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]);
+        $type = $this->getEntityType();
+        $actionUrl = route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]);
 
         return (new MailMessage)
-            ->subject(__('notifications.subject_campaign_invitation', [
+            ->subject(__("notifications.subject_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
-            ->line(__('notifications.body_campaign_invitation', [
+            ->line(__("notifications.body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
-                'campaign' => $this->campaign->name,
+                $type => $this->entity->name,
             ]))
-            ->action(__('notifications.action_campaign_invitation'), $actionUrl)
-            ->line($this->unsubscribeLine($notifiable, 'campaign_invitation'));
+            ->action(__("notifications.action_{$type}_invitation"), $actionUrl)
+            ->line($this->unsubscribeLine($notifiable, "{$type}_invitation"));
     }
 
     /**
      * Get the array representation of the notification.
+     *
+     * Preserves backward-compatible keys: {entity_type}_id / {entity_type}_name
+     * for existing database records and frontend code.
      *
      * @return array<string, mixed>
      */
     public function toDatabase(object $notifiable): array
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
 
         return [
-            'type' => 'campaign_invitation',
-            'campaign_id' => $this->campaign->id,
-            'campaign_name' => $this->campaign->name,
+            'type' => "{$type}_invitation",
+            "{$type}_id" => $this->entity->id,
+            "{$type}_name" => $this->entity->name,
             'inviter_id' => $this->inviter->id,
             'inviter_name' => $this->inviter->name,
-            'action_url' => route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
         ];
     }
 
@@ -89,16 +81,17 @@ class CampaignInvitation extends Notification
     public function toPush(object $notifiable): PushPayload
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
 
         return new PushPayload(
-            title: __('notifications.push_title_campaign_invitation'),
-            body: __('notifications.push_body_campaign_invitation', [
+            title: __("notifications.push_title_{$type}_invitation"),
+            body: __("notifications.push_body_{$type}_invitation", [
                 'inviter' => $this->inviter->name,
-                'campaign' => $this->campaign->name,
+                $type => $this->entity->name,
             ]),
             icon: '/icons/pwa-192x192.png',
-            url: route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]),
-            tag: "campaign-invitation-{$this->campaign->id}",
+            url: route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
+            tag: "{$type}-invitation-{$this->entity->id}",
         );
     }
 }

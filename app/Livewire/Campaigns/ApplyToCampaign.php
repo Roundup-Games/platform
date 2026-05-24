@@ -2,18 +2,12 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Enums\JoinSource;
-use App\Enums\NotificationCategory;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
-use App\Models\User;
-use App\Notifications\NewApplication;
-use App\Services\NotificationService;
+use App\Traits\HandlesApplicationSubmission;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -21,6 +15,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class ApplyToCampaign extends Component
 {
+    use HandlesApplicationSubmission;
+
     public Campaign $campaign;
 
     #[Validate('nullable|string|max:1000')]
@@ -56,155 +52,33 @@ class ApplyToCampaign extends Component
         }
     }
 
-    public function submitApplication(): void
+    protected function getEntity(): \Illuminate\Database\Eloquent\Model
     {
-        if ($this->campaign->owner_id === Auth::id()) {
-            $this->addError('message', __('campaigns.error_you_cannot_apply_to_your_own_campaign'));
+        return $this->campaign;
+    }
 
-            return;
-        }
-
-        $campaignId = $this->campaign->id;
-        $userId = Auth::id();
-        $message = $this->message;
-
-        $this->validate();
-
-        try {
-            DB::transaction(function () use ($campaignId, $userId, $message) {
-                CampaignParticipant::lockForUpdate()
-                    ->where('campaign_id', $campaignId)
-                    ->where('user_id', $userId)
-                    ->exists();
-
-                CampaignApplication::lockForUpdate()
-                    ->where('campaign_id', $campaignId)
-                    ->where('user_id', $userId)
-                    ->exists();
-
-                if (CampaignParticipant::where('campaign_id', $campaignId)->where('user_id', $userId)->exists()) {
-                    throw new \RuntimeException(__('campaigns.content_you_are_already_a_participant_of_this_campaign'));
-                }
-
-                if (CampaignApplication::where('campaign_id', $campaignId)->where('user_id', $userId)->exists()) {
-                    throw new \RuntimeException(__('campaigns.content_you_have_already_applied_to_this_campaign'));
-                }
-
-                $isPublic = Campaign::find($campaignId)->visibility === Visibility::Public;
-
-                // Check if campaign is full for bench logic
-                $campaign = Campaign::find($campaignId);
-                $approvedCount = CampaignParticipant::where('campaign_id', $campaignId)
-                    ->where('status', 'approved')
-                    ->count();
-                $isFull = $campaign->max_players !== null && $approvedCount >= $campaign->max_players;
-
-                // Determine participant status
-                $participantStatus = 'pending';
-                $participantRole = 'applicant';
-                $benchedAt = null;
-                $waitlistedAt = null;
-
-                if ($isPublic) {
-                    if ($isFull && $campaign->isBenchMode()) {
-                        // Full campaign with bench_mode → bench the applicant
-                        $participantStatus = 'benched';
-                        $participantRole = 'player';
-                        $benchedAt = now();
-                    } elseif ($isFull) {
-                        // Full campaign without bench_mode → waitlist the applicant
-                        $participantStatus = 'waitlisted';
-                        $participantRole = 'player';
-                        $waitlistedAt = now();
-                    } else {
-                        $participantStatus = 'approved';
-                        $participantRole = 'player';
-                    }
-                }
-
-                // Application status tracks the application review state:
-                // - 'approved' for public campaigns that auto-approve (with or without overflow)
-                // - 'pending' for protected campaigns that require host review
-                $applicationStatus = $isPublic ? 'approved' : 'pending';
-
-                CampaignApplication::create([
-                    'campaign_id' => $campaignId,
-                    'user_id' => $userId,
-                    'status' => $applicationStatus,
-                    'message' => $message ?: null,
-                ]);
-
-                CampaignParticipant::create([
-                    'campaign_id' => $campaignId,
-                    'user_id' => $userId,
-                    'role' => $participantRole,
-                    'status' => $participantStatus,
-                    'benched_at' => $benchedAt,
-                    'waitlisted_at' => $waitlistedAt,
-                    'join_source' => JoinSource::Application,
-                ]);
-            });
-        } catch (\Illuminate\Database\QueryException $e) {
-            Log::warning('Campaign application race caught by unique constraint', [
-                'campaign_id' => $campaignId,
-                'user_id' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-            session()->flash('info', __('campaigns.content_you_have_already_applied_to_this_campaign'));
-            $this->redirect(route('campaigns.show', $this->campaign->id), navigate: true);
-
-            return;
-        } catch (\RuntimeException $e) {
-            $this->addError('message', $e->getMessage());
-
-            return;
-        }
-
-        $isPublic = $this->campaign->visibility === Visibility::Public;
-        $approvedCount = CampaignParticipant::where('campaign_id', $this->campaign->id)
-            ->where('status', 'approved')
-            ->count();
-        $isFull = $this->campaign->max_players !== null && $approvedCount >= $this->campaign->max_players;
-
-        Log::info('Campaign application submitted', [
-            'campaign_id' => $this->campaign->id,
-            'user_id' => Auth::id(),
-            'auto_approved' => $isPublic && ! $isFull,
-            'benched' => $isPublic && $isFull && $this->campaign->isBenchMode(),
-            'waitlisted' => $isPublic && $isFull && ! $this->campaign->isBenchMode(),
-        ]);
-
-        // Notify campaign owner of new application (protected campaigns only)
-        if (! $isPublic) {
-            try {
-                $owner = User::find($this->campaign->owner_id);
-                if ($owner) {
-                    app(NotificationService::class)->send(
-                        $owner,
-                        new NewApplication(Auth::user(), $this->campaign, 'campaign'),
-                        NotificationCategory::NewApplication
-                    );
-                }
-            } catch (\Throwable $e) {
-                Log::error('notification.new_application_dispatch_failed', [
-                    'campaign_id' => $this->campaign->id,
-                    'applicant_id' => Auth::id(),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        if ($isPublic && $isFull && $this->campaign->isBenchMode()) {
-            session()->flash('success', __('campaigns.content_you_have_been_placed_on_the_bench'));
-        } elseif ($isPublic && $isFull) {
-            session()->flash('success', __('campaigns.content_you_have_been_placed_on_the_waitlist'));
-        } elseif ($isPublic) {
-            session()->flash('success', __('campaigns.content_you_have_joined_the_campaign'));
-        } else {
-            session()->flash('success', __('campaigns.content_application_submitted_the_campaign_owner'));
-        }
-
-        $this->redirect(route('campaigns.show', $this->campaign->id), navigate: true);
+    protected function getApplicationConfig(): array
+    {
+        return [
+            'foreign_key' => 'campaign_id',
+            'application_class' => CampaignApplication::class,
+            'participant_class' => CampaignParticipant::class,
+            'entity_class' => Campaign::class,
+            'show_route' => 'campaigns.show',
+            'entity_type' => 'campaign',
+            'log_key' => 'campaign_id',
+            'application_status_public' => 'approved',
+            'translations' => [
+                'own_entity_error' => 'campaigns.error_you_cannot_apply_to_your_own_campaign',
+                'race_applied' => 'campaigns.content_you_have_already_applied_to_this_campaign',
+                'already_participant' => 'campaigns.content_you_are_already_a_participant_of_this_campaign',
+                'already_applied' => 'campaigns.content_you_have_already_applied_to_this_campaign',
+                'bench_success' => 'campaigns.content_you_have_been_placed_on_the_bench',
+                'waitlist_success' => 'campaigns.content_you_have_been_placed_on_the_waitlist',
+                'join_success' => 'campaigns.content_you_have_joined_the_campaign',
+                'application_submitted' => 'campaigns.content_application_submitted_the_campaign_owner',
+            ],
+        ];
     }
 
     public function render()

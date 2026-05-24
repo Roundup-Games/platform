@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Notifications\GameInvitation;
+use App\Notifications\EntityInvitation;
 use App\Notifications\NewFollower;
 use App\Notifications\ParticipantJoined;
 use App\Services\NotificationQueryService;
@@ -60,7 +60,7 @@ describe('getGroupedForUser', function () {
         $game = \App\Models\Game::factory()->create();
 
         $this->user->notify(new NewFollower($follower));
-        $this->user->notify(new GameInvitation($game, $inviter));
+        $this->user->notify(new EntityInvitation($game, $inviter));
 
         $groups = $this->service->getGroupedForUser($this->user);
 
@@ -68,7 +68,7 @@ describe('getGroupedForUser', function () {
 
         $types = $groups->pluck('type')->toArray();
         expect($types)->toContain('NewFollower');
-        expect($types)->toContain('GameInvitation');
+        expect($types)->toContain('EntityInvitation');
     });
 
     it('marks group as read when all notifications are read', function () {
@@ -177,7 +177,7 @@ describe('getPaginatedForUser', function () {
 describe('display strings', function () {
     it('handles notification types without actors (status changes)', function () {
         $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Epic Quest']]);
-        $this->user->notify(new \App\Notifications\GameCancelled($game));
+        $this->user->notify(new \App\Notifications\EntityCancelled($game));
 
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();
@@ -190,7 +190,7 @@ describe('display strings', function () {
         $inviter = User::factory()->create(['name' => 'Dana']);
         $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Test Game']]);
 
-        $this->user->notify(new GameInvitation($game, $inviter));
+        $this->user->notify(new EntityInvitation($game, $inviter));
 
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();

@@ -7,14 +7,13 @@ use App\Enums\NotificationCategory;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
-use App\Notifications\CampaignCancelled;
-use App\Notifications\CampaignCompleted;
-use App\Notifications\CampaignInvitation;
-use App\Notifications\CampaignUpdated;
-use App\Notifications\ParticipantJoined;
+use App\Notifications\EntityCancelled;
+use App\Notifications\EntityCompleted;
+use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
+use App\Services\ParticipantService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -135,7 +134,7 @@ class CampaignsPage extends Component
                 foreach ($participants as $participant) {
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new CampaignUpdated($campaign, $changedLabels),
+                        new EntityUpdated($campaign, $changedLabels),
                         NotificationCategory::CampaignUpdated,
                     );
                 }
@@ -227,7 +226,7 @@ class CampaignsPage extends Component
             foreach ($approvedParticipants as $participant) {
                 app(NotificationService::class)->send(
                     $participant->user,
-                    new CampaignCancelled($campaign),
+                    new EntityCancelled($campaign),
                     NotificationCategory::CampaignCancelled
                 );
             }
@@ -273,7 +272,7 @@ class CampaignsPage extends Component
             foreach ($approvedParticipants as $participant) {
                 app(NotificationService::class)->send(
                     $participant->user,
-                    new CampaignCompleted($campaign),
+                    new EntityCompleted($campaign),
                     NotificationCategory::CampaignCompleted
                 );
             }
@@ -290,110 +289,36 @@ class CampaignsPage extends Component
     public function acceptInvitation(string $participantId): void
     {
         $participant = CampaignParticipant::findOrFail($participantId);
-
-        if ($participant->user_id !== Auth::id()) {
-            session()->flash('error', __('campaigns.error_not_your_invitation'));
-            return;
-        }
-
-        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
-            session()->flash('error', __('campaigns.error_invitation_invalid'));
-            return;
-        }
-
         $campaign = $participant->campaign;
 
-        if ($campaign->max_players) {
-            $currentPlayers = $campaign->participants()
-                ->where('role', 'player')
-                ->where('status', 'approved')
-                ->count();
-            if ($currentPlayers >= $campaign->max_players) {
-                session()->flash('error', __('campaigns.error_campaign_full'));
-                return;
-            }
+        $result = app(ParticipantService::class)->acceptInvitation(
+            $participant,
+            $campaign,
+            Auth::user(),
+        );
+
+        if ($result->success) {
+            session()->flash('success', __($result->messageKey, $result->messageParams));
+        } elseif ($result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
         }
-
-        $previousRole = $participant->role;
-        $previousStatus = $participant->status;
-        $participant->role = 'player';
-        $participant->status = \App\Enums\ParticipantStatus::Approved;
-        $participant->save();
-
-        Log::info('Campaign invitation accepted', [
-            'entity_id' => $campaign->id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'previous_role' => $previousRole,
-            'new_role' => 'player',
-            'previous_status' => $previousStatus?->value,
-            'new_status' => 'approved',
-        ]);
-
-        // Notify campaign owner that a participant joined
-        try {
-            $owner = $campaign->owner;
-            $acceptingUser = Auth::user();
-            if ($owner && $owner->id !== $acceptingUser->id) {
-                app(NotificationService::class)->send(
-                    $owner,
-                    new ParticipantJoined($acceptingUser, $campaign, 'campaign'),
-                    NotificationCategory::ParticipantJoined
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.participant_joined_dispatch_failed', [
-                'campaign_id' => $campaign->id,
-                'participant_id' => $participant->user_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        // Mark the related CampaignInvitation notification as read
-        try {
-            app(NotificationService::class)->markReadByType(
-                Auth::user(),
-                CampaignInvitation::class,
-                $campaign->id,
-                'campaign_id'
-            );
-        } catch (\Throwable $e) {
-            Log::error('notification.mark_read_on_accept_failed', [
-                'campaign_id' => $campaign->id,
-                'user_id' => $participant->user_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        session()->flash('success', __('campaigns.flash_invitation_accepted'));
     }
 
     public function declineInvitation(string $participantId): void
     {
         $participant = CampaignParticipant::findOrFail($participantId);
+        $campaign = $participant->campaign;
 
-        if ($participant->user_id !== Auth::id()) {
-            session()->flash('error', __('campaigns.error_not_your_invitation'));
-            return;
+        $result = app(ParticipantService::class)->declineInvitation(
+            $participant,
+            $campaign,
+            Auth::user(),
+        );
+
+        if ($result->success) {
+            session()->flash('success', __($result->messageKey, $result->messageParams));
+        } elseif ($result->errorKey) {
+            session()->flash('error', __($result->errorKey, $result->errorParams));
         }
-
-        if ($participant->role !== 'invited' || $participant->status !== \App\Enums\ParticipantStatus::Pending) {
-            session()->flash('error', __('campaigns.error_invitation_invalid'));
-            return;
-        }
-
-        $previousStatus = $participant->status;
-        $participant->status = \App\Enums\ParticipantStatus::Rejected;
-        $participant->save();
-
-        Log::info('Campaign invitation declined', [
-            'entity_id' => $participant->campaign_id,
-            'participant_id' => $participant->id,
-            'user_id' => $participant->user_id,
-            'previous_status' => $previousStatus?->value,
-            'new_status' => 'rejected',
-        ]);
-
-        session()->flash('success', __('campaigns.flash_invitation_declined'));
     }
 }

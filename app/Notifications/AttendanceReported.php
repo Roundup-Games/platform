@@ -6,12 +6,9 @@ use App\Dto\PushPayload;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class AttendanceReported extends Notification
+class AttendanceReported extends BaseNotification
 {
     use HasUnsubscribeLink;
 
@@ -23,16 +20,6 @@ class AttendanceReported extends Notification
         public Game $game,
         public AttendanceReport $report,
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.

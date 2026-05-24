@@ -112,8 +112,8 @@ it('redirects to home for non-logged-in users', function () {
 });
 
 it('generates valid unsubscribe URLs in notification emails', function () {
-    $notification = new \App\Notifications\GameInvitation(
-        game: \App\Models\Game::factory()->create(),
+    $notification = new \App\Notifications\EntityInvitation(
+        entity: \App\Models\Game::factory()->create(),
         inviter: User::factory()->create(),
     );
 

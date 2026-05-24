@@ -32,8 +32,7 @@ class NotificationQueryService
      */
     private const ACTOR_NAME_KEYS = [
         'NewFollower'          => 'follower_name',
-        'GameInvitation'       => 'inviter_name',
-        'CampaignInvitation'   => 'inviter_name',
+        'EntityInvitation'     => 'inviter_name',
         'TeamInvitation'       => 'inviter_name',
         'NewApplication'       => 'applicant_name',
         'ApplicationApproved'  => 'approver_name',
@@ -42,6 +41,10 @@ class NotificationQueryService
         'ParticipantRemoved'   => 'remover_name',
         'TeamMemberRemoved'    => 'remover_name',
         'SessionAddedToCampaign' => 'dm_name',
+        // Legacy class names — kept for records created before the
+        // consolidate_notification_types migration ran.
+        'GameInvitation'       => 'inviter_name',
+        'CampaignInvitation'   => 'inviter_name',
     ];
 
     /**
@@ -122,7 +125,7 @@ class NotificationQueryService
                 $groups[$groupKey] = (object) [
                     'type'           => $shortType,
                     'full_type'      => $notification->type,
-                    'category'       => $this->resolveCategory($shortType),
+                    'category'       => $this->resolveCategory($shortType, $notification->data),
                     'count'          => 0,
                     'latest'         => $notification,
                     'actor_names'    => [],
@@ -170,17 +173,44 @@ class NotificationQueryService
 
     /**
      * Resolve the NotificationCategory enum value for a notification type short-name.
+     *
+     * Two-tier resolution:
+     *  1. Snake-case the short class name and match against the enum (e.g. 'GameInvitation' → 'game_invitation').
+     *     This works for non-unified classes whose names map directly to enum cases.
+     *  2. Fall back to the notification's data payload `type` field (e.g. 'game_invitation').
+     *     Required for unified notification classes (EntityInvitation, EntityCancelled, etc.)
+     *     whose class names don't match any enum case. The data.type field carries the
+     *     entity-specific discriminator.
+     *
+     * Contract: Unified notification classes must always set data.type in toDatabase().
+     *
+     * @param  string  $shortType  Short class name (e.g. 'EntityInvitation')
+     * @param  array<string, mixed>  $data  Notification data payload
      */
-    protected function resolveCategory(string $shortType): ?string
+    protected function resolveCategory(string $shortType, array $data): ?string
     {
+        // Try class-name-based resolution first
         try {
             $category = NotificationCategory::from(
                 \Illuminate\Support\Str::snake($shortType)
             );
             return $category->value;
         } catch (\ValueError) {
-            return null;
+            // Class name didn't match — try the data payload's type field
         }
+
+        // Fall back to the notification data's type (e.g. 'game_invitation')
+        $dataType = $data['type'] ?? null;
+        if ($dataType !== null) {
+            try {
+                $category = NotificationCategory::from($dataType);
+                return $category->value;
+            } catch (\ValueError) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -215,7 +245,7 @@ class NotificationQueryService
     {
         $actors = $group->actor_names;
         $count = count($actors);
-        $verb = $this->resolveVerb($group->type);
+        $verb = $this->resolveVerb($group->type, $group->latest->data ?? []);
 
         if ($count === 0) {
             // No actor — use the latest notification's data for context
@@ -259,18 +289,36 @@ class NotificationQueryService
     /**
      * Resolve a human-readable verb phrase for a notification type.
      *
-     * The verb describes what happened — e.g. "followed you", "invited you to a game".
-     * Falls back to the snake_case type as a generic label.
+     * Three-tier resolution:
+     *  1. Translation key from snake-cased short class name (notifications.verb_game_invitation).
+     *  2. Translation key from data.type field (notifications.verb_game_invitation via 'game_invitation').
+     *     Required for unified notification classes whose class names don't have dedicated
+     *     translation keys. The data.type field carries the entity-specific discriminator.
+     *  3. Humanized fallback from the snake-cased short type.
+     *
+     * Contract: Unified notification classes must always set data.type in toDatabase().
+     *
+     * @param  string  $shortType  Short class name (e.g. 'EntityInvitation')
+     * @param  array<string, mixed>  $data  Notification data payload
      */
-    protected function resolveVerb(string $shortType): string
+    protected function resolveVerb(string $shortType, array $data): string
     {
         $key = 'notifications.verb_' . \Illuminate\Support\Str::snake($shortType);
 
         $translated = __($key);
 
         // If the translation key doesn't exist, __() returns the key itself —
-        // fall back to a humanized snake_case version of the type.
+        // try the notification data's type field for unified notification classes.
         if ($translated === $key) {
+            $dataType = $data['type'] ?? null;
+            if ($dataType !== null) {
+                $dataKey = 'notifications.verb_' . $dataType;
+                $dataTranslated = __($dataKey);
+                if ($dataTranslated !== $dataKey) {
+                    return $dataTranslated;
+                }
+            }
+
             return str_replace('_', ' ', \Illuminate\Support\Str::snake($shortType));
         }
 

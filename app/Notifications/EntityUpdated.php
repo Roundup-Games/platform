@@ -2,38 +2,25 @@
 
 namespace App\Notifications;
 
-use App\Models\Campaign;
-use App\Models\User;
 use App\Dto\PushPayload;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
+use App\Models\Campaign;
+use App\Models\Game;
+use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class CampaignUpdated extends Notification
+class EntityUpdated extends BaseNotification
 {
     use HasUnsubscribeLink;
+    use RoutesGameOrCampaign;
 
     /**
-     * @param  Campaign  $campaign  The campaign that was updated
+     * @param  Game|Campaign  $entity  The game or campaign that was updated
      * @param  string[]  $changedFields  Human-readable list of changed field names
      */
     public function __construct(
-        public Campaign $campaign,
+        public Game|Campaign $entity,
         public array $changedFields = [],
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     * When dispatched via NotificationService, channels are resolved
-     * from user preferences; this serves as a fallback default.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.
@@ -41,19 +28,20 @@ class CampaignUpdated extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
         $fields = implode(', ', $this->changedFields);
 
         return (new MailMessage)
-            ->subject(__('notifications.subject_campaign_updated', [
-                'campaign' => $this->campaign->name,
+            ->subject(__("notifications.subject_{$type}_updated", [
+                $type => $this->entity->name,
             ]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
-            ->line(__('notifications.body_campaign_updated', [
-                'campaign' => $this->campaign->name,
+            ->line(__("notifications.body_{$type}_updated", [
+                $type => $this->entity->name,
                 'fields' => $fields,
             ]))
-            ->action(__('notifications.action_view_campaign'), route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]))
-            ->line($this->unsubscribeLine($notifiable, 'campaign_updated'));
+            ->action(__("notifications.action_view_{$type}"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]))
+            ->line($this->unsubscribeLine($notifiable, "{$type}_updated"));
     }
 
     /**
@@ -64,14 +52,15 @@ class CampaignUpdated extends Notification
     public function toDatabase(object $notifiable): array
     {
         $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $type = $this->getEntityType();
 
         return [
-            'type' => 'campaign_updated',
-            'entity_type' => 'campaign',
-            'entity_id' => $this->campaign->id,
-            'entity_name' => $this->campaign->name,
+            'type' => "{$type}_updated",
+            'entity_type' => $type,
+            'entity_id' => $this->entity->id,
+            'entity_name' => $this->entity->name,
             'changed_fields' => $this->changedFields,
-            'action_url' => route('campaigns.show', ['locale' => $locale, 'id' => $this->campaign->id]),
+            'action_url' => route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity->id]),
         ];
     }
 
@@ -80,7 +69,7 @@ class CampaignUpdated extends Notification
      */
     public function getActor(): ?User
     {
-        return $this->campaign->owner;
+        return $this->entity->owner;
     }
 
     /**

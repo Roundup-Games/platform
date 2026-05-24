@@ -13,7 +13,6 @@ use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,48 +21,13 @@ use Livewire\WithPagination;
 class AdventuresDiscovery extends Component
 {
     use HasGuestLocation;
+    use ManagesDiscoveryFilters;
     use WithPagination;
 
-    // ── Shared filters ─────────────────────────────────
-
-    #[Url(as: 'q')]
-    public string $search = '';
-
-    #[Url]
-    public ?string $game_system_id = null;
-
-    #[Url]
-    public string $experience_level = '';
-
-    #[Url]
-    public array $vibe_flags = [];
-
-    /** @var array<string, string|null> VibeFlag value → null|'favorite'|'avoid', for VibePreferencePicker */
-    public array $vibePreferences = [];
+    // ── Shared filters (safety_tools differs per page) ──
 
     #[Url]
     public array $safety_tools = [];
-
-    #[Url]
-    public string $language = '';
-
-    #[Url]
-    public ?string $complexity_min = null;
-
-    #[Url]
-    public ?string $complexity_max = null;
-
-    #[Url]
-    public string $price = '';
-
-    // ── Proximity filter ───────────────────────────────
-
-    /** @var float Search radius in km (0 = no proximity filter) */
-    #[Url(as: 'radius')]
-    public float $radius = 0;
-
-    /** @var bool Whether results came from the wider fallback radius */
-    public bool $usingFallbackRadius = false;
 
     // ── Adventures-specific filters ─────────────────────
 
@@ -79,71 +43,9 @@ class AdventuresDiscovery extends Component
     #[Url]
     public bool $session_zero = false;
 
-    // ── Lifecycle ──────────────────────────────────────
-
-    public function mount(): void
-    {
-        $user = Auth::user();
-        if (!$this->language) {
-            $this->language = ($user && $user->preferred_language)
-                ? $user->preferred_language->value
-                : app()->getLocale();
-        }
-
-        // Build vibePreferences from URL vibe_flags (all treated as favorites)
-        foreach (VibeFlag::cases() as $flag) {
-            if (in_array($flag->value, $this->vibe_flags, true)) {
-                $this->vibePreferences[$flag->value] = 'favorite';
-            } else {
-                $this->vibePreferences[$flag->value] = null;
-            }
-        }
-
-        // Pre-select vibe flags from user preferences (only if no URL values already set)
-        if ($user && empty($this->vibe_flags)) {
-            $resolvedVibes = $user->resolvedVibePreferences();
-            if (!empty($resolvedVibes['favorites'])) {
-                foreach ($resolvedVibes['favorites'] as $flagValue) {
-                    $this->vibePreferences[$flagValue] = 'favorite';
-                }
-                $this->vibe_flags = $resolvedVibes['favorites'];
-            }
-        }
-    }
-
-    // ── Updating hooks ─────────────────────────────────
-
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingGameSystemId(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingExperienceLevel(): void
-    {
-        $this->resetPage();
-    }
+    // ── Page-specific updating hooks ────────────────────
 
     public function updatingSafetyTools(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingLanguage(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPrice(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingRadius(): void
     {
         $this->resetPage();
     }
@@ -199,16 +101,6 @@ class AdventuresDiscovery extends Component
         $this->resetPage();
     }
 
-    public function setRadius(float $radius): void
-    {
-        if ($radius != 0 && !in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
-            return;
-        }
-        $this->radius = $radius;
-        $this->usingFallbackRadius = false;
-        $this->resetPage();
-    }
-
     public function clearFilters(): void
     {
         $this->reset([
@@ -221,28 +113,6 @@ class AdventuresDiscovery extends Component
         foreach (VibeFlag::cases() as $flag) {
             $this->vibePreferences[$flag->value] = null;
         }
-        $this->resetPage();
-    }
-
-    // ── Picker event listeners ─────────────────────────
-
-    #[On('value-updated')]
-    public function onGameSystemUpdated($value): void
-    {
-        $this->game_system_id = $value;
-        $this->resetPage();
-    }
-
-    #[On('vibe-preferences-changed')]
-    public function onVibePreferencesChanged(array $preferences): void
-    {
-        $this->vibePreferences = $preferences;
-        // Extract only favorites for the query filter
-        $this->vibe_flags = collect($preferences)
-            ->filter(fn ($value) => $value === 'favorite')
-            ->keys()
-            ->values()
-            ->all();
         $this->resetPage();
     }
 

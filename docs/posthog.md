@@ -50,14 +50,6 @@ if ($flags->isOn('my-flag')) { ... }
 $variant = $flags->getVariant('my-experiment');
 ```
 
-### Livewire Components
-
-```php
-use EvaluatesFeatureFlags;
-
-if ($this->featureFlagIsOn('my-flag')) { ... }
-```
-
 ### Client-side (JS)
 
 ```js

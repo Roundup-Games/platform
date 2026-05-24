@@ -5,12 +5,9 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class WaitlistPromoted extends Notification
+class WaitlistPromoted extends BaseNotification
 {
     use HasUnsubscribeLink, RoutesGameOrCampaign;
 
@@ -18,14 +15,6 @@ class WaitlistPromoted extends Notification
         public Game|Campaign $entity,
         public string $confirmationDeadline = '',
     ) {}
-
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     public function toMail(object $notifiable): MailMessage
     {

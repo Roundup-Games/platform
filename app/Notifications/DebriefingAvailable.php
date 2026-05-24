@@ -5,12 +5,9 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
-use Illuminate\Notifications\Channels\DatabaseChannel;
-use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class DebriefingAvailable extends Notification
+class DebriefingAvailable extends BaseNotification
 {
     use HasUnsubscribeLink;
 
@@ -20,16 +17,6 @@ class DebriefingAvailable extends Notification
     public function __construct(
         public Game $game,
     ) {}
-
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return [DatabaseChannel::class, MailChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.

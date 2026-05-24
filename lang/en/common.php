@@ -291,6 +291,7 @@ return [
     'flash_bench_removed' => 'Player removed from bench.',
     'error_participant_not_waitlisted' => 'This participant is not on the waitlist.',
     'error_participant_not_benched' => 'This participant is not on the bench.',
+    'error_participant_not_applicant' => 'This participant is not an applicant.',
     'flash_now_following' => 'You are now following :name.',
     'flash_unfollowed' => 'You unfollowed :name.',
     'flash_follower_removed' => 'You removed :name from your followers.',
