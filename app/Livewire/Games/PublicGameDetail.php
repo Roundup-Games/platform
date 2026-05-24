@@ -32,6 +32,15 @@ class PublicGameDetail extends Component
     {
         $game = Game::findOrFail($id);
         $this->authorize('view', $game);
+
+        // Authenticated users should use the dashboard game detail (with join/apply CTA)
+        if (Auth::check()) {
+            $query = array_filter(['share' => request()->query('share')]);
+            $this->redirect(route('games.show', array_merge([$game->id], $query)), navigate: true);
+
+            return;
+        }
+
         $this->game = $game;
 
         // Capture valid share token on initial page load

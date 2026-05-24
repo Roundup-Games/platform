@@ -120,7 +120,7 @@ describe('Game report button', function () {
             ->assertDontSee('Report');
     });
 
-    it('shows report button for authenticated non-owner on public game detail', function () {
+    it('redirects authenticated non-owner away from public game detail', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $viewer = User::factory()->create(['profile_complete' => true]);
         $system = createGameSystem();
@@ -128,17 +128,17 @@ describe('Game report button', function () {
 
         Livewire::actingAs($viewer)
             ->test(PublicGameDetail::class, ['id' => $game->id])
-            ->assertSee('Report');
+            ->assertRedirect(route('games.show', $game->id));
     });
 
-    it('does not show report button for game owner on public game detail', function () {
+    it('redirects authenticated game owner away from public game detail', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $system = createGameSystem();
         $game = createGameWithOwner($system, $owner);
 
         Livewire::actingAs($owner)
             ->test(PublicGameDetail::class, ['id' => $game->id])
-            ->assertDontSee('Report');
+            ->assertRedirect(route('games.show', $game->id));
     });
 });
 
@@ -168,7 +168,7 @@ describe('Campaign report button', function () {
             ->assertDontSee('Report');
     });
 
-    it('shows report button for authenticated non-owner on public campaign detail', function () {
+    it('redirects authenticated non-owner away from public campaign detail', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $viewer = User::factory()->create(['profile_complete' => true]);
         $system = createGameSystem();
@@ -176,16 +176,16 @@ describe('Campaign report button', function () {
 
         Livewire::actingAs($viewer)
             ->test(PublicCampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee('Report');
+            ->assertRedirect(route('campaigns.show', $campaign->id));
     });
 
-    it('does not show report button for campaign owner on public campaign detail', function () {
+    it('redirects authenticated campaign owner away from public campaign detail', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
         $system = createGameSystem();
         $campaign = createCampaignWithOwner($system, $owner);
 
         Livewire::actingAs($owner)
             ->test(PublicCampaignDetail::class, ['id' => $campaign->id])
-            ->assertDontSee('Report');
+            ->assertRedirect(route('campaigns.show', $campaign->id));
     });
 });
