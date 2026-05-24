@@ -8,6 +8,7 @@ use App\Enums\ExperienceLevel;
 use App\Enums\PlayStyle;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
+use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
 use Illuminate\Support\Facades\Auth;
@@ -147,6 +148,16 @@ class AdventuresDiscovery extends Component
         $hasLocation = $this->hasGuestLocation();
         $lat = $this->guestLat;
         $lng = $this->guestLng;
+
+        // Fallback to the logged-in user's saved location when browser geolocation is unavailable
+        if (! $hasLocation && $user && $user->location_id) {
+            $userLocation = Location::find($user->location_id);
+            if ($userLocation) {
+                $lat = (float) $userLocation->latitude;
+                $lng = (float) $userLocation->longitude;
+                $hasLocation = true;
+            }
+        }
 
         $filters = DiscoveryFilters::fromLivewire($this);
 
