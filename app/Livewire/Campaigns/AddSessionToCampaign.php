@@ -95,10 +95,10 @@ class AddSessionToCampaign extends Component
                 ->get();
 
             foreach ($approvedParticipants as $campaignParticipant) {
-                // Check if game is full
+                // Check if game is full (owner counts as a player)
                 $currentApproved = GameParticipant::where('game_id', $game->id)
                     ->where('status', 'approved')
-                    ->count();
+                    ->count() + 1; // +1 for the campaign owner / GM
                 $isFull = $game->max_players !== null && $currentApproved >= $game->max_players;
 
                 if ($isFull) {

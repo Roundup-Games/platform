@@ -456,5 +456,40 @@ describe('ParticipantService', function () {
 
             expect($this->service->isAtCapacity($game))->toBeTrue();
         });
+
+        it('counts the owner as a player for capacity', function () {
+            $game = Game::factory()->create([
+                'owner_id' => $this->owner->id,
+                'game_system_id' => $this->system->id,
+                'max_players' => 3,
+            ]);
+
+            // No participants at all — just the owner
+            expect($this->service->getApprovedPlayerCount($game))->toBe(1);
+            expect($this->service->isAtCapacity($game))->toBeFalse();
+
+            // Add 1 approved participant → owner + 1 = 2/3
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->friend->id,
+                'role' => 'player',
+                'status' => 'approved',
+                'join_source' => JoinSource::Application,
+            ]);
+            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->isAtCapacity($game))->toBeFalse();
+
+            // Add 1 more → owner + 2 = 3/3 → full
+            $stranger = User::factory()->create();
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $stranger->id,
+                'role' => 'player',
+                'status' => 'approved',
+                'join_source' => JoinSource::Application,
+            ]);
+            expect($this->service->getApprovedPlayerCount($game))->toBe(3);
+            expect($this->service->isAtCapacity($game))->toBeTrue();
+        });
     });
 });

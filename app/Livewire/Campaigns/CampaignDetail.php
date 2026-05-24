@@ -202,11 +202,7 @@ class CampaignDetail extends Component
                     }
                 }
 
-                $approvedCount = $campaign->participants()
-                    ->where('status', ParticipantStatus::Approved->value)
-                    ->count();
-
-                $isFull = $campaign->max_players !== null && $approvedCount >= $campaign->max_players;
+                $isFull = $this->participantService()->isAtCapacity($campaign);
 
                 $baseData = [
                     'campaign_id' => $campaign->id,
@@ -366,8 +362,7 @@ class CampaignDetail extends Component
     #[Computed]
     public function isCampaignFull(): bool
     {
-        return $this->campaign->max_players !== null
-            && $this->campaign->participants->where('status', ParticipantStatus::Approved->value)->count() >= $this->campaign->max_players;
+        return $this->participantService()->isAtCapacity($this->campaign);
     }
 
     #[Computed]

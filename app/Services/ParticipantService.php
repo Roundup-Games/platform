@@ -615,16 +615,19 @@ class ParticipantService
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        // Check capacity atomically
+        // Check capacity atomically (owner counts as a player)
         $overflowed = DB::transaction(function () use ($entity, $participant) {
             $lockedEntity = $entity->newModelQuery()
                 ->where('id', $entity->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $currentCount = $lockedEntity->participants()
+            $approvedParticipants = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved)
                 ->count();
+
+            // +1 for the owner, who has no participant record
+            $currentCount = $approvedParticipants + 1;
 
             if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
                 return true;
@@ -864,7 +867,28 @@ class ParticipantService
     }
 
     /**
+     * Count of approved players INCLUDING the owner.
+     *
+     * The owner is always present at the table but has no participant record,
+     * so we add 1 to the approved participant count. This centralises the
+     * "owner counts as a player" rule so future changes (e.g. "GM needed"
+     * where the organiser slot can be vacant) only need to touch this method.
+     */
+    public function getApprovedPlayerCount(Game|Campaign $entity): int
+    {
+        $approvedParticipants = $entity->participants()
+            ->where('status', ParticipantStatus::Approved)
+            ->count();
+
+        // Owner is always a player at the table (no participant record).
+        return $approvedParticipants + 1;
+    }
+
+    /**
      * Check if the entity has reached max_players capacity.
+     *
+     * Accounts for the owner as a player. Returns false when max_players
+     * is not set (unlimited capacity).
      */
     public function isAtCapacity(Game|Campaign $entity): bool
     {
@@ -872,9 +896,7 @@ class ParticipantService
             return false;
         }
 
-        return $entity->participants()
-            ->where('status', ParticipantStatus::Approved)
-            ->count() >= $entity->max_players;
+        return $this->getApprovedPlayerCount($entity) >= $entity->max_players;
     }
 
     // ── Private helpers ────────────────────────────────
