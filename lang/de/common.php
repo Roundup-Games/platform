@@ -211,6 +211,8 @@ return [
     'content_visibility' => 'Sichtbarkeit *',
     'content_visibility_controls' => 'Sichtbarkeitseinstellungen',
     'content_waitlisted' => 'Auf Warteliste',
+    'content_n_waitlisted' => '{1} :count auf Warteliste|[2,*] :count auf Warteliste',
+    'content_n_on_bench' => '{1} :count auf der Bank|[2,*] :count auf der Bank',
     'content_we_typically_respond_within_24' => 'Wir antworten in der Regel innerhalb von 24–48 Stunden an Werktagen.',
 
     'content_you' => '(du)',

@@ -212,6 +212,8 @@ return [
     'content_visibility' => 'Visibility *',
     'content_visibility_controls' => 'Visibility controls',
     'content_waitlisted' => 'Waitlisted',
+    'content_n_waitlisted' => '{1} :count waitlisted|[2,*] :count waitlisted',
+    'content_n_on_bench' => '{1} :count on bench|[2,*] :count on bench',
     'content_we_typically_respond_within_24' => 'We typically respond within 24–48 hours during business days.',
 
     'content_you' => '(you)',
