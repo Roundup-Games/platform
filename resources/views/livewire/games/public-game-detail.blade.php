@@ -79,7 +79,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <p class="text-sm text-on-surface-variant italic">{{ __('games.content_no_participants_yet') }}</p>
+                            <p class="text-sm text-on-surface-variant italic">{{ __('common.content_no_participants_yet') }}</p>
                         @endif
                     @endauth
                 </section>
