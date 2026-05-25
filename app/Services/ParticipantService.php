@@ -402,7 +402,15 @@ class ParticipantService
     ): ParticipantResult {
         $meta = $this->entityMeta($entity);
 
-        if ($participant->role !== 'applicant') {
+        // Check for a pending application rather than relying on participant role,
+        // since public games create participants with role='player' even when
+        // the application record is still pending (e.g. pre-fix data).
+        $pendingApplication = $entity->applications()
+            ->where('user_id', $participant->user_id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if (! $pendingApplication) {
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
@@ -459,7 +467,12 @@ class ParticipantService
     ): ParticipantResult {
         $meta = $this->entityMeta($entity);
 
-        if ($participant->role !== 'applicant') {
+        $pendingApplication = $entity->applications()
+            ->where('user_id', $participant->user_id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if (! $pendingApplication) {
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
