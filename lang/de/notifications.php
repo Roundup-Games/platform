@@ -310,4 +310,8 @@ return [
     'body_account_suspended' => 'Dein Konto wurde wegen eines Verstoßes gegen unsere Community-Richtlinien gesperrt.',
     'body_account_suspended_reason' => 'Grund: :reason',
     'body_account_suspended_contact' => 'Wenn du glaubst, dass dies ein Fehler ist, wende dich bitte an unser Support-Team.',
+
+    // Verknüpfte Benachrichtigungsanzeige
+    'label_conjunction_and' => 'und',
+    'label_count_others' => ':count weiterer|:count weitere',
 ];

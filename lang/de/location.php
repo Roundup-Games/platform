@@ -32,7 +32,6 @@ return [
     'hint_session_location' => 'Wo findet diese Session statt? Wähle einen Ort, den Teilnehmer leicht finden können.',
     'hint_profile_location' => 'Dies hilft Spielern, Spiele in deiner Nähe zu finden. Nur deine Stadt ist für andere sichtbar.',
     'content_location_not_set' => 'Kein Standort festgelegt',
-    'content_we_think_you_re_in_city_is_that_right' => 'Wir glauben, du bist in :city — stimmt das?',
     'field_neighborhood' => 'Stadtteil',
     'placeholder_neighborhood_optional' => 'Stadtteil oder Viertel (optional)',
     'hint_neighborhood_profile' => 'Hilft Spielern, Spiele in der Nähe zu finden. Wird nicht anderen angezeigt, es sei denn, du teilst es.',

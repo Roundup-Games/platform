@@ -48,6 +48,51 @@ class NotificationQueryService
     ];
 
     /**
+     * Map notification class short-names to the data JSON key that holds the
+     * actor's user ID. Used for building profile links.
+     */
+    private const ACTOR_ID_KEYS = [
+        'NewFollower'          => 'follower_id',
+        'EntityInvitation'     => 'inviter_id',
+        'TeamInvitation'       => 'inviter_id',
+        'NewApplication'       => 'applicant_id',
+        'ApplicationApproved'  => 'approver_id',
+        'ApplicationRejected'  => 'rejector_id',
+        'ParticipantJoined'    => 'participant_id',
+        'ParticipantRemoved'   => 'removed_user_id',
+        'TeamMemberRemoved'    => 'removed_user_id',
+        'SessionAddedToCampaign' => 'dm_id',
+        'GameInvitation'       => 'inviter_id',
+        'CampaignInvitation'   => 'inviter_id',
+    ];
+
+    /**
+     * Map notification class short-names to the data JSON keys for entity
+     * name and ID. Used for building entity links in display strings.
+     *
+     * Each entry maps to ['name' => key, 'id' => key].
+     */
+    private const TARGET_ENTITY_KEYS = [
+        'NewApplication'       => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'ParticipantJoined'    => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'ApplicationApproved'  => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'ApplicationRejected'  => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'ParticipantRemoved'   => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'EntityCompleted'      => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'EntityUpdated'        => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'EntityCancelled'      => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'WaitlistPromoted'     => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'PlayerBenched'        => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'ConfirmationExpired'  => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'SessionReminder'      => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'BelowMinPlayersWarning' => ['name' => 'entity_name', 'id' => 'entity_id'],
+        'SessionAddedToCampaign' => ['name' => 'campaign_name', 'id' => 'campaign_id'],
+        'EntityInvitation'     => null, // Dynamic — resolved at runtime
+        'TeamInvitation'       => ['name' => 'team_name', 'id' => null],
+        'NewFollower'          => null,
+    ];
+
+    /**
      * Get the count of unread notifications for a user.
      */
     public function getUnreadCount(User $user): int
@@ -129,9 +174,11 @@ class NotificationQueryService
                     'count'          => 0,
                     'latest'         => $notification,
                     'actor_names'    => [],
+                    'actor_ids'      => [],
                     'is_read'        => true,
                     'group_key'      => $groupKey,
                     'created_at'     => $notification->created_at,
+                    'action_url'     => $notification->data['action_url'] ?? null,
                 ];
             }
 
@@ -141,6 +188,7 @@ class NotificationQueryService
             // Update latest to the most recent notification
             if ($notification->created_at->gt($group->latest->created_at)) {
                 $group->latest = $notification;
+                $group->action_url = $notification->data['action_url'] ?? $group->action_url;
             }
 
             // Track unread state — group is unread if ANY notification is unread
@@ -148,18 +196,29 @@ class NotificationQueryService
                 $group->is_read = false;
             }
 
-            // Extract actor name from data JSON
+            // Extract actor name and ID from data JSON
             $actorName = $this->extractActorName($shortType, $notification->data);
+            $actorId = $this->extractActorId($shortType, $notification->data);
+
             if ($actorName !== null && !in_array($actorName, $group->actor_names, true)) {
                 $group->actor_names[] = $actorName;
+                $group->actor_ids[] = $actorId;
             }
         }
+
+        // Batch-resolve actor user IDs to profile URLs (single query)
+        $allActorIds = collect($groups)->flatMap(fn ($g) => $g->actor_ids)->filter()->unique()->values();
+        $usernames = $allActorIds->isNotEmpty()
+            ? User::whereIn('id', $allActorIds)->pluck('slug', 'id')
+            : collect();
 
         // Sort groups by latest notification date (desc)
         $sorted = collect($groups)->sortByDesc(fn ($g) => $g->created_at->timestamp);
 
         // Build display strings and apply cap
-        $result = $sorted->values()->map(function ($group) {
+        $result = $sorted->values()->map(function ($group) use ($usernames) {
+            $group->display_html = $this->buildDisplayHtml($group, $usernames);
+            // Keep plain-text version for accessibility / screen readers
             $group->display_string = $this->buildDisplayString($group);
             return $group;
         });
@@ -230,6 +289,136 @@ class NotificationQueryService
         }
 
         return $data[$nameKey] ?? null;
+    }
+
+    /**
+     * Extract the actor user ID from a notification's data payload.
+     *
+     * Uses the ACTOR_ID_KEYS map to find the correct JSON key for each
+     * notification type. Returns null for types without an actor.
+     *
+     * @param array<string, mixed> $data
+     */
+    protected function extractActorId(string $shortType, array $data): ?string
+    {
+        $idKey = self::ACTOR_ID_KEYS[$shortType] ?? null;
+
+        if ($idKey === null) {
+            return null;
+        }
+
+        return $data[$idKey] ?? null;
+    }
+
+    /**
+     * Build an HTML display string with clickable links for actor names and entity names.
+     *
+     * @param object $group  Grouped notification view model
+     * @param \Illuminate\Support\Collection<string, string> $usernames  Map of user_id => username
+     */
+    protected function buildDisplayHtml(object $group, $usernames): string
+    {
+        $actors = $group->actor_names;
+        $actorIds = $group->actor_ids;
+        $data = $group->latest->data ?? [];
+        $verb = $this->resolveVerb($group->type, $data);
+        $actorCount = count($actors);
+
+        // Build linked actor names
+        $linkedActors = [];
+        for ($i = 0; $i < $actorCount; $i++) {
+            $name = e($actors[$i]);
+            $id = $actorIds[$i] ?? null;
+            $username = $id ? $usernames->get($id) : null;
+
+            if ($username) {
+                $url = route('profile.public', ['locale' => app()->getLocale(), 'user' => $username]);
+                $linkedActors[] = '<a href="' . e($url) . '" wire:navigate class="font-medium text-primary hover:text-primary/80 transition-colors">' . $name . '</a>';
+            } else {
+                $linkedActors[] = '<span class="font-medium">' . $name . '</span>';
+            }
+        }
+
+        // Build linked entity name
+        $entityName = $this->extractEntityName($group->type, $data);
+        $entityUrl = $group->action_url;
+        $linkedEntity = null;
+
+        if ($entityName !== null) {
+            $escapedName = e($entityName);
+            if ($entityUrl) {
+                $linkedEntity = '<a href="' . e($entityUrl) . '" wire:navigate class="font-medium text-primary hover:text-primary/80 transition-colors">' . $escapedName . '</a>';
+            } else {
+                $linkedEntity = '<span class="font-medium">' . $escapedName . '</span>';
+            }
+        }
+
+        // Compose the HTML display string
+        if ($actorCount === 0) {
+            if ($linkedEntity !== null) {
+                return e($verb) . ': ' . $linkedEntity;
+            }
+            return e($verb);
+        }
+
+        $actorHtml = $this->formatActorList($linkedActors);
+
+        if ($linkedEntity !== null) {
+            return $actorHtml . ' ' . e($verb) . ' ' . $linkedEntity;
+        }
+
+        return $actorHtml . ' ' . e($verb);
+    }
+
+    /**
+     * Format a list of linked actor names into HTML.
+     *
+     * Pattern:
+     *   - 1 actor:  "Alice"
+     *   - 2 actors: "Alice and Bob"
+     *   - 3+ actors: "Alice, Bob, and 3 others"
+     */
+    protected function formatActorList(array $linkedActors): string
+    {
+        $count = count($linkedActors);
+
+        if ($count === 1) {
+            return $linkedActors[0];
+        }
+
+        if ($count === 2) {
+            return $linkedActors[0] . ' ' . __('notifications.label_conjunction_and') . ' ' . $linkedActors[1];
+        }
+
+        $others = $count - 2;
+        return $linkedActors[0] . ', ' . $linkedActors[1] . ', ' .
+            __('notifications.label_conjunction_and') . ' ' .
+            trans_choice('notifications.label_count_others', $others, ['count' => $others]);
+    }
+
+    /**
+     * Extract the target entity name from a notification's data payload.
+     *
+     * @param string $shortType
+     * @param array<string, mixed> $data
+     */
+    protected function extractEntityName(string $shortType, array $data): ?string
+    {
+        // Unified notification classes (EntityInvitation, etc.) use dynamic keys
+        if ($shortType === 'EntityInvitation' || $shortType === 'EntityCompleted' || $shortType === 'EntityUpdated' || $shortType === 'EntityCancelled') {
+            $type = $data['type'] ?? $data['entity_type'] ?? null;
+            if ($type !== null) {
+                $nameKey = "{$type}_name";
+                return $data[$nameKey] ?? $data['entity_name'] ?? null;
+            }
+        }
+
+        $mapping = self::TARGET_ENTITY_KEYS[$shortType] ?? null;
+        if ($mapping === null) {
+            return $data['entity_name'] ?? $data['game_name'] ?? $data['campaign_name'] ?? null;
+        }
+
+        return $data[$mapping['name']] ?? null;
     }
 
     /**

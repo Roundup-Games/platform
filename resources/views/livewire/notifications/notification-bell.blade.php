@@ -83,7 +83,7 @@
 
                         <div class="flex-1 min-w-0">
                             {{-- Display string --}}
-                            <p class="text-sm text-on-surface leading-snug line-clamp-2">{{ $group->display_string }}</p>
+                            <p class="text-sm text-on-surface leading-snug line-clamp-2">{!! $group->display_html !!}</p>
 
                             {{-- Meta row: time ago + count --}}
                             <div class="flex items-center gap-2 mt-1">
