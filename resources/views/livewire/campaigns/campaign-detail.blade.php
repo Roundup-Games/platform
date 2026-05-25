@@ -462,9 +462,7 @@
                                         @endif
                                     </div>
                                     @if($application->status === 'pending')
-                                        @php
-                                            $participant = $campaign->participants->firstWhere('user_id', $application->user_id);
-                                        @endphp
+                                        @php($participant = $campaign->participants->firstWhere('user_id', $application->user_id))
                                         @if($participant)
                                             <div class="flex items-center gap-1 shrink-0">
                                                 <button wire:click="approveApplication('{{ $participant->id }}')"
