@@ -356,7 +356,10 @@ class CampaignDetail extends Component
     #[Computed]
     public function hasExistingApplication(): bool
     {
-        return ($id = $this->viewerId()) && $this->campaign->applications()->where('user_id', $id)->exists();
+        return ($id = $this->viewerId()) && $this->campaign->applications()
+            ->where('user_id', $id)
+            ->where('status', 'pending')
+            ->exists();
     }
 
     #[Computed]

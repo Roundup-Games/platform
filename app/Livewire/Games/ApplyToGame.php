@@ -70,7 +70,7 @@ class ApplyToGame extends Component
             'show_route' => 'games.show',
             'entity_type' => 'game',
             'log_key' => 'game_id',
-            'application_status_public' => 'pending',
+            'application_status_public' => 'approved',
             'translations' => [
                 'own_entity_error' => 'games.error_you_cannot_apply_to_your_own_game',
                 'race_applied' => 'games.content_you_have_already_applied_to_this_game',

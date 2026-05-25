@@ -123,10 +123,30 @@
                                 <p class="text-xs text-on-surface-variant truncate ml-11">{{ $application->message }}</p>
                             @endif
                         </div>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
-                            {{ $application->status === 'pending' ? 'bg-tertiary/10 text-tertiary' : ($application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container') }}">
-                            {{ __('games.status_' . $application->status) }}
-                        </span>
+                        @if($application->status === 'pending')
+                            @php
+                                $participant = $game->participants->firstWhere('user_id', $application->user_id);
+                            @endphp
+                            @if($participant)
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button wire:click="approveApplication('{{ $participant->id }}')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-secondary-container text-on-secondary-container hover:bg-secondary/20 transition-colors">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                                        {{ __('common.action_approve') }}
+                                    </button>
+                                    <button wire:click="rejectApplication('{{ $participant->id }}')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-error-container text-on-error-container hover:bg-error/20 transition-colors">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                                        {{ __('common.action_reject') }}
+                                    </button>
+                                </div>
+                            @endif
+                        @else
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
+                                {{ $application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container' }}">
+                                {{ __('games.status_' . $application->status) }}
+                            </span>
+                        @endif
                     </div>
                 @endforeach
             </div>
