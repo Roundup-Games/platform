@@ -230,4 +230,11 @@ return [
 
     // Account Deletion
     'error_account_deletion_failed' => 'Something went wrong while deleting your account. Please try again or contact support.',
+
+    // Support Tickets
+    'title_support_tickets' => 'Support',
+    'title_your_tickets' => 'Your Tickets',
+    'action_new_ticket' => 'New Ticket',
+    'action_view_all_tickets' => 'View all tickets',
+    'content_no_support_tickets' => 'You haven\'t submitted any support tickets yet.',
 ];

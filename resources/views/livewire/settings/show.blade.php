@@ -15,6 +15,7 @@
                 $tabConfig = [
                     'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],
                     'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
+                    'support' => ['label' => __('profile.title_support_tickets'), 'icon' => 'confirmation_number'],
                     'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
                 ];
             @endphp
@@ -117,6 +118,73 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        {{-- ============================================================ --}}
+        {{-- TAB: Support Tickets --}}
+        {{-- ============================================================ --}}
+        <div x-show="activeTab === 'support'" x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             role="tabpanel" id="panel-support" aria-labelledby="tab-support">
+
+            <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">confirmation_number</span>
+                        {{ __('profile.title_your_tickets') }}
+                    </h2>
+                    @can('escalated-customer')
+                        <a href="{{ route('escalated.customer.tickets.create') }}"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:brightness-110 active:scale-[0.96] transition-all">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                            {{ __('profile.action_new_ticket') }}
+                        </a>
+                    @endcan
+                </div>
+
+                @if($tickets->isEmpty())
+                    <p class="text-sm text-on-surface-variant py-6 text-center">
+                        {{ __('profile.content_no_support_tickets') }}
+                    </p>
+                @else
+                    <div class="space-y-2">
+                        @foreach($tickets as $ticket)
+                            <a href="{{ route('escalated.customer.tickets.show', $ticket->reference) }}"
+                               class="block rounded-lg border border-outline-variant hover:border-primary/50 hover:bg-surface-container transition-colors p-3 group">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-on-surface truncate group-hover:text-primary transition-colors">
+                                            {{ $ticket->subject }}
+                                        </p>
+                                        <p class="text-xs text-on-surface-variant mt-0.5">
+                                            {{ $ticket->reference }} &middot; {{ $ticket->updated_at->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full
+                                        {{ $ticket->status->isOpen()
+                                            ? 'bg-primary-container text-on-primary-container'
+                                            : 'bg-surface-container-high text-on-surface-variant' }}">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true"
+                                              style="font-variation-settings: 'FILL' 1">
+                                            {{ $ticket->status->isOpen() ? 'circle' : 'check_circle' }}
+                                        </span>
+                                        {{ $ticket->status->label() }}
+                                    </span>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+
+                    @if($tickets->count() >= 20)
+                        <div class="mt-4 text-center">
+                            <a href="{{ route('escalated.customer.tickets.index') }}"
+                               class="text-sm text-primary hover:underline">
+                                {{ __('profile.action_view_all_tickets') }} &rarr;
+                            </a>
+                        </div>
+                    @endif
+                @endif
+            </section>
         </div>
 
         {{-- ============================================================ --}}

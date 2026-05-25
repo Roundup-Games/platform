@@ -322,8 +322,15 @@ class Show extends Component
     {
         $user = Auth::user();
 
+        $tickets = Ticket::where('requester_type', User::class)
+            ->where('requester_id', $user->id)
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get(['id', 'reference', 'subject', 'status', 'priority', 'updated_at']);
+
         return view('livewire.settings.show', [
             'linkedAccounts' => $user->linkedAccounts()->get(),
+            'tickets' => $tickets,
         ]);
     }
 }
