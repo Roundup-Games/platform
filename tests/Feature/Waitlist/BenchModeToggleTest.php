@@ -401,12 +401,12 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
             ->and($participant->waitlisted_at)->not->toBeNull()
             ->and($participant->benched_at)->toBeNull();
 
-        // GameApplication.status always 'pending'
+        // GameApplication.status matches auto-approved state
         $application = \App\Models\GameApplication::where('game_id', $game->id)
             ->where('user_id', $applicant->id)
             ->first();
         expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+            ->and($application->status)->toBe('approved');
     });
 
     it('routes to bench when game is full and bench_mode=true', function () {
@@ -432,7 +432,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
             ->where('user_id', $applicant->id)
             ->first();
         expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+            ->and($application->status)->toBe('approved');
     });
 
     it('auto-approves when game is not full', function () {
@@ -476,12 +476,12 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
             ->and($participant->benched_at)->toBeNull()
             ->and($participant->waitlisted_at)->toBeNull();
 
-        // Application.status always 'pending' even when auto-approved
+        // Application.status matches auto-approved state
         $application = \App\Models\GameApplication::where('game_id', $game->id)
             ->where('user_id', $applicant->id)
             ->first();
         expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+            ->and($application->status)->toBe('approved');
     });
 
     it('keeps applicant pending for protected game', function () {

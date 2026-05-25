@@ -445,6 +445,52 @@
                     </a>
                 @endif
 
+                {{-- Applications (owner only) --}}
+                @if($isOwner && $campaign->applications->count())
+                    <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                        <h3 class="text-base font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg" aria-hidden="true">inbox</span>
+                            {{ __('common.content_applications') }}
+                        </h3>
+                        <div class="divide-y divide-outline-variant/30">
+                            @foreach($campaign->applications as $application)
+                                <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                    <div class="flex-1 min-w-0">
+                                        <x-user-link :user="$application->user" avatar-size="w-9 h-9" :truncate="true" />
+                                        @if($application->message)
+                                            <p class="text-xs text-on-surface-variant truncate ml-11">{{ $application->message }}</p>
+                                        @endif
+                                    </div>
+                                    @if($application->status === 'pending')
+                                        @php
+                                            $participant = $campaign->participants->firstWhere('user_id', $application->user_id);
+                                        @endphp
+                                        @if($participant)
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <button wire:click="approveApplication('{{ $participant->id }}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-secondary-container text-on-secondary-container hover:bg-secondary/20 transition-colors">
+                                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                                                    {{ __('common.action_approve') }}
+                                                </button>
+                                                <button wire:click="rejectApplication('{{ $participant->id }}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-error-container text-on-error-container hover:bg-error/20 transition-colors">
+                                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                                                    {{ __('common.action_reject') }}
+                                                </button>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0
+                                            {{ $application->status === 'approved' ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container' }}">
+                                            {{ __('campaigns.status_' . $application->status) }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Waitlist Management (owner only, non-bench campaigns) --}}
                 @if($isOwner && $waitlistedPlayers->count())
                     <div class="bg-surface-container-low rounded-xl shadow-ambient p-6">
