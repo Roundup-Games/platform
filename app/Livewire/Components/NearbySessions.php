@@ -164,11 +164,8 @@ class NearbySessions extends Component
             $this->guestLng,
             $radius,
             'game',
-            ['limit' => $this->limit * 2, 'status_filter' => true],
+            ['limit' => $this->limit * 2, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
         );
-
-        // Filter to public games only
-        $gameResults = $gameResults->filter(fn ($r) => $r->entity->visibility === Visibility::Public);
 
         // Query campaigns via their sessions if enabled
         $campaignResults = collect();
@@ -216,10 +213,8 @@ class NearbySessions extends Component
                 $this->guestLng,
                 $this->fallbackRadius,
                 'game',
-                ['limit' => $this->limit, 'status_filter' => true],
+                ['limit' => $this->limit, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
             );
-
-            $fallbackResults = $fallbackResults->filter(fn ($r) => $r->entity->visibility === Visibility::Public);
 
             $sorted = $fallbackResults->map(function ($result) {
                 $game = $result->entity;
@@ -271,12 +266,12 @@ class NearbySessions extends Component
             $this->guestLng,
             $radius,
             'game',
-            ['limit' => 50, 'status_filter' => true],
+            ['limit' => 50, 'status_filter' => true, 'visibility' => [Visibility::Public->value]],
         );
 
         // Group by campaign_id to deduplicate
         $campaignIds = $gameResults
-            ->filter(fn ($r) => $r->entity->campaign_id !== null && $r->entity->visibility === Visibility::Public)
+            ->filter(fn ($r) => $r->entity->campaign_id !== null)
             ->groupBy('entity.campaign_id')
             ->map(fn ($group) => $group->sortBy('distance_km')->first());
 

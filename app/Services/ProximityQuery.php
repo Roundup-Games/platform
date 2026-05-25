@@ -119,6 +119,12 @@ class ProximityQuery
             $innerQuery->where("{$table}.status", $config['status_scope']);
         }
 
+        // Apply visibility filter at SQL level when specified
+        if (isset($options['visibility'])) {
+            $visibilities = is_array($options['visibility']) ? $options['visibility'] : [$options['visibility']];
+            $innerQuery->whereIn("{$table}.visibility", $visibilities);
+        }
+
         // Outer query: filter by exact radius using WHERE (not HAVING)
         $results = DB::table(DB::raw("({$innerQuery->toSql()}) AS proxied"))
             ->mergeBindings($innerQuery)
