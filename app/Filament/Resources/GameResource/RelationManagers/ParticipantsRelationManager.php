@@ -63,7 +63,7 @@ class ParticipantsRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('role')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn ($state): string => match ((string) $state) {
                         'owner' => 'warning',
                         'player' => 'success',
                         'invited' => 'info',
@@ -72,7 +72,7 @@ class ParticipantsRelationManager extends RelationManager
                     }),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn ($state): string => match ((string) $state) {
                         'approved' => 'success',
                         'rejected' => 'danger',
                         'pending' => 'warning',
