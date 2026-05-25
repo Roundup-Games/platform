@@ -96,8 +96,14 @@ trait HandlesApplicationSubmission
                     throw new \RuntimeException(__($config['translations']['already_participant']));
                 }
 
-                // Double-check no existing application
-                if ($applicationClass::where($foreignKey, $entityId)->where('user_id', $userId)->exists()) {
+                // Double-check no active application (pending or approved).
+                // Rejected applications from old removal flow are cleaned up,
+                // but guard against stale data just in case.
+                if ($applicationClass::where($foreignKey, $entityId)
+                    ->where('user_id', $userId)
+                    ->whereIn('status', ['pending', 'approved'])
+                    ->exists()
+                ) {
                     throw new \RuntimeException(__($config['translations']['already_applied']));
                 }
 
