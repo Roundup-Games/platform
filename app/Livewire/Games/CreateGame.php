@@ -306,10 +306,10 @@ class CreateGame extends Component
     public function attendanceToleranceOptions(): array
     {
         return [
-            '' => __('games.attendance_any'),
-            '70' => __('games.attendance_relaxed'),
-            '85' => __('games.attendance_moderate'),
-            '95' => __('games.attendance_strict'),
+            '' => __('games.content_attendance_any'),
+            '70' => __('games.content_attendance_relaxed'),
+            '85' => __('games.content_attendance_moderate'),
+            '95' => __('games.content_attendance_strict'),
         ];
     }
 

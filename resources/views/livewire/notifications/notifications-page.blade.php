@@ -46,7 +46,7 @@
                         <div class="flex-1 min-w-0">
                             {{-- Display string --}}
                             <p class="text-sm {{ $group->is_read ? 'text-on-surface-variant' : 'text-on-surface font-medium' }} leading-snug">
-                                {{ $group->display_string }}
+                                {!! $group->display_html !!}
                             </p>
 
                             {{-- Meta row --}}

@@ -304,4 +304,8 @@ return [
     'body_account_suspended' => 'Your account has been suspended due to a violation of our community guidelines.',
     'body_account_suspended_reason' => 'Reason: :reason',
     'body_account_suspended_contact' => 'If you believe this is an error, please contact our support team.',
+
+    // Linked notification display helpers
+    'label_conjunction_and' => 'and',
+    'label_count_others' => ':count other|:count others',
 ];

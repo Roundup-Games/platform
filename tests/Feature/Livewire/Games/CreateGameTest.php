@@ -434,10 +434,10 @@ describe('CreateGame — Translatable Fields', function () {
             ->html();
 
         expect($html)
-            ->toContain(__('games.attendance_any'))
-            ->toContain(__('games.attendance_relaxed'))
-            ->toContain(__('games.attendance_moderate'))
-            ->toContain(__('games.attendance_strict'))
+            ->toContain(__('games.content_attendance_any'))
+            ->toContain(__('games.content_attendance_relaxed'))
+            ->toContain(__('games.content_attendance_moderate'))
+            ->toContain(__('games.content_attendance_strict'))
             ->toContain(__('games.field_attendance_tolerance'));
     });
 });
