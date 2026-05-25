@@ -15,7 +15,7 @@
                 $tabConfig = [
                     'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],
                     'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
-                    'support' => ['label' => __('profile.title_support_tickets'), 'icon' => 'confirmation_number'],
+                    'support' => ['label' => __('profile.title_support_tickets'), 'icon' => 'contact_support'],
                     'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
                 ];
             @endphp
@@ -130,11 +130,11 @@
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-heading font-semibold tracking-tight text-on-surface flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">confirmation_number</span>
+                        <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true">contact_support</span>
                         {{ __('profile.title_your_tickets') }}
                     </h2>
                     @can('escalated-customer')
-                        <a href="{{ route('escalated.customer.tickets.create') }}"
+                        <a href="/support/create"
                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:brightness-110 active:scale-[0.96] transition-all">
                             <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                             {{ __('profile.action_new_ticket') }}
@@ -149,7 +149,7 @@
                 @else
                     <div class="space-y-2">
                         @foreach($tickets as $ticket)
-                            <a href="{{ route('escalated.customer.tickets.show', $ticket->reference) }}"
+                            <a href="/support/{{ $ticket->reference }}"
                                class="block rounded-lg border border-outline-variant hover:border-primary/50 hover:bg-surface-container transition-colors p-3 group">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0 flex-1">
@@ -177,7 +177,7 @@
 
                     @if($tickets->count() >= 20)
                         <div class="mt-4 text-center">
-                            <a href="{{ route('escalated.customer.tickets.index') }}"
+                            <a href="/support"
                                class="text-sm text-primary hover:underline">
                                 {{ __('profile.action_view_all_tickets') }} &rarr;
                             </a>
