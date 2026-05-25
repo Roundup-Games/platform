@@ -476,21 +476,21 @@ class ParticipantService
             return ParticipantResult::fail('common.error_participant_not_applicant');
         }
 
-        $participant->update(['status' => 'rejected']);
+        $rejectedUserId = $participant->user_id;
 
-        $entity->applications()
-            ->where('user_id', $participant->user_id)
-            ->update(['status' => 'rejected']);
+        // Delete both records so the user can re-apply later if they want
+        $participant->delete();
+        $entity->applications()->where('user_id', $rejectedUserId)->delete();
 
         Log::info($meta['type'] . ' application rejected', [
             $meta['foreignKey'] => $entity->id,
-            'user_id' => $participant->user_id,
+            'user_id' => $rejectedUserId,
             'rejected_by' => $rejecter->id,
         ]);
 
         // Notify applicant
         try {
-            $applicant = User::find($participant->user_id);
+            $applicant = User::find($rejectedUserId);
             if ($applicant) {
                 app(NotificationService::class)->send(
                     $applicant,
@@ -502,7 +502,7 @@ class ParticipantService
             Log::error('notification.application_rejected_dispatch_failed', [
                 'entity_type' => $meta['type'],
                 $meta['foreignKey'] => $entity->id,
-                'applicant_id' => $participant->user_id,
+                'applicant_id' => $rejectedUserId,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -534,12 +534,17 @@ class ParticipantService
         }
 
         $removedUser = User::find($participant->user_id);
+        $removedUserId = $participant->user_id;
 
-        $participant->update(['status' => 'rejected']);
+        // Delete the participant record entirely so the user can re-apply
+        $participant->delete();
+
+        // Also clean up any application record so re-application is possible
+        $entity->applications()->where('user_id', $removedUserId)->delete();
 
         Log::info($meta['type'] . ' participant removed', [
             $meta['foreignKey'] => $entity->id,
-            'user_id' => $participant->user_id,
+            'user_id' => $removedUserId,
             'removed_by' => $remover->id,
         ]);
 
@@ -556,7 +561,7 @@ class ParticipantService
             Log::error('notification.participant_removed_dispatch_failed', [
                 'entity_type' => $meta['type'],
                 $meta['foreignKey'] => $entity->id,
-                'removed_user_id' => $participant->user_id,
+                'removed_user_id' => $removedUserId,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -579,7 +584,7 @@ class ParticipantService
     ): ParticipantResult {
         $meta = $this->entityMeta($entity);
 
-        $participant->update(['status' => 'rejected']);
+        $participant->delete();
 
         Log::info($meta['type'] . ' invite cancelled', [
             $meta['foreignKey'] => $entity->id,

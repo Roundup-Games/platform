@@ -6,7 +6,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesRelationships;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get, post};
+use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get, post};
 
 uses(CreatesGameInstances::class, CreatesRelationships::class);
 
@@ -218,15 +218,13 @@ describe('Game Approve/Reject Application', function () {
             ->assertHasNoErrors()
             ->assertSee('Application rejected');
 
-        assertDatabaseHas('game_participants', [
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
 
-        assertDatabaseHas('game_applications', [
+        assertDatabaseMissing('game_applications', [
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -272,9 +270,9 @@ describe('Game Remove Participant', function () {
             ->assertHasNoErrors()
             ->assertSee('Participant removed');
 
-        assertDatabaseHas('game_participants', [
+        // Participant record should be deleted on removal
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -320,9 +318,8 @@ describe('Game Cancel Invite', function () {
             ->assertHasNoErrors()
             ->assertSee('Invite cancelled');
 
-        assertDatabaseHas('game_participants', [
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -578,10 +575,9 @@ describe('Game Participant Status Transitions', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
-        assertDatabaseHas('game_participants', [
+        assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -612,10 +608,9 @@ describe('Game Participant Status Transitions', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('cancelInvite', $participant->id);
 
-        assertDatabaseHas('game_participants', [
+        assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'status' => 'rejected',
         ]);
     });
 });
