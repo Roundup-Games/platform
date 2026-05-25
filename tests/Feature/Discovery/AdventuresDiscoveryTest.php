@@ -228,6 +228,64 @@ describe('AdventuresDiscovery', function () {
             ->assertDontSee('No Session Zero');
     });
 
+    it('filters by session zero (name-based matching)', function () {
+        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
+
+        // Game whose name starts with "Session Zero" — should match
+        Game::factory()->create([
+            'name' => ['en' => 'Session Zero: Character Creation'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+            'safety_rules' => ['tools' => ['x-card']],
+        ]);
+
+        // Game whose name starts with "Session 0" — should match
+        Game::factory()->create([
+            'name' => ['en' => 'Session 0: World Building'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(4),
+            'game_system_id' => $system->id,
+            'safety_rules' => ['tools' => []],
+        ]);
+
+        // Campaign whose first session is named "Session Zero" — should match
+        $campaign = Campaign::factory()->create([
+            'name' => ['en' => 'Midnight Campaign'],
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $system->id,
+            'safety_rules' => ['tools' => []],
+        ]);
+        Game::factory()->create([
+            'name' => ['en' => 'Session Zero for Midnight'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'game_system_id' => $system->id,
+            'campaign_id' => $campaign->id,
+        ]);
+
+        // Regular game — should NOT match
+        Game::factory()->create([
+            'name' => ['en' => 'Regular D&D Game'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(6),
+            'game_system_id' => $system->id,
+            'safety_rules' => ['tools' => []],
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+            ->set('session_zero', true)
+            ->assertSee('Session Zero: Character Creation')
+            ->assertSee('Session 0: World Building')
+            ->assertSee('Midnight Campaign')
+            ->assertDontSee('Regular D&D Game');
+    });
+
     // ── Sorting ─────────────────────────────────────────
 
     it('campaigns appear before one-shot games by default', function () {
