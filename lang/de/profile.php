@@ -232,4 +232,11 @@ return [
 
     // Account Deletion
     'error_account_deletion_failed' => 'Beim Löschen deines Kontos ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere den Support.',
+
+    // Support Tickets
+    'title_support_tickets' => 'Support',
+    'title_your_tickets' => 'Deine Tickets',
+    'action_new_ticket' => 'Neues Ticket',
+    'action_view_all_tickets' => 'Alle Tickets anzeigen',
+    'content_no_support_tickets' => 'Du hast noch keine Support-Tickets eingereicht.',
 ];
