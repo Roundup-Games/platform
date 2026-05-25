@@ -261,7 +261,8 @@ describe('ParticipantService', function () {
             $result = $this->service->removeParticipant($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
-            expect($participant->fresh()->status->value)->toBe('rejected');
+            // Participant record should be deleted, not just status-changed
+            expect(GameParticipant::find($participant->id))->toBeNull();
         });
 
         it('refuses to remove entity owner', function () {
