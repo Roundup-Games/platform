@@ -178,10 +178,21 @@ class AdventuresDiscovery extends Component
             $campaignsQuery->whereRaw('1 = 0'); // Exclude campaigns
         }
 
-        // Apply session_zero filter: items that include session-zero in safety_rules
+        // Apply session_zero filter: safety tool flag OR name indicates it IS a session zero
         if ($this->session_zero) {
-            $gamesQuery->whereJsonContains('safety_rules->tools', 'session-zero');
-            $campaignsQuery->whereJsonContains('safety_rules->tools', 'session-zero');
+            $nameIsSessionZero = "(name->>'en' ~* '^(session\s*zero|session\s*0)' OR name->>'de' ~* '^(session\s*zero|session\s*0)')";
+
+            $gamesQuery->where(function ($q) use ($nameIsSessionZero) {
+                $q->whereJsonContains('safety_rules->tools', 'session-zero')
+                    ->orWhereRaw($nameIsSessionZero);
+            });
+
+            $campaignsQuery->where(function ($q) use ($nameIsSessionZero) {
+                $q->whereJsonContains('safety_rules->tools', 'session-zero')
+                    ->orWhereHas('sessions', function ($sq) use ($nameIsSessionZero) {
+                        $sq->whereRaw($nameIsSessionZero);
+                    });
+            });
         }
 
         // Apply play_styles filter: match games/campaigns whose game system has
