@@ -451,6 +451,13 @@ class DiscoveryQueryService
 
         $visibilityClause = $this->buildVisibilityClauseCallback($user);
 
+        // Exclude user's own games/campaigns and ones they're already in or applied to
+        $excludeUser = function ($query) use ($user) {
+            $query->where('owner_id', '!=', $user->id)
+                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
+                ->whereDoesntHave('applications', fn ($q) => $q->where('user_id', $user->id));
+        };
+
         // Helper to tag items with discoverable_type
         $tagItems = function ($items, string $type) {
             $items->each(fn ($item) => $item->discoverable_type = $type);
@@ -471,6 +478,8 @@ class DiscoveryQueryService
                         $q->orWhereJsonContains('vibe_flags', $vibe);
                     }
                 })
+                ->where('owner_id', '!=', $user->id)
+                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
                 ->with(['owner', 'gameSystem', 'campaign'])
                 ->withCount('participants');
 
@@ -491,6 +500,8 @@ class DiscoveryQueryService
                             $q->orWhereJsonContains('vibe_flags', $vibe);
                         }
                     })
+                    ->where('owner_id', '!=', $user->id)
+                    ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
                     ->with(['owner', 'gameSystem'])
                     ->withCount('sessions')
                     ->withCount('participants');
@@ -510,6 +521,8 @@ class DiscoveryQueryService
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->whereIn('game_system_id', $allowedSystemIds)
+            ->where('owner_id', '!=', $user->id)
+            ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
             ->with(['owner', 'gameSystem', 'campaign'])
             ->withCount('participants');
 
@@ -525,6 +538,8 @@ class DiscoveryQueryService
                 ->where($visibilityClause)
                 ->where('status', 'active')
                 ->whereIn('game_system_id', $allowedSystemIds)
+                ->where('owner_id', '!=', $user->id)
+                ->whereDoesntHave('participants', fn ($q) => $q->where('user_id', $user->id))
                 ->with(['owner', 'gameSystem'])
                 ->withCount('sessions')
                 ->withCount('participants');
