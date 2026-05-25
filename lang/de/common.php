@@ -33,6 +33,7 @@ return [
     'action_publish' => 'Veröffentlichen',
     'action_publish_immediately' => 'Sofort veröffentlichen',
     'action_loading' => 'Laden...',
+    'action_approve' => 'Genehmigen',
     'action_reject' => 'Ablehnen',
     'action_remove' => 'Entfernen',
     'action_save_changes' => 'Änderungen speichern',

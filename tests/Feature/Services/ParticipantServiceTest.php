@@ -8,6 +8,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
+use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
@@ -207,6 +208,11 @@ describe('ParticipantService', function () {
                 'role' => 'applicant',
                 'status' => 'pending',
                 'join_source' => JoinSource::Application,
+            ]);
+            GameApplication::create([
+                'game_id' => $game->id,
+                'user_id' => $this->friend->id,
+                'status' => 'pending',
             ]);
 
             $result = $this->service->approveApplication($participant, $game, $this->owner);
