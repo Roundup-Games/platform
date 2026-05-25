@@ -37,6 +37,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
 COPY --chown=www-data:www-data . .
 COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/public/build
 
+# Patch third-party packages that assume int user IDs (we use UUIDs)
+RUN bash scripts/patch-escalated-uuid.sh
+
 # Storage link and ensure writable dirs
 RUN php artisan storage:link --force 2>/dev/null; true \
  && mkdir -p storage/framework/{sessions,views,cache} \
