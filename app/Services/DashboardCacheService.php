@@ -389,8 +389,9 @@ class DashboardCacheService
 
         // Query games within the tile: scheduled, next 14 days, with location
         // Subquery counts confirmed participants for sorting
+        // +1 for the game owner who has no participant record
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
+            ->selectRaw('COUNT(*) + 1')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -585,8 +586,9 @@ class DashboardCacheService
         $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
 
         // ── Games query ─────────────────────────────────
+        // +1 for the game owner who has no participant record
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*)')
+            ->selectRaw('COUNT(*) + 1')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -719,7 +721,7 @@ class DashboardCacheService
             ->get();
 
         $campaignResults = $campaigns->map(function ($campaign) {
-            $participantCount = $campaign->approved_participant_count;
+            $participantCount = $campaign->approved_participant_count + 1; // +1 for owner
 
             $spotsAvailable = $campaign->max_players
                 ? max(0, $campaign->max_players - $participantCount)
