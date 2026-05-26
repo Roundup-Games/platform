@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\HtmlString;
 
 /**
  * Trait for generating signed unsubscribe URLs in notification emails.
@@ -34,11 +36,11 @@ trait HasUnsubscribeLink
     /**
      * Generate a styled unsubscribe line suitable for markdown emails.
      */
-    protected function unsubscribeLine(object $notifiable, string $category): string
+    protected function unsubscribeLine(object $notifiable, string $category): HtmlString
     {
         $url = $this->unsubscribeUrl($notifiable, $category);
         $label = __('notifications.email_unsubscribe');
 
-        return '<small><a href="' . $url . '" style="color: #8a846e;">' . $label . '</a></small>';
+        return new HtmlString('<small><a href="' . $url . '" style="color: #8a846e;">' . $label . '</a></small>');
     }
 }

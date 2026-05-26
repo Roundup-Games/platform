@@ -34,6 +34,28 @@ class HandleGameSystemTicketResolved
             return;
         }
 
+        $metadata = $ticket->metadata ?? [];
+
+        // If a GameSystem was already created via admin action (Sync from BGG / Create Manually),
+        // the admin also resolved the ticket manually — just send the notification.
+        $existingGameSystemId = $metadata['game_system_id'] ?? null;
+
+        if ($existingGameSystemId) {
+            $gameSystem = GameSystem::find($existingGameSystemId);
+
+            if ($gameSystem) {
+                Log::info('Game system already exists from admin action — sending notification only', [
+                    'ticket_id' => $ticket->id,
+                    'game_system_id' => $gameSystem->id,
+                    'game_system_name' => $gameSystem->name,
+                ]);
+
+                $this->notifyRequester($ticket, $gameSystem);
+
+                return;
+            }
+        }
+
         Log::info('Game system ticket resolved — processing approval', [
             'ticket_id' => $ticket->id,
             'ticket_reference' => $ticket->reference,
@@ -41,7 +63,6 @@ class HandleGameSystemTicketResolved
         ]);
 
         try {
-            $metadata = $ticket->metadata ?? [];
             $bggUrl = $metadata['bgg_url'] ?? null;
             $bggSynced = false;
 
