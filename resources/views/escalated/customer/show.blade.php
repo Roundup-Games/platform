@@ -72,7 +72,15 @@
                     {{ $ticket->status->label() }}
                 </span>
             </div>
-            <div class="mt-4 text-on-surface text-sm">{!! $ticket->description !!}</div>
+            @php
+                $renderer = app(\App\Services\TicketPayloadRenderer::class);
+                $structuredHtml = $renderer->renderStructured($ticket);
+            @endphp
+            @if($structuredHtml)
+                <div class="mt-4 text-on-surface text-sm">{!! $structuredHtml !!}</div>
+            @else
+                <div class="mt-4 text-on-surface text-sm">{!! $ticket->description !!}</div>
+            @endif
         </div>
 
         {{-- Replies --}}

@@ -7,6 +7,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Notifications\ReviewReported;
 use App\Services\NotificationService;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -140,13 +141,16 @@ class ReportReview extends Component
     private function createSafetyTicket(Review $review, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();
+        $reviewAuthor = $review->reviewer;
 
-        $metadata = [
-            'review_id' => $review->id,
-            'review_author_id' => $review->reviewer_id,
-            'report_reason' => $this->reason,
-            'reporter_id' => $reporter->id,
-        ];
+        $metadata = TicketPayloadRenderer::reviewReportPayload(
+            reporter: $reporter,
+            reviewId: (string) $review->id,
+            reviewAuthorId: (string) $review->reviewer_id,
+            reviewAuthorName: $reviewAuthor?->name ?? __('Unknown'),
+            reason: $this->reason ?? 'other',
+            details: $this->description,
+        );
 
         $ticket = Ticket::create([
             'requester_type' => User::class,

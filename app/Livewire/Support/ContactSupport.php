@@ -3,6 +3,7 @@
 namespace App\Livewire\Support;
 
 use App\Models\User;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -120,10 +121,11 @@ class ContactSupport extends Component
             throw new \RuntimeException('Account Support department is not configured.');
         }
 
-        $metadata = [
-            'user_id' => $user->id,
-            'issue_type' => $this->issueType,
-        ];
+        $metadata = TicketPayloadRenderer::accountSupportPayload(
+            user: $user,
+            issueType: $this->issueType,
+            details: $this->description,
+        );
 
         // Determine ticket type based on issue type
         $ticketType = $this->issueType === 'data_request' ? 'data_export_request' : 'account_recovery';

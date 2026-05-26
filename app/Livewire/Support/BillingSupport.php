@@ -3,6 +3,7 @@
 namespace App\Livewire\Support;
 
 use App\Models\User;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -115,16 +116,27 @@ class BillingSupport extends Component
     {
         $department = Department::where('name', 'Billing')->first();
 
-        // Gather billing metadata
+        // Gather subscription metadata
         $subscription = $user->subscription();
-        $metadata = [
-            'user_id' => $user->id,
-            'issue_type' => $this->issueType,
-            'has_subscription' => $subscription !== null,
-            'subscription_status' => $subscription?->status,
-            'paddle_subscription_id' => $subscription?->paddle_id,
-            'paddle_customer_id' => $user->paddle_id,
-        ];
+
+        $subscriptionContext = null;
+        if ($subscription) {
+            $subscriptionContext = [
+                'has_subscription' => true,
+                'subscription_status' => ucfirst($subscription->status),
+                'paddle_subscription_id' => $subscription->paddle_id,
+            ];
+            if ($subscription->type) {
+                $subscriptionContext['plan'] = ucfirst($subscription->type);
+            }
+        }
+
+        $metadata = TicketPayloadRenderer::billingSupportPayload(
+            user: $user,
+            issueType: $this->issueType,
+            details: $this->description,
+            subscriptionContext: $subscriptionContext,
+        );
 
         // Determine priority based on issue type
         $priority = match ($this->issueType) {

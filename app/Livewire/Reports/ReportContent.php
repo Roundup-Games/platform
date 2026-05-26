@@ -5,6 +5,7 @@ namespace App\Livewire\Reports;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -233,15 +234,17 @@ class ReportContent extends Component
     {
         $department = Department::where('name', 'Safety')->first();
         $entityName = $this->resolveEntityName($entity);
+        $entityOwner = $this->resolveEntityOwner($entity);
 
-        $metadata = [
-            'entity_type' => $this->entityType,
-            'entity_id' => $this->entityId,
-            'entity_name' => $entityName,
-            'reporter_id' => $reporter->id,
-            'report_reason' => $this->reason,
-            'description' => $this->description,
-        ];
+        $metadata = TicketPayloadRenderer::contentReportPayload(
+            reporter: $reporter,
+            entityType: $this->entityType,
+            entityId: $this->entityId,
+            entityName: $entityName,
+            reason: $this->reason,
+            details: $this->description,
+            entityOwnerName: $entityOwner,
+        );
 
         $ticket = Ticket::create([
             'requester_type' => User::class,

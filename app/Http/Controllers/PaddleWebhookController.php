@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\GmRoleService;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
@@ -178,7 +179,7 @@ class PaddleWebhookController extends BaseWebhookController
                     'department_id' => $department->id,
                     'ticket_type' => 'billing_support',
                     'channel' => TicketChannel::Web->value,
-                    'metadata' => $metadata,
+                    'metadata' => TicketPayloadRenderer::paymentFailurePayload($user, $metadata),
                 ]);
             });
 
