@@ -85,38 +85,46 @@ sed -i.bak -E 's/(protected function userHasPermission\()int (\$[a-zA-Z]+)/\1\2/
     "$VENDOR_DIR/Http/Middleware/CheckPermission.php"
 
 # =====================================================================
-# 2. Remove reply->attachments eager load (UUID FK vs int PK mismatch)
+# 2. Remove ALL attachment eager loads (UUID FK vs int PK mismatch)
 # =====================================================================
-# The convert_escalated_user_refs_to_uuid migration changed attachable_id to
-# UUID. Reply has integer auto-increment PKs. Eager loading reply attachments
-# generates WHERE attachable_id IN (1) which fails against UUID type.
-# Remove 'attachments' from the reply eager-load in Customer TicketController.
-# Ticket-level attachments still load fine.
+# The convert_escalated_user_refs_to_uuid migration changed attachable_id
+# to UUID. ALL escalated models (Ticket, Reply, SideConversationReply) have
+# integer auto-increment PKs. Eager loading ANY morphMany attachments
+# generates WHERE attachable_id IN (1) which PostgreSQL rejects (uuid != int).
+#
+# Fix: remove 'attachments' from ALL eager-load arrays in ticket controllers.
+# Upload/storing attachments still works — only the eager-load is removed.
+# Attachments can lazy-load individually when needed.
 
-CUSTOMER_TC="$VENDOR_DIR/Http/Controllers/Customer/TicketController.php"
-if [ -f "$CUSTOMER_TC" ]; then
-    # Replace "with('author', 'attachments')" with "with('author')"
-    sed -i.bak "s/with('author', 'attachments')/with('author')/" "$CUSTOMER_TC"
-    echo "  > Removed reply attachments eager load from Customer TicketController"
-fi
+# Remove 'attachments' from ticket-level eager loads
+# Customer: 'attachments', 'tags', 'department'
+sed -i.bak "s/'attachments', 'tags', 'department'/'tags', 'department'/g" \
+    "$VENDOR_DIR/Http/Controllers/Customer/TicketController.php"
 
-# Same fix for Admin, Agent, Guest, and API ticket controllers
-for TC in \
+# Guest: 'attachments', 'department'
+sed -i.bak "s/'attachments', 'department'/'department'/g" \
+    "$VENDOR_DIR/Http/Controllers/Guest/TicketController.php"
+
+# Admin, Agent, API: 'attachments', 'tags', 'department', ...
+sed -i.bak "s/'attachments', 'tags', 'department'/'tags', 'department'/g" \
+    "$VENDOR_DIR/Http/Controllers/Admin/TicketController.php" \
+    "$VENDOR_DIR/Http/Controllers/Agent/TicketController.php" \
+    "$VENDOR_DIR/Http/Controllers/Api/TicketController.php"
+
+# Remove 'attachments' from reply-level eager loads: with('author', 'attachments')
+sed -i.bak "s/with('author', 'attachments')/with('author')/g" \
+    "$VENDOR_DIR/Http/Controllers/Customer/TicketController.php" \
     "$VENDOR_DIR/Http/Controllers/Admin/TicketController.php" \
     "$VENDOR_DIR/Http/Controllers/Agent/TicketController.php" \
     "$VENDOR_DIR/Http/Controllers/Api/TicketController.php" \
-    "$VENDOR_DIR/Http/Controllers/Guest/TicketController.php"; do
-    if [ -f "$TC" ]; then
-        sed -i.bak "s/with('author', 'attachments')/with('author')/" "$TC"
-    fi
-done
+    "$VENDOR_DIR/Http/Controllers/Guest/TicketController.php"
 
-# Also patch any SideConversationReply with same pattern
+# Also patch SideConversation models if they load attachments on replies
 for SC in \
     "$VENDOR_DIR/Models/SideConversation.php" \
     "$VENDOR_DIR/Models/SideConversationReply.php"; do
     if [ -f "$SC" ]; then
-        sed -i.bak "s/with('author', 'attachments')/with('author')/" "$SC"
+        sed -i.bak "s/with('author', 'attachments')/with('author')/g" "$SC"
     fi
 done
 
