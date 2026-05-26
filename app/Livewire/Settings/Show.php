@@ -8,6 +8,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
+use App\Services\TicketPayloadRenderer;
 use App\Services\UserAnonymizationService;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
@@ -285,10 +286,7 @@ class Show extends Component
                     'department_id' => $department->id,
                     'ticket_type' => 'data_export_request',
                     'channel' => TicketChannel::Web->value,
-                    'metadata' => [
-                        'source' => 'settings',
-                        'user_id' => $user->id,
-                    ],
+                    'metadata' => TicketPayloadRenderer::dataExportPayload($user),
                 ]);
             });
         } catch (\Throwable $e) {
