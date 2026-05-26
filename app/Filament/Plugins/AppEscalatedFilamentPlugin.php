@@ -33,11 +33,15 @@ class AppEscalatedFilamentPlugin extends EscalatedFilamentPlugin
             return;
         }
 
-        // Build resource list: replace vendor TicketResource with app-level one
+        // Build resource list: replace vendor resources with app-level overrides
         $resources = collect($this->resources)
             ->map(function (string $resourceClass) {
                 if ($resourceClass === \Escalated\Filament\Resources\TicketResource::class) {
                     return TicketResource::class;
+                }
+
+                if ($resourceClass === \Escalated\Filament\Resources\DepartmentResource::class) {
+                    return \App\Filament\Resources\DepartmentResource::class;
                 }
 
                 return $resourceClass;
