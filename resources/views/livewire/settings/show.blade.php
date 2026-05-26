@@ -164,10 +164,12 @@
                                         {{ $ticket->status->isOpen()
                                             ? 'bg-primary-container text-on-primary-container'
                                             : 'bg-surface-container-high text-on-surface-variant' }}">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true"
-                                              style="font-variation-settings: 'FILL' 1">
-                                            {{ $ticket->status->isOpen() ? 'fiber_manual_record' : 'check_circle' }}
-                                        </span>
+                                        @if($ticket->status->isOpen())
+                                            <span class="inline-block w-2 h-2 rounded-full bg-current" aria-hidden="true"></span>
+                                        @else
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true"
+                                                  style="font-variation-settings: 'FILL' 1">check_circle</span>
+                                        @endif
                                         {{ $ticket->status->label() }}
                                     </span>
                                 </div>
