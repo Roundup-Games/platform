@@ -72,7 +72,7 @@
                     {{ $ticket->status->label() }}
                 </span>
             </div>
-            <div class="mt-4 text-on-surface text-sm">{!! $ticket->body !!}</div>
+            <div class="mt-4 text-on-surface text-sm">{!! $ticket->description !!}</div>
         </div>
 
         {{-- Replies --}}
