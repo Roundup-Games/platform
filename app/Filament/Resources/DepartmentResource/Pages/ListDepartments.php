@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\DepartmentResource\Pages;
 
-use Escalated\Filament\Resources\DepartmentResource\Pages;
+use App\Filament\Resources\DepartmentResource;
+use Escalated\Filament\Resources\DepartmentResource\Pages\ListDepartments as BaseListDepartments;
 
-class ListDepartments extends Pages\ListDepartments {}
+class ListDepartments extends BaseListDepartments
+{
+    protected static string $resource = DepartmentResource::class;
+}

@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\DepartmentResource\Pages;
 
-use Escalated\Filament\Resources\DepartmentResource\Pages;
+use App\Filament\Resources\DepartmentResource;
+use Escalated\Filament\Resources\DepartmentResource\Pages\EditDepartment as BaseEditDepartment;
 
-class EditDepartment extends Pages\EditDepartment {}
+class EditDepartment extends BaseEditDepartment
+{
+    protected static string $resource = DepartmentResource::class;
+}
