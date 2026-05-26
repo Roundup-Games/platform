@@ -320,9 +320,7 @@ class ShareIntentService
      */
     private function determineStatus($entity, string $entityType): ParticipantStatus
     {
-        $approvedCount = $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+        $approvedCount = app(ParticipantService::class)->getApprovedPlayerCount($entity);
 
         if ($entity->max_players && $approvedCount >= $entity->max_players) {
             if ($entityType === 'campaign') {

@@ -41,7 +41,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count();
+                ->count() + 1; // +1 for the owner (no participant record)
 
             if ($approvedCount < $lockedEntity->max_players) {
                 throw new \LogicException('Cannot add to bench: entity is not full.');
@@ -98,7 +98,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count();
+                ->count() + 1; // +1 for the owner (no participant record)
 
             if ($approvedCount >= $lockedEntity->max_players) {
                 throw new \LogicException('Cannot promote: entity is full.');

@@ -75,9 +75,7 @@ class WaitlistService
             throw new \LogicException("Waitlist is not available for this {$meta['type']} (bench mode is enabled).");
         }
 
-        $approvedCount = $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+        $approvedCount = app(ParticipantService::class)->getApprovedPlayerCount($entity);
 
         if ($entity->max_players === null || $approvedCount < $entity->max_players) {
             throw new \LogicException('Cannot add to waitlist: entity is not full.');
@@ -369,9 +367,8 @@ class WaitlistService
             return;
         }
 
-        $openSlots = $entity->max_players - $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+        $approvedCount = app(ParticipantService::class)->getApprovedPlayerCount($entity);
+        $openSlots = max(0, $entity->max_players - $approvedCount);
 
         for ($i = 0; $i < $openSlots; $i++) {
             $promoted = $this->promoteNext($entity);
@@ -576,9 +573,7 @@ class WaitlistService
     {
         $meta = $this->entityMeta($entity);
 
-        $approvedCount = $entity->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->count();
+        $approvedCount = app(ParticipantService::class)->getApprovedPlayerCount($entity);
 
         if ($entity->min_players !== null && $approvedCount < $entity->min_players) {
             Log::warning('waitlist.below_min_players', [
