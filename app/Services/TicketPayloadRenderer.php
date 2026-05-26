@@ -227,13 +227,22 @@ class TicketPayloadRenderer
 
     /**
      * Render a ticket's metadata as structured HTML with entity links.
-     * Returns null if the ticket has no structured payload (legacy).
+     * Falls back to normalizing legacy flat-key metadata.
      */
     public function renderStructured(Ticket $ticket): ?string
     {
         $metadata = $ticket->metadata;
 
-        if (! is_array($metadata) || ! isset($metadata['schema'])) {
+        if (! is_array($metadata) || empty($metadata)) {
+            return null;
+        }
+
+        // Normalize legacy tickets that have flat keys but no schema
+        if (! isset($metadata['schema'])) {
+            $metadata = $this->normalizeLegacyMetadata($ticket);
+        }
+
+        if (! isset($metadata['schema'])) {
             return null;
         }
 
@@ -265,7 +274,7 @@ class TicketPayloadRenderer
         }
 
         // Context (subscription details, entity owner, etc.)
-        if (isset($metadata['context']) && is_array($metadata['context'])) {
+        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
             $parts[] = $this->renderContext($metadata['context']);
         }
 
@@ -364,5 +373,110 @@ class TicketPayloadRenderer
         $lines[] = '</dl></div>';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Normalize legacy ticket metadata (flat keys) into the structured schema
+     * on-the-fly for rendering. Does not persist changes.
+     */
+    private function normalizeLegacyMetadata(Ticket $ticket): array
+    {
+        $metadata = $ticket->metadata;
+        $ticketType = $ticket->ticket_type;
+        $requester = $ticket->requester;
+
+        // Content reports: entity_type, entity_id, entity_name, report_reason
+        if ($ticketType === 'content_report' && isset($metadata['entity_type'])) {
+            return [
+                'schema' => 'content_report/v1',
+                'actor' => [
+                    'type' => 'user',
+                    'id' => $metadata['reporter_id'] ?? $ticket->requester_id,
+                    'name' => $requester?->name ?? __('Unknown'),
+                ],
+                'action' => 'report',
+                'entities' => [
+                    [
+                        'type' => $metadata['entity_type'],
+                        'id' => $metadata['entity_id'],
+                        'name' => $metadata['entity_name'] ?? $metadata['entity_id'],
+                    ],
+                ],
+                'reason' => $metadata['report_reason'] ?? 'other',
+                'details' => $metadata['description'] ?? null,
+            ];
+        }
+
+        // Review reports: review_id, review_author_id
+        if ($ticketType === 'review_report' && isset($metadata['review_id'])) {
+            $reviewAuthor = User::find($metadata['review_author_id']);
+
+            return [
+                'schema' => 'review_report/v1',
+                'actor' => [
+                    'type' => 'user',
+                    'id' => $metadata['reporter_id'] ?? $ticket->requester_id,
+                    'name' => $requester?->name ?? __('Unknown'),
+                ],
+                'action' => 'report',
+                'entities' => [
+                    [
+                        'type' => 'review',
+                        'id' => (string) $metadata['review_id'],
+                        'name' => __('Review by :name', ['name' => $reviewAuthor?->name ?? __('Unknown')]),
+                    ],
+                ],
+                'reported_user' => [
+                    'type' => 'user',
+                    'id' => $metadata['review_author_id'],
+                    'name' => $reviewAuthor?->name ?? __('Unknown'),
+                ],
+                'reason' => $metadata['report_reason'] ?? 'other',
+                'details' => $metadata['description'] ?? null,
+            ];
+        }
+
+        // Account support: issue_type
+        if (in_array($ticketType, ['account_recovery', 'data_export_request']) && isset($metadata['issue_type'])) {
+            return [
+                'schema' => 'account_support/v1',
+                'actor' => [
+                    'type' => 'user',
+                    'id' => $metadata['user_id'] ?? $ticket->requester_id,
+                    'name' => $requester?->name ?? __('Unknown'),
+                ],
+                'action' => $ticketType === 'data_export_request' ? 'export' : 'support',
+                'entities' => [],
+                'reason' => $metadata['issue_type'] ?? $metadata['source'] ?? 'other',
+                'details' => null,
+            ];
+        }
+
+        // Billing support: has subscription context
+        if ($ticketType === 'billing_support' && isset($metadata['issue_type'])) {
+            $context = [];
+            if (isset($metadata['subscription_status'])) {
+                $context['subscription_status'] = $metadata['subscription_status'];
+            }
+            if (isset($metadata['paddle_subscription_id'])) {
+                $context['paddle_subscription_id'] = $metadata['paddle_subscription_id'];
+            }
+
+            return [
+                'schema' => 'billing_support/v1',
+                'actor' => [
+                    'type' => 'user',
+                    'id' => $metadata['user_id'] ?? $ticket->requester_id,
+                    'name' => $requester?->name ?? __('Unknown'),
+                ],
+                'action' => 'support',
+                'entities' => [],
+                'reason' => $metadata['issue_type'],
+                'details' => null,
+                'context' => ! empty($context) ? $context : null,
+            ];
+        }
+
+        return $metadata;
     }
 }
