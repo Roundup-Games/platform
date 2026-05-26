@@ -17,9 +17,11 @@ use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Observers\ActivityLogObserver;
 use App\Observers\SeoModelObserver;
+use App\Services\EscalatedBladeRenderer;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use App\Services\ReliabilityScoreService;
+use Escalated\Laravel\Contracts\EscalatedUiRenderer;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use Escalated\Laravel\Events\TicketClosed;
@@ -84,6 +86,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\BenchService::class);
 
         $this->app->singleton(\App\Services\AttendanceService::class);
+
+        // Escalated customer portal: use Blade renderer instead of default Inertia.
+        $this->app->singleton(EscalatedUiRenderer::class, EscalatedBladeRenderer::class);
 
         // Centralized PostHog SDK wrapper — single point for enabled checks and SDK delegation.
         $this->app->singleton(PostHogClient::class);

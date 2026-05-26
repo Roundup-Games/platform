@@ -73,7 +73,7 @@ sed -i.bak -E 's/(public function getAgentChatCount\()int (\$[a-zA-Z]+)/\1\2/g' 
 # Services: ChatSessionService
 sed -i.bak -E 's/(public function assignAgent\([^,]+, )int (\$[a-zA-Z]+)/\1\2/g' \
     "$VENDOR_DIR/Services/ChatSessionService.php"
-sed -i.bak -E 's/\?int \$(userId)/?string \$\1/g' \
+sed -i.bak -E 's/\?int \$userId/?string \$userId/g' \
     "$VENDOR_DIR/Services/ChatSessionService.php"
 
 # Services: ReportingService
