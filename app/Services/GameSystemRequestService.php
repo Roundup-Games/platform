@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\TicketPayloadRenderer;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
@@ -35,14 +36,15 @@ class GameSystemRequestService
     {
         $department = Department::where('name', 'Game Systems')->firstOrFail();
 
-        $metadata = [
-            'game_system_request' => true,
-            'bgg_url' => $data['bgg_url'] ?? null,
-            'publisher' => $data['publisher'] ?? null,
-            'designer' => $data['designer'] ?? null,
-            'game_system_type' => $data['type'] ?? null,
-            'game_system_id' => null,
-        ];
+        $metadata = TicketPayloadRenderer::gameSystemRequestPayload(
+            user: $user,
+            name: trim($data['name']),
+            bggUrl: $data['bgg_url'] ?? null,
+            publisher: $data['publisher'] ?? null,
+            designer: $data['designer'] ?? null,
+            type: $data['type'] ?? null,
+            notes: $data['notes'] ?? null,
+        );
 
         $ticket = Ticket::create([
             'requester_type' => User::class,

@@ -226,8 +226,42 @@ class TicketPayloadRenderer
     }
 
     /**
+     * Build enriched metadata for a game system request ticket.
+     */
+    public static function gameSystemRequestPayload(
+        User $user,
+        string $name,
+        ?string $bggUrl = null,
+        ?string $publisher = null,
+        ?string $designer = null,
+        ?string $type = null,
+        ?string $notes = null,
+    ): array {
+        $payload = [
+            'schema' => 'game_system_request/v1',
+            'actor' => ['type' => 'user', 'id' => $user->id, 'name' => $user->name],
+            'action' => 'request',
+            'entities' => [],
+            'reason' => 'game_system_request',
+            'details' => $notes,
+            // Flat keys for backward compat
+            'game_system_request' => true,
+            'game_system_name' => $name,
+            'bgg_url' => $bggUrl,
+            'publisher' => $publisher,
+            'designer' => $designer,
+            'game_system_type' => $type,
+            'game_system_id' => null,
+        ];
+
+        return $payload;
+    }
+
+    /**
      * Render a ticket's metadata as structured HTML with entity links.
      * Falls back to normalizing legacy flat-key metadata.
+     *
+     * Dispatches to ticket-type-specific renderers for high-quality output.
      */
     public function renderStructured(Ticket $ticket): ?string
     {
@@ -246,14 +280,255 @@ class TicketPayloadRenderer
             return null;
         }
 
+        $ticketType = $ticket->ticket_type;
+
+        // Dispatch to type-specific renderer
+        return match ($ticketType) {
+            'game_system_request' => $this->renderGameSystemRequest($ticket, $metadata),
+            'content_report' => $this->renderContentReport($ticket, $metadata),
+            'review_report' => $this->renderReviewReport($ticket, $metadata),
+            'billing_support' => $this->renderBillingSupport($ticket, $metadata),
+            'account_recovery', 'data_export_request' => $this->renderAccountSupport($ticket, $metadata),
+            default => $this->renderGeneric($ticket, $metadata),
+        };
+    }
+
+    /**
+     * Render a game system request ticket for the customer view.
+     */
+    private function renderGameSystemRequest(Ticket $ticket, array $metadata): string
+    {
+        $name = $metadata['game_system_name'] ?? $ticket->subject;
+        $type = $metadata['game_system_type'] ?? null;
+        $bggUrl = $metadata['bgg_url'] ?? null;
+        $publisher = $metadata['publisher'] ?? null;
+        $designer = $metadata['designer'] ?? null;
+        $notes = $metadata['details'] ?? $ticket->description;
+        $linkedSystemId = $metadata['game_system_id'] ?? null;
+
         $parts = [];
 
-        // Actor line
+        // Status indicator
+        if ($linkedSystemId) {
+            $parts[] = '<div class="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">'
+                . '<span class="material-symbols-outlined text-green-600 dark:text-green-400 text-lg">check_circle</span>'
+                . '<span class="text-sm font-medium text-green-700 dark:text-green-300">' . __('Game system has been added and is now available.') . '</span>'
+                . '</div>';
+        }
+
+        // Request details card
+        $parts[] = '<div class="rounded-lg border border-outline-variant overflow-hidden">';
+        $parts[] = '<div class="px-4 py-3 bg-surface-container-low border-b border-outline-variant">'
+            . '<span class="text-sm font-semibold text-on-surface">' . __('Request Details') . '</span>'
+            . '</div>';
+        $parts[] = '<div class="px-4 py-3 space-y-3">';
+
+        // Game system name
+        $parts[] = $this->renderField(__('Game System'), $name, bold: true);
+
+        // Type badge
+        if ($type) {
+            $typeLabel = match ($type) {
+                'boardgame' => __('Board Game'),
+                'ttrpg' => __('Tabletop RPG'),
+                default => ucfirst($type),
+            };
+            $typeBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">' . e($typeLabel) . '</span>';
+            $parts[] = '<div class="flex items-start gap-3"><span class="text-sm text-on-surface-variant min-w-24">' . __('Type') . '</span>' . $typeBadge . '</div>';
+        }
+
+        // BGG URL
+        if ($bggUrl) {
+            $parts[] = '<div class="flex items-start gap-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('BGG URL') . '</span>'
+                . '<a href="' . e($bggUrl) . '" target="_blank" rel="noopener" class="text-sm text-primary hover:underline break-all">'
+                . e($bggUrl)
+                . ' <span class="material-symbols-outlined text-xs align-middle">open_in_new</span></a>'
+                . '</div>';
+        }
+
+        // Publisher
+        if ($publisher) {
+            $parts[] = $this->renderField(__('Publisher'), $publisher);
+        }
+
+        // Designer
+        if ($designer) {
+            $parts[] = $this->renderField(__('Designer'), $designer);
+        }
+
+        // Notes
+        if ($notes) {
+            $parts[] = '<div class="flex items-start gap-3 pt-2 border-t border-outline-variant">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Notes') . '</span>'
+                . '<p class="text-sm text-on-surface whitespace-pre-wrap">' . e($notes) . '</p>'
+                . '</div>';
+        }
+
+        $parts[] = '</div></div>';
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Render a content report ticket for the customer view.
+     */
+    private function renderContentReport(Ticket $ticket, array $metadata): string
+    {
+        $parts = [];
+
+        // Reason
+        if (isset($metadata['reason'])) {
+            $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Reason') . '</span>'
+                . '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
+                . e($this->reasonLabel($metadata['reason']))
+                . '</span></div>';
+        }
+
+        // Reported entity
+        if (! empty($metadata['entities'])) {
+            $entity = $metadata['entities'][0] ?? null;
+            if ($entity) {
+                $typeLabel = $this->entityTypeLabel($entity['type'] ?? 'unknown');
+                $link = $this->renderEntityLink($entity);
+                $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                    . '<span class="text-sm text-on-surface-variant min-w-24">' . e($typeLabel) . '</span>'
+                    . '<span class="text-sm">' . $link . '</span>'
+                    . '</div>';
+            }
+        }
+
+        // Context
+        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
+            $parts[] = $this->renderContext($metadata['context']);
+        }
+
+        // Details
+        if (! empty($metadata['details'])) {
+            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
+                . '<span class="text-sm font-medium text-on-surface-variant">' . __('Details') . '</span>'
+                . '<p class="mt-1 text-sm text-on-surface">' . e($metadata['details']) . '</p>'
+                . '</div>';
+        }
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Render a review report ticket for the customer view.
+     */
+    private function renderReviewReport(Ticket $ticket, array $metadata): string
+    {
+        $parts = [];
+
+        // Reason
+        if (isset($metadata['reason'])) {
+            $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Reason') . '</span>'
+                . '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
+                . e($this->reasonLabel($metadata['reason']))
+                . '</span></div>';
+        }
+
+        // Review info
+        if (isset($metadata['reported_user'])) {
+            $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Review author') . '</span>'
+                . '<span class="text-sm">' . $this->renderEntityLink($metadata['reported_user']) . '</span>'
+                . '</div>';
+        }
+
+        // Details
+        if (! empty($metadata['details'])) {
+            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
+                . '<span class="text-sm font-medium text-on-surface-variant">' . __('Details') . '</span>'
+                . '<p class="mt-1 text-sm text-on-surface">' . e($metadata['details']) . '</p>'
+                . '</div>';
+        }
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Render a billing support ticket for the customer view.
+     */
+    private function renderBillingSupport(Ticket $ticket, array $metadata): string
+    {
+        $parts = [];
+
+        // Issue type
+        if (isset($metadata['reason'])) {
+            $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Issue type') . '</span>'
+                . '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">'
+                . e($this->reasonLabel($metadata['reason']))
+                . '</span></div>';
+        }
+
+        // Subscription context
+        if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
+            $parts[] = '<div class="rounded-lg border border-outline-variant overflow-hidden mb-3">';
+            $parts[] = '<div class="px-4 py-2 bg-surface-container-low border-b border-outline-variant">'
+                . '<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">' . __('Subscription Info') . '</span>'
+                . '</div>';
+            $parts[] = '<div class="px-4 py-3">';
+            $parts[] = $this->renderContext($metadata['context']);
+            $parts[] = '</div></div>';
+        }
+
+        // Details
+        if (! empty($metadata['details'])) {
+            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
+                . '<span class="text-sm font-medium text-on-surface-variant">' . __('Details') . '</span>'
+                . '<p class="mt-1 text-sm text-on-surface">' . e($metadata['details']) . '</p>'
+                . '</div>';
+        }
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Render an account support ticket for the customer view.
+     */
+    private function renderAccountSupport(Ticket $ticket, array $metadata): string
+    {
+        $parts = [];
+
+        // Issue type
+        if (isset($metadata['reason'])) {
+            $parts[] = '<div class="flex items-start gap-3 mb-3">'
+                . '<span class="text-sm text-on-surface-variant min-w-24">' . __('Issue type') . '</span>'
+                . '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">'
+                . e($this->reasonLabel($metadata['reason']))
+                . '</span></div>';
+        }
+
+        // Details
+        if (! empty($metadata['details'])) {
+            $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
+                . '<span class="text-sm font-medium text-on-surface-variant">' . __('Details') . '</span>'
+                . '<p class="mt-1 text-sm text-on-surface">' . e($metadata['details']) . '</p>'
+                . '</div>';
+        }
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Generic renderer for unknown ticket types.
+     */
+    private function renderGeneric(Ticket $ticket, array $metadata): string
+    {
+        $skip = ['schema', 'actor', 'action', 'entities', 'reported_user', 'context'];
+        $parts = [];
+
+        // Actor
         if (isset($metadata['actor'])) {
             $parts[] = $this->renderActor($metadata['actor']);
         }
 
-        // Reason line
+        // Reason
         if (isset($metadata['reason'])) {
             $parts[] = '<div class="mb-2"><span class="font-medium text-on-surface-variant">' . __('Reason') . ':</span> '
                 . '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">'
@@ -266,27 +541,31 @@ class TicketPayloadRenderer
             $parts[] = $this->renderEntities($metadata['entities']);
         }
 
-        // Reported user (review reports)
-        if (isset($metadata['reported_user'])) {
-            $parts[] = '<div class="mb-2"><span class="font-medium text-on-surface-variant">' . __('Reported user') . ':</span> '
-                . $this->renderEntityLink($metadata['reported_user'])
-                . '</div>';
-        }
-
-        // Context (subscription details, entity owner, etc.)
+        // Context
         if (isset($metadata['context']) && is_array($metadata['context']) && ! empty($metadata['context'])) {
             $parts[] = $this->renderContext($metadata['context']);
         }
 
-        // Details (user's freeform text)
+        // Details
         if (! empty($metadata['details'])) {
             $parts[] = '<div class="mt-3 pt-3 border-t border-outline-variant">'
-                . '<span class="font-medium text-on-surface-variant">' . __('Details') . ':</span>'
-                . '<p class="mt-1 text-on-surface">' . e($metadata['details']) . '</p>'
+                . '<span class="text-sm font-medium text-on-surface-variant">' . __('Details') . '</span>'
+                . '<p class="mt-1 text-sm text-on-surface">' . e($metadata['details']) . '</p>'
                 . '</div>';
         }
 
         return implode("\n", $parts);
+    }
+
+    /** Render a label: value field pair. */
+    private function renderField(string $label, string $value, bool $bold = false): string
+    {
+        $class = $bold ? 'text-sm font-medium text-on-surface' : 'text-sm text-on-surface';
+
+        return '<div class="flex items-start gap-3">'
+            . '<span class="text-sm text-on-surface-variant min-w-24">' . e($label) . '</span>'
+            . '<span class="' . $class . '">' . e($value) . '</span>'
+            . '</div>';
     }
 
     /** Render the actor line with a profile link. */
@@ -474,6 +753,33 @@ class TicketPayloadRenderer
                 'reason' => $metadata['issue_type'],
                 'details' => null,
                 'context' => ! empty($context) ? $context : null,
+            ];
+        }
+
+        // Game system request: bgg_url, publisher, designer, type
+        if ($ticketType === 'game_system_request') {
+            // Extract name from subject: "Game System Request: Name"
+            $name = $metadata['game_system_name']
+                ?? preg_replace('/^Game System Request:\s*/i', '', $ticket->subject)
+                ?? $ticket->subject;
+
+            return [
+                'schema' => 'game_system_request/v1',
+                'actor' => [
+                    'type' => 'user',
+                    'id' => $metadata['user_id'] ?? $ticket->requester_id,
+                    'name' => $requester?->name ?? __('Unknown'),
+                ],
+                'action' => 'request',
+                'entities' => [],
+                'reason' => 'game_system_request',
+                'details' => $ticket->description ?: null,
+                'game_system_name' => trim($name),
+                'bgg_url' => $metadata['bgg_url'] ?? null,
+                'publisher' => $metadata['publisher'] ?? null,
+                'designer' => $metadata['designer'] ?? null,
+                'game_system_type' => $metadata['game_system_type'] ?? $metadata['type'] ?? null,
+                'game_system_id' => $metadata['game_system_id'] ?? null,
             ];
         }
 
