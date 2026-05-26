@@ -134,7 +134,7 @@
                         {{ __('profile.title_your_tickets') }}
                     </h2>
                     @can('escalated-customer')
-                        <a href="/support/create"
+                        <a href="{{ route('escalated.customer.tickets.create') }}"
                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:brightness-110 active:scale-[0.96] transition-all">
                             <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
                             {{ __('profile.action_new_ticket') }}
@@ -149,7 +149,7 @@
                 @else
                     <div class="space-y-2">
                         @foreach($tickets as $ticket)
-                            <a href="/support/{{ $ticket->reference }}"
+                            <a href="{{ route('escalated.customer.tickets.show', $ticket->reference) }}"
                                class="block rounded-lg border border-outline-variant hover:border-primary/50 hover:bg-surface-container transition-colors p-3 group">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0 flex-1">
@@ -166,7 +166,7 @@
                                             : 'bg-surface-container-high text-on-surface-variant' }}">
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true"
                                               style="font-variation-settings: 'FILL' 1">
-                                            {{ $ticket->status->isOpen() ? 'circle' : 'check_circle' }}
+                                            {{ $ticket->status->isOpen() ? 'fiber_manual_record' : 'check_circle' }}
                                         </span>
                                         {{ $ticket->status->label() }}
                                     </span>
@@ -177,7 +177,7 @@
 
                     @if($tickets->count() >= 20)
                         <div class="mt-4 text-center">
-                            <a href="/support"
+                            <a href="{{ route('escalated.customer.tickets.index') }}"
                                class="text-sm text-primary hover:underline">
                                 {{ __('profile.action_view_all_tickets') }} &rarr;
                             </a>
