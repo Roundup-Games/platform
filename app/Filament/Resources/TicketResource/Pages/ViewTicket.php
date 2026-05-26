@@ -4,6 +4,7 @@ namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
+use App\Filament\Resources\GameSystemResource;
 use App\Filament\Resources\TicketResource;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -25,9 +26,12 @@ use Escalated\Laravel\Services\TicketService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
+use Filament\Infolists;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +89,420 @@ class ViewTicket extends BaseViewTicket
      * Full BGG thing data for the selected game, fetched for preview.
      */
     public ?array $bggPreviewData = null;
+
+    /**
+     * Override parent infolist to inject a structured metadata section.
+     *
+     * Renders ticket metadata (actor, entities, reason, context) based on
+     * ticket_type. Falls back to a generic key-value grid for unknown types.
+     */
+    public function infolist(Schema $schema): Schema
+    {
+        $parent = parent::infolist($schema);
+
+        /** @var Ticket $ticket */
+        $ticket = $this->getRecord();
+        $metadata = $ticket->metadata ?? [];
+
+        if (empty($metadata) || ! is_array($metadata)) {
+            return $parent;
+        }
+
+        $metadataSection = $this->buildMetadataSection($ticket, $metadata);
+
+        if ($metadataSection === null) {
+            return $parent;
+        }
+
+        // Insert the metadata section into the left column (first Group, columnSpan 2)
+        // after the Ticket Information section
+        $components = $parent->getComponents();
+        if (isset($components[0]) && $components[0] instanceof \Filament\Schemas\Components\Group) {
+            $leftChildren = $components[0]->getChildComponents();
+            array_splice($leftChildren, 1, 0, [$metadataSection]);
+            $components[0]->childComponents($leftChildren);
+        }
+
+        return $parent;
+    }
+
+    /**
+     * Build the metadata Infolist section for a ticket.
+     */
+    protected function buildMetadataSection(Ticket $ticket, array $metadata): ?Section
+    {
+        $ticketType = $ticket->ticket_type;
+
+        // Decide which schema to render
+        return match ($ticketType) {
+            'content_report' => $this->buildContentReportSection($metadata),
+            'review_report' => $this->buildReviewReportSection($metadata),
+            'game_system_request' => $this->buildGameSystemRequestSection($metadata),
+            'account_recovery', 'data_export_request' => $this->buildAccountSupportSection($metadata),
+            'billing_support' => $this->buildBillingSupportSection($metadata),
+            default => $this->buildGenericMetadataSection($metadata),
+        };
+    }
+
+    protected function buildContentReportSection(array $metadata): Section
+    {
+        $entries = [];
+
+        // Reported entity
+        $entityType = $metadata['entity_type'] ?? null;
+        $entityId = $metadata['entity_id'] ?? null;
+        $entityName = $metadata['entity_name'] ?? $entityId;
+
+        if ($entityType) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_entity_type')
+                ->label('Entity type')
+                ->state(ucfirst($entityType))
+                ->badge()
+                ->color('info');
+        }
+
+        if ($entityName && $entityId) {
+            $url = $this->resolveEntityUrl($entityType, $entityId);
+            $entries[] = Infolists\Components\TextEntry::make('metadata_entity')
+                ->label('Reported entity')
+                ->state($entityName)
+                ->url($url, shouldOpenInNewTab: true)
+                ->color('primary');
+        }
+
+        if ($entityId) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_entity_id')
+                ->label('Entity ID')
+                ->state($entityId)
+                ->copyable()
+                ->color('gray')
+                ->limit(30)
+                ->tooltip($entityId);
+        }
+
+        // Report reason
+        if (isset($metadata['report_reason'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_reason')
+                ->label('Reason')
+                ->state(ucfirst($metadata['report_reason']))
+                ->badge()
+                ->color('warning');
+        }
+
+        // Description / additional details
+        if (! empty($metadata['description'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_details')
+                ->label('Additional details')
+                ->state($metadata['description'])
+                ->columnSpanFull();
+        }
+
+        // Structured schema fields
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Report Details')
+            ->schema($entries)
+            ->columns(2)
+            ->icon('heroicon-o-shield-exclamation');
+    }
+
+    protected function buildReviewReportSection(array $metadata): Section
+    {
+        $entries = [];
+
+        // Review info
+        if (isset($metadata['review_id'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_review_id')
+                ->label('Review ID')
+                ->state($metadata['review_id'])
+                ->copyable();
+        }
+
+        // Review author
+        $reviewAuthorId = $metadata['review_author_id'] ?? null;
+        if ($reviewAuthorId) {
+            $author = User::find($reviewAuthorId);
+            $entries[] = Infolists\Components\TextEntry::make('metadata_review_author')
+                ->label('Review author')
+                ->state($author?->name ?? $reviewAuthorId)
+                ->url($author ? "/profile/{$author->id}" : null, shouldOpenInNewTab: true)
+                ->color('primary');
+        }
+
+        if (isset($metadata['report_reason'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_reason')
+                ->label('Reason')
+                ->state(ucfirst($metadata['report_reason']))
+                ->badge()
+                ->color('warning');
+        }
+
+        if (! empty($metadata['description'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_details')
+                ->label('Additional details')
+                ->state($metadata['description'])
+                ->columnSpanFull();
+        }
+
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Review Report Details')
+            ->schema($entries)
+            ->columns(2)
+            ->icon('heroicon-o-shield-exclamation');
+    }
+
+    protected function buildGameSystemRequestSection(array $metadata): Section
+    {
+        $entries = [];
+
+        // Game system type
+        if (isset($metadata['game_system_type'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_system_type')
+                ->label('System type')
+                ->state(ucfirst(str_replace('_', ' ', $metadata['game_system_type'])))
+                ->badge()
+                ->color('info');
+        }
+
+        // BGG URL
+        if (! empty($metadata['bgg_url'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_bgg_url')
+                ->label('BGG URL')
+                ->state($metadata['bgg_url'])
+                ->url($metadata['bgg_url'], shouldOpenInNewTab: true)
+                ->color('primary')
+                ->columnSpanFull();
+        } else {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_bgg_url')
+                ->label('BGG URL')
+                ->state('Not provided')
+                ->color('gray')
+                ->columnSpanFull();
+        }
+
+        // Publisher
+        if (! empty($metadata['publisher'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_publisher')
+                ->label('Publisher')
+                ->state($metadata['publisher']);
+        }
+
+        // Designer
+        if (! empty($metadata['designer'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_designer')
+                ->label('Designer')
+                ->state($metadata['designer']);
+        }
+
+        // Notes (from description in metadata or ticket description)
+        if (! empty($metadata['notes']) || ! empty($metadata['description'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_notes')
+                ->label('Notes')
+                ->state($metadata['notes'] ?? $metadata['description'])
+                ->columnSpanFull();
+        }
+
+        // Linked game system (after sync)
+        if (! empty($metadata['game_system_id'])) {
+            $gs = GameSystem::find($metadata['game_system_id']);
+            $entries[] = Infolists\Components\TextEntry::make('metadata_game_system')
+                ->label('Linked game system')
+                ->state($gs ? $gs->name : "ID: {$metadata['game_system_id']}")
+                ->url($gs ? GameSystemResource::getUrl('edit', ['record' => $gs->id]) : null, shouldOpenInNewTab: true)
+                ->color('success')
+                ->icon('heroicon-o-check-circle');
+        }
+
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Game System Request Details')
+            ->schema($entries)
+            ->columns(2);
+    }
+
+    protected function buildAccountSupportSection(array $metadata): Section
+    {
+        $entries = [];
+
+        if (isset($metadata['issue_type'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_issue_type')
+                ->label('Issue type')
+                ->state(ucfirst(str_replace('_', ' ', $metadata['issue_type'])))
+                ->badge()
+                ->color('info');
+        }
+
+        if (! empty($metadata['details'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_details')
+                ->label('Details')
+                ->state($metadata['details'])
+                ->columnSpanFull();
+        }
+
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Support Details')
+            ->schema($entries)
+            ->columns(2);
+    }
+
+    protected function buildBillingSupportSection(array $metadata): Section
+    {
+        $entries = [];
+
+        if (isset($metadata['issue_type'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_issue_type')
+                ->label('Issue type')
+                ->state(ucfirst(str_replace('_', ' ', $metadata['issue_type'])))
+                ->badge()
+                ->color('info');
+        }
+
+        // Subscription context
+        if (isset($metadata['has_subscription'])) {
+            $entries[] = Infolists\Components\IconEntry::make('metadata_has_subscription')
+                ->label('Has subscription')
+                ->state($metadata['has_subscription'])
+                ->boolean();
+        }
+
+        if (! empty($metadata['subscription_status'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_subscription_status')
+                ->label('Subscription status')
+                ->state($metadata['subscription_status'])
+                ->badge();
+        }
+
+        if (! empty($metadata['paddle_subscription_id'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_paddle_sub_id')
+                ->label('Paddle subscription ID')
+                ->state($metadata['paddle_subscription_id'])
+                ->copyable()
+                ->color('gray');
+        }
+
+        if (! empty($metadata['details'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_details')
+                ->label('Details')
+                ->state($metadata['details'])
+                ->columnSpanFull();
+        }
+
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Billing Details')
+            ->schema($entries)
+            ->columns(2);
+    }
+
+    /**
+     * Generic fallback: render all metadata keys as a key-value grid.
+     */
+    protected function buildGenericMetadataSection(array $metadata): Section
+    {
+        // Skip internal keys
+        $skip = ['schema', 'actor', 'action', 'entities', 'reported_user', 'context', 'game_system_request'];
+        $entries = [];
+
+        foreach ($metadata as $key => $value) {
+            if (in_array($key, $skip) || is_array($value)) {
+                continue;
+            }
+
+            $label = ucfirst(str_replace('_', ' ', $key));
+            $entries[] = Infolists\Components\TextEntry::make("metadata_{$key}")
+                ->label($label)
+                ->state((string) $value)
+                ->copyable();
+        }
+
+        if (empty($entries)) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_raw')
+                ->label('Raw metadata')
+                ->state(json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+                ->columnSpanFull();
+        }
+
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Metadata')
+            ->schema($entries)
+            ->columns(2)
+            ->collapsible();
+    }
+
+    /**
+     * Build entries from the structured payload schema (actor, entities, reason).
+     */
+    protected function buildStructuredEntries(array $metadata): array
+    {
+        $entries = [];
+
+        // Actor
+        if (isset($metadata['actor']) && is_array($metadata['actor'])) {
+            $actor = $metadata['actor'];
+            $actorName = $actor['name'] ?? 'Unknown';
+            $actorUrl = ($actor['type'] ?? '') === 'user' && isset($actor['id'])
+                ? "/profile/{$actor['id']}"
+                : null;
+
+            $entries[] = Infolists\Components\TextEntry::make('structured_actor')
+                ->label('Actor')
+                ->state($actorName)
+                ->url($actorUrl, shouldOpenInNewTab: true)
+                ->color('primary');
+        }
+
+        // Entities
+        if (isset($metadata['entities']) && is_array($metadata['entities'])) {
+            foreach ($metadata['entities'] as $i => $entity) {
+                if (! is_array($entity)) {
+                    continue;
+                }
+                $name = $entity['name'] ?? $entity['id'] ?? 'Unknown';
+                $url = $this->resolveEntityUrl($entity['type'] ?? null, $entity['id'] ?? null);
+                $entries[] = Infolists\Components\TextEntry::make("structured_entity_{$i}")
+                    ->label('Entity' . (count($metadata['entities']) > 1 ? ' ' . ($i + 1) : ''))
+                    ->state($name)
+                    ->url($url, shouldOpenInNewTab: true)
+                    ->color('primary')
+                    ->copyable();
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Resolve a URL for an entity type + ID.
+     */
+    protected function resolveEntityUrl(?string $type, ?string $id): ?string
+    {
+        if (! $type || ! $id) {
+            return null;
+        }
+
+        return match ($type) {
+            'user' => "/profile/{$id}",
+            'game' => "/dashboard/games/{$id}",
+            'campaign' => "/dashboard/campaigns/{$id}",
+            'review' => null, // Reviews don't have a direct admin URL
+            default => null,
+        };
+    }
 
     protected function getHeaderActions(): array
     {
