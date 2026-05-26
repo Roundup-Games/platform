@@ -72,7 +72,7 @@
                     {{ $ticket->status->label() }}
                 </span>
             </div>
-            <div class="mt-4 text-on-surface text-sm whitespace-pre-wrap">{{ $ticket->body }}</div>
+            <div class="mt-4 text-on-surface text-sm">{!! $ticket->body !!}</div>
         </div>
 
         {{-- Replies --}}
@@ -91,7 +91,7 @@
                     <span>&middot;</span>
                     <span>{{ $reply->created_at->format('M j, Y H:i') }}</span>
                 </div>
-                <div class="text-on-surface text-sm whitespace-pre-wrap">{{ $reply->body }}</div>
+                <div class="text-on-surface text-sm">{!! $reply->body !!}</div>
             </div>
         @endforeach
 
