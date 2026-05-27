@@ -35,7 +35,12 @@
             <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-on-primary/80">
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">repeat</span>
-                    {{ __(ucfirst($campaign->recurrence)) }}
+                    {{ match($campaign->recurrence) {
+                        'weekly' => __('campaigns.content_weekly'),
+                        'bi-weekly' => __('campaigns.content_bi-weekly'),
+                        'monthly' => __('campaigns.content_monthly'),
+                        default => __(ucfirst(str_replace('-', ' ', $campaign->recurrence ?? ''))),
+                    } }}
                 </span>
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">schedule</span>
@@ -124,7 +129,7 @@
                                     </div>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                         {{ $session->status->value === 'scheduled' ? 'bg-tertiary/10 text-tertiary' : ($session->status->value === 'completed' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-on-surface-variant') }}">
-                                        {{ __(ucfirst($session->status->value)) }}
+                                        {{ $session->status->label() }}
                                     </span>
                                 </div>
                             @endforeach

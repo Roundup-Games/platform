@@ -21,11 +21,11 @@ enum AttendanceStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Attended => 'Attended',
-            self::NoShow => 'No Show',
-            self::LateCancel => 'Late Cancel',
-            self::Excused => 'Excused',
-            self::CancelledEarly => 'Cancelled Early',
+            self::Attended => __('attendance.status_attended'),
+            self::NoShow => __('attendance.status_no_show'),
+            self::LateCancel => __('attendance.status_late_cancel'),
+            self::Excused => __('attendance.status_excused'),
+            self::CancelledEarly => __('attendance.status_cancelled_early'),
         };
     }
 }

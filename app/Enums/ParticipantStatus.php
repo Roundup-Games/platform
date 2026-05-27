@@ -21,11 +21,11 @@ enum ParticipantStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Approved => 'Approved',
-            self::Rejected => 'Rejected',
-            self::Pending => 'Pending',
-            self::Waitlisted => 'Waitlisted',
-            self::Benched => 'Benched',
+            self::Approved => __('common.status_approved'),
+            self::Rejected => __('common.status_rejected'),
+            self::Pending => __('common.status_pending'),
+            self::Waitlisted => __('common.status_waitlisted'),
+            self::Benched => __('common.status_benched'),
         };
     }
 }

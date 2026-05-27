@@ -368,7 +368,7 @@ class PeopleDiscoveryService
         $tierMap = [];
 
         foreach ($tiers as $prefix => $tier) {
-            if ($found->count() >= 10 && $tier > 1) {
+            if ($found->count() >= 30 && $tier > 1) {
                 break;
             }
 
@@ -391,8 +391,44 @@ class PeopleDiscoveryService
                 }
             }
 
-            if ($found->count() >= 10) {
+            if ($found->count() >= 30) {
                 break;
+            }
+        }
+
+        // Supplement with taste-based candidates: users who share favorite
+        // game systems with the viewer, even if outside the geohash radius.
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        if (!empty($viewerGameIds)) {
+            $existingIds = $found->pluck('id')->all();
+            $tasteCandidateIds = DB::table('user_game_system_preferences')
+                ->whereIn('game_system_id', $viewerGameIds)
+                ->where('preference_type', 'favorite')
+                ->whereNotIn('user_id', array_merge($excludedIds, $existingIds))
+                ->select('user_id')
+                ->distinct()
+                ->limit(20)
+                ->pluck('user_id')
+                ->all();
+
+            if (!empty($tasteCandidateIds)) {
+                $tasteRows = DB::table('users')
+                    ->leftJoin('locations', 'users.location_id', '=', 'locations.id')
+                    ->whereIn('users.id', $tasteCandidateIds)
+                    ->where('users.profile_complete', true)
+                    ->where(function ($q) {
+                        $q->where('users.is_disabled', false)
+                          ->orWhereNull('users.is_disabled');
+                    })
+                    ->select('users.id', 'locations.latitude', 'locations.longitude')
+                    ->get();
+
+                foreach ($tasteRows as $row) {
+                    if (!isset($tierMap[$row->id])) {
+                        $tierMap[$row->id] = 4; // taste-based tier
+                        $found->push($row);
+                    }
+                }
             }
         }
 
