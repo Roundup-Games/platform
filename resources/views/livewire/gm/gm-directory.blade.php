@@ -98,7 +98,7 @@
                                             <span class="text-amber-500 font-semibold">{{ number_format($gmProfile->average_rating, 1) }}</span>
                                             <span class="text-amber-500">★</span>
                                             <span class="text-on-surface-variant">·</span>
-                                            <span class="text-on-surface-variant">{{ $gmProfile->review_count }} {{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }}</span>
+                                            <span class="text-on-surface-variant">{{ trans_choice('profile.gm_profile_reviews', $gmProfile->review_count) }}</span>
                                         </div>
                                     @else
                                         <span class="text-sm text-on-surface-variant">{{ __('profile.gm_profile_no_reviews') }}</span>

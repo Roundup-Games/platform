@@ -412,4 +412,11 @@ return [
     */
 
     'content_legal_draft_notice' => 'This document was last updated on :date and is pending review by legal counsel. It should not be considered final legal advice.',
+
+    // Participant statuses
+    'status_approved' => 'Approved',
+    'status_rejected' => 'Rejected',
+    'status_waitlisted' => 'Waitlisted',
+    'status_benched' => 'On Bench',
+    'status_cancelled' => 'Cancelled',
 ];

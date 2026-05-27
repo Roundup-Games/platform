@@ -408,4 +408,11 @@ return [
     'content_translations' => 'Übersetzungen',
     'action_copy_from_baseline' => ':field aus Primärsprache kopieren',
     'action_copy_from_baseline_short' => 'Aus Primärsprache kopieren',
+
+    // Participant statuses
+    'status_approved' => 'Bestätigt',
+    'status_rejected' => 'Abgelehnt',
+    'status_waitlisted' => 'Warteliste',
+    'status_benched' => 'Auf der Bank',
+    'status_cancelled' => 'Abgesagt',
 ];

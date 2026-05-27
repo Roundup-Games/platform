@@ -73,10 +73,9 @@ class GameSystemPreferencePicker extends Component
 
         $term = trim($this->search);
 
-        // Only search base games (boardgame or null bgg_type)
+        // Only search base games (not expansions/sub-items)
         $query = GameSystem::where(function ($q) {
-            $q->where('bgg_type', 'boardgame')
-                ->orWhereNull('bgg_type');
+            $q->whereNull('base_game_id');
         });
 
         // Translatable search uses its own escaping; keep $escapedTerm for

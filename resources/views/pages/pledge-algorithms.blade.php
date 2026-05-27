@@ -331,6 +331,13 @@
                             <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_people_pipeline_4_desc') }}</p>
                         </div>
                     </div>
+                    <div class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center w-7 h-7 bg-primary/10 rounded-full text-primary text-sm font-bold shrink-0">5</span>
+                        <div>
+                            <div class="font-semibold text-on-surface text-sm">{{ __('pages.content_pledge_algo_people_pipeline_5') }}</div>
+                            <p class="text-on-surface-variant text-sm mt-1">{{ __('pages.content_pledge_algo_people_pipeline_5_desc') }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
