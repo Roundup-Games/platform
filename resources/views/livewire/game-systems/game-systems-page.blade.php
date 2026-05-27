@@ -159,7 +159,13 @@
             </div>
 
             {{-- ── Results Area ──────────────────────────────────────────────── --}}
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 relative" wire:loading.class="opacity-60 transition-opacity">
+                <div wire:loading.flex class="hidden items-center justify-center py-12 absolute inset-x-0 top-0 z-10">
+                    <div class="flex items-center gap-3 px-5 py-3 bg-surface-container rounded-xl shadow-md">
+                        <span class="material-symbols-outlined text-primary animate-spin" aria-hidden="true">progress_activity</span>
+                        <span class="text-sm text-on-surface-variant">{{ __('common.content_updating_results') }}</span>
+                    </div>
+                </div>
                 @if($systems->count())
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         @foreach($systems as $system)

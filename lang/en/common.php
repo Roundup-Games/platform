@@ -419,4 +419,5 @@ return [
     'status_waitlisted' => 'Waitlisted',
     'status_benched' => 'On Bench',
     'status_cancelled' => 'Cancelled',
+    'content_updating_results' => 'Updating results…',
 ];

@@ -9,9 +9,13 @@
     </div>
 
     {{-- ── Hero Section ──────────────────────────────────────── --}}
-    <section class="relative bg-primary text-on-primary overflow-hidden">
-        {{-- Background mood image — very low opacity --}}
-        @php($coverUrl = $system->coverImageUrl())
+    @php($coverUrl = $system->coverImageUrl())
+    @if($coverUrl)
+        @push('preload')
+            <link rel="preload" as="image" href="{{ $coverUrl }}" fetchpriority="high">
+        @endpush
+    @endif
+    <section class="relative bg-primary text-on-primary overflow-hidden min-h-[280px] sm:min-h-[380px]">
         @if($coverUrl)
             <div class="absolute inset-0">
                 <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">

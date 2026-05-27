@@ -318,6 +318,13 @@
         @endif
 
         {{-- ── Results Grid ────────────────────────────────────────── --}}
+        <div class="relative" wire:loading.class="opacity-60 transition-opacity">
+            <div wire:loading.flex class="hidden items-center justify-center py-8">
+                <div class="flex items-center gap-3 px-5 py-3 bg-surface-container rounded-xl shadow-md">
+                    <span class="material-symbols-outlined text-primary animate-spin" aria-hidden="true">progress_activity</span>
+                    <span class="text-sm text-on-surface-variant">{{ __('common.content_updating_results') }}</span>
+                </div>
+            </div>
         @if($results->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($results as $item)
@@ -341,6 +348,7 @@
                 </p>
             </div>
         @endif
+        </div>{{-- End results wrapper --}}
 
         {{-- ── Cross-track hint: adventures ──────────────────────── --}}
         @if($adventureCount > 0)
