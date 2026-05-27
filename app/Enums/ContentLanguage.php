@@ -18,8 +18,8 @@ enum ContentLanguage: string
     public function label(): string
     {
         return match ($this) {
-            self::En => 'English',
-            self::De => 'German',
+            self::En => __('common.label_language_en'),
+            self::De => __('common.label_language_de'),
         };
     }
 }

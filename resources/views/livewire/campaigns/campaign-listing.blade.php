@@ -20,7 +20,12 @@
                     class="bg-surface-container-high border border-transparent rounded-lg text-on-surface shadow-sm focus:border-secondary/20 focus:ring-2 focus:ring-secondary/20">
                 <option value="">{{ __('discovery.content_any_schedule') }}</option>
                 @foreach($recurrenceOptions as $option)
-                    <option value="{{ $option }}">{{ __(ucfirst(str_replace('-', ' ', $option))) }}</option>
+                    <option value="{{ $option }}">{{ match($option) {
+                        'weekly' => __('campaigns.content_weekly'),
+                        'bi-weekly' => __('campaigns.content_bi-weekly'),
+                        'monthly' => __('campaigns.content_monthly'),
+                        default => __(ucfirst(str_replace('-', ' ', $option))),
+                    } }}</option>
                 @endforeach
             </select>
             <select wire:model.live="price" aria-label="{{ __('discovery.field_filter_by_price') }}"
@@ -116,12 +121,17 @@
                 @endif
                 @if($recurrence)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                        {{ __(ucfirst(str_replace('-', ' ', $recurrence))) }}
+                        {{ match($recurrence) {
+                            'weekly' => __('campaigns.content_weekly'),
+                            'bi-weekly' => __('campaigns.content_bi-weekly'),
+                            'monthly' => __('campaigns.content_monthly'),
+                            default => __(ucfirst(str_replace('-', ' ', $recurrence))),
+                        } }}
                     </span>
                 @endif
                 @if($price)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                        {{ __(ucfirst($price)) }}
+                        {{ $price === 'free' ? __('billing.content_free') : __('billing.content_paid') }}
                     </span>
                 @endif
                 @if($complexity_min || $complexity_max)
@@ -137,7 +147,7 @@
         @if($campaigns->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($campaigns as $campaign)
-                    <a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
+                    <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         <div class="h-1.5 bg-outline-variant/30"></div>
 
                         <div class="p-5">
@@ -181,7 +191,12 @@
                             {{-- Recurrence & Schedule --}}
                             <p class="text-sm text-on-surface-variant flex items-center gap-1">
                                 <span class="material-symbols-outlined text-base" aria-hidden="true">repeat</span>
-                                {{ __(ucfirst(str_replace('-', ' ', $campaign->recurrence ?? ''))) }}
+                                {{ match($campaign->recurrence ?? '') {
+                                    'weekly' => __('campaigns.content_weekly'),
+                                    'bi-weekly' => __('campaigns.content_bi-weekly'),
+                                    'monthly' => __('campaigns.content_monthly'),
+                                    default => __(ucfirst(str_replace('-', ' ', $campaign->recurrence ?? ''))),
+                                } }}
                             </p>
                             @if($campaign->time_of_day)
                                 <p class="mt-1 text-sm text-on-surface-variant flex items-center gap-1">

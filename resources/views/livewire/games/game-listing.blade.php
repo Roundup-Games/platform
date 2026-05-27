@@ -116,12 +116,17 @@
                 @endif
                 @if($date)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                        {{ __(ucfirst(str_replace('_', ' ', $date))) }}
+                        {{ match($date) {
+                            'upcoming' => __('common.field_upcoming'),
+                            'this_week' => __('common.content_this_week'),
+                            'this_month' => __('common.content_this_month'),
+                            default => __(ucfirst(str_replace('_', ' ', $date))),
+                        } }}
                     </span>
                 @endif
                 @if($price)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                        {{ __(ucfirst($price)) }}
+                        {{ $price === 'free' ? __('billing.content_free') : __('billing.content_paid') }}
                     </span>
                 @endif
                 @if($complexity_min || $complexity_max)
@@ -137,7 +142,7 @@
         @if($games->count())
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($games as $game)
-                    <a href="{{ route('games.detail', $game->id) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
+                    <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                         <div class="h-1.5 bg-outline-variant/30"></div>
 
                         <div class="p-5">
@@ -180,7 +185,7 @@
 
                             {{-- Campaign link --}}
                             @if($game->campaign)
-                                <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate
+                                <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign->id]) }}" wire:navigate
                                    onclick="event.stopPropagation()"
                                    class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>

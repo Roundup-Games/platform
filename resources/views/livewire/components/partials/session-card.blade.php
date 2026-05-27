@@ -29,8 +29,8 @@
 
     // Join URL
     $joinRoute = $isCampaign
-        ? route('campaigns.detail', $entity)
-        : route('games.detail', $entity);
+        ? route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $entity])
+        : route('games.detail', ['locale' => app()->getLocale(), 'id' => $entity]);
 @endphp
 
 <article class="relative bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden hover:shadow-md transition-shadow"
