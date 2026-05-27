@@ -415,4 +415,5 @@ return [
     'status_waitlisted' => 'Warteliste',
     'status_benched' => 'Auf der Bank',
     'status_cancelled' => 'Abgesagt',
+    'content_updating_results' => 'Ergebnisse werden aktualisiert…',
 ];

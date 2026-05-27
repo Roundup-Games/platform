@@ -1,11 +1,16 @@
 {{-- Hero section: cover image, badges, title, metadata --}}
-<section class="relative bg-primary text-on-primary overflow-hidden">
-    @php
-        $coverUrl = $game->gameSystem?->getFirstMediaUrl('cover');
-    @endphp
-    @if(!$coverUrl && $game->gameSystem?->thumbnail_url)
-        @php($coverUrl = $game->gameSystem->thumbnail_url)
-    @endif
+@php
+    $coverUrl = $game->gameSystem?->getFirstMediaUrl('cover');
+@endphp
+@if(!$coverUrl && $game->gameSystem?->thumbnail_url)
+    @php($coverUrl = $game->gameSystem->thumbnail_url)
+@endif
+@if($coverUrl)
+    @push('preload')
+        <link rel="preload" as="image" href="{{ $coverUrl }}" fetchpriority="high">
+    @endpush
+@endif
+<section class="relative bg-primary text-on-primary overflow-hidden min-h-[200px] sm:min-h-[260px]">
     @if($coverUrl)
         <div class="absolute inset-0">
             <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-sm scale-105" aria-hidden="true" fetchpriority="high">
