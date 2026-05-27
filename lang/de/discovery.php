@@ -157,4 +157,6 @@ return [
     'seo_description_browse_board_games' => 'Finde Brettspiel-Sessions in deiner Nähe. Filtere nach Spielsystem, Erfahrungslevel, Vibe und Verfügbarkeit.',
     'seo_title_browse_adventures' => 'Abenteuer durchsuchen',
     'seo_description_browse_adventures' => 'Finde Tabletop-RPG-Kampagnen und One-Shot-Abenteuer in deiner Nähe. Filtere nach Spielsystem, Spielstil und Erfahrungslevel.',
+    'action_load_more' => 'Mehr laden',
+    'content_showing_of_total' => ':shown von :total Ergebnissen angezeigt',
 ];

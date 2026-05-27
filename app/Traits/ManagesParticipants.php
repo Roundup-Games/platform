@@ -82,6 +82,14 @@ trait ManagesParticipants
             return;
         }
 
+        // Cannot invite to a canceled or completed entity
+        $entity = $this->getEntity();
+        if (in_array($entity->status->value, ['canceled', 'cancelled', 'completed'])) {
+            session()->flash('error', __('common.error_entity_no_longer_available'));
+
+            return;
+        }
+
         $result = $this->participantService()->inviteFriends(
             $this->getEntity(),
             Auth::user(),
@@ -104,6 +112,14 @@ trait ManagesParticipants
     {
         $this->authorize('update', $this->getEntity());
 
+        // Cannot invite to a canceled or completed entity
+        $entity = $this->getEntity();
+        if (in_array($entity->status->value, ['canceled', 'cancelled', 'completed'])) {
+            session()->flash('error', __('common.error_entity_no_longer_available'));
+
+            return;
+        }
+
         $email = trim($this->inviteEmail);
 
         // Validate email format
@@ -124,7 +140,7 @@ trait ManagesParticipants
             $email,
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             $this->addError('inviteEmail', __($result->errorKey, $result->errorParams));
 
             return;
@@ -194,7 +210,7 @@ trait ManagesParticipants
             Auth::user(),
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
@@ -236,7 +252,7 @@ trait ManagesParticipants
             $authUser,
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
@@ -260,7 +276,7 @@ trait ManagesParticipants
             $authUser,
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey, $result->errorParams));
 
             return;
@@ -305,7 +321,7 @@ trait ManagesParticipants
             Auth::user(),
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey));
 
             return;
@@ -330,7 +346,7 @@ trait ManagesParticipants
             Auth::user(),
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey));
 
             return;
@@ -355,7 +371,7 @@ trait ManagesParticipants
             Auth::user(),
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey));
 
             return;
@@ -380,7 +396,7 @@ trait ManagesParticipants
             Auth::user(),
         );
 
-        if (!$result->success && $result->errorKey) {
+        if (! $result->success && $result->errorKey) {
             session()->flash('error', __($result->errorKey));
 
             return;

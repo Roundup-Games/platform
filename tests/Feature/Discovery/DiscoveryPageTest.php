@@ -175,8 +175,8 @@ describe('DiscoveryPage', function () {
             ->assertDontSee('Monthly Campaign');
     });
 
-    it('paginates results', function () {
-        // Create 13 games to exceed per-page limit of 12
+    it('loads initial batch of results', function () {
+        // Create 13 games to exceed initial display count of 12
         Game::factory()->count(13)->create([
             'visibility' => 'public',
             'status' => 'scheduled',
@@ -186,33 +186,42 @@ describe('DiscoveryPage', function () {
         $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
         $results = $component->viewData('results');
 
-        // First page should have 12 items
+        // Initial display should show 12 items
         expect($results->count())->toBe(12);
         expect($results->total())->toBe(13);
-
-        // Page 2 should have 1 item
-        $component = Livewire\Livewire::withQueryParams(['page' => 2])
-            ->test(App\Livewire\Discovery\DiscoveryPage::class);
-        $results = $component->viewData('results');
-        expect($results->count())->toBe(1);
     });
 
-    it('resets page when changing mode via setMode', function () {
+    it('loads more results when loadMore is called', function () {
         Game::factory()->count(13)->create([
             'visibility' => 'public',
             'status' => 'scheduled',
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
         ]);
 
-        // Start on page 2 in 'all' mode, then switch to 'games'
-        // After setMode, the component resets page so we see 12 results
-        $component = Livewire\Livewire::withQueryParams(['page' => 2])
-            ->test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
 
-        // Confirm we're on page 2 with 1 result
-        expect($component->viewData('results')->count())->toBe(1);
+        // Initial load: 12 items
+        expect($component->viewData('results')->count())->toBe(12);
 
-        // Switch mode — should reset to page 1
+        // After loadMore: all 13 items visible
+        $component->call('loadMore');
+        expect($component->viewData('results')->count())->toBe(13);
+    });
+
+    it('resets display count when changing mode via setMode', function () {
+        Game::factory()->count(13)->create([
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
+        ]);
+
+        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+
+        // Load more to see all 13
+        $component->call('loadMore');
+        expect($component->viewData('results')->count())->toBe(13);
+
+        // Switch mode — should reset to showing 12
         $component->call('setMode', 'games');
         expect($component->viewData('results')->count())->toBe(12);
     });
@@ -409,7 +418,7 @@ describe('DiscoveryPage', function () {
 
     // ── Proximity / Radius Filtering ───────────────────
 
-    it('setRadius updates radius and resets page', function () {
+    it('setRadius updates radius and resets display count', function () {
         Game::factory()->create([
             'visibility' => 'public',
             'status' => 'scheduled',

@@ -9,6 +9,4 @@
     @endforeach
 </div>
 
-<div class="mt-6">
-    {{ $results->links() }}
-</div>
+@include('livewire.discovery.partials._load-more', ['loadMoreAction' => 'loadMore'])

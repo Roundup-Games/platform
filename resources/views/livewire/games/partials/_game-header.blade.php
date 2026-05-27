@@ -69,7 +69,16 @@
                     {{ __('billing.content_free') }}
                 </span>
             @endif
-            @if($game->location && !empty($game->location['details']))
+            @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
+                    @if($isGuest)
+                        {{ $game->linkedLocation->city }}
+                    @else
+                        {{ $game->linkedLocation->fullAddress() }}
+                    @endif
+                </span>
+            @elseif($game->location && !empty($game->location['details']))
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
                     @if($isGuest)

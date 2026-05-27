@@ -13,11 +13,12 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
+use App\Models\ShortLink;
 use App\Notifications\ParticipantRemoved;
 use App\Services\DebriefingService;
-use App\Services\ShortLinkService;
 use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
+use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
@@ -77,12 +78,35 @@ class GameDetail extends Component
 
     // ── Trait contracts ────────────────────────────────
 
-    public function getEntity(): Game { return $this->game; }
-    public function getEntityIdColumn(): string { return 'game_id'; }
-    public function getParticipantModel(): string { return GameParticipant::class; }
-    public function getEntityName(): string { return 'Game'; }
-    public function getEntityVar(): string { return 'game'; }
-    public function getBackRoute(): string { return route('games.show', $this->game->id); }
+    public function getEntity(): Game
+    {
+        return $this->game;
+    }
+
+    public function getEntityIdColumn(): string
+    {
+        return 'game_id';
+    }
+
+    public function getParticipantModel(): string
+    {
+        return GameParticipant::class;
+    }
+
+    public function getEntityName(): string
+    {
+        return 'Game';
+    }
+
+    public function getEntityVar(): string
+    {
+        return 'game';
+    }
+
+    public function getBackRoute(): string
+    {
+        return route('games.show', $this->game->id);
+    }
 
     // ── Host-initiated removal (game-specific override) ──
 
@@ -93,6 +117,7 @@ class GameDetail extends Component
 
         if ($participant->role === 'owner') {
             session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
+
             return;
         }
 
@@ -122,7 +147,7 @@ class GameDetail extends Component
             ]);
         }
 
-        if (!$entity->isBenchMode()) {
+        if (! $entity->isBenchMode()) {
             app(WaitlistService::class)->promoteAllOnCancel($entity);
         }
 
@@ -136,6 +161,7 @@ class GameDetail extends Component
     {
         if (! $this->isOwner()) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
@@ -154,6 +180,7 @@ class GameDetail extends Component
     {
         if (! $this->isOwner()) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
@@ -173,6 +200,7 @@ class GameDetail extends Component
         $viewer = Auth::user();
         if (! $viewer || $this->game->owner_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
@@ -197,12 +225,14 @@ class GameDetail extends Component
 
         if (! $viewer || ! $this->canJoinViaShareLink()) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
-        $rateLimitKey = 'share-join:' . $viewer->id . ':' . $this->game->id;
+        $rateLimitKey = 'share-join:'.$viewer->id.':'.$this->game->id;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
             session()->flash('error', __('common.error_rate_limit'));
+
             return;
         }
         RateLimiter::hit($rateLimitKey, 60);
@@ -222,7 +252,7 @@ class GameDetail extends Component
                 // Revalidate short link under lock to catch mid-session revocation.
                 // If revoked, fall back to share token if one is still valid.
                 if ($shortLinkId !== null) {
-                    $freshLink = \App\Models\ShortLink::where('id', $shortLinkId)
+                    $freshLink = ShortLink::where('id', $shortLinkId)
                         ->whereNull('deleted_at')
                         ->first();
                     if ($freshLink === null || $freshLink->isExpired()) {
@@ -369,6 +399,7 @@ class GameDetail extends Component
     public function isParticipant(): bool
     {
         $id = $this->viewerId();
+
         return $id && $this->game->participants
             ->contains(fn ($p) => $p->user_id === $id && in_array($p->status->value, [
                 ParticipantStatus::Approved->value,
@@ -382,6 +413,7 @@ class GameDetail extends Component
     public function userInvitation(): ?GameParticipant
     {
         $id = $this->viewerId();
+
         return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->role === 'invited' && $p->status === ParticipantStatus::Pending) : null;
     }
@@ -399,6 +431,7 @@ class GameDetail extends Component
     public function userWaitlistParticipant(): ?GameParticipant
     {
         $id = $this->viewerId();
+
         return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Waitlisted) : null;
     }
@@ -407,6 +440,7 @@ class GameDetail extends Component
     public function waitlistPosition(): ?int
     {
         $wl = $this->userWaitlistParticipant();
+
         return $wl ? app(WaitlistService::class)->getWaitlistPosition($wl) : null;
     }
 
@@ -414,6 +448,7 @@ class GameDetail extends Component
     public function userPendingParticipant(): ?GameParticipant
     {
         $id = $this->viewerId();
+
         return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Pending && $p->confirmation_expires_at !== null) : null;
     }
@@ -422,6 +457,7 @@ class GameDetail extends Component
     public function userBenchParticipant(): ?GameParticipant
     {
         $id = $this->viewerId();
+
         return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
             && $p->status === ParticipantStatus::Benched) : null;
     }
@@ -436,24 +472,26 @@ class GameDetail extends Component
     public function canApply(): bool
     {
         return ($id = $this->viewerId())
-            && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
+            && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->game->visibility !== Visibility::Private
-            && (!$this->isGameFull() || $this->game->isBenchMode());
+            && (! $this->isGameFull() || $this->game->isBenchMode())
+            && ! in_array($this->game->status->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
     }
 
     #[Computed]
     public function canJoinWaitlist(): bool
     {
         return ($id = $this->viewerId())
-            && !$this->isOwner() && !$this->isParticipant() && !$this->hasExistingApplication()
-            && !$this->game->isBenchMode() && $this->isGameFull()
-            && $this->game->visibility !== Visibility::Private;
+            && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
+            && ! $this->game->isBenchMode() && $this->isGameFull()
+            && $this->game->visibility !== Visibility::Private
+            && ! in_array($this->game->status->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
     }
 
     #[Computed]
     public function waitlistedPlayers()
     {
-        return ($this->isOwner() && !$this->game->isBenchMode())
+        return ($this->isOwner() && ! $this->game->isBenchMode())
             ? $this->game->participants->where('status', ParticipantStatus::Waitlisted->value)->sortBy('waitlisted_at')
             : collect();
     }
@@ -489,6 +527,7 @@ class GameDetail extends Component
             $confirmed = SessionZeroConfirmation::where('session_zero_survey_id', $active->id)
                 ->where('user_id', $id)->exists();
         }
+
         return ['active' => $active, 'isConfirmed' => $confirmed];
     }
 
@@ -497,9 +536,9 @@ class GameDetail extends Component
     {
         $has = $this->game->hasDebriefingTools();
         $st = ['hasTools' => $has, 'prompts' => $has ? $this->game->getDebriefingPrompts() : [],
-               'userDebriefing' => null, 'hostDebriefings' => collect(), 'summary' => null];
+            'userDebriefing' => null, 'hostDebriefings' => collect(), 'summary' => null];
 
-        if (!$has || $this->game->status !== GameStatus::Completed || !$this->viewerId()) {
+        if (! $has || $this->game->status !== GameStatus::Completed || ! $this->viewerId()) {
             return $st;
         }
 
@@ -522,7 +561,7 @@ class GameDetail extends Component
         $this->game->load([
             'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
             'gameSystem.publishers', 'gameSystem.baseGame', 'gameSystem.expansions',
-            'participants.user', 'applications.user',
+            'participants.user', 'applications.user', 'linkedLocation',
         ]);
 
         $sz = $this->sessionZeroState();

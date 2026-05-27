@@ -10,6 +10,7 @@ use App\Notifications\NewApplication;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +59,15 @@ trait HandlesApplicationSubmission
     {
         $entity = $this->getEntity();
         $config = $this->getApplicationConfig();
+
+        // Cannot apply to a canceled or completed entity
+        $status = $entity->status->value;
+        if (in_array($status, ['canceled', 'cancelled', 'completed'])) {
+            session()->flash('error', __('common.error_entity_no_longer_available'));
+            $this->redirect(route($config['show_route'], $entity->id), navigate: true);
+
+            return;
+        }
 
         // Owner cannot apply to their own entity
         if ($entity->owner_id === Auth::id()) {
@@ -161,9 +171,9 @@ trait HandlesApplicationSubmission
                     'join_source' => JoinSource::Application,
                 ]);
             });
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Unique constraint violation — concurrent duplicate
-            Log::warning(ucfirst($config['entity_type']) . ' application race caught by unique constraint', [
+            Log::warning(ucfirst($config['entity_type']).' application race caught by unique constraint', [
                 $config['log_key'] => $entityId,
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
@@ -182,7 +192,7 @@ trait HandlesApplicationSubmission
         $isPublic = $txDecisions->isPublic;
         $isFull = $txDecisions->isFull;
 
-        Log::info(ucfirst($config['entity_type']) . ' application submitted', [
+        Log::info(ucfirst($config['entity_type']).' application submitted', [
             $config['log_key'] => $entity->id,
             'user_id' => Auth::id(),
             'auto_approved' => $isPublic && ! $isFull,

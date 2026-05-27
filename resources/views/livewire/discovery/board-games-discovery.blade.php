@@ -332,9 +332,7 @@
                 @endforeach
             </div>
 
-            <div class="mt-6">
-                {{ $results->links() }}
-            </div>
+            @include('livewire.discovery.partials._load-more', ['loadMoreAction' => 'loadMore'])
         @else
             <div class="text-center py-16 bg-surface rounded-xl shadow-ambient">
                 <span class="material-symbols-outlined text-5xl text-on-surface-variant/40" aria-hidden="true">explore</span>
@@ -355,7 +353,7 @@
             <div class="mt-6 p-4 bg-secondary-container/50 rounded-xl text-center">
                 <span class="material-symbols-outlined text-secondary text-sm" aria-hidden="true">swords</span>
                 {{ trans_choice('discovery.content_also_looking_for_adventures', $adventureCount, ['count' => $adventureCount]) }}
-                <a href="{{ route('discover.adventures') }}" wire:navigate class="text-primary font-medium hover:underline">
+                <a href="{{ route('discover.adventures', ['locale' => app()->getLocale()]) }}" wire:navigate class="text-primary font-medium hover:underline">
                     {{ __('discovery.action_browse_adventures') }}
                 </a>
             </div>

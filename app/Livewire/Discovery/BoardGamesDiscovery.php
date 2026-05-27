@@ -6,6 +6,7 @@ use App\Dto\DiscoveryFilters;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
+use App\Models\Campaign;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
@@ -13,14 +14,13 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class BoardGamesDiscovery extends Component
 {
     use HasGuestLocation;
     use ManagesDiscoveryFilters;
-    use WithPagination;
 
     // ── Shared filters (safety_tools kept empty; not exposed in board game UI) ──
 
@@ -42,19 +42,26 @@ class BoardGamesDiscovery extends Component
 
     // ── Page-specific updating hooks ────────────────────
 
+    public int $displayCount = 12;
+
     public function updatingDate(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingCategoryIds(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingMechanicIds(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
+    }
+
+    public function loadMore(): void
+    {
+        $this->displayCount += 12;
     }
 
     // ── Actions ────────────────────────────────
@@ -62,7 +69,7 @@ class BoardGamesDiscovery extends Component
     public function setDate(string $date): void
     {
         $this->date = $date;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleCategory(string $categoryId): void
@@ -74,7 +81,7 @@ class BoardGamesDiscovery extends Component
         } else {
             $this->category_ids[] = $categoryId;
         }
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleMechanic(string $mechanicId): void
@@ -86,7 +93,7 @@ class BoardGamesDiscovery extends Component
         } else {
             $this->mechanic_ids[] = $mechanicId;
         }
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function clearFilters(): void
@@ -97,11 +104,11 @@ class BoardGamesDiscovery extends Component
             'date', 'category_ids', 'mechanic_ids', 'radius',
         ]);
         $this->usingFallbackRadius = false;
+        $this->displayCount = 12;
         // Reset vibe preferences to neutral
         foreach (VibeFlag::cases() as $flag) {
             $this->vibePreferences[$flag->value] = null;
         }
-        $this->resetPage();
     }
 
     public function hasActiveFilters(): bool
@@ -109,14 +116,14 @@ class BoardGamesDiscovery extends Component
         return $this->search
             || $this->game_system_id
             || $this->experience_level
-            || !empty($this->vibe_flags)
+            || ! empty($this->vibe_flags)
             || ($this->language && $this->language !== app()->getLocale())
             || $this->price
             || $this->complexity_min
             || $this->complexity_max
             || $this->date
-            || !empty($this->category_ids)
-            || !empty($this->mechanic_ids)
+            || ! empty($this->category_ids)
+            || ! empty($this->mechanic_ids)
             || $this->radius > 0;
     }
 
@@ -124,7 +131,7 @@ class BoardGamesDiscovery extends Component
 
     public function render()
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('discovery.seo_title_browse_board_games'),
             description: __('discovery.seo_description_browse_board_games'),
         ));
@@ -149,7 +156,7 @@ class BoardGamesDiscovery extends Component
         $results = $this->getBoardGameResults($service, $filters, $user, $lat, $lng, $hasLocation);
 
         // Cross-track hint: count active public TTRPG campaigns
-        $adventureCount = \App\Models\Campaign::where('status', 'active')
+        $adventureCount = Campaign::where('status', 'active')
             ->visibleTo(null)
             ->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'))
             ->count();
@@ -185,7 +192,7 @@ class BoardGamesDiscovery extends Component
             $this->date,
         )->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'));
 
-        $paginator = $query->paginate(12)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
+        $paginator = $query->paginate($this->displayCount)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
 
         if ($this->radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $service->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $this->radius, $this->usingFallbackRadius);

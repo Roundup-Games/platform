@@ -8,22 +8,23 @@ use App\Enums\ExperienceLevel;
 use App\Enums\PlayStyle;
 use App\Enums\SafetyTool;
 use App\Enums\VibeFlag;
+use App\Models\Game;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class AdventuresDiscovery extends Component
 {
     use HasGuestLocation;
     use ManagesDiscoveryFilters;
-    use WithPagination;
 
     // ── Shared filters (safety_tools differs per page) ──
 
@@ -46,19 +47,26 @@ class AdventuresDiscovery extends Component
 
     // ── Page-specific updating hooks ────────────────────
 
+    public int $displayCount = 12;
+
     public function updatingSafetyTools(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingPlayStyles(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingSessionType(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
+    }
+
+    public function loadMore(): void
+    {
+        $this->displayCount += 12;
     }
 
     // ── Actions ────────────────────────────────────────
@@ -72,22 +80,22 @@ class AdventuresDiscovery extends Component
         } else {
             $this->play_styles[] = $style;
         }
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function setSessionType(string $type): void
     {
-        if (!in_array($type, ['', 'campaign', 'oneshot'], true)) {
+        if (! in_array($type, ['', 'campaign', 'oneshot'], true)) {
             return;
         }
         $this->session_type = $type;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleSessionZero(): void
     {
-        $this->session_zero = !$this->session_zero;
-        $this->resetPage();
+        $this->session_zero = ! $this->session_zero;
+        $this->displayCount = 12;
     }
 
     public function toggleSafetyTool(string $tool): void
@@ -99,7 +107,7 @@ class AdventuresDiscovery extends Component
         } else {
             $this->safety_tools[] = $tool;
         }
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function clearFilters(): void
@@ -110,11 +118,11 @@ class AdventuresDiscovery extends Component
             'play_styles', 'session_type', 'session_zero', 'radius',
         ]);
         $this->usingFallbackRadius = false;
+        $this->displayCount = 12;
         // Reset vibe preferences to neutral
         foreach (VibeFlag::cases() as $flag) {
             $this->vibePreferences[$flag->value] = null;
         }
-        $this->resetPage();
     }
 
     public function hasActiveFilters(): bool
@@ -122,13 +130,13 @@ class AdventuresDiscovery extends Component
         return $this->search
             || $this->game_system_id
             || $this->experience_level
-            || !empty($this->vibe_flags)
-            || !empty($this->safety_tools)
+            || ! empty($this->vibe_flags)
+            || ! empty($this->safety_tools)
             || ($this->language && $this->language !== app()->getLocale())
             || $this->price
             || $this->complexity_min
             || $this->complexity_max
-            || !empty($this->play_styles)
+            || ! empty($this->play_styles)
             || $this->session_type
             || $this->session_zero
             || $this->radius > 0;
@@ -138,7 +146,7 @@ class AdventuresDiscovery extends Component
 
     public function render()
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('discovery.seo_title_browse_adventures'),
             description: __('discovery.seo_description_browse_adventures'),
         ));
@@ -197,7 +205,7 @@ class AdventuresDiscovery extends Component
 
         // Apply play_styles filter: match games/campaigns whose game system has
         // categories matching the selected PlayStyle editorial slug mappings
-        if (!empty($this->play_styles)) {
+        if (! empty($this->play_styles)) {
             $slugs = collect($this->play_styles)
                 ->map(fn (string $value) => PlayStyle::tryFrom($value))
                 ->filter()
@@ -206,15 +214,14 @@ class AdventuresDiscovery extends Component
                 ->values()
                 ->all();
 
-            if (!empty($slugs)) {
+            if (! empty($slugs)) {
                 $gamesQuery->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('slug', $slugs));
                 $campaignsQuery->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('slug', $slugs));
             }
         }
 
         // Campaigns boosted (sorted first), then games by date
-        $perPage = 12;
-        $page = (int) request()->get('page', 1);
+        $perPage = $this->displayCount;
 
         $campaigns = $campaignsQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'campaign',
@@ -238,9 +245,9 @@ class AdventuresDiscovery extends Component
         }
 
         $total = $merged->count();
-        $items = $merged->slice(($page - 1) * $perPage, $perPage)->values();
+        $items = $merged->take($this->displayCount)->values();
 
-        $results = new \Illuminate\Pagination\LengthAwarePaginator($items, $total, $perPage, $page, [
+        $results = new LengthAwarePaginator($items, $total, $this->displayCount, 1, [
             'path' => request()->url(),
             'query' => request()->query(),
         ]);
@@ -249,7 +256,7 @@ class AdventuresDiscovery extends Component
         $this->logFilterUsage();
 
         // Cross-track hint: count upcoming public board game sessions
-        $boardGameSessionCount = \App\Models\Game::where('status', 'scheduled')
+        $boardGameSessionCount = Game::where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->visibleTo(null)
             ->whereHas('gameSystem', fn ($q) => $q->where('type', 'boardgame'))
@@ -301,7 +308,7 @@ class AdventuresDiscovery extends Component
      */
     protected function logFilterUsage(): void
     {
-        if (!empty($this->play_styles) || !empty($this->session_type) || $this->session_zero) {
+        if (! empty($this->play_styles) || ! empty($this->session_type) || $this->session_zero) {
             Log::info('TTRPG discovery filters used', [
                 'page' => 'adventures',
                 'play_styles' => $this->play_styles,
