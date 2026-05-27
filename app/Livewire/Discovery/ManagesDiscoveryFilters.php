@@ -15,13 +15,13 @@ use Livewire\Attributes\Url;
  * vibe preferences), updating hooks, radius setter, and event listeners
  * used by all three discovery pages.
  *
+ * Consuming components must define: public int $displayCount = 12;
+ *
  * Usage:
  *   class MyDiscoveryPage extends Component {
  *       use ManagesDiscoveryFilters;
+ *       public int $displayCount = 12;
  *   }
- *
- * The mount lifecycle is handled automatically by Livewire's callTraitHook()
- * mechanism via mountManagesDiscoveryFilters().
  */
 trait ManagesDiscoveryFilters
 {
@@ -68,7 +68,7 @@ trait ManagesDiscoveryFilters
     public function mountManagesDiscoveryFilters(): void
     {
         $user = Auth::user();
-        if (!$this->language) {
+        if (! $this->language) {
             $this->language = ($user && $user->preferred_language)
                 ? $user->preferred_language->value
                 : app()->getLocale();
@@ -86,7 +86,7 @@ trait ManagesDiscoveryFilters
         // Pre-select vibe flags from user preferences (only if no URL values already set)
         if ($user && empty($this->vibe_flags)) {
             $resolvedVibes = $user->resolvedVibePreferences();
-            if (!empty($resolvedVibes['favorites'])) {
+            if (! empty($resolvedVibes['favorites'])) {
                 foreach ($resolvedVibes['favorites'] as $flagValue) {
                     $this->vibePreferences[$flagValue] = 'favorite';
                 }
@@ -99,44 +99,44 @@ trait ManagesDiscoveryFilters
 
     public function updatingSearch(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingGameSystemId(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingExperienceLevel(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingLanguage(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingPrice(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingRadius(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     // ── Shared actions ─────────────────────────────────
 
     public function setRadius(float $radius): void
     {
-        if ($radius != 0 && !in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
+        if ($radius != 0 && ! in_array($radius, DiscoveryQueryService::RADIUS_OPTIONS, false)) {
             return;
         }
         $this->radius = $radius;
         $this->usingFallbackRadius = false;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     // ── Shared event listeners ─────────────────────────
@@ -145,7 +145,7 @@ trait ManagesDiscoveryFilters
     public function onGameSystemUpdated($value): void
     {
         $this->game_system_id = $value;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     #[On('vibe-preferences-changed')]
@@ -158,6 +158,6 @@ trait ManagesDiscoveryFilters
             ->keys()
             ->values()
             ->all();
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 }

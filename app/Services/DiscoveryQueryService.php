@@ -7,11 +7,12 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
+use App\Models\User;
 use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Service encapsulating all discovery query logic previously spread across
@@ -40,45 +41,45 @@ class DiscoveryQueryService
     /**
      * Apply common filters to a games or campaigns query builder.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  Builder  $query
      * @param  string  $priceColumn  Column name for price filtering ('price' for games, 'price_per_session' for campaigns)
      * @param  array  $filters  Filter DTO/array with: search, game_system_id, experience_level, vibe_flags, safety_tools, language, price, complexity_min, complexity_max, category_ids, mechanic_ids
      */
     public function applySharedFilters($query, string $priceColumn, array $filters): void
     {
-        $query->when(!empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
+        $query->when(! empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
             $this->whereTranslatableLike($q, 'name', $filters['search']);
             $this->orWhereTranslatableLike($q, 'description', $filters['search']);
         }));
 
-        $query->when(!empty($filters['game_system_id']), fn ($q) => $q->where('game_system_id', $filters['game_system_id']));
-        $query->when(!empty($filters['experience_level']), fn ($q) => $q->where('experience_level', $filters['experience_level']));
+        $query->when(! empty($filters['game_system_id']), fn ($q) => $q->where('game_system_id', $filters['game_system_id']));
+        $query->when(! empty($filters['experience_level']), fn ($q) => $q->where('experience_level', $filters['experience_level']));
 
-        $query->when(!empty($filters['vibe_flags']), function ($q) use ($filters) {
+        $query->when(! empty($filters['vibe_flags']), function ($q) use ($filters) {
             foreach ($filters['vibe_flags'] as $flag) {
                 $q->whereJsonContains('vibe_flags', $flag);
             }
         });
 
-        $query->when(!empty($filters['safety_tools']), function ($q) use ($filters) {
+        $query->when(! empty($filters['safety_tools']), function ($q) use ($filters) {
             foreach ($filters['safety_tools'] as $tool) {
                 $q->whereJsonContains('safety_rules->tools', $tool);
             }
         });
 
-        $query->when(!empty($filters['language']), fn ($q) => $q->where('language', $filters['language']));
+        $query->when(! empty($filters['language']), fn ($q) => $q->where('language', $filters['language']));
 
         $query->when(($filters['price'] ?? '') === 'free', fn ($q) => $q->where(fn ($q) => $q->where($priceColumn, 0)->orWhereNull($priceColumn)));
         $query->when(($filters['price'] ?? '') === 'paid', fn ($q) => $q->where($priceColumn, '>', 0));
 
-        $query->when(!empty($filters['complexity_min']), fn ($q) => $q->where('complexity', '>=', (float) $filters['complexity_min']));
-        $query->when(!empty($filters['complexity_max']), fn ($q) => $q->where('complexity', '<=', (float) $filters['complexity_max']));
+        $query->when(! empty($filters['complexity_min']), fn ($q) => $q->where('complexity', '>=', (float) $filters['complexity_min']));
+        $query->when(! empty($filters['complexity_max']), fn ($q) => $q->where('complexity', '<=', (float) $filters['complexity_max']));
 
-        $query->when(!empty($filters['category_ids']), function ($q) use ($filters) {
+        $query->when(! empty($filters['category_ids']), function ($q) use ($filters) {
             $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $filters['category_ids']));
         });
 
-        $query->when(!empty($filters['mechanic_ids']), function ($q) use ($filters) {
+        $query->when(! empty($filters['mechanic_ids']), function ($q) use ($filters) {
             $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $filters['mechanic_ids']));
         });
     }
@@ -167,9 +168,9 @@ class DiscoveryQueryService
 
         $query->whereHas('linkedLocation', function ($q) use ($bounds) {
             $q->whereNotNull('latitude')
-              ->whereNotNull('longitude')
-              ->whereBetween('latitude', [$bounds['minLat'], $bounds['maxLat']])
-              ->whereBetween('longitude', [$bounds['minLng'], $bounds['maxLng']]);
+                ->whereNotNull('longitude')
+                ->whereBetween('latitude', [$bounds['minLat'], $bounds['maxLat']])
+                ->whereBetween('longitude', [$bounds['minLng'], $bounds['maxLng']]);
         });
     }
 
@@ -238,10 +239,10 @@ class DiscoveryQueryService
     /**
      * Get paginated games results with optional distance enrichment.
      */
-    public function getGamesResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date): LengthAwarePaginator
+    public function getGamesResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, int $perPage = 12): LengthAwarePaginator
     {
         $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
-        $paginator = $query->paginate(12)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
+        $paginator = $query->paginate($perPage)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $this->enrichWithDistance($paginator->getCollection(), 'game', $lat, $lng, $radius, false);
@@ -253,10 +254,10 @@ class DiscoveryQueryService
     /**
      * Get paginated campaigns results with optional distance enrichment.
      */
-    public function getCampaignsResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence): LengthAwarePaginator
+    public function getCampaignsResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence, int $perPage = 12): LengthAwarePaginator
     {
         $query = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
-        $paginator = $query->paginate(12)->through(fn ($campaign) => tap($campaign, fn ($c) => $c->discoverable_type = 'campaign'));
+        $paginator = $query->paginate($perPage)->through(fn ($campaign) => tap($campaign, fn ($c) => $c->discoverable_type = 'campaign'));
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $this->enrichWithDistance($paginator->getCollection(), 'campaign', $lat, $lng, $radius, false);
@@ -299,10 +300,8 @@ class DiscoveryQueryService
      *
      * @return array{results: LengthAwarePaginator, usingFallback: bool}
      */
-    public function getMergedResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence): array
+    public function getMergedResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence, int $perPage = 12): array
     {
-        $perPage = 12;
-        $page = (int) request()->get('page', 1);
         $usingFallback = false;
 
         $gamesQuery = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
@@ -329,9 +328,9 @@ class DiscoveryQueryService
         }
 
         $total = $merged->count();
-        $items = $merged->slice(($page - 1) * $perPage, $perPage)->values();
+        $items = $merged->take($perPage)->values();
 
-        $paginator = new Paginator($items, $total, $perPage, $page, [
+        $paginator = new Paginator($items, $total, $perPage, 1, [
             'path' => request()->url(),
             'query' => request()->query(),
         ]);
@@ -364,6 +363,7 @@ class DiscoveryQueryService
             if ($item->discoverable_type === 'game') {
                 return isset($gameDistances[$item->id]);
             }
+
             return isset($campaignDistances[$item->id]);
         })->map(function ($item) use ($gameDistances, $campaignDistances) {
             if ($item->discoverable_type === 'game') {
@@ -371,6 +371,7 @@ class DiscoveryQueryService
             } else {
                 $item->distance_km = $campaignDistances[$item->id];
             }
+
             return $item;
         });
 
@@ -385,6 +386,7 @@ class DiscoveryQueryService
                 if ($item->discoverable_type === 'game') {
                     return isset($gameDistances[$item->id]);
                 }
+
                 return isset($campaignDistances[$item->id]);
             })->map(function ($item) use ($gameDistances, $campaignDistances) {
                 if ($item->discoverable_type === 'game') {
@@ -392,6 +394,7 @@ class DiscoveryQueryService
                 } else {
                     $item->distance_km = $campaignDistances[$item->id];
                 }
+
                 return $item;
             });
         }
@@ -415,13 +418,13 @@ class DiscoveryQueryService
      *  2. Fallback: items matching favorite systems regardless of vibes.
      *  Merged with boosted first, deduplicated.
      *
-     * @param  \App\Models\User|null  $user  Current user (null returns null)
+     * @param  User|null  $user  Current user (null returns null)
      * @param  string|null  $systemType  Scope recommendations to a game system type (e.g., 'boardgame', 'ttrpg'). Null = all types.
-     * @return array|null  Array of Game|Campaign models with discoverable_type attribute, or null if no recommendations
+     * @return array|null Array of Game|Campaign models with discoverable_type attribute, or null if no recommendations
      */
     public function getRecommendations($user, ?string $systemType = null): ?array
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -461,13 +464,14 @@ class DiscoveryQueryService
         // Helper to tag items with discoverable_type
         $tagItems = function ($items, string $type) {
             $items->each(fn ($item) => $item->discoverable_type = $type);
+
             return $items;
         };
 
         // Primary query: favorite systems AND favorite vibes (boosted)
         $boostedGames = collect();
         $boostedCampaigns = collect();
-        if (!empty($favoriteVibes)) {
+        if (! empty($favoriteVibes)) {
             $boostedGames = Game::query()
                 ->where($visibilityClause)
                 ->where('status', 'scheduled')
@@ -557,8 +561,8 @@ class DiscoveryQueryService
 
         // Add boosted items first
         foreach ($boostedGames->merge($boostedCampaigns) as $item) {
-            $key = $item->discoverable_type . ':' . $item->id;
-            if (!$seen->has($key)) {
+            $key = $item->discoverable_type.':'.$item->id;
+            if (! $seen->has($key)) {
                 $seen->put($key, true);
                 $merged->push($item);
             }
@@ -566,8 +570,8 @@ class DiscoveryQueryService
 
         // Add fallback items (not already present)
         foreach ($fallbackGames->merge($fallbackCampaigns) as $item) {
-            $key = $item->discoverable_type . ':' . $item->id;
-            if (!$seen->has($key)) {
+            $key = $item->discoverable_type.':'.$item->id;
+            if (! $seen->has($key)) {
                 $seen->put($key, true);
                 $merged->push($item);
             }
@@ -656,18 +660,18 @@ class DiscoveryQueryService
      * Protected items are visible only to the owner's connections (friends, teammates)
      * and existing participants.
      *
-     * @param  \App\Models\User|null  $user  Current viewer
+     * @param  User|null  $user  Current viewer
      * @param  string  $table  Table name for participant subquery ('games' or 'campaigns')
      */
     private function buildVisibilityClause($user, string $table = 'games'): \Closure
     {
-        return function ($q) use ($user, $table) {
+        return function ($q) use ($user) {
             $q->where('visibility', 'public');
 
             if ($user) {
-                $q->orWhere(function ($q) use ($user, $table) {
+                $q->orWhere(function ($q) use ($user) {
                     $q->where('visibility', 'protected')
-                        ->where(function ($q) use ($user, $table) {
+                        ->where(function ($q) use ($user) {
                             $allowedOwnerIds = app(SocialGraphService::class)
                                 ->getAllowedOwnerIdsForProtectedContent($user);
                             $q->whereIn('owner_id', $allowedOwnerIds)
@@ -700,5 +704,4 @@ class DiscoveryQueryService
             }
         };
     }
-
 }

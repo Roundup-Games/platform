@@ -63,7 +63,12 @@
                         {{ __('billing.content_free') }}
                     </span>
                 @endif
-                @if($campaign->location && !empty($campaign->location['details']))
+                @if($campaign->relationLoaded('linkedLocation') && $campaign->linkedLocation)
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
+                        {{ $isGuest ? $campaign->linkedLocation->city : $campaign->linkedLocation->fullAddress() }}
+                    </span>
+                @elseif($campaign->location && !empty($campaign->location['details']))
                     <span class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
                         @if($isGuest)

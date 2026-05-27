@@ -220,6 +220,7 @@ return [
     'content_your_favorites' => 'Deine Favoriten',
     'error_cannot_remove_the_entity_owner' => 'Der :entity-Besitzer kann nicht entfernt werden.',
     'error_you_cannot_invite_yourself' => 'Du kannst dich nicht selbst einladen.',
+    'error_entity_no_longer_available' => 'Diese Sitzung nimmt keine weiteren Teilnehmer mehr an.',
     'error_not_authorized' => 'Du bist nicht berechtigt, diese Aktion auszuführen.',
     'error_rate_limit' => 'Zu viele Versuche. Bitte versuche es später erneut.',
     'field_access_until_date' => 'Zugang bis :date',

@@ -157,4 +157,6 @@ return [
     'seo_description_browse_board_games' => 'Find board game sessions near you. Filter by game system, experience level, vibe, and availability.',
     'seo_title_browse_adventures' => 'Browse Adventures',
     'seo_description_browse_adventures' => 'Find tabletop RPG campaigns and one-shot adventures near you. Filter by game system, play style, and experience level.',
+    'action_load_more' => 'Load more',
+    'content_showing_of_total' => 'Showing :shown of :total results',
 ];

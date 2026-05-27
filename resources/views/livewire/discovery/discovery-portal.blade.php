@@ -10,7 +10,7 @@
     {{-- ── Track Cards ──────────────────────────────────────────── --}}
     <div class="max-w-4xl mx-auto px-4 py-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         {{-- Board Game Night card --}}
-        <a href="{{ route('discover.board-games') }}" wire:navigate
+        <a href="{{ route('discover.board-games', ['locale' => app()->getLocale()]) }}" wire:navigate
            class="block bg-surface rounded-2xl shadow-ambient p-8 hover:shadow-md transition-shadow group">
             <span class="material-symbols-outlined text-4xl text-primary" aria-hidden="true">casino</span>
             <h2 class="mt-4 text-xl font-heading font-semibold text-on-surface group-hover:text-primary transition-colors">{{ __('discovery.field_board_game_night') }}</h2>
@@ -23,7 +23,7 @@
         </a>
 
         {{-- Tabletop Adventures card --}}
-        <a href="{{ route('discover.adventures') }}" wire:navigate
+        <a href="{{ route('discover.adventures', ['locale' => app()->getLocale()]) }}" wire:navigate
            class="block bg-surface rounded-2xl shadow-ambient p-8 hover:shadow-md transition-shadow group">
             <span class="material-symbols-outlined text-4xl text-secondary" aria-hidden="true">swords</span>
             <h2 class="mt-4 text-xl font-heading font-semibold text-on-surface group-hover:text-secondary transition-colors">{{ __('discovery.field_tabletop_adventures') }}</h2>

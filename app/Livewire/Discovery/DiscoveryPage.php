@@ -14,30 +14,35 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('components.public-layout')]
 class DiscoveryPage extends Component
 {
     use HasGuestLocation;
     use ManagesDiscoveryFilters;
-    use WithPagination;
 
     // Mode
     #[Url]
     public string $mode = 'all';
 
+    // Load more
+    public int $displayCount = 12;
+
     // Page-specific filters
     #[Url]
     public array $safety_tools = [];
+
     #[Url]
     public array $category_ids = [];
+
     #[Url]
     public array $mechanic_ids = [];
 
     // Entity-specific filters
     #[Url]
     public string $date = '';
+
     #[Url]
     public string $recurrence = '';
 
@@ -45,7 +50,12 @@ class DiscoveryPage extends Component
 
     public function updating(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
+    }
+
+    public function loadMore(): void
+    {
+        $this->displayCount += 12;
     }
 
     // Actions
@@ -53,37 +63,37 @@ class DiscoveryPage extends Component
     public function setMode(string $mode): void
     {
         $this->mode = $mode;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function setDate(string $date): void
     {
         $this->date = $date;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function setRecurrence(string $recurrence): void
     {
         $this->recurrence = $recurrence;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleSafetyTool(string $tool): void
     {
         $this->safety_tools = $this->toggleArrayValue($this->safety_tools, $tool);
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleCategory(string $categoryId): void
     {
         $this->category_ids = $this->toggleArrayValue($this->category_ids, $categoryId);
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function toggleMechanic(string $mechanicId): void
     {
         $this->mechanic_ids = $this->toggleArrayValue($this->mechanic_ids, $mechanicId);
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     private function toggleArrayValue(array $array, string $value): array
@@ -91,9 +101,11 @@ class DiscoveryPage extends Component
         $index = array_search($value, $array, true);
         if ($index !== false) {
             unset($array[$index]);
+
             return array_values($array);
         }
         $array[] = $value;
+
         return $array;
     }
 
@@ -105,11 +117,11 @@ class DiscoveryPage extends Component
             'date', 'recurrence', 'category_ids', 'mechanic_ids', 'radius',
         ]);
         $this->usingFallbackRadius = false;
+        $this->displayCount = 12;
         // Reset vibe preferences to neutral
         foreach (VibeFlag::cases() as $flag) {
             $this->vibePreferences[$flag->value] = null;
         }
-        $this->resetPage();
     }
 
     public function hasActiveFilters(): bool
@@ -117,16 +129,16 @@ class DiscoveryPage extends Component
         return $this->search
             || $this->game_system_id
             || $this->experience_level
-            || !empty($this->vibe_flags)
-            || !empty($this->safety_tools)
+            || ! empty($this->vibe_flags)
+            || ! empty($this->safety_tools)
             || ($this->language && $this->language !== app()->getLocale())
             || $this->price
             || $this->complexity_min
             || $this->complexity_max
             || $this->date
             || $this->recurrence
-            || !empty($this->category_ids)
-            || !empty($this->mechanic_ids)
+            || ! empty($this->category_ids)
+            || ! empty($this->mechanic_ids)
             || $this->radius > 0;
     }
 
@@ -140,7 +152,7 @@ class DiscoveryPage extends Component
             default => __('discovery.seo_title_browse_all'),
         };
 
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: $title,
             description: __('discovery.seo_description_browse'),
         ));
@@ -163,10 +175,10 @@ class DiscoveryPage extends Component
         }
 
         $results = match ($this->mode) {
-            'games' => $service->getGamesResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date),
-            'campaigns' => $service->getCampaignsResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence),
+            'games' => $service->getGamesResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->displayCount),
+            'campaigns' => $service->getCampaignsResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->recurrence, $this->displayCount),
             default => tap(
-                $service->getMergedResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->recurrence),
+                $service->getMergedResults($filters, $user, $this->radius, $lat, $lng, $hasLocation, $this->date, $this->recurrence, $this->displayCount),
                 fn (array $r) => $this->usingFallbackRadius = $r['usingFallback'],
             )['results'],
         };
