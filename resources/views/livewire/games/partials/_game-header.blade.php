@@ -33,7 +33,7 @@
 
         {{-- Campaign link --}}
         @if($game->campaign)
-            <a href="{{ route('campaigns.detail', $game->campaign->id) }}" wire:navigate class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary hover:bg-on-primary/30 transition-colors mb-3">
+            <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign->id]) }}" wire:navigate class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-on-primary/20 text-on-primary hover:bg-on-primary/30 transition-colors mb-3">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">campaign</span>
                 {{ __('games.content_part_of_campaign_name', ['name' => $game->campaign?->name]) }}
             </a>

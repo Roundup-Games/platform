@@ -14,9 +14,9 @@ enum Visibility: string
     public function label(): string
     {
         return match ($this) {
-            self::Public => 'Public',
-            self::Protected => 'Connections Only',
-            self::Private => 'Private',
+            self::Public => __('common.content_public'),
+            self::Protected => __('common.content_protected'),
+            self::Private => __('common.content_private'),
         };
     }
 

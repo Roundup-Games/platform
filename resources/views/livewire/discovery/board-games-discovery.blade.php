@@ -249,7 +249,12 @@
                 @endif
                 @if($date)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                        {{ __(ucfirst(str_replace('_', ' ', $date))) }}
+                        {{ match($date) {
+                            'upcoming' => __('common.field_upcoming'),
+                            'this_week' => __('common.content_this_week'),
+                            'this_month' => __('common.content_this_month'),
+                            default => __(ucfirst(str_replace('_', ' ', $date))),
+                        } }}
                     </span>
                 @endif
                 @if($game_system_id)

@@ -163,12 +163,22 @@
         @endif
         @if($date)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                {{ __(ucfirst(str_replace('_', ' ', $date))) }}
+                {{ match($date) {
+                    'upcoming' => __('common.field_upcoming'),
+                    'this_week' => __('common.content_this_week'),
+                    'this_month' => __('common.content_this_month'),
+                    default => __(ucfirst(str_replace('_', ' ', $date))),
+                } }}
             </span>
         @endif
         @if($recurrence)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
-                {{ __(ucfirst(str_replace('-', ' ', $recurrence))) }}
+                {{ match($recurrence) {
+                    'weekly' => __('campaigns.content_weekly'),
+                    'bi-weekly' => __('campaigns.content_bi-weekly'),
+                    'monthly' => __('campaigns.content_monthly'),
+                    default => __(ucfirst(str_replace('-', ' ', $recurrence))),
+                } }}
             </span>
         @endif
         @if($game_system_id)
@@ -181,7 +191,7 @@
             @php($cat = $curatedCategories->firstWhere('id', $catId))
             @if($cat)
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ $cat->name }}
+                    {{ $cat->translatedName() }}
                 </span>
             @endif
         @endforeach
@@ -189,7 +199,7 @@
             @php($mech = $curatedMechanics->firstWhere('id', $mechId))
             @if($mech)
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {{ $mech->name }}
+                    {{ $mech->translatedName() }}
                 </span>
             @endif
         @endforeach
@@ -221,7 +231,7 @@
         @endif
         @if($price)
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container">
-                {{ __(ucfirst($price)) }}
+                {{ $price === 'free' ? __('billing.content_free') : __('billing.content_paid') }}
             </span>
         @endif
         @if($complexity_min || $complexity_max)

@@ -1,6 +1,6 @@
 @props(['campaign'])
 
-<a href="{{ route('campaigns.detail', $campaign->id) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
+<a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $campaign->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
     <div class="h-1.5 bg-secondary/60"></div>
 
     <div class="p-5">
@@ -61,7 +61,12 @@
         @elseif($campaign->recurrence)
             <p class="text-sm text-on-surface-variant flex items-center gap-1">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">repeat</span>
-                {{ __(ucfirst(str_replace('-', ' ', $campaign->recurrence))) }}
+                {{ match($campaign->recurrence) {
+                    'weekly' => __('campaigns.content_weekly'),
+                    'bi-weekly' => __('campaigns.content_bi-weekly'),
+                    'monthly' => __('campaigns.content_monthly'),
+                    default => __(ucfirst(str_replace('-', ' ', $campaign->recurrence))),
+                } }}
             </p>
         @endif
         @if(!$campaign->relationLoaded('sessions') || $campaign->sessions->isEmpty())
