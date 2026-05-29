@@ -11,6 +11,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardModeService;
 use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -156,9 +157,10 @@ describe('Dashboard performance', function () {
 
         // Now execute the warm job synchronously and measure
         $cacheService = app(DashboardCacheService::class);
+        $modeService = app(DashboardModeService::class);
         $start = microtime(true);
         $job = new WarmDashboardCache((string) $user->id, 'cache_miss_week');
-        $job->handle($cacheService);
+        $job->handle($cacheService, $modeService);
         $elapsed = (microtime(true) - $start) * 1000;
 
         // Verify cache was populated

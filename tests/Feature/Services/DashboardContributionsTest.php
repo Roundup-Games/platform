@@ -380,14 +380,14 @@ class DashboardContributionsTest extends TestCase
 
         // Verify at least one put was for the contributions key with 3600s TTL
         Cache::shouldHaveReceived('put')
-            ->withArgs(function (string $key, array $value, int $ttl) {
-                if (str_contains($key, "dashboard:contributions:")) {
+            ->withArgs(function (string $key, $value, int $ttl) {
+                if (str_contains($key, "dashboard:contributions:") && is_array($value)) {
                     $this->assertEquals(3600, $ttl, 'Contributions TTL should be 3600 seconds (1 hour)');
 
                     return true;
                 }
 
-                return true; // allow other puts
+                return true; // allow other puts (e.g. mode resolution cache stores strings)
             });
     }
 

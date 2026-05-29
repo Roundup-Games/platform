@@ -1,84 +1,152 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Feature\Services;
 
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
-use App\Services\DashboardCacheService;
-use App\Services\Geohash;
+use App\Dto\ActionItem;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\Location;
+use App\Models\GMProfile;
+use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Services\DashboardCacheService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
+/**
+ * Tests that action center cache is correctly invalidated when underlying
+ * data changes: participant status, game events, reviews, follows, attendance.
+ */
 class DashboardInvalidationTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private DashboardCacheService $cacheService;
+    private DashboardCacheService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cacheService = app(DashboardCacheService::class);
-        // Suppress log noise in tests
+        $this->service = app(DashboardCacheService::class);
+        Cache::flush();
+        Queue::fake();
         Log::spy();
     }
 
-    // ── 1. Game events (created / updated / deleted) ──────────
+    // ── computeActionCenter delegates to ActionCenterService ────
 
     #[Test]
-    public function game_created_invalidates_week_for_owner(): void
+    public function compute_action_center_returns_serialized_action_items(): void
     {
-        $owner = User::factory()->create();
+        $user = User::factory()->create();
 
-        // Pre-populate week cache directly
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$owner->id}:{$weekKey}";
-        Cache::put($cacheKey, ['games_this_week' => []], 300);
-        $this->assertNotNull(Cache::get($cacheKey));
-
-        // Create a game — should trigger invalidation via saved hook
-        Game::factory()->create([
-            'owner_id' => $owner->id,
+        // Create a game the user owns with a pending application
+        $game = Game::factory()->create([
+            'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
         ]);
+        $applicant = User::factory()->create();
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $applicant->id,
+            'status' => ParticipantStatus::Pending,
+        ]);
 
-        // Week cache should be cleared for owner
-        $this->assertNull(Cache::get($cacheKey));
+        $result = $this->service->getActionCenter($user);
+
+        $this->assertIsArray($result);
+        $this->assertNotEmpty($result);
+
+        // Each item should be an array with ActionItem fields
+        $item = $result[0];
+        $this->assertArrayHasKey('type', $item);
+        $this->assertArrayHasKey('priority', $item);
+        $this->assertArrayHasKey('title', $item);
+        $this->assertArrayHasKey('action_url', $item);
+        $this->assertEquals('pending_applications', $item['type']);
     }
 
     #[Test]
-    public function game_updated_invalidates_week_for_owner(): void
+    public function action_center_items_are_serialized_for_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getActionCenter($user);
+
+        // Verify it was cached
+        $cached = Cache::get("dashboard:action_center:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+
+        // Verify cached data can round-trip through ActionItem::fromArray
+        foreach ($cached as $itemArray) {
+            $restored = ActionItem::fromArray($itemArray);
+            $this->assertInstanceOf(ActionItem::class, $restored);
+            $this->assertEquals($itemArray['type'], $restored->type);
+            $this->assertEquals($itemArray['priority'], $restored->priority);
+        }
+    }
+
+    #[Test]
+    public function action_center_returns_cached_data_on_second_call(): void
+    {
+        $user = User::factory()->create();
+
+        $first = $this->service->getActionCenter($user);
+        $second = $this->service->getActionCenter($user);
+
+        $this->assertEquals($first, $second);
+    }
+
+    // ── invalidateActionCenterForParticipantChange ──────────────
+
+    #[Test]
+    public function participant_change_invalidates_user_and_owner_action_center(): void
     {
         $owner = User::factory()->create();
+        $player = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
         ]);
 
-        // Pre-populate week cache (after game creation already cleared it)
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$owner->id}:{$weekKey}";
-        Cache::put($cacheKey, ['data' => true], 300);
+        // Populate both action center caches
+        Cache::put("dashboard:action_center:{$player->id}", ['old_data'], 300);
+        Cache::put("dashboard:action_center:{$owner->id}", ['old_data'], 300);
 
-        // Update the game — should trigger saved hook
-        $game->update(['name' => ['en' => 'Updated Game Name']]);
+        $this->service->invalidateActionCenterForParticipantChange(
+            (string) $player->id,
+            (string) $game->id,
+        );
 
-        $this->assertNull(Cache::get($cacheKey));
+        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
     }
 
     #[Test]
-    public function game_deleted_invalidates_week_for_owner_and_approved_participants(): void
+    public function participant_change_without_game_only_invalidates_user(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:action_center:{$user->id}", ['old_data'], 300);
+
+        $this->service->invalidateActionCenterForParticipantChange((string) $user->id);
+
+        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
+    }
+
+    // ── invalidateActionCenterForGameEvent ──────────────────────
+
+    #[Test]
+    public function game_event_invalidates_owner_and_participants_action_center(): void
     {
         $owner = User::factory()->create();
         $player = User::factory()->create();
+        $waitlisted = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
@@ -88,237 +156,226 @@ class DashboardInvalidationTest extends TestCase
             'user_id' => $player->id,
             'status' => ParticipantStatus::Approved,
         ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $waitlisted->id,
+            'status' => ParticipantStatus::Waitlisted,
+        ]);
 
-        // Pre-populate week cache after all model hooks have fired
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $ownerKey = "dashboard:week:{$owner->id}:{$weekKey}";
-        $playerKey = "dashboard:week:{$player->id}:{$weekKey}";
-        Cache::put($ownerKey, ['data' => true], 300);
-        Cache::put($playerKey, ['data' => true], 300);
+        // Populate caches
+        Cache::put("dashboard:action_center:{$owner->id}", ['old'], 300);
+        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
+        Cache::put("dashboard:action_center:{$waitlisted->id}", ['old'], 300);
 
-        $game->delete();
+        $this->service->invalidateActionCenterForGameEvent((string) $game->id);
 
-        $this->assertNull(Cache::get($ownerKey));
-        $this->assertNull(Cache::get($playerKey));
+        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$waitlisted->id}"));
     }
 
     #[Test]
-    public function game_event_invalidates_trending_for_game_location(): void
+    public function game_event_skips_rejected_participants(): void
     {
-        $location = $this->createLocation();
-        $geohash4 = $location->geohash_4;
         $owner = User::factory()->create();
-
-        // Pre-populate trending cache
-        Cache::put("dashboard:trending:{$geohash4}", ['games' => []], 600);
-
-        Game::factory()->create([
+        $rejected = User::factory()->create();
+        $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
-            'location_id' => $location->id,
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $rejected->id,
+            'status' => ParticipantStatus::Rejected,
         ]);
 
-        // Trending for the game's geohash should be cleared
-        $this->assertNull(Cache::get("dashboard:trending:{$geohash4}"));
+        Cache::put("dashboard:action_center:{$rejected->id}", ['should_stay'], 300);
+
+        $this->service->invalidateActionCenterForGameEvent((string) $game->id);
+
+        // Rejected participant's cache should NOT be cleared
+        $this->assertNotNull(Cache::get("dashboard:action_center:{$rejected->id}"));
     }
 
-    // ── 2. Follow / unfollow ──────────────────────────────────
+    // ── invalidateActionCenterForReview ─────────────────────────
 
     #[Test]
-    public function follow_invalidates_feed_for_both_users(): void
+    public function review_invalidation_clears_action_center_for_reviewed_user(): void
     {
         $user = User::factory()->create();
-        $target = User::factory()->create();
+        Cache::put("dashboard:action_center:{$user->id}", ['old'], 300);
 
-        // Pre-populate feed cache for both users
-        Cache::put("dashboard:feed:{$user->id}", ['items' => []], 900);
-        Cache::put("dashboard:feed:{$target->id}", ['items' => []], 900);
+        $this->service->invalidateActionCenterForReview((string) $user->id);
 
-        UserRelationship::follow($user, $target);
-
-        $this->assertNull(Cache::get("dashboard:feed:{$user->id}"));
-        $this->assertNull(Cache::get("dashboard:feed:{$target->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
     }
 
+    // ── invalidateActionCenterForFollow ─────────────────────────
+
     #[Test]
-    public function unfollow_invalidates_feed_for_both_users(): void
+    public function follow_invalidation_clears_action_center_for_followed_user(): void
     {
         $user = User::factory()->create();
-        $target = User::factory()->create();
+        Cache::put("dashboard:action_center:{$user->id}", ['old'], 300);
 
-        // Create follow relationship first
-        UserRelationship::follow($user, $target);
+        $this->service->invalidateActionCenterForFollow((string) $user->id);
 
-        // Pre-populate feed cache after follow invalidation
-        Cache::put("dashboard:feed:{$user->id}", ['items' => []], 900);
-        Cache::put("dashboard:feed:{$target->id}", ['items' => []], 900);
-
-        UserRelationship::unfollow($user, $target);
-
-        $this->assertNull(Cache::get("dashboard:feed:{$user->id}"));
-        $this->assertNull(Cache::get("dashboard:feed:{$target->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
     }
 
-    // ── 3. Player join / leave ─────────────────────────────────
+    // ── invalidateActionCenterForAttendance ─────────────────────
 
     #[Test]
-    public function player_join_invalidates_week_for_player(): void
+    public function attendance_invalidation_clears_action_center_for_user(): void
     {
+        $user = User::factory()->create();
+        Cache::put("dashboard:action_center:{$user->id}", ['old'], 300);
+
+        $this->service->invalidateActionCenterForAttendance((string) $user->id);
+
+        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
+    }
+
+    // ── Observer wiring: GameParticipantObserver ────────────────
+
+    #[Test]
+    public function game_participant_created_invalidates_action_center(): void
+    {
+        $owner = User::factory()->create();
         $player = User::factory()->create();
         $game = Game::factory()->create([
+            'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
         ]);
 
-        // Pre-populate week cache
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$player->id}:{$weekKey}";
-        Cache::put($cacheKey, ['data' => true], 300);
+        // Populate caches
+        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
+        Cache::put("dashboard:action_center:{$owner->id}", ['old'], 300);
 
-        // Player joins the game
+        // Creating a participant triggers the observer
         GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'status' => ParticipantStatus::Approved,
+            'status' => ParticipantStatus::Pending,
         ]);
 
-        $this->assertNull(Cache::get($cacheKey));
+        // Both player and owner action center should be invalidated
+        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
     }
 
     #[Test]
-    public function player_leave_invalidates_week_for_player(): void
+    public function game_participant_status_change_invalidates_action_center(): void
     {
+        $owner = User::factory()->create();
         $player = User::factory()->create();
         $game = Game::factory()->create([
+            'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
         ]);
         $participant = GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'status' => ParticipantStatus::Approved,
+            'status' => ParticipantStatus::Pending,
         ]);
 
-        // Pre-populate week cache after join invalidation
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
-        $cacheKey = "dashboard:week:{$player->id}:{$weekKey}";
-        Cache::put($cacheKey, ['data' => true], 300);
+        // Populate caches after creation
+        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
+        Cache::put("dashboard:action_center:{$owner->id}", ['old'], 300);
 
-        // Player leaves
-        $participant->delete();
+        // Change status
+        $participant->update(['status' => ParticipantStatus::Approved]);
 
-        $this->assertNull(Cache::get($cacheKey));
-    }
-
-    // ── 4. User preference change (opportunities) ──────────────
-
-    #[Test]
-    public function opportunities_invalidation_clears_tracked_keys(): void
-    {
-        $user = User::factory()->create();
-        $geohash4 = 'u33d';
-
-        // Use the service to populate, which tracks the key
-        $this->cacheService->warmOpportunities($user, $geohash4);
-        $opKey = "dashboard:opportunities:{$user->id}:{$geohash4}";
-        $this->assertNotNull(Cache::get($opKey));
-
-        // Invalidate via the service
-        $this->cacheService->invalidateForUser($user->id, ['opportunities']);
-
-        $this->assertNull(Cache::get($opKey));
-    }
-
-    // ── 5. Recap written ───────────────────────────────────────
-
-    #[Test]
-    public function recap_update_invalidates_contributions_for_owner(): void
-    {
-        $host = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-        ]);
-
-        // Pre-populate contributions cache (after game creation hooks have fired)
-        Cache::put("dashboard:contributions:{$host->id}", ['data' => true], 3600);
-
-        // Update recap — the saved hook should detect recap change
-        $game->update(['recap' => 'Great session everyone!']);
-
-        $this->assertNull(Cache::get("dashboard:contributions:{$host->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
     }
 
     #[Test]
-    public function recap_update_invalidates_contributions_for_approved_participants(): void
+    public function game_participant_attendance_report_invalidates_action_center(): void
     {
-        $host = User::factory()->create();
         $player = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-        ]);
-        GameParticipant::factory()->create([
+        $game = Game::factory()->create(['status' => GameStatus::Completed]);
+        $participant = GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $player->id,
             'status' => ParticipantStatus::Approved,
+            'attendance_status' => null,
         ]);
 
-        // Pre-populate contributions cache for player
-        Cache::put("dashboard:contributions:{$player->id}", ['data' => true], 3600);
+        // Populate caches after the created observer has already fired
+        Cache::flush();
+        Cache::put("dashboard:action_center:{$player->id}", ['old'], 300);
 
-        $game->update(['recap' => 'Great session everyone!']);
+        $participant->attendance_status = \App\Enums\AttendanceStatus::Attended;
+        $participant->save();
 
-        $this->assertNull(Cache::get("dashboard:contributions:{$player->id}"));
+        $this->assertNull(Cache::get("dashboard:action_center:{$player->id}"));
     }
 
-    // ── 6. Location change ─────────────────────────────────────
+    // ── Observer wiring: GameObserver ───────────────────────────
 
     #[Test]
-    public function location_change_invalidates_trending_for_old_and_new_geohash(): void
+    public function game_saved_invalidates_action_center(): void
     {
-        $oldLocation = $this->createLocation(52.5163, 13.3777); // Berlin
-        $newLocation = $this->createLocation(48.8566, 2.3522);  // Paris
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'status' => GameStatus::Scheduled,
+        ]);
 
-        $oldGeohash = $oldLocation->geohash_4;
-        $newGeohash = $newLocation->geohash_4;
+        Cache::put("dashboard:action_center:{$owner->id}", ['old'], 300);
 
-        // Pre-populate trending caches
-        Cache::put("dashboard:trending:{$oldGeohash}", ['games' => []], 600);
-        Cache::put("dashboard:trending:{$newGeohash}", ['games' => []], 600);
+        $game->update(['name' => 'Updated Game Name']);
 
-        // Simulate location change invalidation
-        $this->cacheService->invalidateTrendingForGeohash($oldGeohash);
-        $this->cacheService->invalidateTrendingForGeohash($newGeohash);
+        $this->assertNull(Cache::get("dashboard:action_center:{$owner->id}"));
+    }
 
-        $this->assertNull(Cache::get("dashboard:trending:{$oldGeohash}"));
-        $this->assertNull(Cache::get("dashboard:trending:{$newGeohash}"));
+    // ── Observer wiring: ReviewObserver ─────────────────────────
+
+    #[Test]
+    public function review_created_invalidates_action_center_for_gm(): void
+    {
+        $gm = User::factory()->create();
+        $gmProfile = GMProfile::factory()->create(['user_id' => $gm->id]);
+        $reviewer = User::factory()->create();
+
+        Cache::put("dashboard:action_center:{$gm->id}", ['old'], 300);
+
+        Review::factory()->create([
+            'gm_profile_id' => $gmProfile->id,
+            'reviewer_id' => $reviewer->id,
+            'rating' => 5,
+        ]);
+
+        $this->assertNull(Cache::get("dashboard:action_center:{$gm->id}"));
+    }
+
+    // ── Observer wiring: UserRelationshipObserver ───────────────
+
+    #[Test]
+    public function follow_created_invalidates_action_center_for_followed_user(): void
+    {
+        $followed = User::factory()->create();
+        $follower = User::factory()->create();
+
+        Cache::put("dashboard:action_center:{$followed->id}", ['old'], 300);
+
+        UserRelationship::follow($follower, $followed);
+
+        $this->assertNull(Cache::get("dashboard:action_center:{$followed->id}"));
     }
 
     #[Test]
-    public function location_change_invalidates_opportunities_via_tracking(): void
+    public function non_follow_relationship_does_not_invalidate_action_center(): void
     {
         $user = User::factory()->create();
-        $location = $this->createLocation();
-        $geohash4 = $location->geohash_4;
+        $other = User::factory()->create();
 
-        // Use service to populate (tracks key)
-        $this->cacheService->warmOpportunities($user, $geohash4);
-        $opKey = "dashboard:opportunities:{$user->id}:{$geohash4}";
-        $this->assertNotNull(Cache::get($opKey));
+        Cache::put("dashboard:action_center:{$user->id}", ['should_stay'], 300);
 
-        // Invalidate for location change
-        $this->cacheService->invalidateForUser($user->id, ['opportunities']);
+        // Create a block relationship — should NOT trigger action center invalidation
+        UserRelationship::block($other, $user);
 
-        $this->assertNull(Cache::get($opKey));
-    }
-
-    // ── Helpers ─────────────────────────────────────────────────
-
-    private function createLocation(float $lat = 52.5163, float $lng = 13.3777): Location
-    {
-        return Location::factory()->create([
-            'latitude' => $lat,
-            'longitude' => $lng,
-            'geohash_4' => Geohash::tilePrefix($lat, $lng, 4),
-        ]);
+        $this->assertNotNull(Cache::get("dashboard:action_center:{$user->id}"));
     }
 }

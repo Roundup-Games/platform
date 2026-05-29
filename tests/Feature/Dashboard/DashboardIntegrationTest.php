@@ -49,6 +49,52 @@ describe('Dashboard rendering', function () {
         $component->assertViewHas('opportunities');
         $component->assertViewHas('contributions');
         $component->assertViewHas('quickActions');
+
+        // Verify dashboardMode is always passed
+        $component->assertViewHas('dashboardMode');
+        $mode = $component->viewData('dashboardMode');
+        expect($mode)->toBeIn(['newcomer', 'established']);
+    });
+});
+
+// ── Dashboard mode resolution ───────────────────────────────────
+
+describe('Dashboard mode', function () {
+    test('new user gets newcomer mode', function () {
+        // Fresh user — created just now, zero attended games
+        $component = Livewire::test(\App\Livewire\Dashboard::class);
+
+        $mode = $component->viewData('dashboardMode');
+        expect($mode)->toBe('newcomer');
+    });
+
+    test('user with attended game gets established mode', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'status' => 'completed',
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        $component = Livewire::test(\App\Livewire\Dashboard::class);
+
+        $mode = $component->viewData('dashboardMode');
+        expect($mode)->toBe('established');
+    });
+
+    test('user older than 30 days gets established mode regardless of attendance', function () {
+        // User created 31 days ago — no attended games but account is old
+        $oldUser = User::factory()->create(['created_at' => now()->subDays(31)]);
+        $this->actingAs($oldUser);
+        URL::defaults(['locale' => 'en']);
+
+        $component = Livewire::test(\App\Livewire\Dashboard::class);
+
+        $mode = $component->viewData('dashboardMode');
+        expect($mode)->toBe('established');
     });
 });
 

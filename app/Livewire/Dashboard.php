@@ -8,9 +8,15 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardDiscoveryService;
+use App\Services\DashboardModeService;
+use App\Services\DashboardNewcomerService;
+use App\Services\DashboardQuickActionsService;
+use App\Services\DashboardScheduleService;
 use App\Services\DashboardSmartPromptService;
 use App\Services\Geohash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -21,6 +27,15 @@ class Dashboard extends Component
     public function render()
     {
         $user = Auth::user();
+
+        // Resolve dashboard mode (newcomer vs established)
+        $dashboardMode = app(DashboardModeService::class)->resolve($user);
+
+        Log::debug('dashboard.render_mode', [
+            'user_id' => $user->id,
+            'mode' => $dashboardMode,
+        ]);
+
         $gamesThisWeek = $this->gamesThisWeek();
 
         $smartPrompt = app(DashboardSmartPromptService::class)->getPrompt($user);
@@ -36,7 +51,16 @@ class Dashboard extends Component
         // Quick actions derived from smart prompt state
         $quickActions = $this->deriveQuickActions($user, $smartPrompt);
 
+        // Newcomer dashboard data (only loaded when mode is newcomer)
+        $newcomerData = $this->getNewcomerData($user, $dashboardMode);
+
+        // Established dashboard data (only loaded when mode is established)
+        $establishedData = $this->getEstablishedData($user, $dashboardMode, $communityFeed);
+
         return view('livewire.dashboard', [
+            // Dashboard mode
+            'dashboardMode' => $dashboardMode,
+
             // New dashboard sections
             'smartPrompt' => $smartPrompt,
             'weekData' => $weekData,
@@ -59,8 +83,24 @@ class Dashboard extends Component
             'opportunities' => $opportunities,
             'contributions' => $contributions,
 
-            // Quick Actions
+            // Quick Actions (legacy — used by old template)
             'quickActions' => $quickActions,
+
+            // Newcomer dashboard data
+            'newcomerWelcome' => $newcomerData['welcome'],
+            'preferenceMatches' => $newcomerData['preference_matches'],
+            'progressTracker' => $newcomerData['progress_tracker'],
+            'nearbyPeople' => $newcomerData['nearby_people'],
+
+            // Established dashboard data
+            'actionCenterItems' => $establishedData['action_center_items'],
+            'clearSummary' => $establishedData['clear_summary'],
+            'scheduleGroups' => $establishedData['schedule_groups'],
+            'hostAgainBridge' => $establishedData['host_again_bridge'],
+            'nearbyNoteworthy' => $establishedData['nearby_noteworthy'],
+            'milestoneCards' => $establishedData['milestone_cards'],
+            'establishedQuickActions' => $establishedData['quick_actions'],
+            'shouldShowCommunityPulse' => $establishedData['should_show_community_pulse'],
         ]);
     }
 
@@ -271,6 +311,162 @@ class Dashboard extends Component
             ->with(['participants' => fn ($q) => $q->where('user_id', $user->id), 'campaign'])
             ->orderBy('date_time')
             ->get();
+    }
+
+    /**
+     * Get established-mode dashboard data for the user.
+     *
+     * Only loads data when the dashboard mode is 'established'.
+     * Returns empty arrays for all sections when mode is 'newcomer',
+     * so the view conditionals hide the established sections cleanly.
+     *
+     * @return array{action_center_items: array, clear_summary: array|null, schedule_groups: array, host_again_bridge: array|null, nearby_noteworthy: array, milestone_cards: array, quick_actions: array, should_show_community_pulse: bool}
+     */
+    private function getEstablishedData(User $user, string $dashboardMode, array $communityFeed): array
+    {
+        if ($dashboardMode !== 'established') {
+            return [
+                'action_center_items' => [],
+                'clear_summary' => null,
+                'schedule_groups' => ['today' => [], 'this_week' => [], 'coming_up' => []],
+                'host_again_bridge' => null,
+                'nearby_noteworthy' => [],
+                'milestone_cards' => [],
+                'quick_actions' => [],
+                'should_show_community_pulse' => false,
+            ];
+        }
+
+        $cacheService = app(DashboardCacheService::class);
+        $scheduleService = app(DashboardScheduleService::class);
+        $discoveryService = app(DashboardDiscoveryService::class);
+
+        // Action center (already wired in S03)
+        $actionCenterRaw = $cacheService->getActionCenter($user);
+        $actionCenterItems = array_map(
+            fn (array $item) => \App\Dto\ActionItem::fromArray($item),
+            $actionCenterRaw,
+        );
+        $clearSummary = null;
+        if (empty($actionCenterItems)) {
+            $clearSummary = app(\App\Services\ActionCenterService::class)->getClearSummary($user);
+        }
+
+        // Schedule timeline
+        $scheduleGroups = $scheduleService->getUpcomingGames($user);
+        $hostAgainBridge = $scheduleService->getHostAgainBridge($user);
+
+        // Nearby & Noteworthy (requires location)
+        $location = $user->linkedLocation;
+        $geohash4 = null;
+        if ($location && $location->latitude && $location->longitude) {
+            $geohash4 = Geohash::tilePrefix(
+                (float) $location->latitude,
+                (float) $location->longitude,
+                4,
+            );
+        }
+
+        $nearbyNoteworthy = $geohash4
+            ? $discoveryService->getNearbyNoteworthy($user, $geohash4)
+            : [];
+
+        // Milestone identity cards
+        $milestoneCards = $discoveryService->getMilestoneCards($user);
+
+        // Quick actions (role-adapted)
+        $quickActions = app(DashboardQuickActionsService::class)->getQuickActions($user);
+
+        // Community Pulse toggle
+        $shouldShowCommunityPulse = $discoveryService->shouldShowCommunityPulse($user);
+
+        Log::debug('dashboard.established_data_loaded', [
+            'user_id' => $user->id,
+            'has_geohash' => $geohash4 !== null,
+            'action_center_count' => count($actionCenterItems),
+            'schedule_today' => count($scheduleGroups['today'] ?? []),
+            'schedule_week' => count($scheduleGroups['this_week'] ?? []),
+            'schedule_coming' => count($scheduleGroups['coming_up'] ?? []),
+            'nearby_count' => count($nearbyNoteworthy),
+            'milestone_count' => count($milestoneCards),
+            'quick_actions_count' => count($quickActions),
+            'show_pulse' => $shouldShowCommunityPulse,
+        ]);
+
+        return [
+            'action_center_items' => $actionCenterItems,
+            'clear_summary' => $clearSummary,
+            'schedule_groups' => $scheduleGroups,
+            'host_again_bridge' => $hostAgainBridge,
+            'nearby_noteworthy' => $nearbyNoteworthy,
+            'milestone_cards' => $milestoneCards,
+            'quick_actions' => $quickActions,
+            'should_show_community_pulse' => $shouldShowCommunityPulse,
+        ];
+    }
+
+    /**
+     * Get newcomer dashboard data for the user.
+     *
+     * Only loads data when the dashboard mode is 'newcomer'.
+     * Returns empty arrays for all sections when mode is 'established',
+     * so the view conditionals hide the newcomer sections cleanly.
+     *
+     * @return array{welcome: array, preference_matches: array, progress_tracker: array, nearby_people: array}
+     */
+    private function getNewcomerData(User $user, string $dashboardMode): array
+    {
+        if ($dashboardMode !== 'newcomer') {
+            return [
+                'welcome' => [],
+                'preference_matches' => [],
+                'progress_tracker' => [],
+                'nearby_people' => [],
+            ];
+        }
+
+        $newcomerService = app(DashboardNewcomerService::class);
+        $cacheService = app(DashboardCacheService::class);
+
+        // Welcome data (no geohash needed)
+        $welcome = $newcomerService->getWelcomeData($user);
+
+        // Progress tracker (no geohash needed)
+        $progressTracker = $newcomerService->getProgressTracker($user);
+
+        // Geohash-dependent data — requires user location
+        $location = $user->linkedLocation;
+        $geohash4 = null;
+        if ($location && $location->latitude && $location->longitude) {
+            $geohash4 = Geohash::tilePrefix(
+                (float) $location->latitude,
+                (float) $location->longitude,
+                4,
+            );
+        }
+
+        $preferenceMatches = $geohash4
+            ? $newcomerService->getPreferenceWeightedMatches($user, $geohash4)
+            : ['games' => [], 'total_nearby' => 0, 'preference_match_rate' => 0.0];
+
+        $nearbyPeople = $geohash4
+            ? $newcomerService->getNearbyPeople($user, $geohash4)
+            : ['people' => [], 'total_nearby' => 0];
+
+        Log::debug('dashboard.newcomer_data_loaded', [
+            'user_id' => $user->id,
+            'has_geohash' => $geohash4 !== null,
+            'matches_count' => count($preferenceMatches['games']),
+            'people_count' => count($nearbyPeople['people']),
+            'progress_step' => $progressTracker['current_step'] ?? 0,
+        ]);
+
+        return [
+            'welcome' => $welcome,
+            'preference_matches' => $preferenceMatches,
+            'progress_tracker' => $progressTracker,
+            'nearby_people' => $nearbyPeople,
+        ];
     }
 
 }
