@@ -27,9 +27,10 @@ describe('User::generateSlug', function () {
         expect(User::generateSlug('John@Doe#Test'))->toBe('johndoetest');
     });
 
-    it('preserves unicode letters', function () {
+    it('transliterates unicode letters to ASCII with German expansions', function () {
         $slug = User::generateSlug('François Müller');
-        expect($slug)->toBe('françois-müller');
+        // ü correctly expands to ue (German transliteration), not just u
+        expect($slug)->toBe('francois-mueller');
     });
 
     it('strips leading and trailing hyphens', function () {

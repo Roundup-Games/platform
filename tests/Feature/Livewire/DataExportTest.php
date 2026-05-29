@@ -38,8 +38,8 @@ describe('Profile Data Export Request', function () {
             ->and($ticket->department_id)->toBe($this->accountSupportDept->id)
             ->and($ticket->priority)->toBe(TicketPriority::Medium)
             ->and($ticket->channel)->toBe(TicketChannel::Web)
-            ->and($ticket->metadata['source'])->toBe('settings')
-            ->and($ticket->metadata['user_id'])->toBe($this->user->id);
+            ->and($ticket->metadata['schema'])->toBe('data_export/v1')
+            ->and($ticket->metadata['actor']['id'])->toBe($this->user->id);
     });
 
     it('prevents duplicate open export requests', function () {

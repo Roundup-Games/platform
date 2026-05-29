@@ -269,13 +269,7 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 2,
         ]);
 
-        // Fill the game
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
+        // Fill the game (owner is implicit; one filler makes it full)
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => createUser()->id,
@@ -300,7 +294,7 @@ describe('ApplyToGame capacity guard', function () {
             ->first();
 
         expect($application)->not->toBeNull()
-            ->and($application->status)->toBe('pending');
+            ->and($application->status)->toBe('approved'); // Application approved; participant waitlisted
     });
 
     it('auto-approves when standalone public game has capacity', function () {
@@ -316,13 +310,8 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 5,
         ]);
 
-        // Only the owner as participant
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'player',
-            'status' => ParticipantStatus::Approved->value,
-        ]);
+        // Owner is implicit — game has capacity (owner + 4 open slots = 5)
+        // No additional participants needed
 
         Livewire::actingAs($viewer)
             ->test(ApplyToGame::class, ['id' => $game->id])

@@ -90,7 +90,7 @@ test('host does not see bench management when no benched players on campaign', f
 
 test('host sees bench section with benched players on campaign session detail', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $game = $this->createFullBenchSession($campaign, maxPlayers: 2);
+    $game = $this->createFullBenchGameSession($campaign, maxPlayers: 2);
     $this->addBenchUser($game);
 
     Livewire::actingAs($this->owner)
@@ -102,7 +102,7 @@ test('host sees bench section with benched players on campaign session detail', 
 // smoke: host can promote benched player
 test('host can promote benched player from campaign session detail', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $game = $this->createFullBenchSession($campaign, maxPlayers: 3);
+    $game = $this->createFullBenchGameSession($campaign, maxPlayers: 3);
     ['participant' => $benchedParticipant] = $this->addBenchUser($game);
 
     $this->openBenchSlot($game);
@@ -119,7 +119,7 @@ test('host can promote benched player from campaign session detail', function ()
 
 test('benched player sees bench banner on campaign session detail', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $game = $this->createFullBenchSession($campaign, maxPlayers: 2);
+    $game = $this->createFullBenchGameSession($campaign, maxPlayers: 2);
     ['user' => $benchedUser] = $this->addBenchUser($game);
 
     Livewire::actingAs($benchedUser)
@@ -159,7 +159,7 @@ test('host does not see bench section on standalone game', function () {
 
 test('non-host cannot see bench management on campaign session', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $game = $this->createFullBenchSession($campaign, maxPlayers: 2);
+    $game = $this->createFullBenchGameSession($campaign, maxPlayers: 2);
     $this->addBenchUser($game);
     $otherUser = User::factory()->create();
 
@@ -187,7 +187,7 @@ test('promote from bench fails when campaign is still full', function () {
 
 test('promote from bench fails when campaign session is still full', function () {
     $campaign = $this->createFullBenchCampaign(maxPlayers: 2);
-    $game = $this->createFullBenchSession($campaign, maxPlayers: 2);
+    $game = $this->createFullBenchGameSession($campaign, maxPlayers: 2);
     ['participant' => $benchedParticipant] = $this->addBenchUser($game);
 
     Livewire::actingAs($this->owner)

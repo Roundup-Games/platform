@@ -207,7 +207,7 @@ describe('User::generateSlug additional cases', function () {
     });
 
     it('handles names with mixed case and accents', function () {
-        expect(User::generateSlug('José GARCÍA'))->toBe('josé-garcía');
+        expect(User::generateSlug('José GARCÍA'))->toBe('jose-garcia');
     });
 
     it('handles very long names by producing a long slug', function () {
@@ -234,7 +234,9 @@ describe('User::generateSlug additional cases', function () {
 
     it('handles unicode combining characters in names', function () {
         $slug = User::generateSlug('Hélène Müster');
-        expect($slug)->toBe('hélène-müster');
+        // German umlauts are pre-expanded before iconv (ü→ue), so the result
+        // is deterministic across platforms.
+        expect($slug)->toBe('helene-muester');
     });
 });
 

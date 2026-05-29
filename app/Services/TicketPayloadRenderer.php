@@ -186,6 +186,9 @@ class TicketPayloadRenderer
             $payload['has_subscription'] = $subscriptionContext['has_subscription'] ?? false;
             $payload['subscription_status'] = $subscriptionContext['subscription_status'] ?? null;
             $payload['paddle_subscription_id'] = $subscriptionContext['paddle_subscription_id'] ?? null;
+        }
+
+        if ($user->paddle_id) {
             $payload['paddle_customer_id'] = $user->paddle_id;
         }
 

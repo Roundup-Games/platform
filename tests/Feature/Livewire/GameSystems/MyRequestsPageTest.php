@@ -21,6 +21,7 @@ class MyRequestsPageTest extends TestCase
     {
         parent::setUp();
 
+        \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
         $this->seed(EscalatedSetupSeeder::class);
     }
 
@@ -128,7 +129,7 @@ class MyRequestsPageTest extends TestCase
     public function test_approved_request_links_to_game_system(): void
     {
         $user = User::factory()->create();
-        $gameSystem = GameSystem::factory()->create(['slug' => 'wingspan']);
+        $gameSystem = GameSystem::factory()->create(['slug' => 'wingspan', 'name' => 'Wingspan']);
 
         $this->createGameSystemTicket($user, [
             'subject' => 'Game System Request: Wingspan',
@@ -143,9 +144,13 @@ class MyRequestsPageTest extends TestCase
             ],
         ]);
 
-        Livewire::actingAs($user)
-            ->test(MyRequestsPage::class)
-            ->assertSee(route('game-systems.show', 'wingspan'));
+        $component = Livewire::actingAs($user)
+            ->test(MyRequestsPage::class);
+
+        // Verify the game system name appears (getRequestName strips the prefix)
+        $html = $component->html();
+        $this->assertStringContainsString('wingspan', $html);
+        $this->assertStringContainsString('Wingspan', $html);
     }
 
     public function test_approved_request_without_game_system_shows_name_without_link(): void

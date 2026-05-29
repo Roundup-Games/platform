@@ -35,14 +35,7 @@ function benchCreateFullCampaign(User $owner, GameSystem $system, int $maxPlayer
         'bench_mode' => true,
     ]);
 
-    // Fill with approved participants (including owner)
-    CampaignParticipant::create([
-        'campaign_id' => $campaign->id,
-        'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
     for ($i = 1; $i < $maxPlayers; $i++) {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
@@ -74,14 +67,7 @@ function benchCreateFullCampaignSession(User $owner, GameSystem $system, Campaig
         'bench_mode' => true,
     ]);
 
-    // Fill with approved participants (including owner)
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -171,13 +157,7 @@ test('add to bench throws when entity is not full', function () {
         'max_players' => 5,
     ]);
 
-    // Only owner — campaign not full
-    CampaignParticipant::create([
-        'campaign_id' => $campaign->id,
-        'user_id' => $this->owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
+    // No approved participants — campaign not full (owner is implicit +1, still < 5)
 
     $applicant = User::factory()->create();
 
@@ -187,8 +167,12 @@ test('add to bench throws when entity is not full', function () {
 test('add to bench throws when user is already a participant', function () {
     $campaign = benchCreateFullCampaign($this->owner, $this->gameSystem, maxPlayers: 2);
 
-    // Try to bench the owner (already a participant)
-    $this->service->addToBench($campaign, $this->owner);
+    // Try to bench an existing approved player
+    $existingPlayer = $campaign->participants()
+        ->where('role', 'player')
+        ->where('status', ParticipantStatus::Approved->value)
+        ->first();
+    $this->service->addToBench($campaign, User::find($existingPlayer->user_id));
 })->throws(\LogicException::class, 'User is already a participant.');
 
 // ── promoteFromBench ─────────────────────────────────────

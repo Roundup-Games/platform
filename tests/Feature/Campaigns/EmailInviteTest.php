@@ -108,15 +108,14 @@ test('cancel invite works for email invite on campaign', function () {
 
     expect($participant)->not->toBeNull();
 
-    // Cancel the invite
+    // Cancel the invite — record is deleted (so user can be re-invited)
     Livewire\Livewire::actingAs($this->owner)
         ->test(CampaignManageParticipants::class, ['id' => $this->campaign->id])
         ->call('cancelInvite', $participant->id)
         ->assertHasNoErrors();
 
-    $this->assertDatabaseHas('campaign_participants', [
+    $this->assertDatabaseMissing('campaign_participants', [
         'id' => $participant->id,
-        'status' => ParticipantStatus::Rejected->value,
     ]);
 });
 

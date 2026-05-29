@@ -72,7 +72,7 @@ it('reports a user profile and creates ticket in Safety department', function ()
     expect($ticket->metadata['entity_id'])->toBe($reportedUser->id);
     expect($ticket->metadata['entity_name'])->toBe('Bad Actor');
     expect($ticket->metadata['report_reason'])->toBe('harassment');
-    expect($ticket->metadata['description'])->toBe('This user is sending threatening messages');
+    expect($ticket->metadata['details'])->toBe('This user is sending threatening messages');
 
     // Verify entity-type tag
     expect($ticket->tags->pluck('name')->toArray())->toContain('user-report');

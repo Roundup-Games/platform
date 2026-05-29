@@ -115,7 +115,7 @@ describe('Campaign card next session display', function () {
 
         // Should show recurrence since no upcoming session
         expect($rendered)->toContain('repeat');
-        expect($rendered)->toContain('Bi weekly');
+        expect($rendered)->toContain('Bi-weekly');
     });
 });
 

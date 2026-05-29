@@ -125,9 +125,9 @@ class WarmTrendingNearbyTest extends TestCase
 
         // Game with more participants comes first
         $this->assertEquals($gameMore->id, $cached['games'][0]['id']);
-        $this->assertEquals(2, $cached['games'][0]['participant_count']);
+        $this->assertEquals(3, $cached['games'][0]['participant_count']); // 2 players + 1 implicit owner
         $this->assertEquals($gameFewer->id, $cached['games'][1]['id']);
-        $this->assertEquals(1, $cached['games'][1]['participant_count']);
+        $this->assertEquals(2, $cached['games'][1]['participant_count']); // 1 player + 1 implicit owner
     }
 
     #[Test]
@@ -393,7 +393,7 @@ class WarmTrendingNearbyTest extends TestCase
         $cached = Cache::get("dashboard:trending:{$geohash4}");
         $this->assertNotNull($cached);
         $this->assertCount(1, $cached['games']);
-        // Only the approved participant should be counted
-        $this->assertEquals(1, $cached['games'][0]['participant_count']);
+        // Only the approved participant is counted (+1 for implicit owner)
+        $this->assertEquals(2, $cached['games'][0]['participant_count']);
     }
 }

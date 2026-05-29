@@ -31,6 +31,8 @@ class ReportReview extends Component
 
     public ?string $reason = null;
 
+    public ?string $description = null;
+
     public ?string $successMessage = null;
 
     public function mount(string $reviewId): void

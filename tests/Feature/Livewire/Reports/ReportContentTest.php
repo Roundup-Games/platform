@@ -257,7 +257,7 @@ it('creates a safety ticket for a reported user', function () {
     expect($ticket->metadata['entity_type'])->toBe('user');
     expect($ticket->metadata['entity_id'])->toBe($reportedUser->id);
     expect($ticket->metadata['entity_name'])->toBe('Bad Actor');
-    expect($ticket->metadata['description'])->toBe('This user is sending spam messages');
+    expect($ticket->metadata['details'])->toBe('This user is sending spam messages');
 
     // Verify tags
     expect($ticket->tags->pluck('name')->toArray())->toContain('user-report');

@@ -230,14 +230,14 @@ describe('Game Event Schema', function () {
     });
 
     it('skips Event schema for non-public games', function () {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'visibility' => 'protected',
         ]);
 
         // Protected games require auth; view as the owner so policy passes
-        $response = actingAs($owner)->get(route('games.detail', $game->id));
+        $response = actingAs($owner)->get(route('games.show', $game->id));
         $response->assertOk();
 
         $content = $response->content();
@@ -303,7 +303,7 @@ describe('Campaign Event Schema', function () {
     });
 
     it('skips Event schema for non-public campaigns', function () {
-        $owner = User::factory()->create();
+        $owner = User::factory()->create(['profile_complete' => true]);
         $campaign = Campaign::factory()->create([
             'owner_id' => $owner->id,
             'visibility' => 'protected',
@@ -311,7 +311,7 @@ describe('Campaign Event Schema', function () {
         ]);
 
         // Protected campaigns require auth; view as the owner so policy passes
-        $response = actingAs($owner)->get(route('campaigns.detail', $campaign->id));
+        $response = actingAs($owner)->get(route('campaigns.show', $campaign->id));
         $response->assertOk();
 
         $content = $response->content();

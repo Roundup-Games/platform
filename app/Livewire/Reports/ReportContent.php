@@ -253,7 +253,7 @@ class ReportContent extends Component
             'description' => $this->buildTicketDescription($entity, $reporter, $entityName),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::High->value,
-            'department_id' => $department->id,
+            'department_id' => $department?->id,
             'ticket_type' => 'content_report',
             'channel' => TicketChannel::Web->value,
             'metadata' => $metadata,

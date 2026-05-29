@@ -39,13 +39,7 @@ function createFullGameForLeave(User $owner, GameSystem $system, int $maxPlayers
         'campaign_id' => null,
     ]);
 
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -93,13 +87,7 @@ function createFullBenchGameForLeave(User $owner, GameSystem $system, int $maxPl
         'bench_mode' => true,
     ]);
 
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -130,13 +118,7 @@ function createFullCampaignForLeave(User $owner, GameSystem $system, int $maxPla
         'bench_mode' => $benchMode,
     ]);
 
-    CampaignParticipant::create([
-        'campaign_id' => $campaign->id,
-        'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
     for ($i = 1; $i < $maxPlayers; $i++) {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,

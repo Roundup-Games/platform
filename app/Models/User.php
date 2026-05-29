@@ -483,16 +483,20 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
      */
     protected static function transliterate(string $text): string
     {
-        // iconv with //TRANSLIT handles locale-aware transliteration
+        // Apply German-specific expansions BEFORE iconv so that ü→ue survives
+        // transliteration. iconv on many systems (especially macOS) converts
+        // ü to combining-diaeresis + u (e.g. "u) which the post-iconv replacement
+        // cannot match. Pre-expanding avoids this entirely.
+        $germanMap = ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
+            'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue'];
+        $text = strtr($text, $germanMap);
+
+        // iconv with //TRANSLIT handles locale-aware transliteration for remaining chars
         $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
 
-        // Fallback if iconv fails or produces unexpected results
+        // Fallback if iconv fails
         if ($transliterated === false) {
-            // Manual fallback for common cases
             $map = [
-                'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue',
-                'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue',
-                'ß' => 'ss',
                 'æ' => 'ae', 'ø' => 'oe', 'å' => 'aa',
                 'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa',
                 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
@@ -506,20 +510,6 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
                 'ł' => 'l', 'ś' => 's', 'ź' => 'z',
             ];
             return strtr($text, $map);
-        }
-
-        // iconv on some systems produces single-char transliteration (ü→u instead of ü→ue).
-        // Apply German-specific expansions after iconv for correct ae/oe/ue output.
-        $textLower = mb_strtolower($text);
-        $germanMap = ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss'];
-        foreach ($germanMap as $char => $expanded) {
-            if (mb_strpos($textLower, $char) !== false) {
-                $transliterated = str_ireplace(
-                    [mb_strtoupper($char), $char],
-                    [mb_strtoupper($expanded), $expanded],
-                    $transliterated
-                );
-            }
         }
 
         return $transliterated;

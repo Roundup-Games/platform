@@ -29,7 +29,6 @@ use Tests\TestCase;
 
 $unitDirsNeedingTransactions = [
     'Unit/SEO',
-    'Unit/Services',
 ];
 
 pest()->extend(TestCase::class)

@@ -163,10 +163,10 @@ describe('Game Detail Route', function () {
 
     it('shows public game to authenticated user via route', function () {
         $game = gameTestCreateGame(['visibility' => 'public', 'name' => ['en' => 'Open Session']]);
-        $user = User::factory()->create();
+        $user = User::factory()->create(['profile_complete' => true]);
 
         actingAs($user)
-            ->get(route('games.detail', $game->id))
+            ->get(route('games.show', $game->id))
             ->assertOk()
             ->assertSee('Open Session');
     });
@@ -315,7 +315,7 @@ describe('Game Application — ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => 'approved',
         ]);
     });
 
@@ -445,15 +445,14 @@ describe('Game Approve/Reject Application', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('rejectApplication', $participant->id);
 
-        assertDatabaseHas('game_participants', [
+        // Records are deleted (so user can re-apply)
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
 
-        assertDatabaseHas('game_applications', [
+        assertDatabaseMissing('game_applications', [
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -497,9 +496,9 @@ describe('Game Remove/Cancel Participant', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
-        assertDatabaseHas('game_participants', [
+        // Record is deleted (so user can re-apply)
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
     });
 
@@ -538,9 +537,9 @@ describe('Game Remove/Cancel Participant', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('cancelInvite', $participant->id);
 
-        assertDatabaseHas('game_participants', [
+        // Record is deleted (so user can be re-invited)
+        assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
         ]);
     });
 });
