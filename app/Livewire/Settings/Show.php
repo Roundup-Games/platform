@@ -3,9 +3,9 @@
 namespace App\Livewire\Settings;
 
 use App\Enums\NotificationCategory;
-use App\Enums\TicketChannel;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\TicketPayloadRenderer;

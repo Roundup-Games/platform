@@ -93,16 +93,15 @@ test('cancel email invite removes from pending', function () {
     expect($participant)->not->toBeNull();
     expect($participant->status)->toBe(ParticipantStatus::Pending);
 
-    // Cancel the invite
+    // Cancel the invite — record is deleted (so user can be re-invited)
     Livewire\Livewire::actingAs($this->owner)
         ->test(GameManageParticipants::class, ['id' => $this->game->id])
         ->call('cancelInvite', $participant->id)
         ->assertHasNoErrors();
 
-    // Should now be rejected
-    $this->assertDatabaseHas('game_participants', [
+    // Record should be deleted
+    $this->assertDatabaseMissing('game_participants', [
         'id' => $participant->id,
-        'status' => ParticipantStatus::Rejected->value,
     ]);
 
     // Should no longer appear in pending invites

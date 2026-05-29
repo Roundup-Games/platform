@@ -134,11 +134,11 @@ describe('UserAnonymizationService integration', function () {
         // All participants still exist
         expect(GameParticipant::where('game_id', $gameId)->count())->toBe($participantCount);
 
-        // Owner participant still references the user
+        // Owner has no participant record (implicit in production code)
         $ownerParticipant = GameParticipant::where('game_id', $gameId)
             ->where('user_id', $owner->id)
             ->first();
-        expect($ownerParticipant)->not->toBeNull();
+        expect($ownerParticipant)->toBeNull('Owner should not have a participant record');
     });
 
     it('preserves campaigns and campaign participations', function () {

@@ -4,15 +4,16 @@ use App\Enums\JoinSource;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
-use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\ShortLink;
 use App\Models\User;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
 beforeEach(function () {
+    URL::defaults(['locale' => 'en']);
     $this->owner = User::factory()->create();
     $this->nonOwner = User::factory()->create();
     $this->gameSystem = GameSystem::factory()->create();
@@ -25,20 +26,17 @@ describe('Game share link UI', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('common.title_share_link'))
-            ->assertSee(__('common.action_generate_link'));
+            ->assertSee(__('common.title_share_link'));
     });
 
     it('does not show share link section to non-owner', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
         ]);
 
         Livewire::actingAs($this->nonOwner)
@@ -46,99 +44,73 @@ describe('Game share link UI', function () {
             ->assertDontSee(__('common.title_share_link'));
     });
 
-    it('shows active share link with URL when token exists', function () {
-        $token = (string) Str::uuid();
+    it('shows generate button when no short links exist', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => $token,
-        ]);
-
-        $expectedUrl = route('games.show', $game->id) . '?share=' . $token;
-
-        Livewire::actingAs($this->owner)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee($expectedUrl)
-            ->assertSee(__('common.action_copy_link'))
-            ->assertSee(__('common.action_regenerate_link'))
-            ->assertSee(__('common.action_revoke_link'))
-            ->assertDontSee(__('common.action_generate_link'));
-    });
-
-    it('does not show generate button when link already exists', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => (string) Str::uuid(),
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertDontSee(__('common.action_generate_link'));
+            ->assertSee(__('common.action_generate_link'));
     });
 
-    it('shows generate button when no link exists', function () {
+    it('shows active short link when one exists', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
+        ]);
+
+        $link = ShortLink::create([
+            'linkable_type' => Game::class,
+            'linkable_id' => $game->id,
+            'user_id' => $this->owner->id,
+            'code' => 'abc123',
+            'url' => url('/link/abc123'),
+            'purpose' => 'share',
+        ]);
+
+        $fullUrl = url('/link/abc123');
+
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->assertSee($fullUrl)
+            ->assertSee(__('common.action_copy_link'));
+    });
+
+    it('creates a short link via createShortLink action', function () {
+        $game = Game::factory()->create([
+            'owner_id' => $this->owner->id,
+            'game_system_id' => $this->gameSystem->id,
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->assertSee(__('common.action_generate_link'))
-            ->assertDontSee(__('common.action_copy_link'))
-            ->assertDontSee(__('common.action_regenerate_link'))
-            ->assertDontSee(__('common.action_revoke_link'));
+            ->call('createShortLink', 'Test link');
+
+        expect(ShortLink::where('linkable_id', $game->id)->count())->toBe(1);
     });
 
-    it('copyable URL contains correct share token after generation', function () {
+    it('revokes a short link via revokeShortLink action', function () {
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
         ]);
 
-        $component = Livewire::actingAs($this->owner)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('generateShareLink');
-
-        $freshToken = $game->fresh()->share_token;
-        expect($freshToken)->not->toBeNull();
-
-        $component->assertSee($freshToken);
-    });
-
-    it('switches to active state after generating a link', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
+        $link = ShortLink::create([
+            'linkable_type' => Game::class,
+            'linkable_id' => $game->id,
+            'user_id' => $this->owner->id,
+            'code' => 'revoke1',
+            'url' => url('/link/revoke1'),
+            'purpose' => 'share',
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call('generateShareLink')
-            ->assertDontSee(__('common.action_generate_link'))
-            ->assertSee(__('common.action_copy_link'))
-            ->assertSee(__('common.action_regenerate_link'))
-            ->assertSee(__('common.action_revoke_link'));
-    });
+            ->call("revokeShortLink", $link->id);
 
-    it('switches to generate state after revoking a link', function () {
-        $game = Game::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => (string) Str::uuid(),
-        ]);
-
-        Livewire::actingAs($this->owner)
-            ->test(GameDetail::class, ['id' => $game->id])
-            ->call('revokeShareLink')
-            ->assertSee(__('common.action_generate_link'))
-            ->assertDontSee(__('common.action_copy_link'))
-            ->assertDontSee(__('common.action_regenerate_link'))
-            ->assertDontSee(__('common.action_revoke_link'));
+        expect(ShortLink::find($link->id))->toBeNull();
     });
 });
 
@@ -149,20 +121,17 @@ describe('Campaign share link UI', function () {
         $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee(__('common.title_share_link'))
-            ->assertSee(__('common.action_generate_link'));
+            ->assertSee(__('common.title_share_link'));
     });
 
     it('does not show share link section to non-owner', function () {
         $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
         ]);
 
         Livewire::actingAs($this->nonOwner)
@@ -170,52 +139,27 @@ describe('Campaign share link UI', function () {
             ->assertDontSee(__('common.title_share_link'));
     });
 
-    it('shows active share link with URL when token exists', function () {
-        $token = (string) Str::uuid();
+    it('shows active short link when one exists', function () {
         $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
-            'share_token' => $token,
         ]);
 
-        $expectedUrl = route('campaigns.detail', $campaign->id) . '?share=' . $token;
+        $link = ShortLink::create([
+            'linkable_type' => Campaign::class,
+            'linkable_id' => $campaign->id,
+            'user_id' => $this->owner->id,
+            'code' => 'camp12',
+            'url' => url('/link/camp12'),
+            'purpose' => 'share',
+        ]);
+
+        $fullUrl = url('/link/camp12');
 
         Livewire::actingAs($this->owner)
             ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->assertSee($expectedUrl)
-            ->assertSee(__('common.action_copy_link'))
-            ->assertDontSee(__('common.action_generate_link'));
-    });
-
-    it('copyable URL contains correct share token after generation', function () {
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => null,
-        ]);
-
-        $component = Livewire::actingAs($this->owner)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('generateShareLink');
-
-        $freshToken = $campaign->fresh()->share_token;
-        expect($freshToken)->not->toBeNull();
-
-        $component->assertSee($freshToken);
-    });
-
-    it('switches to generate state after revoking a link', function () {
-        $campaign = Campaign::factory()->create([
-            'owner_id' => $this->owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'share_token' => (string) Str::uuid(),
-        ]);
-
-        Livewire::actingAs($this->owner)
-            ->test(CampaignDetail::class, ['id' => $campaign->id])
-            ->call('revokeShareLink')
-            ->assertSee(__('common.action_generate_link'))
-            ->assertDontSee(__('common.action_copy_link'));
+            ->assertSee($fullUrl)
+            ->assertSee(__('common.action_copy_link'));
     });
 });
 
@@ -296,9 +240,7 @@ describe('Join source badge display in manage-participants', function () {
         $component = Livewire::actingAs($this->owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id]);
 
-        // The join_source enum labels should not appear in the output for null participants
         $html = $component->html();
-        // Check that no join source badge element is rendered — look for the badge icons that only appear with join_source
         expect(preg_match('/person_add.*Friend Invite|link.*Share Link|edit_note.*Application/s', $html))->toBe(0);
     });
 });

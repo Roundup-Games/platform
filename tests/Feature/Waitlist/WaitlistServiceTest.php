@@ -25,14 +25,7 @@ function createFullStandaloneGame(int $maxPlayers = 3, array $overrides = []): a
         ...$overrides,
     ]);
 
-    // Fill game with approved participants (including owner)
-    GameParticipant::create([
-        'game_id' => $game->id,
-        'user_id' => $owner->id,
-        'role'    => 'player',
-        'status'  => ParticipantStatus::Approved->value,
-    ]);
-
+    // Owner is implicit (counted as +1 in service layer). Fill non-owner slots only.
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -96,9 +89,15 @@ describe('addToWaitlist', function () {
     });
 
     it('throws when user is already a participant', function () {
-        ['game' => $game, 'owner' => $owner] = createFullStandaloneGame();
+        ['game' => $game] = createFullStandaloneGame();
 
-        expect(fn () => $this->service->addToWaitlist($game, $owner))
+        // Get an existing approved player
+        $existingPlayer = $game->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->first();
+        $user = User::find($existingPlayer->user_id);
+
+        expect(fn () => $this->service->addToWaitlist($game, $user))
             ->toThrow(\LogicException::class, 'User is already a participant of this entity.');
     });
 
@@ -405,16 +404,19 @@ describe('handleGameCancellation', function () {
     });
 
     it('does not affect approved participants', function () {
-        ['game' => $game, 'owner' => $owner] = createFullStandaloneGame();
+        ['game' => $game] = createFullStandaloneGame();
 
         $waitUser = User::factory()->create();
         $this->service->addToWaitlist($game, $waitUser);
 
         $this->service->handleGameCancellation($game);
 
-        $ownerParticipant = GameParticipant::where('game_id', $game->id)
-            ->where('user_id', $owner->id)->first();
-        expect($ownerParticipant->status)->toBe(ParticipantStatus::Approved);
+        // Approved player participants should remain unchanged (owner has no record)
+        $approvedPlayer = $game->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->first();
+        expect($approvedPlayer)->not->toBeNull();
+        expect($approvedPlayer->status)->toBe(ParticipantStatus::Approved);
     });
 });
 

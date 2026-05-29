@@ -86,9 +86,14 @@ class OAuthController
             // tries to decrypt old token values with the new key (DecryptException:
             // "The MAC is invalid"). A direct DB update bypasses model casts
             // and encrypts with the current key via encrypt().
+            // Use encryptString (not encrypt) to match the Eloquent encrypted cast,
+            // which does not serialize/unserialize. Using encrypt() would cause
+            // double-serialization that the cast cannot correctly reverse.
             \DB::table('linked_accounts')->where('id', $linkedAccount->id)->update([
-                'token' => encrypt($socialiteUser->token),
-                'refresh_token' => encrypt($socialiteUser->refreshToken),
+                'token' => \Crypt::encryptString($socialiteUser->token),
+                'refresh_token' => $socialiteUser->refreshToken
+                    ? \Crypt::encryptString($socialiteUser->refreshToken)
+                    : null,
                 'token_expires_at' => null,
                 'provider_meta' => json_encode([
                     'nickname' => $socialiteUser->getNickname(),

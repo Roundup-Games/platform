@@ -437,10 +437,12 @@ describe('/safety-tools static page', function () {
         $response = get(route('safety-tools'));
         $response->assertOk();
 
-        $tools = $response->viewData('tools');
-        $categories = $response->viewData('categories');
-
-        expect($tools)->toHaveCount(9);
-        expect($categories)->toHaveCount(3);
+        // Verify every SafetyTool enum case is rendered with its label.
+        // The foreach loop provides dynamic coverage: when a new tool is added,
+        // this test automatically verifies it appears on the page without needing
+        // a hardcoded count update.
+        foreach (\App\Enums\SafetyTool::cases() as $tool) {
+            $response->assertSee($tool->label());
+        }
     });
 });

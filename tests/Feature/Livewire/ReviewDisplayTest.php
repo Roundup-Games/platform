@@ -88,7 +88,7 @@ describe('Game Detail — Review Display', function () {
         $viewer = User::factory()->create(['profile_complete' => true]);
 
         $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
+            ->get(route('games.show', $data['game']->id));
 
         $response->assertOk()
             ->assertSee('Excellent storytelling session!')
@@ -107,7 +107,7 @@ describe('Game Detail — Review Display', function () {
         ]);
 
         $response = $this->actingAs($player2)
-            ->get(route('games.detail', $data['game']->id));
+            ->get(route('games.show', $data['game']->id));
 
         $response->assertOk()
             ->assertSee(__('reviews.action_write_review'));
@@ -118,7 +118,7 @@ describe('Game Detail — Review Display', function () {
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         $response = $this->actingAs($stranger)
-            ->get(route('games.detail', $data['game']->id));
+            ->get(route('games.show', $data['game']->id));
 
         $response->assertOk()
             ->assertDontSee(__('reviews.action_write_review'));
@@ -131,7 +131,7 @@ describe('Game Detail — Review Display', function () {
         $viewer = User::factory()->create(['profile_complete' => true]);
 
         $response = $this->actingAs($viewer)
-            ->get(route('games.detail', $data['game']->id));
+            ->get(route('games.show', $data['game']->id));
 
         $response->assertOk()
             ->assertDontSee('Excellent storytelling session!')

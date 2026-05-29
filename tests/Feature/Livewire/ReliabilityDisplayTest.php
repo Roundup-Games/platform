@@ -157,7 +157,7 @@ describe('Profile Privacy — Stats Field', function () {
         $user = reliabilityCreateUser();
 
         actingAs($user)
-            ->get(route('profile.show'))
+            ->get(route('settings.show'))
             ->assertStatus(200)
             ->assertSee('Reliability Stats');
     });

@@ -86,6 +86,11 @@ class WaitlistService
             throw new \LogicException('User is already a participant of this entity.');
         }
 
+        // Owner cannot join their own entity's waitlist
+        if ($entity->owner_id === $user->id) {
+            throw new \LogicException('Cannot add to waitlist: you are the host.');
+        }
+
         $participant = $entity->participants()->create([
             'user_id' => $user->id,
             'role' => 'player',

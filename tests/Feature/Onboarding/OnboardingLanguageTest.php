@@ -23,7 +23,7 @@ it('sets preferred_language to De when onboarding with de locale', function () {
         ->call('nextStep')
         ->call('nextStep')
         ->call('complete')
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect('/de/dashboard');
 
     expect($user->fresh()->preferred_language)->toBe(ContentLanguage::De);
 });

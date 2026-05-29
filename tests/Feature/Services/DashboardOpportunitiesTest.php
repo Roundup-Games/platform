@@ -675,7 +675,7 @@ class DashboardOpportunitiesTest extends TestCase
         $this->assertEquals('Epic Adventure', $gameResult['entity_name']);
         $this->assertEquals('D&D 5e', $gameResult['game_system_name']);
         $this->assertNotNull($gameResult['date_time']);
-        $this->assertEquals(6, $gameResult['spots_available']);
+        $this->assertEquals(5, $gameResult['spots_available']); // max_players(6) - implicit owner(1) = 5
         $this->assertNotNull($gameResult['distance_km']);
         $this->assertEquals('Game Master', $gameResult['owner_name']);
     }

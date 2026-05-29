@@ -122,17 +122,19 @@ class MyRequestsPage extends Component
 
     public function mapTicketStatus(Ticket $ticket): string
     {
-        $status = $ticket->status;
+        $status = $ticket->status instanceof TicketStatus
+            ? $ticket->status
+            : TicketStatus::tryFrom($ticket->status);
 
-        if ($status === TicketStatus::Open->value || $status === TicketStatus::InProgress->value) {
+        if ($status === TicketStatus::Open || $status === TicketStatus::InProgress) {
             return 'pending';
         }
 
-        if ($status === TicketStatus::Resolved->value) {
+        if ($status === TicketStatus::Resolved) {
             return 'approved';
         }
 
-        if ($status === TicketStatus::Closed->value) {
+        if ($status === TicketStatus::Closed) {
             // Check metadata for close reason
             $metadata = $ticket->metadata ?? [];
 

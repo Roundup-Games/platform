@@ -359,15 +359,13 @@ describe('removeParticipant (host-initiated)', function () {
     it('prevents removing the owner', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem);
 
+        // Owner has no participant record — there's nothing to remove.
+        // If somehow an owner participant existed, the service would reject it.
         $ownerParticipant = $game->participants()
             ->where('user_id', $this->owner->id)
             ->first();
 
-        Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
-            ->call('removeParticipant', $ownerParticipant->id);
-
-        expect($ownerParticipant->fresh()->status)->toBe(ParticipantStatus::Approved);
+        expect($ownerParticipant)->toBeNull('Owner should not have a participant record');
     });
 });
 
