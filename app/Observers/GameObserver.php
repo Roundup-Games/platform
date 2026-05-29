@@ -15,6 +15,7 @@ class GameObserver
     public function saved(Game $game): void
     {
         $this->cache->invalidateForGameEvent($game, 'saved');
+        $this->cache->invalidateActionCenterForGameEvent($game->id);
 
         if ($game->wasChanged('recap') && ! empty($game->recap)) {
             $this->cache->invalidateForUser((string) $game->owner_id, ['contributions']);
