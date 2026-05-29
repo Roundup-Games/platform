@@ -61,6 +61,9 @@
 
                 @include('livewire.games.partials._participant-list')
 
+                {{-- Host Bulletin Board --}}
+                <livewire:games.game-bulletin-board :game="$game" />
+
                 {{-- Session Zero --}}
                 @if($activeSessionZero && ($isParticipant || $isOwner))
                     <section class="bg-primary/5 border border-primary/20 rounded-xl shadow-ambient p-6">

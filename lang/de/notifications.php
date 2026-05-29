@@ -314,4 +314,11 @@ return [
     // Verknüpfte Benachrichtigungsanzeige
     'label_conjunction_and' => 'und',
     'label_count_others' => ':count weiterer|:count weitere',
+
+    // Host-Bulletin veröffentlicht
+    'subject_bulletin_posted' => 'Neues Update für :game',
+    'body_bulletin_posted' => ':host hat ein Update für :game veröffentlicht.',
+    'body_bulletin_content' => '":content"',
+    'push_title_bulletin_posted' => 'Spiel-Update',
+    'push_body_bulletin_posted' => ':host hat ein Update für :game veröffentlicht',
 ];
