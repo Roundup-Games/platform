@@ -75,11 +75,11 @@ test('schedule timeline shows grouped upcoming games', function () {
     $system = GameSystem::factory()->create();
     $this->actingAs($user);
 
-    // Game today (hosted)
+    // Game today (hosted) — 30 min from now to avoid crossing midnight
     Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $system->id,
-        'date_time' => now()->addHours(3),
+        'date_time' => now()->addMinutes(30),
         'status' => GameStatus::Scheduled->value,
     ]);
 
@@ -88,7 +88,7 @@ test('schedule timeline shows grouped upcoming games', function () {
     $weekGame = Game::factory()->create([
         'owner_id' => $host->id,
         'game_system_id' => $system->id,
-        'date_time' => now()->addDays(2),
+        'date_time' => now()->addDays(2)->startOfDay()->addHours(10),
         'status' => GameStatus::Scheduled->value,
     ]);
     GameParticipant::factory()->create([
@@ -271,11 +271,11 @@ test('quick actions show gm workspace for gm with upcoming games', function () {
     $user->assignRole('Game Master');
     $this->actingAs($user);
 
-    // Give them an upcoming game
+    // Give them an upcoming game — 30 min from now to avoid crossing midnight
     Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $system->id,
-        'date_time' => now()->addHours(3),
+        'date_time' => now()->addMinutes(30),
         'status' => GameStatus::Scheduled->value,
     ]);
 

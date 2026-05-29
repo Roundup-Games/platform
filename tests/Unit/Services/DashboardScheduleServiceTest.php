@@ -40,19 +40,19 @@ class DashboardScheduleServiceTest extends TestCase
 
     public function test_get_upcoming_games_groups_into_today_this_week_and_coming_up(): void
     {
-        // Game today
+        // Game today — 30 min from now, guaranteed within today and after now()
         $today = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(3),
+            'date_time' => now()->addMinutes(30),
             'status' => GameStatus::Scheduled->value,
         ]);
 
-        // Game this week (but not today)
+        // Game this week (but not today) — tomorrow noon
         $thisWeek = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addDays(2),
+            'date_time' => now()->addDay()->startOfDay()->addHours(12),
             'status' => GameStatus::Scheduled->value,
         ]);
 
@@ -60,7 +60,7 @@ class DashboardScheduleServiceTest extends TestCase
         $comingUp = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addDays(10),
+            'date_time' => now()->addDays(10)->startOfDay()->addHours(12),
             'status' => GameStatus::Scheduled->value,
         ]);
 
@@ -81,7 +81,7 @@ class DashboardScheduleServiceTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $host->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(5),
+            'date_time' => now()->addMinutes(45),
             'status' => GameStatus::Scheduled->value,
         ]);
 
@@ -119,14 +119,14 @@ class DashboardScheduleServiceTest extends TestCase
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(3),
+            'date_time' => now()->addMinutes(30),
             'status' => GameStatus::Canceled->value,
         ]);
 
         Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(5),
+            'date_time' => now()->addMinutes(45),
             'status' => GameStatus::Completed->value,
         ]);
 
@@ -158,7 +158,7 @@ class DashboardScheduleServiceTest extends TestCase
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $campaign->id,
-            'date_time' => now()->addHours(3),
+            'date_time' => now()->addMinutes(30),
             'status' => GameStatus::Scheduled->value,
             'max_players' => 6,
         ]);
@@ -184,14 +184,14 @@ class DashboardScheduleServiceTest extends TestCase
         $early = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(2),
+            'date_time' => now()->addMinutes(30),
             'status' => GameStatus::Scheduled->value,
         ]);
 
         $late = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
-            'date_time' => now()->addHours(8),
+            'date_time' => now()->addMinutes(45),
             'status' => GameStatus::Scheduled->value,
         ]);
 
