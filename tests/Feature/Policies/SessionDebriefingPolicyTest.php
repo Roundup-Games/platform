@@ -6,7 +6,6 @@ use App\Models\GameParticipant;
 use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Policies\SessionDebriefingPolicy;
-use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
     seedPermissions();
@@ -21,7 +20,7 @@ beforeEach(function () {
     $this->admin->assignRole('Platform Admin');
     $this->admin->unsetRelations();
 
-    $this->policy = new SessionDebriefingPolicy();
+    $this->policy = new SessionDebriefingPolicy;
 
     setPermissionsTeamId(1);
 });
@@ -117,7 +116,7 @@ describe('SessionDebriefingPolicy', function () {
                 'owner_id' => $this->gameOwner->id,
                 'status' => 'completed',
             ]);
-            // Owner has no GameParticipant record — they ran the game, not played in it
+            // Edge case: owner without participant record (shouldn't happen under explicit owner model, but policy guards against it)
 
             expect($this->policy->create($this->gameOwner, $game))->toBeFalse();
         });

@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\CampaignDetail;
+use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -39,7 +41,15 @@ function createFullGameForLeave(User $owner, GameSystem $system, int $maxPlayers
         'campaign_id' => null,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
+    // Owner participant (explicit owner model)
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $owner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -87,7 +97,15 @@ function createFullBenchGameForLeave(User $owner, GameSystem $system, int $maxPl
         'bench_mode' => true,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
+    // Owner participant (explicit owner model)
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $owner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
@@ -118,7 +136,15 @@ function createFullCampaignForLeave(User $owner, GameSystem $system, int $maxPla
         'bench_mode' => $benchMode,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
+    // Owner participant (explicit owner model)
+    CampaignParticipant::create([
+        'campaign_id' => $campaign->id,
+        'user_id' => $owner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots
     for ($i = 1; $i < $maxPlayers; $i++) {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
@@ -141,8 +167,7 @@ describe('WaitlistUI leave waitlist', function () {
         $user = User::factory()->create();
         $participant = $this->waitlistService->addToWaitlist($game, $user);
 
-        Log::shouldReceive('info')->with('waitlist.participant_left', \Mockery::on(fn ($ctx) =>
-            $ctx['entity_id'] === $game->id && $ctx['user_id'] === $user->id
+        Log::shouldReceive('info')->with('waitlist.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $game->id && $ctx['user_id'] === $user->id
         ))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
@@ -150,7 +175,7 @@ describe('WaitlistUI leave waitlist', function () {
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveWaitlist', $participant->id)
             ->assertHasNoErrors()
             ->assertSee(__('games.flash_left_waitlist'));
@@ -176,7 +201,7 @@ describe('WaitlistUI leave waitlist', function () {
 
         // user1 leaves — user2 should NOT be promoted because the game is still full (no slot opened)
         Livewire::actingAs($user1)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveWaitlist', $p1->id);
 
         expect($p1->fresh()->status)->toBe(ParticipantStatus::Rejected);
@@ -209,7 +234,7 @@ describe('WaitlistUI leave waitlist', function () {
 
         // user1 leaves — slot is open, so promoteAllOnCancel promotes user2
         Livewire::actingAs($user1)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveWaitlist', $p1->id);
 
         expect($p1->fresh()->status)->toBe(ParticipantStatus::Rejected);
@@ -223,7 +248,7 @@ describe('WaitlistUI leave waitlist', function () {
         $p1 = $this->waitlistService->addToWaitlist($game, $user1);
 
         Livewire::actingAs($user2)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveWaitlist', $p1->id);
 
         // Participant unchanged
@@ -243,7 +268,7 @@ describe('WaitlistUI leave waitlist', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveWaitlist', $participant->id);
 
         // Status unchanged
@@ -261,8 +286,7 @@ describe('WaitlistUI campaign leave waitlist', function () {
         $user = User::factory()->create();
         $participant = $this->waitlistService->addToWaitlist($campaign, $user);
 
-        Log::shouldReceive('info')->with('waitlist.participant_left', \Mockery::on(fn ($ctx) =>
-            $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
+        Log::shouldReceive('info')->with('waitlist.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
         ))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
@@ -270,7 +294,7 @@ describe('WaitlistUI campaign leave waitlist', function () {
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->call('leaveWaitlist', $participant->id)
             ->assertHasNoErrors();
 
@@ -283,7 +307,7 @@ describe('WaitlistUI campaign leave waitlist', function () {
         $this->waitlistService->addToWaitlist($campaign, $user);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee(__('campaigns.action_join_waitlist'))
             ->assertSee(__('campaigns.content_waitlist_position', ['position' => 1]))
             ->assertSee(__('campaigns.action_leave_waitlist'));
@@ -297,7 +321,7 @@ describe('WaitlistUI campaign leave waitlist', function () {
         $participant = $this->benchService->addToBench($campaign, $user);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertDontSee(__('campaigns.action_join_waitlist'))
             ->assertSee(__('campaigns.content_you_are_on_the_bench'));
     });
@@ -313,8 +337,7 @@ describe('BenchUI leave bench', function () {
         $benchedUser = User::factory()->create();
         $benchedParticipant = $this->benchService->addToBench($game, $benchedUser);
 
-        Log::shouldReceive('info')->with('bench.participant_left', \Mockery::on(fn ($ctx) =>
-            $ctx['entity_id'] === $game->id && $ctx['user_id'] === $benchedUser->id
+        Log::shouldReceive('info')->with('bench.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $game->id && $ctx['user_id'] === $benchedUser->id
         ))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
@@ -322,7 +345,7 @@ describe('BenchUI leave bench', function () {
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         Livewire::actingAs($benchedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveBench', $benchedParticipant->id)
             ->assertHasNoErrors()
             ->assertSee(__('games.flash_left_bench'));
@@ -335,8 +358,7 @@ describe('BenchUI leave bench', function () {
         $user = User::factory()->create();
         $participant = $this->benchService->addToBench($campaign, $user);
 
-        Log::shouldReceive('info')->with('bench.participant_left', \Mockery::on(fn ($ctx) =>
-            $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
+        Log::shouldReceive('info')->with('bench.participant_left', Mockery::on(fn ($ctx) => $ctx['entity_id'] === $campaign->id && $ctx['user_id'] === $user->id
         ))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
@@ -344,7 +366,7 @@ describe('BenchUI leave bench', function () {
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->call('leaveBench', $participant->id)
             ->assertHasNoErrors();
 
@@ -357,7 +379,7 @@ describe('BenchUI leave bench', function () {
         $otherUser = User::factory()->create();
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveBench', $benchedParticipant->id);
 
         // Status unchanged
@@ -377,7 +399,7 @@ describe('BenchUI leave bench', function () {
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('leaveBench', $participant->id);
 
         // Status unchanged
@@ -390,7 +412,7 @@ describe('BenchUI leave bench', function () {
         $this->benchService->addToBench($campaign, $user);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertSee(__('campaigns.content_you_are_on_the_bench'))
             ->assertSee(__('campaigns.content_you_have_been_placed_on_the_bench'))
             ->assertSee(__('games.action_leave_bench'));

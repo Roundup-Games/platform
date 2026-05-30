@@ -9,9 +9,8 @@ use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use App\Services\ReviewEligibilityService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\URL;
-use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -30,7 +29,7 @@ describe('Self-Review Prevention', function () {
             'date_time' => now()->subDay(),
         ]);
 
-        // GM is the owner but NOT a participant, so eligibility should be false
+        // GM is the owner — they should not review their own game session
         $service = app(ReviewEligibilityService::class);
         expect($service->canReviewSession($gm, $game))->toBeFalse();
     });
@@ -218,7 +217,7 @@ describe('Duplicate Review Prevention', function () {
             'rating' => 4,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
         Review::factory()->create([
             'reviewable_type' => Game::class,
             'reviewable_id' => $game->id,
@@ -360,4 +359,3 @@ describe('Observer Integration', function () {
         expect($gmProfile->fresh()->average_rating)->toBe($originalRating);
     });
 });
-

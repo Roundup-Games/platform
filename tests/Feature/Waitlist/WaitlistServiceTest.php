@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -25,13 +26,21 @@ function createFullStandaloneGame(int $maxPlayers = 3, array $overrides = []): a
         ...$overrides,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Fill non-owner slots only.
+    // Owner participant (explicit owner model)
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $owner->id,
+        'role' => 'owner',
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots (owner + non-owners = maxPlayers)
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role'    => 'player',
-            'status'  => ParticipantStatus::Approved->value,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     }
 
@@ -54,7 +63,7 @@ describe('addToWaitlist', function () {
 
     it('throws for bench-mode campaign sessions (delegates to campaign)', function () {
         $owner = User::factory()->create();
-        $campaign = \App\Models\Campaign::factory()->create([
+        $campaign = Campaign::factory()->create([
             'owner_id' => $owner->id,
             'bench_mode' => true,
         ]);
@@ -66,13 +75,13 @@ describe('addToWaitlist', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role'    => 'player',
-            'status'  => ParticipantStatus::Approved->value,
+            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
         ]);
         $user = User::factory()->create();
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'Waitlist is not available for this');
+            ->toThrow(LogicException::class, 'Waitlist is not available for this');
     });
 
     it('throws when game is not full', function () {
@@ -85,7 +94,7 @@ describe('addToWaitlist', function () {
         $user = User::factory()->create();
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'Cannot add to waitlist: entity is not full.');
+            ->toThrow(LogicException::class, 'Cannot add to waitlist: entity is not full.');
     });
 
     it('throws when user is already a participant', function () {
@@ -98,7 +107,7 @@ describe('addToWaitlist', function () {
         $user = User::find($existingPlayer->user_id);
 
         expect(fn () => $this->service->addToWaitlist($game, $user))
-            ->toThrow(\LogicException::class, 'User is already a participant of this entity.');
+            ->toThrow(LogicException::class, 'User is already a participant of this entity.');
     });
 
     it('maintains FIFO order — first added is first in queue', function () {
@@ -211,7 +220,7 @@ describe('confirmPromotion', function () {
         $promoted->update(['confirmation_expires_at' => now()->subHour()]);
 
         expect(fn () => $this->service->confirmPromotion($promoted->fresh()))
-            ->toThrow(\LogicException::class, 'Confirmation window has expired.');
+            ->toThrow(LogicException::class, 'Confirmation window has expired.');
     });
 });
 
@@ -390,8 +399,8 @@ describe('handleGameCancellation', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $benchUser->id,
-            'role'    => 'player',
-            'status'  => ParticipantStatus::Benched->value,
+            'role' => 'player',
+            'status' => ParticipantStatus::Benched->value,
         ]);
 
         $this->service->handleGameCancellation($game);
@@ -427,7 +436,7 @@ describe('structured logging', function () {
         ['game' => $game] = createFullStandaloneGame();
         $user = User::factory()->create();
 
-        Log::shouldReceive('info')->with('waitlist.added', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['user_id'])))->once();
+        Log::shouldReceive('info')->with('waitlist.added', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['user_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
@@ -443,7 +452,7 @@ describe('structured logging', function () {
             ->where('user_id', '!=', $game->owner_id)->first()
             ->update(['status' => ParticipantStatus::Rejected->value]);
 
-        Log::shouldReceive('info')->with('waitlist.promoted', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['confirmation_hours'])))->once();
+        Log::shouldReceive('info')->with('waitlist.promoted', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['confirmation_hours'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
         Log::shouldReceive('error')->zeroOrMoreTimes();
@@ -463,7 +472,7 @@ describe('structured logging', function () {
 
         $promoted = $this->service->promoteNext($game);
 
-        Log::shouldReceive('info')->with('waitlist.confirmed', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
+        Log::shouldReceive('info')->with('waitlist.confirmed', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
 
         $this->service->confirmPromotion($promoted);
@@ -480,7 +489,7 @@ describe('structured logging', function () {
 
         $promoted = $this->service->promoteNext($game);
 
-        Log::shouldReceive('warning')->with('waitlist.confirmation_expired', \Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
+        Log::shouldReceive('warning')->with('waitlist.confirmation_expired', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
 
@@ -498,7 +507,7 @@ describe('structured logging', function () {
             ->where('user_id', '!=', $game->owner_id)
             ->each(fn ($p) => $p->update(['status' => ParticipantStatus::Rejected->value]));
 
-        Log::shouldReceive('warning')->with('waitlist.below_min_players', \Mockery::on(fn ($ctx) => $ctx['current_roster'] < $ctx['min_players']))->once();
+        Log::shouldReceive('warning')->with('waitlist.below_min_players', Mockery::on(fn ($ctx) => $ctx['current_roster'] < $ctx['min_players']))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
         Log::shouldReceive('debug')->zeroOrMoreTimes();

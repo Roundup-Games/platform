@@ -1,9 +1,9 @@
 <?php
 
-use App\Livewire\Games\ApplyToGame;
-use App\Livewire\Campaigns\ApplyToCampaign;
-use App\Livewire\Games\GameDetail;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\ApplyToCampaign;
+use App\Livewire\Games\ApplyToGame;
+use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -269,7 +268,13 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 2,
         ]);
 
-        // Fill the game (owner is implicit; one filler makes it full)
+        // Fill the game: add owner participant + one filler = max_players(2)
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => createUser()->id,
@@ -310,7 +315,7 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 5,
         ]);
 
-        // Owner is implicit — game has capacity (owner + 4 open slots = 5)
+        // Owner now has explicit participant record, game has capacity (1 owner + 4 open slots = 5)
         // No additional participants needed
 
         Livewire::actingAs($viewer)

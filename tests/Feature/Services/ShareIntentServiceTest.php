@@ -5,6 +5,8 @@ namespace Tests\Feature\Services;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -15,13 +17,12 @@ use App\Models\User;
 use App\Services\ShareIntentService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Str;
-use Tests\TestCase;
 
-uses(\Illuminate\Foundation\Testing\DatabaseTransactions::class);
+uses(DatabaseTransactions::class);
 
 describe('ShareIntentService', function () {
     beforeEach(function () {
-        $this->service = new ShareIntentService();
+        $this->service = new ShareIntentService;
         $this->owner = User::factory()->create();
         $this->user = User::factory()->create();
         $this->system = GameSystem::factory()->create();
@@ -137,7 +138,7 @@ describe('ShareIntentService', function () {
                 ->first();
             expect($participant)->not->toBeNull();
             expect($participant->join_source)->toBe(JoinSource::ShareLink);
-            expect($participant->role)->toBe('player');
+            expect($participant->role)->toBe(ParticipantRole::Player);
         });
 
         it('rejects mismatched share token', function () {
@@ -305,7 +306,7 @@ describe('ShareIntentService', function () {
                 ->where('user_id', $this->user->id)
                 ->first();
             expect($participant)->not->toBeNull();
-            expect($participant->status)->toBe(\App\Enums\ParticipantStatus::Waitlisted);
+            expect($participant->status)->toBe(ParticipantStatus::Waitlisted);
         });
     });
 

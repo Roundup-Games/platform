@@ -5,7 +5,9 @@ namespace Tests\Unit;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
+use App\Enums\RelationshipType;
 use App\Enums\Visibility;
+use App\Jobs\WarmDashboardCache;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -16,7 +18,6 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
 use App\Services\Geohash;
-use App\Jobs\WarmDashboardCache;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -29,9 +30,13 @@ class DashboardOpportunitiesTest extends TestCase
     use DatabaseTransactions;
 
     private DashboardCacheService $service;
+
     private GameSystem $gameSystem;
+
     private GameSystem $otherGameSystem;
+
     private Location $location;
+
     private string $geohash4;
 
     protected function setUp(): void
@@ -487,12 +492,12 @@ class DashboardOpportunitiesTest extends TestCase
         UserRelationship::create([
             'user_id' => $user->id,
             'related_user_id' => $owner->id,
-            'type' => \App\Enums\RelationshipType::Follow,
+            'type' => RelationshipType::Follow,
         ]);
         UserRelationship::create([
             'user_id' => $owner->id,
             'related_user_id' => $user->id,
-            'type' => \App\Enums\RelationshipType::Follow,
+            'type' => RelationshipType::Follow,
         ]);
 
         $protectedGame = $this->createGameWithLocation([
@@ -534,12 +539,12 @@ class DashboardOpportunitiesTest extends TestCase
         UserRelationship::create([
             'user_id' => $user->id,
             'related_user_id' => $owner->id,
-            'type' => \App\Enums\RelationshipType::Follow,
+            'type' => RelationshipType::Follow,
         ]);
         UserRelationship::create([
             'user_id' => $owner->id,
             'related_user_id' => $user->id,
-            'type' => \App\Enums\RelationshipType::Follow,
+            'type' => RelationshipType::Follow,
         ]);
 
         $protectedCampaign = Campaign::factory()->create([
@@ -613,7 +618,7 @@ class DashboardOpportunitiesTest extends TestCase
     // ── Caching ────────────────────────────────────────
 
     #[Test]
-    public function getOpportunities_caches_results_with_correct_key(): void
+    public function get_opportunities_caches_results_with_correct_key(): void
     {
         $user = $this->createUserWithPreferences();
         $owner = User::factory()->create();
@@ -634,7 +639,7 @@ class DashboardOpportunitiesTest extends TestCase
     }
 
     #[Test]
-    public function getOpportunities_returns_cached_data_on_hit(): void
+    public function get_opportunities_returns_cached_data_on_hit(): void
     {
         $user = $this->createUserWithPreferences();
 
@@ -665,6 +670,14 @@ class DashboardOpportunitiesTest extends TestCase
             'name' => 'Epic Adventure',
         ]);
 
+        // Add owner participant (explicit owner model)
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
         $result = $this->service->computeOpportunities($user, $this->geohash4);
 
         $this->assertCount(1, $result['games']);
@@ -675,7 +688,7 @@ class DashboardOpportunitiesTest extends TestCase
         $this->assertEquals('Epic Adventure', $gameResult['entity_name']);
         $this->assertEquals('D&D 5e', $gameResult['game_system_name']);
         $this->assertNotNull($gameResult['date_time']);
-        $this->assertEquals(5, $gameResult['spots_available']); // max_players(6) - implicit owner(1) = 5
+        $this->assertEquals(5, $gameResult['spots_available']); // max_players(6) - owner participant(1) = 5
         $this->assertNotNull($gameResult['distance_km']);
         $this->assertEquals('Game Master', $gameResult['owner_name']);
     }
@@ -734,7 +747,7 @@ class DashboardOpportunitiesTest extends TestCase
     // ── Cache warm job ─────────────────────────────────
 
     #[Test]
-    public function getOpportunities_dispatches_warm_job_on_cache_miss(): void
+    public function get_opportunities_dispatches_warm_job_on_cache_miss(): void
     {
         Queue::fake();
 
@@ -755,7 +768,7 @@ class DashboardOpportunitiesTest extends TestCase
     // ── Invalidation ───────────────────────────────────
 
     #[Test]
-    public function invalidateForGameEvent_clears_opportunities_cache_for_game_owner(): void
+    public function invalidate_for_game_event_clears_opportunities_cache_for_game_owner(): void
     {
         $user = $this->createUserWithPreferences();
         $owner = User::factory()->create();
@@ -782,7 +795,7 @@ class DashboardOpportunitiesTest extends TestCase
     }
 
     #[Test]
-    public function invalidateForUser_clears_opportunities_cache_on_preference_change(): void
+    public function invalidate_for_user_clears_opportunities_cache_on_preference_change(): void
     {
         $user = $this->createUserWithPreferences();
         $owner = User::factory()->create();

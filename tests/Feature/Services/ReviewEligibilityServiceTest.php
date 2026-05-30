@@ -322,7 +322,8 @@ class ReviewEligibilityServiceTest extends TestCase
             'owner_id' => $gm->id,
             'date_time' => now()->subDay(),
         ]);
-        // Owner has no participant record at all
+        // Owner has no participant record (not created via CreatesGameInstances)
+        // Under explicit owner model, games should always have owner participant
 
         $this->assertFalse($this->service->canReviewSession($owner, $game));
     }

@@ -14,6 +14,7 @@ use App\Services\RecapService;
 use App\Services\ReliabilityScoreService;
 use App\Services\WaitlistService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -30,22 +31,26 @@ class GameLifecycleIntegrationTest extends TestCase
     use DatabaseTransactions;
 
     private WaitlistService $waitlistService;
+
     private AttendanceService $attendanceService;
+
     private ReliabilityScoreService $reliabilityService;
+
     private RecapService $recapService;
+
     private DebriefingService $debriefingService;
 
     protected function setUp(): void
     {
         parent::setUp();
-                $this->waitlistService = app(WaitlistService::class);
+        $this->waitlistService = app(WaitlistService::class);
         $this->attendanceService = app(AttendanceService::class);
         $this->reliabilityService = app(ReliabilityScoreService::class);
         $this->recapService = app(RecapService::class);
         $this->debriefingService = app(DebriefingService::class);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     #[Test]
     public function test_full_game_lifecycle_with_waitlist_attendance_debriefing_recap(): void
     {
@@ -68,7 +73,13 @@ class GameLifecycleIntegrationTest extends TestCase
             'safety_rules' => ['debriefing', 'x-card'],
         ]);
 
-        // Owner is implicit (counted as +1 in service layer). No participant record for host.
+        // Owner participant (explicit owner model)
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $host->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
 
         // ── Step 1: Fill the game (S02 — waitlist) ──
         GameParticipant::create([
@@ -84,11 +95,11 @@ class GameLifecycleIntegrationTest extends TestCase
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        // Game is now full (implicit host + 2 players = 3 = max_players)
+        // Game is now full (owner + 2 players = 3 = max_players)
         $approvedCount = $game->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
-        $this->assertEquals(2, $approvedCount); // host has no record
+        $this->assertEquals(3, $approvedCount); // owner + 2 players
 
         // Waitlisted player applies
         $waitlistedParticipant = $this->waitlistService->addToWaitlist($game, $waitlistedPlayer);
@@ -144,15 +155,12 @@ class GameLifecycleIntegrationTest extends TestCase
         $player1Score = $this->reliabilityService->computeScore($player1);
         $this->assertEquals(100.0, $player1Score['score']);
 
-        // Host has no participant record, so computeScore finds no attendance data.
-        // This is a known gap: hosts who organize games but have no participant records
-        // get a 0 reliability score (no attendance history). The attendance report exists
-        // but computeScore only looks at GameParticipant.attendance_status.
-        // TODO: Include attendance_reports in reliability computation for implicit owners.
+        // Host now has a participant record under the explicit owner model.
+        // Player1 reported host as attended, so host has attendance data.
         $host->refresh();
         $hostScore = $this->reliabilityService->computeScore($host);
-        $this->assertEquals(0.0, $hostScore['score']);
-        $this->assertEquals(0, $hostScore['game_count']);
+        $this->assertEquals(100.0, $hostScore['score']);
+        $this->assertEquals(1, $hostScore['game_count']);
 
         $waitlistedPlayer->refresh();
         $wlScore = $this->reliabilityService->computeScore($waitlistedPlayer);
@@ -194,7 +202,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertEquals($game->id, $recapEntry->entity->id);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     #[Test]
     public function test_host_no_show_heavier_penalty_than_player_no_show(): void
     {
@@ -247,7 +255,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertLessThanOrEqual($playerScore['score'], $hostScore['score']);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     #[Test]
     public function test_host_late_cancellation_uses_host_weight(): void
     {
@@ -286,7 +294,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertEquals(63.33, $hostScore['score']);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     #[Test]
     public function test_game_cancellation_resolves_waitlisted_and_benched(): void
     {
@@ -327,7 +335,7 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertNull($hostParticipant->attendance_status);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     #[Test]
     public function test_auto_attend_after_48h_and_reliability_tier(): void
     {

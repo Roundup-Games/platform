@@ -2,10 +2,12 @@
 
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\Games\GameDetail;
+use App\Livewire\Games\PublicGameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -35,7 +37,7 @@ describe('share_intent cookie on guest visit', function () {
         ]);
 
         Livewire::withQueryParams(['share' => $token])
-            ->test(\App\Livewire\Games\PublicGameDetail::class, ['id' => $game->id])
+            ->test(PublicGameDetail::class, ['id' => $game->id])
             ->assertHasNoErrors();
 
         // Cookie should have been queued
@@ -263,7 +265,7 @@ describe('GameDetail joinViaShareLink', function () {
 
         expect($participant)->not->toBeNull();
         expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe('player');
+        expect($participant->role)->toBe(ParticipantRole::Player);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
 
@@ -407,7 +409,7 @@ describe('CampaignDetail joinViaShareLink', function () {
 
         expect($participant)->not->toBeNull();
         expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe('player');
+        expect($participant->role)->toBe(ParticipantRole::Player);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
 

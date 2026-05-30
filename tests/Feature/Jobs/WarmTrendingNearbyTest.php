@@ -23,6 +23,7 @@ class WarmTrendingNearbyTest extends TestCase
 
     /** Berlin area coordinates */
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     #[Test]
@@ -88,9 +89,16 @@ class WarmTrendingNearbyTest extends TestCase
             'created_at' => now()->subDays(1),
         ]);
 
-        // Add participants
+        // Add participants (including owner under explicit model)
         $player1 = User::factory()->create();
         $player2 = User::factory()->create();
+
+        GameParticipant::create([
+            'game_id' => $gameMore->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
 
         GameParticipant::create([
             'game_id' => $gameMore->id,
@@ -103,6 +111,13 @@ class WarmTrendingNearbyTest extends TestCase
             'game_id' => $gameMore->id,
             'user_id' => $player2->id,
             'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $gameFewer->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -125,9 +140,9 @@ class WarmTrendingNearbyTest extends TestCase
 
         // Game with more participants comes first
         $this->assertEquals($gameMore->id, $cached['games'][0]['id']);
-        $this->assertEquals(3, $cached['games'][0]['participant_count']); // 2 players + 1 implicit owner
+        $this->assertEquals(3, $cached['games'][0]['participant_count']); // owner + 2 players
         $this->assertEquals($gameFewer->id, $cached['games'][1]['id']);
-        $this->assertEquals(2, $cached['games'][1]['participant_count']); // 1 player + 1 implicit owner
+        $this->assertEquals(2, $cached['games'][1]['participant_count']); // owner + 1 player
     }
 
     #[Test]
@@ -372,6 +387,13 @@ class WarmTrendingNearbyTest extends TestCase
 
         GameParticipant::create([
             'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => 'owner',
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
             'user_id' => $approvedPlayer->id,
             'role' => 'player',
             'status' => ParticipantStatus::Approved->value,
@@ -393,7 +415,7 @@ class WarmTrendingNearbyTest extends TestCase
         $cached = Cache::get("dashboard:trending:{$geohash4}");
         $this->assertNotNull($cached);
         $this->assertCount(1, $cached['games']);
-        // Only the approved participant is counted (+1 for implicit owner)
+        // owner + approved player = 2 (pending not counted)
         $this->assertEquals(2, $cached['games'][0]['participant_count']);
     }
 }

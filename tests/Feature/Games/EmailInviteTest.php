@@ -1,11 +1,14 @@
 <?php
 
+use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Mail\EntityInvitationEmail;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -60,7 +63,7 @@ test('invite by email creates pending participant', function () {
         ->first();
 
     expect($participant)->not->toBeNull();
-    expect($participant->role)->toBe('invited');
+    expect($participant->role)->toBe(ParticipantRole::Invited);
     expect($participant->status)->toBe(ParticipantStatus::Pending);
     expect($participant->join_source)->toBe(JoinSource::EmailInvite);
     expect($participant->user_id)->toBeNull();
@@ -192,15 +195,8 @@ test('invite by email adds to waitlist when at capacity for standalone game', fu
     Mail::fake();
 
     // Create a standalone game (no campaign_id) with max_players=1
+    // Owner participant is already created by createGameWithOwner, filling the game
     ['owner' => $fullOwner, 'game' => $fullGame] = $this->createGameWithOwner(['max_players' => 1]);
-
-    // Add approved participant to fill capacity
-    GameParticipant::create([
-        'game_id' => $fullGame->id,
-        'user_id' => $fullOwner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
 
     Livewire\Livewire::actingAs($fullOwner)
         ->test(GameManageParticipants::class, ['id' => $fullGame->id])
@@ -274,7 +270,7 @@ test('invite by email logs structured context', function () {
                 && isset($context['game_id'])
                 && $context['game_id'] === $this->game->id
                 && isset($context['invitee_email_hash'])
-                && $context['invitee_email_hash'] === \App\Models\SuppressedInviteEmail::hashEmail('logged@example.com');
+                && $context['invitee_email_hash'] === SuppressedInviteEmail::hashEmail('logged@example.com');
         })
         ->once();
 });
@@ -328,7 +324,7 @@ test('accept invitation rejects when game is cancelled', function () {
 
     // Cancel the game — use saveQuietly to bypass GameObserver which triggers
     // a pre-existing activity_log UUID bug when user_id is empty string
-    $freshGame->status = \App\Enums\GameStatus::Canceled;
+    $freshGame->status = GameStatus::Canceled;
     $freshGame->saveQuietly();
     expect($freshGame->fresh()->status->value)->toBe('canceled');
 
@@ -360,15 +356,8 @@ test('accept invitation rejects when game is cancelled', function () {
 test('accept invitation adds to waitlist when standalone game is full', function () {
     Mail::fake();
 
+    // Create a standalone game with max_players=1 (owner fills the slot)
     ['owner' => $fullOwner, 'game' => $fullGame] = $this->createGameWithOwner(['max_players' => 1]);
-
-    // Fill the slot
-    GameParticipant::create([
-        'game_id' => $fullGame->id,
-        'user_id' => $fullOwner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
 
     // Invite someone
     Livewire\Livewire::actingAs($fullOwner)
@@ -394,5 +383,5 @@ test('accept invitation adds to waitlist when standalone game is full', function
         ->call('acceptInvitation', $participant->id);
 
     expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
-    expect($participant->fresh()->role)->toBe('invited');
+    expect($participant->fresh()->role)->toBe(ParticipantRole::Invited);
 });
