@@ -24,10 +24,14 @@ class OwnerParticipantService
         return DB::transaction(function () use ($game): GameParticipant {
             $existing = GameParticipant::where('game_id', $game->id)
                 ->where('user_id', $game->owner_id)
-                ->where('role', ParticipantRole::Owner->value)
                 ->first();
 
             if ($existing) {
+                // Upgrade to owner role if needed
+                if ($existing->role !== ParticipantRole::Owner) {
+                    $existing->update(['role' => ParticipantRole::Owner]);
+                }
+
                 return $existing;
             }
 
@@ -59,10 +63,14 @@ class OwnerParticipantService
         return DB::transaction(function () use ($campaign): CampaignParticipant {
             $existing = CampaignParticipant::where('campaign_id', $campaign->id)
                 ->where('user_id', $campaign->owner_id)
-                ->where('role', ParticipantRole::Owner->value)
                 ->first();
 
             if ($existing) {
+                // Upgrade to owner role if needed
+                if ($existing->role !== ParticipantRole::Owner) {
+                    $existing->update(['role' => ParticipantRole::Owner]);
+                }
+
                 return $existing;
             }
 

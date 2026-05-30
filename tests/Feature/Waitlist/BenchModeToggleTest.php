@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
@@ -365,7 +366,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         // Protected campaigns stay pending regardless of capacity or bench_mode
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe('applicant')
+            ->and($participant->role)->toBe(ParticipantRole::Applicant)
             ->and($participant->benched_at)->toBeNull()
             ->and($participant->waitlisted_at)->toBeNull();
 
@@ -533,7 +534,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         // Protected games stay pending regardless of capacity or bench_mode
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe('applicant')
+            ->and($participant->role)->toBe(ParticipantRole::Applicant)
             ->and($participant->benched_at)->toBeNull()
             ->and($participant->waitlisted_at)->toBeNull();
 
