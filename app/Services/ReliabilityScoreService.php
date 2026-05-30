@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class ReliabilityScoreService
 {
+    // NOTE (M048-S03): Under the explicit-owner-participant model (S01), game
+    // owners always have a GameParticipant record. computeScore() queries
+    // GameParticipant naturally, so host attendance and host cancellation
+    // offences are scored identically to regular participants — the only
+    // difference being the steeper HOST_WEIGHTS applied by resolveWeight().
+
     /**
      * Weight constants for each attendance status.
      * Positive = good behaviour, Negative = bad behaviour.
