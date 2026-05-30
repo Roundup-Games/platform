@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,7 @@ class CampaignParticipant extends Model
     protected $fillable = ['campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id'];
 
     protected $casts = [
+        'role' => ParticipantRole::class,
         'status' => ParticipantStatus::class,
         'benched_at' => 'datetime',
         'join_source' => JoinSource::class,

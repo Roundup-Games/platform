@@ -6,6 +6,7 @@ use App\Dto\ShareIntentResult;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -246,7 +247,7 @@ class ShareIntentService
                 $participantData = [
                     $fkColumn => $lockedEntity->getKey(),
                     'user_id' => $user->id,
-                    'role' => 'player',
+                    'role' => ParticipantRole::Player->value,
                     'status' => $status,
                     'join_source' => $joinSource,
                 ];

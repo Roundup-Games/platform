@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -33,6 +34,11 @@ class BenchService
             throw new \LogicException('Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
         }
 
+        // Owner cannot be benched on their own entity
+        if ($entity->owner_id === $user->id) {
+            throw new \LogicException('Cannot add to bench: you are the host.');
+        }
+
         // Wrap in transaction with lock for concurrency safety
         return DB::transaction(function () use ($entity, $user, $entityType, $isCampaign) {
             // Lock entity row to serialize concurrent bench adds
@@ -41,7 +47,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count() + 1; // +1 for the owner (no participant record)
+                ->count();
 
             if ($approvedCount < $lockedEntity->max_players) {
                 throw new \LogicException('Cannot add to bench: entity is not full.');
@@ -58,7 +64,7 @@ class BenchService
             $participant = $participantClass::create([
                 $foreignKey => $lockedEntity->id,
                 'user_id' => $user->id,
-                'role' => 'player',
+                'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Benched->value,
                 'benched_at' => now(),
             ]);
@@ -98,7 +104,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count() + 1; // +1 for the owner (no participant record)
+                ->count();
 
             if ($approvedCount >= $lockedEntity->max_players) {
                 throw new \LogicException('Cannot promote: entity is full.');
@@ -132,12 +138,13 @@ class BenchService
     }
 
     /**
-     * Handle entity cancellation — reject all benched participants.
+     * Handle entity cancellation — reject all benched participants (excluding owner).
      */
     public function handleEntityCancellation(Campaign|Game $entity): void
     {
         $benched = $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
+            ->where('role', '!=', ParticipantRole::Owner->value)
             ->get();
 
         foreach ($benched as $participant) {

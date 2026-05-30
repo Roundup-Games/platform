@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Traits\ManagesParticipants;
@@ -65,13 +66,14 @@ class ManageParticipants extends Component
 
         $approvedParticipants = $this->game->participants
             ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
-            ->sortBy(fn ($p) => $p->role === 'owner' ? 0 : 1);
+            ->filter(fn ($p) => $p->role !== ParticipantRole::Owner)
+            ->sortBy(fn ($p) => $p->role === ParticipantRole::Owner ? 0 : 1);
 
         $pendingApplicants = $this->game->participants
-            ->filter(fn ($p) => $p->role === 'applicant' && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         $pendingInvites = $this->game->participants
-            ->filter(fn ($p) => $p->role === 'invited' && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         return view('livewire.games.manage-participants', [
             'game' => $this->game,

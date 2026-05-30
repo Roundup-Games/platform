@@ -3,12 +3,14 @@
 namespace App\Livewire\Campaigns;
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
+use App\Services\OwnerParticipantService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -86,6 +88,9 @@ class AddSessionToCampaign extends Component
                 'bench_mode' => $campaign->bench_mode,
             ]);
 
+            // Ensure owner participant exists before counting capacity
+            app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
+
             // Auto-invite approved campaign participants as invited to this session
             $autoInvitedCount = 0;
             $benchedCount = 0;
@@ -98,7 +103,7 @@ class AddSessionToCampaign extends Component
                 // Check if game is full (owner counts as a player)
                 $currentApproved = GameParticipant::where('game_id', $game->id)
                     ->where('status', 'approved')
-                    ->count() + 1; // +1 for the campaign owner / GM
+                    ->count();
                 $isFull = $game->max_players !== null && $currentApproved >= $game->max_players;
 
                 if ($isFull) {
@@ -106,7 +111,7 @@ class AddSessionToCampaign extends Component
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
-                        'role' => 'player',
+                        'role' => ParticipantRole::Player->value,
                         'status' => 'benched',
                         'benched_at' => now(),
                     ]);
@@ -115,7 +120,7 @@ class AddSessionToCampaign extends Component
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
-                        'role' => 'invited',
+                        'role' => ParticipantRole::Invited->value,
                         'status' => 'pending',
                     ]);
                     $autoInvitedCount++;

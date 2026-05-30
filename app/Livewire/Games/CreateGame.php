@@ -10,6 +10,7 @@ use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
@@ -413,6 +414,9 @@ class CreateGame extends Component
         }
 
         Log::info('Game created', $logContext);
+
+        // Ensure owner participant exists
+        app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
 
         // Auto-generate short link for GMs
         if (Auth::user()->isGM()) {

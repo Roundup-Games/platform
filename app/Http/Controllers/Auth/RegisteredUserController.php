@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Enums\ParticipantRole;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -76,7 +77,7 @@ class RegisteredUserController extends Controller
         $gameMatches = \App\Models\GameParticipant::where('invitee_email', $email)
             ->whereNull('user_id')
             ->where('status', 'pending')
-            ->where('role', 'invited')
+            ->where('role', ParticipantRole::Invited->value)
             ->get();
 
         foreach ($gameMatches as $participant) {
@@ -101,7 +102,7 @@ class RegisteredUserController extends Controller
         $campaignMatches = \App\Models\CampaignParticipant::where('invitee_email', $email)
             ->whereNull('user_id')
             ->where('status', 'pending')
-            ->where('role', 'invited')
+            ->where('role', ParticipantRole::Invited->value)
             ->get();
 
         foreach ($campaignMatches as $participant) {

@@ -279,13 +279,11 @@ describe('Game Remove Participant', function () {
     test('cannot remove the game owner', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
-        // Create an owner participant record
-        $ownerParticipant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'owner',
-            'status' => 'approved',
-        ]);
+        // Owner participant already created by createGameWithOwner
+        $ownerParticipant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $owner->id)
+            ->where('role', 'owner')
+            ->firstOrFail();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -93,7 +94,7 @@ class WaitlistService
 
         $participant = $entity->participants()->create([
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);

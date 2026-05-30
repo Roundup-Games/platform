@@ -9,6 +9,7 @@ use App\Enums\Visibility;
 use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
+use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
@@ -246,6 +247,9 @@ class CreateCampaign extends Component
             'name' => $campaign->name,
             'owner_id' => Auth::id(),
         ]);
+
+        // Ensure owner participant exists
+        app(OwnerParticipantService::class)->ensureCampaignOwnerParticipant($campaign);
 
         // Auto-generate short link for GMs
         if (Auth::user()->isGM()) {

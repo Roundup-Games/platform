@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Dto\FeedItem;
+use App\Enums\ParticipantRole;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -143,7 +144,7 @@ class GameActivityFeedService
         // For now, find games where social circle users are approved players and the viewer
         // isn't the owner — this shows "your friend joined X's game"
         $gameIds = GameParticipant::whereIn('user_id', $socialCircleIds)
-            ->where('role', 'player')
+            ->where('role', ParticipantRole::Player->value)
             ->where('status', 'approved')
             ->pluck('game_id')
             ->unique();
@@ -156,7 +157,7 @@ class GameActivityFeedService
         $gameIds = $gameIds->diff($viewerGameIds);
 
         return Game::whereIn('id', $gameIds)
-            ->with(['owner', 'gameSystem', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', 'player')->where('status', 'approved')])
+            ->with(['owner', 'gameSystem', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)
@@ -252,7 +253,7 @@ class GameActivityFeedService
     protected function getCampaignPlayersJoined(array $socialCircleIds, User $viewer): Collection
     {
         $campaignIds = CampaignParticipant::whereIn('user_id', $socialCircleIds)
-            ->where('role', 'player')
+            ->where('role', ParticipantRole::Player->value)
             ->where('status', 'approved')
             ->pluck('campaign_id')
             ->unique();
@@ -264,7 +265,7 @@ class GameActivityFeedService
         $campaignIds = $campaignIds->diff($viewerCampaignIds);
 
         return Campaign::whereIn('id', $campaignIds)
-            ->with(['owner', 'gameSystem', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', 'player')->where('status', 'approved')])
+            ->with(['owner', 'gameSystem', 'participants' => fn ($q) => $q->whereIn('user_id', $socialCircleIds)->where('role', ParticipantRole::Player->value)->where('status', 'approved')])
             ->withCount('participants')
             ->orderBy('updated_at', 'desc')
             ->limit(50)

@@ -2,6 +2,7 @@
 
 namespace Tests\Traits;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -13,9 +14,9 @@ use App\Models\User;
 /**
  * Shared helpers for creating game/campaign instances with participants.
  *
- * Under the implicit-owner model, game/campaign owners do NOT get a
- * participant record — they are counted as +1 in the service layer.
- * All helpers here follow that convention.
+ * Under the explicit owner model, game/campaign owners get a participant
+ * record with role=Owner, status=Approved. All helpers here follow that
+ * convention.
  *
  * Consolidates duplicated helpers from:
  * - WaitlistGameDetailTest::createFullGame
@@ -29,7 +30,7 @@ use App\Models\User;
 trait CreatesGameInstances
 {
     /**
-     * Create a fully subscribed game (implicit owner + maxPlayers-1 approved participants).
+     * Create a fully subscribed game (owner + maxPlayers-1 approved non-owner participants).
      */
     public function createFullGame(User $owner, GameSystem $system, int $maxPlayers = 3, array $overrides = []): Game
     {
@@ -50,13 +51,14 @@ trait CreatesGameInstances
             ...$overrides,
         ]);
 
+        $this->ensureOwnerParticipant($game, $owner);
         $this->fillNonOwnerSlots($game, $maxPlayers);
 
         return $game;
     }
 
     /**
-     * Create a fully subscribed campaign (implicit owner + maxPlayers-1 approved participants).
+     * Create a fully subscribed campaign (owner + maxPlayers-1 approved non-owner participants).
      */
     public function createFullCampaign(User $owner, GameSystem $system, int $maxPlayers = 3, array $overrides = []): Campaign
     {
@@ -75,6 +77,7 @@ trait CreatesGameInstances
             ...$overrides,
         ]);
 
+        $this->ensureOwnerParticipant($campaign, $owner);
         $this->fillNonOwnerSlots($campaign, $maxPlayers);
 
         return $campaign;
@@ -103,13 +106,14 @@ trait CreatesGameInstances
             ...$overrides,
         ]);
 
+        $this->ensureOwnerParticipant($game, $owner);
         $this->fillNonOwnerSlots($game, $maxPlayers);
 
         return $game;
     }
 
     /**
-     * Create a game with its owner (no extra participants).
+     * Create a game with its owner (including owner participant, no extra participants).
      */
     public function createGameWithOwner(array $gameAttrs = []): array
     {
@@ -119,11 +123,13 @@ trait CreatesGameInstances
             ...$gameAttrs,
         ]);
 
+        $this->ensureOwnerParticipant($game, $owner);
+
         return ['owner' => $owner, 'game' => $game];
     }
 
     /**
-     * Create a campaign with its owner.
+     * Create a campaign with its owner (including owner participant).
      */
     public function createCampaignWithOwner(array $campaignAttrs = []): array
     {
@@ -133,14 +139,38 @@ trait CreatesGameInstances
             ...$campaignAttrs,
         ]);
 
+        $this->ensureOwnerParticipant($campaign, $owner);
+
         return ['owner' => $owner, 'campaign' => $campaign];
+    }
+
+    /**
+     * Ensure an owner participant record exists for the given entity.
+     */
+    private function ensureOwnerParticipant(Game|Campaign $entity, User $owner): void
+    {
+        $participantClass = $entity instanceof Campaign
+            ? CampaignParticipant::class
+            : GameParticipant::class;
+
+        $foreignKey = $entity instanceof Campaign
+            ? 'campaign_id'
+            : 'game_id';
+
+        $participantClass::create([
+            $foreignKey => $entity->id,
+            'user_id' => $owner->id,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
     }
 
     /**
      * Fill non-owner participant slots with approved players.
      *
-     * Under the implicit-owner model, slot 1 is the owner (no record).
-     * Slots 2..maxPlayers are filled with factory users.
+     * Under the explicit owner model, the owner already has a participant
+     * record (created by ensureOwnerParticipant). Slots 2..maxPlayers
+     * are filled with factory users.
      */
     private function fillNonOwnerSlots(Game|Campaign $entity, int $maxPlayers): void
     {
@@ -156,7 +186,7 @@ trait CreatesGameInstances
             $participantClass::create([
                 $foreignKey => $entity->id,
                 'user_id' => User::factory()->create()->id,
-                'role' => 'player',
+                'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
             ]);
         }
