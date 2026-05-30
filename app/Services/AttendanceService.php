@@ -88,12 +88,6 @@ class AttendanceService
             return ['success' => false, 'reason' => 'Host cannot self-report attendance'];
         }
 
-        // If reported user is the host with no participant record, skip recording
-        // (host attendance is implicit — they organized the game)
-        if (! $reportedParticipant && $game->owner_id === $reported->id) {
-            return ['success' => true, 'reason' => 'Host attendance is implicit'];
-        }
-
         // Self-reporting is allowed for non-hosts (only 'attended' or 'excused')
         if ($reporter->id === $reported->id && ! in_array($status, ['attended', 'excused'], true)) {
             return ['success' => false, 'reason' => 'Self-reporting is only allowed for attended or excused status'];
@@ -340,7 +334,7 @@ class AttendanceService
             return;
         }
 
-        // Find the host's participant record (owners may not have one under implicit-owner model)
+        // Find the host's participant record (always present under explicit-owner model from S01)
         $hostParticipant = $game->participants()
             ->where('user_id', $game->owner_id)
             ->first();
@@ -368,12 +362,10 @@ class AttendanceService
 
                 $this->reliabilityService->recomputeAfterAttendance($hostParticipant);
             } else {
-                // Implicit owner: no participant record.
-                // NOTE: computeScore() only queries GameParticipant records, so this
-                // recomputation is effectively a no-op (host always gets score 0).
-                // The AttendanceReport is persisted for future use once scoring
-                // incorporates reports for implicit owners.
-                Log::warning('Host cancellation offence: no participant record for implicit owner, reliability score unchanged', [
+                // Defensive fallback: owner should always have a participant record
+                // after S01 (explicit owner participant). If this fires, it indicates
+                // a data integrity issue — the AttendanceReport is still persisted.
+                Log::warning('Host cancellation offence: no participant record for owner (data integrity issue), reliability score unchanged', [
                     'game_id' => $game->id,
                     'host_id' => $game->owner_id,
                 ]);

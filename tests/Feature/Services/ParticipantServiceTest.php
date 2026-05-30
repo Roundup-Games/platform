@@ -4,6 +4,7 @@ namespace Tests\Feature\Services;
 
 use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -218,7 +219,7 @@ describe('ParticipantService', function () {
             $result = $this->service->approveApplication($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
-            expect($participant->fresh()->role)->toBe('player');
+            expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
             expect($participant->fresh()->status->value)->toBe('approved');
         });
 
@@ -305,7 +306,7 @@ describe('ParticipantService', function () {
             $result = $this->service->acceptInvitation($participant, $game, $this->friend);
 
             expect($result->success)->toBeTrue();
-            expect($participant->fresh()->role)->toBe('player');
+            expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
             expect($participant->fresh()->status->value)->toBe('approved');
         });
 
@@ -471,7 +472,16 @@ describe('ParticipantService', function () {
                 'max_players' => 3,
             ]);
 
-            // No participants at all — just the owner
+            // Owner participant (created explicitly)
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->owner->id,
+                'role' => ParticipantRole::Owner->value,
+                'status' => 'approved',
+                'join_source' => JoinSource::Application,
+            ]);
+
+            // Owner counts as 1 player
             expect($this->service->getApprovedPlayerCount($game))->toBe(1);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 

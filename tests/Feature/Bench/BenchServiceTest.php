@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -35,12 +36,20 @@ function benchCreateFullCampaign(User $owner, GameSystem $system, int $maxPlayer
         'bench_mode' => true,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
+    // Owner is an explicit participant (role=Owner, status=Approved)
+    CampaignParticipant::create([
+        'campaign_id' => $campaign->id,
+        'user_id' => $owner->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots
     for ($i = 1; $i < $maxPlayers; $i++) {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -67,12 +76,20 @@ function benchCreateFullCampaignSession(User $owner, GameSystem $system, Campaig
         'bench_mode' => true,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). Only fill non-owner slots.
+    // Owner is an explicit participant (role=Owner, status=Approved)
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $owner->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Fill remaining non-owner slots
     for ($i = 1; $i < $maxPlayers; $i++) {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -125,14 +142,14 @@ test('add to bench throws for standalone game', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -157,7 +174,13 @@ test('add to bench throws when entity is not full', function () {
         'max_players' => 5,
     ]);
 
-    // No approved participants — campaign not full (owner is implicit +1, still < 5)
+    // Only owner participant — 1 < 5, not full
+    CampaignParticipant::create([
+        'campaign_id' => $campaign->id,
+        'user_id' => $this->owner->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
 
     $applicant = User::factory()->create();
 
@@ -304,13 +327,13 @@ test('game isBenchMode returns true when bench_mode column is true', function ()
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
