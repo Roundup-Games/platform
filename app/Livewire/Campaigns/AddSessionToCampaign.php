@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
+use App\Services\ParticipantService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -100,11 +101,8 @@ class AddSessionToCampaign extends Component
                 ->get();
 
             foreach ($approvedParticipants as $campaignParticipant) {
-                // Check if game is full (owner counts as a player)
-                $currentApproved = GameParticipant::where('game_id', $game->id)
-                    ->where('status', 'approved')
-                    ->count();
-                $isFull = $game->max_players !== null && $currentApproved >= $game->max_players;
+                // Re-check capacity each iteration (previous invite may have filled the last slot)
+                $isFull = app(ParticipantService::class)->isAtCapacity($game);
 
                 if ($isFull) {
                     // Place on bench instead of inviting

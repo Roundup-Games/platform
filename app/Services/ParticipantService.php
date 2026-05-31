@@ -537,11 +537,12 @@ class ParticipantService
         $removedUser = User::find($participant->user_id);
         $removedUserId = $participant->user_id;
 
-        // Set status to 'removed' instead of hard-deleting.
-        // This preserves roster history — the record stays so we can detect
-        // hosts who kick everyone then cancel to dodge penalties.
-        // The unique constraint on (game_id/campaign_id, user_id) also
-        // prevents the removed user from re-applying.
+        // Soft-remove: set status to 'removed' instead of hard-deleting.
+        // This preserves roster history so we can detect hosts who kick everyone
+        // then cancel to dodge penalties (peak-roster counting in AttendanceService).
+        // The unique constraint on (game_id/campaign_id, user_id) blocks the
+        // removed user from re-applying — the participant record persists.
+        // Application record is cleaned up below for hygiene only.
         $participant->update([
             'status' => ParticipantStatus::Removed->value,
             'removed_by' => $remover->id,

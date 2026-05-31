@@ -196,15 +196,8 @@ test('invite by email rejects self-invite on campaign', function () {
 test('invite by email adds to bench when at capacity on campaign', function () {
     Mail::fake();
 
+    // max_players=1 → campaign is full (owner occupies the single slot via createCampaignWithOwner)
     ['owner' => $fullOwner, 'campaign' => $fullCampaign] = $this->createCampaignWithOwner(['max_players' => 1, 'bench_mode' => true]);
-
-    // Fill the one slot with an approved participant
-    CampaignParticipant::create([
-        'campaign_id' => $fullCampaign->id,
-        'user_id' => $fullOwner->id,
-        'role' => 'owner',
-        'status' => ParticipantStatus::Approved->value,
-    ]);
 
     Livewire\Livewire::actingAs($fullOwner)
         ->test(CampaignManageParticipants::class, ['id' => $fullCampaign->id])

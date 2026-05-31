@@ -162,8 +162,17 @@ class BenchService
     {
         $benched = $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
-            ->where('role', '!=', ParticipantRole::Owner->value)
             ->get();
+
+        // Owner should never be benched — if found, log a warning before excluding
+        $ownerBenched = $benched->first(fn ($p) => $p->role === ParticipantRole::Owner);
+        if ($ownerBenched) {
+            Log::warning('bench.cancel_found_owner_benched: data integrity issue', [
+                'entity_id' => $entity->id,
+                'owner_participant_id' => $ownerBenched->id,
+            ]);
+            $benched = $benched->filter(fn ($p) => $p->role !== ParticipantRole::Owner);
+        }
 
         foreach ($benched as $participant) {
             $participant->update(['status' => ParticipantStatus::Rejected->value]);

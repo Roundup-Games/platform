@@ -90,6 +90,11 @@ class OwnerParticipantService
 
             // Upgrade role if the winner had a non-owner role
             if ($participant->role !== ParticipantRole::Owner) {
+                Log::info("{$logLabel}_owner_participant.role_upgraded", [
+                    "{$logLabel}_id" => $entity->id,
+                    'user_id' => $ownerId,
+                    'previous_role' => $participant->role->value,
+                ]);
                 $participant->update(['role' => ParticipantRole::Owner]);
             }
         }
