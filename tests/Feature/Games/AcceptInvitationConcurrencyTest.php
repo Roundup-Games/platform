@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Games\GameDetail;
 use App\Models\Game;
@@ -35,7 +36,7 @@ function capacityTestCreateGame(int $maxPlayers): array
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -53,7 +54,7 @@ function capacityTestFillTo(Game $game, int $targetApproved, string $ownerId): v
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $currentApproved++;
@@ -73,7 +74,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -81,7 +82,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
@@ -105,7 +106,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -113,7 +114,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
@@ -142,14 +143,14 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant1 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited1->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
         $participant2 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited2->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
@@ -184,7 +185,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $invited->id,
-                'role' => 'invited',
+                'role' => ParticipantRole::Invited->value,
                 'status' => ParticipantStatus::Pending->value,
             ]);
 
