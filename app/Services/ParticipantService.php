@@ -884,12 +884,13 @@ class ParticipantService
     }
 
     /**
-     * Count of approved players INCLUDING the owner.
+     * Count of approved participants INCLUDING the owner.
      *
      * The owner is an explicit participant record with status=Approved,
-     * so they are counted naturally by this query.
+     * so they are counted naturally by this query. Use this for capacity
+     * calculations where the owner occupies a seat.
      */
-    public function getApprovedPlayerCount(Game|Campaign $entity): int
+    public function getApprovedParticipantCount(Game|Campaign $entity): int
     {
         return $entity->participants()
             ->where('status', ParticipantStatus::Approved)
@@ -908,7 +909,7 @@ class ParticipantService
             return false;
         }
 
-        return $this->getApprovedPlayerCount($entity) >= $entity->max_players;
+        return $this->getApprovedParticipantCount($entity) >= $entity->max_players;
     }
 
     // ── Private helpers ────────────────────────────────

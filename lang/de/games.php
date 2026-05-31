@@ -374,7 +374,6 @@ return [
     'field_role_player' => 'Spieler',
     'field_role_invited' => 'Eingeladen',
     'field_role_applicant' => 'Bewerber',
-    'field_role_gm' => 'SL',
 
     // Teilnehmerstatusbezeichnungen
     'status_approved' => 'Bestätigt',

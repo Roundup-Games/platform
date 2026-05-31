@@ -482,7 +482,7 @@ describe('ParticipantService', function () {
             ]);
 
             // Owner counts as 1 player
-            expect($this->service->getApprovedPlayerCount($game))->toBe(1);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(1);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 
             // Add 1 approved participant → owner + 1 = 2/3
@@ -493,7 +493,7 @@ describe('ParticipantService', function () {
                 'status' => 'approved',
                 'join_source' => JoinSource::Application,
             ]);
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 
             // Add 1 more → owner + 2 = 3/3 → full
@@ -505,7 +505,7 @@ describe('ParticipantService', function () {
                 'status' => 'approved',
                 'join_source' => JoinSource::Application,
             ]);
-            expect($this->service->getApprovedPlayerCount($game))->toBe(3);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(3);
             expect($this->service->isAtCapacity($game))->toBeTrue();
         });
     });

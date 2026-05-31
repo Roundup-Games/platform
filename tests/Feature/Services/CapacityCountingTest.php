@@ -66,14 +66,14 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
             expect($this->service->isAtCapacity($game))->toBeTrue();
         });
 
         it('returns false when owner alone is under max_players=2', function () {
             $game = createGameWithOwner($this->system, 2);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(1);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(1);
             expect($this->service->isAtCapacity($game))->toBeFalse();
         });
     });
@@ -105,7 +105,7 @@ describe('Capacity and Counting Correctness', function () {
             ]);
 
             // Owner (1) + approved (1) = 2; pending does NOT count
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
             expect($this->service->isAtCapacity($game))->toBeTrue();
         });
 
@@ -132,7 +132,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(4); // owner + 3
+            expect($this->service->getApprovedParticipantCount($game))->toBe(4); // owner + 3
             expect($this->service->isAtCapacity($game))->toBeFalse(); // 4/5
         });
     });
@@ -154,7 +154,7 @@ describe('Capacity and Counting Correctness', function () {
                 ]);
             }
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(6);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(6);
             expect($this->service->isAtCapacity($game))->toBeTrue();
 
             // Next player accepts invitation → goes to waitlist
@@ -172,7 +172,7 @@ describe('Capacity and Counting Correctness', function () {
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
             // Approved count stays the same
-            expect($this->service->getApprovedPlayerCount($game->fresh()))->toBe(6);
+            expect($this->service->getApprovedParticipantCount($game->fresh()))->toBe(6);
         });
 
         it('allows acceptance when exactly one spot remains', function () {
@@ -187,7 +187,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 
             // Acceptance fills last spot
@@ -204,7 +204,7 @@ describe('Capacity and Counting Correctness', function () {
 
             expect($result->success)->toBeTrue();
             expect($participant->fresh()->status->value)->toBe('approved');
-            expect($this->service->getApprovedPlayerCount($game->fresh()))->toBe(3);
+            expect($this->service->getApprovedParticipantCount($game->fresh()))->toBe(3);
         });
     });
 
@@ -313,7 +313,7 @@ describe('Capacity and Counting Correctness', function () {
             $this->benchService->promoteFromBench((string) $benched->id, 'game');
 
             expect($benched->fresh()->status)->toBe(ParticipantStatus::Approved);
-            expect($this->service->getApprovedPlayerCount($game->fresh()))->toBe(2); // owner + promoted
+            expect($this->service->getApprovedParticipantCount($game->fresh()))->toBe(2); // owner + promoted
         });
     });
 
@@ -354,8 +354,8 @@ describe('Capacity and Counting Correctness', function () {
                 ]);
             }
 
-            // getApprovedPlayerCount should be 3
-            expect($this->service->getApprovedPlayerCount($game))->toBe(3);
+            // getApprovedParticipantCount should be 3
+            expect($this->service->getApprovedParticipantCount($game))->toBe(3);
         });
     });
 
@@ -389,7 +389,7 @@ describe('Capacity and Counting Correctness', function () {
                 ]);
             }
 
-            expect($this->service->getApprovedPlayerCount($campaign))->toBe(3); // owner + 2
+            expect($this->service->getApprovedParticipantCount($campaign))->toBe(3); // owner + 2
             expect($this->service->isAtCapacity($campaign))->toBeFalse(); // 3/5
         });
 
@@ -420,7 +420,7 @@ describe('Capacity and Counting Correctness', function () {
                 ]);
             }
 
-            expect($this->service->getApprovedPlayerCount($campaign))->toBe(3);
+            expect($this->service->getApprovedParticipantCount($campaign))->toBe(3);
             expect($this->service->isAtCapacity($campaign))->toBeTrue();
         });
 
@@ -464,11 +464,11 @@ describe('Capacity and Counting Correctness', function () {
     // ── 7. No +1 hacks remain in counting logic ──
 
     describe('no +1 hacks in service methods', function () {
-        it('getApprovedPlayerCount returns natural count without +1 adjustment', function () {
+        it('getApprovedParticipantCount returns natural count without +1 adjustment', function () {
             $game = createGameWithOwner($this->system, 4);
 
             // No additional players — just the owner
-            expect($this->service->getApprovedPlayerCount($game))->toBe(1);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(1);
 
             // Add 1 player
             GameParticipant::create([
@@ -479,7 +479,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
 
             // Add 1 more
             GameParticipant::create([
@@ -490,7 +490,7 @@ describe('Capacity and Counting Correctness', function () {
                 'join_source' => JoinSource::Application,
             ]);
 
-            expect($this->service->getApprovedPlayerCount($game))->toBe(3);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(3);
         });
 
         it('acceptInvitation capacity check uses natural count', function () {
