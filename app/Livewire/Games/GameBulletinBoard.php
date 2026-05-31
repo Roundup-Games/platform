@@ -91,12 +91,12 @@ class GameBulletinBoard extends Component
         // that could cause visual spoofing. Blade's {{ }} handles HTML escaping.
         $sanitizedContent = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{200E}-\x{200F}\x{202A}-\x{202E}\x{FEFF}\x{FFF9}-\x{FFFB}]/u', '', $this->content);
 
-        $bulletin = GameBulletin::create([
-            'game_id' => $this->game->id,
-            'user_id' => Auth::id(),
-            'content' => $sanitizedContent,
-            'expires_at' => $this->game->date_time,
-        ]);
+        $bulletin = GameBulletin::postAsHost(
+            gameId: $this->game->id,
+            userId: Auth::id(),
+            content: $sanitizedContent,
+            expiresAt: $this->game->date_time?->toDateTimeString(),
+        );
 
         Log::info('Game bulletin created', [
             'game_id' => $this->game->id,
@@ -105,10 +105,8 @@ class GameBulletinBoard extends Component
             'content_length' => Str::length($this->content),
         ]);
 
-        // Invalidate action center cache for all approved participants
-        $this->invalidateParticipantActionCenters();
-
         // Send push notification to all approved participants
+        // (also handles action center cache invalidation)
         $this->notifyParticipants($bulletin);
 
         $this->content = '';
@@ -128,11 +126,20 @@ class GameBulletinBoard extends Component
             ->where('status', ParticipantStatus::Approved->value)
             ->where('user_id', '!=', $host->id)
             ->with('user')
-            ->get()
-            ->pluck('user')
-            ->filter();
+            ->get();
 
-        foreach ($participants as $participant) {
+        // Invalidate action center for all approved participants
+        // so they see the new bulletin immediately.
+        $participantUserIds = $participants->pluck('user_id')->map(fn ($id) => (string) $id)->all();
+        app(DashboardCacheService::class)->invalidateForUsers(
+            $participantUserIds,
+            ['action_center'],
+        );
+
+        // Send push notifications
+        $participantUsers = $participants->pluck('user')->filter();
+
+        foreach ($participantUsers as $participant) {
             try {
                 app(NotificationService::class)->send(
                     $participant,
@@ -148,25 +155,6 @@ class GameBulletinBoard extends Component
                 ]);
             }
         }
-    }
-
-    /**
-     * Invalidate action center cache for all approved participants
-     * so they see the new bulletin immediately.
-     */
-    private function invalidateParticipantActionCenters(): void
-    {
-        $participantUserIds = $this->game->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', Auth::id())
-            ->pluck('user_id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
-
-        app(DashboardCacheService::class)->invalidateForUsers(
-            $participantUserIds,
-            ['action_center'],
-        );
     }
 
     public function render()

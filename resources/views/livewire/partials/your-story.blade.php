@@ -21,7 +21,7 @@
     </h3>
 
     {{-- Horizontal scrollable milestone cards --}}
-    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list">
+    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_story_heading') }}">
         @foreach($milestoneCards as $card)
             @php
                 $iconColorStyle = $iconStyles[$card['icon']] ?? 'bg-primary/10 text-primary';

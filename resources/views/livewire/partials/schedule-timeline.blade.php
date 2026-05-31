@@ -95,7 +95,7 @@
                     @if($hostAgainBridge['game']['expected_duration'] ?? null)
                         <p class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1">
                             <span class="material-symbols-outlined text-xs" aria-hidden="true">schedule</span>
-                            {{ $hostAgainBridge['game']['expected_duration'] }} min
+                            {{ $hostAgainBridge['game']['expected_duration'] }} {{ __('common.unit_min') }}
                         </p>
                     @endif
                     @if($hostAgainBridge['clone_url'] ?? null)

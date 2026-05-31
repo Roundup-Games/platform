@@ -419,7 +419,7 @@ class ActionCenterService
                 description: $sharedCount > 0
                     ? trans_choice('profile.dashboard_action_follower_shared', $sharedCount, ['count' => $sharedCount])
                     : __('profile.dashboard_action_follower_desc'),
-                actionUrl: route('profile.public', ['user' => $followerUser]),
+                actionUrl: $followerUser ? route('profile.public', ['user' => $followerUser]) : '#',
                 actionLabel: __('profile.dashboard_action_follower_action'),
                 icon: 'person_add',
                 createdAt: $rel->created_at,

@@ -28,7 +28,7 @@
 
     @if($hasGames)
         {{-- Horizontal scrollable card row --}}
-        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list">
+        <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_nearby_heading') }}">
             @foreach($nearbyNoteworthy as $game)
                 @php
                     $systemBadge = $game['system_badge'] ?? [];
@@ -36,9 +36,7 @@
                     $spotsAvailable = $game['spots_available'] ?? null;
                     $distanceKm = $game['distance_km'] ?? null;
                     $dateTime = isset($game['date_time']) ? \Carbon\Carbon::parse($game['date_time']) : null;
-                    $dateText = $dateTime
-                        ? (app()->getLocale() === 'de' ? $dateTime->isoFormat('D. MMM, HH:mm') : $dateTime->format('M j, g:i A'))
-                        : null;
+                    $dateText = $dateTime ? format_date($dateTime, 'short_date') : null;
                 @endphp
                 <a href="{{ route('games.show', $game['id']) }}" wire:navigate
                    class="flex-shrink-0 w-56 sm:w-64 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-4 group"
@@ -75,7 +73,7 @@
                             @if($distanceKm !== null)
                                 <span class="text-[11px] text-on-surface-variant flex items-center gap-0.5">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">location_on</span>
-                                    {{ $distanceKm }} km
+                                    {{ $distanceKm }} {{ __('common.unit_km') }}
                                 </span>
                             @endif
                         </div>

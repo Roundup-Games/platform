@@ -59,6 +59,7 @@
         {{-- Unread notifications badge --}}
         @if(($unreadNotificationsCount ?? 0) > 0)
             <a href="{{ route('notifications.index') }}" wire:navigate
+               aria-label="{{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}"
                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors flex-shrink-0">
                 <span aria-hidden="true" class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">notifications</span>
                 {{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}
@@ -97,7 +98,7 @@
     </h3>
 
     {{-- Horizontal scrollable card row --}}
-    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list">
+    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_newcomer_best_matches_heading') }}">
         @foreach($matches['games'] as $game)
             @php
                 $relevanceTags = $game['relevance_tags'] ?? [];
@@ -163,7 +164,7 @@
                     {{-- Distance --}}
                     @if($game['distance_km'] ?? null)
                         <p class="text-[10px] text-on-surface-variant mt-1.5">
-                            {{ $game['distance_km'] }} km
+                            {{ $game['distance_km'] }} {{ __('common.unit_km') }}
                         </p>
                     @endif
                 </div>
@@ -236,7 +237,7 @@
     {{-- Progress bar --}}
     @if(($tracker['completion_percentage'] ?? 0) < 100)
     <div class="mt-4 h-1.5 bg-surface-container-high rounded-full overflow-hidden" role="progressbar"
-         aria-valuenow="{{ $tracker['completion_percentage'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
+         aria-label="{{ __('profile.dashboard_newcomer_progress_heading') }}" aria-valuenow="{{ $tracker['completion_percentage'] ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
         <div class="h-full bg-primary rounded-full transition-all duration-500" style="width: {{ $tracker['completion_percentage'] ?? 0 }}%"></div>
     </div>
     @endif
@@ -252,7 +253,7 @@
     </h3>
 
     {{-- Horizontal scrollable people row --}}
-    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list">
+    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory" role="list" aria-label="{{ __('profile.dashboard_newcomer_nearby_people_heading') }}">
         @foreach($people['people'] as $person)
             <a href="{{ route('profile.show', $person['id']) }}" wire:navigate
                class="flex-shrink-0 w-32 sm:w-36 snap-start bg-surface-container-low rounded-xl border border-outline-variant/30 hover:border-primary/40 hover:shadow-ambient-md transition-all p-3 group text-center"

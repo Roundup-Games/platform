@@ -23,4 +23,20 @@ class GameBulletinFactory extends Factory
             'expires_at' => null,
         ];
     }
+
+    /**
+     * Bulletin that has already expired.
+     */
+    public function expired(): static
+    {
+        return $this->state(['expires_at' => now()->subHour()]);
+    }
+
+    /**
+     * Bulletin expiring within the next hour.
+     */
+    public function expiringSoon(): static
+    {
+        return $this->state(['expires_at' => now()->addMinutes(30)]);
+    }
 }

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreign('game_id')->references('id')->on('games')->cascadeOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->index(['game_id', 'created_at']);
+            $table->index(['game_id', 'expires_at']);
         });
     }
 

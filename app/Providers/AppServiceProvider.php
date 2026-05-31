@@ -266,6 +266,7 @@ class AppServiceProvider extends ServiceProvider
         // Dashboard cache invalidation observers
         Game::observe(\App\Observers\GameObserver::class);
         GameParticipant::observe(\App\Observers\GameParticipantObserver::class);
+        GameBulletin::observe(\App\Observers\GameBulletinObserver::class);
         UserRelationship::observe(\App\Observers\UserRelationshipObserver::class);
 
         // SEO sitemap cache invalidation observer

@@ -21,6 +21,23 @@ class GameBulletin extends Model
         'expires_at',
     ];
 
+    /**
+     * Create a bulletin as a specific host user.
+     *
+     * Use this in application code to make the intent explicit —
+     * the author is always the authenticated host, not request input.
+     * The factory can use ::create() directly since it's test-only.
+     */
+    public static function postAsHost(string $gameId, string $userId, string $content, ?string $expiresAt = null): self
+    {
+        return static::create([
+            'game_id' => $gameId,
+            'user_id' => $userId,
+            'content' => $content,
+            'expires_at' => $expiresAt,
+        ]);
+    }
+
     protected function casts(): array
     {
         return [

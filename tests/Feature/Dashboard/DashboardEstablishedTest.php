@@ -71,11 +71,14 @@ test('established user sees established mode', function () {
 // ── Schedule timeline ──────────────────────────────────
 
 test('schedule timeline shows grouped upcoming games', function () {
+    // Freeze to Wednesday to ensure "2 days out" is always "this week"
+    $this->travelTo(now()->startOfWeek()->addDays(2)->setHour(10));
+
     $user = createEstablishedUser();
     $system = GameSystem::factory()->create();
     $this->actingAs($user);
 
-    // Game today (hosted) — 30 min from now to avoid crossing midnight
+    // Game today (hosted) — 30 min from now
     Game::factory()->create([
         'owner_id' => $user->id,
         'game_system_id' => $system->id,
@@ -83,30 +86,29 @@ test('schedule timeline shows grouped upcoming games', function () {
         'status' => GameStatus::Scheduled->value,
     ]);
 
-    // Game this week (participated) — on Sunday there's no "this week but not today" slot
-    $endOfWeek = now()->copy()->endOfWeek();
+    // Game this week (participated) — 2 days out is safely within this week
     $host = User::factory()->create(['profile_complete' => true]);
-
-    if (now()->addDays(2)->startOfDay()->gt($endOfWeek)) {
-        // Sunday: 2 days out is next week, so test only expects today + coming_up
-        $expectThisWeek = 0;
-        $weekGame = Game::factory()->create([
-            'owner_id' => $host->id,
-            'game_system_id' => $system->id,
-            'date_time' => $endOfWeek->copy()->addDays(3)->addHours(10),
-            'status' => GameStatus::Scheduled->value,
-        ]);
-    } else {
-        $expectThisWeek = 1;
-        $weekGame = Game::factory()->create([
-            'owner_id' => $host->id,
-            'game_system_id' => $system->id,
-            'date_time' => now()->addDays(2)->startOfDay()->addHours(10),
-            'status' => GameStatus::Scheduled->value,
-        ]);
-    }
+    $weekGame = Game::factory()->create([
+        'owner_id' => $host->id,
+        'game_system_id' => $system->id,
+        'date_time' => now()->addDays(2)->startOfDay()->addHours(10),
+        'status' => GameStatus::Scheduled->value,
+    ]);
     GameParticipant::factory()->create([
         'game_id' => $weekGame->id,
+        'user_id' => $user->id,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    // Game coming up (next week)
+    $nextWeekGame = Game::factory()->create([
+        'owner_id' => $host->id,
+        'game_system_id' => $system->id,
+        'date_time' => now()->addWeek()->addDays(2)->addHours(10),
+        'status' => GameStatus::Scheduled->value,
+    ]);
+    GameParticipant::factory()->create([
+        'game_id' => $nextWeekGame->id,
         'user_id' => $user->id,
         'status' => ParticipantStatus::Approved->value,
     ]);
@@ -115,7 +117,8 @@ test('schedule timeline shows grouped upcoming games', function () {
 
     $scheduleGroups = $component->viewData('scheduleGroups');
     expect($scheduleGroups['today'])->toHaveCount(1);
-    expect($scheduleGroups['this_week'])->toHaveCount($expectThisWeek);
+    expect($scheduleGroups['this_week'])->toHaveCount(1);
+    expect($scheduleGroups['coming_up'])->toHaveCount(1);
 });
 
 // ── Host-again bridge ──────────────────────────────────

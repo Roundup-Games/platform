@@ -102,7 +102,7 @@
                   style="font-variation-settings: 'FILL' 1">check_circle</span>
             <p class="text-on-surface font-medium">{{ $clearSummary['message'] ?? __('profile.dashboard_action_center_all_clear') }}</p>
 
-            @if(!empty($clearSummary['next_game']))
+            @if($clearSummary && !empty($clearSummary['next_game']))
                 <p class="text-sm text-on-surface-variant mt-2 flex items-center justify-center gap-1.5">
                     <span class="material-symbols-outlined text-base" aria-hidden="true" style="font-variation-settings: 'FILL' 0">event_upcoming</span>
                     {{ __('profile.dashboard_action_center_next_session', [

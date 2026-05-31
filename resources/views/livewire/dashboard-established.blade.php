@@ -42,6 +42,7 @@
         </div>
         @if($unreadNotificationsCount > 0)
             <a href="{{ route('notifications.index') }}" wire:navigate
+               aria-label="{{ $unreadNotificationsCount }} {{ __('profile.dashboard_stats_unread_notifications') }}"
                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors flex-shrink-0">
                 <span aria-hidden="true" class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1">notifications</span>
                 {{ $unreadNotificationsCount }}

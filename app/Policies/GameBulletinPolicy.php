@@ -58,4 +58,13 @@ class GameBulletinPolicy
     {
         return $gameBulletin->game->owner_id === $user->id;
     }
+
+    /**
+     * Bulletins are immutable after creation — no update allowed.
+     * Hosts can delete and re-create if needed.
+     */
+    public function update(User $user, GameBulletin $gameBulletin): bool
+    {
+        return false;
+    }
 }

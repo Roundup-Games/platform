@@ -34,6 +34,12 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
     public int $tries = 3;
 
     /**
+     * Delay between retry attempts (seconds).
+     * Exponential backoff to avoid hammering a transiently-failing service.
+     */
+    public array $backoff = [30, 60, 120];
+
+    /**
      * Maximum time the job may run before timing out.
      */
     public int $timeout = 120;
