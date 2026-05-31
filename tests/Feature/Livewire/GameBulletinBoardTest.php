@@ -394,6 +394,11 @@ describe('logging', function () {
                     && $context['content_length'] === 24;
             }));
 
+        // Cache invalidation and notification dispatch may produce additional log calls
+        Log::shouldReceive('debug')->byDefault();
+        Log::shouldReceive('error')->byDefault();
+        Log::shouldReceive('info')->byDefault();
+
         Livewire::actingAs($this->owner)
             ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'This is a test bulletin!')

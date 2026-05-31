@@ -36,61 +36,85 @@ class Dashboard extends Component
             'mode' => $dashboardMode,
         ]);
 
-        $gamesThisWeek = $this->gamesThisWeek();
+        // ── Sections shared by both modes ──────────────
 
         $smartPrompt = app(DashboardSmartPromptService::class)->getPrompt($user);
+        $unreadNotificationsCount = $this->unreadNotificationsCount();
+        // Contributions and weekData are cheap cache reads needed by both modes and existing tests
+        $contributions = app(DashboardCacheService::class)->getContributions($user);
         $weekData = app(DashboardCacheService::class)->getWeekData($user);
 
-        // Community Feed: blend friends activity with trending nearby
+        // ── Mode-conditional sections ───────────────────
+        // Only compute expensive sections for the active mode to avoid wasted
+        // cache reads and DB queries. Each mode template only uses its own data.
+
+        if ($dashboardMode === 'newcomer') {
+            $newcomerData = $this->getNewcomerData($user, $dashboardMode);
+
+            return view('livewire.dashboard', [
+                'dashboardMode' => $dashboardMode,
+                'smartPrompt' => $smartPrompt,
+                'unreadNotificationsCount' => $unreadNotificationsCount,
+                'quickActions' => $this->deriveQuickActions($user, $smartPrompt),
+                'contributions' => $contributions,
+
+                // Newcomer sections
+                'newcomerWelcome' => $newcomerData['welcome'],
+                'preferenceMatches' => $newcomerData['preference_matches'],
+                'progressTracker' => $newcomerData['progress_tracker'],
+                'nearbyPeople' => $newcomerData['nearby_people'],
+
+                // Stub established props so the view never has undefined vars
+                'gamesThisWeek' => collect(),
+                'gamesThisWeekCount' => 0,
+                'weekData' => $weekData,
+                'communityFeed' => collect(),
+                'trendingItems' => collect(),
+                'hasTrendingSection' => false,
+                'gmAverageRating' => null,
+                'newRecaps' => collect(),
+                'opportunities' => ['games' => [], 'campaigns' => [], 'total_available' => 0],
+                'actionCenterItems' => [],
+                'clearSummary' => null,
+                'scheduleGroups' => ['today' => [], 'this_week' => [], 'coming_up' => []],
+                'hostAgainBridge' => null,
+                'nearbyNoteworthy' => [],
+                'milestoneCards' => [],
+                'establishedQuickActions' => [],
+                'shouldShowCommunityPulse' => false,
+            ]);
+        }
+
+        // ── Established mode ────────────────────────────
+
+        $gamesThisWeek = $this->gamesThisWeek();
         $communityFeed = $this->getCommunityFeed($user);
-
-        // Opportunities & Contributions from cache service
         $opportunities = $this->getOpportunities($user);
-        $contributions = app(DashboardCacheService::class)->getContributions($user);
-
-        // Quick actions derived from smart prompt state
-        $quickActions = $this->deriveQuickActions($user, $smartPrompt);
-
-        // Newcomer dashboard data (only loaded when mode is newcomer)
-        $newcomerData = $this->getNewcomerData($user, $dashboardMode);
-
-        // Established dashboard data (only loaded when mode is established)
         $establishedData = $this->getEstablishedData($user, $dashboardMode, $communityFeed);
 
         return view('livewire.dashboard', [
-            // Dashboard mode
             'dashboardMode' => $dashboardMode,
-
-            // New dashboard sections
             'smartPrompt' => $smartPrompt,
+            'unreadNotificationsCount' => $unreadNotificationsCount,
+
+            // Legacy established sections
             'weekData' => $weekData,
             'gamesThisWeek' => $gamesThisWeek,
             'gamesThisWeekCount' => $gamesThisWeek->count(),
-            'unreadNotificationsCount' => $this->unreadNotificationsCount(),
-
-            // Community Feed
             'communityFeed' => $communityFeed['friends'],
             'trendingItems' => $communityFeed['trending'],
             'hasTrendingSection' => $communityFeed['show_trending'],
-
-            // GM Stats
             'gmAverageRating' => $this->gmAverageRating(),
-
-            // Recaps
             'newRecaps' => collect(app(DashboardCacheService::class)->getRecaps($user))->map(fn ($r) => (object) $r),
-
-            // Opportunities & Contributions
             'opportunities' => $opportunities,
             'contributions' => $contributions,
 
-            // Quick Actions (legacy — used by old template)
-            'quickActions' => $quickActions,
-
-            // Newcomer dashboard data
-            'newcomerWelcome' => $newcomerData['welcome'],
-            'preferenceMatches' => $newcomerData['preference_matches'],
-            'progressTracker' => $newcomerData['progress_tracker'],
-            'nearbyPeople' => $newcomerData['nearby_people'],
+            // Newcomer stubs (unused in established mode)
+            'quickActions' => [],
+            'newcomerWelcome' => [],
+            'preferenceMatches' => [],
+            'progressTracker' => [],
+            'nearbyPeople' => [],
 
             // Established dashboard data
             'actionCenterItems' => $establishedData['action_center_items'],
@@ -347,25 +371,17 @@ class Dashboard extends Component
             fn (array $item) => \App\Dto\ActionItem::fromArray($item),
             $actionCenterRaw,
         );
-        $clearSummary = null;
-        if (empty($actionCenterItems)) {
-            $clearSummary = app(\App\Services\ActionCenterService::class)->getClearSummary($user);
-        }
+        // Pass the (empty) items to avoid getClearSummary re-querying all 11 sources
+        $clearSummary = empty($actionCenterItems)
+            ? app(\App\Services\ActionCenterService::class)->getClearSummary($user, [])
+            : null;
 
         // Schedule timeline
         $scheduleGroups = $scheduleService->getUpcomingGames($user);
         $hostAgainBridge = $scheduleService->getHostAgainBridge($user);
 
         // Nearby & Noteworthy (requires location)
-        $location = $user->linkedLocation;
-        $geohash4 = null;
-        if ($location && $location->latitude && $location->longitude) {
-            $geohash4 = Geohash::tilePrefix(
-                (float) $location->latitude,
-                (float) $location->longitude,
-                4,
-            );
-        }
+        $geohash4 = $user->geohash4();
 
         $nearbyNoteworthy = $geohash4
             ? $discoveryService->getNearbyNoteworthy($user, $geohash4)
@@ -435,15 +451,7 @@ class Dashboard extends Component
         $progressTracker = $newcomerService->getProgressTracker($user);
 
         // Geohash-dependent data — requires user location
-        $location = $user->linkedLocation;
-        $geohash4 = null;
-        if ($location && $location->latitude && $location->longitude) {
-            $geohash4 = Geohash::tilePrefix(
-                (float) $location->latitude,
-                (float) $location->longitude,
-                4,
-            );
-        }
+        $geohash4 = $user->geohash4();
 
         $preferenceMatches = $geohash4
             ? $newcomerService->getPreferenceWeightedMatches($user, $geohash4)

@@ -83,14 +83,28 @@ test('schedule timeline shows grouped upcoming games', function () {
         'status' => GameStatus::Scheduled->value,
     ]);
 
-    // Game this week (participated)
+    // Game this week (participated) — on Sunday there's no "this week but not today" slot
+    $endOfWeek = now()->copy()->endOfWeek();
     $host = User::factory()->create(['profile_complete' => true]);
-    $weekGame = Game::factory()->create([
-        'owner_id' => $host->id,
-        'game_system_id' => $system->id,
-        'date_time' => now()->addDays(2)->startOfDay()->addHours(10),
-        'status' => GameStatus::Scheduled->value,
-    ]);
+
+    if (now()->addDays(2)->startOfDay()->gt($endOfWeek)) {
+        // Sunday: 2 days out is next week, so test only expects today + coming_up
+        $expectThisWeek = 0;
+        $weekGame = Game::factory()->create([
+            'owner_id' => $host->id,
+            'game_system_id' => $system->id,
+            'date_time' => $endOfWeek->copy()->addDays(3)->addHours(10),
+            'status' => GameStatus::Scheduled->value,
+        ]);
+    } else {
+        $expectThisWeek = 1;
+        $weekGame = Game::factory()->create([
+            'owner_id' => $host->id,
+            'game_system_id' => $system->id,
+            'date_time' => now()->addDays(2)->startOfDay()->addHours(10),
+            'status' => GameStatus::Scheduled->value,
+        ]);
+    }
     GameParticipant::factory()->create([
         'game_id' => $weekGame->id,
         'user_id' => $user->id,
@@ -101,7 +115,7 @@ test('schedule timeline shows grouped upcoming games', function () {
 
     $scheduleGroups = $component->viewData('scheduleGroups');
     expect($scheduleGroups['today'])->toHaveCount(1);
-    expect($scheduleGroups['this_week'])->toHaveCount(1);
+    expect($scheduleGroups['this_week'])->toHaveCount($expectThisWeek);
 });
 
 // ── Host-again bridge ──────────────────────────────────

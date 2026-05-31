@@ -66,11 +66,17 @@ class ActionCenterService
      * When no action items exist, return a warm all-clear message with
      * info about the user's next upcoming session.
      *
+     * Accepts optional pre-computed items to avoid re-querying when the
+     * caller already has the items (e.g., empty from cache miss).
+     *
+     * @param  array<ActionItem>|null  $items  Pre-computed items, or null to query.
      * @return array{message: string, next_game: array|null}|null
      */
-    public function getClearSummary(User $user): ?array
+    public function getClearSummary(User $user, ?array $items = null): ?array
     {
-        if (count($this->getItems($user)) > 0) {
+        $items ??= $this->getItems($user);
+
+        if (count($items) > 0) {
             return null;
         }
 

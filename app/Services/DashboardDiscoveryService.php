@@ -152,6 +152,9 @@ class DashboardDiscoveryService
                     });
             })
             ->with(['gameSystem', 'linkedLocation'])
+            // Cap at 20 candidates — we only take the top 6 by relevance after scoring.
+            // Without this limit, dense metro areas could load hundreds of games.
+            ->limit(20)
             ->get()
             ->filter(function ($game) {
                 // Only games with spots available (or no max)

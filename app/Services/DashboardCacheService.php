@@ -452,6 +452,85 @@ class DashboardCacheService
     }
 
     /**
+     * Batch-invalidate a section for multiple users at once.
+     *
+     * Computes all cache keys for all users, then forgets them in a single
+     * pass. Avoids N individual Cache::forget calls when invalidating
+     * participant lists (e.g., game completion, bulletin posted).
+     *
+     * @param  string[]  $userIds
+     * @param  string[]  $sections
+     */
+    public function invalidateForUsers(array $userIds, array $sections): void
+    {
+        $allKeys = [];
+
+        foreach ($userIds as $userId) {
+            $userId = (string) $userId;
+
+            if (in_array('week', $sections)) {
+                $weekKey = now()->startOfWeek()->format('Y-m-d');
+                $allKeys[] = "dashboard:week:{$userId}:{$weekKey}";
+            }
+
+            if (in_array('feed', $sections)) {
+                $allKeys[] = "dashboard:feed:{$userId}";
+            }
+
+            if (in_array('opportunities', $sections)) {
+                $trackingKey = "dashboard:opportunities:keys:{$userId}";
+                $trackedKeys = Cache::get($trackingKey, []);
+                foreach ($trackedKeys as $key) {
+                    $allKeys[] = $key;
+                }
+                $allKeys[] = $trackingKey;
+            }
+
+            if (in_array('recaps', $sections)) {
+                $allKeys[] = "dashboard:recaps:{$userId}";
+            }
+
+            if (in_array('action_center', $sections)) {
+                $allKeys[] = "dashboard:action_center:{$userId}";
+            }
+
+            if (in_array('newcomer_welcome', $sections)) {
+                $allKeys[] = "dashboard:newcomer_welcome:{$userId}";
+            }
+
+            if (in_array('progress_tracker', $sections)) {
+                $allKeys[] = "dashboard:progress_tracker:{$userId}";
+            }
+
+            if (in_array('nearby_people', $sections)) {
+                $trackingKey = "dashboard:nearby_people:keys:{$userId}";
+                $trackedKeys = Cache::get($trackingKey, []);
+                foreach ($trackedKeys as $key) {
+                    $allKeys[] = $key;
+                }
+                $allKeys[] = $trackingKey;
+            }
+
+            if (in_array('host_again', $sections)) {
+                $allKeys[] = "dashboard:host_again:{$userId}";
+            }
+
+            if (in_array('milestone_cards', $sections)) {
+                $allKeys[] = "dashboard:milestone_cards:{$userId}";
+            }
+        }
+
+        // Use deleteMultiple for batch efficiency (single Redis pipeline on Redis driver)
+        Cache::deleteMultiple(array_unique($allKeys));
+
+        Log::debug('dashboard.cache_batch_invalidated', [
+            'user_count' => count($userIds),
+            'sections' => $sections,
+            'total_keys_cleared' => count($allKeys),
+        ]);
+    }
+
+    /**
      * Invalidate the trending cache for a geohash tile.
      */
     public function invalidateTrendingForGeohash(string $geohash4): void
@@ -503,9 +582,7 @@ class DashboardCacheService
             $this->invalidateTrendingForGeohash($geohash4);
         }
 
-        foreach ($affectedUserIds as $userId) {
-            $this->invalidateForUser((string) $userId, $sections);
-        }
+        $this->invalidateForUsers($affectedUserIds->map(fn ($id) => (string) $id)->all(), $sections);
 
         Log::debug('dashboard.game_event_invalidated', [
             'game_id' => $game->id,
@@ -524,19 +601,17 @@ class DashboardCacheService
      */
     public function invalidateActionCenterForParticipantChange(string $userId, ?string $gameId = null): void
     {
-        $userIds = collect([$userId]);
+        $userIds = [(string) $userId];
 
         // Also invalidate the game owner's action center (pending applications, min-players)
         if ($gameId !== null) {
             $ownerId = Game::where('id', $gameId)->value('owner_id');
             if ($ownerId && $ownerId !== $userId) {
-                $userIds->push($ownerId);
+                $userIds[] = (string) $ownerId;
             }
         }
 
-        foreach ($userIds as $uid) {
-            $this->invalidateForUser((string) $uid, ['action_center']);
-        }
+        $this->invalidateForUsers($userIds, ['action_center']);
 
         Log::debug('dashboard.action_center_invalidated.participant_change', [
             'user_id' => $userId,
@@ -569,9 +644,7 @@ class DashboardCacheService
 
         $userIds = $userIds->merge($participantIds)->unique()->values();
 
-        foreach ($userIds as $uid) {
-            $this->invalidateForUser((string) $uid, ['action_center']);
-        }
+        $this->invalidateForUsers($userIds->map(fn ($id) => (string) $id)->all(), ['action_center']);
 
         Log::debug('dashboard.action_center_invalidated.game_event', [
             'game_id' => $gameId,

@@ -153,15 +153,17 @@ class GameBulletinBoard extends Component
      */
     private function invalidateParticipantActionCenters(): void
     {
-        $cacheService = app(DashboardCacheService::class);
         $participantUserIds = $this->game->participants()
             ->where('status', ParticipantStatus::Approved->value)
             ->where('user_id', '!=', Auth::id())
-            ->pluck('user_id');
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
 
-        foreach ($participantUserIds as $userId) {
-            $cacheService->invalidateForUser((string) $userId, ['action_center']);
-        }
+        app(DashboardCacheService::class)->invalidateForUsers(
+            $participantUserIds,
+            ['action_center'],
+        );
     }
 
     public function render()

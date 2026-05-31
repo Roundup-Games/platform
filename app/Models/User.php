@@ -6,6 +6,7 @@ use App\Enums\ContentLanguage;
 use App\Enums\RelationshipType;
 use App\Enums\VibeFlag;
 use App\Services\ScopedRoleService;
+use App\Services\Geohash;
 use App\Services\SocialGraphService;
 use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
@@ -147,6 +148,28 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
     public function linkedLocation()
     {
         return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    /**
+     * Get the geohash-4 tile prefix for the user's current location.
+     *
+     * Centralizes the location → geohash computation used by dashboard,
+     * newcomer, and discovery services. Returns null when the user has
+     * no location or incomplete coordinates.
+     */
+    public function geohash4(): ?string
+    {
+        $location = $this->linkedLocation;
+
+        if (! $location || ! $location->latitude || ! $location->longitude) {
+            return null;
+        }
+
+        return Geohash::tilePrefix(
+            (float) $location->latitude,
+            (float) $location->longitude,
+            4,
+        );
     }
 
     public function location()

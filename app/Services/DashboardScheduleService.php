@@ -33,9 +33,7 @@ class DashboardScheduleService
      */
     public function getUpcomingGames(User $user): array
     {
-        $data = app(DashboardCacheService::class)->getWeekData($user);
-
-        return $this->buildUpcomingGroups($user, $data);
+        return $this->buildUpcomingGroups($user);
     }
 
     /**
@@ -44,6 +42,8 @@ class DashboardScheduleService
      * When user has no upcoming games but has completed games as host,
      * returns their last completed game with a clone URL. Returns null
      * if user has upcoming games or no completed games.
+     *
+     * Delegates to DashboardCacheService to avoid duplicating the query logic.
      */
     public function getHostAgainBridge(User $user): ?array
     {
@@ -54,12 +54,12 @@ class DashboardScheduleService
 
         $cached = app(DashboardCacheService::class)->getHostAgain($user);
 
-        // Cache returns empty array when no data; compute on miss
+        // Cache returns empty array when no data; null when no completed games
         if (! empty($cached)) {
             return $cached;
         }
 
-        return $this->computeHostAgain($user);
+        return null;
     }
 
     /**
@@ -115,14 +115,15 @@ class DashboardScheduleService
     }
 
     /**
-     * Build grouped upcoming games from raw query results.
+     * Build grouped upcoming games from a fresh 14-day query.
      *
-     * Queries the full 14-day window directly (beyond what getWeekData covers)
-     * to produce today / this_week / coming_up buckets.
+     * Queries games directly rather than reusing getWeekData() because the
+     * schedule timeline covers a 14-day window (not just this week), and
+     * includes additional relations (campaign, participant counts).
      *
      * @return array{today: array, this_week: array, coming_up: array}
      */
-    private function buildUpcomingGroups(User $user, array $weekData): array
+    private function buildUpcomingGroups(User $user): array
     {
         $now = now();
         $endOfToday = $now->copy()->endOfDay();
@@ -216,32 +217,4 @@ class DashboardScheduleService
         return $dateTime->format('M j') . " at {$time}"; // e.g. "Jan 15 at 2 PM"
     }
 
-    /**
-     * Compute the host-again bridge data.
-     *
-     * Finds the user's most recent completed game (as host) and
-     * returns it with a clone URL. Returns null if no completed games.
-     */
-    private function computeHostAgain(User $user): ?array
-    {
-        $lastGame = Game::where('owner_id', $user->id)
-            ->where('status', GameStatus::Completed->value)
-            ->with('gameSystem')
-            ->orderByDesc('date_time')
-            ->first();
-
-        if ($lastGame === null) {
-            return null;
-        }
-
-        return [
-            'game' => [
-                'id' => $lastGame->id,
-                'name' => $lastGame->name,
-                'system' => $lastGame->gameSystem?->name,
-                'expected_duration' => $lastGame->expected_duration,
-            ],
-            'clone_url' => route('games.create', ['clone' => $lastGame->id]),
-        ];
-    }
 }

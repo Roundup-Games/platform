@@ -97,17 +97,22 @@ class Game extends Model
                 // Invalidate action center cache for all approved participants
                 $participantIds = $game->participants()
                     ->where('status', \App\Enums\ParticipantStatus::Approved->value)
-                    ->pluck('user_id');
+                    ->pluck('user_id')
+                    ->push($game->owner_id)
+                    ->unique()
+                    ->map(fn ($id) => (string) $id);
 
-                $cacheService = app(\App\Services\DashboardCacheService::class);
-                foreach ($participantIds as $userId) {
-                    $cacheService->invalidateForUser((string) $userId, ['action_center']);
-                }
+                $invalidatedCount = $participantIds->count();
+
+                app(\App\Services\DashboardCacheService::class)->invalidateForUsers(
+                    $participantIds->all(),
+                    ['action_center'],
+                );
 
                 Log::info('Game bulletins expired on game completion', [
                     'game_id' => $game->id,
                     'new_status' => $game->status->value,
-                    'participants_invalidated' => $participantIds->count(),
+                    'participants_invalidated' => $invalidatedCount,
                 ]);
             }
         });

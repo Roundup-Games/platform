@@ -71,6 +71,10 @@ class NotificationService
             }
 
             // ── Set recipient locale for translation ──
+            // NOTE: This mutates global app locale. Safe because PHP queue workers are
+            // single-threaded (one job at a time per process) and HTTP requests are isolated.
+            // The try/finally ensures restoration even on failure. If async dispatch is ever
+            // introduced, this must be replaced with per-notification locale injection.
             $previousLocale = app()->getLocale();
             $recipientLocale = $notifiable->preferred_language?->value ?? $previousLocale;
             app()->setLocale($recipientLocale);

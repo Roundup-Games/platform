@@ -16,7 +16,7 @@ class GameParticipantObserver
 
     public function created(GameParticipant $participant): void
     {
-        $this->cache->invalidateForUser((string) $participant->user_id, ['week']);
+        $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
         $this->cache->invalidateActionCenterForParticipantChange(
             $participant->user_id,
             $participant->game_id,
@@ -32,7 +32,7 @@ class GameParticipantObserver
     {
         // Status changes (approved, waitlisted, etc.) affect action center items
         if ($participant->wasChanged('status')) {
-            $this->cache->invalidateForUser((string) $participant->user_id, ['week']);
+            $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
             $this->cache->invalidateActionCenterForParticipantChange(
                 $participant->user_id,
                 $participant->game_id,
@@ -47,13 +47,15 @@ class GameParticipantObserver
             $user = $participant->user;
             if ($user) {
                 $this->modeService->invalidateForUser($user);
+                // Clear progress tracker — step 4 (Attend Session) may have changed
+                $this->cache->invalidateForUser((string) $user->id, ['progress_tracker']);
             }
         }
     }
 
     public function deleted(GameParticipant $participant): void
     {
-        $this->cache->invalidateForUser((string) $participant->user_id, ['week']);
+        $this->cache->invalidateForUser((string) $participant->user_id, ['week', 'progress_tracker']);
         $this->cache->invalidateActionCenterForParticipantChange(
             $participant->user_id,
             $participant->game_id,
