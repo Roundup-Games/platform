@@ -39,6 +39,7 @@ return new class extends Migration
 
         Game::query()
             ->select(['id', 'owner_id', 'status', 'created_at', 'updated_at'])
+            ->whereNotNull('owner_id')
             ->chunkById(500, function ($games) use (&$total) {
                 foreach ($games as $game) {
                     $isCompleted = $game->status === GameStatus::Completed;
@@ -82,6 +83,7 @@ return new class extends Migration
 
         Campaign::query()
             ->select(['id', 'owner_id', 'created_at'])
+            ->whereNotNull('owner_id')
             ->chunkById(500, function ($campaigns) use (&$total) {
                 foreach ($campaigns as $campaign) {
                     CampaignParticipant::firstOrCreate(

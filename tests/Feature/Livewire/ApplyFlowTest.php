@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Livewire\Campaigns\ApplyToCampaign;
 use App\Livewire\Games\ApplyToGame;
 use App\Livewire\Games\GameDetail;
@@ -272,7 +273,7 @@ describe('ApplyToGame capacity guard', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([

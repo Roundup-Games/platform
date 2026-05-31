@@ -13,6 +13,7 @@ use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -219,37 +220,40 @@ class CreateCampaign extends Component
             $validated,
         );
 
-        $campaign = Campaign::create([
-            'owner_id' => Auth::id(),
-            'game_system_id' => $validated['game_system_id'],
-            'location_id' => $this->location_id,
-            'name' => $translatable['name'],
-            'description' => $translatable['description'],
-            'recurrence' => $validated['recurrence'],
-            'time_of_day' => $validated['time_of_day'],
-            'session_duration' => $validated['session_duration'] ?: null,
-            'price_per_session' => $validated['price_per_session'] ?: 0,
-            'language' => $validated['language'],
-            'status' => CampaignStatus::Active,
-            'visibility' => $validated['visibility'],
-            'minimum_requirements' => $validated['minimum_requirements'] ?: null,
-            'safety_rules' => $validated['safety_rules'] ?: null,
-            'min_players' => $validated['min_players'],
-            'max_players' => $validated['max_players'],
-            'experience_level' => $validated['experience_level'],
-            'complexity' => $validated['complexity'] ?: null,
-            'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
-            'bench_mode' => $benchMode,
-        ]);
+        $campaign = DB::transaction(function () use ($validated, $translatable, $vibeFlags, $benchMode) {
+            $campaign = Campaign::create([
+                'owner_id' => Auth::id(),
+                'game_system_id' => $validated['game_system_id'],
+                'location_id' => $this->location_id,
+                'name' => $translatable['name'],
+                'description' => $translatable['description'],
+                'recurrence' => $validated['recurrence'],
+                'time_of_day' => $validated['time_of_day'],
+                'session_duration' => $validated['session_duration'] ?: null,
+                'price_per_session' => $validated['price_per_session'] ?: 0,
+                'language' => $validated['language'],
+                'status' => CampaignStatus::Active,
+                'visibility' => $validated['visibility'],
+                'minimum_requirements' => $validated['minimum_requirements'] ?: null,
+                'safety_rules' => $validated['safety_rules'] ?: null,
+                'min_players' => $validated['min_players'],
+                'max_players' => $validated['max_players'],
+                'experience_level' => $validated['experience_level'],
+                'complexity' => $validated['complexity'] ?: null,
+                'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
+                'bench_mode' => $benchMode,
+            ]);
+
+            app(OwnerParticipantService::class)->ensureCampaignOwnerParticipant($campaign);
+
+            return $campaign;
+        });
 
         Log::info('Campaign created', [
             'campaign_id' => $campaign->id,
             'name' => $campaign->name,
             'owner_id' => Auth::id(),
         ]);
-
-        // Ensure owner participant exists
-        app(OwnerParticipantService::class)->ensureCampaignOwnerParticipant($campaign);
 
         // Auto-generate short link for GMs
         if (Auth::user()->isGM()) {

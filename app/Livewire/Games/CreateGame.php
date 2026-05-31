@@ -14,6 +14,7 @@ use App\Services\OwnerParticipantService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -377,30 +378,36 @@ class CreateGame extends Component
             $validated,
         );
 
-        $game = Game::create([
-            'owner_id' => Auth::id(),
-            'game_system_id' => $validated['game_system_id'],
-            'name' => $translatable['name'],
-            'game_type' => $validated['game_type'],
-            'date_time' => $validated['date_time'],
-            'description' => $translatable['description'],
-            'expected_duration' => $validated['expected_duration'] ?: 2,
-            'price' => $validated['price'] ?: 0,
-            'language' => $validated['language'],
-            'location_id' => $this->location_id,
-            'location' => ['details' => ''],
-            'status' => GameStatus::Scheduled,
-            'visibility' => $validated['visibility'],
-            'minimum_requirements' => $validated['minimum_requirements'] ?: null,
-            'safety_rules' => $safetyRules,
-            'min_players' => $validated['min_players'] ?? 2,
-            'max_players' => $validated['max_players'] ?? 6,
-            'experience_level' => $validated['experience_level'],
-            'complexity' => $this->complexity ?: null,
-            'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
-            'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
-            'bench_mode' => $benchMode,
-        ]);
+        $game = DB::transaction(function () use ($validated, $translatable, $safetyRules, $vibeFlags, $benchMode) {
+            $game = Game::create([
+                'owner_id' => Auth::id(),
+                'game_system_id' => $validated['game_system_id'],
+                'name' => $translatable['name'],
+                'game_type' => $validated['game_type'],
+                'date_time' => $validated['date_time'],
+                'description' => $translatable['description'],
+                'expected_duration' => $validated['expected_duration'] ?: 2,
+                'price' => $validated['price'] ?: 0,
+                'language' => $validated['language'],
+                'location_id' => $this->location_id,
+                'location' => ['details' => ''],
+                'status' => GameStatus::Scheduled,
+                'visibility' => $validated['visibility'],
+                'minimum_requirements' => $validated['minimum_requirements'] ?: null,
+                'safety_rules' => $safetyRules,
+                'min_players' => $validated['min_players'] ?? 2,
+                'max_players' => $validated['max_players'] ?? 6,
+                'experience_level' => $validated['experience_level'],
+                'complexity' => $this->complexity ?: null,
+                'vibe_flags' => ! empty($vibeFlags) ? $vibeFlags : null,
+                'min_reliability_preference' => $validated['min_reliability_preference'] ?: null,
+                'bench_mode' => $benchMode,
+            ]);
+
+            app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
+
+            return $game;
+        });
 
         $logContext = [
             'game_id' => $game->id,
@@ -414,9 +421,6 @@ class CreateGame extends Component
         }
 
         Log::info('Game created', $logContext);
-
-        // Ensure owner participant exists
-        app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
 
         // Auto-generate short link for GMs
         if (Auth::user()->isGM()) {

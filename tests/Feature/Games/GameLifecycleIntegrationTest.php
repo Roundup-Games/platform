@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -77,7 +78,7 @@ class GameLifecycleIntegrationTest extends TestCase
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $host->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -219,7 +220,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $host->id,
-            'role' => 'owner', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
@@ -277,7 +278,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $host->id,
-            'role' => 'owner', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
@@ -311,7 +312,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $host->id,
-            'role' => 'owner', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
@@ -357,7 +358,7 @@ class GameLifecycleIntegrationTest extends TestCase
 
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $host->id,
-            'role' => 'owner', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value,
         ]);
         $playerParticipant = GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,

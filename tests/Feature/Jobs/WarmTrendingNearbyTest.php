@@ -4,6 +4,7 @@ namespace Tests\Unit\Jobs;
 
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Jobs\WarmTrendingNearby;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -96,7 +97,7 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $gameMore->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -117,7 +118,7 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $gameFewer->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -388,7 +389,7 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
