@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Str;
 
 class BulletinPosted extends BaseNotification
 {

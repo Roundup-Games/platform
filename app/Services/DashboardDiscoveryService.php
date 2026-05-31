@@ -189,7 +189,7 @@ class DashboardDiscoveryService
             }
 
             // starting_soon
-            if ($game->date_time && $game->date_time->diffInHours($now, false) <= 48 && $game->date_time->isFuture()) {
+            if ($game->date_time && $game->date_time->isFuture() && $now->diffInHours($game->date_time) <= 48) {
                 $tags[] = 'starting_soon';
             }
 

@@ -241,6 +241,7 @@ class ActionCenterService
     {
         $participants = GameParticipant::query()
             ->where('user_id', $user->id)
+            ->where('status', ParticipantStatus::Approved)
             ->whereNull('attendance_status')
             ->whereHas('game', fn ($q) => $q
                 ->where('status', GameStatus::Completed)

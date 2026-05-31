@@ -228,8 +228,11 @@ describe('Review invalidation', function () {
         $cacheKey = "dashboard:action_center:{$this->user->id}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
-        // Create review — invalidates via DashboardCacheService::invalidateActionCenterForReview
-        $cacheService->invalidateActionCenterForReview((string) $this->user->id);
+        // Create review — triggers ReviewObserver which invalidates action center
+        Review::factory()->create([
+            'gm_profile_id' => $gmProfile->id,
+            'reviewer_id' => User::factory()->create()->id,
+        ]);
 
         expect(Cache::get($cacheKey))->toBeNull();
     });
@@ -245,8 +248,13 @@ describe('Follow invalidation', function () {
         $cacheKey = "dashboard:action_center:{$this->user->id}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
-        // Simulate follow invalidation
-        $cacheService->invalidateActionCenterForFollow((string) $this->user->id);
+        // Create follow relationship — triggers UserRelationshipObserver
+        $follower = User::factory()->create();
+        UserRelationship::create([
+            'user_id' => $follower->id,
+            'related_user_id' => $this->user->id,
+            'type' => RelationshipType::Follow->value,
+        ]);
 
         expect(Cache::get($cacheKey))->toBeNull();
     });

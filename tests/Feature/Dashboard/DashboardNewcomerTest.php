@@ -197,14 +197,13 @@ describe('Preference matches with relevance badges', function () {
         $matches = $component->viewData('preferenceMatches');
         expect($matches)->toHaveKeys(['games', 'total_nearby', 'preference_match_rate']);
 
-        if (count($matches['games']) > 0) {
-            $gameResult = $matches['games'][0];
-            expect($gameResult)->toHaveKeys([
-                'id', 'name', 'date_time', 'expected_duration',
-                'game_system_name', 'max_players', 'participant_count',
-                'spots_available', 'distance_km', 'relevance_tags', 'score',
-            ]);
-        }
+        expect($matches['games'])->not->toBeEmpty('Seeded game should appear in preference matches');
+        $gameResult = $matches['games'][0];
+        expect($gameResult)->toHaveKeys([
+            'id', 'name', 'date_time', 'expected_duration',
+            'game_system_name', 'max_players', 'participant_count',
+            'spots_available', 'distance_km', 'relevance_tags', 'score',
+        ]);
 
         $user->gameSystemPreferences()->detach();
     });
@@ -268,9 +267,9 @@ describe('Preference matches with relevance badges', function () {
         $preferredEntry = collect($matches['games'])->first(fn ($g) => $g['id'] === $preferredGame->id);
         $otherEntry = collect($matches['games'])->first(fn ($g) => $g['id'] === $otherGame->id);
 
-        if ($preferredEntry) {
-            expect($preferredEntry['relevance_tags']['matches_your_taste'])->toBeTrue();
-        }
+        expect($preferredEntry)->not->toBeNull('Preferred game should appear in matches');
+        expect($preferredEntry['relevance_tags']['matches_your_taste'])->toBeTrue();
+
         if ($otherEntry) {
             expect($otherEntry['relevance_tags']['matches_your_taste'])->toBeFalse();
         }
@@ -415,13 +414,11 @@ describe('Nearby people rendering', function () {
 
         $people = $component->viewData('nearbyPeople');
 
-        if (count($people['people']) > 0) {
-            $found = collect($people['people'])->first(fn ($p) => $p['id'] === $nearbyUser->id);
-            if ($found) {
-                expect($found['shared_systems_count'])->toBeGreaterThanOrEqual(1);
-                expect($found)->toHaveKeys(['id', 'name', 'avatar_url', 'top_system_name', 'shared_systems_count']);
-            }
-        }
+        expect($people['people'])->not->toBeEmpty('Seeded nearby user should appear in results');
+        $found = collect($people['people'])->first(fn ($p) => $p['id'] === $nearbyUser->id);
+        expect($found)->not->toBeNull('Seeded nearby user should be in results');
+        expect($found['shared_systems_count'])->toBeGreaterThanOrEqual(1);
+        expect($found)->toHaveKeys(['id', 'name', 'avatar_url', 'top_system_name', 'shared_systems_count']);
 
         $user->gameSystemPreferences()->detach();
         $nearbyUser->gameSystemPreferences()->detach();

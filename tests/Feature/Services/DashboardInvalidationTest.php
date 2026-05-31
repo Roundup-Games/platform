@@ -98,9 +98,14 @@ class DashboardInvalidationTest extends TestCase
         $user = User::factory()->create();
 
         $first = $this->service->getActionCenter($user);
+
+        // Overwrite cache with sentinel to verify second call reads from cache
+        $sentinel = [['type' => '__sentinel__', 'priority' => 'test']];
+        Cache::put("dashboard:action_center:{$user->id}", $sentinel, 3600);
+
         $second = $this->service->getActionCenter($user);
 
-        $this->assertEquals($first, $second);
+        $this->assertEquals($sentinel, $second);
     }
 
     // ── invalidateActionCenterForParticipantChange ──────────────

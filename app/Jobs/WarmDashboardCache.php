@@ -152,6 +152,9 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
             $itemCounts['milestone_cards'] = 0;
         } else {
             // Established sections
+            $actionCenter = $cacheService->warmActionCenter($user);
+            $itemCounts['action_center'] = count($actionCenter);
+
             $hostAgain = $cacheService->warmHostAgain($user);
             $itemCounts['host_again'] = count($hostAgain);
 
@@ -167,7 +170,6 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
             }
 
             // Skip newcomer-only sections
-            $itemCounts['action_center'] = 0;
             $itemCounts['newcomer_welcome'] = 0;
             $itemCounts['progress_tracker'] = 0;
         }

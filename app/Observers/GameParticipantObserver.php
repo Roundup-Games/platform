@@ -30,6 +30,7 @@ class GameParticipantObserver
     {
         // Status changes (approved, waitlisted, etc.) affect action center items
         if ($participant->wasChanged('status')) {
+            $this->cache->invalidateForUser((string) $participant->user_id, ['week']);
             $this->cache->invalidateActionCenterForParticipantChange(
                 $participant->user_id,
                 $participant->game_id,

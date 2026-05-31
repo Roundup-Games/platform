@@ -127,7 +127,10 @@ describe('Dashboard performance', function () {
             'latitude' => 52.5163,
             'longitude' => 13.3777,
         ]);
-        $user = User::factory()->create(['location_id' => $location->id]);
+        $user = User::factory()->create([
+            'location_id' => $location->id,
+            'created_at' => now()->subDays(31),
+        ]);
         $gameSystem = GameSystem::factory()->create();
 
         // Create 80 scheduled and 20 completed games

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\WarmDashboardCache;
@@ -77,6 +78,7 @@ describe('Dashboard mode', function () {
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Approved,
+            'attendance_status' => AttendanceStatus::Attended,
         ]);
 
         $component = Livewire::test(\App\Livewire\Dashboard::class);

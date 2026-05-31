@@ -18,6 +18,7 @@ use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ActionCenterService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -25,6 +26,7 @@ use Tests\TestCase;
 
 class ActionCenterServiceTest extends TestCase
 {
+    use DatabaseTransactions;
     private ActionCenterService $service;
     private User $user;
     private GameSystem $gameSystem;

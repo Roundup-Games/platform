@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
@@ -22,11 +23,12 @@ class GameBulletinPolicy
     }
 
     /**
-     * Create a bulletin: only the game owner (host).
+     * Create a bulletin: only the game owner (host) when the game is scheduled.
      */
     public function create(User $user, Game $game): bool
     {
-        return $game->owner_id === $user->id;
+        return $game->status === GameStatus::Scheduled->value
+            && $game->owner_id === $user->id;
     }
 
     /**
