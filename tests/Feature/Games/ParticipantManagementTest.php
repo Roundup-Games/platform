@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
@@ -270,9 +271,11 @@ describe('Game Remove Participant', function () {
             ->assertHasNoErrors()
             ->assertSee('Participant removed');
 
-        // Participant record should be deleted on removal
-        assertDatabaseMissing('game_participants', [
+        // Participant record should be status=removed (not hard-deleted)
+        // to preserve roster history for host cancellation audit
+        assertDatabaseHas('game_participants', [
             'id' => $participant->id,
+            'status' => ParticipantStatus::Removed->value,
         ]);
     });
 
@@ -568,14 +571,15 @@ describe('Game Participant Status Transitions', function () {
             'status' => 'approved',
         ]);
 
-        // Step 3: Owner removes
+        // Step 3: Owner removes — record stays with status=removed
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
-        assertDatabaseMissing('game_participants', [
+        assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
+            'status' => ParticipantStatus::Removed->value,
         ]);
     });
 

@@ -211,7 +211,7 @@ class HostAttendanceIntegrationTest extends TestCase
         $this->assertNull($report, 'No offence should be recorded for early cancel');
     }
 
-    public function test_host_cancellation_with_no_participants_does_not_create_offence(): void
+    public function test_host_cancellation_with_no_non_owner_participants_does_not_create_offence(): void
     {
         $host = User::factory()->create();
 
@@ -223,20 +223,17 @@ class HostAttendanceIntegrationTest extends TestCase
         ]);
 
         $this->createOwnerParticipant($game, $host);
-        // No additional players → approved count = 1 (owner counts in explicit-owner model)
+        // No additional players → non-owner approved count = 0 < hostCancelMinRoster(1)
+        // The owner is excluded from the roster count because they are the canceller,
+        // not an affected participant.
 
         $this->attendanceService->recordHostCancellationOffence($game);
 
-        // The host_cancel_min_roster default is 1, so with owner as 1 approved, this triggers
-        // But actually let's check: approved non-owner participants = 0, min_roster = 1
-        // So offence should NOT be recorded (no players affected)
         $report = AttendanceReport::where('game_id', $game->id)
             ->where('reported_id', $host->id)
             ->first();
 
-        // Owner participant is approved, so approvedCount = 1 >= hostCancelMinRoster(1)
-        // This means offence IS recorded — owner is the only approved participant
-        $this->assertNotNull($report, 'Offence recorded when host is sole approved participant');
+        $this->assertNull($report, 'No offence should be recorded when only the host (no other players) is present');
     }
 
     public function test_host_cancellation_non_cancelled_game_skips(): void
@@ -613,5 +610,89 @@ class HostAttendanceIntegrationTest extends TestCase
             'status' => ParticipantStatus::Approved,
             'attendance_status' => $attendanceStatus,
         ]);
+    }
+
+    // ── 5. Cancel-Dodge Prevention ────────────────────
+
+    public function test_host_who_removes_players_then_cancels_still_gets_penalised(): void
+    {
+        $host = User::factory()->create();
+        $player1 = User::factory()->create();
+        $player2 = User::factory()->create();
+
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'status' => GameStatus::Canceled,
+            'date_time' => now()->addHours(12), // Late cancel
+            'max_players' => 6,
+        ]);
+
+        $this->createOwnerParticipant($game, $host);
+        $p1 = $this->createPlayerParticipant($game, $player1);
+        $p2 = $this->createPlayerParticipant($game, $player2);
+
+        // Host removes both players (status -> removed, not hard-deleted)
+        app(\App\Services\ParticipantService::class)
+            ->removeParticipant($p1, $game, $host);
+        app(\App\Services\ParticipantService::class)
+            ->removeParticipant($p2, $game, $host);
+
+        // Now no 'approved' non-owner participants remain, but 'removed' records exist
+        $approvedNonOwner = $game->participants()
+            ->where('user_id', '!=', $host->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->count();
+        $this->assertEquals(0, $approvedNonOwner, 'No approved non-owner participants');
+
+        $removedCount = $game->participants()
+            ->where('user_id', '!=', $host->id)
+            ->where('status', ParticipantStatus::Removed->value)
+            ->count();
+        $this->assertEquals(2, $removedCount, 'Two removed participants');
+
+        // Peak roster check should still catch this
+        $this->attendanceService->recordHostCancellationOffence($game);
+
+        $report = AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $host->id)
+            ->first();
+        $this->assertNotNull($report, 'Offence should be recorded despite host removing all players first');
+        $this->assertEquals(AttendanceStatus::LateCancel, $report->status);
+    }
+
+    public function test_host_cancel_with_only_self_leaves_is_not_penalised(): void
+    {
+        $host = User::factory()->create();
+        $player = User::factory()->create();
+
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'status' => GameStatus::Canceled,
+            'date_time' => now()->addHours(12), // Late cancel
+            'max_players' => 6,
+        ]);
+
+        $this->createOwnerParticipant($game, $host);
+
+        // Player was approved but left on their own (hard-deleted, no 'removed' record)
+        $playerParticipant = $this->createPlayerParticipant($game, $player);
+        $playerParticipant->delete();
+
+        // No approved or removed non-owner participants
+        $peakRoster = $game->participants()
+            ->where('user_id', '!=', $host->id)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Removed->value,
+            ])
+            ->count();
+        $this->assertEquals(0, $peakRoster);
+
+        $this->attendanceService->recordHostCancellationOffence($game);
+
+        $report = AttendanceReport::where('game_id', $game->id)
+            ->where('reported_id', $host->id)
+            ->first();
+        $this->assertNull($report, 'No offence when players left on their own (hard-deleted)');
     }
 }

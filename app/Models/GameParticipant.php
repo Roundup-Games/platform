@@ -18,7 +18,7 @@ class GameParticipant extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id'];
+    protected $fillable = ['game_id', 'user_id', 'invitee_email', 'role', 'status', 'created_at', 'attendance_status', 'attendance_reported_by', 'attendance_reported_at', 'attendance_weight', 'attendance_dispute_reason', 'confirmation_expires_at', 'waitlisted_at', 'confirmation_attempts', 'benched_at', 'join_source', 'short_link_id', 'removed_by', 'removed_at'];
 
     protected $casts = [
         'role' => ParticipantRole::class,
@@ -33,6 +33,7 @@ class GameParticipant extends Model
         'benched_at' => 'datetime',
         'join_source' => JoinSource::class,
         'short_link_id' => 'integer',
+        'removed_at' => 'datetime',
     ];
 
     public $timestamps = false;

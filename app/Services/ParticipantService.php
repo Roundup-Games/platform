@@ -537,10 +537,18 @@ class ParticipantService
         $removedUser = User::find($participant->user_id);
         $removedUserId = $participant->user_id;
 
-        // Delete the participant record entirely so the user can re-apply
-        $participant->delete();
+        // Set status to 'removed' instead of hard-deleting.
+        // This preserves roster history — the record stays so we can detect
+        // hosts who kick everyone then cancel to dodge penalties.
+        // The unique constraint on (game_id/campaign_id, user_id) also
+        // prevents the removed user from re-applying.
+        $participant->update([
+            'status' => ParticipantStatus::Removed->value,
+            'removed_by' => $remover->id,
+            'removed_at' => now(),
+        ]);
 
-        // Also clean up any application record so re-application is possible
+        // Clean up application record
         $entity->applications()->where('user_id', $removedUserId)->delete();
 
         Log::info($meta['type'] . ' participant removed', [

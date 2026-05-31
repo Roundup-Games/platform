@@ -119,7 +119,7 @@ describe('backfill owner participants migration', function () {
             ->and($canceledParticipant->attendance_reported_at)->toBeNull();
     });
 
-    it('does not duplicate when owner already has a participant record', function () {
+    it('upgrades existing participant to owner role', function () {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
@@ -142,14 +142,15 @@ describe('backfill owner participants migration', function () {
 
         $this->migration->up();
 
+        // No duplicate created
         $countAfter = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $owner->id)->count();
         expect($countAfter)->toBe(1);
 
-        // The existing record should be unchanged (firstOrCreate doesn't update)
+        // The existing record should be upgraded to owner
         $participant = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $owner->id)->first();
-        expect($participant->role->value)->toBe('player');
+        expect($participant->role->value)->toBe('owner');
     });
 
     it('is idempotent — running twice produces same results', function () {

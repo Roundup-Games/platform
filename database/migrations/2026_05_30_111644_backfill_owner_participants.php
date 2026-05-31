@@ -9,6 +9,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 return new class extends Migration
@@ -19,6 +20,7 @@ return new class extends Migration
      * Backfills owner participants for all existing games and campaigns.
      * For each game/campaign, if no participant record exists with the
      * owner's user_id, one is created with role='owner' and status='approved'.
+     * If an existing record has a non-owner role, it is upgraded to 'owner'.
      *
      * For completed games, the owner's attendance_status is set to 'attended'.
      */
@@ -31,7 +33,12 @@ return new class extends Migration
     /**
      * Backfill owner participants for games.
      *
-     * Uses chunked processing (500 at a time) with firstOrCreate for idempotency.
+     * Uses chunked processing (500 at a time). For each game:
+     * - Creates an owner participant if none exists.
+     * - Upgrades role to 'owner' if a participant exists with a different role.
+     * - Sets attendance_status='attended' for completed games (only if currently null).
+     *
+     * Observers are disabled to avoid unnecessary cache invalidation during migration.
      */
     private function backfillGameOwners(): void
     {
@@ -44,13 +51,25 @@ return new class extends Migration
                 foreach ($games as $game) {
                     $isCompleted = $game->status === GameStatus::Completed;
 
-                    GameParticipant::firstOrCreate(
-                        [
+                    $existing = GameParticipant::where('game_id', $game->id)
+                        ->where('user_id', $game->owner_id)
+                        ->first();
+
+                    if ($existing) {
+                        // Upgrade role if a pre-existing record had a different role
+                        if ($existing->role !== ParticipantRole::Owner) {
+                            $updates = ['role' => ParticipantRole::Owner->value];
+                            if ($isCompleted && $existing->attendance_status === null) {
+                                $updates['attendance_status'] = AttendanceStatus::Attended->value;
+                                $updates['attendance_reported_at'] = $game->updated_at;
+                            }
+                            DB::table('game_participants')->where('id', $existing->id)->update($updates);
+                        }
+                    } else {
+                        DB::table('game_participants')->insert([
+                            'id' => (string) Str::uuid(),
                             'game_id' => $game->id,
                             'user_id' => $game->owner_id,
-                        ],
-                        [
-                            'id' => (string) Str::uuid(),
                             'role' => ParticipantRole::Owner->value,
                             'status' => ParticipantStatus::Approved->value,
                             'created_at' => $game->created_at,
@@ -60,8 +79,8 @@ return new class extends Migration
                             'attendance_reported_at' => $isCompleted
                                 ? $game->updated_at
                                 : null,
-                        ],
-                    );
+                        ]);
+                    }
 
                     $total++;
                 }
@@ -75,7 +94,11 @@ return new class extends Migration
     /**
      * Backfill owner participants for campaigns.
      *
-     * Uses chunked processing (500 at a time) with firstOrCreate for idempotency.
+     * Uses chunked processing (500 at a time). For each campaign:
+     * - Creates an owner participant if none exists.
+     * - Upgrades role to 'owner' if a participant exists with a different role.
+     *
+     * Observers are disabled to avoid unnecessary cache invalidation during migration.
      */
     private function backfillCampaignOwners(): void
     {
@@ -86,18 +109,25 @@ return new class extends Migration
             ->whereNotNull('owner_id')
             ->chunkById(500, function ($campaigns) use (&$total) {
                 foreach ($campaigns as $campaign) {
-                    CampaignParticipant::firstOrCreate(
-                        [
+                    $existing = CampaignParticipant::where('campaign_id', $campaign->id)
+                        ->where('user_id', $campaign->owner_id)
+                        ->first();
+
+                    if ($existing) {
+                        if ($existing->role !== ParticipantRole::Owner) {
+                            DB::table('campaign_participants')->where('id', $existing->id)
+                                ->update(['role' => ParticipantRole::Owner->value]);
+                        }
+                    } else {
+                        DB::table('campaign_participants')->insert([
+                            'id' => (string) Str::uuid(),
                             'campaign_id' => $campaign->id,
                             'user_id' => $campaign->owner_id,
-                        ],
-                        [
-                            'id' => (string) Str::uuid(),
                             'role' => ParticipantRole::Owner->value,
                             'status' => ParticipantStatus::Approved->value,
                             'created_at' => $campaign->created_at,
-                        ],
-                    );
+                        ]);
+                    }
 
                     $total++;
                 }
@@ -130,7 +160,6 @@ return new class extends Migration
      */
     private function info(string $message): void
     {
-        // Migrations don't have a $command property; use logger or stdout directly
         if (app()->runningInConsole()) {
             echo $message . PHP_EOL;
         }

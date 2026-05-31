@@ -415,6 +415,7 @@ return [
     'status_rejected' => 'Abgelehnt',
     'status_waitlisted' => 'Warteliste',
     'status_benched' => 'Auf der Bank',
+    'status_removed' => 'Entfernt',
     'status_cancelled' => 'Abgesagt',
     'content_updating_results' => 'Ergebnisse werden aktualisiert…',
 ];
