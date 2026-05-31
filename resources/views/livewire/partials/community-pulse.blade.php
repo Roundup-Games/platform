@@ -1,5 +1,5 @@
 @props([
-    'communityFeed' => [],
+    'communityFeed' => collect(),
 ])
 
 @php
@@ -54,10 +54,12 @@
                             <span class="font-semibold group-hover:text-primary transition-colors">{{ $item->entityName }}</span>
                         </p>
                     </div>
-                    <time class="text-[10px] text-on-surface-variant flex-shrink-0"
-                          datetime="{{ $item->createdAt->toIso8601String() }}">
-                        {{ $item->createdAt->diffForHumans(['short' => true]) }}
-                    </time>
+                    @if($item->createdAt)
+                        <time class="text-[10px] text-on-surface-variant flex-shrink-0"
+                              datetime="{{ $item->createdAt->toIso8601String() }}">
+                            {{ $item->createdAt->diffForHumans(['short' => true]) }}
+                        </time>
+                    @endif
                 </a>
             </li>
         @endforeach

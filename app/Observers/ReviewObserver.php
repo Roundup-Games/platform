@@ -35,7 +35,7 @@ class ReviewObserver
      */
     public function updated(Review $review): void
     {
-        if ($review->isDirty('status') && $review->gm_profile_id) {
+        if ($review->wasChanged('status') && $review->gm_profile_id) {
             $gmProfile = $review->gmProfile;
             if ($gmProfile) {
                 $this->aggregateService->updateAggregates($gmProfile);

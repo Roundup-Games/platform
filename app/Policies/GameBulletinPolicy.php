@@ -27,7 +27,7 @@ class GameBulletinPolicy
      */
     public function create(User $user, Game $game): bool
     {
-        return $game->status === GameStatus::Scheduled->value
+        return $game->status === GameStatus::Scheduled
             && $game->owner_id === $user->id;
     }
 

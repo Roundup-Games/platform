@@ -49,14 +49,14 @@ class ActionItem
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'],
-            priority: $data['priority'],
-            title: $data['title'],
-            description: $data['description'],
-            actionUrl: $data['action_url'],
-            actionLabel: $data['action_label'],
-            icon: $data['icon'],
-            createdAt: Carbon::parse($data['created_at']),
+            type: $data['type'] ?? 'unknown',
+            priority: $data['priority'] ?? 'low',
+            title: $data['title'] ?? '',
+            description: $data['description'] ?? '',
+            actionUrl: $data['action_url'] ?? '',
+            actionLabel: $data['action_label'] ?? '',
+            icon: $data['icon'] ?? 'info',
+            createdAt: Carbon::parse($data['created_at'] ?? now()->toIso8601String()),
             metadata: $data['metadata'] ?? [],
         );
     }

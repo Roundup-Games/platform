@@ -147,6 +147,9 @@ class AppServiceProvider extends ServiceProvider
         // Escalated model policies — override vendor defaults for RBAC.
         // Agent resources (tickets): escalated-agent gate (Platform Admin + Service Admin)
         Gate::policy(\Escalated\Laravel\Models\Ticket::class, \App\Policies\Escalated\TicketPolicy::class);
+
+        // Game bulletin policy — not auto-discovered because create() takes Game, not GameBulletin
+        Gate::policy(\App\Models\GameBulletin::class, \App\Policies\GameBulletinPolicy::class);
         // All admin-only resources use the same EscalatedAdminPolicy
         // (vendor policies for Department/Tag/SlaPolicy/EscalationRule use Gate::allows()
         // which doesn't work with Gate::forUser() in test contexts)

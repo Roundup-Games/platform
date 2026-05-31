@@ -229,11 +229,6 @@
                 <p class="text-[11px] sm:text-xs font-medium mt-1.5 text-center leading-tight {{ $isComplete ? 'text-primary' : ($isCurrent ? 'text-on-surface' : 'text-on-surface-variant') }}">
                     {{ $step['name'] }}
                 </p>
-
-                {{-- Connector line (not on last step) --}}
-                @if(!$isLast)
-                    {{-- This is handled via a separate flex approach below --}}
-                @endif
             </div>
         @endforeach
     </div>
@@ -302,7 +297,7 @@
         <a href="{{ $action['url'] }}" wire:navigate
            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors {{ $action['style'] === 'primary' ? 'bg-primary text-on-primary hover:bg-primary/90' : 'border border-outline-variant text-on-surface hover:bg-surface-container-low' }}">
             <span aria-hidden="true" class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' {{ $action['style'] === 'primary' ? '1' : '0' }}">{{ $action['icon'] }}</span>
-            {{ $action['label'] }}
+            {{ __($action['label']) }}
         </a>
     @endforeach
 </nav>

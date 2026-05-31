@@ -73,7 +73,7 @@
                 </div>
             @endif
         </div>
-    @elseif($hostAgainBridge)
+    @elseif($hostAgainBridge && isset($hostAgainBridge['game']))
         {{-- Host Again bridge card --}}
         <div class="bg-primary/5 rounded-xl border border-primary/20 p-5">
             <div class="flex items-start gap-4">
@@ -85,24 +85,26 @@
                         {{ __('profile.dashboard_schedule_host_again') }}
                     </p>
                     <p class="text-sm text-on-surface-variant mt-1">
-                        {{ $hostAgainBridge['game']['name'] }}
-                        @if($hostAgainBridge['game']['system'])
+                        {{ $hostAgainBridge['game']['name'] ?? '' }}
+                        @if($hostAgainBridge['game']['system'] ?? null)
                             <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary ml-1.5 align-middle">
                                 {{ $hostAgainBridge['game']['system'] }}
                             </span>
                         @endif
                     </p>
-                    @if($hostAgainBridge['game']['expected_duration'])
+                    @if($hostAgainBridge['game']['expected_duration'] ?? null)
                         <p class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1">
                             <span class="material-symbols-outlined text-xs" aria-hidden="true">schedule</span>
                             {{ $hostAgainBridge['game']['expected_duration'] }} min
                         </p>
                     @endif
-                    <a href="{{ $hostAgainBridge['clone_url'] }}" wire:navigate
-                       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
-                        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1" aria-hidden="true">content_copy</span>
-                        {{ __('profile.dashboard_schedule_host_again') }}
-                    </a>
+                    @if($hostAgainBridge['clone_url'] ?? null)
+                        <a href="{{ $hostAgainBridge['clone_url'] }}" wire:navigate
+                           class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors">
+                            <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1" aria-hidden="true">content_copy</span>
+                            {{ __('profile.dashboard_schedule_host_again') }}
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>

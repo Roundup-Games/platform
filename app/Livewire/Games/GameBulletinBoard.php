@@ -37,9 +37,7 @@ class GameBulletinBoard extends Component
     {
         $user = Auth::user();
 
-        return $user
-            && $this->game->owner_id === $user->id
-            && $this->game->status === GameStatus::Scheduled;
+        return $user && $user->can('create', [GameBulletin::class, $this->game]);
     }
 
     #[Computed]

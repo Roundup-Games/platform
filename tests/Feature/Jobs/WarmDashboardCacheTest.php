@@ -288,6 +288,7 @@ class WarmDashboardCacheTest extends TestCase
         $job->handle(app(DashboardCacheService::class), app(DashboardModeService::class));
 
         // Established sections should be cached
+        $this->assertNotNull(Cache::get("dashboard:action_center:{$user->id}"));
         $this->assertNotNull(Cache::get("dashboard:host_again:{$user->id}"));
         $this->assertNotNull(Cache::get("dashboard:milestone_cards:{$user->id}"));
 
@@ -296,7 +297,6 @@ class WarmDashboardCacheTest extends TestCase
         $this->assertNotNull(Cache::get("dashboard:nearby_people:{$user->id}:{$geohash4}"));
 
         // Newcomer-only sections should NOT be cached
-        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
         $this->assertNull(Cache::get("dashboard:newcomer_welcome:{$user->id}"));
         $this->assertNull(Cache::get("dashboard:progress_tracker:{$user->id}"));
     }

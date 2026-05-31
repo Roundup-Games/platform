@@ -4,12 +4,14 @@ namespace App\Observers;
 
 use App\Models\GameParticipant;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardModeService;
 use Illuminate\Support\Facades\Log;
 
 class GameParticipantObserver
 {
     public function __construct(
         private DashboardCacheService $cache,
+        private DashboardModeService $modeService,
     ) {}
 
     public function created(GameParticipant $participant): void
@@ -40,6 +42,12 @@ class GameParticipantObserver
         // Attendance reporting affects the unreported-attendance item
         if ($participant->wasChanged('attendance_status')) {
             $this->cache->invalidateActionCenterForAttendance($participant->user_id);
+
+            // Mode may transition (newcomer → established) when attendance is recorded
+            $user = $participant->user;
+            if ($user) {
+                $this->modeService->invalidateForUser($user);
+            }
         }
     }
 

@@ -75,11 +75,13 @@ class NotificationService
             $recipientLocale = $notifiable->preferred_language?->value ?? $previousLocale;
             app()->setLocale($recipientLocale);
 
-            // ── Dispatch with channel filtering ──
-            $notifiable->notifyNow($notification, $channels);
-
-            // ── Restore previous locale ──
-            app()->setLocale($previousLocale);
+            try {
+                // ── Dispatch with channel filtering ──
+                $notifiable->notifyNow($notification, $channels);
+            } finally {
+                // ── Restore previous locale even on failure ──
+                app()->setLocale($previousLocale);
+            }
 
             Log::info('notification.dispatched', [
                 'notifiable_id' => $notifiable->id,

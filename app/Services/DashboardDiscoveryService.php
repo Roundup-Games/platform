@@ -167,9 +167,21 @@ class DashboardDiscoveryService
         $userLat = $userLocation?->latitude ? (float) $userLocation->latitude : null;
         $userLng = $userLocation?->longitude ? (float) $userLocation->longitude : null;
 
+        // Pre-fetch friend participant game IDs to avoid N+1 inside the loop
+        $friendGameIds = [];
+        if (! empty($socialCircleIds)) {
+            $friendGameIds = GameParticipant::whereIn('game_id', $games->pluck('id'))
+                ->where('status', ParticipantStatus::Approved->value)
+                ->whereIn('user_id', $socialCircleIds)
+                ->pluck('game_id')
+                ->unique()
+                ->values()
+                ->toArray();
+        }
+
         // Compute relevance tags and distance for each game
         $now = now();
-        $scoredGames = $games->map(function ($game) use ($user, $preferredSystemIds, $socialCircleIds, $userLat, $userLng, $now) {
+        $scoredGames = $games->map(function ($game) use ($user, $preferredSystemIds, $socialCircleIds, $friendGameIds, $userLat, $userLng, $now) {
             $tags = [];
             $participantCount = (int) ($game->participant_count ?? 0);
 
@@ -194,14 +206,8 @@ class DashboardDiscoveryService
             }
 
             // friends_are_going
-            if (! empty($socialCircleIds)) {
-                $hasFriend = GameParticipant::where('game_id', $game->id)
-                    ->where('status', ParticipantStatus::Approved->value)
-                    ->whereIn('user_id', $socialCircleIds)
-                    ->exists();
-                if ($hasFriend) {
-                    $tags[] = 'friends_are_going';
-                }
+            if (! empty($friendGameIds) && in_array($game->id, $friendGameIds, false)) {
+                $tags[] = 'friends_are_going';
             }
 
             // Distance

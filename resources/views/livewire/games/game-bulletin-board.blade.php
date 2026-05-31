@@ -41,9 +41,9 @@
 
             {{-- Bulletin list --}}
             @if($bulletins->count())
-                <div class="space-y-3">
+                <div class="space-y-3" role="list">
                     @foreach($bulletins as $bulletin)
-                        <div class="bg-surface rounded-lg p-4 border border-outline-variant/30">
+                        <div class="bg-surface rounded-lg p-4 border border-outline-variant/30" role="listitem">
                             <p class="text-sm text-on-surface whitespace-pre-line">{{ $bulletin->content }}</p>
                             <div class="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
                                 <span class="font-medium">{{ $bulletin->user->name ?? __('games.label_bulletin_unknown_host') }}</span>
