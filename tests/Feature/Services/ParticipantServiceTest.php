@@ -262,8 +262,12 @@ describe('ParticipantService', function () {
             $result = $this->service->removeParticipant($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
-            // Participant record should be deleted, not just status-changed
-            expect(GameParticipant::find($participant->id))->toBeNull();
+            // Participant record is soft-removed (status='removed') for audit trail,
+            // not hard-deleted, so hosts can't dodge penalties by removing everyone first.
+            $participant->refresh();
+            expect($participant->status)->toBe(ParticipantStatus::Removed);
+            expect($participant->removed_by)->toBe($this->owner->id);
+            expect($participant->removed_at)->not->toBeNull();
         });
 
         it('refuses to remove entity owner', function () {

@@ -10,6 +10,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\OwnerParticipantService;
 
 /**
  * Shared helpers for creating game/campaign instances with participants.
@@ -146,23 +147,19 @@ trait CreatesGameInstances
 
     /**
      * Ensure an owner participant record exists for the given entity.
+     *
+     * Delegates to OwnerParticipantService to stay consistent with
+     * production code paths (updateOrCreate, race condition handling).
      */
     private function ensureOwnerParticipant(Game|Campaign $entity, User $owner): void
     {
-        $participantClass = $entity instanceof Campaign
-            ? CampaignParticipant::class
-            : GameParticipant::class;
+        $service = app(OwnerParticipantService::class);
 
-        $foreignKey = $entity instanceof Campaign
-            ? 'campaign_id'
-            : 'game_id';
-
-        $participantClass::create([
-            $foreignKey => $entity->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
+        if ($entity instanceof Campaign) {
+            $service->ensureCampaignOwnerParticipant($entity);
+        } else {
+            $service->ensureOwnerParticipant($entity);
+        }
     }
 
     /**

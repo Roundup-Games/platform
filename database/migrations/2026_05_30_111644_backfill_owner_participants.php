@@ -38,7 +38,10 @@ return new class extends Migration
      * - Upgrades role to 'owner' if a participant exists with a different role.
      * - Sets attendance_status='attended' for completed games (only if currently null).
      *
-     * Observers are disabled to avoid unnecessary cache invalidation during migration.
+     * Observers are not explicitly disabled, but writes use DB::table()
+     * which bypasses Eloquent events (including observers). Read queries
+     * via Eloquent (GameParticipant::where) do trigger model loading but
+     * perform no writes, so observer side-effects are not a concern.
      */
     private function backfillGameOwners(): void
     {
@@ -98,7 +101,10 @@ return new class extends Migration
      * - Creates an owner participant if none exists.
      * - Upgrades role to 'owner' if a participant exists with a different role.
      *
-     * Observers are disabled to avoid unnecessary cache invalidation during migration.
+     * Observers are not explicitly disabled, but writes use DB::table()
+     * which bypasses Eloquent events (including observers). Read queries
+     * via Eloquent (CampaignParticipant::where) do trigger model loading
+     * but perform no writes, so observer side-effects are not a concern.
      */
     private function backfillCampaignOwners(): void
     {

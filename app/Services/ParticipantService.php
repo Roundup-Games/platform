@@ -789,7 +789,7 @@ class ParticipantService
         }
 
         $entityType = $meta['isCampaign'] ? 'campaign' : 'game';
-        app(BenchService::class)->promoteFromBench((string) $participant->id, $entityType);
+        app(BenchService::class)->promoteFromBench((string) $participant->id, $entityType, $promoter);
 
         Log::info($meta['type'] . ' bench participant promoted', [
             $meta['foreignKey'] => $entity->id,

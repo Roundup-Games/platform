@@ -9,6 +9,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -61,13 +62,23 @@ class BenchService
             $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
             $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
 
-            $participant = $participantClass::create([
-                $foreignKey => $lockedEntity->id,
-                'user_id' => $user->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Benched->value,
-                'benched_at' => now(),
-            ]);
+            try {
+                $participant = $participantClass::create([
+                    $foreignKey => $lockedEntity->id,
+                    'user_id' => $user->id,
+                    'role' => ParticipantRole::Player->value,
+                    'status' => ParticipantStatus::Benched->value,
+                    'benched_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // Handle concurrent insert race (unique constraint on entity_id + user_id).
+                // Re-throw all other errors (deadlocks, connectivity, schema issues).
+                if ($e->getCode() !== '23505') {
+                    throw $e;
+                }
+
+                throw new \LogicException('User is already a participant.');
+            }
 
             Log::info('bench.placed', [
                 'entity_type' => $entityType,
@@ -83,11 +94,17 @@ class BenchService
     /**
      * Promote a benched participant to approved status.
      *
+     * @param  string  $participantId  UUID of the participant to promote
+     * @param  string  $entityType  'campaign' or 'game'
+     * @param  User|null  $promoter  User performing the promotion (null for system/queue)
+     *
      * @throws \LogicException if participant is not benched or entity has no capacity
      */
-    public function promoteFromBench(string $participantId, string $entityType): void
+    public function promoteFromBench(string $participantId, string $entityType, ?User $promoter = null): void
     {
-        DB::transaction(function () use ($participantId, $entityType) {
+        $promoterId = $promoter?->id ?? 'system';
+
+        DB::transaction(function () use ($participantId, $entityType, $promoterId) {
             $isCampaign = $entityType === 'campaign';
 
             $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
@@ -119,7 +136,7 @@ class BenchService
                 'entity_type' => $entityType,
                 $foreignKey => $lockedEntity->id,
                 'user_id' => $participant->user_id,
-                'promoted_by' => auth()->id(),
+                'promoted_by' => $promoterId,
             ]);
         });
     }
@@ -134,6 +151,7 @@ class BenchService
     {
         return $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
+            ->with('user')
             ->get();
     }
 

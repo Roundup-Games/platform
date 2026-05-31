@@ -68,6 +68,7 @@ class ReliabilityScoreService
     {
         $participants = GameParticipant::where('user_id', $user->id)
             ->whereNotNull('attendance_status')
+            ->with('game')
             ->get();
 
         $gameCount = $participants->count();

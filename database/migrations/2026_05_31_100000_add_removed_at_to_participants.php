@@ -20,11 +20,13 @@ return new class extends Migration
     {
         Schema::table('game_participants', function (Blueprint $table) {
             $table->uuid('removed_by')->nullable()->after('short_link_id');
+            $table->foreign('removed_by')->references('id')->on('users')->nullOnDelete();
             $table->timestamp('removed_at')->nullable()->after('removed_by');
         });
 
         Schema::table('campaign_participants', function (Blueprint $table) {
             $table->uuid('removed_by')->nullable()->after('short_link_id');
+            $table->foreign('removed_by')->references('id')->on('users')->nullOnDelete();
             $table->timestamp('removed_at')->nullable()->after('removed_by');
         });
 
@@ -40,11 +42,18 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Pre-clean: any rows with status='removed' will violate the reverted
+        // CHECK constraint. Reset them to 'rejected' so rollback succeeds.
+        DB::table('game_participants')->where('status', 'removed')->update(['status' => 'rejected']);
+        DB::table('campaign_participants')->where('status', 'removed')->update(['status' => 'rejected']);
+
         Schema::table('game_participants', function (Blueprint $table) {
+            $table->dropForeign(['removed_by']);
             $table->dropColumn(['removed_by', 'removed_at']);
         });
 
         Schema::table('campaign_participants', function (Blueprint $table) {
+            $table->dropForeign(['removed_by']);
             $table->dropColumn(['removed_by', 'removed_at']);
         });
 

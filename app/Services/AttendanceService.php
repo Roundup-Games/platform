@@ -112,21 +112,22 @@ class AttendanceService
 
         $weight = $griefCheck['weight_multiplier'];
 
+        // Under the explicit-owner model, every participant (including the
+        // game owner) has a GameParticipant record. If $reportedParticipant
+        // is null here, it indicates a data integrity gap — bail early
+        // with an explicit failure instead of a misleading success.
+        if ($reportedParticipant === null) {
+            Log::error('Attendance report skipped: reported user has no participant record (data integrity gap)', [
+                'game_id' => $game->id,
+                'reported_id' => $reported->id,
+                'is_owner' => $game->owner_id === $reported->id,
+            ]);
+
+            return ['success' => false, 'reason' => 'Reported user has no participant record'];
+        }
+
         // Record attendance, create report, and check corroboration atomically
         DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported, $griefCheck) {
-            // Under the explicit-owner model, every participant (including the
-            // game owner) has a GameParticipant record. If $reportedParticipant
-            // is null here, it indicates a data integrity gap.
-            if ($reportedParticipant === null) {
-                Log::error('Attendance report skipped: reported user has no participant record (data integrity gap)', [
-                    'game_id' => $game->id,
-                    'reported_id' => $reported->id,
-                    'is_owner' => $game->owner_id === $reported->id,
-                ]);
-
-                return;
-            }
-
             $this->recordAttendance($reportedParticipant, $status, $reporter, $weight);
 
             AttendanceReport::create([
