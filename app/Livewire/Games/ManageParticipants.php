@@ -66,8 +66,7 @@ class ManageParticipants extends Component
 
         $approvedParticipants = $this->game->participants
             ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
-            ->filter(fn ($p) => $p->role !== ParticipantRole::Owner)
-            ->sortBy(fn ($p) => $p->role === ParticipantRole::Owner ? 0 : 1);
+            ->filter(fn ($p) => $p->role !== ParticipantRole::Owner);
 
         $pendingApplicants = $this->game->participants
             ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === \App\Enums\ParticipantStatus::Pending);

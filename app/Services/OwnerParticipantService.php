@@ -8,7 +8,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 
 class OwnerParticipantService
@@ -16,78 +16,73 @@ class OwnerParticipantService
     /**
      * Ensure an owner participant exists for the given game.
      *
-     * Idempotent — if a GameParticipant record already exists with
-     * role=Owner for this game's owner, it is returned as-is.
+     * Idempotent — uses updateOrCreate to atomically create or upgrade.
+     * The unique constraint on (game_id, user_id) guarantees correctness
+     * under concurrent calls: the second caller either finds the existing
+     * row (via updateOrCreate's internal SELECT) or hits the constraint,
+     * which we catch and resolve by re-querying.
      */
     public function ensureOwnerParticipant(Game $game): GameParticipant
     {
-        return DB::transaction(function () use ($game): GameParticipant {
-            $existing = GameParticipant::where('game_id', $game->id)
+        try {
+            $participant = GameParticipant::updateOrCreate(
+                ['game_id' => $game->id, 'user_id' => $game->owner_id],
+                ['role' => ParticipantRole::Owner, 'status' => ParticipantStatus::Approved],
+            );
+        } catch (QueryException $e) {
+            // Concurrent insert hit unique constraint — re-query the winner
+            $participant = GameParticipant::where('game_id', $game->id)
                 ->where('user_id', $game->owner_id)
-                ->first();
+                ->firstOrFail();
 
-            if ($existing) {
-                // Upgrade to owner role if needed
-                if ($existing->role !== ParticipantRole::Owner) {
-                    $existing->update(['role' => ParticipantRole::Owner]);
-                }
-
-                return $existing;
+            // Upgrade role if the winner had a non-owner role
+            if ($participant->role !== ParticipantRole::Owner) {
+                $participant->update(['role' => ParticipantRole::Owner]);
             }
+        }
 
-            $participant = GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $game->owner_id,
-                'role' => ParticipantRole::Owner,
-                'status' => ParticipantStatus::Approved,
-            ]);
-
+        if ($participant->wasRecentlyCreated) {
             Log::info('owner_participant.created', [
                 'game_id' => $game->id,
                 'user_id' => $game->owner_id,
                 'participant_id' => $participant->id,
             ]);
+        }
 
-            return $participant;
-        });
+        return $participant;
     }
 
     /**
      * Ensure an owner participant exists for the given campaign.
      *
-     * Idempotent — if a CampaignParticipant record already exists with
-     * role=Owner for this campaign's owner, it is returned as-is.
+     * Same atomicity guarantees as ensureOwnerParticipant.
      */
     public function ensureCampaignOwnerParticipant(Campaign $campaign): CampaignParticipant
     {
-        return DB::transaction(function () use ($campaign): CampaignParticipant {
-            $existing = CampaignParticipant::where('campaign_id', $campaign->id)
+        try {
+            $participant = CampaignParticipant::updateOrCreate(
+                ['campaign_id' => $campaign->id, 'user_id' => $campaign->owner_id],
+                ['role' => ParticipantRole::Owner, 'status' => ParticipantStatus::Approved],
+            );
+        } catch (QueryException $e) {
+            // Concurrent insert hit unique constraint — re-query the winner
+            $participant = CampaignParticipant::where('campaign_id', $campaign->id)
                 ->where('user_id', $campaign->owner_id)
-                ->first();
+                ->firstOrFail();
 
-            if ($existing) {
-                // Upgrade to owner role if needed
-                if ($existing->role !== ParticipantRole::Owner) {
-                    $existing->update(['role' => ParticipantRole::Owner]);
-                }
-
-                return $existing;
+            if ($participant->role !== ParticipantRole::Owner) {
+                $participant->update(['role' => ParticipantRole::Owner]);
             }
+        }
 
-            $participant = CampaignParticipant::create([
-                'campaign_id' => $campaign->id,
-                'user_id' => $campaign->owner_id,
-                'role' => ParticipantRole::Owner,
-                'status' => ParticipantStatus::Approved,
-            ]);
-
+        if ($participant->wasRecentlyCreated) {
             Log::info('campaign_owner_participant.created', [
                 'campaign_id' => $campaign->id,
                 'user_id' => $campaign->owner_id,
                 'participant_id' => $participant->id,
             ]);
+        }
 
-            return $participant;
-        });
+        return $participant;
     }
 }

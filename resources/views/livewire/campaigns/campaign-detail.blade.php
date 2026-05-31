@@ -295,7 +295,7 @@
                                 <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                                     <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {{ $participant->role === \App\Enums\ParticipantRole::Owner ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
+                                        {{ $participant->role->isOwner() ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
                                         {{ strtoupper($participant->role->value) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium

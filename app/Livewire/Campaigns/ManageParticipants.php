@@ -64,6 +64,9 @@ class ManageParticipants extends Component
             'applications.user',
         ]);
 
+        // Campaign owner IS shown in the approved list (sorted first) because
+        // campaigns are ongoing — the GM/organiser is a persistent participant.
+        // This differs from Games where the owner is hidden from ManageParticipants.
         $approvedParticipants = $this->campaign->participants
             ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
             ->sortBy(fn ($p) => $p->role === ParticipantRole::Owner ? 0 : 1);
