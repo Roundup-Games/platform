@@ -2,15 +2,14 @@
 
 namespace App\Livewire\Games;
 
-use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
 use App\Notifications\BulletinPosted;
-use App\Services\NotificationService;
 use App\Services\DashboardCacheService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -88,10 +87,14 @@ class GameBulletinBoard extends Component
             'content' => 'required|string|max:280',
         ]);
 
+        // Sanitize: strip control characters (RTL overrides, zero-width spaces, etc.)
+        // that could cause visual spoofing. Blade's {{ }} handles HTML escaping.
+        $sanitizedContent = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{200E}-\x{200F}\x{202A}-\x{202E}\x{FEFF}\x{FFF9}-\x{FFFB}]/u', '', $this->content);
+
         $bulletin = GameBulletin::create([
             'game_id' => $this->game->id,
             'user_id' => Auth::id(),
-            'content' => $this->content,
+            'content' => $sanitizedContent,
             'expires_at' => $this->game->date_time,
         ]);
 

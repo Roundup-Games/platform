@@ -4,33 +4,34 @@ namespace App\Models;
 
 use App\Enums\ContentLanguage;
 use App\Enums\RelationshipType;
-use App\Enums\VibeFlag;
-use App\Services\ScopedRoleService;
 use App\Services\Geohash;
+use App\Services\ProfileVisibilityResolver;
+use App\Services\ScopedRoleService;
 use App\Services\SocialGraphService;
 use App\Services\UserAnonymizationService;
 use App\Services\UserPreferenceResolver;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Traits\StringMorphMediaKey;
+use Escalated\Laravel\Contracts\HasTickets;
+use Escalated\Laravel\Contracts\Ticketable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Translation\HasLocalePreference;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Billable;
-use Escalated\Laravel\Contracts\HasTickets;
-use Escalated\Laravel\Contracts\Ticketable;
 use Laravel\Sanctum\HasApiTokens;
+use RalphJSmit\Laravel\SEO\SchemaCollection;
+use RalphJSmit\Laravel\SEO\Support\HasSEO;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
-use App\Traits\StringMorphMediaKey;
-use RalphJSmit\Laravel\SEO\SchemaCollection;
-use RalphJSmit\Laravel\SEO\Support\HasSEO;
-use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\SchemaOrg\Person as SchemaPerson;
 
 #[Fillable([
@@ -64,19 +65,20 @@ use Spatie\SchemaOrg\Person as SchemaPerson;
     'slug',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
-class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
+class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, Ticketable
 {
     use Billable;
-    use HasTickets;
     use HasApiTokens;
     use HasFactory;
     use HasRoles;
     use HasSEO;
+    use HasTickets;
     use InteractsWithMedia;
-    use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
     use Notifiable;
+    use StringMorphMediaKey { StringMorphMediaKey::media insteadof InteractsWithMedia; }
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected static function booted(): void
@@ -124,9 +126,9 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
     /**
      * Resolve avatar URL: media library upload first, then fallback to DB column (OAuth).
      */
-    protected function avatarUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    protected function avatarUrl(): Attribute
     {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+        return Attribute::make(
             get: function (?string $value) {
                 $media = $this->getFirstMedia('avatar');
                 if ($media) {
@@ -170,6 +172,17 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
             (float) $location->longitude,
             4,
         );
+    }
+
+    /**
+     * Get the user's preferred locale for notifications and translations.
+     *
+     * Implements HasLocalePreference so Laravel's notification system
+     * automatically sets the correct locale before calling toMail/toDatabase/toPush.
+     */
+    public function preferredLocale(): ?string
+    {
+        return $this->preferred_language?->value;
     }
 
     public function location()
@@ -351,7 +364,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
     public function hasGmSubscription(): bool
     {
         return $this->localSubscriptions()
-            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
             ->active()
             ->exists();
     }
@@ -532,6 +545,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
                 'ď' => 'd', 'ť' => 't', 'ň' => 'n',
                 'ł' => 'l', 'ś' => 's', 'ź' => 'z',
             ];
+
             return strtr($text, $map);
         }
 
@@ -560,7 +574,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
         while ($query->exists()) {
             $counter++;
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
 
             $query = static::where('slug', $slug);
 
@@ -604,7 +618,7 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
      *             The service handles Tier 1 data deletion, media cleanup,
      *             session invalidation, and PostHog data removal.
      *             This model method only strips PII on the user row.
-     * @see \App\Services\UserAnonymizationService::anonymize()
+     * @see UserAnonymizationService::anonymize()
      */
     public function anonymize(): void
     {
@@ -675,13 +689,13 @@ class User extends Authenticatable implements FilamentUser, HasMedia, Ticketable
 
         $description = $this->bio
             ? Str::limit(strip_tags($this->bio), 160)
-            : "View {$this->name}'s profile on " . config('company.display_name') . ".";
+            : "View {$this->name}'s profile on ".config('company.display_name').'.';
 
         $image = $this->getFirstMediaUrl('avatar', 'thumb') ?: ($this->avatar_url ?: asset('images/og-default.jpg'));
 
         // Determine if profile is publicly indexable
         // A profile is indexable if the viewer is a stranger and can still see fields
-        $resolver = app(\App\Services\ProfileVisibilityResolver::class);
+        $resolver = app(ProfileVisibilityResolver::class);
         $guestVisibleFields = $resolver->profileFieldsVisible(null, $this);
         $robots = count($guestVisibleFields) > 0
             ? 'index, follow'

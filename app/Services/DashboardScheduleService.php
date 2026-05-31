@@ -5,9 +5,8 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 /**
  * Builds the "Your Schedule" section for the established-mode dashboard.
@@ -130,18 +129,18 @@ class DashboardScheduleService
         $endOfWeek = $now->copy()->endOfWeek(); // Sunday end
         $fourteenDaysOut = $now->copy()->addDays(14);
 
-        // Fetch all upcoming games in 14-day window — not just this week
-        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
-        $participatingGameIds = GameParticipant::where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved->value)
-            ->pluck('game_id');
-
-        $gameIds = $ownedGameIds->merge($participatingGameIds)->unique()->values();
-
-        $games = Game::whereIn('id', $gameIds)
+        // Single query: games where user is owner or approved participant,
+        // scheduled in the next 14 days. Same pattern as hasUpcomingGames().
+        $games = Game::query()
             ->where('status', GameStatus::Scheduled->value)
             ->where('date_time', '>', $now)
             ->where('date_time', '<=', $fourteenDaysOut)
+            ->where(function ($q) use ($user) {
+                $q->where('owner_id', $user->id)
+                    ->orWhereHas('participants', fn ($pq) => $pq
+                        ->where('user_id', $user->id)
+                        ->where('status', ParticipantStatus::Approved->value));
+            })
             ->with(['gameSystem', 'campaign', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)])
             ->orderBy('date_time')
             ->get();
@@ -197,7 +196,7 @@ class DashboardScheduleService
      *
      * Examples: "Today at 7 PM", "Tomorrow at 3 PM", "Fri at 6 PM", "Jan 15 at 2 PM"
      */
-    private function formatRelativeTime(\Carbon\Carbon $dateTime): string
+    private function formatRelativeTime(Carbon $dateTime): string
     {
         $now = now();
         $time = $dateTime->format('g A'); // e.g. "7 PM"
@@ -211,10 +210,9 @@ class DashboardScheduleService
         }
 
         if ($dateTime->isSameWeek($now) && $dateTime->greaterThan($now)) {
-            return $dateTime->format('D') . " at {$time}"; // e.g. "Fri at 6 PM"
+            return $dateTime->format('D')." at {$time}"; // e.g. "Fri at 6 PM"
         }
 
-        return $dateTime->format('M j') . " at {$time}"; // e.g. "Jan 15 at 2 PM"
+        return $dateTime->format('M j')." at {$time}"; // e.g. "Jan 15 at 2 PM"
     }
-
 }

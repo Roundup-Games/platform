@@ -6,6 +6,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
+use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -152,10 +153,11 @@ class DashboardNewcomerService
         // Exclude games the user already participates in or owns
         $excludeGameIds = $this->getExcludedGameIds($user);
 
-        // Allowed owner IDs for protected content visibility
-        $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-
-        // Participant count subquery (+1 for owner who has no participant record)
+        // Participant count subquery.
+        // +1 accounts for the game owner who does not have a GameParticipant record.
+        // This is safe because the join/request flow explicitly blocks owners from
+        // creating participant records for their own games (canJoinViaShareLink checks
+        // owner_id, ParticipantService rejects self-invites).
         $participantCountSubquery = DB::table('game_participants')
             ->selectRaw('COUNT(*) + 1')
             ->whereColumn('game_participants.game_id', 'games.id')
@@ -173,17 +175,11 @@ class DashboardNewcomerService
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereNotIn('games.id', $excludeGameIds)
-            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                $q->where('games.visibility', 'public')
-                    ->orWhere(function ($q) use ($user, $allowedOwnerIds) {
-                        $q->where('games.visibility', 'protected')
-                            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                                $q->whereIn('games.owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                            });
-                    });
-            })
+            ->visibleTo($user)
             ->with(['gameSystem', 'owner', 'linkedLocation'])
+            // Cap at 30 candidates to bound memory in dense metro areas.
+            // We take the top 6 by score after filtering and sorting.
+            ->limit(30)
             ->get()
             ->filter(fn ($game) => ($game->max_players - (int) ($game->participant_count ?? 0)) > 0);
 
@@ -418,15 +414,15 @@ class DashboardNewcomerService
         $candidateSystemPrefs = $this->bulkLoadGameSystemPreferences($candidateIds);
 
         // Score by shared game systems
-        $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs, $user) {
+        $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs) {
             $candidateSystemIds = $candidateSystemPrefs[$candidate->id] ?? [];
             $sharedSystems = array_intersect($viewerSystemIds, $candidateSystemIds);
             $sharedCount = count($sharedSystems);
 
             // Get the user's top system name (first preferred system)
             $topSystemName = null;
-            if (!empty($candidateSystemIds)) {
-                $topSystemName = \App\Models\GameSystem::where('id', $candidateSystemIds[0])->value('name');
+            if (! empty($candidateSystemIds)) {
+                $topSystemName = GameSystem::where('id', $candidateSystemIds[0])->value('name');
             }
 
             return [
@@ -475,7 +471,7 @@ class DashboardNewcomerService
      */
     private function countMatchingNearbyGames(User $user, array $preferredSystemIds, $location): int
     {
-        if (empty($preferredSystemIds) || !$location?->latitude || !$location?->longitude) {
+        if (empty($preferredSystemIds) || ! $location?->latitude || ! $location?->longitude) {
             return 0;
         }
 
@@ -487,7 +483,6 @@ class DashboardNewcomerService
         $bounds = Geohash::prefixBounds($geohash4);
 
         $excludeGameIds = $this->getExcludedGameIds($user);
-        $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
 
         return Game::query()
             ->join('locations', 'games.location_id', '=', 'locations.id')
@@ -500,16 +495,7 @@ class DashboardNewcomerService
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereIn('games.game_system_id', $preferredSystemIds)
             ->whereNotIn('games.id', $excludeGameIds)
-            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                $q->where('games.visibility', 'public')
-                    ->orWhere(function ($q) use ($user, $allowedOwnerIds) {
-                        $q->where('games.visibility', 'protected')
-                            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                                $q->whereIn('games.owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                            });
-                    });
-            })
+            ->visibleTo($user)
             ->count();
     }
 
@@ -532,11 +518,11 @@ class DashboardNewcomerService
      */
     private function resolveWelcomeMessageKey(bool $hasLocation, array $preferredSystems, int $matchingGamesCount): string
     {
-        if ($hasLocation && !empty($preferredSystems) && $matchingGamesCount > 0) {
+        if ($hasLocation && ! empty($preferredSystems) && $matchingGamesCount > 0) {
             return 'welcome_with_matches';
         }
 
-        if ($hasLocation && !empty($preferredSystems)) {
+        if ($hasLocation && ! empty($preferredSystems)) {
             return 'welcome_no_matches';
         }
 
@@ -544,7 +530,7 @@ class DashboardNewcomerService
             return 'welcome_with_location';
         }
 
-        if (!empty($preferredSystems)) {
+        if (! empty($preferredSystems)) {
             return 'welcome_with_preferences';
         }
 

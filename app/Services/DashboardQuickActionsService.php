@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\CampaignParticipant;
+use App\Models\Game;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
@@ -31,10 +32,11 @@ class DashboardQuickActionsService
         $actions = [];
 
         // ── Primary action ─────────────────────────────
-        $actions[] = $this->selectPrimaryAction($role, $hasUpcoming, $user);
+        $primaryAction = $this->selectPrimaryAction($role, $hasUpcoming, $user);
+        $actions[] = $primaryAction;
 
         // ── Secondary actions (max 3 total) ─────────────
-        $secondaryCandidates = $this->selectSecondaryActions($role, $hasUpcoming, $user);
+        $secondaryCandidates = $this->selectSecondaryActions($role, $hasUpcoming, $user, $primaryAction['label']);
 
         foreach ($secondaryCandidates as $candidate) {
             if (count($actions) >= 3) {
@@ -105,7 +107,7 @@ class DashboardQuickActionsService
         }
 
         // Fallback: direct query for games beyond the current week window
-        return \App\Models\Game::query()
+        return Game::query()
             ->where('status', GameStatus::Scheduled)
             ->where('date_time', '>', now())
             ->where(function ($q) use ($user) {
@@ -167,10 +169,9 @@ class DashboardQuickActionsService
      *  - My Campaigns: for campaign members
      *  - Find Campaigns: if not in any campaign
      */
-    private function selectSecondaryActions(string $role, bool $hasUpcoming, User $user): array
+    private function selectSecondaryActions(string $role, bool $hasUpcoming, User $user, string $primaryLabel): array
     {
         $candidates = [];
-        $primaryLabel = $this->selectPrimaryAction($role, $hasUpcoming, $user)['label'];
 
         // Discover Games — always useful if not primary
         $discoverLabel = 'profile.dashboard_quick_discover';

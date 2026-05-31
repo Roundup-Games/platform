@@ -70,22 +70,11 @@ class NotificationService
                 return;
             }
 
-            // ── Set recipient locale for translation ──
-            // NOTE: This mutates global app locale. Safe because PHP queue workers are
-            // single-threaded (one job at a time per process) and HTTP requests are isolated.
-            // The try/finally ensures restoration even on failure. If async dispatch is ever
-            // introduced, this must be replaced with per-notification locale injection.
-            $previousLocale = app()->getLocale();
-            $recipientLocale = $notifiable->preferred_language?->value ?? $previousLocale;
-            app()->setLocale($recipientLocale);
-
-            try {
-                // ── Dispatch with channel filtering ──
-                $notifiable->notifyNow($notification, $channels);
-            } finally {
-                // ── Restore previous locale even on failure ──
-                app()->setLocale($previousLocale);
-            }
+            // ── Dispatch with recipient locale ──
+            // User implements HasLocalePreference, so Laravel's notification sender
+            // automatically resolves the correct locale via preferredLocale() before
+            // calling toMail/toDatabase/toPush. No global mutation needed.
+            $notifiable->notifyNow($notification, $channels);
 
             Log::info('notification.dispatched', [
                 'notifiable_id' => $notifiable->id,
@@ -168,8 +157,6 @@ class NotificationService
      *
      * Returns a collection of notifications sorted by created_at desc.
      * Grouping by read/unread is a stub for future UI categorization.
-     *
-     * @return \Illuminate\Support\Collection
      */
     public function getGroupedRecent(User $user, int $limit = 10): Collection
     {

@@ -5,14 +5,15 @@ namespace App\Services;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
+use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Builds the "Nearby and Noteworthy", "Your Story" (milestone cards),
@@ -120,10 +121,9 @@ class DashboardDiscoveryService
             ->values()
             ->toArray();
 
-        // Allowed owner IDs for protected content visibility
-        $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-
-        // +1 for the game owner who has no participant record
+        // +1 for the game owner who does not have a GameParticipant record.
+        // Owners are blocked from self-joining (canJoinViaShareList blocks owner_id,
+        // ParticipantService rejects self-invites), so the +1 never double-counts.
         $participantCountSubquery = DB::table('game_participants')
             ->selectRaw('COUNT(*) + 1')
             ->whereColumn('game_participants.game_id', 'games.id')
@@ -141,16 +141,7 @@ class DashboardDiscoveryService
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereNotIn('games.id', $excludeGameIds)
-            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                $q->where('games.visibility', 'public')
-                    ->orWhere(function ($q) use ($user, $allowedOwnerIds) {
-                        $q->where('games.visibility', 'protected')
-                            ->where(function ($q) use ($user, $allowedOwnerIds) {
-                                $q->whereIn('games.owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                            });
-                    });
-            })
+            ->visibleTo($user)
             ->with(['gameSystem', 'linkedLocation'])
             // Cap at 20 candidates — we only take the top 6 by relevance after scoring.
             // Without this limit, dense metro areas could load hundreds of games.
@@ -184,7 +175,7 @@ class DashboardDiscoveryService
 
         // Compute relevance tags and distance for each game
         $now = now();
-        $scoredGames = $games->map(function ($game) use ($user, $preferredSystemIds, $socialCircleIds, $friendGameIds, $userLat, $userLng, $now) {
+        $scoredGames = $games->map(function ($game) use ($preferredSystemIds, $friendGameIds, $userLat, $userLng, $now) {
             $tags = [];
             $participantCount = (int) ($game->participant_count ?? 0);
 
@@ -247,6 +238,7 @@ class DashboardDiscoveryService
             ->sortBy(function ($item) {
                 $tagCount = $item['tag_count'];
                 $dateTime = $item['date_time'] ?? '9999-99-99';
+
                 // Negative tag count for DESC sort, date_time for ASC sort
                 return [-$tagCount, $dateTime];
             }, SORT_REGULAR)
@@ -256,6 +248,7 @@ class DashboardDiscoveryService
         // Remove internal tag_count field from output
         return $sorted->map(function ($item) {
             unset($item['tag_count']);
+
             return $item;
         })->toArray();
     }
@@ -394,7 +387,7 @@ class DashboardDiscoveryService
 
         // Find campaigns the user is in that have >= 5 completed sessions
         // Use whereHas with count check instead of havingRaw (PG grouping issue)
-        $campaign = \App\Models\Campaign::whereIn('id', $campaignIds)
+        $campaign = Campaign::whereIn('id', $campaignIds)
             ->where('status', CampaignStatus::Active->value)
             ->withCount(['sessions as completed_sessions_count' => function ($query) {
                 $query->where('status', GameStatus::Completed->value);
@@ -518,7 +511,7 @@ class DashboardDiscoveryService
         string $titleKey,
         string $descriptionKey,
         string $icon,
-        ?\Carbon\Carbon $earnedAt,
+        ?Carbon $earnedAt,
     ): array {
         $isNew = false;
         if ($earnedAt !== null) {
@@ -540,7 +533,7 @@ class DashboardDiscoveryService
     /**
      * Format a datetime as a human-friendly relative time string.
      */
-    private function formatRelativeTime(?\Carbon\Carbon $dateTime): string
+    private function formatRelativeTime(?Carbon $dateTime): string
     {
         if ($dateTime === null) {
             return '';
@@ -558,9 +551,9 @@ class DashboardDiscoveryService
         }
 
         if ($dateTime->isSameWeek($now) && $dateTime->greaterThan($now)) {
-            return $dateTime->format('D') . " at {$time}";
+            return $dateTime->format('D')." at {$time}";
         }
 
-        return $dateTime->format('M j') . " at {$time}";
+        return $dateTime->format('M j')." at {$time}";
     }
 }

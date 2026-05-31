@@ -3,20 +3,19 @@
 namespace App\Services;
 
 use App\Dto\ActionItem;
-use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
+use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
-use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -56,6 +55,7 @@ class ActionCenterService
             if ($priorityDiff !== 0) {
                 return $priorityDiff;
             }
+
             return $b->createdAt->timestamp <=> $a->createdAt->timestamp;
         });
 
@@ -309,7 +309,8 @@ class ActionCenterService
      */
     private function getAvailableDebriefings(User $user): array
     {
-        // Games the user participated in that are completed and have debriefing tools
+        // Games the user participated in that are completed and have debriefing tools,
+        // but the user hasn't submitted a debriefing — filtered entirely at the SQL level.
         $games = Game::query()
             ->where('status', GameStatus::Completed)
             ->whereHas('participants', fn ($q) => $q
@@ -319,18 +320,12 @@ class ActionCenterService
                 ->whereNotNull('safety_rules')
                 ->whereJsonContains('safety_rules', 'debriefing')
             )
-            ->with('sessionDebriefings')
+            ->whereDoesntHave('sessionDebriefings', fn ($q) => $q
+                ->where('user_id', $user->id)
+                ->whereNotNull('submitted_at'))
             ->get();
 
-        // Filter to games where user hasn't submitted a debriefing
-        $needsDebriefing = $games->filter(function (Game $g) use ($user) {
-            return ! $g->sessionDebriefings()
-                ->where('user_id', $user->id)
-                ->whereNotNull('submitted_at')
-                ->exists();
-        });
-
-        return $needsDebriefing->map(fn (Game $g) => new ActionItem(
+        return $games->map(fn (Game $g) => new ActionItem(
             type: 'available_debriefing',
             priority: 'medium',
             title: __('profile.dashboard_action_debriefing_title', ['game' => $g->name]),
@@ -406,9 +401,13 @@ class ActionCenterService
 
         $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')->toArray();
 
-        return $followers->map(function (UserRelationship $rel) use ($userSystemIds) {
+        // Bulk-load follower preferences to avoid N+1
+        $followerUserIds = $followers->pluck('user_id')->filter()->unique()->values()->toArray();
+        $followerSystemMap = $this->bulkLoadGameSystemPreferences($followerUserIds);
+
+        return $followers->map(function (UserRelationship $rel) use ($userSystemIds, $followerSystemMap) {
             $followerUser = $rel->user;
-            $followerSystemIds = $followerUser?->gameSystemPreferences()->pluck('game_system_id')->toArray() ?? [];
+            $followerSystemIds = $followerSystemMap[$followerUser?->id] ?? [];
             $sharedCount = count(array_intersect($userSystemIds, $followerSystemIds));
 
             return new ActionItem(
@@ -454,13 +453,13 @@ class ActionCenterService
         }
 
         // Campaigns that have new sessions (games) created in the last 3 days
-        $campaigns = \App\Models\Campaign::query()
+        $campaigns = Campaign::query()
             ->whereIn('id', $campaignIds)
             ->whereHas('sessions', fn ($q) => $q
                 ->where('created_at', '>=', now()->subDays(3)))
             ->get();
 
-        return $campaigns->map(fn (\App\Models\Campaign $c) => new ActionItem(
+        return $campaigns->map(fn (Campaign $c) => new ActionItem(
             type: 'campaign_session_alert',
             priority: 'low',
             title: __('profile.dashboard_action_campaign_session_title', ['campaign' => $c->name]),
@@ -534,5 +533,30 @@ class ActionCenterService
             })
             ->orderBy('date_time')
             ->first();
+    }
+
+    /**
+     * Bulk-load game system preference IDs for a set of users.
+     *
+     * @param  string[]  $userIds
+     * @return array<string, string[]> userId => [gameSystemId, ...]
+     */
+    private function bulkLoadGameSystemPreferences(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+
+        $rows = DB::table('user_game_system_preferences')
+            ->whereIn('user_id', $userIds)
+            ->select('user_id', 'game_system_id')
+            ->get();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[$row->user_id][] = $row->game_system_id;
+        }
+
+        return $map;
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\GameStatus;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
@@ -46,7 +47,7 @@ class GameBulletinPolicy
         // Approved participants can view
         return $game->participants()
             ->where('user_id', $user->id)
-            ->where('status', 'approved')
+            ->where('status', ParticipantStatus::Approved->value)
             ->exists();
     }
 
