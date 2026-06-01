@@ -39,7 +39,7 @@ function createGameForLateCancel(User $owner, GameSystem $system, array $overrid
     ]);
 }
 
-function createApprovedParticipant(Game $game, ?User $user = null): GameParticipant
+function createApprovedParticipantForLateCancel(Game $game, ?User $user = null): GameParticipant
 {
     $user = $user ?? User::factory()->create();
 
@@ -59,7 +59,7 @@ describe('late cancellation detection', function () {
             'date_time' => now()->addHours(12),
         ]);
 
-        $participant = createApprovedParticipant($game);
+        $participant = createApprovedParticipantForLateCancel($game);
 
         // Cancel via Livewire component (the real flow)
         Livewire::actingAs($participant->user)
@@ -82,8 +82,8 @@ describe('below-min-player warning', function () {
         ]);
 
         // Add 2 more approved players (3 total including owner)
-        createApprovedParticipant($game);
-        $thirdPlayer = createApprovedParticipant($game);
+        createApprovedParticipantForLateCancel($game);
+        $thirdPlayer = createApprovedParticipantForLateCancel($game);
 
         Log::shouldReceive('warning')
             ->with('waitlist.below_min_players', \Mockery::on(fn ($ctx) =>
@@ -108,7 +108,7 @@ describe('below-min-player warning', function () {
         ]);
 
         // Add 1 more approved player (2 total including owner)
-        $player = createApprovedParticipant($game);
+        $player = createApprovedParticipantForLateCancel($game);
 
         // Cancel the extra player → still 1 (below min of 2) — but let's test the ABOVE case
         // Create a game where cancelling still leaves above min
@@ -117,8 +117,8 @@ describe('below-min-player warning', function () {
             'max_players' => 4,
         ]);
 
-        createApprovedParticipant($game2);
-        createApprovedParticipant($game2);
+        createApprovedParticipantForLateCancel($game2);
+        createApprovedParticipantForLateCancel($game2);
         // Now: owner + 3 players = 4 approved
 
         // Cancel 1 player → 3 approved, still above min of 2

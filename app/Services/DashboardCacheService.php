@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Dto\ActionItem;
 use App\Dto\FeedItem;
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
@@ -44,6 +45,16 @@ class DashboardCacheService
     private const TTL_TRENDING = 600;    // 10 minutes
     private const TTL_OPPORTUNITIES = 600; // 10 minutes
     private const TTL_CONTRIBUTIONS = 3600; // 1 hour
+
+    // ── TTL constants — two-mode dashboard sections ────
+
+    private const TTL_ACTION_CENTER = 300;      // 5 minutes
+    private const TTL_NEWCOMER_WELCOME = 600;   // 10 minutes
+    private const TTL_PROGRESS_TRACKER = 300;   // 5 minutes
+    private const TTL_NEARBY_PEOPLE = 900;      // 15 minutes
+    private const TTL_NEWCOMER_MATCHES = 600;     // 10 minutes
+    private const TTL_HOST_AGAIN = 600;         // 10 minutes
+    private const TTL_MILESTONE_CARDS = 3600;   // 1 hour
 
     // ── Read methods ───────────────────────────────────
 
@@ -150,9 +161,12 @@ class DashboardCacheService
             'cache_key' => $cacheKey,
         ]);
 
-        $data = $this->computeOpportunities($user, $geohash4);
-
-        Cache::put($cacheKey, $data, self::TTL_OPPORTUNITIES);
+        $data = $this->computeWithLock(
+            "dashboard:compute:opportunities:{$user->id}",
+            $cacheKey,
+            self::TTL_OPPORTUNITIES,
+            fn () => $this->computeOpportunities($user, $geohash4),
+        );
 
         // Track key for invalidation
         $this->trackOpportunityKey($user->id, $cacheKey);
@@ -185,6 +199,183 @@ class DashboardCacheService
         Cache::put($cacheKey, $data, self::TTL_CONTRIBUTIONS);
 
         WarmDashboardCache::dispatch($user->id, 'cache_miss_contributions');
+
+        return $data;
+    }
+
+    // ── Read methods — two-mode dashboard sections ─────
+
+    /**
+     * Get the user's action center (newcomer dashboard).
+     *
+     * Returns suggested next steps and pending actions for new users.
+     */
+    public function getActionCenter(User $user): array
+    {
+        $cacheKey = "dashboard:action_center:{$user->id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'action_center',
+            'user_id' => $user->id,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeWithLock(
+            "dashboard:compute:action_center:{$user->id}",
+            $cacheKey,
+            self::TTL_ACTION_CENTER,
+            fn () => $this->computeActionCenter($user),
+        );
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_action_center');
+
+        return $data;
+    }
+
+    /**
+     * Get the newcomer welcome section data.
+     *
+     * Returns personalised welcome content for newcomer-mode users.
+     */
+    public function getNewcomerWelcome(User $user): array
+    {
+        $cacheKey = "dashboard:newcomer_welcome:{$user->id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'newcomer_welcome',
+            'user_id' => $user->id,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeNewcomerWelcome($user);
+
+        Cache::put($cacheKey, $data, self::TTL_NEWCOMER_WELCOME);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_newcomer_welcome');
+
+        return $data;
+    }
+
+    /**
+     * Get the user's progress tracker (newcomer onboarding progress).
+     */
+    public function getProgressTracker(User $user): array
+    {
+        $cacheKey = "dashboard:progress_tracker:{$user->id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'progress_tracker',
+            'user_id' => $user->id,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeProgressTracker($user);
+
+        Cache::put($cacheKey, $data, self::TTL_PROGRESS_TRACKER);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_progress_tracker');
+
+        return $data;
+    }
+
+    /**
+     * Get nearby people for a user within a geohash tile.
+     */
+    public function getNearbyPeople(User $user, string $geohash4): array
+    {
+        $cacheKey = "dashboard:nearby_people:{$user->id}:{$geohash4}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'nearby_people',
+            'user_id' => $user->id,
+            'geohash_4' => $geohash4,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeWithLock(
+            "dashboard:compute:nearby_people:{$user->id}",
+            $cacheKey,
+            self::TTL_NEARBY_PEOPLE,
+            fn () => $this->computeNearbyPeople($user, $geohash4),
+        );
+
+        $this->trackNearbyPeopleKey($user->id, $cacheKey);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_nearby_people');
+
+        return $data;
+    }
+
+    /**
+     * Get the "host again" section for the established dashboard.
+     */
+    public function getHostAgain(User $user): array
+    {
+        $cacheKey = "dashboard:host_again:{$user->id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'host_again',
+            'user_id' => $user->id,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeHostAgain($user);
+
+        Cache::put($cacheKey, $data, self::TTL_HOST_AGAIN);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_host_again');
+
+        return $data;
+    }
+
+    /**
+     * Get the milestone cards for the established dashboard.
+     */
+    public function getMilestoneCards(User $user): array
+    {
+        $cacheKey = "dashboard:milestone_cards:{$user->id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'milestone_cards',
+            'user_id' => $user->id,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeMilestoneCards($user);
+
+        Cache::put($cacheKey, $data, self::TTL_MILESTONE_CARDS);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_milestone_cards');
 
         return $data;
     }
@@ -228,14 +419,141 @@ class DashboardCacheService
             $keysToForget[] = "dashboard:recaps:{$userId}";
         }
 
-        foreach ($keysToForget as $key) {
-            Cache::forget($key);
+        // ── Two-mode dashboard sections ─────────────────
+
+        if (in_array('action_center', $sections)) {
+            $keysToForget[] = "dashboard:action_center:{$userId}";
         }
+
+        if (in_array('newcomer_welcome', $sections)) {
+            $keysToForget[] = "dashboard:newcomer_welcome:{$userId}";
+        }
+
+        if (in_array('progress_tracker', $sections)) {
+            $keysToForget[] = "dashboard:progress_tracker:{$userId}";
+        }
+
+        if (in_array('nearby_people', $sections)) {
+            $trackingKey = "dashboard:nearby_people:keys:{$userId}";
+            $trackedKeys = Cache::get($trackingKey, []);
+            foreach ($trackedKeys as $key) {
+                $keysToForget[] = $key;
+            }
+            $keysToForget[] = $trackingKey;
+        }
+
+        if (in_array('newcomer_matches', $sections)) {
+            $trackingKey = "dashboard:newcomer_matches:keys:{$userId}";
+            $trackedKeys = Cache::get($trackingKey, []);
+            foreach ($trackedKeys as $key) {
+                $keysToForget[] = $key;
+            }
+            $keysToForget[] = $trackingKey;
+        }
+
+        if (in_array('host_again', $sections)) {
+            $keysToForget[] = "dashboard:host_again:{$userId}";
+        }
+
+        if (in_array('milestone_cards', $sections)) {
+            $keysToForget[] = "dashboard:milestone_cards:{$userId}";
+        }
+
+        // Use deleteMultiple for batch efficiency (single Redis pipeline on Redis driver)
+        Cache::deleteMultiple(array_unique($keysToForget));
 
         Log::debug('dashboard.cache_invalidated', [
             'user_id' => $userId,
             'sections' => $sections,
             'keys_cleared' => count($keysToForget),
+        ]);
+    }
+
+    /**
+     * Batch-invalidate a section for multiple users at once.
+     *
+     * Computes all cache keys for all users, then forgets them in a single
+     * pass. Avoids N individual Cache::forget calls when invalidating
+     * participant lists (e.g., game completion, bulletin posted).
+     *
+     * @param  string[]  $userIds
+     * @param  string[]  $sections
+     */
+    public function invalidateForUsers(array $userIds, array $sections): void
+    {
+        $allKeys = [];
+
+        foreach ($userIds as $userId) {
+            $userId = (string) $userId;
+
+            if (in_array('week', $sections)) {
+                $weekKey = now()->startOfWeek()->format('Y-m-d');
+                $allKeys[] = "dashboard:week:{$userId}:{$weekKey}";
+            }
+
+            if (in_array('feed', $sections)) {
+                $allKeys[] = "dashboard:feed:{$userId}";
+            }
+
+            if (in_array('opportunities', $sections)) {
+                $trackingKey = "dashboard:opportunities:keys:{$userId}";
+                $trackedKeys = Cache::get($trackingKey, []);
+                foreach ($trackedKeys as $key) {
+                    $allKeys[] = $key;
+                }
+                $allKeys[] = $trackingKey;
+            }
+
+            if (in_array('recaps', $sections)) {
+                $allKeys[] = "dashboard:recaps:{$userId}";
+            }
+
+            if (in_array('action_center', $sections)) {
+                $allKeys[] = "dashboard:action_center:{$userId}";
+            }
+
+            if (in_array('newcomer_welcome', $sections)) {
+                $allKeys[] = "dashboard:newcomer_welcome:{$userId}";
+            }
+
+            if (in_array('progress_tracker', $sections)) {
+                $allKeys[] = "dashboard:progress_tracker:{$userId}";
+            }
+
+            if (in_array('nearby_people', $sections)) {
+                $trackingKey = "dashboard:nearby_people:keys:{$userId}";
+                $trackedKeys = Cache::get($trackingKey, []);
+                foreach ($trackedKeys as $key) {
+                    $allKeys[] = $key;
+                }
+                $allKeys[] = $trackingKey;
+            }
+
+            if (in_array('newcomer_matches', $sections)) {
+                $trackingKey = "dashboard:newcomer_matches:keys:{$userId}";
+                $trackedKeys = Cache::get($trackingKey, []);
+                foreach ($trackedKeys as $key) {
+                    $allKeys[] = $key;
+                }
+                $allKeys[] = $trackingKey;
+            }
+
+            if (in_array('host_again', $sections)) {
+                $allKeys[] = "dashboard:host_again:{$userId}";
+            }
+
+            if (in_array('milestone_cards', $sections)) {
+                $allKeys[] = "dashboard:milestone_cards:{$userId}";
+            }
+        }
+
+        // Use deleteMultiple for batch efficiency (single Redis pipeline on Redis driver)
+        Cache::deleteMultiple(array_unique($allKeys));
+
+        Log::debug('dashboard.cache_batch_invalidated', [
+            'user_count' => count($userIds),
+            'sections' => $sections,
+            'total_keys_cleared' => count($allKeys),
         ]);
     }
 
@@ -278,7 +596,7 @@ class DashboardCacheService
             ->unique()
             ->values();
 
-        $sections = ['week', 'opportunities'];
+        $sections = ['week', 'opportunities', 'host_again', 'milestone_cards'];
 
         // If game has a location, also invalidate trending for its geohash
         $location = $game->linkedLocation;
@@ -291,14 +609,115 @@ class DashboardCacheService
             $this->invalidateTrendingForGeohash($geohash4);
         }
 
-        foreach ($affectedUserIds as $userId) {
-            $this->invalidateForUser((string) $userId, $sections);
-        }
+        $this->invalidateForUsers($affectedUserIds->map(fn ($id) => (string) $id)->all(), $sections);
 
         Log::debug('dashboard.game_event_invalidated', [
             'game_id' => $game->id,
             'event' => $event,
             'affected_users' => $affectedUserIds->count(),
+        ]);
+    }
+
+    // ── Action Center invalidation methods ─────────────
+
+    /**
+     * Invalidate the action center when a participant's status changes.
+     *
+     * Affects both the participant (waitlist/invitation/attendance items)
+     * and the game owner (pending applications, below-min-players).
+     */
+    public function invalidateActionCenterForParticipantChange(string $userId, ?string $gameId = null): void
+    {
+        $userIds = [(string) $userId];
+
+        // Also invalidate the game owner's action center (pending applications, min-players)
+        if ($gameId !== null) {
+            $ownerId = Game::where('id', $gameId)->value('owner_id');
+            if ($ownerId && $ownerId !== $userId) {
+                $userIds[] = (string) $ownerId;
+            }
+        }
+
+        $this->invalidateForUsers($userIds, ['action_center']);
+
+        Log::debug('dashboard.action_center_invalidated.participant_change', [
+            'user_id' => $userId,
+            'game_id' => $gameId,
+        ]);
+    }
+
+    /**
+     * Invalidate the action center for a game event (status change, recap added, etc).
+     *
+     * Affects the game owner and all approved/waitlisted participants.
+     */
+    public function invalidateActionCenterForGameEvent(string $gameId): void
+    {
+        $game = Game::find($gameId);
+
+        if (! $game) {
+            return;
+        }
+
+        $userIds = collect([$game->owner_id]);
+
+        $participantIds = $game->participants()
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Pending->value,
+            ])
+            ->pluck('user_id');
+
+        $userIds = $userIds->merge($participantIds)->unique()->values();
+
+        $this->invalidateForUsers($userIds->map(fn ($id) => (string) $id)->all(), ['action_center']);
+
+        Log::debug('dashboard.action_center_invalidated.game_event', [
+            'game_id' => $gameId,
+            'affected_users' => $userIds->count(),
+        ]);
+    }
+
+    /**
+     * Invalidate the action center when a new review is created.
+     *
+     * Affects the reviewed GM (new review item).
+     */
+    public function invalidateActionCenterForReview(string $userId): void
+    {
+        $this->invalidateForUser((string) $userId, ['action_center']);
+
+        Log::debug('dashboard.action_center_invalidated.review', [
+            'user_id' => $userId,
+        ]);
+    }
+
+    /**
+     * Invalidate the action center when the user gets a new follower.
+     *
+     * Affects the followed user (new follower item).
+     */
+    public function invalidateActionCenterForFollow(string $userId): void
+    {
+        $this->invalidateForUser((string) $userId, ['action_center']);
+
+        Log::debug('dashboard.action_center_invalidated.follow', [
+            'user_id' => $userId,
+        ]);
+    }
+
+    /**
+     * Invalidate the action center for attendance-related changes.
+     *
+     * Affects the user who needs to report attendance.
+     */
+    public function invalidateActionCenterForAttendance(string $userId): void
+    {
+        $this->invalidateForUser((string) $userId, ['action_center']);
+
+        Log::debug('dashboard.action_center_invalidated.attendance', [
+            'user_id' => $userId,
         ]);
     }
 
@@ -442,7 +861,189 @@ class DashboardCacheService
         return count($data['games']);
     }
 
+    // ── Warm methods — two-mode dashboard sections ─────
+
+    /**
+     * Warm the action center cache.
+     */
+    public function warmActionCenter(User $user): array
+    {
+        $cacheKey = "dashboard:action_center:{$user->id}";
+
+        $data = $this->computeActionCenter($user);
+
+        Cache::put($cacheKey, $data, self::TTL_ACTION_CENTER);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'action_center',
+            'user_id' => $user->id,
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Warm the newcomer welcome cache.
+     */
+    public function warmNewcomerWelcome(User $user): array
+    {
+        $cacheKey = "dashboard:newcomer_welcome:{$user->id}";
+
+        $data = $this->computeNewcomerWelcome($user);
+
+        Cache::put($cacheKey, $data, self::TTL_NEWCOMER_WELCOME);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'newcomer_welcome',
+            'user_id' => $user->id,
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Warm the progress tracker cache.
+     */
+    public function warmProgressTracker(User $user): array
+    {
+        $cacheKey = "dashboard:progress_tracker:{$user->id}";
+
+        $data = $this->computeProgressTracker($user);
+
+        Cache::put($cacheKey, $data, self::TTL_PROGRESS_TRACKER);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'progress_tracker',
+            'user_id' => $user->id,
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Warm the nearby people cache for a geohash tile.
+     */
+    public function warmNearbyPeople(User $user, string $geohash4): array
+    {
+        $cacheKey = "dashboard:nearby_people:{$user->id}:{$geohash4}";
+
+        $data = $this->computeNearbyPeople($user, $geohash4);
+
+        Cache::put($cacheKey, $data, self::TTL_NEARBY_PEOPLE);
+
+        $this->trackNearbyPeopleKey($user->id, $cacheKey);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'nearby_people',
+            'user_id' => $user->id,
+            'geohash_4' => $geohash4,
+        ]);
+
+        return $data;
+    }
+
+    public function warmNewcomerMatches(User $user, string $geohash4): array
+    {
+        $cacheKey = "dashboard:newcomer_matches:{$user->id}:{$geohash4}";
+
+        $data = $this->computeNewcomerMatches($user, $geohash4);
+
+        Cache::put($cacheKey, $data, self::TTL_NEWCOMER_MATCHES);
+
+        $this->trackNewcomerMatchesKey($user->id, $cacheKey);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'newcomer_matches',
+            'user_id' => $user->id,
+            'geohash_4' => $geohash4,
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Warm the host again cache.
+     */
+    public function warmHostAgain(User $user): array
+    {
+        $cacheKey = "dashboard:host_again:{$user->id}";
+
+        $data = $this->computeHostAgain($user);
+
+        Cache::put($cacheKey, $data, self::TTL_HOST_AGAIN);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'host_again',
+            'user_id' => $user->id,
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Warm the milestone cards cache.
+     */
+    public function warmMilestoneCards(User $user): array
+    {
+        $cacheKey = "dashboard:milestone_cards:{$user->id}";
+
+        $data = $this->computeMilestoneCards($user);
+
+        Cache::put($cacheKey, $data, self::TTL_MILESTONE_CARDS);
+
+        Log::debug('dashboard.cache_warmed', [
+            'section' => 'milestone_cards',
+            'user_id' => $user->id,
+        ]);
+
+        return $data;
+    }
+
     // ── Internal helpers ───────────────────────────────
+
+    /**
+     * Compute a cache section with stampede protection.
+     *
+     * Acquires a short-lived lock before computing to prevent thundering-herd
+     * scenarios on concurrent cold-cache misses. After acquiring the lock,
+     * re-checks the cache (another request may have populated it).
+     *
+     * @param  string  $lockKey  Lock identifier (e.g., "dashboard:compute:newcomer_matches:{uid}")
+     * @param  string  $cacheKey  The cache key to read/write
+     * @param  int  $ttl  Cache TTL in seconds
+     * @param  callable  $compute  Factory that returns the computed data
+     */
+    private function computeWithLock(string $lockKey, string $cacheKey, int $ttl, callable $compute): mixed
+    {
+        $lock = Cache::lock($lockKey, 10);
+
+        try {
+            if ($lock->block(0.05)) {
+                // Double-check: another request may have populated while we waited
+                $cached = Cache::get($cacheKey);
+                if ($cached !== null) {
+                    return $cached;
+                }
+
+                $data = $compute();
+                Cache::put($cacheKey, $data, $ttl);
+
+                return $data;
+            }
+
+            // Could not acquire lock — fall through to synchronous compute without lock.
+            // This is acceptable: the worst case is a duplicate compute, not a deadlock.
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException) {
+            // Lock acquisition timed out — compute without protection.
+        } finally {
+            optional($lock)->release();
+        }
+
+        $data = $compute();
+        Cache::put($cacheKey, $data, $ttl);
+
+        return $data;
+    }
 
     /**
      * Compute the user's contributions / reliability stats.
@@ -604,6 +1205,16 @@ class DashboardCacheService
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereIn('games.game_system_id', $preferredSystemIds)
             ->whereNotIn('games.id', $excludeGameIds)
+            ->where(function ($q) {
+                // Only games with available spots (or unlimited capacity).
+                // Filtering at SQL level avoids fetching rows only to discard them,
+                // and ensures the limit applies to visible results, not pre-filter.
+                $q->whereNull('games.max_players')
+                    ->orWhereRaw(
+                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        [ParticipantStatus::Approved->value],
+                    );
+            })
             ->where(function ($q) use ($user, $allowedOwnerIds) {
                 // public = visible to everyone
                 // protected = visible to friends/teammates of the owner, or participants
@@ -618,11 +1229,7 @@ class DashboardCacheService
                     });
             })
             ->with(['gameSystem', 'owner', 'linkedLocation'])
-            ->get()
-            ->filter(function ($game) {
-                // Only games with spots available
-                return ($game->max_players - (int) ($game->participant_count ?? 0)) > 0;
-            });
+            ->get();
 
         // Score each game
         $userLocation = $user->linkedLocation;
@@ -970,5 +1577,131 @@ class DashboardCacheService
             $existingKeys[] = $cacheKey;
             Cache::put($keySetKey, $existingKeys, self::TTL_OPPORTUNITIES);
         }
+    }
+
+    /**
+     * Track a nearby-people cache key in the user's key set for later invalidation.
+     */
+    private function trackNearbyPeopleKey(string $userId, string $cacheKey): void
+    {
+        $keySetKey = "dashboard:nearby_people:keys:{$userId}";
+        $existingKeys = Cache::get($keySetKey, []);
+
+        if (! in_array($cacheKey, $existingKeys)) {
+            $existingKeys[] = $cacheKey;
+            Cache::put($keySetKey, $existingKeys, self::TTL_NEARBY_PEOPLE);
+        }
+    }
+
+    /**
+     * Track a newcomer-matches cache key in the user's key set for later invalidation.
+     */
+    private function trackNewcomerMatchesKey(string $userId, string $cacheKey): void
+    {
+        $keySetKey = "dashboard:newcomer_matches:keys:{$userId}";
+        $existingKeys = Cache::get($keySetKey, []);
+
+        if (! in_array($cacheKey, $existingKeys)) {
+            $existingKeys[] = $cacheKey;
+            Cache::put($keySetKey, $existingKeys, self::TTL_NEWCOMER_MATCHES);
+        }
+    }
+
+    // ── Compute stubs — two-mode dashboard sections ────
+    // These return empty data; future tasks will fill in real computation.
+
+    private function computeActionCenter(User $user): array
+    {
+        $items = app(ActionCenterService::class)->getItems($user);
+
+        return array_map(fn (ActionItem $item) => $item->toArray(), $items);
+    }
+
+    private function computeNewcomerWelcome(User $user): array
+    {
+        return app(DashboardNewcomerService::class)->computeWelcomeData($user);
+    }
+
+    private function computeProgressTracker(User $user): array
+    {
+        return app(DashboardNewcomerService::class)->computeProgressTracker($user);
+    }
+
+    private function computeNearbyPeople(User $user, string $geohash4): array
+    {
+        return app(DashboardNewcomerService::class)->computeNearbyPeople($user, $geohash4);
+    }
+
+    /**
+     * Get newcomer preference-weighted matches via cache.
+     *
+     * Follows the same three-tier pattern as other newcomer sections.
+     * Delegates compute to DashboardNewcomerService::computePreferenceWeightedMatches.
+     */
+    public function getNewcomerMatches(User $user, string $geohash4): array
+    {
+        $cacheKey = "dashboard:newcomer_matches:{$user->id}:{$geohash4}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        Log::debug('dashboard.cache_miss', [
+            'section' => 'newcomer_matches',
+            'user_id' => $user->id,
+            'geohash_4' => $geohash4,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $data = $this->computeWithLock(
+            "dashboard:compute:newcomer_matches:{$user->id}",
+            $cacheKey,
+            self::TTL_NEWCOMER_MATCHES,
+            fn () => $this->computeNewcomerMatches($user, $geohash4),
+        );
+
+        $this->trackNewcomerMatchesKey($user->id, $cacheKey);
+
+        WarmDashboardCache::dispatch($user->id, 'cache_miss_newcomer_matches');
+
+        return $data;
+    }
+
+    private function computeNewcomerMatches(User $user, string $geohash4): array
+    {
+        return app(DashboardNewcomerService::class)->computePreferenceWeightedMatches($user, $geohash4);
+    }
+
+    private function computeHostAgain(User $user): array
+    {
+        // Compute directly to avoid circular dependency with DashboardScheduleService::getHostAgainBridge
+        // which calls back into DashboardCacheService::getHostAgain.
+        $lastGame = Game::where('owner_id', $user->id)
+            ->where('status', GameStatus::Completed->value)
+            ->with('gameSystem')
+            ->orderByDesc('date_time')
+            ->first();
+
+        if ($lastGame === null) {
+            return [];
+        }
+
+        return [
+            'game' => [
+                'id' => $lastGame->id,
+                'name' => $lastGame->name,
+                'system' => $lastGame->gameSystem?->name,
+                'expected_duration' => $lastGame->expected_duration,
+            ],
+            'clone_url' => route('games.create', ['clone' => $lastGame->id]),
+        ];
+    }
+
+    private function computeMilestoneCards(User $user): array
+    {
+        // Compute directly to avoid circular dependency with DashboardDiscoveryService::getMilestoneCards
+        // which calls back into DashboardCacheService::getMilestoneCards.
+        return app(DashboardDiscoveryService::class)->computeMilestoneCardsPublic($user);
     }
 }

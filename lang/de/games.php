@@ -393,4 +393,21 @@ return [
     // SEO
     'seo_title_my_games' => 'Meine Spiele',
     'seo_description_my_games' => 'Verwalte deine Spiele, Einladungen und den Aktivitäts-Feed auf :brand.',
+
+    // Bulletin Board
+    'title_bulletin_board' => 'Host-Updates',
+    'heading_bulletin_board' => 'Host-Updates',
+    'placeholder_bulletin' => 'Teile ein Update mit deinen Spielern...',
+    'label_bulletin_aria' => 'Bulletin-Inhalt',
+    'action_bulletin_post' => 'Veröffentlichen',
+    'action_bulletin_submit' => 'Update veröffentlichen',
+    'content_bulletin_chars_remaining' => ':count Zeichen verbleibend',
+    'content_bulletin_posted_at' => 'Veröffentlicht :time',
+    'content_bulletin_expires_hint' => 'Läuft ab, wenn das Spiel abgeschlossen oder abgesagt wird',
+    'flash_bulletin_created' => 'Update erfolgreich veröffentlicht.',
+    'error_bulletin_unauthorized' => 'Du bist nicht berechtigt, Updates zu veröffentlichen.',
+    'label_bulletin_unknown_host' => 'Unbekannter Host',
+    'content_bulletin_expires_at' => 'Läuft ab :time',
+    'push_bulletin_title' => 'Update von :host',
+    'push_bulletin_body' => ':game — :content',
 ];

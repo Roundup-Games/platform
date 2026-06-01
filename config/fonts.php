@@ -92,6 +92,9 @@ return [
 
         // Tag
         'tag',
+
+        // M047 dashboard icons
+        'castle', 'military_tech', 'replay', 'route', 'today', 'waving_hand',
     ],
 
     /*

@@ -418,4 +418,8 @@ return [
     'status_removed' => 'Entfernt',
     'status_cancelled' => 'Abgesagt',
     'content_updating_results' => 'Ergebnisse werden aktualisiert…',
+
+    // Einheiten
+    'unit_km' => 'km',
+    'unit_min' => 'Min.',
 ];
