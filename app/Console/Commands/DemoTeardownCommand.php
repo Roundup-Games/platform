@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -41,16 +42,13 @@ class DemoTeardownCommand extends Command
             return self::SUCCESS;
         }
 
-        // Collect IDs before cascade — primary lookup by owner_id
+        // Collect IDs via chunked lookups to avoid PDO 65535 parameter limit.
         // All demo data is created by demo users, so owner_id is sufficient.
-        // Avoid JSONB text casts (slow, index-breaking).
-        $demoGameIds = Game::whereIn('owner_id', $demoUserIds)->pluck('id')->unique();
-        $demoCampaignIds = Campaign::whereIn('owner_id', $demoUserIds)->pluck('id')->unique();
+        $demoGameIds = $this->chunkedPluck(Game::query(), 'id', 'owner_id', $demoUserIds);
+        $demoCampaignIds = $this->chunkedPluck(Campaign::query(), 'id', 'owner_id', $demoUserIds);
         $this->info("Found {$demoGameIds->count()} games and {$demoCampaignIds->count()} campaigns.");
 
-        // Wrap all destructive operations in a transaction for atomicity
         if ($dryRun) {
-            // In dry-run, just report what would be deleted
             $this->info('Would delete:');
             $this->table(['Table / Resource', 'Count'], [
                 ['demo users', number_format($demoUserIds->count())],
@@ -88,195 +86,107 @@ class DemoTeardownCommand extends Command
             return self::SUCCESS;
         }
 
-        // Delete junction/polymorphic tables in leaf-first order.
-        // Use per-table transactions to avoid long-held locks across many tables.
-        // FK cascades on users handle anything we miss, but explicit cleanup is faster
-        // and provides count reporting.
+        // Collect GM profile IDs (chunked)
+        $gmProfileIds = $this->chunkedPluck(DB::table('gm_profiles'), 'id', 'user_id', $demoUserIds);
 
-        $cleanupSteps = [
-            // Step 1: Session-related leaf tables
-            function () use ($demoUserIds, $demoGameIds) {
-                DB::transaction(function () use ($demoUserIds, $demoGameIds) {
-                    $this->cleanTable('session_zero_confirmations', fn () => DB::table('session_zero_confirmations')
-                        ->whereIn('user_id', $demoUserIds)
-                        ->orWhereIn('session_zero_survey_id', fn ($q) => $q
-                            ->select('id')->from('session_zero_surveys')
-                            ->whereIn('game_id', $demoGameIds))
-                        ->delete());
+        // Delete leaf tables first, root entities last.
+        // All operations use chunked deletes to stay under PDO's 65535 parameter limit.
 
-                    $this->cleanTable('session_zero_surveys', fn () => DB::table('session_zero_surveys')
-                        ->whereIn('game_id', $demoGameIds)
-                        ->orWhereIn('gm_profile_id', fn ($q) => $q
-                            ->select('id')->from('gm_profiles')
-                            ->whereIn('user_id', $demoUserIds))
-                        ->delete());
+        // Step 1: Session-related leaf tables
+        $this->info("Deleted " . $this->chunkedDelete('session_debriefings', 'game_id', $demoGameIds) . " from session_debriefings.");
+        $this->info("Deleted " . $this->chunkedDelete('attendance_reports', 'game_id', $demoGameIds) . " from attendance_reports.");
 
-                    $this->cleanTable('session_debriefings', fn () => DB::table('session_debriefings')
-                        ->whereIn('game_id', $demoGameIds)
-                        ->delete());
+        // Session zero surveys by game_id and gm_profile_id
+        $szDeleted = $this->chunkedDelete('session_zero_surveys', 'game_id', $demoGameIds);
+        $szDeleted += $this->chunkedDelete('session_zero_surveys', 'gm_profile_id', $gmProfileIds);
+        $this->info("Deleted {$szDeleted} from session_zero_surveys.");
 
-                    $this->cleanTable('attendance_reports', fn () => DB::table('attendance_reports')
-                        ->whereIn('game_id', $demoGameIds)
-                        ->delete());
-                });
-            },
-
-            // Step 2: Reviews
-            function () use ($demoUserIds, $demoGameIds, $demoCampaignIds) {
-                DB::transaction(function () use ($demoUserIds, $demoGameIds, $demoCampaignIds) {
-                    $demoGmProfileIds = DB::table('gm_profiles')
-                        ->whereIn('user_id', $demoUserIds)
-                        ->pluck('id');
-
-                    $this->cleanTable('reviews', fn () => DB::table('reviews')
-                        ->where('reviewable_type', Game::class)
-                        ->whereIn('reviewable_id', $demoGameIds)
-                        ->orWhere(function ($q) use ($demoCampaignIds) {
-                            $q->where('reviewable_type', Campaign::class)
-                              ->whereIn('reviewable_id', $demoCampaignIds);
-                        })
-                        ->orWhereIn('gm_profile_id', $demoGmProfileIds)
-                        ->delete());
-                });
-            },
-
-            // Step 3: Participants + applications
-            function () use ($demoGameIds, $demoCampaignIds) {
-                DB::transaction(function () use ($demoGameIds, $demoCampaignIds) {
-                    $this->cleanTable('game_participants', fn () => DB::table('game_participants')
-                        ->whereIn('game_id', $demoGameIds)->delete());
-
-                    $this->cleanTable('game_applications', fn () => DB::table('game_applications')
-                        ->whereIn('game_id', $demoGameIds)->delete());
-
-                    $this->cleanTable('campaign_participants', fn () => DB::table('campaign_participants')
-                        ->whereIn('campaign_id', $demoCampaignIds)->delete());
-
-                    $this->cleanTable('campaign_applications', fn () => DB::table('campaign_applications')
-                        ->whereIn('campaign_id', $demoCampaignIds)->delete());
-                });
-            },
-
-            // Step 4: Notifications + activity logs
-            function () use ($demoUserIds) {
-                DB::transaction(function () use ($demoUserIds) {
-                    $this->cleanTable('notifications', fn () => DB::table('notifications')
-                        ->where('notifiable_type', User::class)
-                        ->whereIn('notifiable_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('activity_logs', fn () => DB::table('activity_logs')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-                });
-            },
-
-            // Step 5: Social graph — follows to and from demo users
-            function () use ($demoUserIds) {
-                DB::transaction(function () use ($demoUserIds) {
-                    $this->cleanTable('user_relationships', fn () => DB::table('user_relationships')
-                        ->whereIn('user_id', $demoUserIds)
-                        ->orWhereIn('related_user_id', $demoUserIds)
-                        ->delete());
-                    $this->warn('  Note: Any follows to/from demo users by real users were also removed.');
-                });
-            },
-
-            // Step 6: GM data + preferences + accounts
-            function () use ($demoUserIds) {
-                DB::transaction(function () use ($demoUserIds) {
-                    $this->cleanTable('gm_social_links', fn () => DB::table('gm_social_links')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('gm_profiles', fn () => DB::table('gm_profiles')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('local_subscriptions', fn () => DB::table('local_subscriptions')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('user_game_system_preferences', fn () => DB::table('user_game_system_preferences')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('user_vibe_preferences', fn () => DB::table('user_vibe_preferences')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('linked_accounts', fn () => DB::table('linked_accounts')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('push_subscriptions', fn () => DB::table('push_subscriptions')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('nearby_discovery_views', fn () => DB::table('nearby_discovery_views')
-                        ->whereIn('user_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('model_has_roles', fn () => DB::table('model_has_roles')
-                        ->where('model_type', User::class)
-                        ->whereIn('model_id', $demoUserIds)->delete());
-
-                    $this->cleanTable('model_has_permissions', fn () => DB::table('model_has_permissions')
-                        ->where('model_type', User::class)
-                        ->whereIn('model_id', $demoUserIds)->delete());
-                });
-            },
-
-            // Step 7: Media + short links
-            function () use ($demoUserIds, $demoGameIds, $demoCampaignIds) {
-                DB::transaction(function () use ($demoUserIds, $demoGameIds, $demoCampaignIds) {
-                    $mediaCount = DB::table('media')->where('model_type', User::class)->whereIn('model_id', $demoUserIds)->delete();
-                    $mediaCount += DB::table('media')->where('model_type', Game::class)->whereIn('model_id', $demoGameIds)->delete();
-                    $mediaCount += DB::table('media')->where('model_type', Campaign::class)->whereIn('model_id', $demoCampaignIds)->delete();
-                    $this->info("Deleted {$mediaCount} media records.");
-
-                    $slCount = DB::table('short_links')->whereIn('user_id', $demoUserIds)->delete();
-                    $slCount += DB::table('short_links')->where('linkable_type', Game::class)->whereIn('linkable_id', $demoGameIds)->delete();
-                    $slCount += DB::table('short_links')->where('linkable_type', Campaign::class)->whereIn('linkable_id', $demoCampaignIds)->delete();
-                    $this->info("Deleted {$slCount} short links.");
-                });
-            },
-
-            // Step 8: Games and campaigns (root entities)
-            function () use ($demoGameIds, $demoCampaignIds) {
-                DB::transaction(function () use ($demoGameIds, $demoCampaignIds) {
-                    foreach ($demoGameIds->chunk(500) as $chunk) {
-                        Game::whereIn('id', $chunk)->delete();
-                    }
-                    $this->info("Deleted {$demoGameIds->count()} games.");
-
-                    foreach ($demoCampaignIds->chunk(500) as $chunk) {
-                        Campaign::whereIn('id', $chunk)->delete();
-                    }
-                    $this->info("Deleted {$demoCampaignIds->count()} campaigns.");
-                });
-            },
-
-            // Step 9: Users — batched to avoid long transactions
-            function () use ($demoUserIds) {
-                $bar = $this->output->createProgressBar($demoUserIds->count());
-                $bar->setRedrawFrequency(200);
-                $bar->start();
-                $deleted = 0;
-                foreach ($demoUserIds->chunk(500) as $chunk) {
-                    DB::transaction(function () use ($chunk, &$deleted) {
-                        $deleted += DB::table('users')->whereIn('id', $chunk)->delete();
-                    });
-                    $bar->advance(count($chunk));
-                }
-                $bar->finish();
-                $this->newLine();
-                $this->info("Deleted {$deleted} demo users.");
-            },
-
-            // Step 10: Locations (by source tag, not by user FK)
-            function () {
-                $locCount = DB::table('locations')->where('source', 'demo-seed')->delete();
-                $this->info("Deleted {$locCount} demo locations.");
-            },
-        ];
-
-        foreach ($cleanupSteps as $step) {
-            $step();
+        // Session zero confirmations by user_id and by survey_id (via chunked lookup)
+        $szcDeleted = $this->chunkedDelete('session_zero_confirmations', 'user_id', $demoUserIds);
+        $surveyIds = $this->chunkedPluck(DB::table('session_zero_surveys'), 'id', 'game_id', $demoGameIds);
+        if ($surveyIds->isNotEmpty()) {
+            $szcDeleted += $this->chunkedDelete('session_zero_confirmations', 'session_zero_survey_id', $surveyIds);
         }
+        $this->info("Deleted {$szcDeleted} from session_zero_confirmations.");
 
-        // 5. Clear caches (outside transaction — non-transactional)
-        // Use deleteMultiple() which pipelines DEL commands in Redis instead of individual round-trips
+        // Step 2: Reviews
+        $reviewCount = $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoGameIds, 'reviewable_type', Game::class);
+        $reviewCount += $this->chunkedDeleteWith('reviews', 'reviewable_id', $demoCampaignIds, 'reviewable_type', Campaign::class);
+        if ($gmProfileIds->isNotEmpty()) {
+            $reviewCount += $this->chunkedDelete('reviews', 'gm_profile_id', $gmProfileIds);
+        }
+        $this->info("Deleted {$reviewCount} from reviews.");
+
+        // Step 3: Participants + applications
+        $this->info("Deleted " . $this->chunkedDelete('game_participants', 'game_id', $demoGameIds) . " from game_participants.");
+        $this->info("Deleted " . $this->chunkedDelete('game_applications', 'game_id', $demoGameIds) . " from game_applications.");
+        $this->info("Deleted " . $this->chunkedDelete('campaign_participants', 'campaign_id', $demoCampaignIds) . " from campaign_participants.");
+        $this->info("Deleted " . $this->chunkedDelete('campaign_applications', 'campaign_id', $demoCampaignIds) . " from campaign_applications.");
+
+        // Step 4: Notifications + activity logs
+        $this->info("Deleted " . $this->chunkedDeleteWith('notifications', 'notifiable_id', $demoUserIds, 'notifiable_type', User::class) . " from notifications.");
+        $this->info("Deleted " . $this->chunkedDelete('activity_logs', 'user_id', $demoUserIds) . " from activity_logs.");
+
+        // Step 5: Social graph — follows to and from demo users
+        $relCount = $this->chunkedDelete('user_relationships', 'user_id', $demoUserIds);
+        $relCount += $this->chunkedDelete('user_relationships', 'related_user_id', $demoUserIds);
+        $this->info("Deleted {$relCount} from user_relationships.");
+        $this->warn('  Note: Any follows to/from demo users by real users were also removed.');
+
+        // Step 6: GM data + preferences + accounts
+        $userTables = [
+            'gm_social_links', 'gm_profiles', 'local_subscriptions',
+            'user_game_system_preferences', 'user_vibe_preferences',
+            'linked_accounts', 'push_subscriptions', 'nearby_discovery_views',
+        ];
+        foreach ($userTables as $table) {
+            $this->info("Deleted " . $this->chunkedDelete($table, 'user_id', $demoUserIds) . " from {$table}.");
+        }
+        $this->info("Deleted " . $this->chunkedDeleteWith('model_has_roles', 'model_id', $demoUserIds, 'model_type', User::class) . " from model_has_roles.");
+        $this->info("Deleted " . $this->chunkedDeleteWith('model_has_permissions', 'model_id', $demoUserIds, 'model_type', User::class) . " from model_has_permissions.");
+
+        // Step 7: Media + short links
+        $mediaCount = $this->chunkedDeleteWith('media', 'model_id', $demoUserIds, 'model_type', User::class);
+        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoGameIds, 'model_type', Game::class);
+        $mediaCount += $this->chunkedDeleteWith('media', 'model_id', $demoCampaignIds, 'model_type', Campaign::class);
+        $this->info("Deleted {$mediaCount} media records.");
+
+        $slCount = $this->chunkedDelete('short_links', 'user_id', $demoUserIds);
+        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoGameIds, 'linkable_type', Game::class);
+        $slCount += $this->chunkedDeleteWith('short_links', 'linkable_id', $demoCampaignIds, 'linkable_type', Campaign::class);
+        $this->info("Deleted {$slCount} short links.");
+
+        // Step 8: Games and campaigns (root entities)
+        $gameDeleted = 0;
+        foreach ($demoGameIds->chunk(2000) as $chunk) {
+            $gameDeleted += Game::whereIn('id', $chunk)->delete();
+        }
+        $this->info("Deleted {$gameDeleted} games.");
+
+        $campaignDeleted = 0;
+        foreach ($demoCampaignIds->chunk(2000) as $chunk) {
+            $campaignDeleted += Campaign::whereIn('id', $chunk)->delete();
+        }
+        $this->info("Deleted {$campaignDeleted} campaigns.");
+
+        // Step 9: Users — batched
+        $bar = $this->output->createProgressBar($demoUserIds->count());
+        $bar->setRedrawFrequency(200);
+        $bar->start();
+        $userDeleted = 0;
+        foreach ($demoUserIds->chunk(2000) as $chunk) {
+            $userDeleted += DB::table('users')->whereIn('id', $chunk)->delete();
+            $bar->advance(count($chunk));
+        }
+        $bar->finish();
+        $this->newLine();
+        $this->info("Deleted {$userDeleted} demo users.");
+
+        // Step 10: Locations (by source tag)
+        $locCount = DB::table('locations')->where('source', 'demo-seed')->delete();
+        $this->info("Deleted {$locCount} demo locations.");
+
+        // Clear caches
         $cleared = 0;
         $scopes = ['week', 'feed', 'contributions', 'opportunities'];
         foreach ($demoUserIds->chunk(200) as $chunk) {
@@ -291,13 +201,12 @@ class DemoTeardownCommand extends Command
         }
         $this->info("Cleared {$cleared} cache entries.");
 
-        // 6. Verify (outside transaction — read-only check using markers, not stale IDs)
+        // Verify
         $this->newLine();
         $this->info('Verifying...');
         $remainUsers = User::where('email', 'like', '%@example.org')
             ->where('bio', 'like', "%{$marker}%")->count();
 
-        // For games/campaigns, check for any remaining [TEST] marker in JSON name field
         $remainGames = DB::table('games')
             ->whereRaw("name::text LIKE ?", ["%{$marker}%"])
             ->count();
@@ -319,9 +228,45 @@ class DemoTeardownCommand extends Command
         return self::SUCCESS;
     }
 
-    private function cleanTable(string $table, callable $fn): void
+    /**
+     * Pluck IDs from a query in chunks to stay under PDO's 65535 parameter limit.
+     */
+    private function chunkedPluck($query, string $pluckColumn, string $whereColumn, Collection $ids, int $chunkSize = 2000): Collection
     {
-        $count = $fn();
-        $this->info("Deleted {$count} from {$table}.");
+        $result = collect();
+        foreach ($ids->chunk($chunkSize) as $chunk) {
+            $result = $result->merge(
+                (clone $query)->whereIn($whereColumn, $chunk)->pluck($pluckColumn)
+            );
+        }
+        return $result->unique()->values();
+    }
+
+    /**
+     * Delete rows in chunks to stay under PDO's 65535 parameter limit.
+     */
+    private function chunkedDelete(string $table, string $column, Collection $ids, int $chunkSize = 2000): int
+    {
+        $total = 0;
+        foreach ($ids->chunk($chunkSize) as $chunk) {
+            $total += DB::table($table)->whereIn($column, $chunk)->delete();
+        }
+        return $total;
+    }
+
+    /**
+     * Delete rows in chunks with an additional static condition.
+     * WHERE $extraColumn = $extraValue AND $column IN ($chunk).
+     */
+    private function chunkedDeleteWith(string $table, string $column, Collection $ids, string $extraColumn, string $extraValue, int $chunkSize = 2000): int
+    {
+        $total = 0;
+        foreach ($ids->chunk($chunkSize) as $chunk) {
+            $total += DB::table($table)
+                ->where($extraColumn, $extraValue)
+                ->whereIn($column, $chunk)
+                ->delete();
+        }
+        return $total;
     }
 }
