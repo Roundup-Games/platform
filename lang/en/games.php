@@ -414,4 +414,11 @@ return [
     'content_full' => 'Full',
     'content_spots_left_short' => '{1} 1 spot left|[2,*] :count spots left',
     'content_availability' => 'Availability',
+
+    // Leave game
+    'action_leave_game' => 'Leave Game',
+    'confirm_leave_game' => 'Are you sure you want to leave this game? Your spot will be released.',
+    'error_cannot_leave_own_game' => 'You cannot leave your own game. Cancel it instead.',
+    'error_not_a_participant' => 'You are not a participant in this game.',
+    'flash_you_left_the_game' => 'You have left the game.',
 ];

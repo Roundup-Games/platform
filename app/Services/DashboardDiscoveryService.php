@@ -123,11 +123,10 @@ class DashboardDiscoveryService
             ->values()
             ->toArray();
 
-        // +1 for the game owner who does not have a GameParticipant record.
-        // Owners are blocked from self-joining (canJoinViaShareList blocks owner_id,
-        // ParticipantService rejects self-invites), so the +1 never double-counts.
+        // Owner is an explicit participant record (status=Approved) since
+        // commit ea675d67, so COUNT(*) already includes the owner seat.
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*) + 1')
+            ->selectRaw('COUNT(*)')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -149,7 +148,7 @@ class DashboardDiscoveryService
                 // Filtering at SQL level avoids fetching rows only to discard them.
                 $q->whereNull('games.max_players')
                     ->orWhereRaw(
-                        '(SELECT COUNT(*) + 1 FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
                         [ParticipantStatus::Approved->value],
                     );
             })
@@ -178,13 +177,19 @@ class DashboardDiscoveryService
 
         // Compute relevance tags and distance for each game
         $now = now();
-        $scoredGames = $games->map(function ($game) use ($preferredSystemIds, $friendGameIds, $userLat, $userLng, $now) {
+        $userLanguage = $user->preferred_language?->value;
+        $scoredGames = $games->map(function ($game) use ($preferredSystemIds, $friendGameIds, $userLat, $userLng, $now, $userLanguage) {
             $tags = [];
             $participantCount = (int) ($game->participant_count ?? 0);
 
             // matches_your_taste
             if (in_array($game->game_system_id, $preferredSystemIds)) {
                 $tags[] = 'matches_your_taste';
+            }
+
+            // matches_your_language
+            if ($userLanguage && $game->language === $userLanguage) {
+                $tags[] = 'matches_your_language';
             }
 
             // popular_nearby

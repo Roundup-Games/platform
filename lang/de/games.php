@@ -415,4 +415,11 @@ return [
     'content_full' => 'Voll',
     'content_spots_left_short' => '{1} 1 Platz frei|[2,*] :count Plätze frei',
     'content_availability' => 'Verfügbarkeit',
+
+    // Leave game
+    'action_leave_game' => 'Spiel verlassen',
+    'confirm_leave_game' => 'Möchtest du dieses Spiel wirklich verlassen? Dein Platz wird freigegeben.',
+    'error_cannot_leave_own_game' => 'Du kannst dein eigenes Spiel nicht verlassen. Stattdessen stornieren.',
+    'error_not_a_participant' => 'Du bist kein Teilnehmer in diesem Spiel.',
+    'flash_you_left_the_game' => 'Du hast das Spiel verlassen.',
 ];

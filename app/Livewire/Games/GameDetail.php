@@ -156,6 +156,60 @@ class GameDetail extends Component
         session()->flash('success', __('common.flash_participant_removed'));
     }
 
+    // ── Self-service leave ─────────────────────────────
+
+    public function leaveGame(): void
+    {
+        $user = Auth::user();
+        if (! $user || $this->isOwner()) {
+            session()->flash('error', __('games.error_cannot_leave_own_game'));
+
+            return;
+        }
+
+        $participant = $this->game->participants
+            ->first(fn ($p) => $p->user_id === $user->id
+                && in_array($p->status->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                    ParticipantStatus::Pending->value,
+                ]));
+
+        if (! $participant) {
+            session()->flash('error', __('games.error_not_a_participant'));
+
+            return;
+        }
+
+        // Track attendance for reliability scoring
+        if ($participant->status === ParticipantStatus::Approved && $this->game->date_time?->isFuture()) {
+            $hoursUntil = now()->diffInHours($this->game->date_time, false);
+            $participant->update(['attendance_status' => $hoursUntil < 24
+                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Player left game', [
+            'game_id' => $this->game->id,
+            'user_id' => $user->id,
+            'previous_status' => $participant->status->value,
+        ]);
+
+        // Promote from waitlist if applicable
+        if (! $this->game->isBenchMode()) {
+            app(WaitlistService::class)->promoteAllOnCancel($this->game);
+        }
+
+        $this->checkBelowMinPlayersAndNotify();
+
+        // Refresh computed properties
+        unset($this->isParticipant, $this->isApprovedParticipant, $this->isGameFull);
+
+        session()->flash('success', __('games.flash_you_left_the_game'));
+    }
+
     // ── Share Link Management ──────────────────────────
 
     public function generateShareLink(): void
@@ -411,6 +465,16 @@ class GameDetail extends Component
     }
 
     #[Computed]
+    public function isApprovedParticipant(): bool
+    {
+        $id = $this->viewerId();
+
+        return ($id && $this->isOwner())
+            || $id && $this->game->participants
+                ->contains(fn ($p) => $p->user_id === $id && $p->status === ParticipantStatus::Approved);
+    }
+
+    #[Computed]
     public function userInvitation(): ?GameParticipant
     {
         $id = $this->viewerId();
@@ -572,6 +636,7 @@ class GameDetail extends Component
             'game' => $this->game,
             'isOwner' => $this->isOwner(),
             'isParticipant' => $this->isParticipant(),
+            'isApprovedParticipant' => $this->isApprovedParticipant(),
             'userInvitation' => $this->userInvitation(),
             'canApply' => $this->canApply(),
             'hasExistingApplication' => $this->hasExistingApplication(),
