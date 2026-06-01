@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -15,6 +17,7 @@ use App\Services\ActivityLogService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
+use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -193,6 +196,62 @@ class CampaignsPage extends Component
             'pendingInvitations' => $pendingInvitations,
             'activityFeed' => $activityFeed,
         ]);
+    }
+
+    public function leaveCampaign(string $campaignId): void
+    {
+        $user = Auth::user();
+        $campaign = Campaign::findOrFail($campaignId);
+
+        // Owner cannot leave their own campaign
+        if ($campaign->owner_id === $user->id) {
+            session()->flash('error', __('campaigns.error_cannot_leave_own_campaign'));
+
+            return;
+        }
+
+        $participant = $campaign->participants()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+                ParticipantStatus::Pending->value,
+            ])
+            ->first();
+
+        if (! $participant) {
+            session()->flash('error', __('campaigns.error_not_a_participant'));
+
+            return;
+        }
+
+        // Track attendance for reliability scoring against next upcoming session
+        if ($participant->status === ParticipantStatus::Approved) {
+            $nextSession = $campaign->sessions()
+                ->where('date_time', '>', now())
+                ->orderBy('date_time')
+                ->first();
+            if ($nextSession) {
+                $hoursUntil = now()->diffInHours($nextSession->date_time, false);
+                $participant->update(['attendance_status' => $hoursUntil < 24
+                    ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
+            }
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Player left campaign', [
+            'campaign_id' => $campaign->id,
+            'user_id' => $user->id,
+        ]);
+
+        // Promote from waitlist if applicable
+        if (! $campaign->isBenchMode()) {
+            app(WaitlistService::class)->promoteAllOnCancel($campaign);
+        }
+
+        session()->flash('success', __('campaigns.flash_you_left_the_campaign'));
     }
 
     public function cancelCampaign(string $id): void

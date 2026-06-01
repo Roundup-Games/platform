@@ -421,4 +421,5 @@ return [
     'error_cannot_leave_own_game' => 'You cannot leave your own game. Cancel it instead.',
     'error_not_a_participant' => 'You are not a participant in this game.',
     'flash_you_left_the_game' => 'You have left the game.',
+    'content_leave_hint' => 'Changed your mind?',
 ];

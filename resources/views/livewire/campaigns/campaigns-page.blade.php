@@ -129,36 +129,57 @@
             @else
                 <div class="space-y-3">
                     @foreach($participatingCampaigns as $campaign)
-                        <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="block bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
-                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                <h3 class="text-base font-medium text-on-surface">
-                                    {{ $campaign->name }}
-                                </h3>
-                                @if($campaign->gameSystem)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        {{ $campaign->gameSystem->name }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-                                @if($campaign->recurrence)
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
+                            {{-- Info area: clickable to detail --}}
+                            <a href="{{ route('campaigns.show', $campaign->id) }}" wire:navigate class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">
+                                        {{ $campaign->name }}
+                                    </h3>
+                                    @if($campaign->gameSystem)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                            {{ $campaign->gameSystem->name }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
+                                    @if($campaign->recurrence)
+                                        <span class="flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">repeat</span>
+                                            {{ __('campaigns.content_' . $campaign->recurrence) }}
+                                        </span>
+                                    @endif
+                                    @if($campaign->owner)
+                                        <span class="flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
+                                            {{ $campaign->owner->name }}
+                                        </span>
+                                    @endif
                                     <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">repeat</span>
-                                        {{ __('campaigns.content_' . $campaign->recurrence) }}
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                        {{ $campaign->participants->count() }}/{{ $campaign->max_players ?? '∞' }}
                                     </span>
-                                @endif
-                                @if($campaign->owner)
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                                        {{ $campaign->owner->name }}
-                                    </span>
-                                @endif
-                                <span class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                    {{ $campaign->participants->count() }}/{{ $campaign->max_players ?? '∞' }}
-                                </span>
-                            </div>
-                        </a>
+                                </div>
+                            </a>
+                            {{-- Leave button for active campaigns --}}
+                            @if($campaign->status === \App\Enums\CampaignStatus::Active)
+                                <div class="border-t border-outline-variant/30 px-4 py-2 sm:px-5">
+                                    <x-confirm-action
+                                        action="leaveCampaign('{{ $campaign->id }}')"
+                                        id="leave-campaign-{{ $campaign->id }}"
+                                        :icon="'logout'"
+                                        :trigger-label="__('campaigns.action_leave_campaign')"
+                                        trigger-class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-error transition-colors"
+                                        :confirm-label="__('campaigns.action_leave_campaign')"
+                                        :cancel-label="__('common.action_keep')"
+                                        :message="__('campaigns.confirm_leave_campaign')"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="logout"
+                                    />
+                                </div>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
             @endif

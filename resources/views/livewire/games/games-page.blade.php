@@ -191,14 +191,19 @@
                             {{-- Leave button for scheduled games --}}
                             @if($game->status->value === 'scheduled')
                                 <div class="border-t border-outline-variant/30 px-4 py-2 sm:px-5">
-                                    <button
-                                        wire:click="leaveGame('{{ $game->id }}')"
-                                        wire:confirm="{{ __('games.confirm_leave_game') }}"
-                                        class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-error transition-colors"
-                                    >
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>
-                                        {{ __('games.action_leave_game') }}
-                                    </button>
+                                    <x-confirm-action
+                                        action="leaveGame('{{ $game->id }}')"
+                                        id="leave-game-{{ $game->id }}"
+                                        :icon="'logout'"
+                                        :trigger-label="__('games.action_leave_game')"
+                                        trigger-class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-error transition-colors"
+                                        :confirm-label="__('games.action_leave_game')"
+                                        :cancel-label="__('common.action_keep')"
+                                        :message="__('games.confirm_leave_game')"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="logout"
+                                    />
                                 </div>
                             @endif
                         </div>
