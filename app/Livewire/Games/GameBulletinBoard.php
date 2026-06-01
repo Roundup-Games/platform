@@ -50,6 +50,23 @@ class GameBulletinBoard extends Component
     }
 
     #[Computed]
+    public function isElevatedAccess(): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        // If the user is the game host, this is normal access — not elevated
+        if ($this->game->owner_id === $user->id) {
+            return false;
+        }
+
+        // If they can create but aren't the host, the permission comes from admin bypass
+        return $this->canCreateBulletin();
+    }
+
+    #[Computed]
     public function canViewBoard(): bool
     {
         $user = Auth::user();
@@ -146,6 +163,7 @@ class GameBulletinBoard extends Component
         return view('livewire.games.game-bulletin-board', [
             'canViewBoard' => $this->canViewBoard(),
             'canCreateBulletin' => $this->canCreateBulletin(),
+            'isElevatedAccess' => $this->isElevatedAccess(),
             'bulletins' => $this->bulletins(),
         ]);
     }
