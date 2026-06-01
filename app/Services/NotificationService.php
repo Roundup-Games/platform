@@ -70,7 +70,10 @@ class NotificationService
                 return;
             }
 
-            // ── Dispatch with channel filtering ──
+            // ── Dispatch with recipient locale ──
+            // User implements HasLocalePreference, so Laravel's notification sender
+            // automatically resolves the correct locale via preferredLocale() before
+            // calling toMail/toDatabase/toPush. No global mutation needed.
             $notifiable->notifyNow($notification, $channels);
 
             Log::info('notification.dispatched', [
@@ -154,8 +157,6 @@ class NotificationService
      *
      * Returns a collection of notifications sorted by created_at desc.
      * Grouping by read/unread is a stub for future UI categorization.
-     *
-     * @return \Illuminate\Support\Collection
      */
     public function getGroupedRecent(User $user, int $limit = 10): Collection
     {

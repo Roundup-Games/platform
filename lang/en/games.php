@@ -393,4 +393,21 @@ return [
     // SEO
     'seo_title_my_games' => 'My Games',
     'seo_description_my_games' => 'View and manage your games, invitations, and activity feed on :brand.',
+
+    // Bulletin Board
+    'title_bulletin_board' => 'Host Updates',
+    'heading_bulletin_board' => 'Host Updates',
+    'placeholder_bulletin' => 'Share an update with your players...',
+    'label_bulletin_aria' => 'Bulletin content',
+    'action_bulletin_post' => 'Post',
+    'action_bulletin_submit' => 'Post Update',
+    'content_bulletin_chars_remaining' => ':count characters remaining',
+    'content_bulletin_posted_at' => 'Posted :time',
+    'content_bulletin_expires_hint' => 'Expires when the game is completed or canceled',
+    'flash_bulletin_created' => 'Update posted successfully.',
+    'error_bulletin_unauthorized' => 'You are not authorized to post updates.',
+    'label_bulletin_unknown_host' => 'Unknown Host',
+    'content_bulletin_expires_at' => 'Expires :time',
+    'push_bulletin_title' => 'Update from :host',
+    'push_bulletin_body' => ':game — :content',
 ];

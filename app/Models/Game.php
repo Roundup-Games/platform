@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
@@ -84,6 +85,19 @@ class Game extends Model
         static::updated(function (self $game) {
             if ($game->wasChanged('status') && in_array($game->status->value, ['completed', 'canceled'])) {
                 app(\App\Services\ShortLinkService::class)->expireLinksForEntity($game);
+
+                // Expire all active bulletins for this game
+                \App\Models\GameBulletin::where('game_id', $game->id)
+                    ->where(function ($q) {
+                        $q->whereNull('expires_at')
+                            ->orWhere('expires_at', '>', now());
+                    })
+                    ->update(['expires_at' => now()]);
+
+                Log::info('Game bulletins expired on game completion', [
+                    'game_id' => $game->id,
+                    'new_status' => $game->status->value,
+                ]);
             }
         });
     }
@@ -128,6 +142,11 @@ class Game extends Model
     public function sessionDebriefings(): HasMany
     {
         return $this->hasMany(SessionDebriefing::class);
+    }
+
+    public function bulletins(): HasMany
+    {
+        return $this->hasMany(GameBulletin::class);
     }
 
     public function activeSessionZeroSurvey(): ?SessionZeroSurvey

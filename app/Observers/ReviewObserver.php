@@ -3,12 +3,14 @@
 namespace App\Observers;
 
 use App\Models\Review;
+use App\Services\DashboardCacheService;
 use App\Services\ReviewAggregateService;
 
 class ReviewObserver
 {
     public function __construct(
         private ReviewAggregateService $aggregateService,
+        private DashboardCacheService $cache,
     ) {}
 
     /**
@@ -20,6 +22,7 @@ class ReviewObserver
             $gmProfile = $review->gmProfile;
             if ($gmProfile) {
                 $this->aggregateService->updateAggregates($gmProfile);
+                $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }
         }
     }
@@ -32,10 +35,11 @@ class ReviewObserver
      */
     public function updated(Review $review): void
     {
-        if ($review->isDirty('status') && $review->gm_profile_id) {
+        if ($review->wasChanged('status') && $review->gm_profile_id) {
             $gmProfile = $review->gmProfile;
             if ($gmProfile) {
                 $this->aggregateService->updateAggregates($gmProfile);
+                $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }
         }
     }
@@ -49,6 +53,7 @@ class ReviewObserver
             $gmProfile = $review->gmProfile;
             if ($gmProfile) {
                 $this->aggregateService->updateAggregates($gmProfile);
+                $this->cache->invalidateActionCenterForReview($gmProfile->user_id);
             }
         }
     }
