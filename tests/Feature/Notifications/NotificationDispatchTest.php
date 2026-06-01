@@ -2,6 +2,7 @@
 
 use App\Enums\AttendanceStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
@@ -205,7 +206,7 @@ function notificationCreatePastGameWithParticipants(int $extraPlayers = 0): arra
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $host->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

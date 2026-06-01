@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -41,7 +42,7 @@ function createGameForCancellation(User $owner, GameSystem $system, int $maxPlay
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -171,7 +172,7 @@ describe('host cancellation offence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $host->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([

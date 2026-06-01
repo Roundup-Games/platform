@@ -156,7 +156,7 @@ function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $ben
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -194,7 +194,7 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
     \App\Models\GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -288,7 +288,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -337,7 +337,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -456,7 +456,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -505,7 +505,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -906,7 +906,7 @@ describe('CampaignApplication status reflects review state', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

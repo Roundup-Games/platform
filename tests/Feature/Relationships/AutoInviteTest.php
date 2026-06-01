@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -65,7 +66,7 @@ describe('AutoInvite — Session Creation', function () {
     test('auto-invite skips campaign owner (owner gets owner participant, not invited)', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $owner->id, 'role' => 'owner', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $owner->id, 'role' => ParticipantRole::Owner->value, 'status' => 'approved']);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])

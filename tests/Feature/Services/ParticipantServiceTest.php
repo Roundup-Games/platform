@@ -278,7 +278,7 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->owner->id,
-                'role' => 'owner',
+                'role' => ParticipantRole::Owner->value,
                 'status' => 'approved',
                 'join_source' => JoinSource::Application,
             ]);

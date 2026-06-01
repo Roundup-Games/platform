@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
@@ -36,7 +37,7 @@ function createGameWithOwner(GameSystem $system, User $owner): Game
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -55,7 +56,7 @@ function createCampaignWithOwner(GameSystem $system, User $owner): Campaign
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

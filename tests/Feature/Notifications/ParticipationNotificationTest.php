@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -203,7 +204,7 @@ describe('Remove participant → ParticipantRemoved', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
 

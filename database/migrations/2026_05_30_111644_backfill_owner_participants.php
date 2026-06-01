@@ -59,13 +59,17 @@ return new class extends Migration
                         ->first();
 
                     if ($existing) {
+                        $updates = [];
                         // Upgrade role if a pre-existing record had a different role
                         if ($existing->role !== ParticipantRole::Owner) {
-                            $updates = ['role' => ParticipantRole::Owner->value];
-                            if ($isCompleted && $existing->attendance_status === null) {
-                                $updates['attendance_status'] = AttendanceStatus::Attended->value;
-                                $updates['attendance_reported_at'] = $game->updated_at;
-                            }
+                            $updates['role'] = ParticipantRole::Owner->value;
+                        }
+                        // Backfill attendance for completed games regardless of current role
+                        if ($isCompleted && $existing->attendance_status === null) {
+                            $updates['attendance_status'] = AttendanceStatus::Attended->value;
+                            $updates['attendance_reported_at'] = $game->updated_at;
+                        }
+                        if ($updates !== []) {
                             DB::table('game_participants')->where('id', $existing->id)->update($updates);
                         }
                     } else {

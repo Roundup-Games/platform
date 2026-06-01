@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -40,7 +41,7 @@ function createPublicGameWithCounts(User $owner, GameSystem $system, int $maxPla
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -77,7 +78,7 @@ function createPublicCampaignWithCounts(User $owner, GameSystem $system, int $ma
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -150,7 +151,7 @@ describe('GameCard overflow indicators', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([

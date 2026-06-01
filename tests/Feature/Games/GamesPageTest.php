@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -358,7 +359,7 @@ describe('GamesPage — Accept Invitation Action', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
         GameParticipant::create([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
@@ -45,7 +46,7 @@ function createFullGameForLeave(User $owner, GameSystem $system, int $maxPlayers
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -101,7 +102,7 @@ function createFullBenchGameForLeave(User $owner, GameSystem $system, int $maxPl
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -140,7 +141,7 @@ function createFullCampaignForLeave(User $owner, GameSystem $system, int $maxPla
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

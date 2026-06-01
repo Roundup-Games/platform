@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
@@ -105,7 +106,7 @@ describe('Game AcceptInvitation', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
 
@@ -143,7 +144,7 @@ describe('Game AcceptInvitation', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
 

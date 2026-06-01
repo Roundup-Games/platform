@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
@@ -496,9 +498,14 @@ describe('Game Remove/Cancel Participant', function () {
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
-        // Record is deleted (so user can re-apply)
+        // Record is soft-removed (status changed, not hard-deleted)
         assertDatabaseMissing('game_participants', [
             'id' => $participant->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        assertDatabaseHas('game_participants', [
+            'id' => $participant->id,
+            'status' => ParticipantStatus::Removed->value,
         ]);
     });
 
@@ -508,7 +515,7 @@ describe('Game Remove/Cancel Participant', function () {
         $ownerParticipant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
 

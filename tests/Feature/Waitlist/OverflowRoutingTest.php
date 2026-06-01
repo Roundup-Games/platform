@@ -47,7 +47,7 @@ function overflowRouteCreateFullGame(User $owner, GameSystem $system, bool $benc
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -84,7 +84,7 @@ function overflowRouteCreateFullCampaign(User $owner, GameSystem $system, bool $
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -315,7 +315,7 @@ test('protected game at full capacity stays pending applicant without auto-overf
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

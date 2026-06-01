@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\RelationshipType;
+use App\Enums\ParticipantRole;
 use App\Livewire\Profile\PublicProfile;
 use App\Models\User;
 use App\Models\UserRelationship;
@@ -362,7 +363,7 @@ describe('Game session visibility on profile', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $profileUser->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => 'approved',
         ]);
 

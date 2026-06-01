@@ -153,7 +153,7 @@ describe('UserAnonymizationService integration', function () {
             'id' => (string) Str::uuid(),
             'campaign_id' => $campaign->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -349,7 +349,7 @@ describe('UserAnonymizationService integration', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -446,7 +446,7 @@ describe('UserAnonymizationService integration', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $userId,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -459,7 +459,7 @@ describe('UserAnonymizationService integration', function () {
             'id' => (string) Str::uuid(),
             'campaign_id' => $campaign->id,
             'user_id' => $userId,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

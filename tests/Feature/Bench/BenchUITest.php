@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -147,7 +148,7 @@ test('host does not see bench section on standalone game', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -40,7 +41,7 @@ function createFullWaitlistCampaign(User $owner, GameSystem $system, int $maxPla
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -90,7 +91,7 @@ test('add to waitlist throws for campaign with bench_mode=true', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([
@@ -282,7 +283,7 @@ test('campaign with bench_mode=false rejects bench', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([

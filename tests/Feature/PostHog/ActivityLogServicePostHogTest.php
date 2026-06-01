@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
@@ -129,7 +130,7 @@ it('forwards participant event to PostHog for game owner', function () {
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'created_at' => now(),
     ]);
     DB::table('game_participants')->insert([
@@ -162,7 +163,7 @@ it('forwards participant event to PostHog for campaign owner', function () {
         'id' => Str::uuid()->toString(),
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => 'approved',
         'created_at' => now(),
     ]);

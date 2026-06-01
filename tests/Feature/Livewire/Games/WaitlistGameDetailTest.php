@@ -453,7 +453,7 @@ describe('UI state rendering', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
