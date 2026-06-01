@@ -10,6 +10,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\DashboardScheduleService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
@@ -63,7 +64,7 @@ class DashboardScheduleServiceTest extends TestCase
             // There's room this week — place the game 2 days out (safe even on Saturday)
             $thisWeekDate = now()->addDays(2)->startOfDay()->addHours(12);
             // Verify it's actually within this week
-            if (Carbon\Carbon::parse($thisWeekDate)->gt($endOfWeek)) {
+            if (Carbon::parse($thisWeekDate)->gt($endOfWeek)) {
                 $expectThisWeekCount = 0;
                 $expectComingUpCount = 2;
             } else {

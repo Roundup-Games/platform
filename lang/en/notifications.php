@@ -312,7 +312,7 @@ return [
     // Bulletin Posted
     'subject_bulletin_posted' => 'New update for :game',
     'body_bulletin_posted' => ':host posted an update for :game.',
-    'body_bulletin_content' => '" :content"',
+    'body_bulletin_content' => '":content"',
     'push_title_bulletin_posted' => 'Game Update',
     'push_body_bulletin_posted' => ':host posted an update for :game',
 ];

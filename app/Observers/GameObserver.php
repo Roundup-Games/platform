@@ -17,7 +17,7 @@ class GameObserver
         $this->cache->invalidateForGameEvent($game, 'saved');
         $this->cache->invalidateActionCenterForGameEvent($game->id);
 
-        if ($game->wasChanged('recap') && ! empty($game->recap)) {
+        if ($game->wasChanged('recap')) {
             $participantIds = $game->participants()
                 ->where('status', ParticipantStatus::Approved->value)
                 ->pluck('user_id')

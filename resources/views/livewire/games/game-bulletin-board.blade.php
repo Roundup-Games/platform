@@ -19,8 +19,8 @@
                             aria-label="{{ __('games.label_bulletin_aria') }}"
                         ></textarea>
                         <div class="flex items-center justify-between mt-2">
-                            <span class="text-xs {{ strlen($content) > 260 ? 'text-error' : 'text-on-surface-variant' }}">
-                                {{ strlen($content) }} / 280
+                            <span class="text-xs {{ mb_strlen($content ?? '', 'UTF-8') > 260 ? 'text-error' : 'text-on-surface-variant' }}">
+                                {{ mb_strlen($content ?? '', 'UTF-8') }} / 280
                             </span>
                             <button
                                 type="submit"

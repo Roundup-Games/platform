@@ -134,11 +134,12 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
             'mode' => $mode,
         ]);
 
+        // ── Shared sections ────────────────────────────
+        $actionCenter = $cacheService->warmActionCenter($user);
+        $itemCounts['action_center'] = count($actionCenter);
+
         if ($mode === 'newcomer') {
             // Newcomer sections
-            $actionCenter = $cacheService->warmActionCenter($user);
-            $itemCounts['action_center'] = count($actionCenter);
-
             $newcomerWelcome = $cacheService->warmNewcomerWelcome($user);
             $itemCounts['newcomer_welcome'] = count($newcomerWelcome);
 
@@ -162,9 +163,6 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
             $itemCounts['milestone_cards'] = 0;
         } else {
             // Established sections
-            $actionCenter = $cacheService->warmActionCenter($user);
-            $itemCounts['action_center'] = count($actionCenter);
-
             $hostAgain = $cacheService->warmHostAgain($user);
             $itemCounts['host_again'] = count($hostAgain);
 

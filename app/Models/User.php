@@ -163,7 +163,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     {
         $location = $this->linkedLocation;
 
-        if (! $location || ! $location->latitude || ! $location->longitude) {
+        if (! $location || $location->latitude === null || $location->longitude === null) {
             return null;
         }
 

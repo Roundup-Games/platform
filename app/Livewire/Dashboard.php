@@ -86,7 +86,7 @@ class Dashboard extends Component
 
         $communityFeed = $this->getCommunityFeed($user);
         $opportunities = $this->getOpportunities($user);
-        $establishedData = $this->getEstablishedData($user, $dashboardMode, $communityFeed);
+        $establishedData = $this->getEstablishedData($user, $dashboardMode);
 
         return view('livewire.dashboard', [
             'dashboardMode' => $dashboardMode,
@@ -309,7 +309,7 @@ class Dashboard extends Component
      *
      * @return array{action_center_items: array, clear_summary: array|null, schedule_groups: array, host_again_bridge: array|null, nearby_noteworthy: array, milestone_cards: array, quick_actions: array, should_show_community_pulse: bool}
      */
-    private function getEstablishedData(User $user, string $dashboardMode, array $communityFeed): array
+    private function getEstablishedData(User $user, string $dashboardMode): array
     {
         if ($dashboardMode !== 'established') {
             return [
@@ -405,7 +405,6 @@ class Dashboard extends Component
         }
 
         $newcomerService = app(DashboardNewcomerService::class);
-        $cacheService = app(DashboardCacheService::class);
 
         // Welcome data (no geohash needed)
         $welcome = $newcomerService->getWelcomeData($user);

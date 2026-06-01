@@ -342,8 +342,8 @@ describe('notifications', function () {
 
         Notification::assertSentTo(
             $participant,
-            function (BulletinPosted $notification) use ($bulletin) {
-                $db = $notification->toDatabase($this->owner);
+            function (BulletinPosted $notification) use ($bulletin, $participant) {
+                $db = $notification->toDatabase($participant);
                 expect($db['type'])->toBe('bulletin_posted');
                 expect($db['entity_type'])->toBe('game');
                 expect($db['entity_id'])->toBe($this->game->id);
@@ -369,8 +369,8 @@ describe('notifications', function () {
 
         Notification::assertSentTo(
             $participant,
-            function (BulletinPosted $notification) {
-                $push = $notification->toPush($this->owner);
+            function (BulletinPosted $notification) use ($participant) {
+                $push = $notification->toPush($participant);
                 expect($push)->not->toBeNull();
                 expect($push->tag)->toBe('bulletin-' . $this->game->bulletins()->first()->id);
                 expect($push->url)->toContain($this->game->id);
