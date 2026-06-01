@@ -11,6 +11,7 @@ use App\Models\UserRelationship;
 use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
 use App\Services\ProfileVisibilityResolver;
+use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,7 @@ class PeopleDiscoveryServiceTest extends TestCase
             'id' => (string) \Illuminate\Support\Str::orderedUuid(),
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);

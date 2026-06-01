@@ -2,6 +2,7 @@
 
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameBulletin;
@@ -30,6 +31,14 @@ beforeEach(function () {
         'min_players' => 2,
         'max_players' => 6,
     ]);
+
+    // Explicit owner participant (matches production state after M048)
+    GameParticipant::create([
+        'game_id' => $this->game->id,
+        'user_id' => $this->owner->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
 });
 
 function createApprovedParticipant(Game $game): User
@@ -38,7 +47,7 @@ function createApprovedParticipant(Game $game): User
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -313,7 +322,7 @@ describe('notifications', function () {
         GameParticipant::create([
             'game_id' => $this->game->id,
             'user_id' => $waitlisted->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
         ]);
 

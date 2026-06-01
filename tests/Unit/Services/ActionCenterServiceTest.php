@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Dto\ActionItem;
 use App\Enums\GameStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\Campaign;
@@ -261,7 +262,7 @@ class ActionCenterServiceTest extends TestCase
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Pending->value,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
 
         $items = $this->service->getItems($this->user);
@@ -289,7 +290,7 @@ class ActionCenterServiceTest extends TestCase
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Pending->value,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
 
         $items = $this->service->getItems($this->user);

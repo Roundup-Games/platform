@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
@@ -115,7 +116,7 @@ class GameDetail extends Component
         $participant = $this->findParticipantOrFail($participantId);
         $entity = $this->game;
 
-        if ($participant->role === 'owner') {
+        if ($participant->role === ParticipantRole::Owner) {
             session()->flash('error', __('common.error_cannot_remove_the_entity_owner', ['entity' => 'game']));
 
             return;
@@ -271,7 +272,7 @@ class GameDetail extends Component
                 $baseData = [
                     'game_id' => $game->id,
                     'user_id' => $viewer->id,
-                    'role' => 'player',
+                    'role' => ParticipantRole::Player->value,
                     'join_source' => $joinSource->value,
                 ];
 
@@ -415,7 +416,7 @@ class GameDetail extends Component
         $id = $this->viewerId();
 
         return $id ? $this->game->participants->first(fn ($p) => $p->user_id === $id
-            && $p->role === 'invited' && $p->status === ParticipantStatus::Pending) : null;
+            && $p->role === ParticipantRole::Invited && $p->status === ParticipantStatus::Pending) : null;
     }
 
     #[Computed]

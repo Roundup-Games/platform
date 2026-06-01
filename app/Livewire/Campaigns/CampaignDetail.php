@@ -4,6 +4,7 @@ namespace App\Livewire\Campaigns;
 
 use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Campaign;
@@ -213,7 +214,7 @@ class CampaignDetail extends Component
                 $baseData = [
                     'campaign_id' => $campaign->id,
                     'user_id' => $viewer->id,
-                    'role' => 'player',
+                    'role' => ParticipantRole::Player->value,
                     'join_source' => $joinSource->value,
                 ];
 
@@ -357,7 +358,7 @@ class CampaignDetail extends Component
     {
         $vp = $this->viewerParticipant();
 
-        return $vp && $vp->role === 'invited' && $vp->status === ParticipantStatus::Pending
+        return $vp && $vp->role === ParticipantRole::Invited && $vp->status === ParticipantStatus::Pending
             ? $vp
             : null;
     }

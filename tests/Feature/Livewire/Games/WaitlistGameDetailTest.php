@@ -1,14 +1,16 @@
 <?php
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\BelowMinPlayersWarning;
 use App\Services\WaitlistService;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Tests\Traits\CreatesGameInstances;
@@ -28,7 +30,7 @@ function addWaitlistedUser(Game $game): array
     $participant = GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Waitlisted->value,
         'waitlisted_at' => now(),
     ]);
@@ -52,7 +54,7 @@ describe('joinWaitlist', function () {
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('joinWaitlist');
 
         $participant = GameParticipant::where('game_id', $game->id)
@@ -71,7 +73,7 @@ describe('joinWaitlist', function () {
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('joinWaitlist');
 
         // Should NOT create a waitlisted participant
@@ -90,7 +92,7 @@ describe('joinWaitlist', function () {
             ->count();
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('joinWaitlist');
 
         // Owner should still have exactly 1 participant record
@@ -113,7 +115,7 @@ describe('confirmWaitlistSpot', function () {
         $promoted = app(WaitlistService::class)->promoteNext($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('confirmWaitlistSpot', $promoted->id);
 
         expect($promoted->fresh()->status)->toBe(ParticipantStatus::Approved);
@@ -130,7 +132,7 @@ describe('confirmWaitlistSpot', function () {
         $otherUser = User::factory()->create();
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('confirmWaitlistSpot', $promoted->id);
 
         // Status should remain pending — unauthorized user cannot confirm
@@ -142,7 +144,7 @@ describe('confirmWaitlistSpot', function () {
         ['user' => $user, 'participant' => $waitlisted] = addWaitlistedUser($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('confirmWaitlistSpot', $waitlisted->id);
 
         // Still waitlisted — not pending, so confirm should not work
@@ -161,7 +163,7 @@ describe('declineWaitlistSpot', function () {
         $promoted = app(WaitlistService::class)->promoteNext($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('declineWaitlistSpot', $promoted->id);
 
         expect($promoted->fresh()->status)->toBe(ParticipantStatus::Rejected);
@@ -177,7 +179,7 @@ describe('declineWaitlistSpot', function () {
         $otherUser = User::factory()->create();
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('declineWaitlistSpot', $promoted->id);
 
         // Status should remain pending
@@ -193,7 +195,7 @@ describe('manualPromote', function () {
         ['participant' => $waitlisted] = addWaitlistedUser($game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('manualPromote', $waitlisted->id);
 
         expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Approved);
@@ -207,7 +209,7 @@ describe('manualPromote', function () {
         $nonHost = User::factory()->create();
 
         Livewire::actingAs($nonHost)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('manualPromote', $waitlisted->id);
 
         expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Waitlisted);
@@ -223,7 +225,7 @@ describe('manualPromote', function () {
         $fresh = $waitlisted->fresh();
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('manualPromote', $fresh->id);
 
         // Should remain pending (not promoted)
@@ -242,7 +244,7 @@ describe('cancelOwnParticipation', function () {
         $approvedUser = $approved->user;
 
         Livewire::actingAs($approvedUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('cancelOwnParticipation', $approved->id);
 
         // Canceller should be rejected
@@ -260,7 +262,7 @@ describe('cancelOwnParticipation', function () {
         $approved = getNonOwnerApproved($game);
 
         Livewire::actingAs($approved->user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('cancelOwnParticipation', $approved->id);
 
         expect($approved->fresh()->attendance_status)->toBe(AttendanceStatus::LateCancel);
@@ -274,7 +276,7 @@ describe('cancelOwnParticipation', function () {
         $approved = getNonOwnerApproved($game);
 
         Livewire::actingAs($approved->user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('cancelOwnParticipation', $approved->id);
 
         expect($approved->fresh()->attendance_status)->not->toBe(AttendanceStatus::LateCancel);
@@ -288,7 +290,7 @@ describe('cancelOwnParticipation', function () {
         $otherUser = User::factory()->create();
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('cancelOwnParticipation', $approved->id);
 
         // Should remain approved
@@ -314,7 +316,7 @@ describe('below-min-player warning', function () {
 
         foreach ($players as $player) {
             Livewire::actingAs($player->user)
-                ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+                ->test(GameDetail::class, ['id' => $game->id])
                 ->call('cancelOwnParticipation', $player->id);
         }
 
@@ -332,7 +334,7 @@ describe('removeParticipant (host-initiated)', function () {
         $target = getNonOwnerApproved($game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('removeParticipant', $target->id);
 
         // Target should be rejected
@@ -350,7 +352,7 @@ describe('removeParticipant (host-initiated)', function () {
         $target = getNonOwnerApproved($game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('removeParticipant', $target->id);
 
         expect($target->fresh()->attendance_status)->toBe(AttendanceStatus::LateCancel);
@@ -359,13 +361,14 @@ describe('removeParticipant (host-initiated)', function () {
     it('prevents removing the owner', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem);
 
-        // Owner has no participant record — there's nothing to remove.
-        // If somehow an owner participant existed, the service would reject it.
+        // Owner now has an explicit participant record under the explicit owner model.
+        // The service should reject removal of the owner participant.
         $ownerParticipant = $game->participants()
             ->where('user_id', $this->owner->id)
             ->first();
 
-        expect($ownerParticipant)->toBeNull('Owner should not have a participant record');
+        expect($ownerParticipant)->not->toBeNull('Owner should have a participant record');
+        expect($ownerParticipant->role)->toBe(ParticipantRole::Owner);
     });
 });
 
@@ -377,7 +380,7 @@ describe('UI state rendering', function () {
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.action_join_waitlist'))
             ->assertSee(__('games.content_game_full_join_waitlist'));
     });
@@ -387,7 +390,7 @@ describe('UI state rendering', function () {
         ['user' => $user] = addWaitlistedUser($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.content_waitlist_position', ['position' => 1]));
     });
 
@@ -399,7 +402,7 @@ describe('UI state rendering', function () {
         $promoted = app(WaitlistService::class)->promoteNext($game);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.action_confirm_spot'))
             ->assertSee(__('games.action_decline_spot'));
     });
@@ -409,7 +412,7 @@ describe('UI state rendering', function () {
         addWaitlistedUser($game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(__('games.action_manual_promote'));
     });
 
@@ -420,12 +423,12 @@ describe('UI state rendering', function () {
         $viewer = User::factory()->create();
 
         Livewire::actingAs($viewer)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertDontSee(__('games.action_manual_promote'));
     });
 
     it('does not show waitlist UI for bench-mode campaign games', function () {
-        $campaign = \App\Models\Campaign::factory()->create([
+        $campaign = Campaign::factory()->create([
             'owner_id' => $this->owner->id,
             'bench_mode' => true,
         ]);
@@ -450,14 +453,14 @@ describe('UI state rendering', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role'    => 'owner',
-            'status'  => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertDontSee(__('games.action_join_waitlist'));
     });
 });

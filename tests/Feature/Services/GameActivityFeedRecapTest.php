@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\GameActivityFeedService;
 use App\Services\RecapService;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -33,7 +34,7 @@ beforeEach(function () {
     GameParticipant::factory()->create([
         'game_id' => $this->game->id,
         'user_id' => $this->participant->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 });

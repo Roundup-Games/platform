@@ -807,10 +807,9 @@ class DashboardCacheService
         $bounds = Geohash::prefixBounds($geohash4);
 
         // Query games within the tile: scheduled, next 14 days, with location
-        // Subquery counts confirmed participants for sorting
-        // +1 for the game owner who has no participant record
+        // Subquery counts confirmed participants for sorting (owner is an explicit participant)
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*) + 1')
+            ->selectRaw('COUNT(*)')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -1187,9 +1186,9 @@ class DashboardCacheService
         $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
 
         // ── Games query ─────────────────────────────────
-        // +1 for the game owner who has no participant record
+        // Owner is an explicit participant, counted naturally
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*) + 1')
+            ->selectRaw('COUNT(*)')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -1212,7 +1211,7 @@ class DashboardCacheService
                 // and ensures the limit applies to visible results, not pre-filter.
                 $q->whereNull('games.max_players')
                     ->orWhereRaw(
-                        '(SELECT COUNT(*) + 1 FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
                         [ParticipantStatus::Approved->value],
                     );
             })
@@ -1328,7 +1327,7 @@ class DashboardCacheService
             ->get();
 
         $campaignResults = $campaigns->map(function ($campaign) {
-            $participantCount = $campaign->approved_participant_count + 1; // +1 for owner
+            $participantCount = $campaign->approved_participant_count; // Owner counted naturally
 
             $spotsAvailable = $campaign->max_players
                 ? max(0, $campaign->max_players - $participantCount)

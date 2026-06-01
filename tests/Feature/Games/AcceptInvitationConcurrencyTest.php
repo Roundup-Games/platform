@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -30,7 +32,13 @@ function capacityTestCreateGame(int $maxPlayers): array
         'max_players' => $maxPlayers,
     ]);
 
-    // Owner is implicit (counted as +1 in service layer). No participant record needed.
+    // Owner participant (explicit owner model)
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $owner->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
 
     return ['owner' => $owner, 'game' => $game];
 }
@@ -46,7 +54,7 @@ function capacityTestFillTo(Game $game, int $targetApproved, string $ownerId): v
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $currentApproved++;
@@ -66,7 +74,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -74,20 +82,20 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invited)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertHasNoErrors();
 
-        // Now at max capacity: owner (implicit) + filler + invited = 3
+        // Now at max capacity: owner + filler + invited = 3
         $approvedCount = GameParticipant::where('game_id', $game->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
-        expect($approvedCount)->toBe(2); // filler + formerly-invited (owner is implicit)
+        expect($approvedCount)->toBe(3); // owner + filler + formerly-invited
     });
 
     test('accept routes to waitlist when at max capacity', function () {
@@ -98,7 +106,7 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -106,23 +114,23 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invited)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id);
 
         // Should NOT be approved — should be waitlisted
         expect(GameParticipant::find($participant->id)->status->value)
             ->not->toBe(ParticipantStatus::Approved->value);
 
-        // Approved count should remain at 1 (filler only; owner is implicit)
+        // Approved count: owner + filler = 2
         $approvedCount = GameParticipant::where('game_id', $game->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
-        expect($approvedCount)->toBe(1);
+        expect($approvedCount)->toBe(2); // owner + filler
     });
 
     test('sequential accepts stop at max capacity without exceeding', function () {
@@ -135,33 +143,33 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $participant1 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited1->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
         $participant2 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited2->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        // First accept — should succeed (owner implicit + invited1 = 2 of max 2)
+        // First accept — should succeed (owner + invited1 = 2 of max 2)
         Livewire\Livewire::actingAs($invited1)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant1->id)
             ->assertHasNoErrors();
 
         // Second accept — game is full, should go to waitlist
         Livewire\Livewire::actingAs($invited2)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant2->id);
 
-        // Verify exactly 1 approved participant record (owner is implicit, so total = 2)
+        // Verify exactly 2 approved participant records (owner + invited1)
         $approvedCount = GameParticipant::where('game_id', $game->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
-        expect($approvedCount)->toBe(1, 'Approved count should not exceed max_players minus implicit owner');
+        expect($approvedCount)->toBe(2, 'Approved count should be owner + first accepted invite');
 
         // Second participant should be waitlisted, not approved
         $p2 = GameParticipant::find($participant2->id);
@@ -177,12 +185,12 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $invited->id,
-                'role' => 'invited',
+                'role' => ParticipantRole::Invited->value,
                 'status' => ParticipantStatus::Pending->value,
             ]);
 
             Livewire\Livewire::actingAs($invited)
-                ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+                ->test(GameDetail::class, ['id' => $game->id])
                 ->call('acceptInvitation', $participant->id)
                 ->assertHasNoErrors();
         }
@@ -190,6 +198,6 @@ describe('AcceptInvitation — Capacity Enforcement', function () {
         $approvedCount = GameParticipant::where('game_id', $game->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
-        expect($approvedCount)->toBe(10); // 10 invites (owner is implicit, no record)
+        expect($approvedCount)->toBe(11); // owner + 10 invites
     });
 });

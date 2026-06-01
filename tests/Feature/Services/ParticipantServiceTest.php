@@ -4,6 +4,7 @@ namespace Tests\Feature\Services;
 
 use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -94,8 +95,8 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -114,8 +115,8 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -182,8 +183,8 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -205,20 +206,20 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'applicant',
-                'status' => 'pending',
+                'role' => ParticipantRole::Applicant->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::Application,
             ]);
             GameApplication::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             $result = $this->service->approveApplication($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
-            expect($participant->fresh()->role)->toBe('player');
+            expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
             expect($participant->fresh()->status->value)->toBe('approved');
         });
 
@@ -230,8 +231,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -253,16 +254,20 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
             $result = $this->service->removeParticipant($participant, $game, $this->owner);
 
             expect($result->success)->toBeTrue();
-            // Participant record should be deleted, not just status-changed
-            expect(GameParticipant::find($participant->id))->toBeNull();
+            // Participant record is soft-removed (status='removed') for audit trail,
+            // not hard-deleted, so hosts can't dodge penalties by removing everyone first.
+            $participant->refresh();
+            expect($participant->status)->toBe(ParticipantStatus::Removed);
+            expect($participant->removed_by)->toBe($this->owner->id);
+            expect($participant->removed_at)->not->toBeNull();
         });
 
         it('refuses to remove entity owner', function () {
@@ -273,8 +278,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->owner->id,
-                'role' => 'owner',
-                'status' => 'approved',
+                'role' => ParticipantRole::Owner->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -297,15 +302,15 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
             $result = $this->service->acceptInvitation($participant, $game, $this->friend);
 
             expect($result->success)->toBeTrue();
-            expect($participant->fresh()->role)->toBe('player');
+            expect($participant->fresh()->role)->toBe(ParticipantRole::Player);
             expect($participant->fresh()->status->value)->toBe('approved');
         });
 
@@ -317,8 +322,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -338,16 +343,16 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => User::factory()->create()->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -370,8 +375,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -393,8 +398,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -412,8 +417,8 @@ describe('ParticipantService', function () {
             $participant = GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -456,8 +461,8 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -471,19 +476,28 @@ describe('ParticipantService', function () {
                 'max_players' => 3,
             ]);
 
-            // No participants at all — just the owner
-            expect($this->service->getApprovedPlayerCount($game))->toBe(1);
+            // Owner participant (created explicitly)
+            GameParticipant::create([
+                'game_id' => $game->id,
+                'user_id' => $this->owner->id,
+                'role' => ParticipantRole::Owner->value,
+                'status' => ParticipantStatus::Approved->value,
+                'join_source' => JoinSource::Application,
+            ]);
+
+            // Owner counts as 1 player
+            expect($this->service->getApprovedParticipantCount($game))->toBe(1);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 
             // Add 1 approved participant → owner + 1 = 2/3
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->friend->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
-            expect($this->service->getApprovedPlayerCount($game))->toBe(2);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(2);
             expect($this->service->isAtCapacity($game))->toBeFalse();
 
             // Add 1 more → owner + 2 = 3/3 → full
@@ -491,11 +505,11 @@ describe('ParticipantService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $stranger->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
-            expect($this->service->getApprovedPlayerCount($game))->toBe(3);
+            expect($this->service->getApprovedParticipantCount($game))->toBe(3);
             expect($this->service->isAtCapacity($game))->toBeTrue();
         });
     });

@@ -3,12 +3,16 @@
 namespace App\Livewire\Campaigns;
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
+use App\Services\OwnerParticipantService;
+use App\Services\ParticipantService;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -86,6 +90,9 @@ class AddSessionToCampaign extends Component
                 'bench_mode' => $campaign->bench_mode,
             ]);
 
+            // Ensure owner participant exists before counting capacity
+            app(OwnerParticipantService::class)->ensureOwnerParticipant($game);
+
             // Auto-invite approved campaign participants as invited to this session
             $autoInvitedCount = 0;
             $benchedCount = 0;
@@ -95,19 +102,16 @@ class AddSessionToCampaign extends Component
                 ->get();
 
             foreach ($approvedParticipants as $campaignParticipant) {
-                // Check if game is full (owner counts as a player)
-                $currentApproved = GameParticipant::where('game_id', $game->id)
-                    ->where('status', 'approved')
-                    ->count() + 1; // +1 for the campaign owner / GM
-                $isFull = $game->max_players !== null && $currentApproved >= $game->max_players;
+                // Re-check capacity each iteration (previous invite may have filled the last slot)
+                $isFull = app(ParticipantService::class)->isAtCapacity($game);
 
                 if ($isFull) {
                     // Place on bench instead of inviting
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
-                        'role' => 'player',
-                        'status' => 'benched',
+                        'role' => ParticipantRole::Player->value,
+                        'status' => ParticipantStatus::Benched->value,
                         'benched_at' => now(),
                     ]);
                     $benchedCount++;
@@ -115,8 +119,8 @@ class AddSessionToCampaign extends Component
                     GameParticipant::create([
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
-                        'role' => 'invited',
-                        'status' => 'pending',
+                        'role' => ParticipantRole::Invited->value,
+                        'status' => ParticipantStatus::Pending->value,
                     ]);
                     $autoInvitedCount++;
                 }

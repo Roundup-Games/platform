@@ -7,6 +7,7 @@ use App\Mail\EntityInvitationEmail;
 use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Mail;
 use Tests\Traits\CreatesGameInstances;
 
@@ -143,7 +144,7 @@ test('suppressed email participant has correct metadata', function () {
         'game_id' => $this->game->id,
         'invitee_email' => $suppressedHash,
         'user_id' => null,
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);

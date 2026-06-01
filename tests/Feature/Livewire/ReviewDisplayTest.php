@@ -7,6 +7,8 @@ use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 
 
@@ -27,8 +29,8 @@ function setupGameWithReview(): array
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $reviewer->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
     ]);
     $review = Review::factory()->create([
         'reviewable_type' => Game::class,
@@ -61,8 +63,8 @@ function setupCampaignWithReview(): array
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $reviewer->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
     ]);
     $review = Review::factory()->create([
         'reviewable_type' => Campaign::class,
@@ -102,8 +104,8 @@ describe('Game Detail — Review Display', function () {
         GameParticipant::create([
             'game_id' => $data['game']->id,
             'user_id' => $player2->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $response = $this->actingAs($player2)
@@ -216,8 +218,8 @@ describe('Game Detail — Review Display', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
         Review::factory()->create([
             'reviewable_type' => Campaign::class,

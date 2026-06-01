@@ -1,9 +1,9 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Jobs\DeletePostHogUserData;
-use App\Models\ActivityLog;
 use App\Models\AttendanceReport;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -19,10 +19,10 @@ use App\Models\MembershipType;
 use App\Models\NearbyDiscoveryView;
 use App\Models\PushSubscription;
 use App\Models\Review;
+use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserAppVisit;
-use App\Services\PostHogConsentChecker;
 use App\Services\UserAnonymizationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -134,11 +134,12 @@ describe('UserAnonymizationService integration', function () {
         // All participants still exist
         expect(GameParticipant::where('game_id', $gameId)->count())->toBe($participantCount);
 
-        // Owner has no participant record (implicit in production code)
+        // Owner has a participant record under the explicit owner model
         $ownerParticipant = GameParticipant::where('game_id', $gameId)
             ->where('user_id', $owner->id)
             ->first();
-        expect($ownerParticipant)->toBeNull('Owner should not have a participant record');
+        expect($ownerParticipant)->not->toBeNull('Owner should have a participant record');
+        expect($ownerParticipant->role)->toBe(ParticipantRole::Owner);
     });
 
     it('preserves campaigns and campaign participations', function () {
@@ -152,7 +153,7 @@ describe('UserAnonymizationService integration', function () {
             'id' => (string) Str::uuid(),
             'campaign_id' => $campaign->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -212,7 +213,7 @@ describe('UserAnonymizationService integration', function () {
         $service = app(UserAnonymizationService::class);
         $service->anonymize($captain);
 
-        expect(\App\Models\Team::find($teamId))->not->toBeNull();
+        expect(Team::find($teamId))->not->toBeNull();
 
         $member = TeamMember::where('team_id', $teamId)
             ->where('user_id', $captainId)
@@ -348,7 +349,7 @@ describe('UserAnonymizationService integration', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -445,7 +446,7 @@ describe('UserAnonymizationService integration', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $userId,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -458,7 +459,7 @@ describe('UserAnonymizationService integration', function () {
             'id' => (string) Str::uuid(),
             'campaign_id' => $campaign->id,
             'user_id' => $userId,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

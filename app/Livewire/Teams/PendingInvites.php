@@ -3,6 +3,7 @@
 namespace App\Livewire\Teams;
 
 use App\Models\TeamMember;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -46,7 +47,7 @@ class PendingInvites extends Component
         $member = $this->findPendingInvite($memberId);
 
         $member->update([
-            'status' => 'removed',
+            'status' => ParticipantStatus::Removed->value,
             'left_at' => now(),
         ]);
 

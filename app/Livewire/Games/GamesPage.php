@@ -4,6 +4,7 @@ namespace App\Livewire\Games;
 
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -176,7 +177,7 @@ class GamesPage extends Component
 
         $participatingGames = Game::whereHas('participants', function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                ->where('role', 'player')
+                ->where('role', ParticipantRole::Player->value)
                 ->where('status', 'approved');
         })->where('owner_id', '!=', $user->id)
             ->with(['gameSystem', 'participants', 'owner', 'campaign'])
@@ -184,7 +185,7 @@ class GamesPage extends Component
             ->get();
 
         $pendingInvitations = GameParticipant::where('user_id', $user->id)
-            ->where('role', 'invited')
+            ->where('role', ParticipantRole::Invited->value)
             ->where('status', 'pending')
             ->with(['game.gameSystem', 'game.owner'])
             ->get();

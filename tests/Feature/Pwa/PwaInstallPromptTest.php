@@ -5,6 +5,8 @@ use App\Models\GameParticipant;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserAppVisit;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, get};
 
 beforeEach(function () {
@@ -59,8 +61,8 @@ describe('Visibility gating', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Flush any session cache from previous requests
@@ -157,8 +159,8 @@ describe('Trypass events via HTTP', function () {
         GameParticipant::create([
             'user_id' => $this->user->id,
             'game_id' => $game->id,
-            'status' => 'pending',
-            'role' => 'player',
+            'status' => ParticipantStatus::Pending->value,
+            'role' => ParticipantRole::Player->value,
         ]);
 
         session()->flush();

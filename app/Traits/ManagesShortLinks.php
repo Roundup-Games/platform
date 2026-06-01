@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Models\ShortLink;
 use App\Services\ShortLinkService;
 use Illuminate\Database\Eloquent\Model;
@@ -194,7 +195,7 @@ trait ManagesShortLinks
         $data = [
             $fkColumn => $entity->getKey(),
             'user_id' => $viewerId,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'join_source' => $this->validatedShortLinkId !== null
                 ? JoinSource::ShortLink->value
                 : JoinSource::ShareLink->value,

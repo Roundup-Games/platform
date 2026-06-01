@@ -160,12 +160,9 @@ class DashboardNewcomerService
         $excludeGameIds = $this->getExcludedGameIds($user);
 
         // Participant count subquery.
-        // +1 accounts for the game owner who does not have a GameParticipant record.
-        // This is safe because the join/request flow explicitly blocks owners from
-        // creating participant records for their own games (canJoinViaShareLink checks
-        // owner_id, ParticipantService rejects self-invites).
+        // Owner is an explicit participant, so COUNT(*) is sufficient.
         $participantCountSubquery = DB::table('game_participants')
-            ->selectRaw('COUNT(*) + 1')
+            ->selectRaw('COUNT(*)')
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
@@ -187,7 +184,7 @@ class DashboardNewcomerService
                 // Filtering at SQL level avoids fetching full games only to discard them.
                 $q->whereNull('games.max_players')
                     ->orWhereRaw(
-                        '(SELECT COUNT(*) + 1 FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        '(SELECT COUNT(*) FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
                         [ParticipantStatus::Approved->value],
                     );
             })

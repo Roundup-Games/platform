@@ -7,6 +7,7 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\WaitlistService;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
@@ -45,7 +46,7 @@ function createApprovedParticipantForLateCancel(Game $game, ?User $user = null):
     return GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 }

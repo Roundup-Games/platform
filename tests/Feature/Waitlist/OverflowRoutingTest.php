@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\ApplyToCampaign;
+use App\Livewire\Games\ApplyToGame;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -9,6 +12,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -27,7 +31,7 @@ function overflowRouteCreateFullGame(User $owner, GameSystem $system, bool $benc
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
         'campaign_id' => $campaignId,
-        'name' => ['en' => 'Full Game ' . uniqid()],
+        'name' => ['en' => 'Full Game '.uniqid()],
         'date_time' => now()->addDays(7),
         'description' => ['en' => 'Test'],
         'expected_duration' => 3,
@@ -43,7 +47,7 @@ function overflowRouteCreateFullGame(User $owner, GameSystem $system, bool $benc
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -51,7 +55,7 @@ function overflowRouteCreateFullGame(User $owner, GameSystem $system, bool $benc
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -64,7 +68,7 @@ function overflowRouteCreateFullCampaign(User $owner, GameSystem $system, bool $
     $campaign = Campaign::create([
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
-        'name' => ['en' => 'Full Campaign ' . uniqid()],
+        'name' => ['en' => 'Full Campaign '.uniqid()],
         'description' => ['en' => 'Test'],
         'visibility' => 'public',
         'status' => 'active',
@@ -80,7 +84,7 @@ function overflowRouteCreateFullCampaign(User $owner, GameSystem $system, bool $
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -88,7 +92,7 @@ function overflowRouteCreateFullCampaign(User $owner, GameSystem $system, bool $
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -104,8 +108,8 @@ test('standalone game with bench_mode=false and full capacity routes to waitlist
     $game = overflowRouteCreateFullGame($this->owner, $this->gameSystem, benchMode: false, maxPlayers: 2);
     $applicant = User::factory()->create();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -118,7 +122,7 @@ test('standalone game with bench_mode=false and full capacity routes to waitlist
         ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
         ->and($participant->waitlisted_at)->not->toBeNull()
         ->and($participant->benched_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -129,8 +133,8 @@ test('standalone game with bench_mode=true and full capacity routes to bench', f
     $game = overflowRouteCreateFullGame($this->owner, $this->gameSystem, benchMode: true, maxPlayers: 2);
     $applicant = User::factory()->create();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -143,7 +147,7 @@ test('standalone game with bench_mode=true and full capacity routes to bench', f
         ->and($participant->status)->toBe(ParticipantStatus::Benched)
         ->and($participant->benched_at)->not->toBeNull()
         ->and($participant->waitlisted_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -174,8 +178,8 @@ test('campaign session with bench_mode=false and full capacity routes to waitlis
 
     expect($game->isBenchMode())->toBeFalse();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -188,7 +192,7 @@ test('campaign session with bench_mode=false and full capacity routes to waitlis
         ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
         ->and($participant->waitlisted_at)->not->toBeNull()
         ->and($participant->benched_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -220,8 +224,8 @@ test('campaign session with bench_mode=true and full capacity routes to bench', 
     expect($game->bench_mode)->toBeFalse()
         ->and($game->isBenchMode())->toBeTrue();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -234,7 +238,7 @@ test('campaign session with bench_mode=true and full capacity routes to bench', 
         ->and($participant->status)->toBe(ParticipantStatus::Benched)
         ->and($participant->benched_at)->not->toBeNull()
         ->and($participant->waitlisted_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -245,8 +249,8 @@ test('campaign with bench_mode=false and full capacity routes to waitlist', func
     $campaign = overflowRouteCreateFullCampaign($this->owner, $this->gameSystem, benchMode: false, maxPlayers: 2);
     $applicant = User::factory()->create();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToCampaign::class, ['id' => $campaign->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -259,7 +263,7 @@ test('campaign with bench_mode=false and full capacity routes to waitlist', func
         ->and($participant->status)->toBe(ParticipantStatus::Waitlisted)
         ->and($participant->waitlisted_at)->not->toBeNull()
         ->and($participant->benched_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -270,8 +274,8 @@ test('campaign with bench_mode=true and full capacity routes to bench', function
     $campaign = overflowRouteCreateFullCampaign($this->owner, $this->gameSystem, benchMode: true, maxPlayers: 2);
     $applicant = User::factory()->create();
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Campaigns\ApplyToCampaign::class, ['id' => $campaign->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToCampaign::class, ['id' => $campaign->id])
         ->set('message', 'Let me join')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -284,7 +288,7 @@ test('campaign with bench_mode=true and full capacity routes to bench', function
         ->and($participant->status)->toBe(ParticipantStatus::Benched)
         ->and($participant->benched_at)->not->toBeNull()
         ->and($participant->waitlisted_at)->toBeNull()
-        ->and($participant->role)->toBe('player');
+        ->and($participant->role)->toBe(ParticipantRole::Player);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -311,7 +315,7 @@ test('protected game at full capacity stays pending applicant without auto-overf
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -319,7 +323,7 @@ test('protected game at full capacity stays pending applicant without auto-overf
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -328,8 +332,8 @@ test('protected game at full capacity stays pending applicant without auto-overf
     UserRelationship::follow($applicant, $this->owner);
     UserRelationship::follow($this->owner, $applicant);
 
-    \Livewire\Livewire::actingAs($applicant)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($applicant)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->set('message', 'Please let me in')
         ->call('submitApplication')
         ->assertHasNoErrors();
@@ -341,7 +345,7 @@ test('protected game at full capacity stays pending applicant without auto-overf
     // Protected games stay pending regardless of capacity or bench_mode
     expect($participant)->not->toBeNull()
         ->and($participant->status)->toBe(ParticipantStatus::Pending)
-        ->and($participant->role)->toBe('applicant')
+        ->and($participant->role)->toBe(ParticipantRole::Applicant)
         ->and($participant->benched_at)->toBeNull()
         ->and($participant->waitlisted_at)->toBeNull();
 });
@@ -368,7 +372,7 @@ test('private game blocks application entirely with 403', function () {
 
     $user = User::factory()->create();
 
-    \Livewire\Livewire::actingAs($user)
-        ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+    Livewire::actingAs($user)
+        ->test(ApplyToGame::class, ['id' => $game->id])
         ->assertStatus(403);
 });

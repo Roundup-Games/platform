@@ -2,6 +2,7 @@
 
 namespace App\Livewire\GM;
 
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
@@ -165,7 +166,7 @@ class GmWorkspace extends Component
             $gameIds = Game::where('owner_id', $user->id)->pluck('id');
 
             $totalUniquePlayers = GameParticipant::whereIn('game_id', $gameIds)
-                ->where('role', 'player')
+                ->where('role', ParticipantRole::Player->value)
                 ->distinct('user_id')
                 ->count('user_id');
 
@@ -173,7 +174,7 @@ class GmWorkspace extends Component
             // A subquery counts the qualifying users so we get a single integer
             // back instead of loading all grouped rows into PHP.
             $repeatSub = GameParticipant::whereIn('game_id', $gameIds)
-                ->where('role', 'player')
+                ->where('role', ParticipantRole::Player->value)
                 ->groupBy('user_id')
                 ->havingRaw('COUNT(*) >= 2')
                 ->selectRaw('1');

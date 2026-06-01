@@ -28,7 +28,7 @@ trait HandlesBench
 
         try {
             $entityType = strtolower($this->getEntityName());
-            app(BenchService::class)->promoteFromBench($participantId, $entityType);
+            app(BenchService::class)->promoteFromBench($participantId, $entityType, $viewer);
             session()->flash('success', __('games.flash_promote_from_bench_success'));
         } catch (\LogicException $e) {
             session()->flash('error', $e->getMessage());

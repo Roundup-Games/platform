@@ -419,6 +419,7 @@ return [
     'status_rejected' => 'Rejected',
     'status_waitlisted' => 'Waitlisted',
     'status_benched' => 'On Bench',
+    'status_removed' => 'Removed',
     'status_cancelled' => 'Cancelled',
     'content_updating_results' => 'Updating results…',
 

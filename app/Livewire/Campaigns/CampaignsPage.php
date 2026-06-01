@@ -4,6 +4,7 @@ namespace App\Livewire\Campaigns;
 
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -169,7 +170,7 @@ class CampaignsPage extends Component
         // Campaigns I'm In — approved participations, not owned
         $participatingCampaigns = Campaign::whereHas('participants', function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                ->where('role', 'player')
+                ->where('role', ParticipantRole::Player->value)
                 ->where('status', 'approved');
         })->where('owner_id', '!=', $user->id)
             ->with(['gameSystem', 'participants', 'owner'])
@@ -178,7 +179,7 @@ class CampaignsPage extends Component
 
         // Open Invitations — invited, pending
         $pendingInvitations = CampaignParticipant::where('user_id', $user->id)
-            ->where('role', 'invited')
+            ->where('role', ParticipantRole::Invited->value)
             ->where('status', 'pending')
             ->with(['campaign.gameSystem', 'campaign.owner'])
             ->get();

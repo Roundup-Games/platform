@@ -2,6 +2,7 @@
 
 use App\Enums\AttendanceStatus;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
@@ -177,7 +178,7 @@ function notificationCreateFullStandaloneGame(int $maxPlayers = 3, array $overri
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -185,7 +186,7 @@ function notificationCreateFullStandaloneGame(int $maxPlayers = 3, array $overri
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -205,7 +206,7 @@ function notificationCreatePastGameWithParticipants(int $extraPlayers = 0): arra
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $host->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -215,7 +216,7 @@ function notificationCreatePastGameWithParticipants(int $extraPlayers = 0): arra
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $players[] = $player;
@@ -238,7 +239,7 @@ function notificationCreateDisputeGameWithParticipants(int $participantCount = 3
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -249,7 +250,7 @@ function notificationCreateDisputeGameWithParticipants(int $participantCount = 3
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participants->push($user);

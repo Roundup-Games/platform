@@ -64,7 +64,10 @@ class AttendanceService
             return ['success' => false, 'reason' => 'Cannot report attendance for a cancelled game'];
         }
 
-        // Reporter must be a participant (approved) or the game owner (no participant record)
+        // Reporter must be an approved participant or the game owner.
+        // Under the explicit-owner model (M048), the owner always has a
+        // participant record, but we keep the owner_id fallback as defense
+        // in depth against data integrity gaps.
         $reporterParticipant = $game->participants()
             ->where('user_id', $reporter->id)
             ->first();
@@ -73,7 +76,7 @@ class AttendanceService
             return ['success' => false, 'reason' => 'Reporter is not a participant in this game'];
         }
 
-        // Reported must be a participant or the game owner (who has no participant record)
+        // Reported user must be a participant or the game owner.
         $reportedParticipant = $game->participants()
             ->where('user_id', $reported->id)
             ->first();
@@ -86,12 +89,6 @@ class AttendanceService
         // Host CAN report others, and others CAN report the host
         if ($reporter->id === $reported->id && $game->owner_id === $reporter->id) {
             return ['success' => false, 'reason' => 'Host cannot self-report attendance'];
-        }
-
-        // If reported user is the host with no participant record, skip recording
-        // (host attendance is implicit — they organized the game)
-        if (! $reportedParticipant && $game->owner_id === $reported->id) {
-            return ['success' => true, 'reason' => 'Host attendance is implicit'];
         }
 
         // Self-reporting is allowed for non-hosts (only 'attended' or 'excused')
@@ -114,6 +111,20 @@ class AttendanceService
         }
 
         $weight = $griefCheck['weight_multiplier'];
+
+        // Under the explicit-owner model, every participant (including the
+        // game owner) has a GameParticipant record. If $reportedParticipant
+        // is null here, it indicates a data integrity gap — bail early
+        // with an explicit failure instead of a misleading success.
+        if ($reportedParticipant === null) {
+            Log::error('Attendance report skipped: reported user has no participant record (data integrity gap)', [
+                'game_id' => $game->id,
+                'reported_id' => $reported->id,
+                'is_owner' => $game->owner_id === $reported->id,
+            ]);
+
+            return ['success' => false, 'reason' => 'Reported user has no participant record'];
+        }
 
         // Record attendance, create report, and check corroboration atomically
         DB::transaction(function () use ($reportedParticipant, $status, $reporter, $weight, $game, $reported, $griefCheck) {
@@ -331,16 +342,26 @@ class AttendanceService
             return;
         }
 
-        // Check roster: was there at least min_players worth of participants?
-        $approvedCount = $game->participants()
-            ->where('status', ParticipantStatus::Approved->value)
+        // Check peak roster: did this game have at least min_players worth of
+        // *non-owner* participants at any point? This catches the dodge where a
+        // host removes all players then cancels to avoid a penalty.
+        // - 'approved' = current active participants
+        // - 'removed' = host-initiated removals (preserved for audit trail)
+        // - Self-leaves, declines, and waitlist/bench exits use other paths
+        //   (hard-delete or status='rejected'), so they don't inflate the count.
+        $peakRoster = $game->participants()
+            ->where('user_id', '!=', $game->owner_id)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Removed->value,
+            ])
             ->count();
 
-        if ($approvedCount < self::hostCancelMinRoster()) {
+        if ($peakRoster < self::hostCancelMinRoster()) {
             return;
         }
 
-        // Find the host's participant record (owners may not have one under implicit-owner model)
+        // Find the host's participant record (always present under explicit-owner model from S01)
         $hostParticipant = $game->participants()
             ->where('user_id', $game->owner_id)
             ->first();
@@ -368,12 +389,10 @@ class AttendanceService
 
                 $this->reliabilityService->recomputeAfterAttendance($hostParticipant);
             } else {
-                // Implicit owner: no participant record.
-                // NOTE: computeScore() only queries GameParticipant records, so this
-                // recomputation is effectively a no-op (host always gets score 0).
-                // The AttendanceReport is persisted for future use once scoring
-                // incorporates reports for implicit owners.
-                Log::warning('Host cancellation offence: no participant record for implicit owner, reliability score unchanged', [
+                // Defensive fallback: owner should always have a participant record
+                // after S01 (explicit owner participant). If this fires, it indicates
+                // a data integrity issue — the AttendanceReport is still persisted.
+                Log::warning('Host cancellation offence: no participant record for owner (data integrity issue), reliability score unchanged', [
                     'game_id' => $game->id,
                     'host_id' => $game->owner_id,
                 ]);
@@ -398,7 +417,7 @@ class AttendanceService
             'game_id' => $game->id,
             'host_id' => $game->owner_id,
             'hours_until_game' => $hoursUntilGame,
-            'approved_count' => $approvedCount,
+            'peak_roster' => $peakRoster,
         ]);
     }
 

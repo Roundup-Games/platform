@@ -6,6 +6,8 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Livewire\Livewire;
 
 use function Pest\Laravel\assertDatabaseHas;
@@ -69,8 +71,8 @@ describe('Invitation — Game Creation', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 });
@@ -92,7 +94,7 @@ describe('Invitation — Friend Validation', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $stranger->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     })->group('smoke');
 
@@ -107,7 +109,7 @@ describe('Invitation — Friend Validation', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     });
 
@@ -141,8 +143,8 @@ describe('Invitation — Duplicate Prevention', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire::actingAs($owner)
@@ -176,7 +178,7 @@ describe('Invitation — Blocked Users', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     })->group('smoke');
 
@@ -195,7 +197,7 @@ describe('Invitation — Blocked Users', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     })->group('smoke');
 });
@@ -220,7 +222,7 @@ describe('Invitation — Batch', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,

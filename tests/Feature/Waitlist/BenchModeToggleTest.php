@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
@@ -112,7 +113,7 @@ test('CampaignApplication status is always pending on creation', function () {
     $application = CampaignApplication::create([
         'campaign_id' => Campaign::factory()->create()->id,
         'user_id' => User::factory()->create()->id,
-        'status' => 'pending',
+        'status' => ParticipantStatus::Pending->value,
         'message' => 'I want to join',
     ]);
 
@@ -155,7 +156,7 @@ function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $ben
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -163,7 +164,7 @@ function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $ben
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -193,7 +194,7 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
     \App\Models\GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -201,7 +202,7 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -287,7 +288,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -336,7 +337,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -344,7 +345,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -365,7 +366,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         // Protected campaigns stay pending regardless of capacity or bench_mode
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe('applicant')
+            ->and($participant->role)->toBe(ParticipantRole::Applicant)
             ->and($participant->benched_at)->toBeNull()
             ->and($participant->waitlisted_at)->toBeNull();
 
@@ -455,7 +456,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -504,7 +505,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -512,7 +513,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -533,7 +534,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         // Protected games stay pending regardless of capacity or bench_mode
         expect($participant)->not->toBeNull()
             ->and($participant->status)->toBe(ParticipantStatus::Pending)
-            ->and($participant->role)->toBe('applicant')
+            ->and($participant->role)->toBe(ParticipantRole::Applicant)
             ->and($participant->benched_at)->toBeNull()
             ->and($participant->waitlisted_at)->toBeNull();
 
@@ -905,7 +906,7 @@ describe('CampaignApplication status reflects review state', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->owner->id,
-            'role' => 'owner',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

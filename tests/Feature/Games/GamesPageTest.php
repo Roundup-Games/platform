@@ -1,9 +1,16 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
+use App\Models\UserRelationship;
+use App\Enums\ParticipantStatus;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\get;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -53,7 +60,7 @@ describe('GamesPage — Cancel Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id);
 
         assertDatabaseHas('games', [
@@ -67,7 +74,7 @@ describe('GamesPage — Cancel Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'canceled']);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id);
 
         // Status stays canceled
@@ -85,7 +92,7 @@ describe('GamesPage — Cancel Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'completed']);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id);
 
         assertDatabaseHas('games', [
@@ -102,7 +109,7 @@ describe('GamesPage — Cancel Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $owner->id, 'status' => 'scheduled']);
 
         Livewire\Livewire::actingAs($other)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('cancelGame', $game->id)
             ->assertStatus(403);
 
@@ -123,7 +130,7 @@ describe('GamesPage — Complete Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'scheduled']);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id);
 
         assertDatabaseHas('games', [
@@ -139,7 +146,7 @@ describe('GamesPage — Complete Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'canceled']);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id);
 
         assertDatabaseHas('games', [
@@ -155,7 +162,7 @@ describe('GamesPage — Complete Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'status' => 'completed']);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id);
 
         assertDatabaseHas('games', [
@@ -172,7 +179,7 @@ describe('GamesPage — Complete Game Action', function () {
         $game = gamesPageCreateGame(['owner_id' => $owner->id, 'status' => 'scheduled']);
 
         Livewire\Livewire::actingAs($other)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('completeGame', $game->id)
             ->assertStatus(403);
 
@@ -196,8 +203,8 @@ describe('GamesPage — Games I\'m In Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($user)
@@ -240,8 +247,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -257,8 +264,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -274,8 +281,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -298,18 +305,18 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Flash message is set via session()->flash() and rendered on next page load,
@@ -326,19 +333,19 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $other->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
         // Status should remain unchanged
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Flash error is session-based — DB state confirms the invitation was rejected.
@@ -349,30 +356,36 @@ describe('GamesPage — Accept Invitation Action', function () {
         $owner = gamesPageCreateUser();
         $game = gamesPageCreateGame(['owner_id' => $owner->id, 'max_players' => 2]);
 
-        // Fill the game with an approved player (owner is implicit, so 1 filler + owner = 2 = max)
+        // Fill the game: owner participant + one filler = max_players(2)
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
         // Game is full — participant should be waitlisted
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'waitlisted',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Waitlisted->value,
         ]);
     });
 
@@ -384,18 +397,18 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -408,31 +421,31 @@ describe('GamesPage — Accept Invitation Action', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('acceptInvitation', $participant->id);
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 });
@@ -450,18 +463,18 @@ describe('GamesPage — Decline Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('declineInvitation', $participant->id);
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'rejected',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Rejected->value,
         ]);
 
         // Flash success is session-based — DB state confirms the decline.
@@ -476,18 +489,18 @@ describe('GamesPage — Decline Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $other->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class)
+            ->test(GamesPage::class)
             ->call('declineInvitation', $participant->id);
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -496,7 +509,6 @@ describe('GamesPage — Decline Invitation Action', function () {
 // ═══════════════════════════════════════════════════════════
 // COMMUNITY SECTION — DISPLAY & FILTERS
 // ═══════════════════════════════════════════════════════════
-
 
 // ═══════════════════════════════════════════════════════════
 // COMMUNITY SECTION — ACTIVITY FEED
@@ -507,7 +519,7 @@ describe('GamesPage — Community Activity Feed', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
         // User follows friend
-        \App\Models\UserRelationship::follow($user, $friend);
+        UserRelationship::follow($user, $friend);
         $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Friend Created Game']]);
 
         actingAs($user)
@@ -520,13 +532,13 @@ describe('GamesPage — Community Activity Feed', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
         $owner = gamesPageCreateUser();
-        \App\Models\UserRelationship::follow($user, $friend);
+        UserRelationship::follow($user, $friend);
         $game = gamesPageCreateGame(['owner_id' => $owner->id, 'name' => ['en' => 'Game Friend Joined']]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($user)
@@ -538,7 +550,7 @@ describe('GamesPage — Community Activity Feed', function () {
     it('shows activity when a followed user completes a game', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
-        \App\Models\UserRelationship::follow($user, $friend);
+        UserRelationship::follow($user, $friend);
         $game = gamesPageCreateGame(['owner_id' => $friend->id, 'name' => ['en' => 'Completed Game'], 'status' => 'completed']);
 
         actingAs($user)
@@ -560,14 +572,14 @@ describe('GamesPage — Community Activity Feed', function () {
     it('does not show games the viewer already owns or participates in', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
-        \App\Models\UserRelationship::follow($user, $friend);
+        UserRelationship::follow($user, $friend);
         // Viewer owns this game — should not appear as "friend joined"
         $game = gamesPageCreateGame(['owner_id' => $user->id, 'name' => ['en' => 'My Own Game For Feed']]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // The game_created activity should still show (friend didn't create it — viewer did)
@@ -584,7 +596,7 @@ describe('GamesPage — Community Activity Feed', function () {
     it('paginates activity feed at 15 per page', function () {
         $user = gamesPageCreateUser();
         $friend = gamesPageCreateUser();
-        \App\Models\UserRelationship::follow($user, $friend);
+        UserRelationship::follow($user, $friend);
 
         // Create 18 games owned by friend
         for ($i = 0; $i < 18; $i++) {
@@ -592,7 +604,7 @@ describe('GamesPage — Community Activity Feed', function () {
         }
 
         $component = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\GamesPage::class);
+            ->test(GamesPage::class);
         $feed = $component->viewData('activityFeed');
 
         expect($feed->count())->toBe(15);

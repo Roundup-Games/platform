@@ -9,6 +9,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\DisputeResolved;
 use App\Services\AttendanceService;
+use App\Enums\ParticipantRole;
 use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\Department;
@@ -39,7 +40,7 @@ function createTicketDisputeGameWithParticipants(int $participantCount = 3, arra
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -50,7 +51,7 @@ function createTicketDisputeGameWithParticipants(int $participantCount = 3, arra
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participants->push($user);

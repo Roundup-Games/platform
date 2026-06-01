@@ -7,6 +7,8 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -176,8 +178,8 @@ describe('Protected game visibility', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->actingAs($participant);
@@ -221,8 +223,8 @@ describe('Private game visibility', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->actingAs($participant);

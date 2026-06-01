@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -39,7 +40,7 @@ function chainCreateFullGame(User $owner, GameSystem $system, int $maxPlayers = 
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -47,7 +48,7 @@ function chainCreateFullGame(User $owner, GameSystem $system, int $maxPlayers = 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -62,7 +63,7 @@ function chainAddWaitlisted(Game $game, ?User $user = null): GameParticipant
     return GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Waitlisted->value,
         'waitlisted_at' => now(),
     ]);

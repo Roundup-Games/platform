@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\TeamInvitation;
 use App\Notifications\TeamMemberRemoved;
 use App\Services\NotificationService;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -108,7 +109,7 @@ class ManageRoster extends Component
                 if ($existingMembership) {
                     $existingMembership->update([
                         'role' => $inviteRole,
-                        'status' => 'pending',
+                        'status' => ParticipantStatus::Pending->value,
                         'invited_by' => $invitedBy,
                         'joined_at' => now(),
                         'left_at' => null,
@@ -118,7 +119,7 @@ class ManageRoster extends Component
                         'team_id' => $teamId,
                         'user_id' => $targetUserId,
                         'role' => $inviteRole,
-                        'status' => 'pending',
+                        'status' => ParticipantStatus::Pending->value,
                         'invited_by' => $invitedBy,
                         'joined_at' => now(),
                     ]);
@@ -327,7 +328,7 @@ class ManageRoster extends Component
         }
 
         $member->update([
-            'status' => 'removed',
+            'status' => ParticipantStatus::Removed->value,
             'left_at' => now(),
         ]);
 
@@ -369,7 +370,7 @@ class ManageRoster extends Component
             ->firstOrFail();
 
         $member->update([
-            'status' => 'removed',
+            'status' => ParticipantStatus::Removed->value,
             'left_at' => now(),
         ]);
 

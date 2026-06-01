@@ -8,6 +8,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
@@ -31,7 +32,7 @@ function createCompletedGameWithParticipants(int $participantCount = 3, array $g
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -42,7 +43,7 @@ function createCompletedGameWithParticipants(int $participantCount = 3, array $g
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participants->push($user);
@@ -295,19 +296,19 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -344,7 +345,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -369,7 +370,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
             'attendance_status' => AttendanceStatus::Attended->value,
         ]);
@@ -377,14 +378,14 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -409,21 +410,21 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $approvedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitlistedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
         ]);
 
@@ -449,7 +450,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -457,7 +458,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -487,7 +488,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -511,7 +512,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -535,14 +536,14 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -617,13 +618,13 @@ describe('cancelled_early status', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -650,13 +651,13 @@ describe('cancelled_early status', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

@@ -373,7 +373,6 @@ return [
     'field_role_player' => 'Player',
     'field_role_invited' => 'Invited',
     'field_role_applicant' => 'Applicant',
-    'field_role_gm' => 'GM',
 
     // Participant status labels
     'status_approved' => 'Approved',

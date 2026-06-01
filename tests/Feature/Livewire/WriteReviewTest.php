@@ -6,6 +6,8 @@ use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
@@ -35,8 +37,8 @@ function createEligibleGameSession(): array
     \App\Models\GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $player->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
     ]);
 
     return compact('gm', 'gmProfile', 'game', 'player');
@@ -62,8 +64,8 @@ function createEligibleCampaign(): array
     \App\Models\CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $player->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
     ]);
 
     return compact('gm', 'gmProfile', 'campaign', 'player');
@@ -114,8 +116,8 @@ describe('WriteReview — Game Session', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->actingAs($player);
