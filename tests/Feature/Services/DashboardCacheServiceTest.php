@@ -555,4 +555,436 @@ class DashboardCacheServiceTest extends TestCase
         $trackedKeys = Cache::get("dashboard:opportunities:keys:{$user->id}");
         $this->assertCount(1, $trackedKeys);
     }
+
+    // ── Two-mode dashboard: cache miss / synchronous fallback ──
+
+    #[Test]
+    public function get_action_center_returns_empty_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getActionCenter($user);
+
+        $this->assertIsArray($result);
+        $this->assertEquals([], $result);
+    }
+
+    #[Test]
+    public function get_newcomer_welcome_returns_computed_data_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getNewcomerWelcome($user);
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('first_name', $result);
+        $this->assertArrayHasKey('welcome_message_key', $result);
+    }
+
+    #[Test]
+    public function get_progress_tracker_returns_computed_data_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getProgressTracker($user);
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('steps', $result);
+        $this->assertArrayHasKey('current_step', $result);
+    }
+
+    #[Test]
+    public function get_nearby_people_returns_computed_data_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getNearbyPeople($user, 'u33d');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('people', $result);
+        $this->assertArrayHasKey('total_nearby', $result);
+    }
+
+    #[Test]
+    public function get_host_again_returns_empty_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getHostAgain($user);
+
+        $this->assertIsArray($result);
+        $this->assertEquals([], $result);
+    }
+
+    #[Test]
+    public function get_milestone_cards_returns_empty_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->getMilestoneCards($user);
+
+        $this->assertIsArray($result);
+        $this->assertEquals([], $result);
+    }
+
+    // ── Two-mode dashboard: cache stores on miss ───────────────
+
+    #[Test]
+    public function get_action_center_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getActionCenter($user);
+
+        $cached = Cache::get("dashboard:action_center:{$user->id}");
+        $this->assertNotNull($cached);
+    }
+
+    #[Test]
+    public function get_newcomer_welcome_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getNewcomerWelcome($user);
+
+        $cached = Cache::get("dashboard:newcomer_welcome:{$user->id}");
+        $this->assertNotNull($cached);
+    }
+
+    #[Test]
+    public function get_progress_tracker_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getProgressTracker($user);
+
+        $cached = Cache::get("dashboard:progress_tracker:{$user->id}");
+        $this->assertNotNull($cached);
+    }
+
+    #[Test]
+    public function get_nearby_people_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getNearbyPeople($user, 'u33d');
+
+        $cached = Cache::get("dashboard:nearby_people:{$user->id}:u33d");
+        $this->assertNotNull($cached);
+    }
+
+    #[Test]
+    public function get_host_again_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getHostAgain($user);
+
+        $cached = Cache::get("dashboard:host_again:{$user->id}");
+        $this->assertNotNull($cached);
+    }
+
+    #[Test]
+    public function get_milestone_cards_stores_result_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getMilestoneCards($user);
+
+        $cached = Cache::get("dashboard:milestone_cards:{$user->id}");
+        $this->assertNotNull($cached);
+    }
+
+    // ── Two-mode dashboard: cache hit returns cached data ──────
+
+    #[Test]
+    public function get_action_center_returns_cached_data_on_hit(): void
+    {
+        $user = User::factory()->create();
+        $expected = ['actions' => ['complete_profile', 'join_game']];
+
+        Cache::put("dashboard:action_center:{$user->id}", $expected, 300);
+
+        $result = $this->service->getActionCenter($user);
+
+        $this->assertEquals($expected, $result);
+        Queue::assertNotPushed(WarmDashboardCache::class);
+    }
+
+    #[Test]
+    public function get_newcomer_welcome_returns_cached_data_on_hit(): void
+    {
+        $user = User::factory()->create();
+        $expected = ['message' => 'Welcome!'];
+
+        Cache::put("dashboard:newcomer_welcome:{$user->id}", $expected, 600);
+
+        $result = $this->service->getNewcomerWelcome($user);
+
+        $this->assertEquals($expected, $result);
+        Queue::assertNotPushed(WarmDashboardCache::class);
+    }
+
+    #[Test]
+    public function get_nearby_people_returns_cached_data_on_hit(): void
+    {
+        $user = User::factory()->create();
+        $expected = ['people' => [['name' => 'Alice']]];
+
+        Cache::put("dashboard:nearby_people:{$user->id}:u33d", $expected, 900);
+
+        $result = $this->service->getNearbyPeople($user, 'u33d');
+
+        $this->assertEquals($expected, $result);
+        Queue::assertNotPushed(WarmDashboardCache::class);
+    }
+
+    #[Test]
+    public function get_host_again_returns_cached_data_on_hit(): void
+    {
+        $user = User::factory()->create();
+        $expected = ['recent_game_ids' => [1, 2]];
+
+        Cache::put("dashboard:host_again:{$user->id}", $expected, 600);
+
+        $result = $this->service->getHostAgain($user);
+
+        $this->assertEquals($expected, $result);
+        Queue::assertNotPushed(WarmDashboardCache::class);
+    }
+
+    #[Test]
+    public function get_milestone_cards_returns_cached_data_on_hit(): void
+    {
+        $user = User::factory()->create();
+        $expected = ['milestones' => ['hosted_10']];
+
+        Cache::put("dashboard:milestone_cards:{$user->id}", $expected, 3600);
+
+        $result = $this->service->getMilestoneCards($user);
+
+        $this->assertEquals($expected, $result);
+        Queue::assertNotPushed(WarmDashboardCache::class);
+    }
+
+    // ── Two-mode dashboard: warm job dispatched on miss ────────
+
+    #[Test]
+    public function get_action_center_dispatches_warm_job_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getActionCenter($user);
+
+        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
+            return $job->userId === (string) $user->id
+                && $job->triggerType === 'cache_miss_action_center';
+        });
+    }
+
+    #[Test]
+    public function get_newcomer_welcome_dispatches_warm_job_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getNewcomerWelcome($user);
+
+        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
+            return $job->userId === (string) $user->id
+                && $job->triggerType === 'cache_miss_newcomer_welcome';
+        });
+    }
+
+    #[Test]
+    public function get_progress_tracker_dispatches_warm_job_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getProgressTracker($user);
+
+        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
+            return $job->userId === (string) $user->id
+                && $job->triggerType === 'cache_miss_progress_tracker';
+        });
+    }
+
+    #[Test]
+    public function get_host_again_dispatches_warm_job_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getHostAgain($user);
+
+        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
+            return $job->userId === (string) $user->id
+                && $job->triggerType === 'cache_miss_host_again';
+        });
+    }
+
+    #[Test]
+    public function get_milestone_cards_dispatches_warm_job_on_miss(): void
+    {
+        $user = User::factory()->create();
+
+        $this->service->getMilestoneCards($user);
+
+        Queue::assertPushed(WarmDashboardCache::class, function ($job) use ($user) {
+            return $job->userId === (string) $user->id
+                && $job->triggerType === 'cache_miss_milestone_cards';
+        });
+    }
+
+    // ── Two-mode dashboard: invalidation ───────────────────────
+
+    #[Test]
+    public function invalidate_for_user_clears_action_center_cache(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:action_center:{$user->id}", ['actions' => ['test']], 300);
+
+        $this->service->invalidateForUser((string) $user->id, ['action_center']);
+
+        $this->assertNull(Cache::get("dashboard:action_center:{$user->id}"));
+    }
+
+    #[Test]
+    public function invalidate_for_user_clears_newcomer_welcome_cache(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:newcomer_welcome:{$user->id}", ['msg' => 'hi'], 600);
+
+        $this->service->invalidateForUser((string) $user->id, ['newcomer_welcome']);
+
+        $this->assertNull(Cache::get("dashboard:newcomer_welcome:{$user->id}"));
+    }
+
+    #[Test]
+    public function invalidate_for_user_clears_progress_tracker_cache(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:progress_tracker:{$user->id}", ['steps' => []], 300);
+
+        $this->service->invalidateForUser((string) $user->id, ['progress_tracker']);
+
+        $this->assertNull(Cache::get("dashboard:progress_tracker:{$user->id}"));
+    }
+
+    #[Test]
+    public function invalidate_for_user_clears_nearby_people_with_tracked_keys(): void
+    {
+        $user = User::factory()->create();
+
+        // Use warm to populate and track the key
+        $this->service->warmNearbyPeople($user, 'u33d');
+        $key = "dashboard:nearby_people:{$user->id}:u33d";
+        $this->assertNotNull(Cache::get($key));
+
+        $this->service->invalidateForUser((string) $user->id, ['nearby_people']);
+
+        $this->assertNull(Cache::get($key));
+    }
+
+    #[Test]
+    public function invalidate_for_user_clears_host_again_cache(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:host_again:{$user->id}", ['games' => [1]], 600);
+
+        $this->service->invalidateForUser((string) $user->id, ['host_again']);
+
+        $this->assertNull(Cache::get("dashboard:host_again:{$user->id}"));
+    }
+
+    #[Test]
+    public function invalidate_for_user_clears_milestone_cards_cache(): void
+    {
+        $user = User::factory()->create();
+        Cache::put("dashboard:milestone_cards:{$user->id}", ['milestones' => []], 3600);
+
+        $this->service->invalidateForUser((string) $user->id, ['milestone_cards']);
+
+        $this->assertNull(Cache::get("dashboard:milestone_cards:{$user->id}"));
+    }
+
+    // ── Two-mode dashboard: warm methods ───────────────────────
+
+    #[Test]
+    public function warm_action_center_stores_data_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmActionCenter($user);
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:action_center:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+    }
+
+    #[Test]
+    public function warm_newcomer_welcome_stores_data_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmNewcomerWelcome($user);
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:newcomer_welcome:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+    }
+
+    #[Test]
+    public function warm_progress_tracker_stores_data_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmProgressTracker($user);
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:progress_tracker:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+    }
+
+    #[Test]
+    public function warm_nearby_people_stores_data_and_tracks_key(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmNearbyPeople($user, 'u33d');
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:nearby_people:{$user->id}:u33d");
+        $this->assertNotNull($cached);
+
+        $trackedKeys = Cache::get("dashboard:nearby_people:keys:{$user->id}");
+        $this->assertContains("dashboard:nearby_people:{$user->id}:u33d", $trackedKeys);
+    }
+
+    #[Test]
+    public function warm_host_again_stores_data_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmHostAgain($user);
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:host_again:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+    }
+
+    #[Test]
+    public function warm_milestone_cards_stores_data_in_cache(): void
+    {
+        $user = User::factory()->create();
+
+        $result = $this->service->warmMilestoneCards($user);
+
+        $this->assertIsArray($result);
+        $cached = Cache::get("dashboard:milestone_cards:{$user->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals($result, $cached);
+    }
 }

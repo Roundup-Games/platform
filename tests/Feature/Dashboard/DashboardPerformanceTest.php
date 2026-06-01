@@ -11,6 +11,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardModeService;
 use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -126,7 +127,10 @@ describe('Dashboard performance', function () {
             'latitude' => 52.5163,
             'longitude' => 13.3777,
         ]);
-        $user = User::factory()->create(['location_id' => $location->id]);
+        $user = User::factory()->create([
+            'location_id' => $location->id,
+            'created_at' => now()->subDays(31),
+        ]);
         $gameSystem = GameSystem::factory()->create();
 
         // Create 80 scheduled and 20 completed games
@@ -156,9 +160,10 @@ describe('Dashboard performance', function () {
 
         // Now execute the warm job synchronously and measure
         $cacheService = app(DashboardCacheService::class);
+        $modeService = app(DashboardModeService::class);
         $start = microtime(true);
         $job = new WarmDashboardCache((string) $user->id, 'cache_miss_week');
-        $job->handle($cacheService);
+        $job->handle($cacheService, $modeService);
         $elapsed = (microtime(true) - $start) * 1000;
 
         // Verify cache was populated

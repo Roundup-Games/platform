@@ -79,7 +79,7 @@ class GamePolicy
      */
     public function create(User $user): bool
     {
-        return $user->profile_complete;
+        return (bool) $user->profile_complete;
     }
 
     /**

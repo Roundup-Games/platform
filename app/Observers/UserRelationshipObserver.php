@@ -17,6 +17,7 @@ class UserRelationshipObserver
         if ($relationship->type === RelationshipType::Follow) {
             $this->cache->invalidateForUser((string) $relationship->user_id, ['feed']);
             $this->cache->invalidateForUser((string) $relationship->related_user_id, ['feed']);
+            $this->cache->invalidateActionCenterForFollow($relationship->related_user_id);
         }
     }
 
@@ -25,6 +26,7 @@ class UserRelationshipObserver
         if ($relationship->type === RelationshipType::Follow) {
             $this->cache->invalidateForUser((string) $relationship->user_id, ['feed']);
             $this->cache->invalidateForUser((string) $relationship->related_user_id, ['feed']);
+            $this->cache->invalidateActionCenterForFollow($relationship->related_user_id);
         }
     }
 }

@@ -42,21 +42,37 @@ describe('Dashboard — smart prompt has live region attributes', function () {
 
 describe('Dashboard — community feed uses semantic list structure', function () {
     test('feed items are wrapped in ul with role=list', function () {
-        $friend = User::factory()->create(['name' => 'Alice']);
-        UserRelationship::create([
+        // Community Pulse requires established mode (1+ attended game) and 3+ follows
+        $gameSystem = GameSystem::factory()->create();
+        $attendedGame = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $gameSystem->id,
+            'status' => 'completed',
+            'date_time' => now()->subDays(5),
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $attendedGame->id,
             'user_id' => $this->user->id,
-            'related_user_id' => $friend->id,
-            'type' => 'follow',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
-        $gameSystem = GameSystem::factory()->create();
+        $friends = User::factory()->count(3)->create();
+        foreach ($friends as $friend) {
+            UserRelationship::create([
+                'user_id' => $this->user->id,
+                'related_user_id' => $friend->id,
+                'type' => 'follow',
+            ]);
+        }
+
         Game::factory()->create([
-            'owner_id' => $friend->id,
+            'owner_id' => $friends[0]->id,
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
+        Cache::flush();
         $html = Livewire::test(\App\Livewire\Dashboard::class)
             ->html();
 
@@ -66,26 +82,43 @@ describe('Dashboard — community feed uses semantic list structure', function (
     });
 
     test('feed timestamps use time element with datetime attribute', function () {
-        $friend = User::factory()->create(['name' => 'Bob']);
-        UserRelationship::create([
+        // Community Pulse requires 3+ follows AND established dashboard mode (1+ attended game)
+        $gameSystem = GameSystem::factory()->create();
+        $attendedGame = Game::factory()->create([
+            'owner_id' => $this->user->id,
+            'game_system_id' => $gameSystem->id,
+            'status' => 'completed',
+            'date_time' => now()->subDays(5),
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $attendedGame->id,
             'user_id' => $this->user->id,
-            'related_user_id' => $friend->id,
-            'type' => 'follow',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
-        $gameSystem = GameSystem::factory()->create();
+        // Community Pulse requires 3+ follows to render
+        $friends = User::factory()->count(3)->create();
+        foreach ($friends as $friend) {
+            UserRelationship::create([
+                'user_id' => $this->user->id,
+                'related_user_id' => $friend->id,
+                'type' => 'follow',
+            ]);
+        }
+
         Game::factory()->create([
-            'owner_id' => $friend->id,
+            'owner_id' => $friends[0]->id,
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
         ]);
 
+        Cache::flush();
         $html = Livewire::test(\App\Livewire\Dashboard::class)
             ->html();
 
         // Timestamps should use <time> with datetime attribute
-        expect($html)->toContain('<time class="text-xs text-on-surface-variant mt-0.5 block"');
+        expect($html)->toContain('<time class="text-[10px] text-on-surface-variant flex-shrink-0"');
         expect($html)->toContain('datetime="');
     });
 });
