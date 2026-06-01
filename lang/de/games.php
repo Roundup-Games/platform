@@ -406,6 +406,7 @@ return [
     'content_bulletin_expires_hint' => 'Läuft ab, wenn das Spiel abgeschlossen oder abgesagt wird',
     'flash_bulletin_created' => 'Update erfolgreich veröffentlicht.',
     'error_bulletin_unauthorized' => 'Du bist nicht berechtigt, Updates zu veröffentlichen.',
+    'hint_bulletin_admin_access' => 'Admin-Zugriff',
     'label_bulletin_unknown_host' => 'Unbekannter Host',
     'content_bulletin_expires_at' => 'Läuft ab :time',
     'push_bulletin_title' => 'Update von :host',

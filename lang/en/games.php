@@ -405,6 +405,7 @@ return [
     'content_bulletin_expires_hint' => 'Expires when the game is completed or canceled',
     'flash_bulletin_created' => 'Update posted successfully.',
     'error_bulletin_unauthorized' => 'You are not authorized to post updates.',
+    'hint_bulletin_admin_access' => 'Admin access',
     'label_bulletin_unknown_host' => 'Unknown Host',
     'content_bulletin_expires_at' => 'Expires :time',
     'push_bulletin_title' => 'Update from :host',

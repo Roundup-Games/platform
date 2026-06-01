@@ -4,6 +4,12 @@
             <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-xl" aria-hidden="true">campaign</span>
                 {{ __('games.title_bulletin_board') }}
+                @if($canCreateBulletin && $isElevatedAccess)
+                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                        <span class="material-symbols-outlined text-xs" aria-hidden="true">shield_person</span>
+                        {{ __('games.hint_bulletin_admin_access') }}
+                    </span>
+                @endif
             </h2>
 
             {{-- Creation form (host only, game must be scheduled) --}}
