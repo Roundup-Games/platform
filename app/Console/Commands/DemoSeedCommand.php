@@ -1306,7 +1306,7 @@ class DemoSeedCommand extends Command
         $applicationBatch = [];
 
         foreach ($this->gmInfo as $gm) {
-            $sessionCount = random_int(2, 10);
+            $sessionCount = random_int(3, 12);
             $city = $gm['city'];
             $cityLocs = $this->locationsByCity[$city] ?? [];
 
@@ -1500,6 +1500,7 @@ class DemoSeedCommand extends Command
                             'game_id' => $gameId,
                             'owner_id' => $gm['id'],
                             'reported_id' => $pid,
+                            'attendance' => AttendanceStatus::Attended->value,
                         ];
                     }
                 }
@@ -1805,9 +1806,9 @@ class DemoSeedCommand extends Command
                 $visibility = $roll < 0.20 ? Visibility::Public
                     : ($roll < 0.60 ? Visibility::Protected : Visibility::Private);
 
-                // ~5% of campaigns are cancelled, ~5% completed
+                // ~25% of campaigns are completed, ~10% cancelled, rest active
                 $statusRoll = mt_rand() / mt_getrandmax();
-                $campaignStatus = $statusRoll < 0.90 ? 'active' : ($statusRoll < 0.95 ? 'cancelled' : 'completed');
+                $campaignStatus = $statusRoll < 0.65 ? 'active' : ($statusRoll < 0.75 ? 'cancelled' : 'completed');
 
                 $campaignId = (string) Str::orderedUuid();
                 $language = random_int(0, 2) > 0 ? 'de' : 'en'; // ~66% DE
@@ -2035,6 +2036,7 @@ class DemoSeedCommand extends Command
                             'game_id' => $szId,
                             'owner_id' => $gm['id'],
                             'reported_id' => $pid,
+                            'attendance' => AttendanceStatus::Attended->value,
                         ];
                     }
 
@@ -2050,6 +2052,148 @@ class DemoSeedCommand extends Command
                             )),
                             'language' => $language,
                         ];
+                    }
+                }
+
+                // --- Completed past sessions (active & completed campaigns) ---
+                // These represent sessions that already happened between session zero and now,
+                // with full attendance tracking, recaps, and post-completion data.
+                $pastSessionCount = $campaignStatus === 'cancelled' ? 0
+                    : random_int(1, 3);
+                for ($p = 1; $p <= $pastSessionCount; $p++) {
+                    $pastDaysAgo = random_int(3, $szDate->diffInDays(now()) - 1);
+                    if ($pastDaysAgo < 1) {
+                        $pastDaysAgo = random_int(1, 5);
+                    }
+                    $pastDate = now()->subDays($pastDaysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
+                    $pId = (string) Str::orderedUuid();
+                    $sessionNum = $p + 1; // session zero was #1
+
+                    $sessionLabel = $language === 'de' ? "Sitzung {$sessionNum}" : "Session {$sessionNum}";
+                    $sessionDesc = $language === 'de'
+                        ? "Abgeschlossene Kampagnensitzung {$sessionNum}. " . self::MARKER
+                        : "Completed campaign session {$sessionNum}. " . self::MARKER;
+
+                    // ~3% of past sessions were cancelled
+                    $isPastCancelled = mt_rand() / mt_getrandmax() < 0.03;
+                    $pStatus = $isPastCancelled
+                        ? GameStatus::Canceled->value
+                        : GameStatus::Completed->value;
+
+                    $gameBatch[] = [
+                        'id' => $pId,
+                        'owner_id' => $gm['id'],
+                        'campaign_id' => $campaignId,
+                        'game_system_id' => $rpg['id'],
+                        'name' => json_encode([$language => $sessionLabel . ' ' . self::MARKER]),
+                        'description' => json_encode([$language => $sessionDesc]),
+                        'game_type' => GameType::Ttrpg->value,
+                        'date_time' => $pastDate,
+                        'expected_duration' => random_int(3, 5),
+                        'location_id' => $locationId,
+                        'location' => $this->buildLocationJson($locationId),
+                        'status' => $pStatus,
+                        'visibility' => $visibility->value,
+                        'experience_level' => $campaignExpLevel,
+                        'min_players' => $minPlayers,
+                        'max_players' => $maxPlayers,
+                        'bench_mode' => $isBench,
+                        'vibe_flags' => json_encode($this->randomVibes('ttrpg')),
+                        'safety_rules' => json_encode(['tools' => ['lines_and_veils','x-card']]),
+                        'language' => $language,
+                        'recap' => $isPastCancelled ? null : self::RECAPS[$language][array_rand(self::RECAPS[$language])],
+                        'created_at' => $pastDate->copy()->subDays(random_int(3, 7)),
+                        'updated_at' => $pastDate,
+                    ];
+
+                    $pastAttendedPids = [];
+                    foreach ($campaignParticipants as $pid) {
+                        $attendance = null;
+                        if (!$isPastCancelled && $pid === $gm['id']) {
+                            $attendance = AttendanceStatus::Attended->value;
+                        } elseif (!$isPastCancelled) {
+                            $attendance = mt_rand() / mt_getrandmax() < 0.90
+                                ? AttendanceStatus::Attended->value
+                                : AttendanceStatus::NoShow->value;
+                        }
+
+                        if (!$isPastCancelled && $attendance === AttendanceStatus::Attended->value) {
+                            $pastAttendedPids[] = $pid;
+                        }
+
+                        $sessionJoinSource = $joinSource;
+                        if ($pid !== $gm['id'] && mt_rand() / mt_getrandmax() < 0.20) {
+                            $sessionJoinSource = $this->joinSourceForVisibility($visibility->value, false);
+                        }
+
+                        $gameParticipantBatch[] = [
+                            'id' => (string) Str::orderedUuid(),
+                            'game_id' => $pId,
+                            'user_id' => $pid,
+                            'role' => $pid === $gm['id'] ? ParticipantRole::Owner->value : ParticipantRole::Player->value,
+                            'status' => ParticipantStatus::Approved->value,
+                            'attendance_status' => $attendance,
+                            'join_source' => $sessionJoinSource,
+                            'invitee_email' => $pid !== $gm['id'] ? $this->inviteeEmailForSource($pid, $sessionJoinSource) : null,
+                            'benched_at' => null,
+                            'waitlisted_at' => null,
+                            'created_at' => $pastDate->copy()->subDays(random_int(1, 5)),
+                        ];
+
+                        if ($pid !== $gm['id']) {
+                            $gameApplicationBatch[] = [
+                                'id' => (string) Str::orderedUuid(),
+                                'game_id' => $pId,
+                                'user_id' => $pid,
+                                'status' => ParticipantStatus::Approved->value,
+                                'message' => null,
+                                'created_at' => $pastDate->copy()->subDays(random_int(3, 10)),
+                                'updated_at' => $pastDate->copy()->subDays(random_int(1, 5)),
+                            ];
+                        }
+                    }
+                    $totalSessions++;
+
+                    if (!$isPastCancelled) {
+                        // Feed completed past sessions into review generation
+                        $this->completedGames[] = [
+                            'game_id' => $pId,
+                            'owner_id' => $gm['id'],
+                            'participant_ids' => $pastAttendedPids,
+                            'language' => $language,
+                            'is_session_zero' => false,
+                        ];
+
+                        // Queue attendance reports for attended players
+                        foreach ($pastAttendedPids as $pid) {
+                            if ($pid === $gm['id']) {
+                                continue;
+                            }
+                            $this->attendanceReportQueue[] = [
+                                'game_id' => $pId,
+                                'owner_id' => $gm['id'],
+                                'reported_id' => $pid,
+                                'attendance' => AttendanceStatus::Attended->value,
+                            ];
+                        }
+                        // Also generate NoShow reports for no-show players
+                        $noShowPids = array_values(array_filter(
+                            $campaignParticipants,
+                            fn ($pid) => $pid !== $gm['id'] && !in_array($pid, $pastAttendedPids)
+                        ));
+                        foreach ($noShowPids as $pid) {
+                            $this->attendanceReportQueue[] = [
+                                'game_id' => $pId,
+                                'owner_id' => $gm['id'],
+                                'reported_id' => $pid,
+                                'attendance' => AttendanceStatus::NoShow->value,
+                            ];
+                        }
+                    }
+
+                    // Track non-cancelled public/protected past sessions for short links
+                    if ($pStatus !== GameStatus::Canceled->value && $visibility !== Visibility::Private) {
+                        $this->campaignSessionGames[] = ['game_id' => $pId, 'owner_id' => $gm['id']];
                     }
                 }
 
@@ -2941,15 +3085,19 @@ class DemoSeedCommand extends Command
         $bar->start();
 
         foreach ($this->attendanceReportQueue as $entry) {
-            // GM (reporter) confirms the player (reported) attended
+            $attendanceStatus = $entry['attendance'] ?? AttendanceStatus::Attended->value;
+            $weight = $attendanceStatus === AttendanceStatus::Attended->value ? 1.0 : -0.5;
+
             $batch[] = [
                 'id' => (string) Str::orderedUuid(),
                 'game_id' => $entry['game_id'],
                 'reporter_id' => $entry['owner_id'],
                 'reported_id' => $entry['reported_id'],
-                'status' => AttendanceStatus::Attended->value,
-                'weight_applied' => 1.0,
-                'is_corroborated' => mt_rand() / mt_getrandmax() < 0.30,
+                'status' => $attendanceStatus,
+                'weight_applied' => $weight,
+                'is_corroborated' => $attendanceStatus === AttendanceStatus::Attended->value
+                    ? mt_rand() / mt_getrandmax() < 0.30
+                    : false,
                 'quarantined' => false,
                 'created_at' => now()->subDays(random_int(1, 30)),
                 'updated_at' => now(),

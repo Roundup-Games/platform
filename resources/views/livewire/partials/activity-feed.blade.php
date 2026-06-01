@@ -21,7 +21,7 @@
                         'game_created', 'campaign_created' => 'add_circle',
                         'player_joined' => 'person_add',
                         'game_completed', 'campaign_completed' => 'check_circle',
-                        'session_scheduled' => 'event_add',
+                        'session_scheduled' => 'event_upcoming',
                         'session_recapped' => 'auto_stories',
                         default => 'notifications',
                     };

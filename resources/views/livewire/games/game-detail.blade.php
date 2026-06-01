@@ -147,6 +147,28 @@
                     </section>
                 @endif
 
+                {{-- Leave Game (non-owner participants only, scheduled games only) --}}
+                @auth
+                    @if($isParticipant && !$isOwner && $game->status->value === 'scheduled')
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between">
+                            <span class="text-sm text-on-surface-variant">{{ __('games.content_leave_hint') }}</span>
+                            <x-confirm-action
+                                action="leaveGame()"
+                                id="leave-game"
+                                :icon="'logout'"
+                                :trigger-label="__('games.action_leave_game')"
+                                trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                :confirm-label="__('games.action_leave_game')"
+                                :cancel-label="__('common.action_keep')"
+                                :message="__('games.confirm_leave_game')"
+                                variant="inline"
+                                severity="destructive"
+                                confirm-icon="logout"
+                            />
+                        </div>
+                    @endif
+                @endauth
+
                 {{-- Safety Tools --}}
                 @if($game->safety_rules && $game->game_type?->value !== 'board_game')
                     @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $game->safety_rules])
