@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Games;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -16,6 +18,7 @@ use App\Services\AttendanceService;
 use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
+use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -199,6 +202,56 @@ class GamesPage extends Component
             'pendingInvitations' => $pendingInvitations,
             'activityFeed' => $activityFeed,
         ]);
+    }
+
+    public function leaveGame(string $gameId): void
+    {
+        $user = Auth::user();
+        $game = Game::findOrFail($gameId);
+
+        // Owner cannot leave their own game
+        if ($game->owner_id === $user->id) {
+            session()->flash('error', __('games.error_cannot_leave_own_game'));
+
+            return;
+        }
+
+        $participant = $game->participants()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                ParticipantStatus::Approved->value,
+                ParticipantStatus::Waitlisted->value,
+                ParticipantStatus::Benched->value,
+                ParticipantStatus::Pending->value,
+            ])
+            ->first();
+
+        if (! $participant) {
+            session()->flash('error', __('games.error_not_a_participant'));
+
+            return;
+        }
+
+        // Track attendance for reliability scoring
+        if ($participant->status === ParticipantStatus::Approved && $game->date_time?->isFuture()) {
+            $hoursUntil = now()->diffInHours($game->date_time, false);
+            $participant->update(['attendance_status' => $hoursUntil < 24
+                ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Player left game', [
+            'game_id' => $game->id,
+            'user_id' => $user->id,
+        ]);
+
+        // Promote from waitlist if applicable
+        if (! $game->isBenchMode()) {
+            app(WaitlistService::class)->promoteAllOnCancel($game);
+        }
+
+        session()->flash('success', __('games.flash_you_left_the_game'));
     }
 
     public function cancelGame(string $id): void

@@ -150,6 +150,7 @@ class PublicGameDetail extends Component
         return view('livewire.games.public-game-detail', [
             'game' => $this->game,
             'isOwner' => $this->isOwner(),
+            'isApprovedParticipant' => false,
             'isGuest' => Auth::guest(),
             'reviews' => $this->reviews(),
             'approvedParticipantsCount' => $this->approvedParticipantsCount(),

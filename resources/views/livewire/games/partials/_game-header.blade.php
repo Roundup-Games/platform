@@ -72,19 +72,19 @@
             @if($game->relationLoaded('linkedLocation') && $game->linkedLocation)
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                    @if($isGuest)
-                        {{ $game->linkedLocation->city }}
-                    @else
+                    @if($isApprovedParticipant ?? false)
                         {{ $game->linkedLocation->fullAddress() }}
+                    @else
+                        {{ $game->linkedLocation->city }}
                     @endif
                 </span>
             @elseif($game->location && !empty($game->location['details']))
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">location_on</span>
-                    @if($isGuest)
-                        {{ trim(explode(',', $game->location['details'])[0]) }}
-                    @else
+                    @if($isApprovedParticipant ?? false)
                         {{ $game->location['details'] }}
+                    @else
+                        {{ trim(explode(',', $game->location['details'])[0]) }}
                     @endif
                 </span>
             @endif

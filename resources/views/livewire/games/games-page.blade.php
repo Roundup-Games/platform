@@ -150,42 +150,58 @@
             @else
                 <div class="space-y-3">
                     @foreach($participatingGames as $game)
-                        <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block bg-surface-container-low rounded-xl shadow-ambient p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
-                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                <h3 class="text-base font-medium text-on-surface">
-                                    {{ $game->name }}
-                                </h3>
-                                @if($game->gameSystem)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
-                                        {{ $game->gameSystem->name }}
-                                    </span>
-                                @endif
-                                @if($game->campaign)
-                                    <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
-                                        {{ $game->campaign->name }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
-                                @if($game->date_time)
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient overflow-hidden">
+                            {{-- Info area: clickable to detail --}}
+                            <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="group block p-4 sm:p-5 hover:bg-surface-container/50 transition-colors">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <h3 class="text-base font-medium text-on-surface group-hover:text-secondary transition-colors">
+                                        {{ $game->name }}
+                                    </h3>
+                                    @if($game->gameSystem)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                            {{ $game->gameSystem->name }}
+                                        </span>
+                                    @endif
+                                    @if($game->campaign)
+                                        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
+                                            {{ $game->campaign->name }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-on-surface-variant">
+                                    @if($game->date_time)
+                                        <span class="flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">calendar_today</span>
+                                            {{ format_date($game->date_time, 'datetime') }}
+                                        </span>
+                                    @endif
+                                    @if($game->owner)
+                                        <span class="flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
+                                            {{ $game->owner->name }}
+                                        </span>
+                                    @endif
                                     <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">calendar_today</span>
-                                        {{ format_date($game->date_time, 'datetime') }}
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                                        {{ $game->participants->count() }}/{{ $game->max_players ?? '∞' }}
                                     </span>
-                                @endif
-                                @if($game->owner)
-                                    <span class="flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                                        {{ $game->owner->name }}
-                                    </span>
-                                @endif
-                                <span class="flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
-                                    {{ $game->participants->count() }}/{{ $game->max_players ?? '∞' }}
-                                </span>
-                            </div>
-                        </a>
+                                </div>
+                            </a>
+                            {{-- Leave button for scheduled games --}}
+                            @if($game->status->value === 'scheduled')
+                                <div class="border-t border-outline-variant/30 px-4 py-2 sm:px-5">
+                                    <button
+                                        wire:click="leaveGame('{{ $game->id }}')"
+                                        wire:confirm="{{ __('games.confirm_leave_game') }}"
+                                        class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-error transition-colors"
+                                    >
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">logout</span>
+                                        {{ __('games.action_leave_game') }}
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
             @endif

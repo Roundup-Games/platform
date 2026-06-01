@@ -33,10 +33,17 @@ class GameBulletinPolicy
     }
 
     /**
-     * View the bulletin board for a game: game owner or approved participants.
+     * View the bulletin board for a game: only for scheduled games.
+     * Game owner or approved participants can view. The creation form
+     * is further gated by the `create` policy (host-only).
      */
     public function viewBoard(User $user, Game $game): bool
     {
+        // Only show bulletin board for scheduled games
+        if ($game->status !== GameStatus::Scheduled) {
+            return false;
+        }
+
         // Game owner can always view
         if ($game->owner_id === $user->id) {
             return true;
