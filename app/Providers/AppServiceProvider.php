@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
+use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Review;
@@ -147,6 +148,9 @@ class AppServiceProvider extends ServiceProvider
         // Escalated model policies — override vendor defaults for RBAC.
         // Agent resources (tickets): escalated-agent gate (Platform Admin + Service Admin)
         Gate::policy(\Escalated\Laravel\Models\Ticket::class, \App\Policies\Escalated\TicketPolicy::class);
+
+        // Game bulletin policy — not auto-discovered because create() takes Game, not GameBulletin
+        Gate::policy(\App\Models\GameBulletin::class, \App\Policies\GameBulletinPolicy::class);
         // All admin-only resources use the same EscalatedAdminPolicy
         // (vendor policies for Department/Tag/SlaPolicy/EscalationRule use Gate::allows()
         // which doesn't work with Gate::forUser() in test contexts)
@@ -263,6 +267,7 @@ class AppServiceProvider extends ServiceProvider
         // Dashboard cache invalidation observers
         Game::observe(\App\Observers\GameObserver::class);
         GameParticipant::observe(\App\Observers\GameParticipantObserver::class);
+        GameBulletin::observe(\App\Observers\GameBulletinObserver::class);
         UserRelationship::observe(\App\Observers\UserRelationshipObserver::class);
 
         // SEO sitemap cache invalidation observer

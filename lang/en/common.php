@@ -421,4 +421,8 @@ return [
     'status_benched' => 'On Bench',
     'status_cancelled' => 'Cancelled',
     'content_updating_results' => 'Updating results…',
+
+    // Units
+    'unit_km' => 'km',
+    'unit_min' => 'min',
 ];

@@ -3,14 +3,17 @@
 namespace App\Livewire;
 
 use App\Dto\FeedItem;
-use App\Enums\ParticipantStatus;
-use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\DashboardCacheService;
+use App\Services\DashboardDiscoveryService;
+use App\Services\DashboardModeService;
+use App\Services\DashboardNewcomerService;
+use App\Services\DashboardQuickActionsService;
+use App\Services\DashboardScheduleService;
 use App\Services\DashboardSmartPromptService;
 use App\Services\Geohash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -21,46 +24,103 @@ class Dashboard extends Component
     public function render()
     {
         $user = Auth::user();
-        $gamesThisWeek = $this->gamesThisWeek();
+
+        // Resolve dashboard mode (newcomer vs established)
+        $dashboardMode = app(DashboardModeService::class)->resolve($user);
+
+        Log::debug('dashboard.render_mode', [
+            'user_id' => $user->id,
+            'mode' => $dashboardMode,
+        ]);
+
+        // ── Sections shared by both modes ──────────────
 
         $smartPrompt = app(DashboardSmartPromptService::class)->getPrompt($user);
+        $unreadNotificationsCount = $this->unreadNotificationsCount();
+        // Contributions and weekData are cheap cache reads needed by both modes and existing tests
+        $contributions = app(DashboardCacheService::class)->getContributions($user);
         $weekData = app(DashboardCacheService::class)->getWeekData($user);
 
-        // Community Feed: blend friends activity with trending nearby
+        // ── Mode-conditional sections ───────────────────
+        // Only compute expensive sections for the active mode to avoid wasted
+        // cache reads and DB queries. Each mode template only uses its own data.
+
+        if ($dashboardMode === 'newcomer') {
+            $newcomerData = $this->getNewcomerData($user, $dashboardMode);
+
+            return view('livewire.dashboard', [
+                'dashboardMode' => $dashboardMode,
+                'smartPrompt' => $smartPrompt,
+                'unreadNotificationsCount' => $unreadNotificationsCount,
+                'quickActions' => $this->deriveQuickActions($user, $smartPrompt),
+                'contributions' => $contributions,
+
+                // Newcomer sections
+                'newcomerWelcome' => $newcomerData['welcome'],
+                'preferenceMatches' => $newcomerData['preference_matches'],
+                'progressTracker' => $newcomerData['progress_tracker'],
+                'nearbyPeople' => $newcomerData['nearby_people'],
+
+                // Stub established props so the view never has undefined vars
+                'gamesThisWeek' => collect(),
+                'gamesThisWeekCount' => 0,
+                'weekData' => $weekData,
+                'communityFeed' => collect(),
+                'trendingItems' => collect(),
+                'hasTrendingSection' => false,
+                'gmAverageRating' => null,
+                'newRecaps' => collect(),
+                'opportunities' => ['games' => [], 'campaigns' => [], 'total_available' => 0],
+                'actionCenterItems' => [],
+                'clearSummary' => null,
+                'scheduleGroups' => ['today' => [], 'this_week' => [], 'coming_up' => []],
+                'hostAgainBridge' => null,
+                'nearbyNoteworthy' => [],
+                'milestoneCards' => [],
+                'establishedQuickActions' => [],
+                'shouldShowCommunityPulse' => false,
+            ]);
+        }
+
+        // ── Established mode ────────────────────────────
+
         $communityFeed = $this->getCommunityFeed($user);
-
-        // Opportunities & Contributions from cache service
         $opportunities = $this->getOpportunities($user);
-        $contributions = app(DashboardCacheService::class)->getContributions($user);
-
-        // Quick actions derived from smart prompt state
-        $quickActions = $this->deriveQuickActions($user, $smartPrompt);
+        $establishedData = $this->getEstablishedData($user, $dashboardMode);
 
         return view('livewire.dashboard', [
-            // New dashboard sections
+            'dashboardMode' => $dashboardMode,
             'smartPrompt' => $smartPrompt,
-            'weekData' => $weekData,
-            'gamesThisWeek' => $gamesThisWeek,
-            'gamesThisWeekCount' => $gamesThisWeek->count(),
-            'unreadNotificationsCount' => $this->unreadNotificationsCount(),
+            'unreadNotificationsCount' => $unreadNotificationsCount,
 
-            // Community Feed
+            // Legacy established sections
+            'weekData' => $weekData,
+            'gamesThisWeek' => collect(),
+            'gamesThisWeekCount' => 0,
             'communityFeed' => $communityFeed['friends'],
             'trendingItems' => $communityFeed['trending'],
             'hasTrendingSection' => $communityFeed['show_trending'],
-
-            // GM Stats
             'gmAverageRating' => $this->gmAverageRating(),
-
-            // Recaps
             'newRecaps' => collect(app(DashboardCacheService::class)->getRecaps($user))->map(fn ($r) => (object) $r),
-
-            // Opportunities & Contributions
             'opportunities' => $opportunities,
             'contributions' => $contributions,
 
-            // Quick Actions
-            'quickActions' => $quickActions,
+            // Newcomer stubs (unused in established mode)
+            'quickActions' => [],
+            'newcomerWelcome' => [],
+            'preferenceMatches' => [],
+            'progressTracker' => [],
+            'nearbyPeople' => [],
+
+            // Established dashboard data
+            'actionCenterItems' => $establishedData['action_center_items'],
+            'clearSummary' => $establishedData['clear_summary'],
+            'scheduleGroups' => $establishedData['schedule_groups'],
+            'hostAgainBridge' => $establishedData['host_again_bridge'],
+            'nearbyNoteworthy' => $establishedData['nearby_noteworthy'],
+            'milestoneCards' => $establishedData['milestone_cards'],
+            'establishedQuickActions' => $establishedData['quick_actions'],
+            'shouldShowCommunityPulse' => $establishedData['should_show_community_pulse'],
         ]);
     }
 
@@ -241,36 +301,142 @@ class Dashboard extends Component
     }
 
     /**
-     * Get games occurring this week where the user is an owner or approved participant.
-     * "This week" = start of Monday through end of Sunday in the app's timezone.
+     * Get established-mode dashboard data for the user.
+     *
+     * Only loads data when the dashboard mode is 'established'.
+     * Returns empty arrays for all sections when mode is 'newcomer',
+     * so the view conditionals hide the established sections cleanly.
+     *
+     * @return array{action_center_items: array, clear_summary: array|null, schedule_groups: array, host_again_bridge: array|null, nearby_noteworthy: array, milestone_cards: array, quick_actions: array, should_show_community_pulse: bool}
      */
-    public function gamesThisWeek()
+    private function getEstablishedData(User $user, string $dashboardMode): array
     {
-        $user = Auth::user();
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
+        if ($dashboardMode !== 'established') {
+            return [
+                'action_center_items' => [],
+                'clear_summary' => null,
+                'schedule_groups' => ['today' => [], 'this_week' => [], 'coming_up' => []],
+                'host_again_bridge' => null,
+                'nearby_noteworthy' => [],
+                'milestone_cards' => [],
+                'quick_actions' => [],
+                'should_show_community_pulse' => false,
+            ];
+        }
 
-        // Games user owns this week (only active/scheduled)
-        $ownedGameIds = Game::where('owner_id', $user->id)
-            ->where('status', 'scheduled')
-            ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
-            ->pluck('id');
+        $cacheService = app(DashboardCacheService::class);
+        $scheduleService = app(DashboardScheduleService::class);
+        $discoveryService = app(DashboardDiscoveryService::class);
 
-        // Games user is an approved participant in this week (only active/scheduled)
-        $participantGameIds = GameParticipant::where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved)
-            ->whereHas('game', fn ($q) => $q
-                ->where('status', 'scheduled')
-                ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
-            )
-            ->pluck('game_id');
+        // Action center (already wired in S03)
+        $actionCenterRaw = $cacheService->getActionCenter($user);
+        $actionCenterItems = array_map(
+            fn (array $item) => \App\Dto\ActionItem::fromArray($item),
+            $actionCenterRaw,
+        );
+        // Pass the (empty) items to avoid getClearSummary re-querying all 11 sources
+        $clearSummary = empty($actionCenterItems)
+            ? app(\App\Services\ActionCenterService::class)->getClearSummary($user, [])
+            : null;
 
-        $gameIds = $ownedGameIds->merge($participantGameIds)->unique();
+        // Schedule timeline
+        $scheduleGroups = $scheduleService->getUpcomingGames($user);
+        $hostAgainBridge = $scheduleService->getHostAgainBridge($user);
 
-        return Game::whereIn('id', $gameIds)
-            ->with(['participants' => fn ($q) => $q->where('user_id', $user->id), 'campaign'])
-            ->orderBy('date_time')
-            ->get();
+        // Nearby & Noteworthy (requires location)
+        $geohash4 = $user->geohash4();
+
+        $nearbyNoteworthy = $geohash4
+            ? $discoveryService->getNearbyNoteworthy($user, $geohash4)
+            : [];
+
+        // Milestone identity cards
+        $milestoneCards = $discoveryService->getMilestoneCards($user);
+
+        // Quick actions (role-adapted)
+        $quickActions = app(DashboardQuickActionsService::class)->getQuickActions($user);
+
+        // Community Pulse toggle
+        $shouldShowCommunityPulse = $discoveryService->shouldShowCommunityPulse($user);
+
+        Log::debug('dashboard.established_data_loaded', [
+            'user_id' => $user->id,
+            'has_geohash' => $geohash4 !== null,
+            'action_center_count' => count($actionCenterItems),
+            'schedule_today' => count($scheduleGroups['today'] ?? []),
+            'schedule_week' => count($scheduleGroups['this_week'] ?? []),
+            'schedule_coming' => count($scheduleGroups['coming_up'] ?? []),
+            'nearby_count' => count($nearbyNoteworthy),
+            'milestone_count' => count($milestoneCards),
+            'quick_actions_count' => count($quickActions),
+            'show_pulse' => $shouldShowCommunityPulse,
+        ]);
+
+        return [
+            'action_center_items' => $actionCenterItems,
+            'clear_summary' => $clearSummary,
+            'schedule_groups' => $scheduleGroups,
+            'host_again_bridge' => $hostAgainBridge,
+            'nearby_noteworthy' => $nearbyNoteworthy,
+            'milestone_cards' => $milestoneCards,
+            'quick_actions' => $quickActions,
+            'should_show_community_pulse' => $shouldShowCommunityPulse,
+        ];
+    }
+
+    /**
+     * Get newcomer dashboard data for the user.
+     *
+     * Only loads data when the dashboard mode is 'newcomer'.
+     * Returns empty arrays for all sections when mode is 'established',
+     * so the view conditionals hide the newcomer sections cleanly.
+     *
+     * @return array{welcome: array, preference_matches: array, progress_tracker: array, nearby_people: array}
+     */
+    private function getNewcomerData(User $user, string $dashboardMode): array
+    {
+        if ($dashboardMode !== 'newcomer') {
+            return [
+                'welcome' => [],
+                'preference_matches' => [],
+                'progress_tracker' => [],
+                'nearby_people' => [],
+            ];
+        }
+
+        $newcomerService = app(DashboardNewcomerService::class);
+
+        // Welcome data (no geohash needed)
+        $welcome = $newcomerService->getWelcomeData($user);
+
+        // Progress tracker (no geohash needed)
+        $progressTracker = $newcomerService->getProgressTracker($user);
+
+        // Geohash-dependent data — requires user location
+        $geohash4 = $user->geohash4();
+
+        $preferenceMatches = $geohash4
+            ? $newcomerService->getPreferenceWeightedMatches($user, $geohash4)
+            : ['games' => [], 'total_nearby' => 0, 'preference_match_rate' => 0.0];
+
+        $nearbyPeople = $geohash4
+            ? $newcomerService->getNearbyPeople($user, $geohash4)
+            : ['people' => [], 'total_nearby' => 0];
+
+        Log::debug('dashboard.newcomer_data_loaded', [
+            'user_id' => $user->id,
+            'has_geohash' => $geohash4 !== null,
+            'matches_count' => count($preferenceMatches['games']),
+            'people_count' => count($nearbyPeople['people']),
+            'progress_step' => $progressTracker['current_step'] ?? 0,
+        ]);
+
+        return [
+            'welcome' => $welcome,
+            'preference_matches' => $preferenceMatches,
+            'progress_tracker' => $progressTracker,
+            'nearby_people' => $nearbyPeople,
+        ];
     }
 
 }
