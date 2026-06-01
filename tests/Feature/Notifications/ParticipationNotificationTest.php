@@ -240,7 +240,7 @@ describe('Remove team member → TeamMemberRemoved', function () {
         $member = TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);

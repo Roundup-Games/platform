@@ -280,11 +280,11 @@ describe('GameDetail joinViaShareLink', function () {
             'campaign_id' => null,
         ]);
 
-        // Fill the game
+        // Owner already occupies the only slot under explicit-owner model
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => ParticipantRole::Player->value,
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -320,11 +320,11 @@ describe('GameDetail joinViaShareLink', function () {
             'campaign_id' => $campaign->id,
         ]);
 
-        // Fill the game
+        // Owner already occupies the only slot under explicit-owner model
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => ParticipantRole::Player->value,
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -423,11 +423,11 @@ describe('CampaignDetail joinViaShareLink', function () {
             'bench_mode' => true,
         ]);
 
-        // Fill the campaign
+        // Owner already occupies the only slot under explicit-owner model
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => ParticipantRole::Player->value,
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

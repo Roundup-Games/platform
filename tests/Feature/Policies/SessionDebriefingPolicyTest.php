@@ -132,7 +132,7 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->gameOwner->id,
-                'role' => ParticipantRole::Player->value,
+                'role' => ParticipantRole::Owner->value,
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
