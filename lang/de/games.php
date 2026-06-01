@@ -410,4 +410,9 @@ return [
     'content_bulletin_expires_at' => 'Läuft ab :time',
     'push_bulletin_title' => 'Update von :host',
     'push_bulletin_body' => ':game — :content',
+
+    // Spot availability
+    'content_full' => 'Voll',
+    'content_spots_left_short' => '{1} 1 Platz frei|[2,*] :count Plätze frei',
+    'content_availability' => 'Verfügbarkeit',
 ];

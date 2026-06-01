@@ -29,7 +29,11 @@
         <x-language-mismatch-banner :entity-language="$game->language" />
 
         @if(session()->has('success'))
-            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show"
+                 x-transition:leave="transition ease-in duration-300"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 wire:key="success-flash-{{ now()->timestamp }}"
                  class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
                 <span class="material-symbols-outlined text-on-secondary-container" aria-hidden="true">check_circle</span>
                 <p class="text-sm text-on-secondary-container">{{ session('success') }}</p>

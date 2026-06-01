@@ -60,11 +60,19 @@
                         {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}
                     </h2>
                     @guest
-                        @if($game->max_players)
-                            @php($spotsLeft = max(0, $game->max_players - $approvedParticipantsCount))
-                            <p class="text-sm text-on-surface-variant">
-                                {{ trans_choice('games.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $game->max_players]) }}
-                            </p>
+                        @php($spotsLeft = $game->max_players ? max(0, $game->max_players - $approvedParticipantsCount) : null)
+                        @if($spotsLeft !== null)
+                            <div class="flex items-center gap-3 mt-2">
+                                @if($spotsLeft === 0)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error/10 text-error">
+                                        {{ __('games.content_full') }}
+                                    </span>
+                                @else
+                                    <span class="text-sm text-on-surface-variant">
+                                        {{ trans_choice('games.content_spots_available', $spotsLeft, ['count' => $spotsLeft, 'max' => $game->max_players]) }}
+                                    </span>
+                                @endif
+                            </div>
                         @else
                             <p class="text-sm text-on-surface-variant">
                                 {{ trans_choice('common.content_count_participants', $approvedParticipantsCount) }}

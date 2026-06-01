@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
@@ -102,7 +103,7 @@ class DiscoveryQueryService
             ->where('status', 'scheduled')
             ->where('date_time', '>', now())
             ->with(['owner', 'gameSystem', 'campaign'])
-            ->withCount('participants');
+            ->withCount(['participants as participants_count' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value)]);
 
         $query = $this->withOverflowCounts($query);
 

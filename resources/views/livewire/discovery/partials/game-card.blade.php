@@ -88,23 +88,30 @@
         @endif
 
         {{-- Player count / Participants --}}
+        @php($approvedCount = $game->participants_count ?? 0)
+        @php($spotsLeft = $game->max_players ? max(0, $game->max_players - $approvedCount) : null)
         <div class="mt-3 flex items-center gap-3 text-xs text-on-surface-variant">
-            @if($game->min_players || $game->max_players)
+            @if($game->max_players)
+                @if($spotsLeft === 0)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-error/10 text-error">
+                        <span class="material-symbols-outlined text-xs" aria-hidden="true">lock</span>
+                        {{ __('games.content_full') }}
+                    </span>
+                @elseif($spotsLeft !== null && $spotsLeft <= 2)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary">
+                        <span class="material-symbols-outlined text-xs" aria-hidden="true">group</span>
+                        {{ trans_choice('games.content_spots_left_short', $spotsLeft) }}
+                    </span>
+                @else
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>
+                        {{ $approvedCount }}/{{ $game->max_players }}
+                    </span>
+                @endif
+            @elseif($game->min_players)
                 <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">groups</span>
-                    @if($game->min_players && $game->max_players)
-                        {{ $game->min_players }}–{{ $game->max_players }}
-                    @elseif($game->min_players)
-                        {{ $game->min_players }}+
-                    @else
-                        ≤{{ $game->max_players }}
-                    @endif
-                </span>
-            @endif
-            @if(isset($game->participants_count))
-                <span class="flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
-                    {{ trans_choice('common.content_joined', $game->participants_count) }}
+                    {{ $game->min_players }}+
                 </span>
             @endif
             @if(($game->waitlisted_count ?? 0) > 0 || ($game->benched_count ?? 0) > 0)

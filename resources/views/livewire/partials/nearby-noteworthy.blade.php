@@ -67,7 +67,7 @@
                             @if($spotsAvailable !== null)
                                 <span class="text-[11px] text-on-surface-variant flex items-center gap-0.5">
                                     <span class="material-symbols-outlined text-xs" aria-hidden="true">group</span>
-                                    {{ $spotsAvailable }} {{ trans_choice('profile.dashboard_nearby_spots', $spotsAvailable) }}
+                                    {{ trans_choice('profile.dashboard_nearby_spots', $spotsAvailable) }}
                                 </span>
                             @endif
                             @if($distanceKm !== null)
