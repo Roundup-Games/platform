@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesRelationships;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get, post};
@@ -57,8 +59,8 @@ describe('Game Invite Participant', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     })->group('smoke');
 
@@ -84,7 +86,7 @@ describe('Game Invite Participant', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     });
 
@@ -101,7 +103,7 @@ describe('Game Invite Participant', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $stranger->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     });
 
@@ -113,8 +115,8 @@ describe('Game Invite Participant', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -145,14 +147,14 @@ describe('Game Invite Participant', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend1->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend2->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 });
@@ -165,14 +167,14 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'message' => 'I want to join!',
         ]);
 
@@ -184,14 +186,14 @@ describe('Game Approve/Reject Application', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     })->group('smoke');
 
@@ -202,14 +204,14 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -235,8 +237,8 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($owner)
@@ -246,8 +248,8 @@ describe('Game Approve/Reject Application', function () {
         // Status should not have changed
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 });
@@ -260,8 +262,8 @@ describe('Game Remove Participant', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -270,22 +272,22 @@ describe('Game Remove Participant', function () {
             ->assertHasNoErrors()
             ->assertSee('Participant removed');
 
-        // Participant record should be deleted on removal
-        assertDatabaseMissing('game_participants', [
+        // Participant record should be status=removed (not hard-deleted)
+        // to preserve roster history for host cancellation audit
+        assertDatabaseHas('game_participants', [
             'id' => $participant->id,
+            'status' => ParticipantStatus::Removed->value,
         ]);
     });
 
     test('cannot remove the game owner', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
-        // Create an owner participant record
-        $ownerParticipant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => 'owner',
-            'status' => 'approved',
-        ]);
+        // Owner participant already created by createGameWithOwner
+        $ownerParticipant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $owner->id)
+            ->where('role', 'owner')
+            ->firstOrFail();
 
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
@@ -295,7 +297,7 @@ describe('Game Remove Participant', function () {
         // Owner should still be approved
         assertDatabaseHas('game_participants', [
             'id' => $ownerParticipant->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 });
@@ -308,8 +310,8 @@ describe('Game Cancel Invite', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -330,8 +332,8 @@ describe('Game Cancel Invite', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Canceling a non-invited participant should throw ModelNotFoundException
@@ -398,15 +400,15 @@ describe('Game ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Participant should be auto-approved as player
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -429,15 +431,15 @@ describe('Game ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Participant should be pending applicant
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -459,14 +461,14 @@ describe('Game ApplyToGame', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Should show info message that user already has pending application
@@ -482,8 +484,8 @@ describe('Game ApplyToGame', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -504,7 +506,7 @@ describe('Game ApplyToGame', function () {
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -533,28 +535,28 @@ describe('Game Participant Status Transitions', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'message' => 'Pick me!',
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Verify pending state
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'message' => 'Pick me!',
         ]);
 
@@ -566,18 +568,19 @@ describe('Game Participant Status Transitions', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
-        // Step 3: Owner removes
+        // Step 3: Owner removes — record stays with status=removed
         Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
-        assertDatabaseMissing('game_participants', [
+        assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
+            'status' => ParticipantStatus::Removed->value,
         ]);
     });
 
@@ -595,8 +598,8 @@ describe('Game Participant Status Transitions', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Step 2: Owner cancels invite

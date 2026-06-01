@@ -16,4 +16,24 @@ enum ParticipantRole: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Owner => 'Owner',
+            self::Player => 'Player',
+            self::Invited => 'Invited',
+            self::Applicant => 'Applicant',
+        };
+    }
+
+    public function isOwner(): bool
+    {
+        return $this === self::Owner;
+    }
+
+    public function isPlayer(): bool
+    {
+        return $this === self::Player;
+    }
 }

@@ -11,6 +11,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewEligibilityService;
+use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -136,7 +137,7 @@ class ReviewEligibilityServiceTest extends TestCase
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved,
         ]);
 
@@ -157,7 +158,7 @@ class ReviewEligibilityServiceTest extends TestCase
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved,
         ]);
 
@@ -194,7 +195,7 @@ class ReviewEligibilityServiceTest extends TestCase
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved,
         ]);
         Review::factory()->create([
@@ -254,7 +255,7 @@ class ReviewEligibilityServiceTest extends TestCase
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $user->id,
-                'role' => 'player',
+                'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved,
             ]);
         }
@@ -322,7 +323,8 @@ class ReviewEligibilityServiceTest extends TestCase
             'owner_id' => $gm->id,
             'date_time' => now()->subDay(),
         ]);
-        // Owner has no participant record at all
+        // Owner has no participant record (not created via CreatesGameInstances)
+        // Under explicit owner model, games should always have owner participant
 
         $this->assertFalse($this->service->canReviewSession($owner, $game));
     }

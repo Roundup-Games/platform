@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CampaignResource\RelationManagers;
 
+use App\Enums\ParticipantRole;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
@@ -29,14 +30,11 @@ class ParticipantsRelationManager extends RelationManager
                     ->searchable()
                     ->required(),
                 Select::make('role')
-                    ->options([
-                        'owner' => 'Owner',
-                        'player' => 'Player',
-                        'invited' => 'Invited',
-                        'applicant' => 'Applicant',
-                    ])
+                    ->options(collect(ParticipantRole::cases())->mapWithKeys(
+                        fn (ParticipantRole $role) => [$role->value => $role->label()]
+                    ))
                     ->required()
-                    ->default('player'),
+                    ->default(ParticipantRole::Player->value),
                 Select::make('status')
                     ->options([
                         'approved' => 'Approved',
@@ -64,10 +62,10 @@ class ParticipantsRelationManager extends RelationManager
                 TextColumn::make('role')
                     ->badge()
                     ->color(fn ($state): string => match ((string) $state) {
-                        'owner' => 'warning',
-                        'player' => 'success',
-                        'invited' => 'info',
-                        'applicant' => 'gray',
+                        ParticipantRole::Owner->value => 'warning',
+                        ParticipantRole::Player->value => 'success',
+                        ParticipantRole::Invited->value => 'info',
+                        ParticipantRole::Applicant->value => 'gray',
                         default => 'gray',
                     }),
                 TextColumn::make('status')

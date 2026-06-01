@@ -9,9 +9,10 @@ use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use App\Services\ReviewEligibilityService;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\URL;
-use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -30,7 +31,7 @@ describe('Self-Review Prevention', function () {
             'date_time' => now()->subDay(),
         ]);
 
-        // GM is the owner but NOT a participant, so eligibility should be false
+        // GM is the owner — they should not review their own game session
         $service = app(ReviewEligibilityService::class);
         expect($service->canReviewSession($gm, $game))->toBeFalse();
     });
@@ -61,8 +62,8 @@ describe('Self-Review Prevention', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $gm->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -98,8 +99,8 @@ describe('Non-Participant Blocked', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'rejected',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Rejected->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -118,8 +119,8 @@ describe('Non-Participant Blocked', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'rejected',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Rejected->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -142,8 +143,8 @@ describe('Pre-Date Blocked', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -162,8 +163,8 @@ describe('Pre-Date Blocked', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -181,8 +182,8 @@ describe('Pre-Date Blocked', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -206,8 +207,8 @@ describe('Duplicate Review Prevention', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Review::factory()->create([
@@ -218,7 +219,7 @@ describe('Duplicate Review Prevention', function () {
             'rating' => 4,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
         Review::factory()->create([
             'reviewable_type' => Game::class,
             'reviewable_id' => $game->id,
@@ -239,8 +240,8 @@ describe('Duplicate Review Prevention', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $service = app(ReviewEligibilityService::class);
@@ -269,8 +270,8 @@ describe('Duplicate Review Prevention', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $campaign = Campaign::factory()->create(['owner_id' => $gm->id]);
@@ -282,8 +283,8 @@ describe('Duplicate Review Prevention', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Review::factory()->create([
@@ -360,4 +361,3 @@ describe('Observer Integration', function () {
         expect($gmProfile->fresh()->average_rating)->toBe($originalRating);
     });
 });
-

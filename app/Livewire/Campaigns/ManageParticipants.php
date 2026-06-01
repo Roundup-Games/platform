@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Traits\ManagesParticipants;
@@ -63,15 +64,18 @@ class ManageParticipants extends Component
             'applications.user',
         ]);
 
+        // Campaign owner IS shown in the approved list (sorted first) because
+        // campaigns are ongoing — the GM/organiser is a persistent participant.
+        // This differs from Games where the owner is hidden from ManageParticipants.
         $approvedParticipants = $this->campaign->participants
             ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
-            ->sortBy(fn ($p) => $p->role === 'owner' ? 0 : 1);
+            ->sortBy(fn ($p) => $p->role === ParticipantRole::Owner ? 0 : 1);
 
         $pendingApplicants = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === 'applicant' && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         $pendingInvites = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === 'invited' && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === \App\Enums\ParticipantStatus::Pending);
 
         return view('livewire.campaigns.manage-participants', [
             'campaign' => $this->campaign,

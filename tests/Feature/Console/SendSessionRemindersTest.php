@@ -5,6 +5,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Log;
 
 describe('SendSessionReminders command', function () {
@@ -24,8 +26,8 @@ describe('SendSessionReminders command', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->artisan('pwa:send-session-reminders')
@@ -55,8 +57,8 @@ describe('SendSessionReminders command', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         PushSubscription::factory()->create([
@@ -91,8 +93,8 @@ describe('SendSessionReminders command', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
         PushSubscription::factory()->create([
             'user_id' => $participant->id,
@@ -132,16 +134,16 @@ describe('SendSessionReminders command', function () {
         GameParticipant::create([
             'game_id' => $game1->id,
             'user_id' => $participant1->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant2 = User::factory()->create();
         GameParticipant::create([
             'game_id' => $game2->id,
             'user_id' => $participant2->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->artisan('pwa:send-session-reminders')
@@ -198,8 +200,8 @@ describe('SendSessionReminders 24-hour window', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->artisan('pwa:send-session-reminders')
@@ -274,16 +276,16 @@ describe('SendSessionReminders 24-hour window', function () {
         GameParticipant::create([
             'game_id' => $game1h->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant2 = User::factory()->create();
         GameParticipant::create([
             'game_id' => $game24h->id,
             'user_id' => $participant2->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->artisan('pwa:send-session-reminders')

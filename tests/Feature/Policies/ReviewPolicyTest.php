@@ -8,6 +8,8 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewEligibilityService;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -105,8 +107,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeTrue();
@@ -121,8 +123,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
@@ -137,8 +139,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'rejected',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Rejected->value,
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
@@ -162,8 +164,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
@@ -178,8 +180,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             // Already reviewed
@@ -207,8 +209,8 @@ describe('ReviewEligibilityService', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeTrue();
@@ -226,8 +228,8 @@ describe('ReviewEligibilityService', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
@@ -245,8 +247,8 @@ describe('ReviewEligibilityService', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
@@ -270,8 +272,8 @@ describe('ReviewEligibilityService', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             Review::factory()->create([
@@ -303,15 +305,15 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             $eligible = $this->service->getEligibleReviews($this->reviewer);
@@ -332,8 +334,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             Review::factory()->create([
@@ -357,8 +359,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             $eligible = $this->service->getEligibleReviews($this->reviewer);
@@ -375,8 +377,8 @@ describe('ReviewEligibilityService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             $eligible = $this->service->getEligibleReviews($this->reviewer);

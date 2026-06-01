@@ -295,8 +295,8 @@
                                 <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                                     <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {{ $participant->role === 'gm' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                        {{ strtoupper($participant->role) }}
+                                        {{ $participant->role->isOwner() ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
+                                        {{ strtoupper($participant->role->value) }}
                                     </span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                                         {{ $participant->status === \App\Enums\ParticipantStatus::Approved ? 'bg-secondary-container text-on-secondary-container' : ($participant->status === \App\Enums\ParticipantStatus::Benched ? 'bg-tertiary/10 text-tertiary' : 'bg-tertiary/10 text-tertiary') }}">

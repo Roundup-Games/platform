@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
 use App\Models\ActivityLog;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -145,8 +147,8 @@ describe('logForParticipants()', function () {
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
 
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $user1->id, 'role' => 'owner', 'status' => 'approved']);
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $user2->id, 'role' => 'player', 'status' => 'approved']);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $user1->id, 'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value]);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $user2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         // Clear observer-generated logs so we only measure logForParticipants output
         ActivityLog::query()->delete();

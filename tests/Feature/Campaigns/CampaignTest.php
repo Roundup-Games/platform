@@ -4,6 +4,8 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
 
 // ── Helpers ──────────────────────────────────────────────
@@ -165,8 +167,8 @@ describe('Campaign Detail Route', function () {
         \App\Models\CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($player)

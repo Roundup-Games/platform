@@ -7,6 +7,8 @@ use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
@@ -208,8 +210,8 @@ describe('GmWorkspace Participant Stats', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $player->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
         }
 
@@ -229,22 +231,22 @@ describe('GmWorkspace Participant Stats', function () {
         GameParticipant::create([
             'game_id' => $game1->id,
             'user_id' => $repeatPlayer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game2->id,
             'user_id' => $repeatPlayer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $oneTimePlayer = User::factory()->create();
         GameParticipant::create([
             'game_id' => $game1->id,
             'user_id' => $oneTimePlayer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->actingAs($gm)

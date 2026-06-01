@@ -1,9 +1,10 @@
 <?php
 
-use App\Livewire\Games\ApplyToGame;
-use App\Livewire\Campaigns\ApplyToCampaign;
-use App\Livewire\Games\GameDetail;
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
+use App\Livewire\Campaigns\ApplyToCampaign;
+use App\Livewire\Games\ApplyToGame;
+use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignApplication;
 use App\Models\CampaignParticipant;
@@ -14,7 +15,6 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
-
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -96,8 +96,8 @@ describe('Game Detail apply CTA', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $viewer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -118,7 +118,7 @@ describe('Game Detail apply CTA', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $viewer->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -211,7 +211,7 @@ describe('ApplyToCampaign', function () {
         CampaignApplication::create([
             'campaign_id' => $campaign->id,
             'user_id' => $viewer->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -230,8 +230,8 @@ describe('ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $viewer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -269,11 +269,17 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 2,
         ]);
 
-        // Fill the game (owner is implicit; one filler makes it full)
+        // Fill the game: add owner participant + one filler = max_players(2)
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $owner->id,
+            'role' => ParticipantRole::Owner->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => createUser()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -310,7 +316,7 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 5,
         ]);
 
-        // Owner is implicit — game has capacity (owner + 4 open slots = 5)
+        // Owner now has explicit participant record, game has capacity (1 owner + 4 open slots = 5)
         // No additional participants needed
 
         Livewire::actingAs($viewer)
@@ -339,11 +345,11 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 1,
         ]);
 
-        // Fill with owner
+        // Fill with owner (explicit owner participant occupies a seat)
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

@@ -7,6 +7,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -84,8 +86,8 @@ describe('Save Game Edit', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Notification::fake();
@@ -123,8 +125,8 @@ describe('Save Game Edit', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Notification::fake();

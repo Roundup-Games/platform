@@ -5,6 +5,7 @@ use App\Enums\ParticipantStatus;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Mail;
 use Tests\Traits\CreatesGameInstances;
 
@@ -45,7 +46,7 @@ test('can submit email invite from manage page', function () {
         'game_id' => $this->game->id,
         'user_id' => null,
         'invitee_email' => 'newuser@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -61,7 +62,7 @@ test('email invitee shows in pending invites with email', function () {
         'game_id' => $this->game->id,
         'user_id' => null,
         'invitee_email' => 'pending-user@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -126,7 +127,7 @@ test('matched email invitee shows as normal pending invite', function () {
         'game_id' => $this->game->id,
         'user_id' => $matchedUser->id,
         'invitee_email' => 'matched@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);

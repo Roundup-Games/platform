@@ -4,6 +4,7 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs};
 
 describe('DiscoveryPage', function () {
@@ -605,7 +606,7 @@ describe('DiscoveryPage', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($participant);

@@ -3,6 +3,7 @@
 use App\Enums\ActivityType;
 use App\Enums\GameType;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Jobs\EnrichPostHogProfile;
 use App\Models\ActivityLog;
@@ -168,7 +169,7 @@ it('enriches PlayerJoined with game_system and participant_role', function () {
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'join_source' => JoinSource::ShareLink,
     ]);
 
@@ -366,13 +367,13 @@ it('forwards to PostHog only for game owner via logForParticipants', function ()
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
     ]);
     GameParticipant::create([
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $player->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
     ]);
 
     $service = new ActivityLogService();
@@ -533,7 +534,7 @@ it('tracks user journey: game created → player joined → session scheduled', 
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $player->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'join_source' => JoinSource::Application,
     ]);
     $service->log(ActivityType::PlayerJoined, $player, $participant);
@@ -601,7 +602,7 @@ it('enriches user profile via EnrichPostHogProfile job for PlayerJoined', functi
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
     ]);
 
     $this->posthogClient->identifyCalls = [];

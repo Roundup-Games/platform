@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Models\User;
 use App\Notifications\NewApplication;
@@ -132,22 +133,22 @@ trait HandlesApplicationSubmission
 
                 // Determine participant status
                 $participantStatus = 'pending';
-                $participantRole = 'applicant';
+                $participantRole = ParticipantRole::Applicant->value;
                 $benchedAt = null;
                 $waitlistedAt = null;
 
                 if ($isPublic) {
                     if ($isFull && $freshEntity->isBenchMode()) {
                         $participantStatus = 'benched';
-                        $participantRole = 'player';
+                        $participantRole = ParticipantRole::Player->value;
                         $benchedAt = now();
                     } elseif ($isFull) {
                         $participantStatus = 'waitlisted';
-                        $participantRole = 'player';
+                        $participantRole = ParticipantRole::Player->value;
                         $waitlistedAt = now();
                     } else {
                         $participantStatus = 'approved';
-                        $participantRole = 'player';
+                        $participantRole = ParticipantRole::Player->value;
                     }
                 }
 

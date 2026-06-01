@@ -2,10 +2,12 @@
 
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Livewire\Games\GameDetail;
+use App\Livewire\Games\PublicGameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -35,7 +37,7 @@ describe('share_intent cookie on guest visit', function () {
         ]);
 
         Livewire::withQueryParams(['share' => $token])
-            ->test(\App\Livewire\Games\PublicGameDetail::class, ['id' => $game->id])
+            ->test(PublicGameDetail::class, ['id' => $game->id])
             ->assertHasNoErrors();
 
         // Cookie should have been queued
@@ -177,7 +179,7 @@ describe('canJoinViaShareLink', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -263,7 +265,7 @@ describe('GameDetail joinViaShareLink', function () {
 
         expect($participant)->not->toBeNull();
         expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe('player');
+        expect($participant->role)->toBe(ParticipantRole::Player);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
 
@@ -278,11 +280,11 @@ describe('GameDetail joinViaShareLink', function () {
             'campaign_id' => null,
         ]);
 
-        // Fill the game
+        // Owner already occupies the only slot under explicit-owner model
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -318,11 +320,11 @@ describe('GameDetail joinViaShareLink', function () {
             'campaign_id' => $campaign->id,
         ]);
 
-        // Fill the game
+        // Owner already occupies the only slot under explicit-owner model
         GameParticipant::create([
             'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -407,7 +409,7 @@ describe('CampaignDetail joinViaShareLink', function () {
 
         expect($participant)->not->toBeNull();
         expect($participant->status)->toBe(ParticipantStatus::Approved);
-        expect($participant->role)->toBe('player');
+        expect($participant->role)->toBe(ParticipantRole::Player);
         expect($participant->join_source)->toBe(JoinSource::ShareLink);
     });
 
@@ -421,11 +423,11 @@ describe('CampaignDetail joinViaShareLink', function () {
             'bench_mode' => true,
         ]);
 
-        // Fill the campaign
+        // Owner already occupies the only slot under explicit-owner model
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
-            'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'user_id' => $this->owner->id,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -472,7 +474,7 @@ describe('CampaignDetail joinViaShareLink', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

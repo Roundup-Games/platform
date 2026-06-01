@@ -10,6 +10,8 @@ use App\Models\CampaignParticipant;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesRelationships;
 
@@ -34,8 +36,8 @@ describe('Friend Invite join_source attribution', function () {
         $this->assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
             'join_source' => JoinSource::FriendInvite->value,
         ]);
     });
@@ -54,8 +56,8 @@ describe('Friend Invite join_source attribution', function () {
         $this->assertDatabaseHas('campaign_participants', [
             'campaign_id' => $campaign->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
             'join_source' => JoinSource::FriendInvite->value,
         ]);
     });
@@ -172,14 +174,14 @@ describe('Application approval join_source attribution', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'message' => null,
         ]);
 
@@ -190,8 +192,8 @@ describe('Application approval join_source attribution', function () {
 
         $this->assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::Application->value,
         ]);
     });
@@ -203,14 +205,14 @@ describe('Application approval join_source attribution', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         CampaignApplication::create([
             'campaign_id' => $campaign->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'message' => null,
         ]);
 
@@ -221,8 +223,8 @@ describe('Application approval join_source attribution', function () {
 
         $this->assertDatabaseHas('campaign_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::Application->value,
         ]);
     });

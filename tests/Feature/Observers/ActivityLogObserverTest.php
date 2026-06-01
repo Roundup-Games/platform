@@ -10,6 +10,8 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
@@ -42,8 +44,8 @@ describe('Game & Campaign observers', function () {
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $game->update(['status' => 'completed']);
@@ -70,8 +72,8 @@ describe('Game & Campaign observers', function () {
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $game->update(['status' => 'canceled']);
@@ -99,14 +101,14 @@ describe('Participant observer', function () {
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Clear logs from game creation
         ActivityLog::query()->delete();
 
-        $participant->update(['status' => 'approved']);
+        $participant->update(['status' => ParticipantStatus::Approved->value]);
 
         $log = ActivityLog::where('user_id', $this->owner->id)
             ->where('event_type', ActivityType::PlayerJoined)
@@ -129,8 +131,8 @@ describe('Participant observer', function () {
             'id' => (string) \Illuminate\Support\Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $log = ActivityLog::where('user_id', $this->owner->id)

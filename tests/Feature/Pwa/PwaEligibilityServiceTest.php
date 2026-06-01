@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\UserAppVisit;
 use App\Models\UserRelationship;
 use App\Services\PwaEligibilityService;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 
 beforeEach(function () {
     $this->service = new PwaEligibilityService;
@@ -48,8 +50,8 @@ describe('Trypass events', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -105,8 +107,8 @@ describe('Trypass events', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -126,8 +128,8 @@ describe('Trypass events', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -177,8 +179,8 @@ describe('Trypass events', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -199,8 +201,8 @@ describe('Trypass events', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -253,8 +255,8 @@ describe('Score gate combinations', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'created_at' => now()->subDay(),
         ]);
 
@@ -316,8 +318,8 @@ describe('Session caching', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Reevaluate should detect the trypass
@@ -346,8 +348,8 @@ describe('Session caching', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Should re-evaluate (cache expired)
@@ -365,8 +367,8 @@ describe('Edge cases', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
-            'role' => 'player',
-            'status' => 'pending',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $result = $this->service->isEligible($this->user);
@@ -386,8 +388,8 @@ describe('Edge cases', function () {
         GameParticipant::create([
             'user_id' => $this->user->id,
             'game_id' => $oldGame->id,
-            'status' => 'approved',
-            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value,
         ]);
 
         $result = $this->service->isEligible($this->user);

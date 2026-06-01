@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
+use App\Enums\ParticipantRole;
 
 beforeEach(function () {
     $this->service = app(AttendanceService::class);
@@ -28,7 +29,7 @@ function createDisputeGameWithParticipants(int $participantCount = 3, array $gam
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -39,7 +40,7 @@ function createDisputeGameWithParticipants(int $participantCount = 3, array $gam
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participants->push($user);

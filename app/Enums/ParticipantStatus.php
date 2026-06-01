@@ -9,6 +9,7 @@ enum ParticipantStatus: string
     case Pending = 'pending';
     case Waitlisted = 'waitlisted';
     case Benched = 'benched';
+    case Removed = 'removed';
 
     /**
      * @return string[]
@@ -26,6 +27,7 @@ enum ParticipantStatus: string
             self::Pending => __('common.status_pending'),
             self::Waitlisted => __('common.status_waitlisted'),
             self::Benched => __('common.status_benched'),
+            self::Removed => __('common.status_removed'),
         };
     }
 }

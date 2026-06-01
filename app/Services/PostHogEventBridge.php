@@ -251,7 +251,7 @@ class PostHogEventBridge
             return [
                 'game_id' => $subject->game_id,
                 'game_system' => $gameSystem?->name,
-                'participant_role' => $subject->role,
+                'participant_role' => $subject->role->value,
                 'source' => $subject->join_source?->value,
             ];
         }

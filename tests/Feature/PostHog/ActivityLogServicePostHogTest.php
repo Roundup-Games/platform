@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
@@ -11,6 +12,7 @@ use App\Services\ActivityLogService;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use App\Services\PostHogEventBridge;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -129,14 +131,16 @@ it('forwards participant event to PostHog for game owner', function () {
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
     DB::table('game_participants')->insert([
         'id' => Str::uuid()->toString(),
         'game_id' => $game->id,
         'user_id' => $participant->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
 
@@ -162,16 +166,16 @@ it('forwards participant event to PostHog for campaign owner', function () {
         'id' => Str::uuid()->toString(),
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
-        'status' => 'approved',
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
     DB::table('campaign_participants')->insert([
         'id' => Str::uuid()->toString(),
         'campaign_id' => $campaign->id,
         'user_id' => $participant->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
 

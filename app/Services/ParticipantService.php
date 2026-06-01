@@ -6,6 +6,7 @@ use App\Dto\InviteBatchResult;
 use App\Dto\ParticipantResult;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Mail\EntityInvitationEmail;
 use App\Models\Campaign;
@@ -113,8 +114,8 @@ class ParticipantService
                 $meta['participantClass']::create([
                     $meta['foreignKey'] => $entity->id,
                     'user_id' => $targetUser->id,
-                    'role' => 'invited',
-                    'status' => 'pending',
+                    'role' => ParticipantRole::Invited->value,
+                    'status' => ParticipantStatus::Pending->value,
                     'join_source' => JoinSource::FriendInvite,
                 ]);
             } catch (QueryException) {
@@ -205,8 +206,8 @@ class ParticipantService
         $meta['participantClass']::create([
             $meta['foreignKey'] => $entity->id,
             'user_id' => $existingUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
             'join_source' => JoinSource::EmailInvite,
         ]);
 
@@ -285,8 +286,8 @@ class ParticipantService
                 $meta['foreignKey'] => $entity->id,
                 'user_id' => null,
                 'invitee_email' => $suppressedEmail,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::EmailInvite,
             ]);
         } catch (QueryException) {
@@ -310,8 +311,8 @@ class ParticipantService
                 $meta['foreignKey'] => $entity->id,
                 'user_id' => null,
                 'invitee_email' => $normalizedEmail,
-                'role' => 'invited',
-                'status' => 'pending',
+                'role' => ParticipantRole::Invited->value,
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::EmailInvite,
             ]);
         } catch (QueryException) {
@@ -415,14 +416,14 @@ class ParticipantService
         }
 
         $participant->update([
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::Application,
         ]);
 
         $entity->applications()
             ->where('user_id', $participant->user_id)
-            ->update(['status' => 'approved']);
+            ->update(['status' => ParticipantStatus::Approved->value]);
 
         Log::info($meta['type'] . ' application approved', [
             $meta['foreignKey'] => $entity->id,
@@ -527,7 +528,7 @@ class ParticipantService
     ): ParticipantResult {
         $meta = $this->entityMeta($entity);
 
-        if ($participant->role === 'owner') {
+        if ($participant->role === ParticipantRole::Owner) {
             return ParticipantResult::fail('common.error_cannot_remove_the_entity_owner', [
                 'entity' => strtolower($meta['type']),
             ]);
@@ -536,10 +537,19 @@ class ParticipantService
         $removedUser = User::find($participant->user_id);
         $removedUserId = $participant->user_id;
 
-        // Delete the participant record entirely so the user can re-apply
-        $participant->delete();
+        // Soft-remove: set status to 'removed' instead of hard-deleting.
+        // This preserves roster history so we can detect hosts who kick everyone
+        // then cancel to dodge penalties (peak-roster counting in AttendanceService).
+        // The unique constraint on (game_id/campaign_id, user_id) blocks the
+        // removed user from re-applying — the participant record persists.
+        // Application record is cleaned up below for hygiene only.
+        $participant->update([
+            'status' => ParticipantStatus::Removed->value,
+            'removed_by' => $remover->id,
+            'removed_at' => now(),
+        ]);
 
-        // Also clean up any application record so re-application is possible
+        // Clean up application record
         $entity->applications()->where('user_id', $removedUserId)->delete();
 
         Log::info($meta['type'] . ' participant removed', [
@@ -629,7 +639,7 @@ class ParticipantService
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
+        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
@@ -640,20 +650,18 @@ class ParticipantService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $approvedParticipants = $lockedEntity->participants()
+            // Owner is an explicit participant, so count includes them naturally
+            $currentCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved)
                 ->count();
-
-            // +1 for the owner, who has no participant record
-            $currentCount = $approvedParticipants + 1;
 
             if ($lockedEntity->max_players && $currentCount >= $lockedEntity->max_players) {
                 return true;
             }
 
             $participant->update([
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             return false;
@@ -699,11 +707,11 @@ class ParticipantService
         }
 
         // Must have invited role and pending status
-        if ($participant->role !== 'invited' || $participant->status !== ParticipantStatus::Pending) {
+        if ($participant->role !== ParticipantRole::Invited || $participant->status !== ParticipantStatus::Pending) {
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        $participant->update(['status' => 'rejected']);
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
 
         Log::info($meta['type'] . ' invitation declined', [
             $meta['foreignKey'] => $entity->id,
@@ -782,7 +790,7 @@ class ParticipantService
         }
 
         $entityType = $meta['isCampaign'] ? 'campaign' : 'game';
-        app(BenchService::class)->promoteFromBench((string) $participant->id, $entityType);
+        app(BenchService::class)->promoteFromBench((string) $participant->id, $entityType, $promoter);
 
         Log::info($meta['type'] . ' bench participant promoted', [
             $meta['foreignKey'] => $entity->id,
@@ -879,27 +887,23 @@ class ParticipantService
 
         return $meta['participantClass']::where('id', $participantId)
             ->where($meta['foreignKey'], $entity->id)
-            ->where('role', 'invited')
+            ->where('role', ParticipantRole::Invited->value)
             ->where('status', 'pending')
             ->firstOrFail();
     }
 
     /**
-     * Count of approved players INCLUDING the owner.
+     * Count of approved participants INCLUDING the owner.
      *
-     * The owner is always present at the table but has no participant record,
-     * so we add 1 to the approved participant count. This centralises the
-     * "owner counts as a player" rule so future changes (e.g. "GM needed"
-     * where the organiser slot can be vacant) only need to touch this method.
+     * The owner is an explicit participant record with status=Approved,
+     * so they are counted naturally by this query. Use this for capacity
+     * calculations where the owner occupies a seat.
      */
-    public function getApprovedPlayerCount(Game|Campaign $entity): int
+    public function getApprovedParticipantCount(Game|Campaign $entity): int
     {
-        $approvedParticipants = $entity->participants()
+        return $entity->participants()
             ->where('status', ParticipantStatus::Approved)
             ->count();
-
-        // Owner is always a player at the table (no participant record).
-        return $approvedParticipants + 1;
     }
 
     /**
@@ -914,7 +918,7 @@ class ParticipantService
             return false;
         }
 
-        return $this->getApprovedPlayerCount($entity) >= $entity->max_players;
+        return $this->getApprovedParticipantCount($entity) >= $entity->max_players;
     }
 
     // ── Private helpers ────────────────────────────────
@@ -1025,7 +1029,7 @@ class ParticipantService
             $meta['foreignKey'] => $entity->id,
             'user_id' => $existingUserId,
             'invitee_email' => $existingUserId ? null : $normalizedEmail,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
             'status' => $overflow['status'],
             'join_source' => JoinSource::EmailInvite,
             $overflow['timestamp_column'] => now(),

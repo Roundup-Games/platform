@@ -5,6 +5,8 @@ use App\Models\EventRegistration;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, get};
 
 // ── RegisterForEvent ───────────────────────────────────
@@ -155,7 +157,7 @@ describe('RegisterForEvent', function () {
         TeamMember::factory()->create([
             'team_id' => $team->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
         ]);
 
@@ -196,7 +198,7 @@ describe('RegisterForEvent', function () {
         TeamMember::factory()->create([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
         ]);
 
@@ -290,7 +292,7 @@ describe('ManageRegistrations', function () {
 
         $registration = EventRegistration::factory()->create([
             'event_id' => $event->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'payment_status' => 'pending',
         ]);
 
@@ -420,7 +422,7 @@ describe('ManageRegistrations', function () {
             'event_id' => $event->id,
             'roster' => [
                 ['user_id' => 1, 'name' => 'Player One', 'role' => 'captain'],
-                ['user_id' => 2, 'name' => 'Player Two', 'role' => 'player'],
+                ['user_id' => 2, 'name' => 'Player Two', 'role' => ParticipantRole::Player->value],
             ],
         ]);
 

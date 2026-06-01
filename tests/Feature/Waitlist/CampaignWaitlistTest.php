@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ParticipantStatus;
+use App\Enums\ParticipantRole;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -40,7 +41,7 @@ function createFullWaitlistCampaign(User $owner, GameSystem $system, int $maxPla
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -48,7 +49,7 @@ function createFullWaitlistCampaign(User $owner, GameSystem $system, int $maxPla
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -90,19 +91,19 @@ test('add to waitlist throws for campaign with bench_mode=true', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -119,7 +120,7 @@ test('promote next waitlisted for campaign', function () {
 
     // Open a slot
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -139,7 +140,7 @@ test('confirm promotion for campaign participant', function () {
     $this->service->addToWaitlist($campaign, $user);
 
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -172,7 +173,7 @@ test('campaign waitlist uses far confirmation window (12h)', function () {
     $this->service->addToWaitlist($campaign, $user);
 
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -208,13 +209,13 @@ test('standalone game with bench_mode=true uses bench', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -246,13 +247,13 @@ test('standalone game with bench_mode=true rejects waitlist', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -282,13 +283,13 @@ test('campaign with bench_mode=false rejects bench', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $this->owner->id,
-        'role' => 'owner',
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -356,7 +357,7 @@ test('campaign waitlist promotion and confirmation chain', function () {
 
     // Open a slot
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()

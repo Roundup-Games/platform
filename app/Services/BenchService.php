@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +35,11 @@ class BenchService
             throw new \LogicException('Bench is only available for campaigns, campaign sessions, and games with bench_mode enabled.');
         }
 
+        // Owner cannot be benched on their own entity
+        if ($entity->owner_id === $user->id) {
+            throw new \LogicException('Cannot add to bench: you are the host.');
+        }
+
         // Wrap in transaction with lock for concurrency safety
         return DB::transaction(function () use ($entity, $user, $entityType, $isCampaign) {
             // Lock entity row to serialize concurrent bench adds
@@ -41,7 +48,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count() + 1; // +1 for the owner (no participant record)
+                ->count();
 
             if ($approvedCount < $lockedEntity->max_players) {
                 throw new \LogicException('Cannot add to bench: entity is not full.');
@@ -55,13 +62,23 @@ class BenchService
             $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
             $foreignKey = $isCampaign ? 'campaign_id' : 'game_id';
 
-            $participant = $participantClass::create([
-                $foreignKey => $lockedEntity->id,
-                'user_id' => $user->id,
-                'role' => 'player',
-                'status' => ParticipantStatus::Benched->value,
-                'benched_at' => now(),
-            ]);
+            try {
+                $participant = $participantClass::create([
+                    $foreignKey => $lockedEntity->id,
+                    'user_id' => $user->id,
+                    'role' => ParticipantRole::Player->value,
+                    'status' => ParticipantStatus::Benched->value,
+                    'benched_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // Handle concurrent insert race (unique constraint on entity_id + user_id).
+                // Re-throw all other errors (deadlocks, connectivity, schema issues).
+                if ($e->getCode() !== '23505') {
+                    throw $e;
+                }
+
+                throw new \LogicException('User is already a participant.');
+            }
 
             Log::info('bench.placed', [
                 'entity_type' => $entityType,
@@ -77,11 +94,17 @@ class BenchService
     /**
      * Promote a benched participant to approved status.
      *
+     * @param  string  $participantId  UUID of the participant to promote
+     * @param  string  $entityType  'campaign' or 'game'
+     * @param  User|null  $promoter  User performing the promotion (null for system/queue)
+     *
      * @throws \LogicException if participant is not benched or entity has no capacity
      */
-    public function promoteFromBench(string $participantId, string $entityType): void
+    public function promoteFromBench(string $participantId, string $entityType, ?User $promoter = null): void
     {
-        DB::transaction(function () use ($participantId, $entityType) {
+        $promoterId = $promoter?->id ?? 'system';
+
+        DB::transaction(function () use ($participantId, $entityType, $promoterId) {
             $isCampaign = $entityType === 'campaign';
 
             $participantClass = $isCampaign ? CampaignParticipant::class : GameParticipant::class;
@@ -98,7 +121,7 @@ class BenchService
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->count() + 1; // +1 for the owner (no participant record)
+                ->count();
 
             if ($approvedCount >= $lockedEntity->max_players) {
                 throw new \LogicException('Cannot promote: entity is full.');
@@ -113,7 +136,7 @@ class BenchService
                 'entity_type' => $entityType,
                 $foreignKey => $lockedEntity->id,
                 'user_id' => $participant->user_id,
-                'promoted_by' => auth()->id(),
+                'promoted_by' => $promoterId,
             ]);
         });
     }
@@ -128,17 +151,28 @@ class BenchService
     {
         return $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
+            ->with('user')
             ->get();
     }
 
     /**
-     * Handle entity cancellation — reject all benched participants.
+     * Handle entity cancellation — reject all benched participants (excluding owner).
      */
     public function handleEntityCancellation(Campaign|Game $entity): void
     {
         $benched = $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
             ->get();
+
+        // Owner should never be benched — if found, log a warning before excluding
+        $ownerBenched = $benched->first(fn ($p) => $p->role === ParticipantRole::Owner);
+        if ($ownerBenched) {
+            Log::warning('bench.cancel_found_owner_benched: data integrity issue', [
+                'entity_id' => $entity->id,
+                'owner_participant_id' => $ownerBenched->id,
+            ]);
+            $benched = $benched->filter(fn ($p) => $p->role !== ParticipantRole::Owner);
+        }
 
         foreach ($benched as $participant) {
             $participant->update(['status' => ParticipantStatus::Rejected->value]);

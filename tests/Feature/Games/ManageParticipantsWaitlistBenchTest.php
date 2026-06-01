@@ -6,6 +6,7 @@ use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -22,7 +23,7 @@ describe('Game ManageParticipants waitlist display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitlistedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
@@ -42,7 +43,7 @@ describe('Game ManageParticipants waitlist display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now()->subMinutes(10),
         ]);
@@ -50,7 +51,7 @@ describe('Game ManageParticipants waitlist display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now()->subMinutes(5),
         ]);
@@ -84,7 +85,7 @@ describe('Game ManageParticipants promote from waitlist', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitlistedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
@@ -106,7 +107,7 @@ describe('Game ManageParticipants promote from waitlist', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -135,7 +136,7 @@ describe('Game ManageParticipants remove from waitlist', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitlistedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
@@ -158,7 +159,7 @@ describe('Game ManageParticipants remove from waitlist', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -187,7 +188,7 @@ describe('Campaign ManageParticipants bench display', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $benchedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
             'benched_at' => now(),
         ]);
@@ -219,7 +220,7 @@ describe('Campaign ManageParticipants promote from bench', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $benchedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
             'benched_at' => now(),
         ]);
@@ -241,7 +242,7 @@ describe('Campaign ManageParticipants promote from bench', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -270,7 +271,7 @@ describe('Campaign ManageParticipants remove from bench', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $benchedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
             'benched_at' => now(),
         ]);
@@ -293,7 +294,7 @@ describe('Campaign ManageParticipants remove from bench', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -341,7 +342,7 @@ describe('Authorization checks for waitlist/bench actions', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitlistedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
@@ -366,7 +367,7 @@ describe('Authorization checks for waitlist/bench actions', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $benchedUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
             'benched_at' => now(),
         ]);

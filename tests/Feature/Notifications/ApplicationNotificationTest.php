@@ -14,6 +14,8 @@ use App\Models\UserRelationship;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
 use App\Notifications\NewApplication;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
@@ -176,14 +178,14 @@ describe('Approve application → ApplicationApproved', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)
@@ -216,14 +218,14 @@ describe('Reject application → ApplicationRejected', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)

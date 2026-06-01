@@ -253,7 +253,7 @@ trait HandlesWaitlist
             return;
         }
 
-        $approvedCount = app(\App\Services\ParticipantService::class)->getApprovedPlayerCount($entity);
+        $approvedCount = app(\App\Services\ParticipantService::class)->getApprovedParticipantCount($entity);
 
         if ($approvedCount < $entity->min_players) {
             $entityIdColumn = $this->getEntityIdColumn();
