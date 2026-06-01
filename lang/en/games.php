@@ -409,4 +409,9 @@ return [
     'content_bulletin_expires_at' => 'Expires :time',
     'push_bulletin_title' => 'Update from :host',
     'push_bulletin_body' => ':game — :content',
+
+    // Spot availability
+    'content_full' => 'Full',
+    'content_spots_left_short' => '{1} 1 spot left|[2,*] :count spots left',
+    'content_availability' => 'Availability',
 ];

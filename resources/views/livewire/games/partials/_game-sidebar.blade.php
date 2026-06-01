@@ -1,6 +1,52 @@
 {{-- Game detail sidebar: join CTA, host, applications, waitlist/bench management --}}
 <aside class="space-y-6">
 
+    {{-- Spot Availability --}}
+    @auth
+        @php
+            $approvedCount = $game->participants->where('status.value', 'approved')->count();
+            $spotsLeft = $game->max_players ? max(0, $game->max_players - $approvedCount) : null;
+            $waitlistedCount = $game->participants->where('status.value', 'waitlisted')->count();
+            $benchedCount = $game->participants->where('status.value', 'benched')->count();
+        @endphp
+        @if($spotsLeft !== null && !$isOwner)
+            <div class="bg-surface-container-low rounded-xl shadow-ambient p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface">{{ __('games.content_availability') }}</span>
+                    @if($spotsLeft === 0)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error/10 text-error">
+                            {{ __('games.content_full') }}
+                        </span>
+                    @elseif($spotsLeft <= 2)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/15 text-primary">
+                            {{ trans_choice('games.content_spots_left_short', $spotsLeft) }}
+                        </span>
+                    @else
+                        <span class="text-sm text-on-surface-variant">
+                            {{ $approvedCount }}/{{ $game->max_players }}
+                        </span>
+                    @endif
+                </div>
+                @if($waitlistedCount > 0 || $benchedCount > 0)
+                    <div class="mt-2 flex items-center gap-3 text-xs text-on-surface-variant">
+                        @if($waitlistedCount > 0)
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs" aria-hidden="true">schedule</span>
+                                {{ $waitlistedCount }} {{ trans_choice('games.content_waitlisted_count', $waitlistedCount) }}
+                            </span>
+                        @endif
+                        @if($benchedCount > 0)
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-xs" aria-hidden="true">event_seat</span>
+                                {{ $benchedCount }} {{ trans_choice('games.content_benched_count', $benchedCount) }}
+                            </span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
+    @endauth
+
     {{-- Join via Share Link CTA --}}
     @auth
         @if($canJoinViaShareLink)
