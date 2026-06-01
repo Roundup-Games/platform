@@ -14,46 +14,69 @@ use Illuminate\Support\Facades\Log;
 /**
  * Discovers nearby users scored by taste compatibility and social proof.
  *
- * Workflow:
- *   Phase 1 — Candidate Retrieval: Find users via geohash tiles (tier expansion).
- *   Phase 2 — Preference Loading: Bulk-load game systems, vibes, teams, follows.
- *   Phase 3 — Scoring: Jaccard similarity on tastes + social overlap, privacy-aware.
- *   Phase 4 — Pagination: Return scored, paginated results.
+ * Architecture (v2 — cache-only reads, SQL-first scoring):
  *
- * Query budget: ≤ 6 strategic queries per discover() call:
- *   1. Exclusion IDs (blocks + follows for viewer)
- *   2–4. Candidate retrieval (up to 3 tiers, stops early when ≥10 found)
- *   5. Bulk loads: game_system_prefs, vibe_prefs, team_members, candidate follows
- *   6. Viewer preferences (game_systems, vibes, teams) + candidate user models
+ *   discover() is cache-only: returns cached results or a "pending" status.
+ *   It never computes synchronously. The caller (PeoplePage) dispatches a
+ *   background warm-up job on first visit and uses wire:poll to hydrate.
+ *
+ *   computeAndCache() is the heavy method, called only by the background job:
+ *
+ *   Phase 1 — Candidate Retrieval: SQL with exclusion subquery + hard LIMIT.
+ *             Geohash tier via CASE. Taste-based supplement via game-system overlap.
+ *
+ *   Phase 2 — Scoring: Single SQL JOIN computes game/vibe/team overlap and
+ *             mutual-follow status. PHP computes Jaccard + composite (≤100 rows).
+ *
+ *   Phase 3 — Privacy + Distance: Hydrate User models for scored candidates,
+ *             filter by profile visibility, compute haversine distance.
+ *
+ *   Phase 4 — Cache: Store user_id-based results for paginated reads.
+ *
+ * Memory budget: ≤ 100 candidate rows × 6 INT columns ≈ 5 KB,
+ * plus ≤ 100 User models for final hydration. No bulk relationship loading.
  */
 class PeopleDiscoveryService
 {
     private ProfileVisibilityResolver $visibility;
+
+    /**
+     * Maximum candidates to retrieve and score.
+     * Hard cap prevents unbounded memory growth on dense datasets.
+     */
+    private const MAX_CANDIDATES = 100;
+
+    /**
+     * Maximum candidates from geohash tiles before supplementing with taste-based.
+     */
+    private const MAX_GEO_CANDIDATES = 50;
+
+    /**
+     * Maximum taste-based supplement candidates.
+     */
+    private const MAX_TASTE_CANDIDATES = 20;
 
     public function __construct(ProfileVisibilityResolver $visibility)
     {
         $this->visibility = $visibility;
     }
 
+    // ── Public API ────────────────────────────────────
+
     /**
      * Discover nearby users compatible with the viewer.
      *
-     * Reads from cache first. On cache miss, falls back to synchronous
-     * computeAndCache() to preserve current UX, then dispatches a background
-     * refresh job so subsequent views are faster.
+     * CACHE-ONLY: returns cached results or a "pending" status.
+     * Never triggers synchronous computation. The caller should
+     * dispatch UpdateUserDiscoveryCache to warm the cache, then
+     * poll via wire:poll until results are available.
      *
-     * @return array{results: LengthAwarePaginator<int, object{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}>, status: string}
+     * @return array{results: LengthAwarePaginator, status: string}
+     *   status is one of: 'ok', 'pending', 'no_location'
      */
     public function discover(User $viewer, ?float $lat = null, ?float $lng = null, int $perPage = 12, int $page = 1): array
     {
-        // Edge case: viewer has no location
         if ($lat === null || $lng === null) {
-            Log::debug('discovery.stats', [
-                'viewer_id' => $viewer->id,
-                'status' => 'no_location',
-                'candidates' => 0,
-            ]);
-
             return [
                 'results' => new LengthAwarePaginator([], 0, $perPage, $page),
                 'status' => 'no_location',
@@ -63,65 +86,676 @@ class PeopleDiscoveryService
         $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
         $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
 
-        // ── Cache read ──
         $cached = Cache::get($cacheKey);
-        if ($cached !== null) {
-            Log::debug('discovery.cache_hit', [
+
+        // Cache miss → pending (caller will dispatch warm-up job)
+        if ($cached === null) {
+            Log::debug('discovery.cache_miss_pending', [
                 'viewer_id' => $viewer->id,
                 'geohash' => $viewerGeohash,
-                'page' => $page,
             ]);
 
-            // Guard against stale cache entries that stored User models
-            // instead of user_id. If the first item lacks 'user_id',
-            // invalidate and fall through to fresh computation.
-            $firstItem = $cached[0] ?? null;
-            if ($firstItem && ! isset($firstItem['user_id'])) {
-                Log::warning('discovery.stale_cache_format', [
-                    'viewer_id' => $viewer->id,
-                    'cache_key' => $cacheKey,
-                ]);
-                Cache::forget($cacheKey);
-                // Fall through to fresh computation below
-            } else {
-                return $this->paginatedFromCache($cached, $perPage, $page);
+            return [
+                'results' => new LengthAwarePaginator([], 0, $perPage, $page),
+                'status' => 'pending',
+            ];
+        }
+
+        // Guard against stale cache entries that stored User models
+        $firstItem = $cached[0] ?? null;
+        if ($firstItem && ! isset($firstItem['user_id'])) {
+            Log::warning('discovery.stale_cache_format', [
+                'viewer_id' => $viewer->id,
+                'cache_key' => $cacheKey,
+            ]);
+            Cache::forget($cacheKey);
+
+            return [
+                'results' => new LengthAwarePaginator([], 0, $perPage, $page),
+                'status' => 'pending',
+            ];
+        }
+
+        return $this->paginatedFromCache($cached, $perPage, $page);
+    }
+
+    /**
+     * Check whether a warm-up job should be dispatched for this viewer.
+     *
+     * Returns true if:
+     *   - The cache is cold (no entry exists), AND
+     *   - The user has a location set
+     *
+     * This prevents re-dispatching on every poll while the job is running.
+     * The ShouldBeUnique trait on the job also provides deduplication, but
+     * this avoids the dispatch overhead entirely.
+     */
+    public function shouldWarmCache(User $viewer, ?float $lat, ?float $lng): bool
+    {
+        if ($lat === null || $lng === null) {
+            return false;
+        }
+
+        $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
+        $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
+
+        return Cache::get($cacheKey) === null;
+    }
+
+    /**
+     * Compute and cache discovery results for a user.
+     *
+     * Called exclusively by UpdateUserDiscoveryCache (background job).
+     * SQL-first pipeline:
+     *   1. retrieveCandidateIds() — SQL with exclusion subquery, hard LIMIT
+     *   2. computeScores() — Single SQL JOIN for all taste/social signals
+     *   3. Hydrate User models, privacy filter, distance calc
+     *   4. Cache user_id-based results
+     *
+     * @return array<int, array{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}>
+     */
+    public function computeAndCache(User $viewer, float $lat, float $lng): array
+    {
+        $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
+        $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
+        $ttl = now()->addMinutes(5);
+
+        self::invalidateCacheFor($viewer->id);
+
+        $queryCount = 0;
+        DB::listen(function () use (&$queryCount) {
+            $queryCount++;
+        });
+
+        // Phase 1 — Candidate retrieval via SQL (bounded)
+        $candidateMeta = $this->retrieveCandidateIds($viewer, $viewerGeohash);
+
+        if (empty($candidateMeta)) {
+            Cache::put($cacheKey, [], $ttl);
+            $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
+
+            Log::debug('discovery.stats', [
+                'viewer_id' => $viewer->id,
+                'candidates' => 0,
+                'queries' => $queryCount,
+            ]);
+
+            return [];
+        }
+
+        $candidateIds = array_keys($candidateMeta);
+
+        // Phase 2 — Score candidates via single SQL JOIN query
+        $scoredRows = $this->computeScores($viewer, $candidateIds);
+
+        // Phase 3 — Hydrate User models for scored candidates only (≤ MAX_CANDIDATES)
+        $scoredUserIds = array_column($scoredRows, 'user_id');
+        $candidateUsers = User::whereIn('id', $scoredUserIds)
+            ->whereNull('anonymized_at')
+            ->get()
+            ->keyBy('id');
+
+        // Pre-load viewer preferences for privacy-aware reweighting
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        $viewerVibes = $viewer->favoriteVibes()->pluck('vibe_preference_value')
+            ->map(fn ($flag) => $flag->value)->unique()->values()->all();
+        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->all();
+
+        // Build final results with privacy-aware scoring + distance
+        $results = [];
+        foreach ($scoredRows as $row) {
+            $candidate = $candidateUsers->get($row['user_id']);
+            if (! $candidate) {
+                continue;
+            }
+
+            $visibleFields = $this->visibility->profileFieldsVisible($viewer, $candidate);
+            if (! in_array('location', $visibleFields)) {
+                continue;
+            }
+
+            $result = $this->applyPrivacyReweight(
+                $row, $visibleFields,
+                $viewerGameIds, $viewerVibes, $viewerTeamIds,
+            );
+
+            $meta = $candidateMeta[$row['user_id']] ?? null;
+            $distanceKm = 0.0;
+            if ($meta) {
+                $distanceKm = $this->haversineDistance(
+                    $lat, $lng,
+                    $meta['latitude'], $meta['longitude'],
+                );
+            }
+
+            $results[] = [
+                'user' => $candidate,
+                'compatibility_score' => $result['compatibility_score'],
+                'match_reasons' => $result['match_reasons'],
+                'tier' => $meta['tier'] ?? 4,
+                'distance_km' => round($distanceKm, 2),
+            ];
+        }
+
+        usort($results, fn (array $a, array $b) => $b['compatibility_score'] <=> $a['compatibility_score']);
+
+        // Cache as user_id-based entries
+        $cacheable = array_map(fn (array $item) => [
+            'user_id' => $item['user']->id,
+            'compatibility_score' => $item['compatibility_score'],
+            'match_reasons' => $item['match_reasons'],
+            'tier' => $item['tier'],
+            'distance_km' => $item['distance_km'],
+        ], $results);
+
+        Cache::put($cacheKey, $cacheable, $ttl);
+        $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
+
+        $total = count($results);
+
+        if ($queryCount > 10) {
+            Log::warning('discovery.query_count_high', [
+                'viewer_id' => $viewer->id,
+                'query_count' => $queryCount,
+                'candidates' => $total,
+            ]);
+        }
+
+        Log::debug('discovery.stats', [
+            'viewer_id' => $viewer->id,
+            'candidates' => $total,
+            'queries' => $queryCount,
+            'tier_distribution' => array_count_values(
+                array_map(fn (array $m) => $m['tier'], $candidateMeta)
+            ),
+        ]);
+
+        return $results;
+    }
+
+    /**
+     * Invalidate the discovery cache for a user.
+     */
+    public static function invalidateCacheFor(string $userId): void
+    {
+        $keySetKey = "people:nearby:keys:{$userId}";
+        $keys = Cache::get($keySetKey, []);
+
+        foreach ($keys as $key) {
+            Cache::forget($key);
+        }
+
+        Cache::forget($keySetKey);
+
+        Log::debug('discovery.cache_invalidated', [
+            'user_id' => $userId,
+            'keys_cleared' => count($keys),
+        ]);
+    }
+
+    // ── Phase 1: Candidate Retrieval ──────────────────
+
+    /**
+     * Retrieve candidate user IDs via SQL with exclusion subquery.
+     *
+     * Single SQL query with:
+     *   - Exclusion via subquery (no PHP bulk loading of relationships)
+     *   - Tier assignment via CASE on geohash prefix
+     *   - Hard LIMIT to prevent unbounded growth
+     *
+     * Then supplements with taste-based candidates.
+     *
+     * @return array<int, array{latitude: float, longitude: float, tier: int}>
+     */
+    private function retrieveCandidateIds(User $viewer, string $viewerGeohash): array
+    {
+        $geohash4 = $viewerGeohash;
+        $geohash3 = substr($viewerGeohash, 0, 3);
+
+        $rows = DB::select("
+            SELECT u.id, l.latitude, l.longitude,
+                CASE
+                    WHEN l.geohash_4 LIKE ? THEN 1
+                    WHEN l.geohash_4 LIKE ? THEN 2
+                    ELSE 3
+                END AS tier
+            FROM users u
+            JOIN locations l ON u.location_id = l.id
+            WHERE (l.geohash_4 LIKE ? OR l.geohash_4 LIKE ?)
+              AND u.id NOT IN (
+                  SELECT related_user_id FROM user_relationships
+                  WHERE user_id = ? AND type IN ('follow', 'block')
+                  UNION
+                  SELECT user_id FROM user_relationships
+                  WHERE related_user_id = ? AND type = 'block'
+                  UNION SELECT ?
+              )
+              AND u.profile_complete IS TRUE
+              AND (u.is_disabled IS NOT TRUE)
+              AND u.anonymized_at IS NULL
+            ORDER BY tier ASC
+            LIMIT ?
+        ", [
+            $geohash4 . '%', $geohash3 . '%',
+            $geohash4 . '%', $geohash3 . '%',
+            $viewer->id, $viewer->id, $viewer->id,
+            self::MAX_GEO_CANDIDATES,
+        ]);
+
+        $candidates = [];
+        foreach ($rows as $row) {
+            $candidates[$row->id] = [
+                'latitude' => (float) $row->latitude,
+                'longitude' => (float) $row->longitude,
+                'tier' => (int) $row->tier,
+            ];
+        }
+
+        if (count($candidates) < self::MAX_CANDIDATES) {
+            $candidates = $this->supplementWithTasteCandidates($viewer, $candidates);
+        }
+
+        if (count($candidates) > self::MAX_CANDIDATES) {
+            $candidates = array_slice($candidates, 0, self::MAX_CANDIDATES, true);
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Supplement candidates with users sharing favorite game systems.
+     *
+     * @param  array<int, array{latitude: float, longitude: float, tier: int}>  $existing
+     * @return array<int, array{latitude: float, longitude: float, tier: int}>
+     */
+    private function supplementWithTasteCandidates(User $viewer, array $existing): array
+    {
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        if (empty($viewerGameIds)) {
+            return $existing;
+        }
+
+        $existingIds = array_keys($existing);
+        $viewerId = $viewer->id;
+
+        $existingSql = '';
+        $existingParams = [];
+        if (! empty($existingIds)) {
+            $existingPlaceholders = implode(',', array_fill(0, count($existingIds), '?'));
+            $existingSql = "AND ugs.user_id NOT IN ({$existingPlaceholders})";
+            $existingParams = $existingIds;
+        }
+
+        $gamePlaceholders = implode(',', array_fill(0, count($viewerGameIds), '?'));
+
+        $tasteRows = DB::select("
+            SELECT DISTINCT ugs.user_id
+            FROM user_game_system_preferences ugs
+            INNER JOIN users u ON u.id = ugs.user_id
+            WHERE ugs.game_system_id IN ({$gamePlaceholders})
+              AND ugs.preference_type = 'favorite'
+              AND u.profile_complete IS TRUE
+              AND (u.is_disabled IS NOT TRUE)
+              AND u.anonymized_at IS NULL
+              AND ugs.user_id NOT IN (
+                  SELECT related_user_id FROM user_relationships
+                  WHERE user_id = ? AND type IN ('follow', 'block')
+                  UNION
+                  SELECT user_id FROM user_relationships
+                  WHERE related_user_id = ? AND type = 'block'
+                  UNION SELECT ?
+              )
+              {$existingSql}
+            LIMIT ?
+        ", array_merge(
+            $viewerGameIds,
+            [$viewerId, $viewerId, $viewerId],
+            $existingParams,
+            [self::MAX_TASTE_CANDIDATES],
+        ));
+
+        $newIds = array_map(fn (\stdClass $row) => $row->user_id, $tasteRows);
+
+        if (empty($newIds)) {
+            return $existing;
+        }
+
+        $newPlaceholders = implode(',', array_fill(0, count($newIds), '?'));
+        $locRows = DB::select("
+            SELECT u.id, l.latitude, l.longitude
+            FROM users u
+            LEFT JOIN locations l ON u.location_id = l.id
+            WHERE u.id IN ({$newPlaceholders})
+        ", $newIds);
+
+        foreach ($locRows as $row) {
+            $id = $row->id;
+            if (! isset($existing[$id])) {
+                $existing[$id] = [
+                    'latitude' => (float) ($row->latitude ?? 0),
+                    'longitude' => (float) ($row->longitude ?? 0),
+                    'tier' => 4,
+                ];
             }
         }
 
-        // ── Cache miss: synchronous fallback ──
-        Log::debug('discovery.cache_miss', [
-            'viewer_id' => $viewer->id,
-            'geohash' => $viewerGeohash,
-        ]);
+        return $existing;
+    }
 
-        $scored = $this->computeAndCache($viewer, $lat, $lng);
+    // ── Phase 2: Scoring ──────────────────────────────
 
-        // Dispatch background refresh so next view is faster
-        // (uses the viewer's linked location, not guest location)
-        if ($viewer->linkedLocation) {
-            UpdateUserDiscoveryCache::dispatch($viewer->id, 'cache_miss_refresh');
+    /**
+     * Compute taste and social overlap scores for all candidates in one SQL query.
+     *
+     * Uses LEFT JOINs with conditional aggregation:
+     *   - shared_games / candidate_game_count
+     *   - shared_vibes / candidate_vibe_count
+     *   - shared_teams
+     *   - mutual_follow
+     *
+     * @param  int[]  $candidateIds
+     * @return array<int, array{user_id: int, compatibility_score: float, match_reasons: string[], tier: int, shared_games: int, candidate_game_count: int, shared_vibes: int, candidate_vibe_count: int, shared_teams: int, mutual_follow: bool}>
+     */
+    private function computeScores(User $viewer, array $candidateIds): array
+    {
+        if (empty($candidateIds)) {
+            return [];
         }
 
-        // Paginate from the computed results
-        $total = count($scored);
-        $items = collect($scored)->forPage($page, $perPage)->values();
+        $viewerId = $viewer->id;
+
+        // Pre-load viewer preferences (3 tiny queries)
+        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
+        $viewerVibes = $viewer->favoriteVibes()->pluck('vibe_preference_value')
+            ->map(fn ($flag) => $flag->value)->unique()->values()->all();
+        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->all();
+
+        $viewerGameCount = count($viewerGameIds);
+        $viewerVibeCount = count($viewerVibes);
+
+        [$sql, $params] = $this->buildScoreSQL(
+            $viewerId, $viewerGameIds, $viewerVibes, $viewerTeamIds, $candidateIds,
+        );
+
+        $rows = DB::select($sql, $params);
+
+        $results = [];
+        foreach ($rows as $row) {
+            $sharedGames = (int) $row->shared_games;
+            $candidateGameCount = (int) $row->candidate_game_count;
+            $sharedVibes = (int) $row->shared_vibes;
+            $candidateVibeCount = (int) $row->candidate_vibe_count;
+            $sharedTeams = (int) $row->shared_teams;
+            $mutualFollow = (bool) $row->mutual_follow;
+
+            $tasteComponents = [];
+            $matchReasons = [];
+
+            if ($sharedGames > 0 && $viewerGameCount > 0) {
+                $union = $viewerGameCount + $candidateGameCount - $sharedGames;
+                $tasteComponents[] = $union > 0 ? $sharedGames / $union : 0;
+                $matchReasons[] = 'shared_game_systems';
+            }
+
+            if ($sharedVibes > 0 && $viewerVibeCount > 0) {
+                $union = $viewerVibeCount + $candidateVibeCount - $sharedVibes;
+                $tasteComponents[] = $union > 0 ? $sharedVibes / $union : 0;
+                $matchReasons[] = 'shared_vibes';
+            }
+
+            $tasteScore = ! empty($tasteComponents)
+                ? array_sum($tasteComponents) / count($tasteComponents)
+                : 0.0;
+
+            $socialComponents = [];
+
+            if ($sharedTeams > 0) {
+                $socialComponents[] = min($sharedTeams / max(count($viewerTeamIds), 1), 1.0);
+                $matchReasons[] = 'shared_teams';
+            }
+
+            if ($mutualFollow) {
+                $socialComponents[] = 1.0;
+                $matchReasons[] = 'mutual_follow';
+            }
+
+            $socialScore = ! empty($socialComponents)
+                ? array_sum($socialComponents) / count($socialComponents)
+                : 0.0;
+
+            $hasTaste = ! empty($tasteComponents);
+            $hasSocial = ! empty($socialComponents);
+
+            $compositeScore = 0.0;
+            if ($hasTaste && $hasSocial) {
+                $compositeScore = ($tasteScore * 0.7) + ($socialScore * 0.3);
+            } elseif ($hasTaste) {
+                $compositeScore = $tasteScore;
+            } elseif ($hasSocial) {
+                $compositeScore = $socialScore;
+            }
+
+            if (empty($matchReasons)) {
+                $matchReasons[] = 'Nearby';
+            }
+
+            $results[] = [
+                'user_id' => (string) $row->user_id,
+                'compatibility_score' => round($compositeScore, 4),
+                'match_reasons' => $matchReasons,
+                'tier' => 0,
+                'shared_games' => $sharedGames,
+                'candidate_game_count' => $candidateGameCount,
+                'shared_vibes' => $sharedVibes,
+                'candidate_vibe_count' => $candidateVibeCount,
+                'shared_teams' => $sharedTeams,
+                'mutual_follow' => $mutualFollow,
+            ];
+        }
+
+        usort($results, fn (array $a, array $b) => $b['compatibility_score'] <=> $a['compatibility_score']);
+
+        return $results;
+    }
+
+    /**
+     * Build the dynamic scoring SQL with LEFT JOINs.
+     *
+     * Each JOIN computes overlap counts via conditional aggregation.
+     *
+     * @return array{0: string, 1: array} [sql, params]
+     */
+    private function buildScoreSQL(
+        string $viewerId,
+        array $viewerGameIds,
+        array $viewerVibes,
+        array $viewerTeamIds,
+        array $candidateIds,
+    ): array {
+        $candidateCount = count($candidateIds);
+        $cPh = implode(',', array_fill(0, $candidateCount, '?'));
+        $joins = [];
+        $params = [];
+
+        // Game systems JOIN
+        if (! empty($viewerGameIds)) {
+            $gPh = implode(',', array_fill(0, count($viewerGameIds), '?'));
+            $joins[] = "LEFT JOIN (
+                SELECT ug.user_id,
+                    SUM(CASE WHEN ug.game_system_id IN ({$gPh}) THEN 1 ELSE 0 END) AS shared,
+                    COUNT(*) AS candidate_total
+                FROM user_game_system_preferences ug
+                WHERE ug.user_id IN ({$cPh}) AND ug.preference_type = 'favorite'
+                GROUP BY ug.user_id
+            ) g ON g.user_id = u.id";
+            $params = array_merge($params, $viewerGameIds, $candidateIds);
+        } else {
+            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_game_system_preferences WHERE 1=0) g ON g.user_id = u.id";
+        }
+
+        // Vibes JOIN
+        if (! empty($viewerVibes)) {
+            $vPh = implode(',', array_fill(0, count($viewerVibes), '?'));
+            $joins[] = "LEFT JOIN (
+                SELECT uv.user_id,
+                    SUM(CASE WHEN uv.vibe_preference_value IN ({$vPh}) THEN 1 ELSE 0 END) AS shared,
+                    COUNT(*) AS candidate_total
+                FROM user_vibe_preferences uv
+                WHERE uv.user_id IN ({$cPh}) AND uv.preference_type = 'favorite'
+                GROUP BY uv.user_id
+            ) v ON v.user_id = u.id";
+            $params = array_merge($params, $viewerVibes, $candidateIds);
+        } else {
+            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared, 0 AS candidate_total FROM user_vibe_preferences WHERE 1=0) v ON v.user_id = u.id";
+        }
+
+        // Teams JOIN
+        if (! empty($viewerTeamIds)) {
+            $tPh = implode(',', array_fill(0, count($viewerTeamIds), '?'));
+            $joins[] = "LEFT JOIN (
+                SELECT tm.user_id,
+                    SUM(CASE WHEN tm.team_id IN ({$tPh}) THEN 1 ELSE 0 END) AS shared
+                FROM team_members tm
+                WHERE tm.user_id IN ({$cPh}) AND tm.status = 'active'
+                GROUP BY tm.user_id
+            ) t ON t.user_id = u.id";
+            $params = array_merge($params, $viewerTeamIds, $candidateIds);
+        } else {
+            $joins[] = "LEFT JOIN (SELECT user_id, 0 AS shared FROM team_members WHERE 1=0) t ON t.user_id = u.id";
+        }
+
+        // Mutual follow JOIN (targeted: only "does candidate follow viewer?")
+        $joins[] = "LEFT JOIN (
+            SELECT user_id FROM user_relationships
+            WHERE user_id IN ({$cPh}) AND related_user_id = ? AND type = 'follow'
+        ) mf ON mf.user_id = u.id";
+        $params = array_merge($params, $candidateIds, [$viewerId]);
+
+        $params = array_merge($params, $candidateIds);
+
+        $sql = "
+            SELECT
+                u.id AS user_id,
+                COALESCE(g.shared, 0) AS shared_games,
+                COALESCE(g.candidate_total, 0) AS candidate_game_count,
+                COALESCE(v.shared, 0) AS shared_vibes,
+                COALESCE(v.candidate_total, 0) AS candidate_vibe_count,
+                COALESCE(t.shared, 0) AS shared_teams,
+                CASE WHEN mf.user_id IS NOT NULL THEN 1 ELSE 0 END AS mutual_follow
+            FROM users u
+            " . implode("\n", $joins) . "
+            WHERE u.id IN ({$cPh})
+        ";
+
+        return [$sql, $params];
+    }
+
+    // ── Phase 3: Privacy Reweighting ──────────────────
+
+    /**
+     * Recompute composite score respecting profile visibility.
+     *
+     * Hidden fields are excluded from scoring as if the viewer had zero overlap.
+     *
+     * @return array{compatibility_score: float, match_reasons: string[]}
+     */
+    private function applyPrivacyReweight(
+        array $row,
+        array $visibleFields,
+        array $viewerGameIds,
+        array $viewerVibes,
+        array $viewerTeamIds,
+    ): array {
+        $gameSystemsVisible = in_array('game_systems', $visibleFields);
+        $vibesVisible = in_array('vibes', $visibleFields);
+        $teamsVisible = in_array('teams', $visibleFields);
+        $friendsListVisible = in_array('friends_list', $visibleFields);
+
+        $tasteComponents = [];
+        $matchReasons = [];
+
+        if ($gameSystemsVisible && $row['shared_games'] > 0 && ! empty($viewerGameIds)) {
+            $union = count($viewerGameIds) + $row['candidate_game_count'] - $row['shared_games'];
+            $tasteComponents[] = $union > 0 ? $row['shared_games'] / $union : 0;
+            $matchReasons[] = 'shared_game_systems';
+        }
+
+        if ($vibesVisible && $row['shared_vibes'] > 0 && ! empty($viewerVibes)) {
+            $union = count($viewerVibes) + $row['candidate_vibe_count'] - $row['shared_vibes'];
+            $tasteComponents[] = $union > 0 ? $row['shared_vibes'] / $union : 0;
+            $matchReasons[] = 'shared_vibes';
+        }
+
+        $tasteScore = ! empty($tasteComponents)
+            ? array_sum($tasteComponents) / count($tasteComponents)
+            : 0.0;
+
+        $socialComponents = [];
+
+        if ($teamsVisible && $row['shared_teams'] > 0 && ! empty($viewerTeamIds)) {
+            $socialComponents[] = min($row['shared_teams'] / count($viewerTeamIds), 1.0);
+            $matchReasons[] = 'shared_teams';
+        }
+
+        if ($friendsListVisible && $row['mutual_follow']) {
+            $socialComponents[] = 1.0;
+            $matchReasons[] = 'mutual_follow';
+        }
+
+        $socialScore = ! empty($socialComponents)
+            ? array_sum($socialComponents) / count($socialComponents)
+            : 0.0;
+
+        $hasTaste = ! empty($tasteComponents);
+        $hasSocial = ! empty($socialComponents);
+
+        $compositeScore = 0.0;
+        if ($hasTaste && $hasSocial) {
+            $compositeScore = ($tasteScore * 0.7) + ($socialScore * 0.3);
+        } elseif ($hasTaste) {
+            $compositeScore = $tasteScore;
+        } elseif ($hasSocial) {
+            $compositeScore = $socialScore;
+        }
+
+        if (empty($matchReasons)) {
+            $matchReasons[] = 'Nearby';
+        }
 
         return [
-            'results' => new LengthAwarePaginator($items, $total, $perPage, $page, [
-                'path' => request()?->url(),
-            ]),
-            'status' => 'ok',
+            'compatibility_score' => round($compositeScore, 4),
+            'match_reasons' => $matchReasons,
         ];
     }
 
     /**
+     * Compute Jaccard similarity between two arrays.
+     *
+     * J(A, B) = |A ∩ B| / |A ∪ B|
+     */
+    private function jaccard(array $a, array $b): float
+    {
+        if (empty($a) && empty($b)) {
+            return 0.0;
+        }
+
+        $setA = array_flip($a);
+        $setB = array_flip($b);
+
+        $intersection = count(array_intersect_key($setA, $setB));
+        $union = count($setA) + count($setB) - $intersection;
+
+        if ($union === 0) {
+            return 0.0;
+        }
+
+        return $intersection / $union;
+    }
+
+    // ── Cache Helpers ─────────────────────────────────
+
+    /**
      * Build a paginated response from cached user_id-based data.
-     *
-     * Reconstructs User models from cached user_ids and returns a
-     * paginated result set.
-     *
-     * @param  array[]  $cached  Array of cached items with user_id keys.
-     * @return array{results: LengthAwarePaginator, status: string}
      */
     private function paginatedFromCache(array $cached, int $perPage, int $page): array
     {
@@ -158,155 +792,6 @@ class PeopleDiscoveryService
     }
 
     /**
-     * Compute and cache discovery results for a user.
-     *
-     * Contains the full Phase 1–4 pipeline: candidate retrieval, preference
-     * loading, scoring, and cache storage. Called by:
-     *   - UpdateUserDiscoveryCache job (async cache population)
-     *   - discover() on cache miss (synchronous fallback)
-     *
-     * Invalidates existing cache first, then computes and stores fresh results.
-     * Stores user_id instead of User model to prevent deserialization errors.
-     *
-     * @return array<int, array{user: User, compatibility_score: float, match_reasons: string[], tier: int, distance_km: float}> Scored results sorted by compatibility descending.
-     */
-    public function computeAndCache(User $viewer, float $lat, float $lng): array
-    {
-        $viewerGeohash = Geohash::tilePrefix($lat, $lng, 4);
-        $cacheKey = "people:nearby:{$viewer->id}:{$viewerGeohash}";
-        $ttl = now()->addMinutes(5);
-
-        // Invalidate any stale cache entries first
-        self::invalidateCacheFor($viewer->id);
-
-        $queryCount = 0;
-        DB::listen(function () use (&$queryCount) {
-            $queryCount++;
-        });
-
-        // Phase 1 — Candidate retrieval with tier expansion
-        [$candidateRows, $tierMap] = $this->retrieveCandidates($viewer, $viewerGeohash);
-
-        if ($candidateRows->isEmpty()) {
-            // Store empty cache to prevent repeated empty computations
-            Cache::put($cacheKey, [], $ttl);
-            $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
-
-            if ($queryCount > 10) {
-                Log::warning('discovery.query_count_high', [
-                    'viewer_id' => $viewer->id,
-                    'query_count' => $queryCount,
-                    'candidates' => 0,
-                ]);
-            }
-
-            Log::debug('discovery.stats', [
-                'viewer_id' => $viewer->id,
-                'candidates' => 0,
-                'queries' => $queryCount,
-            ]);
-
-            return [];
-        }
-
-        $candidateIds = $candidateRows->pluck('id')->all();
-        $candidateLocationMap = [];
-        foreach ($candidateRows as $row) {
-            $candidateLocationMap[$row->id] = [
-                'lat' => (float) $row->latitude,
-                'lng' => (float) $row->longitude,
-            ];
-        }
-
-        // Eager-load candidate users (1 query)
-        $candidateUsers = User::whereIn('id', $candidateIds)
-            ->whereNull('anonymized_at')
-            ->get()
-            ->keyBy('id');
-
-        // Phase 2 — Bulk preference loading (4 queries via raw DB)
-        $gameSystemPrefs = $this->loadGameSystemPreferences($candidateIds);
-        $vibePrefs = $this->loadVibePreferences($candidateIds);
-        $teamMemberships = $this->loadTeamMemberships($candidateIds);
-        $candidateFollows = $this->loadCandidateFollows($candidateIds);
-
-        // Viewer's own preferences (4 queries — could be pre-cached by caller)
-        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
-        $viewerVibes = $viewer->favoriteVibes()->pluck('vibe_preference_value')
-            ->map(fn ($flag) => $flag->value)->unique()->values()->all();
-        $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->all();
-        $viewerFollows = UserRelationship::where('user_id', $viewer->id)
-            ->where('type', 'follow')
-            ->pluck('related_user_id')
-            ->all();
-
-        // Phase 3 — Scoring
-        $scored = collect();
-        foreach ($candidateIds as $userId) {
-            $candidate = $candidateUsers->get($userId);
-            if (! $candidate) {
-                continue;
-            }
-
-            $result = $this->scoreCandidate(
-                $viewer,
-                $candidate,
-                $lat,
-                $lng,
-                $tierMap[$userId] ?? 1,
-                $candidateLocationMap[$userId] ?? null,
-                $gameSystemPrefs[$userId] ?? [],
-                $vibePrefs[$userId] ?? [],
-                $teamMemberships[$userId] ?? [],
-                $viewerFollows,
-                $candidateFollows[$userId] ?? [],
-                $viewerGameIds,
-                $viewerVibes,
-                $viewerTeamIds,
-            );
-
-            if ($result !== null) {
-                $scored->push($result);
-            }
-        }
-
-        $scored = $scored->sortByDesc('compatibility_score')->values();
-
-        // Store the full scored set as user_id-based cache entries.
-        // This happens unconditionally (not page-dependent) since the job
-        // populates the full result set.
-        $cacheable = $scored->map(fn (array $item) => [
-            'user_id' => $item['user']->id,
-            'compatibility_score' => $item['compatibility_score'],
-            'match_reasons' => $item['match_reasons'],
-            'tier' => $item['tier'],
-            'distance_km' => $item['distance_km'],
-        ])->all();
-
-        Cache::put($cacheKey, $cacheable, $ttl);
-        $this->trackCacheKey($viewer->id, $cacheKey, $ttl);
-
-        $total = $scored->count();
-
-        if ($queryCount > 10) {
-            Log::warning('discovery.query_count_high', [
-                'viewer_id' => $viewer->id,
-                'query_count' => $queryCount,
-                'candidates' => $total,
-            ]);
-        }
-
-        Log::debug('discovery.stats', [
-            'viewer_id' => $viewer->id,
-            'candidates' => $total,
-            'queries' => $queryCount,
-            'tier_distribution' => array_count_values(array_values($tierMap)),
-        ]);
-
-        return $scored->all();
-    }
-
-    /**
      * Track a cache key in the user's key set for later invalidation.
      */
     private function trackCacheKey(string $userId, string $cacheKey, $ttl): void
@@ -317,392 +802,6 @@ class PeopleDiscoveryService
             $existingKeys[] = $cacheKey;
             Cache::put($keySetKey, $existingKeys, $ttl);
         }
-    }
-
-    /**
-     * Invalidate the discovery cache for a user.
-     *
-     * Called after follow/unfollow/block/unblock actions that change
-     * the candidate pool for the given user.
-     */
-    public static function invalidateCacheFor(string $userId): void
-    {
-        $keySetKey = "people:nearby:keys:{$userId}";
-        $keys = Cache::get($keySetKey, []);
-
-        foreach ($keys as $key) {
-            Cache::forget($key);
-        }
-
-        Cache::forget($keySetKey);
-
-        Log::debug('discovery.cache_invalidated', [
-            'user_id' => $userId,
-            'keys_cleared' => count($keys),
-        ]);
-    }
-
-    /**
-     * Phase 1: Retrieve candidate users via geohash tiles.
-     *
-     * Tries geohash_4 prefix (tier 1). If < 10 results, expands to geohash_3
-     * (tier 2). If still < 10, expands to geohash_2 (tier 3).
-     *
-     * Excludes: self, blocked users (both directions), existing follows,
-     * incomplete profiles, disabled users.
-     *
-     * @return array{0: Collection<int, object>, 1: array<int, int>}
-     */
-    private function retrieveCandidates(User $viewer, string $viewerGeohash): array
-    {
-        // Single query for all exclusion IDs (blocks + follows)
-        $excludedIds = $this->getExcludedUserIds($viewer);
-
-        $tiers = [
-            $viewerGeohash => 1,
-            substr($viewerGeohash, 0, 3) => 2,
-            substr($viewerGeohash, 0, 2) => 3,
-        ];
-
-        $found = collect();
-        $tierMap = [];
-
-        foreach ($tiers as $prefix => $tier) {
-            if ($found->count() >= 30 && $tier > 1) {
-                break;
-            }
-
-            $rows = DB::table('users')
-                ->join('locations', 'users.location_id', '=', 'locations.id')
-                ->where('locations.geohash_4', 'LIKE', $prefix . '%')
-                ->whereNotIn('users.id', $excludedIds)
-                ->where('users.profile_complete', true)
-                ->where(function ($q) {
-                    $q->where('users.is_disabled', false)
-                      ->orWhereNull('users.is_disabled');
-                })
-                ->select('users.id', 'locations.latitude', 'locations.longitude')
-                ->get();
-
-            foreach ($rows as $row) {
-                if (! isset($tierMap[$row->id])) {
-                    $tierMap[$row->id] = $tier;
-                    $found->push($row);
-                }
-            }
-
-            if ($found->count() >= 30) {
-                break;
-            }
-        }
-
-        // Supplement with taste-based candidates: users who share favorite
-        // game systems with the viewer, even if outside the geohash radius.
-        $viewerGameIds = $viewer->favoriteGameSystems()->pluck('game_system_id')->all();
-        if (!empty($viewerGameIds)) {
-            $existingIds = $found->pluck('id')->all();
-            $tasteCandidateIds = DB::table('user_game_system_preferences')
-                ->whereIn('game_system_id', $viewerGameIds)
-                ->where('preference_type', 'favorite')
-                ->whereNotIn('user_id', array_merge($excludedIds, $existingIds))
-                ->select('user_id')
-                ->distinct()
-                ->limit(20)
-                ->pluck('user_id')
-                ->all();
-
-            if (!empty($tasteCandidateIds)) {
-                $tasteRows = DB::table('users')
-                    ->leftJoin('locations', 'users.location_id', '=', 'locations.id')
-                    ->whereIn('users.id', $tasteCandidateIds)
-                    ->where('users.profile_complete', true)
-                    ->where(function ($q) {
-                        $q->where('users.is_disabled', false)
-                          ->orWhereNull('users.is_disabled');
-                    })
-                    ->select('users.id', 'locations.latitude', 'locations.longitude')
-                    ->get();
-
-                foreach ($tasteRows as $row) {
-                    if (!isset($tierMap[$row->id])) {
-                        $tierMap[$row->id] = 4; // taste-based tier
-                        $found->push($row);
-                    }
-                }
-            }
-        }
-
-        return [$found, $tierMap];
-    }
-
-    /**
-     * Get user IDs to exclude: self, blocked (both directions), existing follows.
-     *
-     * Single query via UNION to fetch both blocks and follows for the viewer.
-     */
-    private function getExcludedUserIds(User $viewer): array
-    {
-        // Single query: all user relationships involving the viewer
-        $rows = DB::table('user_relationships')
-            ->where(function ($q) use ($viewer) {
-                $q->where('user_id', $viewer->id)
-                  ->orWhere('related_user_id', $viewer->id);
-            })
-            ->select('user_id', 'related_user_id', 'type')
-            ->get();
-
-        $ids = [$viewer->id];
-
-        foreach ($rows as $row) {
-            if ($row->type === 'block') {
-                // Both directions of blocking
-                if ($row->user_id != $viewer->id) {
-                    $ids[] = $row->user_id;
-                }
-                if ($row->related_user_id != $viewer->id) {
-                    $ids[] = $row->related_user_id;
-                }
-            } elseif ($row->type === 'follow' && $row->user_id == $viewer->id) {
-                // Viewer follows this person — exclude
-                $ids[] = $row->related_user_id;
-            }
-        }
-
-        return array_values(array_unique($ids));
-    }
-
-    /**
-     * Load favorite game system IDs for all candidates.
-     *
-     * @param  int[]  $candidateIds
-     * @return array<int, int[]> userId => [gameSystemId, ...]
-     */
-    private function loadGameSystemPreferences(array $candidateIds): array
-    {
-        $rows = DB::table('user_game_system_preferences')
-            ->whereIn('user_id', $candidateIds)
-            ->where('preference_type', 'favorite')
-            ->select('user_id', 'game_system_id')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->game_system_id;
-        }
-
-        return $map;
-    }
-
-    /**
-     * Load favorite vibe values for all candidates.
-     *
-     * @param  int[]  $candidateIds
-     * @return array<int, string[]> userId => [vibeValue, ...]
-     */
-    private function loadVibePreferences(array $candidateIds): array
-    {
-        $rows = DB::table('user_vibe_preferences')
-            ->whereIn('user_id', $candidateIds)
-            ->where('preference_type', 'favorite')
-            ->select('user_id', 'vibe_preference_value')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->vibe_preference_value;
-        }
-
-        return $map;
-    }
-
-    /**
-     * Load active team memberships for candidates.
-     *
-     * @param  int[]  $candidateIds
-     * @return array<int, int[]> userId => [teamId, ...]
-     */
-    private function loadTeamMemberships(array $candidateIds): array
-    {
-        $rows = DB::table('team_members')
-            ->whereIn('user_id', $candidateIds)
-            ->where('status', 'active')
-            ->select('user_id', 'team_id')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->team_id;
-        }
-
-        return $map;
-    }
-
-    /**
-     * Load outgoing follows for all candidates (for mutual follow detection).
-     *
-     * @param  int[]  $candidateIds
-     * @return array<int, int[]> userId => [followedUserId, ...]
-     */
-    private function loadCandidateFollows(array $candidateIds): array
-    {
-        $rows = DB::table('user_relationships')
-            ->whereIn('user_id', $candidateIds)
-            ->where('type', 'follow')
-            ->select('user_id', 'related_user_id')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->related_user_id;
-        }
-
-        return $map;
-    }
-
-    /**
-     * Score a single candidate against the viewer.
-     *
-     * Privacy-aware: checks ProfileVisibilityResolver to determine which
-     * candidate fields are visible, and reweights scores when components
-     * are hidden.
-     */
-    private function scoreCandidate(
-        User $viewer,
-        User $candidate,
-        float $viewerLat,
-        float $viewerLng,
-        int $tier,
-        ?array $candidateLocation,
-        array $candidateGameIds,
-        array $candidateVibes,
-        array $candidateTeamIds,
-        array $viewerFollows,
-        array $candidateFollowsOut,
-        array $viewerGameIds,
-        array $viewerVibes,
-        array $viewerTeamIds,
-    ): ?array {
-        // Privacy check: candidate must allow location visibility to viewer
-        $visibleFields = $this->visibility->profileFieldsVisible($viewer, $candidate);
-        if (! in_array('location', $visibleFields)) {
-            return null;
-        }
-
-        // Compute distance
-        $distanceKm = 0.0;
-        if ($candidateLocation) {
-            $distanceKm = $this->haversineDistance(
-                $viewerLat, $viewerLng,
-                $candidateLocation['lat'], $candidateLocation['lng']
-            );
-        }
-
-        // ── Taste score ──
-        $tasteComponents = [];
-        $matchReasons = [];
-
-        $gameSystemsVisible = in_array('game_systems', $visibleFields);
-        $vibesVisible = in_array('vibes', $visibleFields);
-
-        if ($gameSystemsVisible && ! empty($viewerGameIds) && ! empty($candidateGameIds)) {
-            $jaccard = $this->jaccard($viewerGameIds, $candidateGameIds);
-            $tasteComponents[] = $jaccard;
-            if ($jaccard > 0) {
-                $matchReasons[] = 'shared_game_systems';
-            }
-        }
-
-        if ($vibesVisible && ! empty($viewerVibes) && ! empty($candidateVibes)) {
-            $jaccard = $this->jaccard($viewerVibes, $candidateVibes);
-            $tasteComponents[] = $jaccard;
-            if ($jaccard > 0) {
-                $matchReasons[] = 'shared_vibes';
-            }
-        }
-
-        $tasteScore = ! empty($tasteComponents)
-            ? array_sum($tasteComponents) / count($tasteComponents)
-            : 0.0;
-
-        // ── Social score ──
-        $socialComponents = [];
-
-        $teamsVisible = in_array('teams', $visibleFields);
-        $friendsListVisible = in_array('friends_list', $visibleFields);
-
-        if ($teamsVisible && ! empty($viewerTeamIds) && ! empty($candidateTeamIds)) {
-            $shared = count(array_intersect($viewerTeamIds, $candidateTeamIds));
-            $socialComponents[] = min($shared / max(count($viewerTeamIds), 1), 1.0);
-            if ($shared > 0) {
-                $matchReasons[] = 'shared_teams';
-            }
-        }
-
-        if ($friendsListVisible) {
-            $viewerFollowsCandidate = in_array($candidate->id, $viewerFollows);
-            $candidateFollowsViewer = in_array($viewer->id, $candidateFollowsOut);
-            if ($viewerFollowsCandidate && $candidateFollowsViewer) {
-                $socialComponents[] = 1.0;
-                $matchReasons[] = 'mutual_follow';
-            }
-        }
-
-        $socialScore = ! empty($socialComponents)
-            ? array_sum($socialComponents) / count($socialComponents)
-            : 0.0;
-
-        // ── Composite with reweighting ──
-        // When only one signal type is available, it gets 100% weight.
-        $hasTaste = ! empty($tasteComponents);
-        $hasSocial = ! empty($socialComponents);
-
-        $compositeScore = 0.0;
-        if ($hasTaste && $hasSocial) {
-            $compositeScore = ($tasteScore * 0.7) + ($socialScore * 0.3);
-        } elseif ($hasTaste) {
-            $compositeScore = $tasteScore;
-        } elseif ($hasSocial) {
-            $compositeScore = $socialScore;
-        }
-
-        // Candidate with all signals hidden (only location visible) gets
-        // score 0 and 'Nearby' as sole match reason so the UI can show
-        // something meaningful instead of a blank card.
-        if (empty($matchReasons)) {
-            $matchReasons[] = 'Nearby';
-        }
-
-        return [
-            'user' => $candidate,
-            'compatibility_score' => round($compositeScore, 4),
-            'match_reasons' => array_unique($matchReasons),
-            'tier' => $tier,
-            'distance_km' => round($distanceKm, 2),
-        ];
-    }
-
-    /**
-     * Compute Jaccard similarity between two arrays.
-     *
-     * J(A, B) = |A ∩ B| / |A ∪ B|
-     */
-    private function jaccard(array $a, array $b): float
-    {
-        if (empty($a) && empty($b)) {
-            return 0.0;
-        }
-
-        $setA = array_flip($a);
-        $setB = array_flip($b);
-
-        $intersection = count(array_intersect_key($setA, $setB));
-        $union = count($setA) + count($setB) - $intersection;
-
-        if ($union === 0) {
-            return 0.0;
-        }
-
-        return $intersection / $union;
     }
 
     /**

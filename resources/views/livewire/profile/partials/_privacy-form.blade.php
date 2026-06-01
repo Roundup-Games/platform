@@ -54,18 +54,18 @@
 
         @foreach(\App\Services\ProfileVisibilityResolver::FIELDS as $field)
             <div class="p-3 sm:p-4 bg-surface-container-low rounded-lg">
-                <div class="flex items-center justify-between gap-3">
+                {{-- Desktop: single row with label left, toggle right --}}
+                <div class="hidden sm:flex sm:items-center sm:justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="material-symbols-outlined text-lg text-on-surface-variant shrink-0" aria-hidden="true">{{ $fieldIcons[$field] ?? 'info' }}</span>
                         <div class="min-w-0">
                             <span class="text-sm font-medium text-on-surface">{{ $fieldLabels[$field] ?? $field }}</span>
                             @if(isset($fieldDescriptions[$field]))
-                                <p class="text-xs text-on-surface-variant mt-0.5 hidden sm:block">{{ $fieldDescriptions[$field] }}</p>
+                                <p class="text-xs text-on-surface-variant mt-0.5">{{ $fieldDescriptions[$field] }}</p>
                             @endif
                         </div>
                     </div>
 
-                    {{-- Mobile: stack below; Desktop: inline --}}
                     <div class="flex rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
                         @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('profile.visibility_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
                             @php
@@ -74,7 +74,32 @@
                             <button type="button"
                                     wire:click="$set('privacySettings.{{ $field }}', '{{ $value }}')"
                                     @class([
-                                        'px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors',
+                                        'px-3 py-1.5 text-xs font-medium transition-colors',
+                                        'bg-primary text-on-primary' => $isActive,
+                                        'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => !$isActive,
+                                    ])>
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Mobile: icon + label row, full-width toggle below --}}
+                <div class="sm:hidden space-y-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-outlined text-lg text-on-surface-variant shrink-0" aria-hidden="true">{{ $fieldIcons[$field] ?? 'info' }}</span>
+                        <span class="text-sm font-medium text-on-surface">{{ $fieldLabels[$field] ?? $field }}</span>
+                    </div>
+
+                    <div class="flex rounded-lg overflow-hidden border border-outline-variant/30">
+                        @foreach(['everyone' => __('profile.visibility_everyone'), 'friends' => __('profile.visibility_friends'), 'nobody' => __('profile.visibility_nobody')] as $value => $label)
+                            @php
+                                $isActive = ($privacySettings[$field] ?? 'everyone') === $value;
+                            @endphp
+                            <button type="button"
+                                    wire:click="$set('privacySettings.{{ $field }}', '{{ $value }}')"
+                                    @class([
+                                        'flex-1 py-2 text-xs font-medium text-center transition-colors',
                                         'bg-primary text-on-primary' => $isActive,
                                         'bg-surface-container-high text-on-surface-variant hover:bg-surface-container' => !$isActive,
                                     ])>

@@ -44,6 +44,8 @@ return [
     'nearby_no_location' => 'Lege deinen Standort fest, um Spieler in deiner Nähe zu entdecken.',
     'nearby_no_results' => 'Keine Spieler in der Nähe gefunden. Versuche, dein Suchgebiet zu erweitern.',
     'nearby_action_set_location' => 'Standort festlegen',
+    'nearby_searching' => 'Wir suchen noch nach gleichgesinnten Spielern, denen du folgen könntest.',
+    'nearby_searching_hint' => 'Ergebnisse werden automatisch angezeigt.',
 
     // E-Mail-Einladungen
     'field_invite_by_email' => 'Per E-Mail einladen',

@@ -120,12 +120,31 @@
             @if($approvedParticipants->count())
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($approvedParticipants as $participant)
-                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {{ $participant->role->isOwner() ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
-                                {{ strtoupper($participant->role->value) }}
-                            </span>
+                        <div class="py-3 first:pt-0 last:pb-0 space-y-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    <x-user-link :user="$participant->user" avatar-size="w-10 h-10" :truncate="true" />
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0
+                                        {{ $participant->role->isOwner() ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant' }}">
+                                        {{ strtoupper($participant->role->value) }}
+                                    </span>
+                                </div>
+                                @if(!$participant->role->isOwner())
+                                    <x-confirm-action
+                                        action="removeParticipant('{{ $participant->id }}')"
+                                        id="remove-participant-{{ $participant->id }}"
+                                        :icon="'person_remove'"
+                                        :trigger-label="__('common.action_remove')"
+                                        trigger-class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1 shrink-0"
+                                        :confirm-label="__('common.action_remove')"
+                                        :cancel-label="__('common.action_keep')"
+                                        :message="__('events.flash_are_you_sure_you_want_to_remove_this_participant')"
+                                        variant="inline"
+                                        severity="destructive"
+                                        confirm-icon="person_remove"
+                                    />
+                                @endif
+                            </div>
                             @if($participant->join_source)
                                 @php
                                     $joinSourceEnum = $participant->join_source;
@@ -136,36 +155,23 @@
                                     }
                                 @endphp
                                 @if($joinSourceBadge)
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
-                                        {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'bg-tertiary/10 text-tertiary' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'bg-primary/10 text-primary' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'bg-tertiary/10 text-tertiary' : 'bg-secondary-container text-on-secondary-container')) }}">
-                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">
-                                            {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'link' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'person_add' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'tag' : 'edit_note')) }}
+                                    <div class="flex flex-wrap gap-1.5 ml-13">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                            {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'bg-tertiary/10 text-tertiary' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'bg-primary/10 text-primary' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'bg-tertiary/10 text-tertiary' : 'bg-secondary-container text-on-secondary-container')) }}">
+                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">
+                                                {{ $joinSourceBadge === \App\Enums\JoinSource::ShareLink ? 'link' : ($joinSourceBadge === \App\Enums\JoinSource::FriendInvite ? 'person_add' : ($joinSourceBadge === \App\Enums\JoinSource::ShortLink ? 'tag' : 'edit_note')) }}
+                                            </span>
+                                            {{ $joinSourceBadge->label() }}
                                         </span>
-                                        {{ $joinSourceBadge->label() }}
-                                    </span>
-                                    @if($participant->short_link_id && $participant->shortLink)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/5 text-tertiary"
-                                              title="{{ __('common.content_joined_via_link', ['label' => $participant->source_label]) }}">
-                                            <span class="material-symbols-outlined text-xs" aria-hidden="true">tag</span>
-                                            {{ $participant->source_label }}
-                                        </span>
-                                    @endif
+                                        @if($participant->short_link_id && $participant->shortLink)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-tertiary/5 text-tertiary"
+                                                  title="{{ __('common.content_joined_via_link', ['label' => $participant->source_label]) }}">
+                                                <span class="material-symbols-outlined text-xs" aria-hidden="true">tag</span>
+                                                {{ $participant->source_label }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 @endif
-                            @endif
-                            @if(!$participant->role->isOwner())
-                                <x-confirm-action
-                                    action="removeParticipant('{{ $participant->id }}')"
-                                    id="remove-participant-{{ $participant->id }}"
-                                    :icon="'person_remove'"
-                                    :trigger-label="__('common.action_remove')"
-                                    trigger-class="text-sm text-error hover:text-error/80 transition-colors inline-flex items-center gap-1"
-                                    :confirm-label="__('common.action_remove')"
-                                    :cancel-label="__('common.action_keep')"
-                                    :message="__('events.flash_are_you_sure_you_want_to_remove_this_participant')"
-                                    variant="inline"
-                                    severity="destructive"
-                                    confirm-icon="person_remove"
-                                />
                             @endif
                         </div>
                     @endforeach
@@ -185,27 +191,29 @@
 
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($pendingApplicants as $applicant)
-                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <div class="flex-1 min-w-0">
-                                <x-user-link :user="$applicant->user" avatar-size="w-10 h-10" :truncate="true" />
-                                @php
-                                    $app = $entity->applications->firstWhere('user_id', $applicant->user_id)
-                                @endphp
-                                @if($app?->message)
-                                    <p class="text-xs text-on-surface-variant truncate ml-12">{{ $app->message }}</p>
-                                @endif
-                            </div>
-                            <div class="flex gap-2">
-                                <button wire:click="approveApplication('{{ $applicant->id }}')"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
-                                    {{ __('events.action_approve') }}
-                                </button>
-                                <button wire:click="rejectApplication('{{ $applicant->id }}')"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
-                                    <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-                                    {{ __('common.action_reject') }}
-                                </button>
+                        <div class="py-3 first:pt-0 last:pb-0 space-y-2">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <x-user-link :user="$applicant->user" avatar-size="w-10 h-10" :truncate="true" />
+                                    @php
+                                        $app = $entity->applications->firstWhere('user_id', $applicant->user_id)
+                                    @endphp
+                                    @if($app?->message)
+                                        <p class="text-xs text-on-surface-variant truncate ml-12">{{ $app->message }}</p>
+                                    @endif
+                                </div>
+                                <div class="flex gap-2 shrink-0">
+                                    <button wire:click="approveApplication('{{ $applicant->id }}')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">check</span>
+                                        <span class="hidden sm:inline">{{ __('events.action_approve') }}</span>
+                                    </button>
+                                    <button wire:click="rejectApplication('{{ $applicant->id }}')"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-error-container text-on-error-container text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+                                        <span class="hidden sm:inline">{{ __('common.action_reject') }}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -273,17 +281,19 @@
 
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($waitlistedParticipants as $participant)
-                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex-shrink-0">
-                                #{{ $loop->iteration }}
-                            </span>
-                            <div class="flex-1 min-w-0">
-                                <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
-                                @if($participant->waitlisted_at)
-                                    <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->waitlisted_at->format('M j, Y') }}</p>
-                                @endif
+                        <div class="py-3 first:pt-0 last:pb-0 space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex-shrink-0">
+                                    #{{ $loop->iteration }}
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
+                                    @if($participant->waitlisted_at)
+                                        <p class="text-xs text-on-surface-variant mt-0.5">{{ $participant->waitlisted_at->format('M j, Y') }}</p>
+                                    @endif
+                                </div>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 ml-10">
                                 <button wire:click="managePromoteFromWaitlist('{{ $participant->id }}')"
                                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary text-on-secondary text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
                                     <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_upward</span>
@@ -318,7 +328,7 @@
 
                 <div class="divide-y divide-outline-variant/30">
                     @foreach($benchedParticipants as $participant)
-                        <div class="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                        <div class="py-3 first:pt-0 last:pb-0 space-y-2">
                             <div class="flex-1 min-w-0">
                                 <x-user-link :user="$participant->user" :show-avatar="false" :truncate="true" />
                                 @if($participant->benched_at)

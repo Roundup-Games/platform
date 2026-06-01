@@ -30,14 +30,57 @@ class PeoplePage extends Component
     #[Locked]
     public User $authUser;
 
+    /**
+     * Whether the nearby cache-warm job has been dispatched this request.
+     * Prevents redundant dispatches on wire:poll cycles.
+     */
+    public bool $nearbyWarming = false;
+
     public function mount(): void
     {
         $this->authUser = Auth::user();
+
+        // Dispatch cache warm-up on mount so the background job starts
+        // computing while the user browses the following/followers tabs.
+        $this->dispatchNearbyWarmup();
     }
 
     public function updatingActiveTab(): void
     {
         $this->resetPage();
+    }
+
+    // ── Nearby Warm-up ────────────────────────────────
+
+    /**
+     * Dispatch the nearby discovery cache warm-up job if needed.
+     *
+     * Called on mount and by wire:poll. Uses shouldWarmCache() to avoid
+     * re-dispatching while the job is running (ShouldBeUnique on the job
+     * provides secondary deduplication).
+     */
+    public function dispatchNearbyWarmup(): void
+    {
+        if ($this->nearbyWarming) {
+            return;
+        }
+
+        $location = $this->authUser->linkedLocation;
+        $lat = $location && $location->latitude && $location->longitude
+            ? (float) $location->latitude : $this->guestLat;
+        $lng = $location && $location->latitude && $location->longitude
+            ? (float) $location->longitude : $this->guestLng;
+
+        if ($lat === null || $lng === null) {
+            return;
+        }
+
+        $service = app(PeopleDiscoveryService::class);
+
+        if ($service->shouldWarmCache($this->authUser, $lat, $lng)) {
+            UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'page_visit_warmup');
+            $this->nearbyWarming = true;
+        }
     }
 
     // ── Tab Data ──────────────────────────────────────
@@ -69,15 +112,20 @@ class PeoplePage extends Component
             ->paginate(12, ['*'], 'blocked_page');
     }
 
+    /**
+     * Cache-only nearby discovery results.
+     *
+     * Returns {results, status, noLocation} where status is:
+     *   'ok'         — cached results available
+     *   'pending'    — warm-up job running, no results yet
+     *   'no_location' — user has no location set
+     *
+     * The blade template shows a "still looking" state when pending,
+     * and wire:poll.5s triggers hydration when the cache fills.
+     */
     #[Computed]
     public function nearbyUsers(): array
     {
-        // Track this tab view for sweep targeting (no job dispatch)
-        NearbyDiscoveryView::updateOrCreate(
-            ['user_id' => $this->authUser->id],
-            ['last_discovery_view' => now()],
-        );
-
         // Resolve viewer location: prefer linked location, fall back to guest location
         $lat = null;
         $lng = null;
@@ -121,13 +169,27 @@ class PeoplePage extends Component
             'results' => $serializablePaginator,
             'status' => $response['status'],
             'noLocation' => $response['status'] === 'no_location',
+            'pending' => $response['status'] === 'pending',
         ];
     }
 
+    /**
+     * Nearby count for the tab badge.
+     *
+     * Returns -1 when pending (signals the blade to hide the count).
+     * Returns 0 when no location (signals the blade to show "0").
+     */
     #[Computed]
     public function nearbyCount(): int
     {
-        return $this->nearbyUsers['results']->total();
+        $nearby = $this->nearbyUsers;
+        $status = $nearby['status'] ?? 'pending';
+
+        if ($status === 'pending') {
+            return -1; // sentinel: hide the count badge
+        }
+
+        return $nearby['results']->total();
     }
 
     // ── Follow Stats ─────────────────────────────────
@@ -185,7 +247,6 @@ class PeoplePage extends Component
             return;
         }
 
-        // Remove the follow from the target to auth user
         UserRelationship::where('user_id', $target->id)
             ->where('related_user_id', $this->authUser->id)
             ->where('type', RelationshipType::Follow)
@@ -218,8 +279,9 @@ class PeoplePage extends Component
 
         UserRelationship::follow($this->authUser, $target);
 
-        // follow() now handles cache invalidation + dispatch internally
+        // follow() handles cache invalidation + dispatch internally
         unset($this->nearbyUsers, $this->nearbyCount, $this->followingCount, $this->followingUsers);
+        $this->nearbyWarming = false; // allow re-warm on next poll
 
         session()->flash('success', __('common.flash_now_following', ['name' => $target->name]));
     }
