@@ -3,7 +3,6 @@
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
 
 // ── Helpers (namespaced to this file only via describe/use blocks) ─
@@ -138,7 +137,7 @@ describe('TeamDetail', function () {
         ]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $removed->id,
-            'role' => 'player', 'status' => ParticipantStatus::Removed->value, 'joined_at' => now(), 'left_at' => now(),
+            'role' => 'player', 'status' => 'removed', 'joined_at' => now(), 'left_at' => now(),
         ]);
 
         Livewire\Livewire::test(App\Livewire\Teams\TeamDetail::class, ['slug' => $team->slug])

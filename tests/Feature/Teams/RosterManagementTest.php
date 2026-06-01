@@ -3,8 +3,6 @@
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Tests\Traits\CreatesTeams;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
 
@@ -74,8 +72,8 @@ describe('ManageRoster Invite', function () {
         assertDatabaseHas('team_members', [
             'team_id' => $team->id,
             'user_id' => $target->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Pending->value,
+            'role' => 'player',
+            'status' => 'pending',
             'invited_by' => $captain->id,
         ]);
     })->group('smoke');
@@ -123,7 +121,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'dup@example.com', 'profile_complete' => true]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $target->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(),
+            'role' => 'player', 'status' => 'pending', 'joined_at' => now(),
         ]);
 
         Livewire\Livewire::actingAs($captain)
@@ -138,7 +136,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'return@example.com', 'profile_complete' => true]);
         $oldMember = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $target->id,
-            'role' => 'player', 'status' => ParticipantStatus::Removed->value,
+            'role' => 'player', 'status' => 'removed',
             'joined_at' => now(), 'left_at' => now(),
         ]);
 
@@ -154,7 +152,7 @@ describe('ManageRoster Invite', function () {
             'team_id' => $team->id,
             'user_id' => $target->id,
             'role' => 'coach',
-            'status' => ParticipantStatus::Pending->value,
+            'status' => 'pending',
             'invited_by' => $captain->id,
         ]);
     });
@@ -173,7 +171,7 @@ describe('ManageRoster Invite', function () {
         assertDatabaseHas('team_members', [
             'team_id' => $team->id,
             'user_id' => $target->id,
-            'status' => ParticipantStatus::Pending->value,
+            'status' => 'pending',
         ]);
     });
 
@@ -217,7 +215,7 @@ describe('ManageRoster Role Management', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
         ]);
     });
 
@@ -245,7 +243,7 @@ describe('ManageRoster Role Management', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
         ]);
     });
 
@@ -308,7 +306,7 @@ describe('ManageRoster Role Management', function () {
         // Role unchanged
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
         ]);
     });
 
@@ -391,7 +389,7 @@ describe('ManageRoster Remove', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'status' => ParticipantStatus::Removed->value,
+            'status' => 'removed',
         ]);
     });
 
@@ -426,7 +424,7 @@ describe('ManageRoster Remove', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $captainMember->id,
-            'status' => ParticipantStatus::Removed->value,
+            'status' => 'removed',
         ]);
     });
 
@@ -464,7 +462,7 @@ describe('ManageRoster Cancel Invite', function () {
             'team_id' => $team->id,
             'user_id' => $target->id,
             'role' => 'player',
-            'status' => ParticipantStatus::Pending->value,
+            'status' => 'pending',
             'invited_by' => $captain->id,
             'joined_at' => now(),
         ]);
@@ -475,7 +473,7 @@ describe('ManageRoster Cancel Invite', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $pendingMember->id,
-            'status' => ParticipantStatus::Removed->value,
+            'status' => 'removed',
         ]);
     });
 
@@ -547,7 +545,7 @@ describe('PendingInvites', function () {
         ]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => 'pending',
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -576,7 +574,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => 'pending',
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -600,7 +598,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => 'pending',
             'joined_at' => now(),
         ]);
 
@@ -610,7 +608,7 @@ describe('PendingInvites', function () {
 
         assertDatabaseHas('team_members', [
             'id' => $member->id,
-            'status' => ParticipantStatus::Removed->value,
+            'status' => 'removed',
         ]);
     });
 
@@ -630,7 +628,7 @@ describe('PendingInvites', function () {
         ]);
         $invite = TeamMember::create([
             'team_id' => $inviteTeam->id, 'user_id' => $user->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter->id,
+            'role' => 'player', 'status' => 'pending', 'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -640,7 +638,7 @@ describe('PendingInvites', function () {
         // Should still be pending
         assertDatabaseHas('team_members', [
             'id' => $invite->id,
-            'status' => ParticipantStatus::Pending->value,
+            'status' => 'pending',
         ]);
     });
 
@@ -655,7 +653,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $otherUser->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => 'pending',
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -678,7 +676,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $otherUser->id,
-            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => 'pending',
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -695,12 +693,12 @@ describe('PendingInvites', function () {
         $inviter1 = User::factory()->create();
         $team1 = Team::factory()->create(['name' => 'Team Alpha', 'is_active' => true, 'created_by' => $inviter1->id]);
         TeamMember::create(['team_id' => $team1->id, 'user_id' => $inviter1->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team1->id, 'user_id' => $user->id, 'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter1->id]);
+        TeamMember::create(['team_id' => $team1->id, 'user_id' => $user->id, 'role' => 'player', 'status' => 'pending', 'joined_at' => now(), 'invited_by' => $inviter1->id]);
 
         $inviter2 = User::factory()->create();
         $team2 = Team::factory()->create(['name' => 'Team Beta', 'is_active' => true, 'created_by' => $inviter2->id]);
         TeamMember::create(['team_id' => $team2->id, 'user_id' => $inviter2->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team2->id, 'user_id' => $user->id, 'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter2->id]);
+        TeamMember::create(['team_id' => $team2->id, 'user_id' => $user->id, 'role' => 'player', 'status' => 'pending', 'joined_at' => now(), 'invited_by' => $inviter2->id]);
 
         Livewire\Livewire::actingAs($user)
             ->test(App\Livewire\Teams\PendingInvites::class)
