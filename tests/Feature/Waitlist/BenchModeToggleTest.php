@@ -113,7 +113,7 @@ test('CampaignApplication status is always pending on creation', function () {
     $application = CampaignApplication::create([
         'campaign_id' => Campaign::factory()->create()->id,
         'user_id' => User::factory()->create()->id,
-        'status' => 'pending',
+        'status' => ParticipantStatus::Pending->value,
         'message' => 'I want to join',
     ]);
 
@@ -164,7 +164,7 @@ function benchRouteCreateFullCampaign(User $owner, GameSystem $system, bool $ben
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -202,7 +202,7 @@ function benchRouteCreateFullGame(User $owner, GameSystem $system, bool $benchMo
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -345,7 +345,7 @@ describe('Campaign overflow routing via ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -513,7 +513,7 @@ describe('Standalone game overflow routing via ApplyToGame', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

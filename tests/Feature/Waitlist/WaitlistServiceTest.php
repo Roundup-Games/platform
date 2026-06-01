@@ -40,7 +40,7 @@ function createFullStandaloneGame(int $maxPlayers = 3, array $overrides = []): a
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -76,7 +76,7 @@ describe('addToWaitlist', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $user = User::factory()->create();
@@ -400,7 +400,7 @@ describe('handleGameCancellation', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $benchUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
         ]);
 

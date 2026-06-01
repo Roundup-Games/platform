@@ -115,7 +115,7 @@ class ParticipantService
                     $meta['foreignKey'] => $entity->id,
                     'user_id' => $targetUser->id,
                     'role' => ParticipantRole::Invited->value,
-                    'status' => 'pending',
+                    'status' => ParticipantStatus::Pending->value,
                     'join_source' => JoinSource::FriendInvite,
                 ]);
             } catch (QueryException) {
@@ -207,7 +207,7 @@ class ParticipantService
             $meta['foreignKey'] => $entity->id,
             'user_id' => $existingUser->id,
             'role' => ParticipantRole::Invited->value,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
             'join_source' => JoinSource::EmailInvite,
         ]);
 
@@ -287,7 +287,7 @@ class ParticipantService
                 'user_id' => null,
                 'invitee_email' => $suppressedEmail,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::EmailInvite,
             ]);
         } catch (QueryException) {
@@ -312,7 +312,7 @@ class ParticipantService
                 'user_id' => null,
                 'invitee_email' => $normalizedEmail,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::EmailInvite,
             ]);
         } catch (QueryException) {
@@ -417,13 +417,13 @@ class ParticipantService
 
         $participant->update([
             'role' => ParticipantRole::Player->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::Application,
         ]);
 
         $entity->applications()
             ->where('user_id', $participant->user_id)
-            ->update(['status' => 'approved']);
+            ->update(['status' => ParticipantStatus::Approved->value]);
 
         Log::info($meta['type'] . ' application approved', [
             $meta['foreignKey'] => $entity->id,
@@ -661,7 +661,7 @@ class ParticipantService
 
             $participant->update([
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             return false;
@@ -711,7 +711,7 @@ class ParticipantService
             return ParticipantResult::fail('people.error_invitation_no_longer_valid');
         }
 
-        $participant->update(['status' => 'rejected']);
+        $participant->update(['status' => ParticipantStatus::Rejected->value]);
 
         Log::info($meta['type'] . ' invitation declined', [
             $meta['foreignKey'] => $entity->id,

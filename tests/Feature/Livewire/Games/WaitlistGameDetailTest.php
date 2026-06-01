@@ -30,7 +30,7 @@ function addWaitlistedUser(Game $game): array
     $participant = GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $user->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Waitlisted->value,
         'waitlisted_at' => now(),
     ]);

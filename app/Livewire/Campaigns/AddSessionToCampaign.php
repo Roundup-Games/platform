@@ -12,6 +12,7 @@ use App\Notifications\SessionAddedToCampaign;
 use App\Services\NotificationService;
 use App\Services\OwnerParticipantService;
 use App\Services\ParticipantService;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -110,7 +111,7 @@ class AddSessionToCampaign extends Component
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
                         'role' => ParticipantRole::Player->value,
-                        'status' => 'benched',
+                        'status' => ParticipantStatus::Benched->value,
                         'benched_at' => now(),
                     ]);
                     $benchedCount++;
@@ -119,7 +120,7 @@ class AddSessionToCampaign extends Component
                         'game_id' => $game->id,
                         'user_id' => $campaignParticipant->user_id,
                         'role' => ParticipantRole::Invited->value,
-                        'status' => 'pending',
+                        'status' => ParticipantStatus::Pending->value,
                     ]);
                     $autoInvitedCount++;
                 }

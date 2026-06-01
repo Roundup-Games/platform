@@ -190,8 +190,8 @@ describe('ShareIntentService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->user->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -290,8 +290,8 @@ describe('ShareIntentService', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => User::factory()->create()->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 

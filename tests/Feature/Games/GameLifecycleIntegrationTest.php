@@ -86,13 +86,13 @@ class GameLifecycleIntegrationTest extends TestCase
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -224,11 +224,11 @@ class GameLifecycleIntegrationTest extends TestCase
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
-            'role' => 'player', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $reporter->id,
-            'role' => 'player', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Reporter marks host as no-show
@@ -282,7 +282,7 @@ class GameLifecycleIntegrationTest extends TestCase
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
-            'role' => 'player', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
         ]);
 
         $this->attendanceService->recordHostCancellationOffence($game);
@@ -316,7 +316,7 @@ class GameLifecycleIntegrationTest extends TestCase
         ]);
         GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
-            'role' => 'player', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Waitlist a player
@@ -362,7 +362,7 @@ class GameLifecycleIntegrationTest extends TestCase
         ]);
         $playerParticipant = GameParticipant::create([
             'game_id' => $game->id, 'user_id' => $player->id,
-            'role' => 'player', 'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
             'attendance_status' => null, // No report yet
         ]);
 

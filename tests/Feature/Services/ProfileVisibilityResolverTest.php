@@ -5,6 +5,7 @@ use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
+use App\Enums\ParticipantRole;
 
 beforeEach(function () {
     $this->resolver = new ProfileVisibilityResolver();
@@ -63,14 +64,14 @@ describe('Visibility matrix: every field × every relationship level', function 
         \App\Models\TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $this->owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);
         \App\Models\TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $teammate->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);

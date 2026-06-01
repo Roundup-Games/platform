@@ -13,6 +13,8 @@ use App\Models\UserRelationship;
 use App\Notifications\EntityInvitation;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -207,8 +209,8 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)
@@ -273,8 +275,8 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $pendingUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)
@@ -336,7 +338,7 @@ describe('Team Invitation → TeamInvitation', function () {
         TeamMember::create([
             'team_id' => $otherTeam->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);

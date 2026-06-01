@@ -45,7 +45,7 @@ function capacityCreateFullPublicGame(User $owner, GameSystem $system, int $maxP
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }

@@ -4,6 +4,7 @@ use App\Enums\ParticipantRole;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
 
 // ── Helpers ──────────────────────────────────────────────
@@ -31,8 +32,8 @@ describe('Game AcceptInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
@@ -44,8 +45,8 @@ describe('Game AcceptInvitation', function () {
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
             'user_id' => $invitedUser->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     })->group('smoke');
 
@@ -57,8 +58,8 @@ describe('Game AcceptInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($otherUser)
@@ -69,8 +70,8 @@ describe('Game AcceptInvitation', function () {
         // Should remain pending
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     })->group('smoke');
 
@@ -81,8 +82,8 @@ describe('Game AcceptInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -93,8 +94,8 @@ describe('Game AcceptInvitation', function () {
         // Should remain unchanged
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     })->group('smoke');
 
@@ -107,22 +108,22 @@ describe('Game AcceptInvitation', function () {
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $filler = User::factory()->create(['profile_complete' => true]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $filler->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
@@ -133,7 +134,7 @@ describe('Game AcceptInvitation', function () {
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
             'user_id' => $invitedUser->id,
-            'status' => 'waitlisted',
+            'status' => ParticipantStatus::Waitlisted->value,
         ]);
     })->group('smoke');
 
@@ -145,14 +146,14 @@ describe('Game AcceptInvitation', function () {
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
@@ -163,8 +164,8 @@ describe('Game AcceptInvitation', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     })->group('smoke');
 
@@ -175,8 +176,8 @@ describe('Game AcceptInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Invited user shouldn't normally be on manage-participants page,
@@ -188,8 +189,8 @@ describe('Game AcceptInvitation', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     })->group('smoke');
 });
@@ -206,8 +207,8 @@ describe('Game DeclineInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)
@@ -218,7 +219,7 @@ describe('Game DeclineInvitation', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'status' => 'rejected',
+            'status' => ParticipantStatus::Rejected->value,
         ]);
     })->group('smoke');
 
@@ -230,8 +231,8 @@ describe('Game DeclineInvitation', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($otherUser)
@@ -241,8 +242,8 @@ describe('Game DeclineInvitation', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     })->group('smoke');
 });
@@ -259,8 +260,8 @@ describe('Game Invitation Banner', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitedUser->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($invitedUser)

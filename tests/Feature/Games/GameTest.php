@@ -42,8 +42,8 @@ describe('GamePolicy — Ownership Actions', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         expect(Gate::forUser($player)->allows('update', $game))->toBeFalse();
@@ -215,8 +215,8 @@ describe('Game Invite Participant', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -241,7 +241,7 @@ describe('Game Invite Participant', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     });
 
@@ -254,8 +254,8 @@ describe('Game Invite Participant', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -278,7 +278,7 @@ describe('Game Invite Participant', function () {
         $this->assertDatabaseMissing('game_participants', [
             'game_id' => $game->id,
             'user_id' => $stranger->id,
-            'role' => 'invited',
+            'role' => ParticipantRole::Invited->value,
         ]);
     });
 
@@ -310,14 +310,14 @@ describe('Game Application — ApplyToGame', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -338,14 +338,14 @@ describe('Game Application — ApplyToGame', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -374,14 +374,14 @@ describe('Game Application — ApplyToGame', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -399,14 +399,14 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -415,14 +415,14 @@ describe('Game Approve/Reject Application', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         assertDatabaseHas('game_applications', [
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -433,14 +433,14 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'role' => 'applicant',
-            'status' => 'pending',
+            'role' => ParticipantRole::Applicant->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $applicant->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -465,8 +465,8 @@ describe('Game Approve/Reject Application', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -476,8 +476,8 @@ describe('Game Approve/Reject Application', function () {
         // Status unchanged
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 });
@@ -490,8 +490,8 @@ describe('Game Remove/Cancel Participant', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -516,7 +516,7 @@ describe('Game Remove/Cancel Participant', function () {
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)
@@ -525,7 +525,7 @@ describe('Game Remove/Cancel Participant', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $ownerParticipant->id,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -536,8 +536,8 @@ describe('Game Remove/Cancel Participant', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invited->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($owner)

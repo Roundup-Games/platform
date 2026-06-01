@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\WaitlistService;
+use App\Enums\ParticipantRole;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);
@@ -28,7 +29,7 @@ function createFullGameForSweep(): array
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -36,7 +37,7 @@ function createFullGameForSweep(): array
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $approved->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -56,7 +57,7 @@ function createFullCampaignForSweep(int $maxPlayers = 2): array
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -64,7 +65,7 @@ function createFullCampaignForSweep(int $maxPlayers = 2): array
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $approved->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

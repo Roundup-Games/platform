@@ -6,6 +6,8 @@ use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
@@ -143,8 +145,8 @@ describe('GameDetail Session Zero Link', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $gmProfile = GMProfile::factory()->create([
@@ -272,8 +274,8 @@ describe('GameDetail Session Zero Link', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $gmProfile = GMProfile::factory()->create([
@@ -312,8 +314,8 @@ describe('GameDetail Session Zero Link', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $gmProfile = GMProfile::factory()->create([

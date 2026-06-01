@@ -9,6 +9,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\ShortLink;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
@@ -175,8 +177,8 @@ describe('Join source badge display in manage-participants', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::ShareLink->value,
         ]);
 
@@ -194,8 +196,8 @@ describe('Join source badge display in manage-participants', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::FriendInvite->value,
         ]);
 
@@ -213,8 +215,8 @@ describe('Join source badge display in manage-participants', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => JoinSource::Application->value,
         ]);
 
@@ -232,8 +234,8 @@ describe('Join source badge display in manage-participants', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
             'join_source' => null,
         ]);
 

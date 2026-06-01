@@ -5,6 +5,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\User;
 use App\Services\WaitlistService;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
@@ -28,7 +29,7 @@ function createFullCampaign(int $maxPlayers = 3, array $overrides = []): array
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => $owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -36,7 +37,7 @@ function createFullCampaign(int $maxPlayers = 3, array $overrides = []): array
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -234,7 +235,7 @@ describe('handleCampaignCancellation', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $benchUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
         ]);
 

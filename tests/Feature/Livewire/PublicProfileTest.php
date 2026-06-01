@@ -5,6 +5,7 @@ use App\Enums\ParticipantRole;
 use App\Livewire\Profile\PublicProfile;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Enums\ParticipantStatus;
 use Livewire\Livewire;
 
 
@@ -324,8 +325,8 @@ describe('Game session visibility on profile', function () {
         \App\Models\GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $profileUser->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $viewer = createProfileUser();
@@ -364,7 +365,7 @@ describe('Game session visibility on profile', function () {
             'game_id' => $game->id,
             'user_id' => $profileUser->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $viewer = createProfileUser();

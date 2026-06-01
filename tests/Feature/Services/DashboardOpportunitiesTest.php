@@ -138,7 +138,7 @@ class DashboardOpportunitiesTest extends TestCase
         GameParticipant::create([
             'game_id' => $participatingGame->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -165,13 +165,13 @@ class DashboardOpportunitiesTest extends TestCase
         GameParticipant::create([
             'game_id' => $fullGame->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $fullGame->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -271,7 +271,7 @@ class DashboardOpportunitiesTest extends TestCase
         CampaignParticipant::create([
             'campaign_id' => $joinedCampaign->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -785,7 +785,7 @@ class DashboardOpportunitiesTest extends TestCase
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

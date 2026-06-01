@@ -3,6 +3,8 @@
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
 
 // ── Helpers (namespaced to this file only via describe/use blocks) ─
@@ -137,7 +139,7 @@ describe('TeamDetail', function () {
         ]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $removed->id,
-            'role' => 'player', 'status' => 'removed', 'joined_at' => now(), 'left_at' => now(),
+            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Removed->value, 'joined_at' => now(), 'left_at' => now(),
         ]);
 
         Livewire\Livewire::test(App\Livewire\Teams\TeamDetail::class, ['slug' => $team->slug])
@@ -196,7 +198,7 @@ describe('ManageTeam', function () {
         $team = Team::factory()->create(['is_active' => true, 'created_by' => $captain->id]);
 
         TeamMember::create(['team_id' => $team->id, 'user_id' => $captain->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'active', 'joined_at' => now()]);
+        TeamMember::create(['team_id' => $team->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => 'active', 'joined_at' => now()]);
 
         actingAs($player)
             ->get(route('teams.manage', $team->slug))

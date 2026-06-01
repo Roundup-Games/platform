@@ -5,6 +5,8 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Policies\AttendanceReportPolicy;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -20,8 +22,8 @@ beforeEach(function () {
     GameParticipant::create([
         'game_id' => $this->game->id,
         'user_id' => $this->participant->id,
-        'role' => 'player',
-        'status' => 'approved',
+        'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
     ]);
 
     $this->admin = User::factory()->create();
@@ -54,8 +56,8 @@ describe('AttendanceReportPolicy', function () {
             GameParticipant::create([
                 'game_id' => $this->game->id,
                 'user_id' => $pendingUser->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             expect($this->policy->create($pendingUser, $this->game))->toBeFalse();

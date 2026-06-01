@@ -7,6 +7,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Tests\Traits\CreatesGameInstances;
@@ -25,7 +26,7 @@ test('registration matches pending game invite by email', function () {
         'game_id' => $game->id,
         'user_id' => null,
         'invitee_email' => 'new@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -38,7 +39,7 @@ test('registration matches pending game invite by email', function () {
         'game_id' => $game->id,
         'user_id' => $user->id,
         'invitee_email' => 'new@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
     ]);
 });
@@ -54,7 +55,7 @@ test('registration matches pending campaign invite by email', function () {
         'campaign_id' => $campaign->id,
         'user_id' => null,
         'invitee_email' => 'new@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -65,7 +66,7 @@ test('registration matches pending campaign invite by email', function () {
         'campaign_id' => $campaign->id,
         'user_id' => $user->id,
         'invitee_email' => 'new@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
     ]);
 });
@@ -83,7 +84,7 @@ test('registration matching is case insensitive', function () {
         'game_id' => $game->id,
         'user_id' => null,
         'invitee_email' => 'test@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -111,7 +112,7 @@ test('registration does not match non-pending invites', function () {
         'game_id' => $game->id,
         'user_id' => null,
         'invitee_email' => 'rejected@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Rejected->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -141,7 +142,7 @@ test('registration matches multiple invites across entities', function () {
         'game_id' => $game1->id,
         'user_id' => null,
         'invitee_email' => 'multi@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -150,7 +151,7 @@ test('registration matches multiple invites across entities', function () {
         'game_id' => $game2->id,
         'user_id' => null,
         'invitee_email' => 'multi@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -159,7 +160,7 @@ test('registration matches multiple invites across entities', function () {
         'campaign_id' => $campaign->id,
         'user_id' => null,
         'invitee_email' => 'multi@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -193,7 +194,7 @@ test('registration logs matched invites', function () {
         'game_id' => $game->id,
         'user_id' => null,
         'invitee_email' => 'logged@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardSmartPromptService;
+use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
@@ -110,7 +111,7 @@ class DashboardSmartPromptServiceTest extends TestCase
             'campaign_id' => $campaign->id,
             'user_id' => $user->id,
             'status' => ParticipantStatus::Pending,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
         ]);
 
         $result = $this->service->getPrompt($user);

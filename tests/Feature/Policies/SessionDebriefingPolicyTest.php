@@ -6,6 +6,8 @@ use App\Models\GameParticipant;
 use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Policies\SessionDebriefingPolicy;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 
 beforeEach(function () {
     seedPermissions();
@@ -47,8 +49,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->create($this->participant, $game))->toBeTrue();
@@ -72,8 +74,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->create($this->participant, $game))->toBeFalse();
@@ -88,8 +90,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             expect($this->policy->create($this->participant, $game))->toBeFalse();
@@ -104,8 +106,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->create($this->participant, $game))->toBeFalse();
@@ -130,8 +132,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->gameOwner->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->create($this->gameOwner, $game))->toBeTrue();
@@ -148,8 +150,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             $debriefing = SessionDebriefing::create([
@@ -172,8 +174,8 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             $debriefing = SessionDebriefing::create([
@@ -196,16 +198,16 @@ describe('SessionDebriefingPolicy', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->participant->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             $pendingUser = User::factory()->create();
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $pendingUser->id,
-                'role' => 'player',
-                'status' => 'pending',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Pending->value,
             ]);
 
             $debriefing = SessionDebriefing::create([

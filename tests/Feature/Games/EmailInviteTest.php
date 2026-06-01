@@ -39,7 +39,7 @@ test('can invite by email for non-existent user', function () {
         'game_id' => $this->game->id,
         'user_id' => null,
         'invitee_email' => 'newuser@example.com',
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);
@@ -112,7 +112,7 @@ test('invite by email for existing user creates normal invite', function () {
         'game_id' => $this->game->id,
         'user_id' => $existingUser->id,
         'invitee_email' => null,
-        'role' => 'invited',
+        'role' => ParticipantRole::Invited->value,
         'status' => ParticipantStatus::Pending->value,
         'join_source' => JoinSource::EmailInvite->value,
     ]);

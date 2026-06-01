@@ -179,7 +179,7 @@ describe('canJoinViaShareLink', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -284,7 +284,7 @@ describe('GameDetail joinViaShareLink', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -324,7 +324,7 @@ describe('GameDetail joinViaShareLink', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -427,7 +427,7 @@ describe('CampaignDetail joinViaShareLink', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -474,7 +474,7 @@ describe('CampaignDetail joinViaShareLink', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $this->player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

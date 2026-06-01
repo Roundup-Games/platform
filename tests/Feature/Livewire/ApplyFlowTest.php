@@ -96,8 +96,8 @@ describe('Game Detail apply CTA', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $viewer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -118,7 +118,7 @@ describe('Game Detail apply CTA', function () {
         GameApplication::create([
             'game_id' => $game->id,
             'user_id' => $viewer->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -211,7 +211,7 @@ describe('ApplyToCampaign', function () {
         CampaignApplication::create([
             'campaign_id' => $campaign->id,
             'user_id' => $viewer->id,
-            'status' => 'pending',
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -230,8 +230,8 @@ describe('ApplyToCampaign', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $viewer->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Livewire::actingAs($viewer)
@@ -279,7 +279,7 @@ describe('ApplyToGame capacity guard', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => createUser()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -349,7 +349,7 @@ describe('ApplyToGame capacity guard', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

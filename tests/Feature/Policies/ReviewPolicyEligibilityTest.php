@@ -8,6 +8,8 @@ use App\Models\GameParticipant;
 use App\Models\Review;
 use App\Models\User;
 use App\Policies\ReviewPolicy;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -40,8 +42,8 @@ describe('ReviewPolicy — eligibility methods', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->canReviewSession($this->reviewer, $game))->toBeTrue();
@@ -65,8 +67,8 @@ describe('ReviewPolicy — eligibility methods', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->canReviewSession($this->reviewer, $game))->toBeFalse();
@@ -81,8 +83,8 @@ describe('ReviewPolicy — eligibility methods', function () {
             GameParticipant::create([
                 'game_id' => $game->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             Review::factory()->create([
@@ -109,8 +111,8 @@ describe('ReviewPolicy — eligibility methods', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->canReviewCampaign($this->reviewer, $campaign))->toBeTrue();
@@ -134,8 +136,8 @@ describe('ReviewPolicy — eligibility methods', function () {
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
                 'user_id' => $this->reviewer->id,
-                'role' => 'player',
-                'status' => 'approved',
+                'role' => ParticipantRole::Player->value,
+                'status' => ParticipantStatus::Approved->value,
             ]);
 
             expect($this->policy->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();

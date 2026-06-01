@@ -104,14 +104,14 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $gameMore->id,
             'user_id' => $player1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $gameMore->id,
             'user_id' => $player2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -125,7 +125,7 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $gameFewer->id,
             'user_id' => $player1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -396,14 +396,14 @@ class WarmTrendingNearbyTest extends TestCase
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $approvedPlayer->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $pendingPlayer->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
 

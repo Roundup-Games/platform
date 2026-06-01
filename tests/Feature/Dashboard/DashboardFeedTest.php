@@ -10,6 +10,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
+use App\Enums\ParticipantRole;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -61,8 +62,8 @@ describe('Community Feed — friends activity', function () {
         // Add 3 participants (approved players)
         GameParticipant::factory()->count(3)->create([
             'game_id' => $game->id,
-            'status' => 'approved',
-            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value,
         ]);
 
         Livewire::test(\App\Livewire\Dashboard::class)
@@ -132,7 +133,7 @@ describe('Community Feed — friends activity', function () {
             'game_id' => $game->id,
             'user_id' => $friend2->id,
             'status' => ParticipantStatus::Approved,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
         ]);
 
         $component = Livewire::test(\App\Livewire\Dashboard::class);
@@ -328,8 +329,8 @@ describe('Community Feed — action verbs', function () {
         GameParticipant::factory()->create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'status' => 'approved',
-            'role' => 'player',
+            'status' => ParticipantStatus::Approved->value,
+            'role' => ParticipantRole::Player->value,
         ]);
 
         Livewire::test(\App\Livewire\Dashboard::class)

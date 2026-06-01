@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Enums\ParticipantStatus;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -202,8 +203,8 @@ describe('GamesPage — Games I\'m In Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($user)
@@ -246,8 +247,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -263,8 +264,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -280,8 +281,8 @@ describe('GamesPage — Open Invitations Display', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         actingAs($user)
@@ -304,8 +305,8 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
@@ -314,8 +315,8 @@ describe('GamesPage — Accept Invitation Action', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // Flash message is set via session()->flash() and rendered on next page load,
@@ -332,8 +333,8 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $other->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
@@ -343,8 +344,8 @@ describe('GamesPage — Accept Invitation Action', function () {
         // Status should remain unchanged
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         // Flash error is session-based — DB state confirms the invitation was rejected.
@@ -360,20 +361,20 @@ describe('GamesPage — Accept Invitation Action', function () {
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
@@ -383,8 +384,8 @@ describe('GamesPage — Accept Invitation Action', function () {
         // Game is full — participant should be waitlisted
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'waitlisted',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Waitlisted->value,
         ]);
     });
 
@@ -396,8 +397,8 @@ describe('GamesPage — Accept Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -406,8 +407,8 @@ describe('GamesPage — Accept Invitation Action', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -420,21 +421,21 @@ describe('GamesPage — Accept Invitation Action', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => gamesPageCreateUser()->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -443,8 +444,8 @@ describe('GamesPage — Accept Invitation Action', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
     });
 });
@@ -462,8 +463,8 @@ describe('GamesPage — Decline Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         $component = Livewire\Livewire::actingAs($user)
@@ -472,8 +473,8 @@ describe('GamesPage — Decline Invitation Action', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'rejected',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Rejected->value,
         ]);
 
         // Flash success is session-based — DB state confirms the decline.
@@ -488,8 +489,8 @@ describe('GamesPage — Decline Invitation Action', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $other->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -498,8 +499,8 @@ describe('GamesPage — Decline Invitation Action', function () {
 
         assertDatabaseHas('game_participants', [
             'id' => $participant->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -536,8 +537,8 @@ describe('GamesPage — Community Activity Feed', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         actingAs($user)
@@ -577,8 +578,8 @@ describe('GamesPage — Community Activity Feed', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $friend->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         // The game_created activity should still show (friend didn't create it — viewer did)

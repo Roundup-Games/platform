@@ -35,7 +35,7 @@ function createGameWithOwner(GameSystem $system, int $maxPlayers, array $extra =
         'game_id' => $game->id,
         'user_id' => $owner->id,
         'role' => ParticipantRole::Owner->value,
-        'status' => 'approved',
+        'status' => ParticipantStatus::Approved->value,
         'join_source' => JoinSource::Application,
     ]);
 
@@ -62,7 +62,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $player->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -90,7 +90,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $approvedPlayer->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -100,7 +100,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $pendingPlayer->id,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -118,7 +118,7 @@ describe('Capacity and Counting Correctness', function () {
                     'game_id' => $game->id,
                     'user_id' => User::factory()->create()->id,
                     'role' => ParticipantRole::Player->value,
-                    'status' => 'approved',
+                    'status' => ParticipantStatus::Approved->value,
                     'join_source' => JoinSource::Application,
                 ]);
             }
@@ -149,7 +149,7 @@ describe('Capacity and Counting Correctness', function () {
                     'game_id' => $game->id,
                     'user_id' => User::factory()->create()->id,
                     'role' => ParticipantRole::Player->value,
-                    'status' => 'approved',
+                    'status' => ParticipantStatus::Approved->value,
                     'join_source' => JoinSource::Application,
                 ]);
             }
@@ -163,7 +163,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $extraPlayer->id,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -183,7 +183,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => User::factory()->create()->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -196,7 +196,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $lastPlayer->id,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 
@@ -224,7 +224,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $game->owner_id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -234,7 +234,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $player->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -263,7 +263,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $game->owner_id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -286,7 +286,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $game->owner_id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -296,7 +296,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $player->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -339,7 +339,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $owner->id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -349,7 +349,7 @@ describe('Capacity and Counting Correctness', function () {
                     'game_id' => $game->id,
                     'user_id' => User::factory()->create()->id,
                     'role' => ParticipantRole::Player->value,
-                    'status' => 'approved',
+                    'status' => ParticipantStatus::Approved->value,
                     'join_source' => JoinSource::Application,
                 ]);
             }
@@ -374,7 +374,7 @@ describe('Capacity and Counting Correctness', function () {
                 'campaign_id' => $campaign->id,
                 'user_id' => $owner->id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -384,7 +384,7 @@ describe('Capacity and Counting Correctness', function () {
                     'campaign_id' => $campaign->id,
                     'user_id' => User::factory()->create()->id,
                     'role' => ParticipantRole::Player->value,
-                    'status' => 'approved',
+                    'status' => ParticipantStatus::Approved->value,
                     'join_source' => JoinSource::Application,
                 ]);
             }
@@ -405,7 +405,7 @@ describe('Capacity and Counting Correctness', function () {
                 'campaign_id' => $campaign->id,
                 'user_id' => $owner->id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -415,7 +415,7 @@ describe('Capacity and Counting Correctness', function () {
                     'campaign_id' => $campaign->id,
                     'user_id' => User::factory()->create()->id,
                     'role' => ParticipantRole::Player->value,
-                    'status' => 'approved',
+                    'status' => ParticipantStatus::Approved->value,
                     'join_source' => JoinSource::Application,
                 ]);
             }
@@ -437,7 +437,7 @@ describe('Capacity and Counting Correctness', function () {
                 'campaign_id' => $campaign->id,
                 'user_id' => $owner->id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -446,7 +446,7 @@ describe('Capacity and Counting Correctness', function () {
                 'campaign_id' => $campaign->id,
                 'user_id' => User::factory()->create()->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -475,7 +475,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => User::factory()->create()->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -486,7 +486,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => User::factory()->create()->id,
                 'role' => ParticipantRole::Player->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -506,7 +506,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $game->owner_id,
                 'role' => ParticipantRole::Owner->value,
-                'status' => 'approved',
+                'status' => ParticipantStatus::Approved->value,
                 'join_source' => JoinSource::Application,
             ]);
 
@@ -516,7 +516,7 @@ describe('Capacity and Counting Correctness', function () {
                 'game_id' => $game->id,
                 'user_id' => $invited->id,
                 'role' => ParticipantRole::Invited->value,
-                'status' => 'pending',
+                'status' => ParticipantStatus::Pending->value,
                 'join_source' => JoinSource::FriendInvite,
             ]);
 

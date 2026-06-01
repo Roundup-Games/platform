@@ -11,6 +11,8 @@ use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityCompleted;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -34,8 +36,8 @@ describe('Cancel game → GameCancelled', function () {
             'status' => 'scheduled',
         ]);
 
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player1->id, 'role' => 'player', 'status' => 'approved']);
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player2->id, 'role' => 'player', 'status' => 'approved']);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player1->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         \Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\GamesPage::class)
@@ -68,8 +70,8 @@ describe('Cancel game → GameCancelled', function () {
             'status' => 'scheduled',
         ]);
 
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $pending->id, 'role' => 'player', 'status' => 'pending']);
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $rejected->id, 'role' => 'player', 'status' => 'rejected']);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $pending->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value]);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $rejected->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Rejected->value]);
 
         \Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\GamesPage::class)
@@ -98,7 +100,7 @@ describe('Complete game → GameCompleted', function () {
             'status' => 'scheduled',
         ]);
 
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         \Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\GamesPage::class)
@@ -127,7 +129,7 @@ describe('Complete game → GameCompleted', function () {
             'status' => 'completed',
         ]);
 
-        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
+        GameParticipant::create(['game_id' => $game->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         \Livewire\Livewire::actingAs($owner)
             ->test(\App\Livewire\Games\GamesPage::class)

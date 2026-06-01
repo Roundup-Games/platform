@@ -6,6 +6,7 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
@@ -42,8 +43,8 @@ describe('AutoInvite — Session Creation', function () {
         $player1 = User::factory()->create();
         $player2 = User::factory()->create();
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player1->id, 'role' => 'player', 'status' => 'approved']);
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => 'player', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player1->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -56,17 +57,17 @@ describe('AutoInvite — Session Creation', function () {
         expect($game)->not->toBeNull();
 
         assertDatabaseHas('game_participants', [
-            'game_id' => $game->id, 'user_id' => $player1->id, 'role' => 'invited', 'status' => 'pending',
+            'game_id' => $game->id, 'user_id' => $player1->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value,
         ]);
         assertDatabaseHas('game_participants', [
-            'game_id' => $game->id, 'user_id' => $player2->id, 'role' => 'invited', 'status' => 'pending',
+            'game_id' => $game->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value,
         ]);
     })->group('smoke');
 
     test('auto-invite skips campaign owner (owner gets owner participant, not invited)', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $owner->id, 'role' => ParticipantRole::Owner->value, 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $owner->id, 'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -91,9 +92,9 @@ describe('AutoInvite — Session Creation', function () {
         $pendingPlayer = User::factory()->create();
         $rejectedPlayer = User::factory()->create();
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $approvedPlayer->id, 'role' => 'player', 'status' => 'approved']);
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $pendingPlayer->id, 'role' => 'invited', 'status' => 'pending']);
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $rejectedPlayer->id, 'role' => 'player', 'status' => 'rejected']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $approvedPlayer->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $pendingPlayer->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value]);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $rejectedPlayer->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Rejected->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -106,7 +107,7 @@ describe('AutoInvite — Session Creation', function () {
         // M048: owner participant + 1 invited = 2 total
         expect(GameParticipant::where('game_id', $game->id)->count())->toBe(2);
         assertDatabaseHas('game_participants', [
-            'game_id' => $game->id, 'user_id' => $approvedPlayer->id, 'role' => 'invited', 'status' => 'pending',
+            'game_id' => $game->id, 'user_id' => $approvedPlayer->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value,
         ]);
     });
 
@@ -137,7 +138,7 @@ describe('AutoInvite — Accept', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
         $player = User::factory()->create(['profile_complete' => true]);
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -154,7 +155,7 @@ describe('AutoInvite — Accept', function () {
             ->assertHasNoErrors();
 
         assertDatabaseHas('game_participants', [
-            'id' => $participant->id, 'role' => 'player', 'status' => 'approved',
+            'id' => $participant->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
         ]);
     });
 
@@ -163,8 +164,8 @@ describe('AutoInvite — Accept', function () {
         $player1 = User::factory()->create(['profile_complete' => true]);
         $player2 = User::factory()->create(['profile_complete' => true]);
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player1->id, 'role' => 'player', 'status' => 'approved']);
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => 'player', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player1->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -191,7 +192,7 @@ describe('AutoInvite — Accept', function () {
             ->assertHasNoErrors();
 
         assertDatabaseHas('game_participants', [
-            'id' => $participant2->id, 'user_id' => $player2->id, 'status' => 'benched',
+            'id' => $participant2->id, 'user_id' => $player2->id, 'status' => ParticipantStatus::Benched->value,
         ]);
     });
 
@@ -200,7 +201,7 @@ describe('AutoInvite — Accept', function () {
         $player = User::factory()->create(['profile_complete' => true]);
         $otherUser = User::factory()->create(['profile_complete' => true]);
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -218,7 +219,7 @@ describe('AutoInvite — Accept', function () {
             ->assertSee('not yours');
 
         assertDatabaseHas('game_participants', [
-            'id' => $participant->id, 'role' => 'invited', 'status' => 'pending',
+            'id' => $participant->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value,
         ]);
     });
 });
@@ -232,7 +233,7 @@ describe('AutoInvite — Decline', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
         $player = User::factory()->create(['profile_complete' => true]);
 
-        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => 'player', 'status' => 'approved']);
+        CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
             ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
@@ -249,7 +250,7 @@ describe('AutoInvite — Decline', function () {
             ->assertHasNoErrors();
 
         assertDatabaseHas('game_participants', [
-            'id' => $participant->id, 'status' => 'rejected',
+            'id' => $participant->id, 'status' => ParticipantStatus::Rejected->value,
         ]);
     });
 });

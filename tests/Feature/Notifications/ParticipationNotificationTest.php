@@ -13,6 +13,7 @@ use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\TeamMemberRemoved;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
@@ -38,8 +39,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($invitee)
@@ -75,8 +76,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($invitee)
@@ -103,8 +104,8 @@ describe('Accept game invitation → ParticipantJoined', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($invitee)
@@ -137,8 +138,8 @@ describe('Accept campaign invitation → ParticipantJoined', function () {
         $participant = CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $invitee->id,
-            'role' => 'invited',
-            'status' => 'pending',
+            'role' => ParticipantRole::Invited->value,
+            'status' => ParticipantStatus::Pending->value,
         ]);
 
         \Livewire\Livewire::actingAs($invitee)
@@ -173,8 +174,8 @@ describe('Remove participant → ParticipantRemoved', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)
@@ -205,7 +206,7 @@ describe('Remove participant → ParticipantRemoved', function () {
             'game_id' => $game->id,
             'user_id' => $owner->id,
             'role' => ParticipantRole::Owner->value,
-            'status' => 'approved',
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         \Livewire\Livewire::actingAs($owner)
@@ -239,7 +240,7 @@ describe('Remove team member → TeamMemberRemoved', function () {
         $member = TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);

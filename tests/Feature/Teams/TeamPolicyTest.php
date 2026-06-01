@@ -3,6 +3,7 @@
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
@@ -39,7 +40,7 @@ beforeEach(function () {
     TeamMember::create([
         'team_id' => $this->team->id,
         'user_id' => $this->player->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => 'active',
         'joined_at' => now(),
     ]);
@@ -74,7 +75,7 @@ describe('view', function () {
         TeamMember::create([
             'team_id' => $inactiveTeam->id,
             'user_id' => $this->player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => 'active',
             'joined_at' => now(),
         ]);

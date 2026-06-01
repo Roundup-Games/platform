@@ -49,7 +49,7 @@ function createPublicGameWithCounts(User $owner, GameSystem $system, int $maxPla
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -86,7 +86,7 @@ function createPublicCampaignWithCounts(User $owner, GameSystem $system, int $ma
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -157,7 +157,7 @@ describe('GameCard overflow indicators', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

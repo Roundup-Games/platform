@@ -50,7 +50,7 @@ function createGameForCancellation(User $owner, GameSystem $system, int $maxPlay
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -70,14 +70,14 @@ describe('game cancellation', function () {
         $wp1 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitUser1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
         $wp2 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitUser2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now()->addSecond(),
         ]);
@@ -96,13 +96,13 @@ describe('game cancellation', function () {
         $bp1 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $benchUser1->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
         ]);
         $bp2 = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $benchUser2->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Benched->value,
         ]);
 
@@ -121,7 +121,7 @@ describe('game cancellation', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $waitUser->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Waitlisted->value,
             'waitlisted_at' => now(),
         ]);
@@ -178,7 +178,7 @@ describe('host cancellation offence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $player->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

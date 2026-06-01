@@ -49,7 +49,7 @@ function createFullWaitlistCampaign(User $owner, GameSystem $system, int $maxPla
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -97,13 +97,13 @@ test('add to waitlist throws for campaign with bench_mode=true', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -209,13 +209,13 @@ test('standalone game with bench_mode=true uses bench', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -247,13 +247,13 @@ test('standalone game with bench_mode=true rejects waitlist', function () {
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $this->owner->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -289,7 +289,7 @@ test('campaign with bench_mode=false rejects bench', function () {
     CampaignParticipant::create([
         'campaign_id' => $campaign->id,
         'user_id' => User::factory()->create()->id,
-        'role' => 'player',
+        'role' => ParticipantRole::Player->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

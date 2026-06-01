@@ -7,6 +7,8 @@ use App\Models\CampaignParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -83,8 +85,8 @@ describe('Save Campaign Edit', function () {
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $participant->id,
-            'role' => 'player',
-            'status' => 'approved',
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
         ]);
 
         Notification::fake();

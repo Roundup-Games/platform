@@ -55,7 +55,7 @@ function createFullGameForLeave(User $owner, GameSystem $system, int $maxPlayers
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -111,7 +111,7 @@ function createFullBenchGameForLeave(User $owner, GameSystem $system, int $maxPl
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -150,7 +150,7 @@ function createFullCampaignForLeave(User $owner, GameSystem $system, int $maxPla
         CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => User::factory()->create()->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
     }
@@ -264,7 +264,7 @@ describe('WaitlistUI leave waitlist', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -395,7 +395,7 @@ describe('BenchUI leave bench', function () {
         $participant = GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $user->id,
-            'role' => 'player',
+            'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
