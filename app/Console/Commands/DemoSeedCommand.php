@@ -2061,10 +2061,8 @@ class DemoSeedCommand extends Command
                 $pastSessionCount = $campaignStatus === 'cancelled' ? 0
                     : random_int(1, 3);
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
-                    $pastDaysAgo = random_int(3, $szDate->diffInDays(now()) - 1);
-                    if ($pastDaysAgo < 1) {
-                        $pastDaysAgo = random_int(1, 5);
-                    }
+                    $maxDaysAgo = max(3, $szDate->diffInDays(now()) - 1);
+                    $pastDaysAgo = random_int(3, $maxDaysAgo);
                     $pastDate = now()->subDays($pastDaysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
                     $pId = (string) Str::orderedUuid();
                     $sessionNum = $p + 1; // session zero was #1
