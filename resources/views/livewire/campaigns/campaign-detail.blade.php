@@ -311,6 +311,28 @@
                     @endif
                 </section>
 
+                {{-- Leave Campaign (non-owner participants only, active campaigns only) --}}
+                @auth
+                    @if($isParticipant && !$isOwner && $campaign->status === \App\Enums\CampaignStatus::Active)
+                        <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between">
+                            <span class="text-sm text-on-surface-variant">{{ __('campaigns.content_leave_hint') }}</span>
+                            <x-confirm-action
+                                action="leaveCampaign()"
+                                id="leave-campaign"
+                                :icon="'logout'"
+                                :trigger-label="__('campaigns.action_leave_campaign')"
+                                trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-error hover:bg-error/10 transition-colors"
+                                :confirm-label="__('campaigns.action_leave_campaign')"
+                                :cancel-label="__('common.action_keep')"
+                                :message="__('campaigns.confirm_leave_campaign')"
+                                variant="inline"
+                                severity="destructive"
+                                confirm-icon="logout"
+                            />
+                        </div>
+                    @endif
+                @endauth
+
                 {{-- Safety Tools --}}
                 @if($campaign->safety_rules)
                     @include('livewire.games.partials.safety-tools-display', ['safetyRules' => $campaign->safety_rules])

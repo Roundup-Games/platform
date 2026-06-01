@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
@@ -310,6 +311,64 @@ class CampaignDetail extends Component
         }
 
         return true;
+    }
+
+    // ── Self-service leave ─────────────────────────────
+
+    public function leaveCampaign(): void
+    {
+        $user = Auth::user();
+        if (! $user || $this->isOwner()) {
+            session()->flash('error', __('campaigns.error_cannot_leave_own_campaign'));
+
+            return;
+        }
+
+        $participant = $this->campaign->participants
+            ->first(fn ($p) => $p->user_id === $user->id
+                && in_array($p->status->value, [
+                    ParticipantStatus::Approved->value,
+                    ParticipantStatus::Waitlisted->value,
+                    ParticipantStatus::Benched->value,
+                    ParticipantStatus::Pending->value,
+                ]));
+
+        if (! $participant) {
+            session()->flash('error', __('campaigns.error_not_a_participant'));
+
+            return;
+        }
+
+        // Track attendance for reliability scoring
+        if ($participant->status === ParticipantStatus::Approved) {
+            $nextSession = $this->campaign->sessions()
+                ->where('date_time', '>', now())
+                ->orderBy('date_time')
+                ->first();
+            if ($nextSession) {
+                $hoursUntil = now()->diffInHours($nextSession->date_time, false);
+                $participant->update(['attendance_status' => $hoursUntil < 24
+                    ? AttendanceStatus::LateCancel : AttendanceStatus::CancelledEarly]);
+            }
+        }
+
+        $participant->update(['status' => ParticipantStatus::Rejected]);
+
+        Log::info('Player left campaign', [
+            'campaign_id' => $this->campaign->id,
+            'user_id' => $user->id,
+            'previous_status' => $participant->status->value,
+        ]);
+
+        // Promote from waitlist if applicable
+        if (! $this->campaign->isBenchMode()) {
+            app(WaitlistService::class)->promoteAllOnCancel($this->campaign);
+        }
+
+        // Refresh computed properties
+        unset($this->isParticipant);
+
+        session()->flash('success', __('campaigns.flash_you_left_the_campaign'));
     }
 
     // ── Computed Viewer State ───────────────────────────

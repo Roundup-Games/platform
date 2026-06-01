@@ -186,4 +186,12 @@ return [
     // SEO
     'seo_title_my_campaigns' => 'Meine Kampagnen',
     'seo_description_my_campaigns' => 'Verwalte deine Kampagnen, Einladungen und den Aktivitäts-Feed auf :brand.',
+
+    // Leave campaign
+    'action_leave_campaign' => 'Kampagne verlassen',
+    'confirm_leave_campaign' => 'Möchtest du diese Kampagne wirklich verlassen? Dein Platz wird freigegeben.',
+    'error_cannot_leave_own_campaign' => 'Du kannst deine eigene Kampagne nicht verlassen. Stattdessen stornieren.',
+    'error_not_a_participant' => 'Du bist kein Teilnehmer in dieser Kampagne.',
+    'flash_you_left_the_campaign' => 'Du hast die Kampagne verlassen.',
+    'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
 ];

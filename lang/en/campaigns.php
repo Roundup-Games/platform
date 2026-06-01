@@ -185,4 +185,12 @@ return [
     // SEO
     'seo_title_my_campaigns' => 'My Campaigns',
     'seo_description_my_campaigns' => 'View and manage your campaigns, invitations, and activity feed on :brand.',
+
+    // Leave campaign
+    'action_leave_campaign' => 'Leave Campaign',
+    'confirm_leave_campaign' => 'Are you sure you want to leave this campaign? Your spot will be released.',
+    'error_cannot_leave_own_campaign' => 'You cannot leave your own campaign. Cancel it instead.',
+    'error_not_a_participant' => 'You are not a participant in this campaign.',
+    'flash_you_left_the_campaign' => 'You have left the campaign.',
+    'content_leave_hint' => 'Changed your mind?',
 ];

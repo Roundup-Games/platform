@@ -422,4 +422,5 @@ return [
     'error_cannot_leave_own_game' => 'Du kannst dein eigenes Spiel nicht verlassen. Stattdessen stornieren.',
     'error_not_a_participant' => 'Du bist kein Teilnehmer in diesem Spiel.',
     'flash_you_left_the_game' => 'Du hast das Spiel verlassen.',
+    'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
 ];
