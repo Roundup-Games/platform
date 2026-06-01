@@ -46,6 +46,8 @@ return [
     'nearby_action_set_location' => 'Standort festlegen',
     'nearby_searching' => 'Wir suchen noch nach gleichgesinnten Spielern, denen du folgen könntest.',
     'nearby_searching_hint' => 'Ergebnisse werden automatisch angezeigt.',
+    'action_load_more' => 'Mehr laden',
+    'content_showing_of_total' => ':shown von :total Spielern angezeigt',
 
     // E-Mail-Einladungen
     'field_invite_by_email' => 'Per E-Mail einladen',

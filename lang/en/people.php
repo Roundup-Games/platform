@@ -46,6 +46,8 @@ return [
     'nearby_action_set_location' => 'Set Location',
     'nearby_searching' => 'We\'re still looking for like-minded people you might want to follow.',
     'nearby_searching_hint' => 'Results will appear here automatically.',
+    'action_load_more' => 'Load more',
+    'content_showing_of_total' => 'Showing :shown of :total players',
 
     // Email invitations
     'field_invite_by_email' => 'Invite by email',
