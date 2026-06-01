@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\Concerns\DashboardFormatting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\DB;
  */
 class DashboardDiscoveryService
 {
+    use DashboardFormatting;
     /**
      * Get nearby noteworthy games — scheduled games in the next 14 days
      * within the user's geohash tile that they are not already participating in.
@@ -142,19 +144,20 @@ class DashboardDiscoveryService
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
+            ->where(function ($q) {
+                // Only games with available spots (or unlimited capacity).
+                // Filtering at SQL level avoids fetching rows only to discard them.
+                $q->whereNull('games.max_players')
+                    ->orWhereRaw(
+                        '(SELECT COUNT(*) + 1 FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        [ParticipantStatus::Approved->value],
+                    );
+            })
             ->with(['gameSystem', 'linkedLocation'])
             // Cap at 20 candidates — we only take the top 6 by relevance after scoring.
             // Without this limit, dense metro areas could load hundreds of games.
             ->limit(20)
-            ->get()
-            ->filter(function ($game) {
-                // Only games with spots available (or no max)
-                if ($game->max_players === null) {
-                    return true;
-                }
-
-                return ($game->max_players - (int) ($game->participant_count ?? 0)) > 0;
-            });
+            ->get();
 
         // Compute user location for distance
         $userLocation = $user->linkedLocation;
@@ -526,34 +529,5 @@ class DashboardDiscoveryService
             'earned_at' => $earnedAt?->toIso8601String(),
             'is_new' => $isNew,
         ];
-    }
-
-    // ── Utility ────────────────────────────────────────
-
-    /**
-     * Format a datetime as a human-friendly relative time string.
-     */
-    private function formatRelativeTime(?Carbon $dateTime): string
-    {
-        if ($dateTime === null) {
-            return '';
-        }
-
-        $now = now();
-        $time = $dateTime->format('g A');
-
-        if ($dateTime->isToday()) {
-            return "Today at {$time}";
-        }
-
-        if ($dateTime->isTomorrow()) {
-            return "Tomorrow at {$time}";
-        }
-
-        if ($dateTime->isSameWeek($now) && $dateTime->greaterThan($now)) {
-            return $dateTime->format('D')." at {$time}";
-        }
-
-        return $dateTime->format('M j')." at {$time}";
     }
 }

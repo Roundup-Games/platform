@@ -15,7 +15,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
-use Illuminate\Support\Facades\DB;
+use App\Services\Concerns\DashboardFormatting;
 use Illuminate\Support\Str;
 
 /**
@@ -27,6 +27,8 @@ use Illuminate\Support\Str;
  */
 class ActionCenterService
 {
+    use DashboardFormatting;
+
     // ── Public API ─────────────────────────────────────
 
     /**
@@ -535,28 +537,4 @@ class ActionCenterService
             ->first();
     }
 
-    /**
-     * Bulk-load game system preference IDs for a set of users.
-     *
-     * @param  string[]  $userIds
-     * @return array<string, string[]> userId => [gameSystemId, ...]
-     */
-    private function bulkLoadGameSystemPreferences(array $userIds): array
-    {
-        if (empty($userIds)) {
-            return [];
-        }
-
-        $rows = DB::table('user_game_system_preferences')
-            ->whereIn('user_id', $userIds)
-            ->select('user_id', 'game_system_id')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->game_system_id;
-        }
-
-        return $map;
-    }
 }

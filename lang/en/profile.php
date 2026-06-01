@@ -379,4 +379,9 @@ return [
     'dashboard_quick_manage_team' => 'Manage Team',
     'dashboard_quick_my_campaigns' => 'My Campaigns',
     'dashboard_quick_find_campaigns' => 'Find Campaigns',
+
+    // Dashboard - Relative time formatting
+    'dashboard_relative_today' => 'Today at :time',
+    'dashboard_relative_tomorrow' => 'Tomorrow at :time',
+    'dashboard_relative_at' => 'at :time',
 ];

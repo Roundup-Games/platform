@@ -3,9 +3,6 @@
 namespace App\Livewire;
 
 use App\Dto\FeedItem;
-use App\Enums\ParticipantStatus;
-use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardDiscoveryService;
@@ -87,7 +84,6 @@ class Dashboard extends Component
 
         // ── Established mode ────────────────────────────
 
-        $gamesThisWeek = $this->gamesThisWeek();
         $communityFeed = $this->getCommunityFeed($user);
         $opportunities = $this->getOpportunities($user);
         $establishedData = $this->getEstablishedData($user, $dashboardMode, $communityFeed);
@@ -99,8 +95,8 @@ class Dashboard extends Component
 
             // Legacy established sections
             'weekData' => $weekData,
-            'gamesThisWeek' => $gamesThisWeek,
-            'gamesThisWeekCount' => $gamesThisWeek->count(),
+            'gamesThisWeek' => collect(),
+            'gamesThisWeekCount' => 0,
             'communityFeed' => $communityFeed['friends'],
             'trendingItems' => $communityFeed['trending'],
             'hasTrendingSection' => $communityFeed['show_trending'],
@@ -302,39 +298,6 @@ class Dashboard extends Component
         }
 
         return array_slice($actions, 0, 3);
-    }
-
-    /**
-     * Get games occurring this week where the user is an owner or approved participant.
-     * "This week" = start of Monday through end of Sunday in the app's timezone.
-     */
-    public function gamesThisWeek()
-    {
-        $user = Auth::user();
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
-
-        // Games user owns this week (only active/scheduled)
-        $ownedGameIds = Game::where('owner_id', $user->id)
-            ->where('status', 'scheduled')
-            ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
-            ->pluck('id');
-
-        // Games user is an approved participant in this week (only active/scheduled)
-        $participantGameIds = GameParticipant::where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved)
-            ->whereHas('game', fn ($q) => $q
-                ->where('status', 'scheduled')
-                ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
-            )
-            ->pluck('game_id');
-
-        $gameIds = $ownedGameIds->merge($participantGameIds)->unique();
-
-        return Game::whereIn('id', $gameIds)
-            ->with(['participants' => fn ($q) => $q->where('user_id', $user->id), 'campaign'])
-            ->orderBy('date_time')
-            ->get();
     }
 
     /**

@@ -8,7 +8,7 @@ use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
 use App\Notifications\BulletinPosted;
-use App\Services\DashboardCacheService;
+use App\Policies\GameBulletinPolicy;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -49,10 +49,6 @@ class GameBulletinBoard extends Component
             ->get();
     }
 
-    /**
-     * Whether the current user can see the bulletin board section.
-     * Only the owner and approved participants can see it.
-     */
     #[Computed]
     public function canViewBoard(): bool
     {
@@ -61,16 +57,9 @@ class GameBulletinBoard extends Component
             return false;
         }
 
-        // Owner can always see
-        if ($this->game->owner_id === $user->id) {
-            return true;
-        }
-
-        // Approved participants can see
-        return $this->game->participants()
-            ->where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved->value)
-            ->exists();
+        // Delegate to GameBulletinPolicy::viewBoard — the policy is registered
+        // on GameBulletin (not Game) so we resolve it explicitly.
+        return app(GameBulletinPolicy::class)->viewBoard($user, $this->game);
     }
 
     // ── Actions ─────────────────────────────────────────
@@ -128,13 +117,8 @@ class GameBulletinBoard extends Component
             ->with('user')
             ->get();
 
-        // Invalidate action center for all approved participants
-        // so they see the new bulletin immediately.
-        $participantUserIds = $participants->pluck('user_id')->map(fn ($id) => (string) $id)->all();
-        app(DashboardCacheService::class)->invalidateForUsers(
-            $participantUserIds,
-            ['action_center'],
-        );
+        // Action center cache is already invalidated by GameBulletinObserver::created(),
+        // so we only need to dispatch notifications here.
 
         // Send push notifications
         $participantUsers = $participants->pluck('user')->filter();

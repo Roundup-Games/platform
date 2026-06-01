@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\Game;
+use App\Models\GameBulletin;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Review;

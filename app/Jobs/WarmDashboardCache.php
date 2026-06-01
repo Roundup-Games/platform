@@ -149,8 +149,12 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
             if ($geohash4 !== null) {
                 $nearbyPeople = $cacheService->warmNearbyPeople($user, $geohash4);
                 $itemCounts['nearby_people'] = count($nearbyPeople);
+
+                $newcomerMatches = $cacheService->warmNewcomerMatches($user, $geohash4);
+                $itemCounts['newcomer_matches'] = $newcomerMatches['total_nearby'] ?? 0;
             } else {
                 $itemCounts['nearby_people'] = 0;
+                $itemCounts['newcomer_matches'] = 0;
             }
 
             // Skip established-only sections

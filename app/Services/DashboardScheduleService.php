@@ -6,6 +6,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Concerns\DashboardFormatting;
 use Carbon\Carbon;
 
 /**
@@ -17,6 +18,7 @@ use Carbon\Carbon;
  */
 class DashboardScheduleService
 {
+    use DashboardFormatting;
     /**
      * Get upcoming games for the user, grouped into time buckets.
      *
@@ -191,28 +193,4 @@ class DashboardScheduleService
         ];
     }
 
-    /**
-     * Format a datetime as a human-friendly relative time string.
-     *
-     * Examples: "Today at 7 PM", "Tomorrow at 3 PM", "Fri at 6 PM", "Jan 15 at 2 PM"
-     */
-    private function formatRelativeTime(Carbon $dateTime): string
-    {
-        $now = now();
-        $time = $dateTime->format('g A'); // e.g. "7 PM"
-
-        if ($dateTime->isToday()) {
-            return "Today at {$time}";
-        }
-
-        if ($dateTime->isTomorrow()) {
-            return "Tomorrow at {$time}";
-        }
-
-        if ($dateTime->isSameWeek($now) && $dateTime->greaterThan($now)) {
-            return $dateTime->format('D')." at {$time}"; // e.g. "Fri at 6 PM"
-        }
-
-        return $dateTime->format('M j')." at {$time}"; // e.g. "Jan 15 at 2 PM"
-    }
 }

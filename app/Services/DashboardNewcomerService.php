@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\Concerns\DashboardFormatting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -22,6 +23,11 @@ use Illuminate\Support\Facades\Log;
  */
 class DashboardNewcomerService
 {
+    use DashboardFormatting;
+
+    /** @var array<string, array<string>> Memoized exclusion lists per user to avoid redundant queries */
+    private array $excludedGameIdsCache = [];
+
     public function __construct(
         private readonly DashboardCacheService $cache,
     ) {}
@@ -176,12 +182,18 @@ class DashboardNewcomerService
             ->where('games.date_time', '<=', now()->addDays(14))
             ->whereNotIn('games.id', $excludeGameIds)
             ->visibleTo($user)
+            ->where(function ($q) {
+                // Only games with available spots (or unlimited capacity).
+                // Filtering at SQL level avoids fetching full games only to discard them.
+                $q->whereNull('games.max_players')
+                    ->orWhereRaw(
+                        '(SELECT COUNT(*) + 1 FROM game_participants WHERE game_participants.game_id = games.id AND game_participants.status = ?) < games.max_players',
+                        [ParticipantStatus::Approved->value],
+                    );
+            })
             ->with(['gameSystem', 'owner', 'linkedLocation'])
-            // Cap at 30 candidates to bound memory in dense metro areas.
-            // We take the top 6 by score after filtering and sorting.
             ->limit(30)
-            ->get()
-            ->filter(fn ($game) => ($game->max_players - (int) ($game->participant_count ?? 0)) > 0);
+            ->get();
 
         // Score each game
         $userLocation = $user->linkedLocation;
@@ -413,16 +425,22 @@ class DashboardNewcomerService
         $candidateIds = $nearbyUsers->pluck('id')->toArray();
         $candidateSystemPrefs = $this->bulkLoadGameSystemPreferences($candidateIds);
 
+        // Bulk-load all unique game system names to avoid per-candidate queries
+        $allSystemIds = collect($candidateSystemPrefs)->flatten()->unique()->filter()->values()->toArray();
+        $systemNames = ! empty($allSystemIds)
+            ? GameSystem::whereIn('id', $allSystemIds)->pluck('name', 'id')->toArray()
+            : [];
+
         // Score by shared game systems
-        $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs) {
+        $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs, $systemNames) {
             $candidateSystemIds = $candidateSystemPrefs[$candidate->id] ?? [];
             $sharedSystems = array_intersect($viewerSystemIds, $candidateSystemIds);
             $sharedCount = count($sharedSystems);
 
-            // Get the user's top system name (first preferred system)
+            // Resolve the candidate's top system name from the bulk-loaded map
             $topSystemName = null;
             if (! empty($candidateSystemIds)) {
-                $topSystemName = GameSystem::where('id', $candidateSystemIds[0])->value('name');
+                $topSystemName = $systemNames[$candidateSystemIds[0]] ?? null;
             }
 
             return [
@@ -504,11 +522,16 @@ class DashboardNewcomerService
      */
     private function getExcludedGameIds(User $user): array
     {
+        $cacheKey = $user->id;
+        if (isset($this->excludedGameIdsCache[$cacheKey])) {
+            return $this->excludedGameIdsCache[$cacheKey];
+        }
+
         $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
         $participatingGameIds = GameParticipant::where('user_id', $user->id)
             ->pluck('game_id');
 
-        return $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
+        return $this->excludedGameIdsCache[$cacheKey] = $ownedGameIds->merge($participatingGameIds)->unique()->values()->toArray();
     }
 
     /**
@@ -537,24 +560,4 @@ class DashboardNewcomerService
         return 'welcome_basic';
     }
 
-    /**
-     * Bulk-load game system preference IDs for a set of users.
-     *
-     * @param  string[]  $userIds
-     * @return array<string, string[]> userId => [gameSystemId, ...]
-     */
-    private function bulkLoadGameSystemPreferences(array $userIds): array
-    {
-        $rows = DB::table('user_game_system_preferences')
-            ->whereIn('user_id', $userIds)
-            ->select('user_id', 'game_system_id')
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[$row->user_id][] = $row->game_system_id;
-        }
-
-        return $map;
-    }
 }

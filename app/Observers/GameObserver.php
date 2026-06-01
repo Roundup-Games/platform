@@ -18,13 +18,15 @@ class GameObserver
         $this->cache->invalidateActionCenterForGameEvent($game->id);
 
         if ($game->wasChanged('recap') && ! empty($game->recap)) {
-            $this->cache->invalidateForUser((string) $game->owner_id, ['contributions', 'recaps']);
             $participantIds = $game->participants()
                 ->where('status', ParticipantStatus::Approved->value)
-                ->pluck('user_id');
-            foreach ($participantIds as $pid) {
-                $this->cache->invalidateForUser((string) $pid, ['contributions', 'recaps']);
-            }
+                ->pluck('user_id')
+                ->push($game->owner_id)
+                ->unique()
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            $this->cache->invalidateForUsers($participantIds, ['contributions', 'recaps']);
         }
     }
 

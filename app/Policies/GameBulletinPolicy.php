@@ -33,6 +33,23 @@ class GameBulletinPolicy
     }
 
     /**
+     * View the bulletin board for a game: game owner or approved participants.
+     */
+    public function viewBoard(User $user, Game $game): bool
+    {
+        // Game owner can always view
+        if ($game->owner_id === $user->id) {
+            return true;
+        }
+
+        // Approved participants can view
+        return $game->participants()
+            ->where('user_id', $user->id)
+            ->where('status', ParticipantStatus::Approved->value)
+            ->exists();
+    }
+
+    /**
      * View a bulletin: game owner or approved participants.
      */
     public function view(User $user, GameBulletin $gameBulletin): bool
