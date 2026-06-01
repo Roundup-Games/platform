@@ -5,7 +5,6 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Enums\ParticipantRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -397,14 +396,14 @@ describe('isFriendOrTeammate', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
@@ -423,14 +422,14 @@ describe('isFriendOrTeammate', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
@@ -453,14 +452,14 @@ describe('isFriendOrTeammate', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'inactive',
             'joined_at' => now(),
         ]);
@@ -477,14 +476,14 @@ describe('isFriendOrTeammate', function () {
         TeamMember::create([
             'team_id' => $team1->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team2->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
@@ -537,14 +536,14 @@ describe('getRelationshipLevel', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
@@ -603,14 +602,14 @@ describe('getRelationshipLevel', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $alice->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $bob->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);

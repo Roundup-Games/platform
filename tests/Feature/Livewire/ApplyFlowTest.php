@@ -345,11 +345,11 @@ describe('ApplyToGame capacity guard', function () {
             'max_players' => 1,
         ]);
 
-        // Fill with owner
+        // Fill with owner (explicit owner participant occupies a seat)
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 

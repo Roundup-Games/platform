@@ -123,7 +123,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'dup@example.com', 'profile_complete' => true]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $target->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(),
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(),
         ]);
 
         Livewire\Livewire::actingAs($captain)
@@ -138,7 +138,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'return@example.com', 'profile_complete' => true]);
         $oldMember = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $target->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Removed->value,
+            'role' => 'player', 'status' => ParticipantStatus::Removed->value,
             'joined_at' => now(), 'left_at' => now(),
         ]);
 
@@ -463,7 +463,7 @@ describe('ManageRoster Cancel Invite', function () {
         $pendingMember = TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $target->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => ParticipantStatus::Pending->value,
             'invited_by' => $captain->id,
             'joined_at' => now(),
@@ -547,7 +547,7 @@ describe('PendingInvites', function () {
         ]);
         TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -576,7 +576,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -600,7 +600,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
             'joined_at' => now(),
         ]);
 
@@ -630,7 +630,7 @@ describe('PendingInvites', function () {
         ]);
         $invite = TeamMember::create([
             'team_id' => $inviteTeam->id, 'user_id' => $user->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter->id,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
         Livewire\Livewire::actingAs($user)
@@ -655,7 +655,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $otherUser->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -678,7 +678,7 @@ describe('PendingInvites', function () {
         ]);
         $member = TeamMember::create([
             'team_id' => $team->id, 'user_id' => $otherUser->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value,
+            'role' => 'player', 'status' => ParticipantStatus::Pending->value,
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
@@ -695,12 +695,12 @@ describe('PendingInvites', function () {
         $inviter1 = User::factory()->create();
         $team1 = Team::factory()->create(['name' => 'Team Alpha', 'is_active' => true, 'created_by' => $inviter1->id]);
         TeamMember::create(['team_id' => $team1->id, 'user_id' => $inviter1->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team1->id, 'user_id' => $user->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter1->id]);
+        TeamMember::create(['team_id' => $team1->id, 'user_id' => $user->id, 'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter1->id]);
 
         $inviter2 = User::factory()->create();
         $team2 = Team::factory()->create(['name' => 'Team Beta', 'is_active' => true, 'created_by' => $inviter2->id]);
         TeamMember::create(['team_id' => $team2->id, 'user_id' => $inviter2->id, 'role' => 'captain', 'status' => 'active', 'joined_at' => now()]);
-        TeamMember::create(['team_id' => $team2->id, 'user_id' => $user->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter2->id]);
+        TeamMember::create(['team_id' => $team2->id, 'user_id' => $user->id, 'role' => 'player', 'status' => ParticipantStatus::Pending->value, 'joined_at' => now(), 'invited_by' => $inviter2->id]);
 
         Livewire\Livewire::actingAs($user)
             ->test(App\Livewire\Teams\PendingInvites::class)

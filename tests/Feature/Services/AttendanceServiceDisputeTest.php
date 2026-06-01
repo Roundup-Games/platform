@@ -29,7 +29,7 @@ function createDisputeGameWithParticipants(int $participantCount = 3, array $gam
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => ParticipantRole::Player->value,
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 

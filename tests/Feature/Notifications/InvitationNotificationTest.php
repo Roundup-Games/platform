@@ -338,7 +338,7 @@ describe('Team Invitation → TeamInvitation', function () {
         TeamMember::create([
             'team_id' => $otherTeam->id,
             'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);

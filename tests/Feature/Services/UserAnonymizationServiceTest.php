@@ -468,7 +468,7 @@ describe('UserAnonymizationService integration', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $userId,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);

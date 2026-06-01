@@ -125,14 +125,14 @@ describe('Protected game visibility', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $this->owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $teammate->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
@@ -152,14 +152,14 @@ describe('Protected game visibility', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $this->owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $formerTeammate->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'inactive',
             'joined_at' => now(),
         ]);
@@ -256,14 +256,14 @@ describe('Private game visibility', function () {
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $this->owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
         TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $teammate->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);

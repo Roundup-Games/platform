@@ -406,7 +406,7 @@ it('dispatches EnrichPostHogProfile for team group analytics on GameCreated', fu
     TeamMember::create([
         'team_id' => $team->id,
         'user_id' => $user->id,
-        'role' => ParticipantRole::Player->value,
+        'role' => 'player',
         'status' => 'active',
         'joined_at' => now(),
     ]);
@@ -650,7 +650,7 @@ it('enriches team group via EnrichPostHogProfile job for team member', function 
     TeamMember::create([
         'team_id' => $team->id,
         'user_id' => $user->id,
-        'role' => ParticipantRole::Player->value,
+        'role' => 'player',
         'status' => 'active',
         'joined_at' => now(),
     ]);

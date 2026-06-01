@@ -132,6 +132,7 @@ it('forwards participant event to PostHog for game owner', function () {
         'game_id' => $game->id,
         'user_id' => $owner->id,
         'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
     DB::table('game_participants')->insert([
@@ -139,6 +140,7 @@ it('forwards participant event to PostHog for game owner', function () {
         'game_id' => $game->id,
         'user_id' => $participant->id,
         'role' => ParticipantRole::Player->value,
+        'status' => ParticipantStatus::Approved->value,
         'created_at' => now(),
     ]);
 

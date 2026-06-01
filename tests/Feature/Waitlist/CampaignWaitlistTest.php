@@ -120,7 +120,7 @@ test('promote next waitlisted for campaign', function () {
 
     // Open a slot
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -140,7 +140,7 @@ test('confirm promotion for campaign participant', function () {
     $this->service->addToWaitlist($campaign, $user);
 
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -173,7 +173,7 @@ test('campaign waitlist uses far confirmation window (12h)', function () {
     $this->service->addToWaitlist($campaign, $user);
 
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()
@@ -357,7 +357,7 @@ test('campaign waitlist promotion and confirmation chain', function () {
 
     // Open a slot
     $campaign->participants()
-        ->where('role', 'player')
+        ->where('role', ParticipantRole::Player->value)
         ->where('status', ParticipantStatus::Approved->value)
         ->where('user_id', '!=', $this->owner->id)
         ->first()

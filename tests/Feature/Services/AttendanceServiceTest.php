@@ -32,7 +32,7 @@ function createCompletedGameWithParticipants(int $participantCount = 3, array $g
     GameParticipant::create([
         'game_id' => $game->id,
         'user_id' => $owner->id,
-        'role' => ParticipantRole::Player->value,
+        'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
 
@@ -296,7 +296,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         GameParticipant::create([
@@ -345,7 +345,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -370,7 +370,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
             'attendance_status' => AttendanceStatus::Attended->value,
         ]);
@@ -410,7 +410,7 @@ describe('autoAttendAfter48Hours', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -450,7 +450,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -488,7 +488,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -512,7 +512,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -536,7 +536,7 @@ describe('recordHostCancellationOffence', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
 
@@ -618,7 +618,7 @@ describe('cancelled_early status', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participant = GameParticipant::create([
@@ -651,7 +651,7 @@ describe('cancelled_early status', function () {
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $owner->id,
-            'role' => ParticipantRole::Player->value,
+            'role' => ParticipantRole::Owner->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
         $participant = GameParticipant::create([
