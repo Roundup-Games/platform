@@ -42,12 +42,17 @@
                     class="px-4 py-3 text-sm font-medium border-b-2 transition-colors {{ $activeTab === 'nearby' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary' }}">
                 <span class="material-symbols-outlined text-sm align-middle mr-0.5" style="font-variation-settings: 'FILL' {{ $activeTab === 'nearby' ? '1' : '0' }}">near_me</span>
                 {{ __('people.tab_nearby') }}
-                <span class="ml-1 text-xs {{ $activeTab === 'nearby' ? 'text-primary/70' : 'text-on-surface-variant/60' }}">({{ $this->nearbyCount }})</span>
+                @php $nearbyCount = $this->nearbyCount @endphp
+                @if($nearbyCount >= 0)
+                    <span class="ml-1 text-xs {{ $activeTab === 'nearby' ? 'text-primary/70' : 'text-on-surface-variant/60' }}">({{ $nearbyCount }})</span>
+                @endif
             </button>
         </div>
 
         {{-- Tab Content --}}
-        <div class="space-y-3">
+        {{-- Poll for nearby cache hydration when on the nearby tab and results are pending --}}
+        <div class="space-y-3" @if($activeTab === 'nearby') wire:poll.5s="dispatchNearbyWarmup" @endif>
+
             {{-- Following Tab --}}
             @if($activeTab === 'following')
                 @php $followings = $this->followingUsers @endphp
@@ -190,6 +195,7 @@
                     $nearby = $this->nearbyUsers;
                     $nearbyResults = $nearby['results'] ?? null;
                     $noLocation = $nearby['noLocation'] ?? false;
+                    $pending = $nearby['pending'] ?? false;
                 @endphp
 
                 @if($noLocation)
@@ -203,6 +209,15 @@
                             <span class="material-symbols-outlined text-base">edit_location</span>
                             {{ __('people.nearby_action_set_location') }}
                         </a>
+                    </div>
+                @elseif($pending)
+                    {{-- Warm-up job running, cache not ready yet --}}
+                    <div class="text-center py-12" wire:poll.5s>
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                            <span class="material-symbols-outlined text-2xl text-primary animate-pulse">search</span>
+                        </div>
+                        <p class="text-on-surface-variant text-sm">{{ __('people.nearby_searching') }}</p>
+                        <p class="text-on-surface-variant/60 text-xs mt-1">{{ __('people.nearby_searching_hint') }}</p>
                     </div>
                 @elseif($nearbyResults && $nearbyResults->count() > 0)
                     @php
@@ -318,7 +333,7 @@
                         </div>
                     @endif
                 @else
-                    {{-- No results --}}
+                    {{-- No results (cache warm, but empty) --}}
                     <div class="text-center py-12">
                         <span class="material-symbols-outlined text-4xl text-on-surface-variant">explore_off</span>
                         <p class="mt-2 text-on-surface-variant">{{ __('people.nearby_no_results') }}</p>

@@ -16,6 +16,7 @@ return [
     'content_contact_our_support_team' => 'Probleme mit deinem Konto? Unser Support-Team kann helfen.',
     'content_billing_help' => 'Rechnungshilfe',
     'content_billing_team_responds' => 'Unser Rechnungsteam antwortet in der Regel innerhalb von 24 Stunden. Dringende Zahlungsprobleme werden vorrangig bearbeitet.',
+    'content_need_help_fast' => 'Brauchst du schnelle Hilfe?',
     'content_account_support_team_responds' => 'Unser Konto-Support-Team antwortet in der Regel innerhalb von 24 Stunden.',
     'content_for_billing_issues_visit_billing' => 'Für Zahlungs- oder Abonnementprobleme besuche die Rechnungssupport-Seite in deinen Rechnungseinstellungen.',
 

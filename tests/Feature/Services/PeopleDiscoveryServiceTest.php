@@ -69,11 +69,16 @@ class PeopleDiscoveryServiceTest extends TestCase
     }
 
     /**
-     * Call discover() and return the paginator directly.
-     * Handles the ['results', 'status'] return format.
+     * Warm cache then read from discover().
+     * Simulates the production flow: background job computes, page reads cache.
      */
     private function discover(User $viewer, ?float $lat = self::LAT, ?float $lng = self::LNG, int $perPage = 12, int $page = 1)
     {
+        // Warm the cache first (simulates background job)
+        if ($lat !== null && $lng !== null) {
+            $this->service->computeAndCache($viewer, $lat, $lng);
+        }
+
         $response = $this->service->discover($viewer, $lat, $lng, $perPage, $page);
 
         return $response['results'];
@@ -81,9 +86,22 @@ class PeopleDiscoveryServiceTest extends TestCase
 
     /**
      * Call discover() and return the full response array (results + status).
+     * Does NOT warm the cache — use this to test cache-miss behavior.
      */
     private function discoverWithStatus(User $viewer, ?float $lat = self::LAT, ?float $lng = self::LNG, int $perPage = 12, int $page = 1): array
     {
+        return $this->service->discover($viewer, $lat, $lng, $perPage, $page);
+    }
+
+    /**
+     * Warm cache then read with status.
+     */
+    private function discoverWarmed(User $viewer, ?float $lat = self::LAT, ?float $lng = self::LNG, int $perPage = 12, int $page = 1): array
+    {
+        if ($lat !== null && $lng !== null) {
+            $this->service->computeAndCache($viewer, $lat, $lng);
+        }
+
         return $this->service->discover($viewer, $lat, $lng, $perPage, $page);
     }
 
@@ -93,7 +111,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     public function it_excludes_self_from_results()
     {
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        // Add a second user so the result set isn't empty
         $other = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
         $results = $this->discover($viewer, self::LAT, self::LNG);
@@ -206,13 +223,9 @@ class PeopleDiscoveryServiceTest extends TestCase
     {
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
 
-        // Create 2 users in the same geohash_4 tile (tier 1)
         $nearby1 = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
         $nearby2 = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
 
-        // Create a user in a different geohash_4 tile but same geohash_3.
-        // Viewer is at (52.5163, 13.3777) → geohash_4 = u33d.
-        // Point at lat=52.5636, lng=13.5352 → geohash_4 = u33e (different hash4, same hash3).
         $farUser = $this->createUserWithLocation(52.5636, 13.5352);
 
         $results = $this->discover($viewer, self::LAT, self::LNG, 12);
@@ -377,11 +390,9 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertEquals(1, $results->total());
         $item = $results->items()[0];
         $this->assertEquals($candidate->id, $item['user']->id);
-        // distance_km is a positive float < 1km
         $this->assertIsFloat($item['distance_km']);
         $this->assertGreaterThan(0, $item['distance_km']);
         $this->assertLessThan(1, $item['distance_km']);
-        // tier is 1 (same geohash tile)
         $this->assertEquals(1, $item['tier']);
     }
 
@@ -404,8 +415,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->assertCount(2, $page2->items());
     }
 
-    // ── Users without location ──
-
     // ── Edge cases ──
 
     #[Test]
@@ -425,7 +434,6 @@ class PeopleDiscoveryServiceTest extends TestCase
             if ($item['user']->id === $candidate->id) {
                 $found = true;
                 $this->assertEquals(0.0, $item['compatibility_score']);
-                // With no preferences, 'Nearby' is the fallback match reason
                 $this->assertContains('Nearby', $item['match_reasons']);
             }
         }
@@ -460,7 +468,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->attachGameSystems($viewer, [$sys1]);
         $this->attachVibes($viewer, ['cooperative']);
 
-        // Candidate with everything hidden except location
         $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG, [
             'privacy_settings' => [
                 'game_systems' => 'nobody',
@@ -469,8 +476,8 @@ class PeopleDiscoveryServiceTest extends TestCase
                 'friends_list' => 'nobody',
             ],
         ]);
-        $this->attachGameSystems($candidate, [$sys1]); // Won't matter — hidden
-        $this->attachVibes($candidate, ['cooperative']); // Won't matter — hidden
+        $this->attachGameSystems($candidate, [$sys1]);
+        $this->attachVibes($candidate, ['cooperative']);
 
         $results = $this->discover($viewer, self::LAT, self::LNG);
         $items = $results->items();
@@ -496,11 +503,9 @@ class PeopleDiscoveryServiceTest extends TestCase
         $sys1 = GameSystem::factory()->create();
         $this->attachGameSystems($viewer, [$sys1]);
 
-        // Candidate with shared preferences (visible)
         $visibleCandidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
         $this->attachGameSystems($visibleCandidate, [$sys1]);
 
-        // Candidate with all signals hidden
         $hiddenCandidate = $this->createUserWithLocation(self::LAT + 0.002, self::LNG, [
             'privacy_settings' => [
                 'game_systems' => 'nobody',
@@ -529,17 +534,19 @@ class PeopleDiscoveryServiceTest extends TestCase
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
-        // Populate the cache
-        $response1 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+        // Warm cache
+        $response1 = $this->discoverWarmed($viewer, self::LAT, self::LNG);
         $this->assertEquals(1, $response1['results']->total());
 
-        // Follow the candidate — this invalidates viewer's cache
+        // Follow the candidate — invalidates viewer's cache
         UserRelationship::follow($viewer, $candidate);
 
-        // Now a new discover call should reflect the follow (candidate excluded)
+        // Re-warm cache (follow excluded the candidate)
+        $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
         $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
         $this->assertEquals('ok', $response2['status']);
-        $this->assertEquals(0, $response2['results']->total(), 'Cache should be invalidated after follow');
+        $this->assertEquals(0, $response2['results']->total(), 'Cache should reflect exclusion after follow');
     }
 
     #[Test]
@@ -548,16 +555,18 @@ class PeopleDiscoveryServiceTest extends TestCase
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $candidate = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
-        // Populate the cache
-        $response1 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+        // Warm cache
+        $response1 = $this->discoverWarmed($viewer, self::LAT, self::LNG);
         $this->assertEquals(1, $response1['results']->total());
 
-        // Block the candidate — invalidates viewer's cache
+        // Block — invalidates cache
         UserRelationship::block($viewer, $candidate);
 
-        // Cache should be invalidated
+        // Re-warm
+        $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
         $response2 = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-        $this->assertEquals(0, $response2['results']->total(), 'Cache should be invalidated after block');
+        $this->assertEquals(0, $response2['results']->total(), 'Cache should reflect exclusion after block');
     }
 
     // ── Zero candidates across all tiers ──
@@ -565,8 +574,10 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function it_returns_empty_paginator_for_isolated_location()
     {
-        // Create a viewer in a very remote location with no nearby users
         $viewer = $this->createUserWithLocation(71.7069, -42.6043); // Greenland
+
+        // Warm cache (will be empty)
+        $this->service->computeAndCache($viewer, 71.7069, -42.6043);
 
         $response = $this->discoverWithStatus($viewer, 71.7069, -42.6043);
 
@@ -591,7 +602,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $candidateB = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
         $this->attachGameSystems($candidateB, [$sys1]);
 
-        // computeAndCache returns raw scored results
         $scored = $this->service->computeAndCache($viewer, self::LAT, self::LNG);
 
         $this->assertCount(2, $scored);
@@ -619,13 +629,10 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function discover_reads_from_cache_on_page_2()
     {
-        Queue::fake();
-
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $sys1 = GameSystem::factory()->create();
         $this->attachGameSystems($viewer, [$sys1]);
 
-        // Create 5 candidates with varying scores
         for ($i = 0; $i < 5; $i++) {
             $c = $this->createUserWithLocation(self::LAT + 0.001 * ($i + 1), self::LNG);
             if ($i < 2) {
@@ -633,69 +640,69 @@ class PeopleDiscoveryServiceTest extends TestCase
             }
         }
 
-        // Pre-populate cache via computeAndCache
+        // Warm cache
         $this->service->computeAndCache($viewer, self::LAT, self::LNG);
 
-        // Page 2 should be served from cache (no page=1 restriction)
+        // Page 2 served from cache
         $response = $this->discoverWithStatus($viewer, self::LAT, self::LNG, 3, 2);
         $this->assertEquals('ok', $response['status']);
         $this->assertEquals(5, $response['results']->total(), 'Cache should serve all 5 results');
         $this->assertCount(2, $response['results']->items(), 'Page 2 should have 2 items');
+    }
 
-        // Verify the background job was NOT dispatched (cache hit)
-        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+    // ── Cache-only discover() behavior ──
+
+    #[Test]
+    public function discover_returns_pending_on_cache_miss()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+        $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
+
+        // Do NOT warm cache — discover should return pending
+        $response = $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+
+        $this->assertEquals('pending', $response['status']);
+        $this->assertEquals(0, $response['results']->total());
     }
 
     #[Test]
-    public function discover_dispatches_background_refresh_on_cache_miss()
+    public function discover_does_not_dispatch_jobs()
     {
         Queue::fake();
 
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
         $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
-        // First call — cache miss, should dispatch background refresh
-        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
-
-        Queue::assertPushed(\App\Jobs\UpdateUserDiscoveryCache::class, function ($job) use ($viewer) {
-            return $job->userId === $viewer->id
-                && $job->triggerType === 'cache_miss_refresh';
-        });
-    }
-
-    #[Test]
-    public function discover_does_not_dispatch_job_when_no_linked_location()
-    {
-        Queue::fake();
-
-        // Viewer with location but no linkedLocation (guest location)
-        $viewer = User::factory()->create([
-            'location_id' => null,
-            'profile_complete' => true,
-        ]);
-
-        // discover with explicit lat/lng (simulating guest location)
+        // discover() is cache-only — it should never dispatch jobs
         $this->discoverWithStatus($viewer, self::LAT, self::LNG);
 
         Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
     }
 
     #[Test]
-    public function discover_does_not_dispatch_job_on_cache_hit()
+    public function should_warm_cache_returns_true_when_cache_cold()
     {
-        Queue::fake();
-
         $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
-        $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
 
-        // Pre-populate cache
+        $this->assertTrue($this->service->shouldWarmCache($viewer, self::LAT, self::LNG));
+    }
+
+    #[Test]
+    public function should_warm_cache_returns_false_when_cache_warm()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+
         $this->service->computeAndCache($viewer, self::LAT, self::LNG);
-        Queue::fake(); // Reset after computeAndCache
 
-        // Second call — cache hit, should NOT dispatch
-        $this->discoverWithStatus($viewer, self::LAT, self::LNG);
+        $this->assertFalse($this->service->shouldWarmCache($viewer, self::LAT, self::LNG));
+    }
 
-        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+    #[Test]
+    public function should_warm_cache_returns_false_when_no_location()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+
+        $this->assertFalse($this->service->shouldWarmCache($viewer, null, null));
     }
 
     #[Test]
@@ -732,7 +739,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function jaccard_partial_overlap(): void
     {
-        // [1,2,3] ∩ [2,3,4] = {2,3} → 2 shared / 4 unique = 0.5
         $result = $this->callJaccard([1, 2, 3], [2, 3, 4]);
         $this->assertEqualsWithDelta(0.5, $result, 0.0001);
     }
@@ -768,16 +774,13 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function jaccard_string_values_work_correctly(): void
     {
-        // Vibe flags are stored as strings
         $result = $this->callJaccard(['cooperative', 'strategic'], ['cooperative', 'creative']);
-        // Shared: cooperative (1), Union: 3 → 1/3 ≈ 0.3333
         $this->assertEqualsWithDelta(0.3333, $result, 0.01);
     }
 
     #[Test]
     public function jaccard_large_overlap(): void
     {
-        // 9 out of 10 shared → 9/10 = 0.9
         $a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         $b = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11];
         $result = $this->callJaccard($a, $b);
@@ -787,7 +790,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function jaccard_superset_returns_correct_ratio(): void
     {
-        // [1,2,3,4,5] vs [1,2] → shared: 2, union: 5 → 2/5 = 0.4
         $result = $this->callJaccard([1, 2, 3, 4, 5], [1, 2]);
         $this->assertEqualsWithDelta(0.4, $result, 0.0001);
     }
@@ -795,7 +797,6 @@ class PeopleDiscoveryServiceTest extends TestCase
     #[Test]
     public function jaccard_duplicates_are_ignored(): void
     {
-        // array_flip deduplicates, so [1,1,2] is effectively {1,2}
         $result = $this->callJaccard([1, 1, 2], [1, 2]);
         $this->assertEqualsWithDelta(1.0, $result, 0.0001);
     }
@@ -812,11 +813,9 @@ class PeopleDiscoveryServiceTest extends TestCase
 
         $this->attachGameSystems($viewer, [$sys1, $sys2, $sys3]);
 
-        // 3/3 shared → Jaccard = 1.0
         $threeShared = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
         $this->attachGameSystems($threeShared, [$sys1, $sys2, $sys3]);
 
-        // 1/3 shared → Jaccard ≈ 0.25 (1 shared / 5 unique via array union)
         $oneShared = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
         $this->attachGameSystems($oneShared, [$sys1]);
 
@@ -840,12 +839,10 @@ class PeopleDiscoveryServiceTest extends TestCase
         $this->attachGameSystems($viewer, [$sys1, $sys2]);
         $this->attachVibes($viewer, ['cooperative', 'tactical']);
 
-        // Shares only 1 of 2 game systems + shares vibes → higher score
         $withVibes = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
         $this->attachGameSystems($withVibes, [$sys1]);
         $this->attachVibes($withVibes, ['cooperative', 'tactical']);
 
-        // Shares only 1 of 2 game systems, no shared vibes → lower score
         $withoutVibes = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
         $this->attachGameSystems($withoutVibes, [$sys1]);
 
@@ -867,17 +864,7 @@ class PeopleDiscoveryServiceTest extends TestCase
         $sys1 = GameSystem::factory()->create();
         $this->attachGameSystems($viewer, [$sys1]);
 
-        // Candidate with same game systems + mutual follow
-        $withMutual = $this->createUserWithLocation(self::LAT + 0.001, self::LNG);
-        $this->attachGameSystems($withMutual, [$sys1]);
-        // Viewer follows candidate (but this would exclude them! So we need mutual only)
-        // Actually: follow excludes from results. So test mutual follow via candidateFollowsOut.
-        // Since viewer follows = exclusion, we can't test mutual follow through discover()
-        // without the viewer's follow excluding the candidate.
-        // Instead, test the scoring through reflection on scoreCandidate.
-
-        // Alternative: test that a candidate who follows the viewer (one-way)
-        // gets the same score as one who doesn't, since one-way follow isn't mutual.
+        // One-way follow (candidate→viewer) — NOT mutual, no social bonus
         $candidateFollowsViewer = $this->createUserWithLocation(self::LAT + 0.002, self::LNG);
         $this->attachGameSystems($candidateFollowsViewer, [$sys1]);
         UserRelationship::create([
@@ -892,8 +879,6 @@ class PeopleDiscoveryServiceTest extends TestCase
         $results = $this->discover($viewer, self::LAT, self::LNG);
         $items = $results->items();
 
-        // One-way follow (candidate→viewer) without viewer→candidate follow
-        // is NOT mutual, so both should have the same score
         $scoreFollowsViewer = $this->findScoreForUser($items, $candidateFollowsViewer);
         $scoreNoFollow = $this->findScoreForUser($items, $noFollow);
 

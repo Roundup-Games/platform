@@ -44,6 +44,8 @@ return [
     'nearby_no_location' => 'Set your location to discover nearby players.',
     'nearby_no_results' => 'No nearby players found yet. Try expanding your search area.',
     'nearby_action_set_location' => 'Set Location',
+    'nearby_searching' => 'We\'re still looking for like-minded people you might want to follow.',
+    'nearby_searching_hint' => 'Results will appear here automatically.',
 
     // Email invitations
     'field_invite_by_email' => 'Invite by email',

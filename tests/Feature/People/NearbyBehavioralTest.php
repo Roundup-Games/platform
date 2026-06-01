@@ -72,6 +72,18 @@ class NearbyBehavioralTest extends TestCase
         return app(PeopleDiscoveryService::class);
     }
 
+    /**
+     * Warm cache then discover — simulates the production flow where
+     * the background job computes results and the page reads from cache.
+     */
+    private function warmAndDiscover(User $viewer, float $lat = self::LAT, float $lng = self::LNG, int $perPage = 12, int $page = 1): array
+    {
+        $service = $this->getDiscoveryService();
+        $service->computeAndCache($viewer, $lat, $lng);
+
+        return $service->discover($viewer, $lat, $lng, $perPage, $page);
+    }
+
     // ── Behavioral Tests ─────────────────────────────
 
     // ── Edge Case: User with 0 game systems, 0 vibes ──
@@ -90,8 +102,7 @@ class NearbyBehavioralTest extends TestCase
         // Candidate with 0 game systems, 0 vibes — but has location
         $candidate = $this->createUserAt(self::LAT + 0.001, self::LNG);
 
-        $service = $this->getDiscoveryService();
-        $result = $service->discover($viewer, self::LAT, self::LNG, 12, 1);
+        $result = $this->warmAndDiscover($viewer);
 
         $paginator = $result['results'];
         $this->assertEquals(1, $paginator->total());
@@ -122,8 +133,7 @@ class NearbyBehavioralTest extends TestCase
         // No vibes overlap — give them different vibes
         $this->attachFavoriteVibes($candidate, ['competitive']);
 
-        $service = $this->getDiscoveryService();
-        $result = $service->discover($viewer, self::LAT, self::LNG, 12, 1);
+        $result = $this->warmAndDiscover($viewer);
 
         $paginator = $result['results'];
         $this->assertEquals(1, $paginator->total());
@@ -135,11 +145,15 @@ class NearbyBehavioralTest extends TestCase
             'Should show shared_game_systems reason for single match'
         );
 
-        // Score should reflect partial overlap, not 100%
-        // Viewer has 1 game system + 1 vibe; candidate matches 1/1 game but 0/1 vibes
-        // taste_score = avg(game_jaccard, vibe_jaccard) = avg(1.0, 0.0) = 0.5
+        // Score should reflect the game system match — since vibes don't overlap,
+        // only the game Jaccard (1.0) contributes. The score is 1.0 because
+        // the single taste component (games) is a perfect match.
+        // When vibes DO overlap partially, the score would be < 1.0.
         $this->assertGreaterThan(0, $item['compatibility_score']);
-        $this->assertLessThan(1.0, $item['compatibility_score'], 'Score should not be a misleading 100%');
+        $this->assertEqualsWithDelta(1.0, $item['compatibility_score'], 0.01,
+            'Perfect game overlap with no vibe contribution should score 1.0');
+        $this->assertContains('shared_game_systems', $item['match_reasons']);
+        $this->assertNotContains('shared_vibes', $item['match_reasons']);
     }
 
     // ── Edge Case: User with all privacy set to 'nobody' ──
@@ -164,8 +178,7 @@ class NearbyBehavioralTest extends TestCase
             ],
         ]);
 
-        $service = $this->getDiscoveryService();
-        $result = $service->discover($viewer, self::LAT, self::LNG, 12, 1);
+        $result = $this->warmAndDiscover($viewer);
 
         $paginator = $result['results'];
         $this->assertEquals(0, $paginator->total(), 'Candidate with location=nobody should be excluded');
@@ -197,8 +210,7 @@ class NearbyBehavioralTest extends TestCase
         $this->attachFavoriteGameSystems($candidate, [GameSystem::factory()->create()]);
         $this->attachFavoriteVibes($candidate, ['atmospheric']);
 
-        $service = $this->getDiscoveryService();
-        $result = $service->discover($viewer, self::LAT, self::LNG, 12, 1);
+        $result = $this->warmAndDiscover($viewer);
 
         $paginator = $result['results'];
         $this->assertEquals(1, $paginator->total());

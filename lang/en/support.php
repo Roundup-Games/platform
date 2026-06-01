@@ -26,6 +26,7 @@ return [
     'content_contact_our_support_team' => 'Having trouble with your account? Our support team can help.',
     'content_billing_help' => 'Billing Help',
     'content_billing_team_responds' => 'Our billing team typically responds within 24 hours. For urgent payment issues, we prioritize faster resolution.',
+    'content_need_help_fast' => 'Need help fast?',
     'content_account_support_team_responds' => 'Our account support team typically responds within 24 hours.',
     'content_for_billing_issues_visit_billing' => 'For payment or subscription issues, visit the billing support page from your billing settings.',
 
