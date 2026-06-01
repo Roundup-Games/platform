@@ -36,6 +36,9 @@ class PeoplePage extends Component
      */
     public bool $nearbyWarming = false;
 
+    /** @var int How many nearby users to display (incremented by load-more) */
+    public int $nearbyDisplayCount = 12;
+
     public function mount(): void
     {
         $this->authUser = Auth::user();
@@ -48,6 +51,7 @@ class PeoplePage extends Component
     public function updatingActiveTab(): void
     {
         $this->resetPage();
+        $this->nearbyDisplayCount = 12;
     }
 
     // ── Nearby Warm-up ────────────────────────────────
@@ -81,6 +85,14 @@ class PeoplePage extends Component
             UpdateUserDiscoveryCache::dispatch($this->authUser->id, 'page_visit_warmup');
             $this->nearbyWarming = true;
         }
+    }
+
+    /**
+     * Load more nearby users (load-more pattern).
+     */
+    public function loadMoreNearby(): void
+    {
+        $this->nearbyDisplayCount += 12;
     }
 
     // ── Tab Data ──────────────────────────────────────
@@ -142,7 +154,7 @@ class PeoplePage extends Component
         }
 
         $service = app(PeopleDiscoveryService::class);
-        $response = $service->discover($this->authUser, $lat, $lng);
+        $response = $service->discover($this->authUser, $lat, $lng, $this->nearbyDisplayCount, 1);
 
         /** @var LengthAwarePaginator $paginator */
         $paginator = $response['results'];

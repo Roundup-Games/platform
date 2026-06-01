@@ -326,10 +326,26 @@
                         </div>
                     @endforeach
 
-                    {{-- Pagination --}}
+                    {{-- Load More --}}
                     @if($nearbyResults->hasMorePages())
-                        <div class="mt-4">
-                            {{ $nearbyResults->links() }}
+                        <div class="mt-6 text-center">
+                            <button wire:click="loadMoreNearby"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex items-center gap-2 px-6 py-3 bg-surface-container-high text-on-surface text-sm font-medium rounded-xl shadow-ambient hover:bg-surface-container transition-colors">
+                                <span wire:loading.remove wire:target="loadMoreNearby">
+                                    <span class="material-symbols-outlined text-base" aria-hidden="true">expand_more</span>
+                                </span>
+                                <span wire:loading wire:target="loadMoreNearby">
+                                    <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
+                                </span>
+                                {{ __('people.action_load_more') }}
+                            </button>
+                            <p class="mt-2 text-xs text-on-surface-variant">
+                                {{ __('people.content_showing_of_total', [
+                                    'shown' => $nearbyResults->count(),
+                                    'total' => $nearbyResults->total(),
+                                ]) }}
+                            </p>
                         </div>
                     @endif
                 @else
