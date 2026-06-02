@@ -424,4 +424,13 @@ return [
     'error_not_a_participant' => 'Du bist kein Teilnehmer in diesem Spiel.',
     'flash_you_left_the_game' => 'Du hast das Spiel verlassen.',
     'content_leave_hint' => 'Dir haben sich die Pläne geändert?',
+
+    // Attendance reporting
+    'title_attendance_report' => 'Anwesenheit melden',
+    'content_attendance_report_description' => 'Markiere jeden Teilnehmer als anwesend, nicht erschienen oder entschuldigt.',
+    'content_report_others_description' => 'Hilf die Anwesenheit zu verifizieren, indem du meldest, wer am Tisch war.',
+    'content_attendance_all_reported' => 'Alle Teilnehmeranwesenheiten wurden erfasst.',
+    'flash_attendance_reported' => 'Anwesenheit erfolgreich erfasst.',
+    'error_attendance_participant_not_found' => 'Teilnehmer nicht gefunden.',
+    'label_host' => 'Host',
 ];

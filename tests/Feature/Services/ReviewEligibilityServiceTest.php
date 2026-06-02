@@ -329,8 +329,33 @@ class ReviewEligibilityServiceTest extends TestCase
         $this->assertFalse($this->service->canReviewSession($owner, $game));
     }
 
-    /** Scenario: campaign owner who is also an approved participant can review */
+    /** Scenario: non-owner approved campaign participant can review */
     public function test_can_review_campaign_owner_is_approved_participant(): void
+    {
+        $campaignOwner = User::factory()->create();
+        $participant = User::factory()->create();
+        $campaign = Campaign::factory()->create([
+            'owner_id' => $campaignOwner->id,
+            'status' => 'active',
+        ]);
+        CampaignParticipant::factory()->create([
+            'campaign_id' => $campaign->id,
+            'user_id' => $participant->id,
+            'status' => ParticipantStatus::Approved,
+        ]);
+
+        // Campaign must have at least one completed session
+        Game::factory()->create([
+            'campaign_id' => $campaign->id,
+            'owner_id' => $campaignOwner->id,
+            'date_time' => now()->subDay(),
+        ]);
+
+        $this->assertTrue($this->service->canReviewCampaign($participant, $campaign));
+    }
+
+    /** Scenario: campaign owner should NOT be able to review own campaign */
+    public function test_can_review_campaign_owner_cannot_review_own(): void
     {
         $owner = User::factory()->create();
         $campaign = Campaign::factory()->create([
@@ -343,13 +368,30 @@ class ReviewEligibilityServiceTest extends TestCase
             'status' => ParticipantStatus::Approved,
         ]);
 
-        // Campaign must have at least one completed session
         Game::factory()->create([
             'campaign_id' => $campaign->id,
             'owner_id' => $owner->id,
             'date_time' => now()->subDay(),
         ]);
 
-        $this->assertTrue($this->service->canReviewCampaign($owner, $campaign));
+        $this->assertFalse($this->service->canReviewCampaign($owner, $campaign));
+    }
+
+    /** Scenario: game host/owner should NOT be able to review own game session */
+    public function test_can_review_session_host_cannot_review_own(): void
+    {
+        $host = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $host->id,
+            'date_time' => now()->subDay(),
+        ]);
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $host->id,
+            'status' => ParticipantStatus::Approved,
+            'role' => ParticipantRole::Owner,
+        ]);
+
+        $this->assertFalse($this->service->canReviewSession($host, $game));
     }
 }
