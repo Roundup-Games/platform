@@ -72,9 +72,12 @@ class ReviewEligibilityService
     {
         $eligible = collect();
 
-        // Eligible game sessions
+        // Eligible game sessions (exclude games the user owns)
+        $ownedGameIds = Game::where('owner_id', $user->id)->pluck('id');
+
         $approvedGameIds = GameParticipant::where('user_id', $user->id)
             ->where('status', 'approved')
+            ->whereNotIn('game_id', $ownedGameIds)
             ->pluck('game_id');
 
         $games = Game::whereIn('id', $approvedGameIds)
@@ -96,9 +99,12 @@ class ReviewEligibilityService
             }
         }
 
-        // Eligible campaigns
+        // Eligible campaigns (exclude campaigns the user owns)
+        $ownedCampaignIds = Campaign::where('owner_id', $user->id)->pluck('id');
+
         $approvedCampaignIds = CampaignParticipant::where('user_id', $user->id)
             ->where('status', 'approved')
+            ->whereNotIn('campaign_id', $ownedCampaignIds)
             ->pluck('campaign_id');
 
         $campaigns = Campaign::whereIn('id', $approvedCampaignIds)->get();
@@ -131,6 +137,11 @@ class ReviewEligibilityService
 
     private function isApprovedGameParticipant(User $user, Game $game): bool
     {
+        // The owner/host should not review their own session
+        if ($game->owner_id === $user->id) {
+            return false;
+        }
+
         return $game->participants()
             ->where('user_id', $user->id)
             ->where('status', 'approved')
@@ -139,6 +150,11 @@ class ReviewEligibilityService
 
     private function isApprovedCampaignParticipant(User $user, Campaign $campaign): bool
     {
+        // The owner/organizer should not review their own campaign
+        if ($campaign->owner_id === $user->id) {
+            return false;
+        }
+
         return $campaign->participants()
             ->where('user_id', $user->id)
             ->where('status', 'approved')

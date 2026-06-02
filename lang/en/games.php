@@ -423,4 +423,13 @@ return [
     'error_not_a_participant' => 'You are not a participant in this game.',
     'flash_you_left_the_game' => 'You have left the game.',
     'content_leave_hint' => 'Changed your mind?',
+
+    // Attendance reporting
+    'title_attendance_report' => 'Report Attendance',
+    'content_attendance_report_description' => 'Mark each participant as attended, no-show, or excused.',
+    'content_report_others_description' => 'Help verify attendance by reporting who you saw at the table.',
+    'content_attendance_all_reported' => 'All participant attendance has been recorded.',
+    'flash_attendance_reported' => 'Attendance recorded successfully.',
+    'error_attendance_participant_not_found' => 'Participant not found.',
+    'label_host' => 'Host',
 ];

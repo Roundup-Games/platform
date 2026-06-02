@@ -1,4 +1,4 @@
-{{-- Session end: host recap, write recap form, debriefing sections --}}
+{{-- Session end: host recap, write recap form, attendance reporting, debriefing sections --}}
 
 {{-- Host Recap (completed game with recap) --}}
 @if($game->status === \App\Enums\GameStatus::Completed && $game->recap)
@@ -55,6 +55,150 @@
                 </button>
             </form>
         </section>
+    @endif
+@endauth
+
+{{-- Attendance Reporting (completed games) --}}
+@auth
+    @if($game->status === \App\Enums\GameStatus::Completed)
+        @php
+            $viewerId = \Illuminate\Support\Facades\Auth::id();
+            $allApproved = $game->participants->where('status', \App\Enums\ParticipantStatus::Approved);
+            $hostParticipant = $allApproved->first(fn ($p) => $p->user_id === $game->owner_id);
+            $ownParticipant = $allApproved->first(fn ($p) => $p->user_id === $viewerId);
+
+            // For host: all non-host approved participants
+            $hostReportable = $isOwner
+                ? $allApproved->filter(fn ($p) => $p->user_id !== $game->owner_id)
+                : collect();
+            $hostHasUnreported = $hostReportable->whereNull('attendance_status')->count() > 0;
+
+            // For participants: everyone except themselves (including the host)
+            $participantReportable = !$isOwner && $ownParticipant
+                ? $allApproved->filter(fn ($p) => $p->user_id !== $viewerId)
+                : collect();
+            $participantHasUnreported = $participantReportable->whereNull('attendance_status')->count() > 0;
+        @endphp
+
+        {{-- Host attendance reporting: full roster of players --}}
+        @if($isOwner && $hostReportable->count() > 0)
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
+                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_attendance_report') }}</h2>
+                </div>
+                @if($hostHasUnreported)
+                    <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_attendance_report_description') }}</p>
+                @else
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="material-symbols-outlined text-lg text-on-secondary-container" aria-hidden="true">task_alt</span>
+                        <p class="text-sm text-on-surface">{{ __('games.content_attendance_all_reported') }}</p>
+                    </div>
+                @endif
+                <div class="space-y-3">
+                    @foreach($hostReportable as $participant)
+                        <div class="flex items-center justify-between gap-3 bg-surface rounded-lg p-3">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <x-user-link :user="$participant->user" avatar-size="w-7 h-7" :truncate="true" />
+                                @if($participant->attendance_status)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $participant->attendance_status === \App\Enums\AttendanceStatus::Attended ? 'bg-secondary-container text-on-secondary-container' : 'bg-error/10 text-error' }}">
+                                        {{ $participant->attendance_status->label() }}
+                                    </span>
+                                @endif
+                            </div>
+                            @if(! $participant->attendance_status)
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'attended')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+                                    >
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
+                                        {{ __('attendance.status_attended') }}
+                                    </button>
+                                    <button
+                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'no_show')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-error/10 text-error hover:opacity-90 transition-opacity"
+                                    >
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
+                                        {{ __('attendance.status_no_show') }}
+                                    </button>
+                                    <button
+                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'excused')"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:opacity-90 transition-opacity"
+                                    >
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">event_busy</span>
+                                        {{ __('attendance.status_excused') }}
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Participant attendance reporting: report others (including host) --}}
+        @if(!$isOwner && $ownParticipant && $participantReportable->count() > 0)
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
+                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_attendance_report') }}</h2>
+                </div>
+                @if($participantHasUnreported)
+                    <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_report_others_description') }}</p>
+                @else
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="material-symbols-outlined text-lg text-on-secondary-container" aria-hidden="true">task_alt</span>
+                        <p class="text-sm text-on-surface">{{ __('games.content_attendance_all_reported') }}</p>
+                    </div>
+                @endif
+                    <div class="space-y-3">
+                        @foreach($participantReportable as $participant)
+                            <div class="flex items-center justify-between gap-3 bg-surface rounded-lg p-3">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    @if($participant->user_id === $game->owner_id)
+                                        <span class="material-symbols-outlined text-sm text-primary" aria-hidden="true">shield</span>
+                                    @endif
+                                    <x-user-link :user="$participant->user" avatar-size="w-7 h-7" :truncate="true" />
+                                    @if($participant->user_id === $game->owner_id)
+                                        <span class="text-xs text-on-surface-variant">({{ __('games.label_host') }})</span>
+                                    @endif
+                                    @if($participant->attendance_status)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $participant->attendance_status === \App\Enums\AttendanceStatus::Attended ? 'bg-secondary-container text-on-secondary-container' : 'bg-error/10 text-error' }}">
+                                            {{ $participant->attendance_status->label() }}
+                                        </span>
+                                    @endif
+                                </div>
+                                @if(! $participant->attendance_status)
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'attended')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+                                        >
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
+                                            {{ __('attendance.status_attended') }}
+                                        </button>
+                                        <button
+                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'no_show')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-error/10 text-error hover:opacity-90 transition-opacity"
+                                        >
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
+                                            {{ __('attendance.status_no_show') }}
+                                        </button>
+                                        <button
+                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'excused')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:opacity-90 transition-opacity"
+                                        >
+                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">event_busy</span>
+                                            {{ __('attendance.status_excused') }}
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+            </section>
+        @endif
     @endif
 @endauth
 
