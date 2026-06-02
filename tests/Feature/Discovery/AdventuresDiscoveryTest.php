@@ -169,11 +169,12 @@ describe('AdventuresDiscovery', function () {
             'campaign_id' => $campaign->id,
         ]);
 
+        // Campaign Sessions tab: shows campaign session games, NOT campaign entities
         Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
             ->set('session_type', 'campaign')
-            ->assertSee('Active Campaign')
             ->assertSee('Campaign Session')
-            ->assertDontSee('One-shot Game');
+            ->assertDontSee('One-shot Game')
+            ->assertDontSee('Active Campaign');
     });
 
     it('filters by session_type: oneshot only', function () {
@@ -251,7 +252,7 @@ describe('AdventuresDiscovery', function () {
             'safety_rules' => ['tools' => []],
         ]);
 
-        // Campaign whose first session is named "Session Zero" — should match
+        // Campaign with a session-zero game — the game should match, not the campaign entity
         $campaign = Campaign::factory()->create([
             'name' => ['en' => 'Midnight Campaign'],
             'visibility' => 'public',
@@ -282,7 +283,8 @@ describe('AdventuresDiscovery', function () {
             ->set('session_zero', true)
             ->assertSee('Session Zero: Character Creation')
             ->assertSee('Session 0: World Building')
-            ->assertSee('Midnight Campaign')
+            ->assertSee('Session Zero for Midnight')
+            ->assertDontSee('Midnight Campaign')
             ->assertDontSee('Regular D&D Game');
     });
 
@@ -411,6 +413,85 @@ describe('AdventuresDiscovery', function () {
 
         $component->set('session_type', 'campaign');
         expect($component->instance()->hasActiveFilters())->toBeTrue();
+    });
+
+    // ── Campaign session display ──────────────────────
+
+    it('all view shows games, campaign sessions, and campaigns without sessions', function () {
+        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
+
+        $campaign = Campaign::factory()->create([
+            'name' => ['en' => 'Campaign With No Sessions'],
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $system->id,
+        ]);
+
+        $campaignWithSession = Campaign::factory()->create([
+            'name' => ['en' => 'Campaign With Session'],
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $system->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'One-shot Game'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+            'campaign_id' => null,
+        ]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'Campaign Session Game'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'game_system_id' => $system->id,
+            'campaign_id' => $campaignWithSession->id,
+        ]);
+
+        // All tab: sees everything
+        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+            ->assertSee('One-shot Game')
+            ->assertSee('Campaign Session Game')
+            ->assertSee('Campaign With No Sessions');
+    });
+
+    it('campaign sessions tab shows only games with campaign_id', function () {
+        $system = GameSystem::factory()->create(['type' => 'ttrpg']);
+
+        $campaign = Campaign::factory()->create([
+            'name' => ['en' => 'My Campaign'],
+            'visibility' => 'public',
+            'status' => 'active',
+            'game_system_id' => $system->id,
+        ]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'Standalone Game'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(3),
+            'game_system_id' => $system->id,
+            'campaign_id' => null,
+        ]);
+
+        Game::factory()->create([
+            'name' => ['en' => 'Session 1: The Beginning'],
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'date_time' => now()->addDays(5),
+            'game_system_id' => $system->id,
+            'campaign_id' => $campaign->id,
+        ]);
+
+        Livewire\Livewire::test(App\Livewire\Discovery\AdventuresDiscovery::class)
+            ->set('session_type', 'campaign')
+            ->assertSee('Session 1: The Beginning')
+            ->assertDontSee('Standalone Game')
+            ->assertDontSee('My Campaign');
     });
 
 });

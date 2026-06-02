@@ -52,7 +52,7 @@
                         role="radio" aria-checked="{{ $session_type === 'campaign' ? 'true' : 'false' }}"
                         class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ $session_type === 'campaign' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container' }}">
                     <span class="material-symbols-outlined text-xs mr-0.5 align-middle" aria-hidden="true">campaign</span>
-                    {{ __('campaigns.content_campaigns') }}
+                    {{ __('campaigns.content_campaign_sessions') }}
                 </button>
                 <button wire:click="setSessionType('oneshot')"
                         role="radio" aria-checked="{{ $session_type === 'oneshot' ? 'true' : 'false' }}"
@@ -267,7 +267,7 @@
                 @if($session_type === 'campaign')
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         <span class="material-symbols-outlined text-xs" aria-hidden="true">campaign</span>
-                        {{ __('campaigns.content_campaigns') }}
+                        {{ __('campaigns.content_campaign_sessions') }}
                     </span>
                 @elseif($session_type === 'oneshot')
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">

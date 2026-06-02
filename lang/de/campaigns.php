@@ -25,6 +25,7 @@ return [
     'content_campaign_details' => 'Kampagnendetails',
     'content_campaign_management' => 'Kampagnenverwaltung',
     'content_campaigns' => 'Kampagnen',
+    'content_campaign_sessions' => 'Kampagnen-Sitzungen',
     'content_check_back_soon_for_new_campaigns' => 'Schau bald wieder vorbei für neue Kampagnen!',
     'content_count_session' => ':count/Sitzung',
     'content_create_a_free_account_set' => 'Erstelle einen kostenlosen Account, setze deine Präferenzen und entdecke Sessions in deiner Nähe diese Woche.',
