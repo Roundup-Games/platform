@@ -1,7 +1,7 @@
 @props(['game'])
 
 <a href="{{ route('games.detail', ['locale' => app()->getLocale(), 'id' => $game->id]) }}" wire:navigate class="block bg-surface rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group min-h-[220px]">
-    <div class="h-1.5 bg-primary/60"></div>
+    <div class="h-1.5 {{ $game->campaign_id ? 'bg-secondary/60' : 'bg-primary/60' }}"></div>
 
     <div class="p-5">
         <div class="flex items-start justify-between mb-2">
@@ -25,6 +25,18 @@
                 <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">casino</span>
                 {{ __('games.content_game') }}
             </span>
+            @if($game->campaign_id && $game->campaign)
+                <span
+                    role="link"
+                    tabindex="0"
+                    onclick="event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign_id]) }}'; return false;"
+                    onkeydown="if(event.key==='Enter'){event.stopPropagation(); window.location.href = '{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $game->campaign_id]) }}'; return false;}"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80 transition-colors cursor-pointer"
+                    aria-label="{{ __('campaigns.content_campaign') }}">
+                    <span class="material-symbols-outlined text-xs mr-0.5" aria-hidden="true">campaign</span>
+                    {{ __('campaigns.content_campaign') }}
+                </span>
+            @endif
             @if($game->gameSystem)
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">
                     {{ $game->gameSystem?->name }}

@@ -180,13 +180,17 @@ class AdventuresDiscovery extends Component
 
         // Apply session_type filter
         if ($this->session_type === 'campaign') {
+            // Campaign Sessions tab: show only games that belong to a campaign
             $gamesQuery->whereNotNull('campaign_id');
+            $campaignsQuery->whereRaw('1 = 0'); // No separate campaign entities in this tab
         } elseif ($this->session_type === 'oneshot') {
+            // One-shots tab: show only standalone games
             $gamesQuery->whereNull('campaign_id');
-            $campaignsQuery->whereRaw('1 = 0'); // Exclude campaigns
+            $campaignsQuery->whereRaw('1 = 0'); // Exclude campaign entities
         }
 
-        // Apply session_zero filter: safety tool flag OR name indicates it IS a session zero
+        // Apply session_zero filter: find games that ARE session zeros
+        // (safety tool flag OR name indicates it IS a session zero)
         if ($this->session_zero) {
             $nameIsSessionZero = "(name->>'en' ~* '^(session\s*zero|session\s*0)' OR name->>'de' ~* '^(session\s*zero|session\s*0)')";
 
@@ -195,12 +199,8 @@ class AdventuresDiscovery extends Component
                     ->orWhereRaw($nameIsSessionZero);
             });
 
-            $campaignsQuery->where(function ($q) use ($nameIsSessionZero) {
-                $q->whereJsonContains('safety_rules->tools', 'session-zero')
-                    ->orWhereHas('sessions', function ($sq) use ($nameIsSessionZero) {
-                        $sq->whereRaw($nameIsSessionZero);
-                    });
-            });
+            // Session zero filter: show game sessions only, not campaign entities
+            $campaignsQuery->whereRaw('1 = 0');
         }
 
         // Apply play_styles filter: match games/campaigns whose game system has
