@@ -205,18 +205,21 @@ class AttendanceService
             ]);
         }
 
-        // 2. Check volume: uncorroborated reports in last 30 days
-        $uncorroboratedCount = AttendanceReport::where('reporter_id', $reporter->id)
+        // 2. Check volume: distinct game sessions with uncorroborated reports in last 30 days
+        //    Counting per-game, not per-report, so a host reporting 5 players in one session
+        //    counts as 1 game — not 5 uncorroborated reports.
+        $uncorroboratedGameCount = AttendanceReport::where('reporter_id', $reporter->id)
             ->where('is_corroborated', false)
             ->where('created_at', '>=', now()->subDays(self::quarantineLookbackDays()))
-            ->count();
+            ->distinct()
+            ->count('game_id');
 
-        if ($uncorroboratedCount >= self::quarantineThreshold()) {
+        if ($uncorroboratedGameCount >= self::quarantineThreshold()) {
             $quarantined = true;
 
             Log::warning('Reporter quarantined for excessive uncorroborated reports', [
                 'reporter_id' => $reporter->id,
-                'uncorroborated_count' => $uncorroboratedCount,
+                'uncorroborated_game_count' => $uncorroboratedGameCount,
                 'threshold' => self::quarantineThreshold(),
             ]);
 
@@ -224,7 +227,7 @@ class AttendanceService
                 'allowed' => false,
                 'weight_multiplier' => 0.0,
                 'quarantined' => true,
-                'reason' => 'Quarantined: ' . $uncorroboratedCount . ' uncorroborated reports in ' . self::quarantineLookbackDays() . ' days',
+                'reason' => 'Quarantined: ' . $uncorroboratedGameCount . ' uncorroborated game sessions in ' . self::quarantineLookbackDays() . ' days',
             ];
         }
 
