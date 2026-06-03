@@ -193,11 +193,11 @@ describe('checkGriefResistance', function () {
         expect($result['weight_multiplier'])->toBe(0.5);
     });
 
-    it('quarantines reporters with too many uncorroborated reports', function () {
+    it('quarantines reporters with too many uncorroborated reports across distinct games', function () {
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
         $reporter = $participants[1];
 
-        // Create 3 uncorroborated reports in the last 30 days
+        // Create 3 uncorroborated reports across 3 distinct game sessions
         for ($i = 0; $i < 3; $i++) {
             AttendanceReport::factory()->create([
                 'reporter_id' => $reporter->id,
@@ -210,6 +210,27 @@ describe('checkGriefResistance', function () {
 
         expect($result['allowed'])->toBeFalse();
         expect($result['quarantined'])->toBeTrue();
+    });
+
+    it('does not quarantine a reporter for multiple reports within a single game session', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(5);
+        $reporter = $participants[1];
+
+        // Create 5 uncorroborated reports all in the same game
+        for ($i = 0; $i < 5; $i++) {
+            AttendanceReport::factory()->create([
+                'reporter_id' => $reporter->id,
+                'game_id' => $game->id,
+                'reported_id' => User::factory(),
+                'is_corroborated' => false,
+                'created_at' => now()->subDays(rand(1, 25)),
+            ]);
+        }
+
+        $result = $this->service->checkGriefResistance($reporter, $game);
+
+        expect($result['allowed'])->toBeTrue();
+        expect($result['quarantined'])->toBeFalse();
     });
 
     it('reduces weight for late reports past 72 hours', function () {
