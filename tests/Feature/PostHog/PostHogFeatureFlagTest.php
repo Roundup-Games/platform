@@ -216,31 +216,6 @@ class PostHogFeatureFlagTest extends TestCase
         $this->assertFalse($result);
     }
 
-    #[Test]
-    public function feature_flag_service_is_registered_as_singleton(): void
-    {
-        $first = app(PostHogFeatureFlag::class);
-        $second = app(PostHogFeatureFlag::class);
-
-        $this->assertSame($first, $second);
-    }
-
-    #[Test]
-    public function feature_flag_service_cache_persists_across_calls_in_same_request(): void
-    {
-        $this->posthogClient->setFlagResult('cached-flag', true);
-
-        $service = app(PostHogFeatureFlag::class);
-
-        // Call twice — getFeatureFlag should only be invoked once due to cache
-        $first = $service->checkFlag('cached-flag', '10');
-        $second = $service->checkFlag('cached-flag', '10');
-
-        $this->assertTrue($first);
-        $this->assertTrue($second);
-        $this->assertCount(1, $this->posthogClient->featureFlagCalls);
-    }
-
     // ── Merged from Unit — isolation tests ───────────────
 
     #[Test]

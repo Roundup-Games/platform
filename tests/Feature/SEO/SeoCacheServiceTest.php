@@ -90,71 +90,23 @@ describe('forgetIndex', function () {
 // ── forgetByModel ────────────────────────────────────
 
 describe('forgetByModel', function () {
-    it('clears sitemap cache and index for GameSystem model', function () {
-        $system = GameSystem::factory()->create();
-        $this->service->setSitemap('game-systems', '<gs/>');
+    it('clears sitemap cache and index for mapped models', function ($sitemapType, $factory) {
+        $model = $factory();
+        $this->service->setSitemap($sitemapType, '<data/>');
         $this->service->setIndex('<idx/>');
 
-        $this->service->forgetByModel($system);
+        $this->service->forgetByModel($model);
 
-        expect($this->service->getSitemap('game-systems'))->toBeNull();
+        expect($this->service->getSitemap($sitemapType))->toBeNull();
         expect($this->service->getIndex())->toBeNull();
-    });
-
-    it('clears sitemap cache and index for Event model', function () {
-        $event = Event::factory()->create(['status' => 'published']);
-        $this->service->setSitemap('events', '<ev/>');
-        $this->service->setIndex('<idx/>');
-
-        $this->service->forgetByModel($event);
-
-        expect($this->service->getSitemap('events'))->toBeNull();
-        expect($this->service->getIndex())->toBeNull();
-    });
-
-    it('clears sitemap cache and index for Game model', function () {
-        $game = Game::factory()->create();
-        $this->service->setSitemap('games', '<g/>');
-        $this->service->setIndex('<idx/>');
-
-        $this->service->forgetByModel($game);
-
-        expect($this->service->getSitemap('games'))->toBeNull();
-        expect($this->service->getIndex())->toBeNull();
-    });
-
-    it('clears sitemap cache and index for Campaign model', function () {
-        $campaign = Campaign::factory()->create();
-        $this->service->setSitemap('campaigns', '<c/>');
-        $this->service->setIndex('<idx/>');
-
-        $this->service->forgetByModel($campaign);
-
-        expect($this->service->getSitemap('campaigns'))->toBeNull();
-        expect($this->service->getIndex())->toBeNull();
-    });
-
-    it('clears sitemap cache and index for Team model', function () {
-        $team = Team::factory()->create();
-        $this->service->setSitemap('teams', '<t/>');
-        $this->service->setIndex('<idx/>');
-
-        $this->service->forgetByModel($team);
-
-        expect($this->service->getSitemap('teams'))->toBeNull();
-        expect($this->service->getIndex())->toBeNull();
-    });
-
-    it('clears sitemap cache and index for User model', function () {
-        $user = User::factory()->create(['profile_complete' => true]);
-        $this->service->setSitemap('profiles', '<u/>');
-        $this->service->setIndex('<idx/>');
-
-        $this->service->forgetByModel($user);
-
-        expect($this->service->getSitemap('profiles'))->toBeNull();
-        expect($this->service->getIndex())->toBeNull();
-    });
+    })->with([
+        'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
+        'Event'      => ['events',      fn () => Event::factory()->create(['status' => 'published'])],
+        'Game'       => ['games',        fn () => Game::factory()->create()],
+        'Campaign'   => ['campaigns',    fn () => Campaign::factory()->create()],
+        'Team'       => ['teams',        fn () => Team::factory()->create()],
+        'User'       => ['profiles',     fn () => User::factory()->create(['profile_complete' => true])],
+    ]);
 
     it('is a no-op for unmapped model classes', function () {
         $this->service->setSitemap('games', '<games/>');

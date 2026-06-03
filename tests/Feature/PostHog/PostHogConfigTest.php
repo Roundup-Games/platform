@@ -26,29 +26,9 @@ describe('PostHog config file', function () {
             ->and($config)->toHaveKey('api_key');
     });
 
-    test('api_key reads from POSTHOG_API_KEY env var', function () {
-        Config::set('posthog.api_key', null);
-        expect(config('posthog.api_key'))->toBeNull();
-    });
-
     test('host defaults to EU cloud', function () {
         $config = include config_path('posthog.php');
         expect($config['host'])->toBe('https://eu.i.posthog.com');
-    });
-
-    test('host can be overridden to US cloud via config', function () {
-        Config::set('posthog.host', 'https://us.i.posthog.com');
-        expect(config('posthog.host'))->toBe('https://us.i.posthog.com');
-    });
-
-    test('enabled can be set to false via config', function () {
-        Config::set('posthog.enabled', false);
-        expect(config('posthog.enabled'))->toBeFalse();
-    });
-
-    test('api_key can be set via config', function () {
-        Config::set('posthog.api_key', 'phc_test_key_abc123');
-        expect(config('posthog.api_key'))->toBe('phc_test_key_abc123');
     });
 });
 

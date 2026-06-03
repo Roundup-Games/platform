@@ -25,25 +25,6 @@ function resolvePostHogBundleOrFail(): string
 }
 
 describe('Session Replay configuration', function () {
-    test('replay sample rate accepts boundary values 0.0 and 1.0', function () {
-        Config::set('posthog.session_replay.sample_rate', 0.0);
-        expect(config('posthog.session_replay.sample_rate'))->toBe(0.0);
-
-        Config::set('posthog.session_replay.sample_rate', 1.0);
-        expect(config('posthog.session_replay.sample_rate'))->toBe(1.0);
-    });
-
-    test('replay sample rate accepts fractional values within 0-1 range', function () {
-        Config::set('posthog.session_replay.sample_rate', 0.25);
-        expect(config('posthog.session_replay.sample_rate'))->toBe(0.25);
-
-        Config::set('posthog.session_replay.sample_rate', 0.5);
-        expect(config('posthog.session_replay.sample_rate'))->toBe(0.5);
-
-        Config::set('posthog.session_replay.sample_rate', 0.75);
-        expect(config('posthog.session_replay.sample_rate'))->toBe(0.75);
-    });
-
     test('session replay defaults to enabled with 50% sample rate', function () {
         $config = include config_path('posthog.php');
 
@@ -51,10 +32,6 @@ describe('Session Replay configuration', function () {
             ->and($config['session_replay']['sample_rate'])->toBe(0.5);
     });
 
-    test('session replay can be fully disabled', function () {
-        Config::set('posthog.session_replay.enabled', false);
-        expect(config('posthog.session_replay.enabled'))->toBeFalse();
-    });
 });
 
 describe('Session Replay disabled state', function () {
@@ -200,10 +177,6 @@ describe('Survey configuration', function () {
         expect($config['surveys']['enabled'])->toBeTrue();
     });
 
-    test('surveys can be disabled via config kill switch', function () {
-        Config::set('posthog.surveys.enabled', false);
-        expect(config('posthog.surveys.enabled'))->toBeFalse();
-    });
 });
 
 describe('Full stack config integration', function () {
@@ -224,22 +197,7 @@ describe('Full stack config integration', function () {
         expect($config['feature_flags'])->toHaveKeys(['enabled']);
     });
 
-    test('PostHog init is skipped when api_key is missing even if replay is enabled', function () {
-        Config::set('posthog.api_key', null);
-        Config::set('posthog.enabled', true);
-        Config::set('posthog.session_replay.enabled', true);
 
-        $shouldInit = config('posthog.enabled', true) && config('posthog.api_key');
-        expect($shouldInit)->toBeFalse();
-    });
-
-    test('PostHog init proceeds when all required config is present', function () {
-        Config::set('posthog.api_key', 'phc_test');
-        Config::set('posthog.enabled', true);
-
-        $shouldInit = config('posthog.enabled', true) && config('posthog.api_key');
-        expect($shouldInit)->toBeTrue();
-    });
 
     test('partial conditionally renders all PostHog meta tags together', function () {
         $partial = file_get_contents(resource_path('views/partials/posthog-meta.blade.php'));

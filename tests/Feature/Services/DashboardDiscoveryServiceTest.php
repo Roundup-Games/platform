@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Feature\Services;
 
 use App\Enums\CampaignStatus;
 use App\Enums\GameStatus;
@@ -17,7 +17,6 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardDiscoveryService;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -25,7 +24,6 @@ use Tests\TestCase;
 
 class DashboardDiscoveryServiceTest extends TestCase
 {
-    use DatabaseTransactions;
 
     private DashboardDiscoveryService $service;
     private User $user;
