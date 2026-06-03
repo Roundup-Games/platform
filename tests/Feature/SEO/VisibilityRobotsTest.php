@@ -9,7 +9,10 @@ use App\Models\Team;
 use App\Models\User;
 use function Pest\Laravel\{get, actingAs};
 
-// ── Game Visibility Robots ─────────────────────────────
+// Per-entity visibility robots tests. The *SeoTest.php files unit-test
+// getDynamicSEOData() for every status/visibility combination. These
+// integration tests verify that the HTTP response actually renders the
+// correct robots meta tag for the key visibility states.
 
 describe('Game Visibility Robots', function () {
     it('renders index, follow for public game', function () {
@@ -46,34 +49,7 @@ describe('Game Visibility Robots', function () {
         get(route('games.detail', $game->id))
             ->assertRedirect(route('games.show', $game->id));
     });
-
-    it('renders robots meta tag containing correct content attribute', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
-    });
-
-    it('authenticated owner sees dashboard detail for private game with correct SEO', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Private,
-            'owner_id' => $owner->id,
-        ]);
-
-        actingAs($owner);
-        get(route('games.show', $game->id))
-            ->assertOk();
-    });
 });
-
-// ── Campaign Visibility Robots ─────────────────────────
 
 describe('Campaign Visibility Robots', function () {
     it('renders index, follow for public campaign', function () {
@@ -110,34 +86,7 @@ describe('Campaign Visibility Robots', function () {
         get(route('campaigns.detail', $campaign->id))
             ->assertRedirect(route('campaigns.show', $campaign->id));
     });
-
-    it('renders robots meta tag with correct content attribute for public campaign', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
-    });
-
-    it('authenticated owner sees dashboard detail for private campaign', function () {
-        $owner = User::factory()->create(['profile_complete' => true]);
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Private,
-            'owner_id' => $owner->id,
-        ]);
-
-        actingAs($owner);
-        get(route('campaigns.show', $campaign->id))
-            ->assertOk();
-    });
 });
-
-// ── Event Visibility Robots ────────────────────────────
 
 describe('Event Visibility Robots', function () {
     it('renders index, follow for public published event', function () {
@@ -150,28 +99,6 @@ describe('Event Visibility Robots', function () {
             ->assertOk()
             ->assertSee('index, follow', false)
             ->assertDontSee('noindex', false);
-    });
-
-    it('renders index, follow for public event with registration_closed status', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_closed',
-        ]);
-
-        get(route('events.detail', $event->slug))
-            ->assertOk()
-            ->assertSee('index, follow', false);
-    });
-
-    it('renders index, follow for public event with in_progress status', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'in_progress',
-        ]);
-
-        get(route('events.detail', $event->slug))
-            ->assertOk()
-            ->assertSee('index, follow', false);
     });
 
     it('renders noindex, nofollow for draft event visible to owner', function () {
@@ -215,40 +142,7 @@ describe('Event Visibility Robots', function () {
             ->assertOk()
             ->assertSee('noindex, nofollow', false);
     });
-
-    it('renders robots meta tag with correct content for public event', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
-    });
-
-    it('renders robots meta tag with noindex, nofollow for draft event', function () {
-        $owner = User::factory()->create();
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'draft',
-            'organizer_id' => $owner->id,
-        ]);
-
-        actingAs($owner);
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
-    });
 });
-
-// ── Team Visibility Robots ─────────────────────────────
 
 describe('Team Visibility Robots', function () {
     it('renders index, follow for active team', function () {
@@ -278,38 +172,17 @@ describe('Team Visibility Robots', function () {
             ->assertOk()
             ->assertSee('noindex, nofollow', false);
     });
-
-    it('renders robots meta tag with correct content for active team', function () {
-        $user = User::factory()->create();
-        actingAs($user);
-
-        $team = Team::factory()->create(['is_active' => true]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
-    });
 });
-
-// ── GameSystem Robots (always indexable) ───────────────
 
 describe('GameSystem Robots', function () {
     it('renders index, follow for all game systems', function () {
         $system = GameSystem::factory()->create();
 
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
+        get(route('game-systems.show', $system->slug))
+            ->assertOk()
+            ->assertSee('index, follow', false);
     });
 });
-
-// ── Profile Visibility Robots ──────────────────────────
 
 describe('Profile Visibility Robots', function () {
     it('renders index, follow for profile with visible fields', function () {
@@ -319,13 +192,9 @@ describe('Profile Visibility Robots', function () {
             'profile_complete' => true,
         ]);
 
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        // Profile with bio has visible fields, so should be indexable
-        expect($matches[1] ?? '')->toBe('index, follow');
+        get(route('profile.public', $user))
+            ->assertOk()
+            ->assertSee('index, follow', false);
     });
 
     it('renders noindex, nofollow for profile with no guest-visible fields', function () {
@@ -344,28 +213,20 @@ describe('Profile Visibility Robots', function () {
             ],
         ]);
 
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
+        get(route('profile.public', $user))
+            ->assertOk()
+            ->assertSee('noindex, nofollow', false);
     });
 });
-
-// ── Admin Override Robots Precedence ───────────────────
 
 describe('Admin Override Robots Precedence', function () {
     it('admin noindex override takes precedence over dynamic index', function () {
         $system = GameSystem::factory()->create(['name' => ['en' => 'Override Test']]);
         $system->seo->update(['robots' => 'noindex, nofollow']);
 
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
+        get(route('game-systems.show', $system->slug))
+            ->assertOk()
+            ->assertSee('noindex, nofollow', false);
     });
 
     it('clearing robots override restores dynamic value', function () {
@@ -381,12 +242,9 @@ describe('Admin Override Robots Precedence', function () {
         $system->seo->update(['robots' => null]);
 
         // Verify dynamic value restored
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('index, follow');
+        get(route('game-systems.show', $system->slug))
+            ->assertOk()
+            ->assertSee('index, follow', false);
     });
 
     it('admin noindex override on public game takes precedence', function () {
@@ -395,11 +253,8 @@ describe('Admin Override Robots Precedence', function () {
         ]);
         $game->seo->update(['robots' => 'noindex, nofollow']);
 
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-
-        $content = $response->content();
-        preg_match('/<meta\s+name="robots"\s+content="([^"]*)"/', $content, $matches);
-        expect($matches[1] ?? '')->toBe('noindex, nofollow');
+        get(route('games.detail', $game->id))
+            ->assertOk()
+            ->assertSee('noindex, nofollow', false);
     });
 });

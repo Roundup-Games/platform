@@ -14,89 +14,49 @@ beforeEach(function () {
     Cache::flush();
 });
 
-// ── GameSystem observer ────────────────────────────────
+// ── Simple model observers (create/update/delete triggers cache clear) ──
 
-it('clears game-systems sitemap cache when a game system is saved', function () {
+it('clears sitemap cache when a model is created', function ($sitemapType, $factory) {
     $service = app(SeoCacheService::class);
-    $service->setSitemap('game-systems', '<test>xml</test>');
+    $service->setSitemap($sitemapType, '<test>xml</test>');
     $service->setIndex('<sitemapindex>test</sitemapindex>');
 
-    $system = GameSystem::factory()->create();
+    $factory();
 
-    expect(Cache::get('seo:sitemap:game-systems'))->toBeNull();
+    expect(Cache::get("seo:sitemap:{$sitemapType}"))->toBeNull();
     expect(Cache::get('seo:sitemap:index'))->toBeNull();
-});
+})->with([
+    'GameSystem' => ['game-systems', fn () => GameSystem::factory()->create()],
+    'Event'      => ['events',      fn () => Event::factory()->create()],
+    'Team'       => ['teams',        fn () => Team::factory()->create()],
+]);
 
-it('clears game-systems sitemap cache when a game system is updated', function () {
-    $system = GameSystem::factory()->create();
+it('clears sitemap cache when a model is updated', function ($sitemapType, $createAndModify) {
     $service = app(SeoCacheService::class);
-    $service->setSitemap('game-systems', '<test>xml</test>');
+    $service->setSitemap($sitemapType, '<test>xml</test>');
     $service->setIndex('<sitemapindex>test</sitemapindex>');
 
-    $system->update(['name' => 'Updated Name']);
+    $createAndModify();
 
-    expect(Cache::get('seo:sitemap:game-systems'))->toBeNull();
+    expect(Cache::get("seo:sitemap:{$sitemapType}"))->toBeNull();
     expect(Cache::get('seo:sitemap:index'))->toBeNull();
-});
+})->with([
+    'GameSystem' => ['game-systems', fn () => tap(GameSystem::factory()->create())->update(['name' => 'Updated'])],
+]);
 
-it('clears game-systems sitemap cache when a game system is deleted', function () {
-    $system = GameSystem::factory()->create();
+it('clears sitemap cache when a model is deleted', function ($sitemapType, $createAndDelete) {
     $service = app(SeoCacheService::class);
-    $service->setSitemap('game-systems', '<test>xml</test>');
+    $service->setSitemap($sitemapType, '<test>xml</test>');
     $service->setIndex('<sitemapindex>test</sitemapindex>');
 
-    $system->delete();
+    $createAndDelete();
 
-    expect(Cache::get('seo:sitemap:game-systems'))->toBeNull();
-    expect(Cache::get('seo:sitemap:index'))->toBeNull();
-});
-
-// ── Event observer ─────────────────────────────────────
-
-it('clears events sitemap cache when an event is saved', function () {
-    $service = app(SeoCacheService::class);
-    $service->setSitemap('events', '<test>xml</test>');
-    $service->setIndex('<sitemapindex>test</sitemapindex>');
-
-    $event = Event::factory()->create();
-
-    expect(Cache::get('seo:sitemap:events'))->toBeNull();
-    expect(Cache::get('seo:sitemap:index'))->toBeNull();
-});
-
-it('clears events sitemap cache when an event is deleted', function () {
-    $event = Event::factory()->create();
-    $service = app(SeoCacheService::class);
-    $service->setSitemap('events', '<test>xml</test>');
-    $service->setIndex('<sitemapindex>test</sitemapindex>');
-
-    $event->delete();
-
-    expect(Cache::get('seo:sitemap:events'))->toBeNull();
-});
-
-// ── Team observer ──────────────────────────────────────
-
-it('clears teams sitemap cache when a team is saved', function () {
-    $service = app(SeoCacheService::class);
-    $service->setSitemap('teams', '<test>xml</test>');
-    $service->setIndex('<sitemapindex>test</sitemapindex>');
-
-    $team = Team::factory()->create();
-
-    expect(Cache::get('seo:sitemap:teams'))->toBeNull();
-    expect(Cache::get('seo:sitemap:index'))->toBeNull();
-});
-
-it('clears teams sitemap cache when a team is deleted', function () {
-    $team = Team::factory()->create();
-    $service = app(SeoCacheService::class);
-    $service->setSitemap('teams', '<test>xml</test>');
-
-    $team->delete();
-
-    expect(Cache::get('seo:sitemap:teams'))->toBeNull();
-});
+    expect(Cache::get("seo:sitemap:{$sitemapType}"))->toBeNull();
+})->with([
+    'GameSystem' => ['game-systems', fn () => tap(GameSystem::factory()->create())->delete()],
+    'Event'      => ['events',      fn () => tap(Event::factory()->create())->delete()],
+    'Team'       => ['teams',        fn () => tap(Team::factory()->create())->delete()],
+]);
 
 // ── User observer (selective invalidation) ─────────────
 

@@ -9,448 +9,71 @@ use App\Models\Team;
 use App\Models\User;
 use function Pest\Laravel\{get, actingAs};
 
-// ── GameSystem Detail: Full Meta Tag Rendering ─────────
+// ── Entity Smoke Tests: one per entity to verify route+SEO wiring ────
+// Full getDynamicSEOData() coverage is in *SeoTest.php files.
+// These smoke tests ensure the HTTP route renders meta tags correctly.
 
-describe('GameSystem Detail Meta Tags', function () {
-    it('renders correct title tag', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'Dungeons & Dragons 5e']]);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Dungeons & Dragons 5e');
-    });
-
-    it('renders meta description from model description', function () {
-        $system = GameSystem::factory()->create([
-            'name' => ['en' => 'Test System'],
-            'description' => ['en' => 'An exciting tabletop RPG system.'],
-        ]);
+describe('Entity SEO smoke tests', function () {
+    it('renders meta tags for game system detail page', function () {
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Smoke System']]);
 
         $response = get(route('game-systems.show', $system->slug));
         $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('An exciting tabletop RPG system.');
+        assertPageTitle($response, 'Smoke System');
+        $response->assertSee('twitter:card', false);
     });
 
-    it('renders og:title with entity name', function () {
-        $system = GameSystem::factory()->create(['name' => ['en' => 'OG Title System']]);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG Title System');
-    });
-
-    it('renders og:description meta tag', function () {
-        $system = GameSystem::factory()->create([
-            'name' => ['en' => 'OG Desc System'],
-            'description' => ['en' => 'OG description content'],
-        ]);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:description', 'OG description content');
-    });
-
-    it('renders og:image meta tag', function () {
-        $system = GameSystem::factory()->create();
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
-    });
-
-    it('renders og:url meta tag', function () {
-        $system = GameSystem::factory()->create(['slug' => 'test-system-og']);
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:url');
-    });
-
-    it('renders og:site_name meta tag', function () {
-        $system = GameSystem::factory()->create();
-
-        $response = get(route('game-systems.show', $system->slug));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:site_name', 'Roundup Games');
-    });
-
-    it('renders twitter:card meta tag', function () {
-        $system = GameSystem::factory()->create();
-
-        get(route('game-systems.show', $system->slug))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $system = GameSystem::factory()->create();
-
-        get(route('game-systems.show', $system->slug))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
-    });
-});
-
-// ── Event Detail: Full Meta Tag Rendering ──────────────
-
-describe('Event Detail Meta Tags', function () {
-    it('renders correct title tag', function () {
+    it('renders meta tags for event detail page', function () {
         $event = Event::factory()->create([
-            'name' => 'Grand Tournament 2025',
+            'name' => 'Smoke Event',
             'is_public' => true,
-            'status' => 'registration_open',
+            'status' => 'published',
         ]);
 
         $response = get(route('events.detail', $event->slug));
         $response->assertOk();
-        assertPageTitle($response, 'Grand Tournament 2025');
+        assertPageTitle($response, 'Smoke Event');
     });
 
-    it('renders meta description from short_description', function () {
-        $event = Event::factory()->create([
-            'name' => 'Described Event',
-            'short_description' => 'Join us for the biggest event of the year!',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('Join us for the biggest event of the year!');
-    });
-
-    it('renders og:title with entity name', function () {
-        $event = Event::factory()->create([
-            'name' => 'OG Event',
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG Event');
-    });
-
-    it('renders og:image meta tag', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        $response = get(route('events.detail', $event->slug));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
-    });
-
-    it('renders twitter:card meta tag', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('events.detail', $event->slug))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_open',
-        ]);
-
-        get(route('events.detail', $event->slug))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
-    });
-});
-
-// ── Game Detail: Full Meta Tag Rendering ───────────────
-
-describe('Game Detail Meta Tags', function () {
-    it('renders correct title tag', function () {
+    it('renders meta tags for game detail page', function () {
         $game = Game::factory()->create([
-            'name' => ['en' => 'Epic Board Game Night'],
+            'name' => ['en' => 'Smoke Game'],
             'visibility' => Visibility::Public,
         ]);
 
         $response = get(route('games.detail', $game->id));
         $response->assertOk();
-        assertPageTitle($response, 'Epic Board Game Night');
+        assertPageTitle($response, 'Smoke Game');
     });
 
-    it('renders meta description from game description', function () {
-        $game = Game::factory()->create([
-            'name' => ['en' => 'Fun Game'],
-            'description' => ['en' => 'An exciting evening of board games for all skill levels.'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('An exciting evening of board games');
-    });
-
-    it('renders og:title with entity name', function () {
-        $game = Game::factory()->create([
-            'name' => ['en' => 'OG Game'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG Game');
-    });
-
-    it('renders og:description meta tag', function () {
-        $game = Game::factory()->create([
-            'name' => ['en' => 'OG Desc Game'],
-            'description' => ['en' => 'OG game description content'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:description', 'OG game description content');
-    });
-
-    it('renders og:image meta tag', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('games.detail', $game->id));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
-    });
-
-    it('renders twitter:card meta tag', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        get(route('games.detail', $game->id))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $game = Game::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        get(route('games.detail', $game->id))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
-    });
-});
-
-// ── Campaign Detail: Full Meta Tag Rendering ───────────
-
-describe('Campaign Detail Meta Tags', function () {
-    it('renders correct title tag', function () {
+    it('renders meta tags for campaign detail page', function () {
         $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'Curse of Strahd Campaign'],
+            'name' => ['en' => 'Smoke Campaign'],
             'visibility' => Visibility::Public,
         ]);
 
         $response = get(route('campaigns.detail', $campaign->id));
         $response->assertOk();
-        assertPageTitle($response, 'Curse of Strahd Campaign');
+        assertPageTitle($response, 'Smoke Campaign');
     });
 
-    it('renders meta description from campaign description', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'Described Campaign'],
-            'description' => ['en' => 'A gothic horror adventure set in the land of Barovia.'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('A gothic horror adventure');
-    });
-
-    it('renders og:title with entity name', function () {
-        $campaign = Campaign::factory()->create([
-            'name' => ['en' => 'OG Campaign'],
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG Campaign');
-    });
-
-    it('renders og:image meta tag', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        $response = get(route('campaigns.detail', $campaign->id));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
-    });
-
-    it('renders twitter:card meta tag', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        get(route('campaigns.detail', $campaign->id))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $campaign = Campaign::factory()->create([
-            'visibility' => Visibility::Public,
-        ]);
-
-        get(route('campaigns.detail', $campaign->id))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
-    });
-});
-
-// ── Team Detail: Full Meta Tag Rendering ───────────────
-
-describe('Team Detail Meta Tags', function () {
-    beforeEach(function () {
-        $this->user = User::factory()->create();
-        actingAs($this->user);
-    });
-
-    it('renders correct title tag', function () {
-        $team = Team::factory()->create([
-            'name' => 'Dragon Slayers',
-            'is_active' => true,
-        ]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-        assertPageTitle($response, 'Dragon Slayers');
-    });
-
-    it('renders meta description from team description', function () {
-        $team = Team::factory()->create([
-            'name' => 'Described Team',
-            'description' => 'A competitive tabletop gaming team.',
-            'is_active' => true,
-        ]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('A competitive tabletop gaming team.');
-    });
-
-    it('renders og:title with entity name', function () {
-        $team = Team::factory()->create([
-            'name' => 'OG Team',
-            'is_active' => true,
-        ]);
-
-        $response = get(route('teams.detail', $team->slug));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG Team');
-    });
-
-    it('renders og:image meta tag', function () {
+    it('renders meta tags for team detail page', function () {
         $team = Team::factory()->create(['is_active' => true]);
 
         $response = get(route('teams.detail', $team->slug));
         $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
+        $response->assertSee('twitter:card', false)->assertSee('rel="canonical"', false);
     });
 
-    it('renders twitter:card meta tag', function () {
-        $team = Team::factory()->create(['is_active' => true]);
-
-        get(route('teams.detail', $team->slug))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $team = Team::factory()->create(['is_active' => true]);
-
-        get(route('teams.detail', $team->slug))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
-    });
-});
-
-// ── Public Profile: Full Meta Tag Rendering ────────────
-
-describe('Public Profile Meta Tags', function () {
-    it('renders correct title tag', function () {
+    it('renders meta tags for public profile page', function () {
         $user = User::factory()->create([
-            'name' => 'Alice the Gamer',
+            'name' => 'Smoke User',
             'profile_complete' => true,
         ]);
 
         $response = get(route('profile.public', $user));
         $response->assertOk();
-        assertPageTitle($response, 'Alice the Gamer');
-    });
-
-    it('renders meta description from user bio', function () {
-        $user = User::factory()->create([
-            'name' => 'Bio User',
-            'bio' => 'I love playing board games and RPGs.',
-            'profile_complete' => true,
-        ]);
-
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-
-        expect(extractMetaDescription($response->content()))->toContain('I love playing board games and RPGs.');
-    });
-
-    it('renders og:title with entity name', function () {
-        $user = User::factory()->create([
-            'name' => 'OG User',
-            'profile_complete' => true,
-        ]);
-
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-        assertOgMetaTag($response, 'og:title', 'OG User');
-    });
-
-    it('renders og:image meta tag', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-        ]);
-
-        $response = get(route('profile.public', $user));
-        $response->assertOk();
-        assertOgMetaTagPresent($response, 'og:image');
-    });
-
-    it('renders twitter:card meta tag', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-        ]);
-
-        get(route('profile.public', $user))
-            ->assertOk()
-            ->assertSee('twitter:card', false);
-    });
-
-    it('renders canonical link tag', function () {
-        $user = User::factory()->create([
-            'profile_complete' => true,
-        ]);
-
-        get(route('profile.public', $user))
-            ->assertOk()
-            ->assertSee('rel="canonical"', false);
+        assertPageTitle($response, 'Smoke User');
     });
 });
 

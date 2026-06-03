@@ -14,80 +14,28 @@ beforeEach(function () {
 // ── URL Generation ──────────────────────────────────────
 
 describe('URL generation', function () {
-    it('generates correct URL for Twitter/X', function () {
-        expect($this->service->generateUrl('twitter', 'john_doe'))
-            ->toBe('https://x.com/john_doe');
-    });
-
-    it('generates correct URL for Instagram', function () {
-        expect($this->service->generateUrl('instagram', 'janedoe'))
-            ->toBe('https://instagram.com/janedoe');
-    });
-
-    it('generates correct URL for YouTube', function () {
-        expect($this->service->generateUrl('youtube', 'MyChannel'))
-            ->toBe('https://youtube.com/@MyChannel');
-    });
-
-    it('generates correct URL for Twitch', function () {
-        expect($this->service->generateUrl('twitch', 'streamer99'))
-            ->toBe('https://twitch.tv/streamer99');
-    });
-
-    it('generates correct URL for TikTok', function () {
-        expect($this->service->generateUrl('tiktok', 'coolcreator'))
-            ->toBe('https://tiktok.com/@coolcreator');
-    });
-
-    it('generates correct URL for Threads', function () {
-        expect($this->service->generateUrl('threads', 'threader'))
-            ->toBe('https://threads.net/@threader');
-    });
-
-    it('generates correct URL for Reddit', function () {
-        expect($this->service->generateUrl('reddit', 'redditor42'))
-            ->toBe('https://reddit.com/user/redditor42');
-    });
-
-    it('generates correct URL for Facebook', function () {
-        expect($this->service->generateUrl('facebook', 'page.name'))
-            ->toBe('https://facebook.com/page.name');
-    });
-
-    it('generates correct URL for Mastodon with instance', function () {
-        expect($this->service->generateUrl('mastodon', 'user', 'mastodon.social'))
-            ->toBe('https://mastodon.social/@user');
-    });
-
-    it('generates correct URL for Bluesky', function () {
-        expect($this->service->generateUrl('bluesky', 'user.bsky.social'))
-            ->toBe('https://bsky.app/profile/user.bsky.social');
-    });
-
-    it('generates correct URL for Patreon', function () {
-        expect($this->service->generateUrl('patreon', 'creator_name'))
-            ->toBe('https://patreon.com/creator_name');
-    });
-
-    it('generates correct URL for Ko-fi', function () {
-        expect($this->service->generateUrl('ko-fi', 'mykofi'))
-            ->toBe('https://ko-fi.com/mykofi');
-    });
-
-    it('generates correct URL for Linktree', function () {
-        expect($this->service->generateUrl('linktree', 'mylinks'))
-            ->toBe('https://linktr.ee/mylinks');
-    });
-
-    it('generates correct URL for itch.io', function () {
-        expect($this->service->generateUrl('itch-io', 'devname'))
-            ->toBe('https://devname.itch.io');
-    });
-
-    it('generates correct URL for StartPlaying', function () {
-        expect($this->service->generateUrl('startplaying', 'gm_name'))
-            ->toBe('https://startplaying.games/gm/gm_name');
-    });
+    it('generates correct URL for each platform', function ($platform, $handle, $instance, $expectedUrl) {
+        $result = $instance
+            ? $this->service->generateUrl($platform, $handle, $instance)
+            : $this->service->generateUrl($platform, $handle);
+        expect($result)->toBe($expectedUrl);
+    })->with([
+        ['twitter', 'john_doe', null, 'https://x.com/john_doe'],
+        ['instagram', 'janedoe', null, 'https://instagram.com/janedoe'],
+        ['youtube', 'MyChannel', null, 'https://youtube.com/@MyChannel'],
+        ['twitch', 'streamer99', null, 'https://twitch.tv/streamer99'],
+        ['tiktok', 'coolcreator', null, 'https://tiktok.com/@coolcreator'],
+        ['threads', 'threader', null, 'https://threads.net/@threader'],
+        ['reddit', 'redditor42', null, 'https://reddit.com/user/redditor42'],
+        ['facebook', 'page.name', null, 'https://facebook.com/page.name'],
+        ['mastodon', 'user', 'mastodon.social', 'https://mastodon.social/@user'],
+        ['bluesky', 'user.bsky.social', null, 'https://bsky.app/profile/user.bsky.social'],
+        ['patreon', 'creator_name', null, 'https://patreon.com/creator_name'],
+        ['ko-fi', 'mykofi', null, 'https://ko-fi.com/mykofi'],
+        ['linktree', 'mylinks', null, 'https://linktr.ee/mylinks'],
+        ['itch-io', 'devname', null, 'https://devname.itch.io'],
+        ['startplaying', 'gm_name', null, 'https://startplaying.games/gm/gm_name'],
+    ]);
 
     it('returns null for unknown platform', function () {
         Log::shouldReceive('warning')->once();

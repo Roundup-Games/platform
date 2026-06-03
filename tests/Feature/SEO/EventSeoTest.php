@@ -82,49 +82,16 @@ describe('Event getDynamicSEOData', function () {
         expect($seo->image)->toContain('og-default.jpg');
     });
 
-    it('returns index,follow for public event with registration_open status', function () {
+    it('returns index,follow for public event with non-terminal status', function ($status) {
         $event = Event::factory()->create([
             'is_public' => true,
-            'status' => 'registration_open',
+            'status' => $status,
         ]);
 
         $seo = $event->getDynamicSEOData();
 
         expect($seo->robots)->toBe('index, follow');
-    });
-
-    it('returns index,follow for public event with published status', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'published',
-        ]);
-
-        $seo = $event->getDynamicSEOData();
-
-        expect($seo->robots)->toBe('index, follow');
-    });
-
-    it('returns index,follow for public event with registration_closed status', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'registration_closed',
-        ]);
-
-        $seo = $event->getDynamicSEOData();
-
-        expect($seo->robots)->toBe('index, follow');
-    });
-
-    it('returns index,follow for public event with in_progress status', function () {
-        $event = Event::factory()->create([
-            'is_public' => true,
-            'status' => 'in_progress',
-        ]);
-
-        $seo = $event->getDynamicSEOData();
-
-        expect($seo->robots)->toBe('index, follow');
-    });
+    })->with(['registration_open', 'published', 'registration_closed', 'in_progress']);
 
     it('returns noindex,nofollow for draft event', function () {
         $event = Event::factory()->create([

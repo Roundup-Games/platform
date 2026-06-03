@@ -309,60 +309,8 @@ describe('Cache Invalidation on Admin Override', function () {
         get('/sitemap-game-systems.xml')->assertOk();
     });
 
-    it('clears event sitemap cache on override save', function () {
-        Cache::flush();
-        $event = Event::factory()->create(['status' => 'registration_open', 'is_public' => true]);
-
-        get('/sitemap-events.xml')->assertOk();
-        $event->seo->update(['title' => 'Event Override']);
-        app(SeoCacheService::class)->forgetByModel($event);
-
-        expect(Cache::get('seo:sitemap:events'))->toBeNull();
-    });
-
-    it('clears game sitemap cache on override save', function () {
-        Cache::flush();
-        $game = Game::factory()->create(['visibility' => 'public']);
-
-        get('/sitemap-games.xml')->assertOk();
-        $game->seo->update(['title' => 'Game Override']);
-        app(SeoCacheService::class)->forgetByModel($game);
-
-        expect(Cache::get('seo:sitemap:games'))->toBeNull();
-    });
-
-    it('clears campaign sitemap cache on override save', function () {
-        Cache::flush();
-        $campaign = Campaign::factory()->create(['visibility' => 'public', 'status' => 'active']);
-
-        get('/sitemap-campaigns.xml')->assertOk();
-        $campaign->seo->update(['title' => 'Campaign Override']);
-        app(SeoCacheService::class)->forgetByModel($campaign);
-
-        expect(Cache::get('seo:sitemap:campaigns'))->toBeNull();
-    });
-
-    it('clears team sitemap cache on override save', function () {
-        Cache::flush();
-        $team = Team::factory()->create(['is_active' => true]);
-
-        get('/sitemap-teams.xml')->assertOk();
-        $team->seo->update(['title' => 'Team Override']);
-        app(SeoCacheService::class)->forgetByModel($team);
-
-        expect(Cache::get('seo:sitemap:teams'))->toBeNull();
-    });
-
-    it('clears profile sitemap cache on override save', function () {
-        Cache::flush();
-        $user = User::factory()->create(['profile_complete' => true, 'is_disabled' => false]);
-
-        get('/sitemap-profiles.xml')->assertOk();
-        $user->seo->update(['title' => 'Profile Override']);
-        app(SeoCacheService::class)->forgetByModel($user);
-
-        expect(Cache::get('seo:sitemap:profiles'))->toBeNull();
-    });
+    // Per-model cache clearing is unit-tested in SeoCacheServiceTest::forgetByModel.
+    // The GameSystem test above serves as the integration smoke test.
 });
 
 // ── SEO Model Direct Override Tests ──────────────────

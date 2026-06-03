@@ -181,71 +181,31 @@ describe('Events Sitemap', function () {
         expect($content)->toContain("{$baseUrl}/de/events/{$event->slug}");
     });
 
-    it('includes events with registration_open status', function () {
+    it('includes events with valid public statuses', function ($status) {
         $event = Event::factory()->create([
-            'status' => 'registration_open',
+            'status' => $status,
             'is_public' => true,
         ]);
 
         $content = get('/sitemap-events.xml')->content();
 
         expect($content)->toContain("/events/{$event->slug}");
-    });
+    })->with(['registration_open', 'registration_closed', 'in_progress']);
 
-    it('includes events with registration_closed status', function () {
+    it('excludes events with terminal or non-public statuses', function ($status, $isPublic) {
         $event = Event::factory()->create([
-            'status' => 'registration_closed',
-            'is_public' => true,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->toContain("/events/{$event->slug}");
-    });
-
-    it('includes events with in_progress status', function () {
-        $event = Event::factory()->create([
-            'status' => 'in_progress',
-            'is_public' => true,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->toContain("/events/{$event->slug}");
-    });
-
-    it('excludes draft events', function () {
-        $event = Event::factory()->create([
-            'status' => 'draft',
-            'is_public' => true,
+            'status' => $status,
+            'is_public' => $isPublic,
         ]);
 
         $content = get('/sitemap-events.xml')->content();
 
         expect($content)->not->toContain("/events/{$event->slug}");
-    });
-
-    it('excludes cancelled events', function () {
-        $event = Event::factory()->create([
-            'status' => 'cancelled',
-            'is_public' => true,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->not->toContain("/events/{$event->slug}");
-    });
-
-    it('excludes non-public events even with published status', function () {
-        $event = Event::factory()->create([
-            'status' => 'published',
-            'is_public' => false,
-        ]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        expect($content)->not->toContain("/events/{$event->slug}");
-    });
+    })->with([
+        ['draft', true],
+        ['cancelled', true],
+        ['published', false],
+    ]);
 
     it('uses daily changefreq and 0.9 priority', function () {
         Event::factory()->create([
@@ -509,82 +469,35 @@ describe('Cache Invalidation', function () {
 // ── XML Well-Formedness ───────────────────────────────
 
 describe('XML Well-Formedness', function () {
-    it('sitemap index is well-formed XML', function () {
-        $content = get('/sitemap.xml')->content();
+    it('all sitemap types produce well-formed XML with correct root element', function ($path, $expectedRoot) {
+        // Seed at least one record for entity sitemaps
+        if (str_contains($path, 'game-systems')) {
+            GameSystem::factory()->create();
+        } elseif (str_contains($path, 'events')) {
+            Event::factory()->create(['status' => 'published', 'is_public' => true]);
+        } elseif (str_contains($path, 'games')) {
+            Game::factory()->create(['visibility' => Visibility::Public]);
+        } elseif (str_contains($path, 'campaigns')) {
+            Campaign::factory()->create(['visibility' => Visibility::Public]);
+        } elseif (str_contains($path, 'teams')) {
+            Team::factory()->create(['is_active' => true]);
+        } elseif (str_contains($path, 'profiles')) {
+            User::factory()->create(['profile_complete' => true, 'is_disabled' => false]);
+        }
+
+        $content = get($path)->content();
 
         $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('sitemapindex');
-    });
-
-    it('static sitemap is well-formed XML', function () {
-        $content = get('/sitemap-static.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('game-systems sitemap is well-formed XML', function () {
-        GameSystem::factory()->create();
-
-        $content = get('/sitemap-game-systems.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('events sitemap is well-formed XML', function () {
-        Event::factory()->create(['status' => 'published', 'is_public' => true]);
-
-        $content = get('/sitemap-events.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('games sitemap is well-formed XML', function () {
-        Game::factory()->create(['visibility' => Visibility::Public]);
-
-        $content = get('/sitemap-games.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('campaigns sitemap is well-formed XML', function () {
-        Campaign::factory()->create(['visibility' => Visibility::Public]);
-
-        $content = get('/sitemap-campaigns.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('teams sitemap is well-formed XML', function () {
-        Team::factory()->create(['is_active' => true]);
-
-        $content = get('/sitemap-teams.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
-
-    it('profiles sitemap is well-formed XML', function () {
-        User::factory()->create([
-            'profile_complete' => true,
-            'is_disabled' => false,
-        ]);
-
-        $content = get('/sitemap-profiles.xml')->content();
-
-        $doc = simplexml_load_string($content);
-        expect($doc)->not->toBeFalse();
-        expect($doc->getName())->toBe('urlset');
-    });
+        expect($doc)->not->toBeFalse("Failed to parse XML from {$path}");
+        expect($doc->getName())->toBe($expectedRoot);
+    })->with([
+        ['/sitemap.xml', 'sitemapindex'],
+        ['/sitemap-static.xml', 'urlset'],
+        ['/sitemap-game-systems.xml', 'urlset'],
+        ['/sitemap-events.xml', 'urlset'],
+        ['/sitemap-games.xml', 'urlset'],
+        ['/sitemap-campaigns.xml', 'urlset'],
+        ['/sitemap-teams.xml', 'urlset'],
+        ['/sitemap-profiles.xml', 'urlset'],
+    ]);
 });
