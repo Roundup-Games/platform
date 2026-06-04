@@ -256,6 +256,20 @@ return [
     'push_title_dispute_upheld' => 'Dispute Reviewed',
     'push_body_dispute_upheld' => 'The attendance report for :game was upheld',
 
+    // Attendance nudge
+    'category_attendance_nudge' => 'Attendance Reminder',
+    'subject_attendance_nudge' => 'Confirm your attendance for :game',
+    'body_attendance_nudge' => 'Your attendance for **:game** on :date needs to be confirmed. The deadline is :deadline.',
+    'push_title_attendance_nudge' => 'Attendance Reminder',
+    'push_body_attendance_nudge' => 'Confirm your attendance for :game by :deadline',
+
+    // Attendance resolved
+    'category_attendance_resolved' => 'Attendance Resolved',
+    'subject_attendance_resolved' => 'Attendance resolved for :game',
+    'body_attendance_resolved' => 'Your attendance for **:game** on :date has been resolved as **:status**.',
+    'push_title_attendance_resolved' => 'Attendance Resolved',
+    'push_body_attendance_resolved' => 'Your attendance for :game was resolved as :status',
+
     // Recap posted
     'subject_recap_posted' => ':host wrote a recap for :game',
     'body_recap_posted' => '**:host** wrote a post-session recap for **:game**. Check it out!',

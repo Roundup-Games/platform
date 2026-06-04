@@ -7,6 +7,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
+use App\Models\AttendanceReport;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -299,13 +300,16 @@ class ActionCenterServiceTest extends TestCase
 
     // ── 5. Unreported Attendance (medium) ─────────────────────────────
 
-    public function test_unreported_attendance_returns_correct_data_structure(): void
+    public function test_open_attendance_window_returns_correct_data_structure(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'completed',
+            'attendance_resolved_at' => null,
+            'attendance_window_opens_at' => now()->subHours(2),
+            'attendance_window_closes_at' => now()->addDays(3),
             'updated_at' => now()->subHours(12),
         ]);
 
@@ -313,25 +317,27 @@ class ActionCenterServiceTest extends TestCase
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => null,
         ]);
 
         $items = $this->service->getItems($this->user);
 
-        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'unreported_attendance');
+        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'open_attendance_window');
         $this->assertCount(1, $attendanceItems);
         $item = reset($attendanceItems);
         $this->assertSame('medium', $item->priority);
         $this->assertSame('event_note', $item->icon);
     }
 
-    public function test_unreported_attendance_excludes_already_reported(): void
+    public function test_open_attendance_window_excludes_already_reported(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'completed',
+            'attendance_resolved_at' => null,
+            'attendance_window_opens_at' => now()->subHours(2),
+            'attendance_window_closes_at' => now()->addDays(3),
             'updated_at' => now()->subHours(12),
         ]);
 
@@ -339,33 +345,66 @@ class ActionCenterServiceTest extends TestCase
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => 'attended',
+        ]);
+
+        // User already filed an attendance report
+        AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $this->user->id,
+            'reported_id' => $owner->id,
+            'status' => 'attended',
         ]);
 
         $items = $this->service->getItems($this->user);
-        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'unreported_attendance');
+        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'open_attendance_window');
         $this->assertEmpty($attendanceItems);
     }
 
-    public function test_unreported_attendance_excludes_old_completions(): void
+    public function test_open_attendance_window_excludes_resolved_games(): void
     {
         $owner = User::factory()->create();
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'completed',
-            'updated_at' => now()->subHours(72),
+            'attendance_resolved_at' => now()->subHour(),
+            'attendance_window_opens_at' => now()->subHours(2),
+            'attendance_window_closes_at' => now()->addDays(3),
+            'updated_at' => now()->subHours(12),
         ]);
 
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => null,
         ]);
 
         $items = $this->service->getItems($this->user);
-        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'unreported_attendance');
+        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'open_attendance_window');
+        $this->assertEmpty($attendanceItems);
+    }
+
+    public function test_open_attendance_window_excludes_closed_window(): void
+    {
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'completed',
+            'attendance_resolved_at' => null,
+            'attendance_window_opens_at' => now()->subDays(5),
+            'attendance_window_closes_at' => now()->subHours(1),
+            'updated_at' => now()->subDays(5),
+        ]);
+
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        $items = $this->service->getItems($this->user);
+        $attendanceItems = array_filter($items, fn ($i) => $i->type === 'open_attendance_window');
         $this->assertEmpty($attendanceItems);
     }
 

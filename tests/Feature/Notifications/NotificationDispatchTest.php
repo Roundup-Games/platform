@@ -101,28 +101,34 @@ describe('AttendanceReported notification', function () {
 });
 
 // ══════════════════════════════════════════════════════
-// DisputeResolved — AttendanceService::resolveDispute
+// DisputeResolved — AttendanceService::adminResolveAttendance
 // ══════════════════════════════════════════════════════
 
 describe('DisputeResolved notification', function () {
-    it('dispatches when dispute is resolved in player favor', function () {
+    it('dispatches when admin resolves dispute in player favor', function () {
         Notification::fake();
 
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = notificationCreateDisputeGameWithParticipants(5);
         $reported = $participants[4];
         $service = app(AttendanceService::class);
+        $admin = User::factory()->create();
 
-        // Report no_show, then corroborating attended reports
+        // Report no_show to set the participant's status
         $service->reportAttendance($game, $participants[1], $reported, 'no_show');
-        $service->reportAttendance($game, $participants[2], $reported, 'attended');
-        $service->reportAttendance($game, $participants[3], $reported, 'attended');
 
         $participant = GameParticipant::where('game_id', $game->id)
             ->where('user_id', $reported->id)
             ->first();
 
-        $resolution = $service->resolveDispute($participant);
-        expect($resolution)->toBe('resolved_favor');
+        // Admin resolves by overriding NoShow to Attended (in player favor)
+        $result = $service->adminResolveAttendance(
+            $participant,
+            AttendanceStatus::Attended,
+            $admin,
+            'Admin reviewed evidence',
+            false
+        );
+        expect($result['success'])->toBeTrue();
 
         Notification::assertSentTo(
             $reported,
@@ -134,12 +140,13 @@ describe('DisputeResolved notification', function () {
         );
     });
 
-    it('dispatches when dispute is upheld', function () {
+    it('dispatches when admin upholds dispute', function () {
         Notification::fake();
 
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = notificationCreateDisputeGameWithParticipants(3);
         $reported = $participants[2];
         $service = app(AttendanceService::class);
+        $admin = User::factory()->create();
 
         $service->reportAttendance($game, $participants[1], $reported, 'no_show');
 
@@ -147,8 +154,15 @@ describe('DisputeResolved notification', function () {
             ->where('user_id', $reported->id)
             ->first();
 
-        $resolution = $service->resolveDispute($participant);
-        expect($resolution)->toBe('upheld');
+        // Admin upholds by keeping NoShow status
+        $result = $service->adminResolveAttendance(
+            $participant,
+            AttendanceStatus::NoShow,
+            $admin,
+            'NoShow confirmed',
+            false
+        );
+        expect($result['success'])->toBeTrue();
 
         Notification::assertSentTo(
             $reported,
