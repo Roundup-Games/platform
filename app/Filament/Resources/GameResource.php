@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use BackedEnum;
+use App\Enums\AttendanceResolutionMethod;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
@@ -123,6 +124,28 @@ class GameResource extends Resource
                             ]),
                     ]),
 
+                // ── Attendance Info ────────────────────────────────
+                Section::make('Attendance Resolution')
+                    ->schema([
+                        Grid::make(3)
+                            ->schema([
+                                \Filament\Forms\Components\Placeholder::make('attendance_resolution_method_display')
+                                    ->label('Resolution Method')
+                                    ->content(fn ($record) => $record?->attendance_resolution_method
+                                        ? AttendanceResolutionMethod::tryFrom($record->attendance_resolution_method)?->label() ?? $record->attendance_resolution_method
+                                        : 'Not resolved'),
+                                \Filament\Forms\Components\Placeholder::make('attendance_resolved_at_display')
+                                    ->label('Resolved At')
+                                    ->content(fn ($record) => $record?->attendance_resolved_at?->format('M j, Y g:i A') ?? '—'),
+                                \Filament\Forms\Components\Placeholder::make('attendance_window_display')
+                                    ->label('Reporting Window')
+                                    ->content(fn ($record) => $record?->attendance_window_opens_at
+                                        ? $record->attendance_window_opens_at->format('M j, Y g:i A') . ' → ' . $record->attendance_window_closes_at?->format('M j, Y g:i A')
+                                        : '—'),
+                            ]),
+                    ])
+                    ->visible(fn ($record) => $record?->status?->value === 'completed'),
+
                 // ── SEO Overrides ─────────────────────────────
                 SeoFields::make(),
             ]);
@@ -200,6 +223,7 @@ class GameResource extends Resource
     {
         return [
             ParticipantsRelationManager::class,
+            RelationManagers\AttendanceReportsRelationManager::class,
         ];
     }
 

@@ -2,14 +2,20 @@
 
 namespace App\Filament\Resources\GameResource\RelationManagers;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
+use App\Services\AttendanceService;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -76,11 +82,85 @@ class ParticipantsRelationManager extends RelationManager
                         'pending' => 'warning',
                         default => 'gray',
                     }),
+                TextColumn::make('attendance_status')
+                    ->label('Attendance')
+                    ->badge()
+                    ->color(fn (AttendanceStatus $state): string => match ($state) {
+                        AttendanceStatus::Attended => 'success',
+                        AttendanceStatus::NoShow => 'danger',
+                        AttendanceStatus::Excused => 'info',
+                        AttendanceStatus::LateCancel => 'warning',
+                        AttendanceStatus::CancelledEarly => 'gray',
+                    })
+                    ->formatStateUsing(fn (AttendanceStatus $state): string => $state->label())
+                    ->default('—')
+                    ->toggleable(),
+                TextColumn::make('attendance_weight')
+                    ->label('Weight')
+                    ->numeric(2)
+                    ->default('—')
+                    ->toggleable(),
+                IconColumn::make('attendance_disputed')
+                    ->label('Disputed')
+                    ->icon(fn ($record) => $record->attendance_disputed_at ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-minus')
+                    ->color(fn ($record) => $record->attendance_disputed_at ? 'danger' : 'gray')
+                    ->tooltip(fn ($record) => $record->attendance_disputed_at?->format('M j, Y g:i A'))
+                    ->toggleable(),
+                TextColumn::make('attendance_reported_at')
+                    ->label('Reported At')
+                    ->dateTime()
+                    ->default('—')
+                    ->toggleable(),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
+                Action::make('overrideAttendance')
+                    ->label('Override Attendance')
+                    ->icon('heroicon-o-pencil-square')
+                    ->visible(fn ($record) => $record->status?->value === 'approved' && $this->ownerRecord->status?->value === 'completed')
+                    ->form([
+                        Select::make('new_status')
+                            ->label('New Attendance Status')
+                            ->options(
+                                collect(AttendanceStatus::cases())->mapWithKeys(
+                                    fn (AttendanceStatus $case) => [$case->value => $case->label()]
+                                )
+                            )
+                            ->required(),
+                        Textarea::make('override_reason')
+                            ->label('Reason for Override')
+                            ->required()
+                            ->maxLength(500),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $admin = auth()->user();
+                        $newStatus = AttendanceStatus::from($data['new_status']);
+
+                        /** @var AttendanceService $service */
+                        $service = app(AttendanceService::class);
+
+                        $result = $service->adminResolveAttendance(
+                            $record,
+                            $newStatus,
+                            $admin,
+                            $data['override_reason'],
+                            false, // allow override without prior dispute
+                        );
+
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title($result['reason'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title($result['reason'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
