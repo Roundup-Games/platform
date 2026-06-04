@@ -123,9 +123,16 @@ Schedule::command('waitlist:sweep-expired-confirmations')
     ->withoutOverlapping(10)
     ->onOneServer();
 
-Schedule::command('attendance:sweep-auto-attend')
+Schedule::command('attendance:resolve')
     ->everyThirtyMinutes()
-    ->withoutOverlapping(10)
+    ->onOneServer();
+
+Schedule::command('attendance:auto-complete')
+    ->everyThirtyMinutes()
+    ->onOneServer();
+
+Schedule::command('attendance:nudge')
+    ->everyThirtyMinutes()
     ->onOneServer();
 
 // Prune stale PWA data

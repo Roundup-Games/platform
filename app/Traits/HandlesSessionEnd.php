@@ -71,9 +71,12 @@ trait HandlesSessionEnd
     // ── Attendance Reporting ───────────────────────────
 
     /**
-     * Report attendance for a specific participant (host or self-report).
+     * Submit attendance reports for multiple participants (host or peer).
+     *
+     * Accepts a single-participant shorthand via ($participantId, $status)
+     * or a batch array of ['reported_id' => uuid, 'status' => string, 'reason' => ?string].
      */
-    public function reportParticipantAttendance(string $participantId, string $status): void
+    public function submitAttendanceReport(string|array $participantIdOrReports, ?string $status = null): void
     {
         $viewer = Auth::user();
 
@@ -81,27 +84,47 @@ trait HandlesSessionEnd
             return;
         }
 
-        $participant = $this->getEntity()->participants->first(fn ($p) => $p->id === $participantId);
+        $game = $this->getEntity();
 
-        if (! $participant || ! $participant->user) {
-            session()->flash('error', __('games.error_attendance_participant_not_found'));
+        // Normalize to batch format
+        if (is_string($participantIdOrReports)) {
+            // Single-report shorthand: (participantId, status)
+            $participant = $game->participants->first(fn ($p) => $p->id === $participantIdOrReports);
 
-            return;
+            if (! $participant || ! $participant->user) {
+                session()->flash('error', __('games.error_attendance_participant_not_found'));
+
+                return;
+            }
+
+            $reports = [
+                ['reported_id' => $participant->user->id, 'status' => $status],
+            ];
+        } else {
+            // Batch array: each entry already has reported_id and status
+            $reports = $participantIdOrReports;
         }
 
-        $result = app(AttendanceService::class)->reportAttendance(
-            $this->getEntity(),
+        $result = app(AttendanceService::class)->submitReport(
+            $game,
             $viewer,
-            $participant->user,
-            $status,
+            $reports,
         );
 
         if ($result['success']) {
-            // Reload participants to reflect updated attendance_status
-            $this->getEntity()->load('participants.user');
+            // Reload participants to reflect updated state
+            $game->load('participants.user');
             session()->flash('success', __('games.flash_attendance_reported'));
         } else {
             session()->flash('error', $result['reason']);
         }
+    }
+
+    /**
+     * @deprecated Use submitAttendanceReport instead.
+     */
+    public function reportParticipantAttendance(string $participantId, string $status): void
+    {
+        $this->submitAttendanceReport($participantId, $status);
     }
 }

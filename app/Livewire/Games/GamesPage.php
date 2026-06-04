@@ -329,6 +329,9 @@ class GamesPage extends Component
             'new_status' => 'completed',
         ]);
 
+        // Open attendance reporting window
+        app(AttendanceService::class)->handleGameCompletion($game);
+
         // Notify all approved participants (excluding owner) that the game was completed
         try {
             $approvedParticipants = $game->participants()
