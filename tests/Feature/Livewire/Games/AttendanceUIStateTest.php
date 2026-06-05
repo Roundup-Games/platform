@@ -173,11 +173,12 @@ describe('State 1: Form (window open, not submitted)', function () {
         ]);
 
         // When the viewer (otherPlayer) loads the form, the late-cancel player
-        // should appear with opacity-60 class (non-interactive)
+        // should appear with opacity-60 class (non-interactive) and no interactive pills
         Livewire::actingAs($otherPlayer)
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee($player->name)
-            ->assertSee(AttendanceStatus::LateCancel->label());
+            ->assertSee(AttendanceStatus::LateCancel->label())
+            ->assertSee('opacity-60');
     });
 
     it('submits attendance report successfully', function () {

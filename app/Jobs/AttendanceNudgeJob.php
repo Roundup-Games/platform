@@ -12,6 +12,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -19,8 +20,10 @@ use Illuminate\Support\Facades\Log;
  * who have not yet filed an attendance report for games whose window
  * closes in approximately 24 hours.
  *
- * Query window: attendance_window_closes_at between 23.5h and 24.5h from now.
- * This allows the 30-minute scheduler cadence to catch every game exactly once.
+ * Query window: attendance_window_closes_at in a 30-minute band centered
+ * on 24h from now. This matches the 30-minute scheduler cadence so each
+ * game falls into exactly one sweep. A dedup check against the notifications
+ * table provides a safety net if a run is delayed and overlaps with a prior run.
  */
 class AttendanceNudgeJob implements ShouldQueue
 {
@@ -47,11 +50,14 @@ class AttendanceNudgeJob implements ShouldQueue
     {
         Log::info('attendance_nudge.job.started');
 
-        $windowStart = now()->addHours(23.5);
-        $windowEnd = now()->addHours(24.5);
+        // 30-minute window centered on 24h matches the scheduler cadence,
+        // so each game falls into exactly one sweep.
+        $windowStart = now()->addMinutes(23 * 60 + 45); // 23h45m
+        $windowEnd = now()->addMinutes(24 * 60 + 15);   // 24h15m
 
         $gameCount = 0;
         $totalNudged = 0;
+        $totalSkipped = 0;
         $totalErrors = 0;
 
         Game::query()
@@ -59,7 +65,7 @@ class AttendanceNudgeJob implements ShouldQueue
             ->where('attendance_window_closes_at', '<=', $windowEnd)
             ->whereNull('attendance_resolved_at')
             ->with(['participants.user'])
-            ->chunkById(100, function ($games) use ($notificationService, &$gameCount, &$totalNudged, &$totalErrors) {
+            ->chunkById(100, function ($games) use ($notificationService, &$gameCount, &$totalNudged, &$totalSkipped, &$totalErrors) {
                 foreach ($games as $game) {
                     $gameCount++;
                     $deadline = $game->attendance_window_closes_at->format('M j, Y \a\t g:i A');
@@ -75,8 +81,23 @@ class AttendanceNudgeJob implements ShouldQueue
                         ->filter(fn ($p) => $p->user !== null)
                         ->filter(fn ($p) => ! isset($reporterIds[$p->user_id]));
 
+                    // Pre-load users who already received an AttendanceNudge for this game
+                    // as a dedup safety net (guards against delayed/retried runs)
+                    $alreadyNudgedUserIds = DB::table('notifications')
+                        ->where('type', AttendanceNudge::class)
+                        ->where('notifiable_type', (new \App\Models\User)->getMorphClass())
+                        ->whereJsonContains('data->entity_id', $game->id)
+                        ->pluck('notifiable_id')
+                        ->flip();
+
                     foreach ($approvedParticipants as $participant) {
                         $user = $participant->user;
+
+                        // Skip if already nudged for this game
+                        if (isset($alreadyNudgedUserIds[$user->id])) {
+                            $totalSkipped++;
+                            continue;
+                        }
 
                         try {
                             $notificationService->send(
@@ -100,6 +121,7 @@ class AttendanceNudgeJob implements ShouldQueue
         Log::info('attendance_nudge.job.completed', [
             'games_scanned' => $gameCount,
             'users_nudged' => $totalNudged,
+            'users_skipped_dedup' => $totalSkipped,
             'errors' => $totalErrors,
         ]);
     }
