@@ -94,12 +94,9 @@ Artisan::command('bgg:weekly-sync', function () {
 })->purpose('Run weekly BGG sync for all existing game systems');
 
 Artisan::command('platform-scores:compute', function () {
-    $service = app(\App\Services\PlatformScoreService::class);
-    $stats = $service->computeAll();
+    \App\Jobs\ComputePlatformScores::dispatch();
 
-    $this->info("Scored {$stats['scored']} systems ({$stats['errors']} errors) in {$stats['duration_ms']}ms");
-
-    return $stats['errors'] > 0 ? 1 : 0;
+    $this->info('ComputePlatformScores job dispatched to the queue.');
 })->purpose('Compute platform popularity scores for all game systems');
 
 use Illuminate\Support\Facades\Schedule;

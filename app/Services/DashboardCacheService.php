@@ -9,6 +9,7 @@ use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Jobs\WarmDashboardCache;
+use App\Jobs\WarmTrendingNearby;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -137,7 +138,7 @@ class DashboardCacheService
             'cache_key' => $cacheKey,
         ]);
 
-        $this->warmTrendingNearby($geohash4);
+        WarmTrendingNearby::dispatch($geohash4, 'cache_miss');
 
         return Cache::get($cacheKey, ['games' => []]);
     }

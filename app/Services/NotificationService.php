@@ -74,7 +74,11 @@ class NotificationService
             // User implements HasLocalePreference, so Laravel's notification sender
             // automatically resolves the correct locale via preferredLocale() before
             // calling toMail/toDatabase/toPush. No global mutation needed.
-            $notifiable->notifyNow($notification, $channels);
+            //
+            // Uses notify() (queued) — BaseNotification implements ShouldQueue so
+            // all notifications are processed asynchronously by Horizon workers.
+            // In tests, QUEUE_CONNECTION=sync makes this behave identically to notifyNow().
+            $notifiable->notify($notification, $channels);
 
             Log::info('notification.dispatched', [
                 'notifiable_id' => $notifiable->id,

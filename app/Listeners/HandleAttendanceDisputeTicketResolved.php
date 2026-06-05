@@ -4,6 +4,8 @@ namespace App\Listeners;
 
 use App\Services\AttendanceService;
 use Escalated\Laravel\Events\TicketResolved;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -12,9 +14,12 @@ use Illuminate\Support\Facades\Log;
  * When a ticket in the Events department with ticket_type=attendance_dispute
  * is resolved, this listener delegates to AttendanceService::resolveDisputeFromTicket()
  * to apply the resolution to the underlying attendance dispute and notify the user.
+ *
+ * Implements ShouldQueue so the dispute resolution runs asynchronously via Horizon.
  */
-class HandleAttendanceDisputeTicketResolved
+class HandleAttendanceDisputeTicketResolved implements ShouldQueue
 {
+    use InteractsWithQueue;
     /**
      * Handle the event.
      */

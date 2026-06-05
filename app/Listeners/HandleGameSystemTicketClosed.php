@@ -8,6 +8,8 @@ use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
 use App\Services\NotificationService;
 use Escalated\Laravel\Events\TicketClosed;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,9 +19,12 @@ use Illuminate\Support\Facades\Log;
  * is closed, this listener determines whether it's a rejection or duplicate:
  * - Duplicate: metadata contains duplicate_of_game_system_id → send duplicate notification
  * - Rejection: default → extract rejection reason from latest internal note, send rejection notification
+ *
+ * Implements ShouldQueue so notification dispatch runs asynchronously via Horizon.
  */
-class HandleGameSystemTicketClosed
+class HandleGameSystemTicketClosed implements ShouldQueue
 {
+    use InteractsWithQueue;
     /**
      * Handle the event.
      */
