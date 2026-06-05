@@ -143,7 +143,7 @@ describe('NotificationService', function () {
     // ── send ─────────────────────────────────────────────────────
 
     describe('send', function () {
-        it('dispatches notification via notifyNow with resolved channels', function () {
+        it('dispatches notification via queued notify with resolved channels', function () {
             $user = User::factory()->create([
                 'notification_settings' => [
                     'game_invitation' => ['database' => true, 'mail' => false],
