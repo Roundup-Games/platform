@@ -34,6 +34,11 @@ class QueueHealthWidget extends StatsOverviewWidget
                 ->description($failedJobs > 0 ? 'Needs attention' : 'All clear')
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color($failedJobs > 0 ? 'danger' : 'success'),
+            Stat::make('Horizon', 'Dashboard')
+                ->description('Manage queues, retry failed jobs')
+                ->descriptionIcon('heroicon-o-arrow-top-right-on-square')
+                ->url(url('/horizon'))
+                ->color('info'),
         ];
 
         return $stats;

@@ -33,6 +33,7 @@
         "lara-zeus/spatie-translatable": "^2.0",
         "laravel/cashier-paddle": "^2.8",
         "laravel/framework": "^13.0",
+        "laravel/horizon": "^5.47",
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "^5.26",
         "laravel/tinker": "^3.0",

@@ -1,18 +1,8 @@
 #!/command/with-contenv bash
-# S6 long-run service for Laravel queue worker
-# S6 supervises this — auto-restarts on exit (after max-time/max-jobs)
+# S6 long-run service for Laravel Horizon queue manager
+# Replaces raw queue:work — Horizon provides supervision, metrics, and dashboard.
+# S6 supervises this — auto-restarts on exit.
 
 cd /var/www/html
 
-# Configurable via environment variables with sensible defaults
-QUEUE_TIMEOUT="${QUEUE_TIMEOUT:-300}"
-QUEUE_MAX_TIME="${QUEUE_MAX_TIME:-3600}"
-QUEUE_MAX_JOBS="${QUEUE_MAX_JOBS:-1000}"
-
-exec php artisan queue:work \
-    --queue=default,discovery \
-    --sleep=3 \
-    --tries=3 \
-    --timeout="${QUEUE_TIMEOUT}" \
-    --max-time="${QUEUE_MAX_TIME}" \
-    --max-jobs="${QUEUE_MAX_JOBS}"
+exec php artisan horizon
