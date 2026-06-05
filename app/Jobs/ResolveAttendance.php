@@ -12,11 +12,17 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Queued job that resolves attendance for games whose reporting window has
- * closed but whose attendance has not yet been resolved.
+ * Queued job that resolves attendance for games.
  *
- * For each qualifying game, delegates to AttendanceService::resolveGameAttendance()
- * which applies the consensus engine and marks the game as resolved.
+ * Two modes of operation:
+ *   1. Sweeper mode (no $game, no $method): finds all games whose reporting
+ *      window has closed and resolves them with Timeout method.
+ *   2. Single-game mode ($game provided): resolves a specific game with the
+ *      given method (e.g., EarlyConsensus dispatched from submitReport).
+ *
+ * Delegates to AttendanceService::resolveGameAttendance() which applies the
+ * consensus engine and marks the game as resolved. The idempotent guard there
+ * prevents double-resolution.
  */
 class ResolveAttendance implements ShouldQueue
 {
@@ -39,9 +45,45 @@ class ResolveAttendance implements ShouldQueue
      */
     public int $backoff = 60;
 
+    /**
+     * Optional specific game to resolve (single-game mode).
+     */
+    private ?Game $game;
+
+    /**
+     * Optional resolution method override (defaults to Timeout in sweeper mode).
+     */
+    private ?AttendanceResolutionMethod $method;
+
+    public function __construct(?Game $game = null, ?AttendanceResolutionMethod $method = null)
+    {
+        $this->game = $game;
+        $this->method = $method;
+    }
+
     public function handle(AttendanceService $attendanceService): void
     {
-        Log::info('resolve_attendance.job.started');
+        // Single-game mode: resolve a specific game
+        if ($this->game !== null) {
+            Log::info('resolve_attendance.job.single.started', [
+                'game_id' => $this->game->id,
+                'method' => $this->method?->value ?? 'timeout',
+            ]);
+
+            $attendanceService->resolveGameAttendance(
+                $this->game,
+                $this->method ?? AttendanceResolutionMethod::Timeout,
+            );
+
+            Log::info('resolve_attendance.job.single.completed', [
+                'game_id' => $this->game->id,
+            ]);
+
+            return;
+        }
+
+        // Sweeper mode: resolve all games with expired reporting windows
+        Log::info('resolve_attendance.job.sweep.started');
 
         $gameCount = 0;
         $totalParticipants = 0;
@@ -62,7 +104,7 @@ class ResolveAttendance implements ShouldQueue
                 }
             });
 
-        Log::info('resolve_attendance.job.completed', [
+        Log::info('resolve_attendance.job.sweep.completed', [
             'games_resolved' => $gameCount,
             'participants_resolved' => $totalParticipants,
         ]);
@@ -74,6 +116,8 @@ class ResolveAttendance implements ShouldQueue
     public function failed(?\Throwable $exception = null): void
     {
         Log::error('resolve_attendance.job.failed', [
+            'game_id' => $this->game?->id,
+            'method' => $this->method?->value,
             'exception' => $exception?->getMessage(),
             'exception_class' => $exception ? get_class($exception) : null,
         ]);

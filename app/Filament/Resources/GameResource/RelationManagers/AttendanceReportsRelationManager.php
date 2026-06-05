@@ -78,6 +78,9 @@ class AttendanceReportsRelationManager extends RelationManager
                     ->label('Override Status')
                     ->icon('heroicon-o-pencil-square')
                     ->visible(fn ($record) => $record->reported_id !== null)
+                    ->requiresConfirmation()
+                    ->modalHeading('Override Attendance Status')
+                    ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
                     ->form([
                         Select::make('new_status')
                             ->label('New Attendance Status')

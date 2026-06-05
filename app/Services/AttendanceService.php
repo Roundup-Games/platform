@@ -7,11 +7,13 @@ use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
+use App\Jobs\ResolveAttendance;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Notifications\AttendanceReported;
+use App\Notifications\AttendanceResolved;
 use App\Notifications\DisputeResolved;
 use App\Services\NotificationService;
 use App\Services\ReliabilityScoreService;
@@ -34,6 +36,8 @@ class AttendanceService
     public static function lateReportMultiplier(): float { return config('attendance.late_report_multiplier', 0.7); }
     public static function hostCancelMinRoster(): int { return config('attendance.host_cancel_min_roster', 1); }
     public static function hostCancelLateHours(): int { return config('attendance.host_cancel_late_hours', 24); }
+    public static function participationThreshold(): float { return config('attendance.participation_threshold', 0.5); }
+    public static function noShowMajority(): float { return config('attendance.no_show_majority', 0.5); }
 
     public function __construct(
         private readonly ReliabilityScoreService $reliabilityService,
@@ -97,6 +101,18 @@ class AttendanceService
 
         $weight = $griefCheck['weight_multiplier'];
 
+        // Pre-fetch approved participant IDs to avoid N+1 in validation loop
+        $approvedUserIds = $game->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->pluck('user_id')
+            ->flip();
+
+        // Check for duplicate reports (same reporter + reported user in this game)
+        $alreadyReportedIds = AttendanceReport::where('game_id', $game->id)
+            ->where('reporter_id', $reporter->id)
+            ->pluck('reported_id')
+            ->flip();
+
         // Validate each report entry
         $validStatuses = [AttendanceStatus::Attended->value, AttendanceStatus::NoShow->value, AttendanceStatus::Excused->value];
 
@@ -128,14 +144,21 @@ class AttendanceService
             }
 
             // Reported user must be an approved participant
-            $reportedExists = $game->participants()
-                ->where('user_id', $reportedId)
-                ->where('status', ParticipantStatus::Approved->value)
-                ->exists();
-
-            if (! $reportedExists) {
+            if (! isset($approvedUserIds[$reportedId])) {
                 return ['success' => false, 'reason' => "Reported user {$reportedId} is not an approved participant"];
             }
+
+            // Cannot report the same person twice in the same game
+            if (isset($alreadyReportedIds[$reportedId])) {
+                return ['success' => false, 'reason' => 'You have already reported attendance for this participant'];
+            }
+        }
+
+        // Filter out already-reported users (guards against double-submit race)
+        $reports = array_values(array_filter($reports, fn ($entry) => ! isset($alreadyReportedIds[$entry['reported_id']])));
+
+        if (empty($reports)) {
+            return ['success' => false, 'reason' => 'No new reports to submit (all already reported)'];
         }
 
         // Create reports in a transaction
@@ -165,17 +188,21 @@ class AttendanceService
             'quarantined' => $griefCheck['quarantined'],
         ]);
 
-        // Send notification to each reported user
+        // Send notification to each reported user (batch-fetch users and reports)
         try {
             $notificationService = app(NotificationService::class);
+            $reportedIds = collect($reports)->pluck('reported_id')->unique();
+            $usersById = User::whereIn('id', $reportedIds)->get()->keyBy('id');
+            $freshReports = AttendanceReport::where('game_id', $game->id)
+                ->where('reporter_id', $reporter->id)
+                ->whereIn('reported_id', $reportedIds)
+                ->get()
+                ->groupBy('reported_id');
+
             foreach ($reports as $entry) {
-                $reportedUser = User::find($entry['reported_id']);
+                $reportedUser = $usersById[$entry['reported_id']] ?? null;
                 if ($reportedUser) {
-                    $report = AttendanceReport::where('game_id', $game->id)
-                        ->where('reported_id', $entry['reported_id'])
-                        ->where('reporter_id', $reporter->id)
-                        ->orderByDesc('created_at')
-                        ->first();
+                    $report = ($freshReports[$entry['reported_id']] ?? collect())->last();
 
                     if ($report) {
                         $notificationService->send(
@@ -215,13 +242,17 @@ class AttendanceService
             ->count('reporter_id');
 
         if ($distinctReporters >= $approvedParticipantCount) {
-            Log::info('All participants have filed reports — triggering early consensus', [
+            Log::info('All participants have filed reports — dispatching early consensus resolution', [
                 'game_id' => $game->id,
                 'participants' => $approvedParticipantCount,
                 'reporters' => $distinctReporters,
             ]);
 
-            $this->resolveGameAttendance($game, AttendanceResolutionMethod::EarlyConsensus);
+            // Dispatch to queue instead of running synchronously — resolution involves
+            // per-participant reliability recomputation and notification dispatch which
+            // can take seconds for large games. The idempotent guard in resolveGameAttendance
+            // prevents double-resolution if the timeout job also fires.
+            ResolveAttendance::dispatch($game, AttendanceResolutionMethod::EarlyConsensus);
         }
     }
 
@@ -260,10 +291,15 @@ class AttendanceService
             ->where('status', ParticipantStatus::Approved->value)
             ->get();
 
+        // Pre-fetch all reports for the game once (avoids N+1 inside participant loop)
+        $allReports = AttendanceReport::where('game_id', $game->id)->get();
+
         // Total non-self participants (each participant's denominator excludes themselves)
         $totalParticipants = $participants->count();
+        $participationThreshold = static::participationThreshold();
+        $noShowMajority = static::noShowMajority();
 
-        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod) {
+        DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority) {
             foreach ($participants as $participant) {
                 // Skip participants who already have a pre-game or host-set status
                 // (e.g., late_cancel from host cancellation offence, excused set pre-game)
@@ -271,11 +307,10 @@ class AttendanceService
                     continue;
                 }
 
-                // Collect non-self reports filed for this person
-                $reports = AttendanceReport::where('game_id', $game->id)
+                // Collect non-self reports filed for this person (from pre-fetched collection)
+                $reports = $allReports
                     ->where('reported_id', $participant->user_id)
-                    ->where('reporter_id', '!=', $participant->user_id)
-                    ->get();
+                    ->where('reporter_id', '!=', $participant->user_id);
 
                 // Denominator: total non-self participants
                 $totalNonSelf = $totalParticipants - 1;
@@ -289,7 +324,7 @@ class AttendanceService
                 $filedReportCount = $reports->count();
 
                 // Participation threshold: filed reports >= 50% of total non-self participants
-                $thresholdMet = $filedReportCount >= ($totalNonSelf * 0.5);
+                $thresholdMet = $filedReportCount >= ($totalNonSelf * $participationThreshold);
 
                 if (! $thresholdMet) {
                     // Not enough reporters participated — default to Attended
@@ -324,10 +359,10 @@ class AttendanceService
 
                 $totalWeighted = $weightedNoShow + $weightedAttended + $weightedExcused;
 
-                // Check for host-excused override
-                $hostExcusedReport = $reports->first(function ($r) {
+                // Check for host-excused override (use $game from closure scope to avoid N+1)
+                $hostExcusedReport = $reports->first(function ($r) use ($game) {
                     return $r->status === AttendanceStatus::Excused
-                        && $r->reporter_id === $r->game->owner_id;
+                        && $r->reporter_id === $game->owner_id;
                 });
 
                 if ($hostExcusedReport) {
@@ -349,15 +384,16 @@ class AttendanceService
                 }
 
                 // If no_show weighted sum > 50% of total weighted: NoShow
-                if ($weightedNoShow > ($totalWeighted * 0.5)) {
+                if ($weightedNoShow > ($totalWeighted * $noShowMajority)) {
                     $resolvedStatus = AttendanceStatus::NoShow;
 
                     // If this participant is the game owner (host), apply host_no_show weight
                     if ($participant->user_id === $game->owner_id) {
+                        $hostWeight = (float) config('attendance.host_no_show_weight', -1.5);
                         $participant->forceFill([
                             'attendance_status' => $resolvedStatus,
                             'attendance_reported_at' => now(),
-                            'attendance_weight' => ReliabilityScoreService::HOST_WEIGHTS['host_no_show'],
+                            'attendance_weight' => $hostWeight,
                         ])->save();
 
                         $this->reliabilityService->recomputeAfterAttendance($participant);
@@ -367,7 +403,7 @@ class AttendanceService
                             'user_id' => $participant->user_id,
                             'weighted_no_show' => $weightedNoShow,
                             'total_weighted' => $totalWeighted,
-                            'host_weight' => ReliabilityScoreService::HOST_WEIGHTS['host_no_show'],
+                            'host_weight' => $hostWeight,
                         ]);
 
                         continue;
@@ -409,6 +445,30 @@ class AttendanceService
                 'participants_resolved' => $participants->count(),
             ]);
         });
+
+        // IMPORTANT: $participants->load('user') MUST run outside the transaction
+        // to avoid stale relationship data from inside the DB lock.
+        try {
+            $notificationService = app(NotificationService::class);
+            $participants->load('user');
+
+            foreach ($participants as $participant) {
+                if ($participant->attendance_status === null) {
+                    continue;
+                }
+
+                $notificationService->send(
+                    $participant->user,
+                    new AttendanceResolved($game, $participant->attendance_status),
+                    NotificationCategory::AttendanceResolved,
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send attendance resolved notifications', [
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -501,9 +561,10 @@ class AttendanceService
     // ── 4. Backward-compatible methods (kept) ───────────────────
 
     /**
-     * Report attendance for a participant in a game (legacy single-report method).
+     * Legacy single-report method. Does NOT apply corroboration or consensus logic.
      *
-     * Kept for backward compatibility — HandlesSessionEnd still calls it.
+     * @deprecated Use submitReport() for consensus-based attendance reporting.
+     *             This method is retained for backward compatibility only.
      *
      * @return array{success: bool, reason: string}
      */
@@ -973,12 +1034,26 @@ class AttendanceService
             ]);
         });
 
-        // Notify the affected user of the dispute resolution
+        // Notify the affected user of the dispute resolution (via NotificationService
+        // to respect channel preferences, block-list, and push dispatch)
         $wasNoShow = $oldStatus === AttendanceStatus::NoShow;
         $resolutionKey = ($wasNoShow && $newStatus !== AttendanceStatus::NoShow)
             ? 'resolved_favor'
             : 'upheld';
-        $participant->user->notify(new DisputeResolved($game, $resolutionKey));
+
+        try {
+            app(NotificationService::class)->send(
+                $participant->user,
+                new DisputeResolved($game, $resolutionKey),
+                NotificationCategory::DisputeResolved,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send DisputeResolved notification', [
+                'user_id' => $participant->user_id,
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return ['success' => true, 'reason' => 'Attendance override applied'];
     }

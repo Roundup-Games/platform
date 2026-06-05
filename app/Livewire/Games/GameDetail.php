@@ -199,13 +199,7 @@ class GameDetail extends Component
             return [];
         }
 
-        $reports = AttendanceReport::where('game_id', $this->game->id)->get();
-
-        return $reports->groupBy('reported_id')
-            ->map(fn ($group) => $group->groupBy('status')
-                ->map(fn ($statusGroup) => $statusGroup->count())
-                ->toArray())
-            ->toArray();
+        return app(AttendanceService::class)->getVoteTallies($this->game);
     }
 
     /**

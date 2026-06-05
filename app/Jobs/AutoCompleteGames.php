@@ -49,19 +49,16 @@ class AutoCompleteGames implements ShouldQueue
 
         $autoCompleteOffsetHours = config('attendance.auto_complete_offset_hours', 12);
 
+        // Push deadline calculation into SQL to avoid loading games that aren't due yet
         Game::whereNotIn('status', $terminalStatuses)
             ->whereNotNull('date_time')
             ->whereNotNull('expected_duration')
-            ->chunkById(100, function ($games) use ($attendanceService, $autoCompleteOffsetHours, &$completedCount) {
+            ->whereRaw(
+                "(date_time + (expected_duration || ' hours')::interval + (? || ' hours')::interval) <= now()",
+                [$autoCompleteOffsetHours],
+            )
+            ->chunkById(100, function ($games) use ($attendanceService, &$completedCount) {
                 foreach ($games as $game) {
-                    $deadline = $game->date_time
-                        ->copy()
-                        ->addHours((float) $game->expected_duration)
-                        ->addHours((float) $autoCompleteOffsetHours);
-
-                    if (now()->lt($deadline)) {
-                        continue;
-                    }
 
                     $game->forceFill([
                         'status' => GameStatus::Completed,

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\GameResource\RelationManagers;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Services\AttendanceService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -67,38 +68,37 @@ class ParticipantsRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('role')
                     ->badge()
-                    ->color(fn ($state): string => match ((string) $state) {
-                        ParticipantRole::Owner->value => 'warning',
-                        ParticipantRole::Player->value => 'success',
-                        ParticipantRole::Invited->value => 'info',
-                        ParticipantRole::Applicant->value => 'gray',
-                        default => 'gray',
+                    ->color(fn (ParticipantRole $state): string => match ($state) {
+                        ParticipantRole::Owner => 'warning',
+                        ParticipantRole::Player => 'success',
+                        ParticipantRole::Invited => 'info',
+                        ParticipantRole::Applicant => 'gray',
                     }),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn ($state): string => match ((string) $state) {
-                        'approved' => 'success',
-                        'rejected' => 'danger',
-                        'pending' => 'warning',
+                    ->color(fn (ParticipantStatus $state): string => match ($state) {
+                        ParticipantStatus::Approved => 'success',
+                        ParticipantStatus::Rejected => 'danger',
+                        ParticipantStatus::Pending => 'warning',
                         default => 'gray',
                     }),
                 TextColumn::make('attendance_status')
                     ->label('Attendance')
                     ->badge()
-                    ->color(fn (AttendanceStatus $state): string => match ($state) {
+                    ->color(fn ($record) => match ($record->attendance_status) {
                         AttendanceStatus::Attended => 'success',
                         AttendanceStatus::NoShow => 'danger',
                         AttendanceStatus::Excused => 'info',
                         AttendanceStatus::LateCancel => 'warning',
                         AttendanceStatus::CancelledEarly => 'gray',
+                        default => 'gray',
                     })
-                    ->formatStateUsing(fn (AttendanceStatus $state): string => $state->label())
-                    ->default('—')
+                    ->formatStateUsing(fn (?AttendanceStatus $state): string => $state?->label() ?? '—')
+                    ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('attendance_weight')
                     ->label('Weight')
-                    ->numeric(2)
-                    ->default('—')
+                    ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state, 2) : '—')
                     ->toggleable(),
                 IconColumn::make('attendance_disputed')
                     ->label('Disputed')
@@ -108,8 +108,7 @@ class ParticipantsRelationManager extends RelationManager
                     ->toggleable(),
                 TextColumn::make('attendance_reported_at')
                     ->label('Reported At')
-                    ->dateTime()
-                    ->default('—')
+                    ->formatStateUsing(fn ($state) => $state ? $state->format('M j, Y g:i A') : '—')
                     ->toggleable(),
             ])
             ->filters([
@@ -120,6 +119,9 @@ class ParticipantsRelationManager extends RelationManager
                     ->label('Override Attendance')
                     ->icon('heroicon-o-pencil-square')
                     ->visible(fn ($record) => $record->status?->value === 'approved' && $this->ownerRecord->status?->value === 'completed')
+                    ->requiresConfirmation()
+                    ->modalHeading('Override Attendance Status')
+                    ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
                     ->form([
                         Select::make('new_status')
                             ->label('New Attendance Status')

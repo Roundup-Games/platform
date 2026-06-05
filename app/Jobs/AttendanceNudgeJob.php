@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Notifications\AttendanceNudge;
@@ -70,7 +71,7 @@ class AttendanceNudgeJob implements ShouldQueue
 
                     // Nudge approved participants who haven't filed
                     $approvedParticipants = $game->participants
-                        ->where('status', 'approved')
+                        ->where('status', ParticipantStatus::Approved->value)
                         ->filter(fn ($p) => $p->user !== null)
                         ->filter(fn ($p) => ! isset($reporterIds[$p->user_id]));
 

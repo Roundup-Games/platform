@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\GameResource\Pages;
+use App\Filament\Resources\GameResource\RelationManagers\AttendanceReportsRelationManager;
 use App\Filament\Resources\GameResource\RelationManagers\ParticipantsRelationManager;
 use App\Models\Game;
 use Filament\Forms\Components\DateTimePicker;
@@ -223,7 +224,7 @@ class GameResource extends Resource
     {
         return [
             ParticipantsRelationManager::class,
-            RelationManagers\AttendanceReportsRelationManager::class,
+            AttendanceReportsRelationManager::class,
         ];
     }
 
