@@ -90,9 +90,10 @@ class ResolveAttendance implements ShouldQueue
 
         Game::where('attendance_window_closes_at', '<=', now())
             ->whereNull('attendance_resolved_at')
+            ->withCount('participants')
             ->chunkById(100, function ($games) use ($attendanceService, &$gameCount, &$totalParticipants) {
                 foreach ($games as $game) {
-                    $participantCount = $game->participants()->count();
+                    $participantCount = $game->participants_count;
 
                     $attendanceService->resolveGameAttendance(
                         $game,

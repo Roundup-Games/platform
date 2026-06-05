@@ -154,7 +154,10 @@ class AttendanceService
             }
         }
 
-        // Filter out already-reported users (guards against double-submit race)
+        // Race guard: filter out already-reported users (handles double-submit between
+        // the validation loop above and the DB insert below). This IS reachable when a
+        // concurrent request inserts a report after the validation fast-fail check but
+        // before we reach this filter.
         $reports = array_values(array_filter($reports, fn ($entry) => ! isset($alreadyReportedIds[$entry['reported_id']])));
 
         if (empty($reports)) {
@@ -302,7 +305,9 @@ class AttendanceService
         DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority) {
             foreach ($participants as $participant) {
                 // Skip participants who already have a pre-game or host-set status
-                // (e.g., late_cancel from host cancellation offence, excused set pre-game)
+                // (e.g., late_cancel from host cancellation offence, excused set pre-game).
+                // These users already know their outcome and don't need a resolution
+                // notification — the notification loop below also skips them.
                 if ($participant->attendance_status !== null) {
                     continue;
                 }
@@ -827,6 +832,8 @@ class AttendanceService
             $reportedId = $row->reported_id;
 
             if (! isset($tallies[$reportedId])) {
+                // Only consensus-reportable statuses; late_cancel is a pre-game host
+                // action and should not appear in vote tallies.
                 $tallies[$reportedId] = ['attended' => 0, 'no_show' => 0, 'excused' => 0];
             }
 
