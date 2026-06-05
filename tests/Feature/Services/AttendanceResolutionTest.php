@@ -331,7 +331,7 @@ describe('grief resistance in resolution', function () {
         $target = $players[0];
 
         // Player[1] reports no_show with weight 0.0 (quarantined)
-        fileReport($game, $players[1], $target, 'no_show', 0.0);
+        fileReport($game, $players[1], $target, 'no_show', 0.0, true);
 
         // Host reports attended with weight 1.0
         fileReport($game, $host, $target, 'attended', 1.0);

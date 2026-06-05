@@ -120,13 +120,15 @@ describe('DisputeResolved notification', function () {
             ->where('user_id', $reported->id)
             ->first();
 
+        // Seed disputed state
+        $participant->update(['attendance_disputed_at' => now()]);
+
         // Admin resolves by overriding NoShow to Attended (in player favor)
         $result = $service->adminResolveAttendance(
             $participant,
             AttendanceStatus::Attended,
             $admin,
             'Admin reviewed evidence',
-            false
         );
         expect($result['success'])->toBeTrue();
 
@@ -154,13 +156,15 @@ describe('DisputeResolved notification', function () {
             ->where('user_id', $reported->id)
             ->first();
 
+        // Seed disputed state
+        $participant->update(['attendance_disputed_at' => now()]);
+
         // Admin upholds by keeping NoShow status
         $result = $service->adminResolveAttendance(
             $participant,
             AttendanceStatus::NoShow,
             $admin,
             'NoShow confirmed',
-            false
         );
         expect($result['success'])->toBeTrue();
 

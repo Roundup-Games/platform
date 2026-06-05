@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -58,15 +59,29 @@ class AutoCompleteGames implements ShouldQueue
                 [$autoCompleteOffsetHours],
             )
             ->chunkById(100, function ($games) use ($attendanceService, &$completedCount) {
+                $terminalStatuses = [GameStatus::Completed->value, GameStatus::Canceled->value];
+
                 foreach ($games as $game) {
+                    try {
+                        DB::transaction(function () use ($game, $attendanceService, $terminalStatuses, &$completedCount) {
+                            $fresh = Game::where('id', $game->id)
+                                ->lockForUpdate()
+                                ->first();
 
-                    $game->forceFill([
-                        'status' => GameStatus::Completed,
-                    ])->save();
+                            if ($fresh === null || in_array($fresh->status->value ?? $fresh->status, $terminalStatuses, true)) {
+                                return;
+                            }
 
-                    $attendanceService->handleGameCompletion($game);
-
-                    $completedCount++;
+                            $fresh->forceFill(['status' => GameStatus::Completed])->save();
+                            $attendanceService->handleGameCompletion($fresh);
+                            $completedCount++;
+                        });
+                    } catch (\Throwable $e) {
+                        Log::warning('auto_complete_games.game_failed', [
+                            'game_id' => $game->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             });
 

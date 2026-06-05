@@ -131,8 +131,8 @@ describe('State 1: Form (window open, not submitted)', function () {
 
         $timeRemaining = $component->get('attendanceTimeRemaining');
         expect($timeRemaining)->not->toBeNull();
-        // Should contain 'h' and 'm'
-        expect($timeRemaining)->toMatch('/\d+h.*\d+m/');
+        // Should contain time units (e.g., "2d 23h", "71h", "45m", "1h 30m")
+        expect($timeRemaining)->toMatch('/\d+[dhms]/');
     });
 
     it('shows pre-game statuses as non-interactive', function () {

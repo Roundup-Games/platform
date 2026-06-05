@@ -933,6 +933,14 @@ class AttendanceService
         // Find or skip the Events department
         $department = Department::where('name', 'Events')->first();
 
+        if ($department === null) {
+            Log::warning('attendance_dispute.missing_department', [
+                'message' => 'Events department not found — dispute ticket will have no department',
+                'participant_id' => $participant->id,
+                'game_id' => $game->id,
+            ]);
+        }
+
         DB::transaction(function () use ($participant, $reason, $caller, $game, $reportIds, $department) {
             // Create Escalated ticket
             $ticket = Ticket::create([

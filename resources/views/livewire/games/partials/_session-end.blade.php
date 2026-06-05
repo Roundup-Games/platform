@@ -335,9 +335,19 @@
 
                         {{-- Dispute confirmation --}}
                         <div x-show="ownDisputeOpen" x-transition class="mt-2 space-y-2">
-                            <p class="text-xs text-on-surface-variant">
+                            <label class="block text-xs font-medium text-on-surface-variant">
                                 {{ __('games.placeholder_dispute_reason') }}
-                            </p>
+                            </label>
+                            <textarea
+                                wire:model.defer="disputeReason"
+                                rows="3"
+                                maxlength="1000"
+                                class="w-full rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm px-3 py-2 focus:ring-2 focus:ring-error focus:border-error"
+                                placeholder="{{ __('games.placeholder_dispute_reason') }}"
+                            ></textarea>
+                            @error('disputeReason')
+                                <p class="text-xs text-error">{{ $message }}</p>
+                            @enderror
                             <button
                                 wire:click="disputeAttendance('{{ $ownParticipant->id }}')"
                                 wire:loading.attr.disabled

@@ -10,7 +10,6 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\AttendanceReport;
-use App\Services\AttendanceService;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Review;
@@ -18,11 +17,13 @@ use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
 use App\Models\ShortLink;
 use App\Notifications\ParticipantRemoved;
+use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
+use Carbon\CarbonInterface;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
 use App\Traits\HandlesWaitlist;
@@ -239,21 +240,13 @@ class GameDetail extends Component
             return null;
         }
 
-        $diff = now()->diff($closesAt);
+        $diff = now()->diffForHumans($closesAt, short: true, parts: 2, syntax: CarbonInterface::DIFF_ABSOLUTE);
 
-        if ($diff->invert) {
+        if ($closesAt->isPast()) {
             return null; // Already past
         }
 
-        $parts = [];
-        if ($diff->h > 0) {
-            $parts[] = $diff->h . 'h';
-        }
-        if ($diff->i > 0 || empty($parts)) {
-            $parts[] = $diff->i . 'm';
-        }
-
-        return implode(' ', $parts);
+        return $diff;
     }
 
     /**
