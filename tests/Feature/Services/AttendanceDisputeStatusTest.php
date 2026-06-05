@@ -13,6 +13,7 @@ use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->seed(EscalatedSetupSeeder::class);
@@ -192,13 +193,24 @@ describe('disputeAttendanceStatus', function () {
 // ── adminResolveAttendance ───────────────────────────────
 
 describe('adminResolveAttendance', function () {
-    it('overrides attendance status and clears disputed_at', function () {
+    /**
+     * Create a user with Platform Admin role for testing admin overrides.
+     */
+    $createAdmin = function (): User {
+        Role::firstOrCreate(['name' => 'Platform Admin', 'guard_name' => 'web', 'team_id' => null]);
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+
+        return $admin;
+    };
+
+    it('overrides attendance status and clears disputed_at', function () use ($createAdmin) {
         ['owner' => $owner, 'game' => $game, 'noShowUser' => $user, 'noShowParticipant' => $participant] = createResolvedGameWithNoShow();
 
         // First dispute
         $this->service->disputeAttendanceStatus($participant, 'I was there', $user);
 
-        $admin = User::factory()->create();
+        $admin = $createAdmin();
         $result = $this->service->adminResolveAttendance($participant, AttendanceStatus::Attended, $admin, 'Verified by host');
 
         expect($result['success'])->toBeTrue()
@@ -221,7 +233,7 @@ describe('adminResolveAttendance', function () {
             ->and($overrideReport->reason)->toContain('Admin override: Verified by host');
     });
 
-    it('triggers reliability recalculation', function () {
+    it('triggers reliability recalculation', function () use ($createAdmin) {
         ['noShowUser' => $user, 'noShowParticipant' => $participant] = createResolvedGameWithNoShow();
 
         $user->forceFill([
@@ -231,7 +243,7 @@ describe('adminResolveAttendance', function () {
 
         $this->service->disputeAttendanceStatus($participant, 'I was there', $user);
 
-        $admin = User::factory()->create();
+        $admin = $createAdmin();
         $this->service->adminResolveAttendance($participant, AttendanceStatus::Attended, $admin, 'Override');
 
         $user->refresh();
@@ -240,10 +252,10 @@ describe('adminResolveAttendance', function () {
         expect($user->reliability_score['score'])->toBeGreaterThanOrEqual(50.0);
     });
 
-    it('rejects when participant has not disputed', function () {
+    it('rejects when participant has not disputed', function () use ($createAdmin) {
         ['noShowUser' => $user, 'noShowParticipant' => $participant] = createResolvedGameWithNoShow();
 
-        $admin = User::factory()->create();
+        $admin = $createAdmin();
         $result = $this->service->adminResolveAttendance($participant, AttendanceStatus::Attended, $admin, 'Override');
 
         expect($result['success'])->toBeFalse()

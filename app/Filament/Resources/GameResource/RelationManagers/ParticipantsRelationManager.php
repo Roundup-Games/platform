@@ -2,18 +2,14 @@
 
 namespace App\Filament\Resources\GameResource\RelationManagers;
 
-use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
-use App\Services\AttendanceService;
+use App\Filament\Concerns\OverridesAttendance;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -23,6 +19,8 @@ use Filament\Tables\Table;
 
 class ParticipantsRelationManager extends RelationManager
 {
+    use OverridesAttendance;
+
     protected static string $relationship = 'participants';
 
     protected static ?string $title = 'Participants';
@@ -122,47 +120,8 @@ class ParticipantsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading('Override Attendance Status')
                     ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
-                    ->form([
-                        Select::make('new_status')
-                            ->label('New Attendance Status')
-                            ->options(
-                                collect(AttendanceStatus::cases())->mapWithKeys(
-                                    fn (AttendanceStatus $case) => [$case->value => $case->label()]
-                                )
-                            )
-                            ->required(),
-                        Textarea::make('override_reason')
-                            ->label('Reason for Override')
-                            ->required()
-                            ->maxLength(500),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $admin = auth()->user();
-                        $newStatus = AttendanceStatus::from($data['new_status']);
-
-                        /** @var AttendanceService $service */
-                        $service = app(AttendanceService::class);
-
-                        $result = $service->adminResolveAttendance(
-                            $record,
-                            $newStatus,
-                            $admin,
-                            $data['override_reason'],
-                            false, // allow override without prior dispute
-                        );
-
-                        if ($result['success']) {
-                            Notification::make()
-                                ->title($result['reason'])
-                                ->success()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title($result['reason'])
-                                ->danger()
-                                ->send();
-                        }
-                    }),
+                    ->form(fn () => $this->attendanceOverrideFormFields())
+                    ->action(fn ($record, array $data) => $this->executeAttendanceOverride($record, $data)),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

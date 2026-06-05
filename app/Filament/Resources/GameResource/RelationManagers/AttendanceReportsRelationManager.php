@@ -3,19 +3,17 @@
 namespace App\Filament\Resources\GameResource\RelationManagers;
 
 use App\Enums\AttendanceStatus;
+use App\Filament\Concerns\OverridesAttendance;
 use App\Models\GameParticipant;
-use App\Models\User;
-use App\Services\AttendanceService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class AttendanceReportsRelationManager extends RelationManager
 {
+    use OverridesAttendance;
+
     protected static string $relationship = 'attendanceReports';
 
     protected static ?string $title = 'Attendance Reports';
@@ -81,27 +79,14 @@ class AttendanceReportsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading('Override Attendance Status')
                     ->modalDescription('This will change the participant\'s attendance status and recalculate their reliability score. The change is logged with your admin identity. Use with care.')
-                    ->form([
-                        Select::make('new_status')
-                            ->label('New Attendance Status')
-                            ->options(
-                                collect(AttendanceStatus::cases())->mapWithKeys(
-                                    fn (AttendanceStatus $case) => [$case->value => $case->label()]
-                                )
-                            )
-                            ->required(),
-                        Textarea::make('override_reason')
-                            ->label('Reason for Override')
-                            ->required()
-                            ->maxLength(500),
-                    ])
+                    ->form(fn () => $this->attendanceOverrideFormFields())
                     ->action(function ($record, array $data) {
                         $participant = GameParticipant::where('game_id', $record->game_id)
                             ->where('user_id', $record->reported_id)
                             ->first();
 
                         if (! $participant) {
-                            Notification::make()
+                            \Filament\Notifications\Notification::make()
                                 ->title('No participant record found for this reported user.')
                                 ->danger()
                                 ->send();
@@ -109,31 +94,7 @@ class AttendanceReportsRelationManager extends RelationManager
                             return;
                         }
 
-                        $admin = auth()->user();
-                        $newStatus = AttendanceStatus::from($data['new_status']);
-
-                        /** @var AttendanceService $service */
-                        $service = app(AttendanceService::class);
-
-                        $result = $service->adminResolveAttendance(
-                            $participant,
-                            $newStatus,
-                            $admin,
-                            $data['override_reason'],
-                            false, // allow override without prior dispute
-                        );
-
-                        if ($result['success']) {
-                            Notification::make()
-                                ->title($result['reason'])
-                                ->success()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title($result['reason'])
-                                ->danger()
-                                ->send();
-                        }
+                        $this->executeAttendanceOverride($participant, $data);
                     }),
             ])
             ->defaultSort('created_at', 'desc');

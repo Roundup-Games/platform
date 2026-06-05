@@ -17,6 +17,7 @@ use App\Notifications\AttendanceResolved;
 use App\Notifications\DisputeResolved;
 use App\Services\NotificationService;
 use App\Services\ReliabilityScoreService;
+use App\Services\ScopedRoleService;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
@@ -303,6 +304,13 @@ class AttendanceService
         $noShowMajority = static::noShowMajority();
 
         DB::transaction(function () use ($game, $participants, $totalParticipants, $resolutionMethod, $allReports, $participationThreshold, $noShowMajority) {
+            // Lock the game row to prevent concurrent resolution (e.g., early-consensus
+            // job and timeout sweeper racing for the same game).
+            $locked = Game::where('id', $game->id)->lockForUpdate()->first();
+            if ($locked->attendance_resolved_at !== null) {
+                return; // Already resolved by another process
+            }
+
             foreach ($participants as $participant) {
                 // Skip participants who already have a pre-game or host-set status
                 // (e.g., late_cancel from host cancellation offence, excused set pre-game).
@@ -451,13 +459,19 @@ class AttendanceService
             ]);
         });
 
-        // IMPORTANT: $participants->load('user') MUST run outside the transaction
-        // to avoid stale relationship data from inside the DB lock.
+        // IMPORTANT: Refresh participants from DB after the transaction.
+        // The in-memory $participants collection still holds pre-transaction values
+        // (attendance_status = null for newly-resolved participants) because forceFill()->save()
+        // inside the transaction updates the DB but not the stale collection.
+        // load('user') only eager-loads the relationship — it does NOT refresh attributes.
         try {
             $notificationService = app(NotificationService::class);
-            $participants->load('user');
+            $resolvedParticipants = $game->participants()
+                ->where('status', ParticipantStatus::Approved->value)
+                ->with('user')
+                ->get();
 
-            foreach ($participants as $participant) {
+            foreach ($resolvedParticipants as $participant) {
                 if ($participant->attendance_status === null) {
                     continue;
                 }
@@ -1006,6 +1020,17 @@ class AttendanceService
      */
     public function adminResolveAttendance(GameParticipant $participant, AttendanceStatus $newStatus, User $admin, string $overrideReason, bool $requireDispute = true): array
     {
+        // Defense-in-depth: verify admin privileges even though Filament gates access.
+        // This prevents accidental exposure if the method is called from a non-Filament context.
+        if (! app(ScopedRoleService::class)->isGlobalAdmin($admin)) {
+            Log::warning('Unauthorized attendance admin override attempt', [
+                'admin_id' => $admin->id,
+                'participant_id' => $participant->id,
+            ]);
+
+            return ['success' => false, 'reason' => 'Only administrators can override attendance'];
+        }
+
         // Validate: participant must have been disputed (unless called as direct override)
         if ($requireDispute && $participant->attendance_disputed_at === null) {
             return ['success' => false, 'reason' => 'Participant has not disputed their attendance'];

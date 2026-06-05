@@ -16,6 +16,7 @@ use App\Services\AttendanceService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -105,13 +106,21 @@ describe('AttendanceReported notification', function () {
 // ══════════════════════════════════════════════════════
 
 describe('DisputeResolved notification', function () {
-    it('dispatches when admin resolves dispute in player favor', function () {
+    $createAdmin = function (): User {
+        Role::firstOrCreate(['name' => 'Platform Admin', 'guard_name' => 'web', 'team_id' => null]);
+        $admin = User::factory()->create();
+        $admin->assignRole('Platform Admin');
+
+        return $admin;
+    };
+
+    it('dispatches when admin resolves dispute in player favor', function () use ($createAdmin) {
         Notification::fake();
 
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = notificationCreateDisputeGameWithParticipants(5);
         $reported = $participants[4];
         $service = app(AttendanceService::class);
-        $admin = User::factory()->create();
+        $admin = $createAdmin();
 
         // Report no_show to set the participant's status
         $service->reportAttendance($game, $participants[1], $reported, 'no_show');
@@ -142,13 +151,13 @@ describe('DisputeResolved notification', function () {
         );
     });
 
-    it('dispatches when admin upholds dispute', function () {
+    it('dispatches when admin upholds dispute', function () use ($createAdmin) {
         Notification::fake();
 
         ['owner' => $owner, 'game' => $game, 'participants' => $participants] = notificationCreateDisputeGameWithParticipants(3);
         $reported = $participants[2];
         $service = app(AttendanceService::class);
-        $admin = User::factory()->create();
+        $admin = $createAdmin();
 
         $service->reportAttendance($game, $participants[1], $reported, 'no_show');
 
