@@ -333,8 +333,8 @@ class DashboardDiscoveryService
 
         return $this->buildCard(
             'veteran_host',
-            'dashboard.milestones.veteran_host.title',
-            'dashboard.milestones.veteran_host.description',
+            'profile.dashboard_story_veteran_host',
+            'profile.dashboard_story_veteran_host_desc',
             'trophy',
             $earnedAt,
         );
@@ -372,8 +372,8 @@ class DashboardDiscoveryService
 
         return $this->buildCard(
             'community_builder',
-            'dashboard.milestones.community_builder.title',
-            'dashboard.milestones.community_builder.description',
+            'profile.dashboard_story_community_builder',
+            'profile.dashboard_story_community_builder_desc',
             'users',
             $lastHosted?->date_time,
         );
@@ -419,8 +419,8 @@ class DashboardDiscoveryService
 
         return $this->buildCard(
             'campaign_commitment',
-            'dashboard.milestones.campaign_commitment.title',
-            'dashboard.milestones.campaign_commitment.description',
+            'profile.dashboard_story_campaign_commitment',
+            'profile.dashboard_story_campaign_commitment_desc',
             'book-open',
             $fifthSession?->date_time,
         );
@@ -457,8 +457,8 @@ class DashboardDiscoveryService
 
         return $this->buildCard(
             'trusted_voice',
-            'dashboard.milestones.trusted_voice.title',
-            'dashboard.milestones.trusted_voice.description',
+            'profile.dashboard_story_trusted_voice',
+            'profile.dashboard_story_trusted_voice_desc',
             'star',
             $thirdReview?->created_at,
         );
@@ -504,8 +504,8 @@ class DashboardDiscoveryService
 
         return $this->buildCard(
             'explorer',
-            'dashboard.milestones.explorer.title',
-            'dashboard.milestones.explorer.description',
+            'profile.dashboard_story_explorer',
+            'profile.dashboard_story_explorer_desc',
             'compass',
             $lastGame?->date_time,
         );
