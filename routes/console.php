@@ -147,3 +147,10 @@ Schedule::command('anonymize:stale-invite-emails')->weekly()->sundays()->at('04:
 
 // Privacy — prune expired data export ZIPs (older than 7 days)
 Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();
+
+// Data integrity — audit checks + automated repair
+Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
+Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
+
+// Horizon metrics snapshot (powers the throughput/wait-time graphs)
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
