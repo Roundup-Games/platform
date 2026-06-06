@@ -27,6 +27,7 @@ return [
     'error_location_permission_denied' => 'Could not detect your location. Please allow browser location access or enter your city manually.',
     'error_please_confirm_your_location_to_continue' => 'Please confirm your location to continue.',
     'placeholder_street_address_neighborhood' => 'Street address, neighborhood',
+    'placeholder_city' => 'City',
     'hint_address_private' => 'Only your city is shared with other players. Your address stays private.',
     'hint_session_location' => 'Where will this session take place? Choose a location that participants can easily find.',
     'hint_profile_location' => 'This helps players find games near you. Only your city is visible to others.',

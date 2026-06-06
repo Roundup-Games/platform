@@ -176,13 +176,14 @@ class VenuePicker extends Component
                 $this->lng = $result['lng'];
                 $this->resolveAddressAndEmit();
             } else {
-                $this->addError('city', __('location.error_could_not_find_this_location_city'));
+                // Geocoder couldn't find it — save anyway without coordinates
+                $this->saveAddressWithoutCoordinates();
             }
         } catch (\Throwable $e) {
-            Log::error('Geocoding failed in VenuePicker', [
+            Log::warning('Geocoding failed in VenuePicker, saving without coordinates', [
                 'city' => $this->city, 'error' => $e->getMessage(),
             ]);
-            $this->addError('city', __('location.error_location_lookup_failed'));
+            $this->saveAddressWithoutCoordinates();
         }
     }
 
@@ -276,6 +277,53 @@ class VenuePicker extends Component
     }
 
     // ── Internals ──────────────────────────────────────
+
+    /**
+     * Save city/address as a Location without geocoding.
+     * Used when the geocoder can't find the location but the user still
+     * wants to save it (e.g., a private address or informal meeting spot).
+     */
+    private function saveAddressWithoutCoordinates(): void
+    {
+        // Check for an existing Location with this city/address combo
+        $existing = Location::where('city', $this->city)
+            ->where('address', $this->address ?: null)
+            ->whereNull('latitude')
+            ->first();
+
+        if ($existing) {
+            $this->locationId = $existing->id;
+            $this->locationConfirmed = true;
+            $this->editing = false;
+            $this->dispatch(
+                'location-selected',
+                locationId: $existing->id,
+                city: $this->city,
+                address: $this->address ?: null,
+                isVenue: false,
+            );
+
+            return;
+        }
+
+        $location = Location::create([
+            'name' => trim($this->address ? $this->address . ', ' . $this->city : $this->city),
+            'address' => $this->address ?: null,
+            'city' => $this->city,
+            'source' => 'manual',
+        ]);
+
+        $this->locationId = $location->id;
+        $this->locationConfirmed = true;
+        $this->editing = false;
+        $this->dispatch(
+            'location-selected',
+            locationId: $location->id,
+            city: $this->city,
+            address: $this->address ?: null,
+            isVenue: false,
+        );
+    }
 
     private function resolveAddressAndEmit(): void
     {

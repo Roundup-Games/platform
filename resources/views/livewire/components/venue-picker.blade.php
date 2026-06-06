@@ -119,7 +119,7 @@
 
                 <button type="button" wire:click="confirmAddress"
                         class="w-full px-4 py-2.5 bg-primary text-on-primary rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all duration-150 text-sm font-medium font-heading tracking-tight">
-                    <span wire:loading.remove wire:target="confirmAddress">{{ __('venues.action_search_address') }}</span>
+                    <span wire:loading.remove wire:target="confirmAddress">{{ __('venues.action_save_address') }}</span>
                     <span wire:loading wire:target="confirmAddress">{{ __('common.content_searching') }}</span>
                 </button>
             </div>

@@ -1,11 +1,12 @@
 <?php
 
 return [
-    'public_unlocked_by_verified_venue' => 'Public visibility unlocked by verified venue',
+    'content_public_unlocked_by_verified_venue' => 'Public visibility unlocked by verified venue',
 
     // ── Venue Picker ────────────────────────────────────────────────
     'action_search_venues' => 'Find a Venue',
-    'action_search_address' => 'Search by Address',
+    'action_search_address' => 'Or enter an address',
+    'action_save_address' => 'Save Address',
     'action_find_venues' => 'Search Venues',
     'action_choose_venue' => 'Choose a Venue',
     'action_propose_venue' => 'Propose a new venue',
@@ -16,4 +17,10 @@ return [
     'placeholder_location_instructions' => 'Ring buzzer 3, back entrance via parking lot...',
     'hint_location_instructions' => 'Helps participants find the exact spot. Shown only to confirmed participants.',
     'error_venue_not_found' => 'Venue not found. It may have been removed.',
+
+    // ── Edit Modal (compact) ────────────────────────────────
+    'label_venue' => 'Venue',
+    'label_address' => 'Address',
+    'placeholder_instructions' => 'Location instructions (e.g. ring buzzer 3)...',
+    'content_no_venues_found_edit' => 'No venues found. Try a different search.',
 ];

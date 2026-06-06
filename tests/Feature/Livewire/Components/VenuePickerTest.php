@@ -152,6 +152,22 @@ it('shows error when confirming address with empty city', function () {
         ->assertHasErrors('city');
 });
 
+it('saves address even when geocoding returns no results', function () {
+    $this->mock(\App\Services\GeocodingService::class, function ($mock) {
+        $mock->shouldReceive('geocode')->andReturn(null);
+    });
+
+    Livewire::test(VenuePicker::class)
+        ->call('startEditing')
+        ->call('switchMode', 'address')
+        ->set('city', 'Nonexistent City')
+        ->set('address', '123 Fictional St')
+        ->call('confirmAddress')
+        ->assertSet('locationConfirmed', true)
+        ->assertSet('city', 'Nonexistent City')
+        ->assertDispatched('location-selected');
+});
+
 // ── Cancel Editing ───────────────────────────────────────
 
 it('restores confirmed state on cancel', function () {
