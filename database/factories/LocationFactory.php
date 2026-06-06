@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\VenueType;
 use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -28,5 +29,18 @@ class LocationFactory extends Factory
             'source' => fake()->randomElement(['google', 'manual', 'geocode']),
             'metadata' => null,
         ];
+    }
+
+    /**
+     * Indicate that the location is a verified venue.
+     */
+    public function verifiedVenue(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_verified' => true,
+            'venue_type' => fake()->randomElement(VenueType::cases())->value,
+            'venue_notes' => fake()->optional()->sentence(),
+            'website_url' => fake()->optional()->url(),
+        ]);
     }
 }
