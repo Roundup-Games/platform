@@ -217,6 +217,9 @@
                         @if(!$this->canCreatePublic)
                             <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('common.content_public_visibility_requires_admin_approval') }}</p>
                         @endif
+                        @if($this->publicViaVenue)
+                            <p class="mt-1 text-xs text-success">{{ __('venues.public_unlocked_by_verified_venue') }}</p>
+                        @endif
                         @error('visibility') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
                     </div>
                 </div>

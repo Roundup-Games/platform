@@ -11,6 +11,7 @@ use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Services\OwnerParticipantService;
+use App\Services\VenueTrustService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
@@ -320,7 +321,17 @@ class CreateGame extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->can_create_public_entries;
+        return $user && app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
+    }
+
+    #[Computed]
+    public function publicViaVenue(): bool
+    {
+        if ($this->canCreatePublic && Auth::user()?->can_create_public_entries) {
+            return false; // GM — doesn't need venue indicator
+        }
+
+        return $this->canCreatePublic; // true only via venue bypass
     }
 
     // ── Actions ──────────────────────────────────────────
