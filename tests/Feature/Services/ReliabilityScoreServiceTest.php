@@ -297,7 +297,7 @@ class ReliabilityScoreServiceTest extends TestCase
         $this->assertEquals(70.0, $result['score']);
     }
 
-    public function test_weight_multiplier_ignored_for_auto_attend(): void
+    public function test_weight_multiplier_ignored_for_system_resolved(): void
     {
         $user = User::factory()->create();
 

@@ -336,49 +336,6 @@ class GameLifecycleIntegrationTest extends TestCase
         $this->assertNull($hostParticipant->attendance_status);
     }
 
-    #[Group('smoke')]
-    #[Test]
-    public function test_auto_attend_after_48h_and_reliability_tier(): void
-    {
-        $host = User::factory()->create();
-        $player = User::factory()->create();
-
-        // Give player 4 prior attended games (newcomer)
-        GameParticipant::factory()->count(4)->create([
-            'user_id' => $player->id,
-            'attendance_status' => AttendanceStatus::Attended,
-        ]);
-
-        // Complete a game 50h ago
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => 'completed',
-            'date_time' => now()->subHours(50),
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id, 'user_id' => $host->id,
-            'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value,
-        ]);
-        $playerParticipant = GameParticipant::create([
-            'game_id' => $game->id, 'user_id' => $player->id,
-            'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => null, // No report yet
-        ]);
-
-        // Before auto-attend: player is newcomer with 4 games
-        $scoreBefore = $this->reliabilityService->computeScore($player);
-        $this->assertEquals('newcomer', $scoreBefore['tier']);
-        $this->assertEquals(4, $scoreBefore['game_count']);
-
-        // Run auto-attend — both host and player get auto-attended (no prior reports)
-        $count = $this->attendanceService->autoAttendAfter48Hours();
-        $this->assertEquals(2, $count);
-
-        // After auto-attend: player has 5 games, reliable tier
-        $scoreAfter = $this->reliabilityService->computeScore($player);
-        $this->assertEquals('reliable', $scoreAfter['tier']);
-        $this->assertEquals(5, $scoreAfter['game_count']);
-        $this->assertEquals(100.0, $scoreAfter['score']);
-    }
+    // NOTE: The old auto-attend-after-48h flow was replaced by the consensus
+    // resolution engine. See AttendanceResolutionTest for the new tests.
 }

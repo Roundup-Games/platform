@@ -242,33 +242,44 @@ class ActionCenterService
     // ── 5. Unreported Attendance (medium) ───────────────
 
     /**
-     * Completed games where the user attended but hasn't reported attendance.
-     * Looks at games completed within the last 48 hours.
+     * Completed games where the attendance window is open and the user
+     * is an approved participant who hasn't filed their report yet.
+     *
+     * Queries: game status = completed, attendance_resolved_at IS NULL,
+     * attendance window is currently open, user is an approved participant,
+     * and no AttendanceReport exists from this user.
+     * Disappears once the user submits their report.
      */
     private function getUnreportedAttendance(User $user): array
     {
-        $participants = GameParticipant::query()
-            ->where('user_id', $user->id)
-            ->where('status', ParticipantStatus::Approved)
-            ->whereNull('attendance_status')
-            ->whereHas('game', fn ($q) => $q
-                ->where('status', GameStatus::Completed)
-                ->where('updated_at', '>=', now()->subHours(48)))
-            ->with('game')
+        $games = Game::query()
+            ->where('status', GameStatus::Completed)
+            ->whereNull('attendance_resolved_at')
+            ->where(fn ($q) => $q
+                ->whereNull('attendance_window_opens_at')
+                ->orWhere('attendance_window_opens_at', '<=', now()))
+            ->where(fn ($q) => $q
+                ->whereNull('attendance_window_closes_at')
+                ->orWhere('attendance_window_closes_at', '>', now()))
+            ->whereHas('participants', fn ($q) => $q
+                ->where('user_id', $user->id)
+                ->where('status', ParticipantStatus::Approved))
+            ->whereDoesntHave('attendanceReports', fn ($q) => $q
+                ->where('reporter_id', $user->id))
             ->get();
 
-        return $participants->map(fn (GameParticipant $p) => new ActionItem(
-            type: 'unreported_attendance',
+        return $games->map(fn (Game $g) => new ActionItem(
+            type: 'open_attendance_window',
             priority: 'medium',
-            title: __('profile.dashboard_action_attendance_title', ['game' => $p->game->name]),
+            title: __('profile.dashboard_action_attendance_title', ['game' => $g->name]),
             description: __('profile.dashboard_action_attendance_desc'),
-            actionUrl: route('games.show', $p->game->id),
+            actionUrl: route('games.show', $g->id),
             actionLabel: __('profile.dashboard_action_attendance_action'),
             icon: 'event_note',
-            createdAt: $p->game->updated_at ?? $p->created_at,
+            createdAt: $g->updated_at,
             metadata: [
                 'entity_type' => 'game',
-                'entity_id' => $p->game->id,
+                'entity_id' => $g->id,
             ],
         ))->all();
     }

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
 use App\Enums\ParticipantRole;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
@@ -299,162 +300,159 @@ describe('recordAttendance', function () {
     });
 });
 
-// ── autoAttendAfter48Hours ───────────────────────────────
+// ── getVoteTallies ───────────────────────────────────────
 
-describe('autoAttendAfter48Hours', function () {
-    it('auto-attends participants with no reports for games older than 48 hours', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(50),
-        ]);
+describe('getVoteTallies', function () {
+    it('returns empty array for a game with no reports', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
 
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
+        $tallies = $this->service->getVoteTallies($game);
 
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user1->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user2->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        $count = $this->service->autoAttendAfter48Hours();
-
-        expect($count)->toBe(3);
-
-        // Check all participants are now attended
-        foreach ([$owner, $user1, $user2] as $user) {
-            $p = GameParticipant::where('game_id', $game->id)
-                ->where('user_id', $user->id)
-                ->first();
-            expect($p->attendance_status)->toBe(AttendanceStatus::Attended);
-        }
-
-        // Check auto-attend report records exist
-        $reports = AttendanceReport::where('game_id', $game->id)->get();
-        expect($reports)->toHaveCount(3);
-        foreach ($reports as $report) {
-            expect($report->is_corroborated)->toBeTrue();
-            expect($report->weight_applied)->toBe(1.0);
-        }
+        expect($tallies)->toBe([]);
     });
 
-    it('skips games completed less than 48 hours ago', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(24),
-        ]);
+    it('returns tallies keyed by reported_id with per-status counts', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
+        $reported1 = $participants[1];
+        $reported2 = $participants[2];
 
-        GameParticipant::create([
+        // Two people say reported1 attended
+        AttendanceReport::create([
             'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
+            'reporter_id' => $participants[0]->id,
+            'reported_id' => $reported1->id,
+            'status' => 'attended',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
+        ]);
+        AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $participants[3]->id,
+            'reported_id' => $reported1->id,
+            'status' => 'no_show',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
         ]);
 
-        $count = $this->service->autoAttendAfter48Hours();
+        // One report for reported2
+        AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $participants[0]->id,
+            'reported_id' => $reported2->id,
+            'status' => 'excused',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
+        ]);
 
-        expect($count)->toBe(0);
+        $tallies = $this->service->getVoteTallies($game);
+
+        expect($tallies)->toHaveKey($reported1->id);
+        expect($tallies)->toHaveKey($reported2->id);
+        expect($tallies[$reported1->id])->toBe(['attended' => 1, 'no_show' => 1, 'excused' => 0]);
+        expect($tallies[$reported2->id])->toBe(['attended' => 0, 'no_show' => 0, 'excused' => 1]);
     });
 
-    it('skips participants who already have attendance status', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(50),
-        ]);
+    it('uses a single grouped query (does not N+1)', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
 
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
-
-        // Owner already has attendance set
-        GameParticipant::create([
+        // Seed some reports
+        AttendanceReport::create([
             'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => AttendanceStatus::Attended->value,
+            'reporter_id' => $participants[0]->id,
+            'reported_id' => $participants[1]->id,
+            'status' => 'attended',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
         ]);
 
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user1->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
+        $queryCount = 0;
+        DB::listen(function () use (&$queryCount) { $queryCount++; });
 
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $user2->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
+        $this->service->getVoteTallies($game);
 
-        $count = $this->service->autoAttendAfter48Hours();
-
-        // Only user1 and user2 should be auto-attended (owner already has status)
-        expect($count)->toBe(2);
-    });
-
-    it('only processes approved participants', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'campaign_id' => null,
-            'status' => 'completed',
-            'date_time' => now()->subHours(50),
-        ]);
-
-        $approvedUser = User::factory()->create();
-        $waitlistedUser = User::factory()->create();
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $owner->id,
-            'role' => ParticipantRole::Owner->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $approvedUser->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $waitlistedUser->id,
-            'role' => ParticipantRole::Player->value,
-            'status' => ParticipantStatus::Waitlisted->value,
-        ]);
-
-        $count = $this->service->autoAttendAfter48Hours();
-
-        // Only approved participants
-        expect($count)->toBe(2);
+        // Should be exactly 1 query (the grouped select)
+        expect($queryCount)->toBe(1);
     });
 });
+
+// ── hasUserReported ──────────────────────────────────────
+
+describe('hasUserReported', function () {
+    it('returns false when user has filed no reports', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+
+        expect($this->service->hasUserReported($game, $participants[1]))->toBeFalse();
+    });
+
+    it('returns true when user has filed at least one report', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+
+        AttendanceReport::create([
+            'game_id' => $game->id,
+            'reporter_id' => $participants[1]->id,
+            'reported_id' => $participants[2]->id,
+            'status' => 'attended',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
+        ]);
+
+        expect($this->service->hasUserReported($game, $participants[1]))->toBeTrue();
+    });
+
+    it('does not count reports from other games', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $otherGame = Game::factory()->create(['owner_id' => $owner->id, 'campaign_id' => null, 'status' => 'completed']);
+
+        AttendanceReport::create([
+            'game_id' => $otherGame->id,
+            'reporter_id' => $participants[1]->id,
+            'reported_id' => $participants[2]->id,
+            'status' => 'attended',
+            'weight_applied' => 1.0,
+            'is_corroborated' => false,
+            'quarantined' => false,
+        ]);
+
+        expect($this->service->hasUserReported($game, $participants[1]))->toBeFalse();
+    });
+});
+
+// ── getUserReportedStatus ────────────────────────────────
+
+describe('getUserReportedStatus', function () {
+    it('returns null when viewer has no participant record', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+        $outsider = User::factory()->create();
+
+        expect($this->service->getUserReportedStatus($game, $outsider))->toBeNull();
+    });
+
+    it('returns null when participant has no resolved status', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+
+        expect($this->service->getUserReportedStatus($game, $participants[1]))->toBeNull();
+    });
+
+    it('returns the resolved attendance status enum', function () {
+        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(3);
+
+        $participant = GameParticipant::where('game_id', $game->id)
+            ->where('user_id', $participants[1]->id)
+            ->first();
+        $participant->forceFill(['attendance_status' => AttendanceStatus::NoShow])->save();
+
+        $status = $this->service->getUserReportedStatus($game, $participants[1]);
+        expect($status)->toBe(AttendanceStatus::NoShow);
+    });
+});
+
+// NOTE: autoAttendAfter48Hours tests removed — the old auto-attend flow was
+// replaced by the consensus resolution engine. See AttendanceResolutionTest.php.
 
 // ── recordHostCancellationOffence ────────────────────────
 
@@ -574,52 +572,6 @@ describe('recordHostCancellationOffence', function () {
         expect($owner->reliability_score)->not->toBeNull();
         // Late cancel has a negative weight, so score should be below 100
         expect($owner->reliability_score['score'])->toBeLessThan(100.0);
-    });
-});
-
-// ── Corroboration ────────────────────────────────────────
-
-describe('corroboration', function () {
-    it('marks reports as corroborated when two independent reporters agree', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
-        $reported = $participants[3];
-
-        // Reporter 1 reports no_show
-        $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
-
-        // Reporter 2 also reports no_show
-        $this->service->reportAttendance($game, $participants[2], $reported, 'no_show');
-
-        // Both reports should now be corroborated
-        $reports = AttendanceReport::where('game_id', $game->id)
-            ->where('reported_id', $reported->id)
-            ->where('reporter_id', '!=', $reported->id)
-            ->get();
-
-        expect($reports)->toHaveCount(2);
-        foreach ($reports as $report) {
-            expect($report->is_corroborated)->toBeTrue();
-        }
-    });
-
-    it('does not corroborate reports with different statuses', function () {
-        ['owner' => $owner, 'game' => $game, 'participants' => $participants] = createCompletedGameWithParticipants(4);
-        $reported = $participants[3];
-
-        // Reporter 1 says no_show
-        $this->service->reportAttendance($game, $participants[1], $reported, 'no_show');
-
-        // Reporter 2 says attended
-        $this->service->reportAttendance($game, $participants[2], $reported, 'attended');
-
-        // Reports should NOT be corroborated (different statuses)
-        $reports = AttendanceReport::where('game_id', $game->id)
-            ->where('reported_id', $reported->id)
-            ->get();
-
-        foreach ($reports as $report) {
-            expect($report->is_corroborated)->toBeFalse();
-        }
     });
 });
 

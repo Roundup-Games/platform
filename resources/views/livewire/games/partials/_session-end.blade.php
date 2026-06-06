@@ -58,145 +58,325 @@
     @endif
 @endauth
 
-{{-- Attendance Reporting (completed games) --}}
+{{-- ═══════════════════════════════════════════════════════════════════════════════
+     Attendance Reporting — Three-state UI
+     State 1: Form (window open, not yet submitted)
+     State 2: Tallies (submitted, window open, not resolved)
+     State 3: Resolved (window closed / resolution complete)
+     ═══════════════════════════════════════════════════════════════════════════════ --}}
 @auth
     @if($game->status === \App\Enums\GameStatus::Completed)
         @php
             $viewerId = \Illuminate\Support\Facades\Auth::id();
+            $isHost = $isOwner;
             $allApproved = $game->participants->where('status', \App\Enums\ParticipantStatus::Approved);
-            $hostParticipant = $allApproved->first(fn ($p) => $p->user_id === $game->owner_id);
             $ownParticipant = $allApproved->first(fn ($p) => $p->user_id === $viewerId);
 
-            // For host: all non-host approved participants
-            $hostReportable = $isOwner
-                ? $allApproved->filter(fn ($p) => $p->user_id !== $game->owner_id)
-                : collect();
-            $hostHasUnreported = $hostReportable->whereNull('attendance_status')->count() > 0;
+            // Build list of other participants (everyone except self, including host)
+            $reportableParticipants = $allApproved->filter(fn ($p) => $p->user_id !== $viewerId);
 
-            // For participants: everyone except themselves (including the host)
-            $participantReportable = !$isOwner && $ownParticipant
-                ? $allApproved->filter(fn ($p) => $p->user_id !== $viewerId)
-                : collect();
-            $participantHasUnreported = $participantReportable->whereNull('attendance_status')->count() > 0;
+            // Pre-game statuses that are already set (LateCancel, CancelledEarly)
+            $preGameStatuses = [
+                \App\Enums\AttendanceStatus::LateCancel,
+                \App\Enums\AttendanceStatus::CancelledEarly,
+            ];
+
+            // Determine the three states
+            $windowOpen = $isAttendanceWindowOpen;
+            $hasSubmitted = $hasSubmittedAttendance;
+            $isResolved = !$windowOpen && $game->attendance_resolved_at !== null;
+            $showAttendanceUI = $windowOpen || $isResolved;
         @endphp
 
-        {{-- Host attendance reporting: full roster of players --}}
-        @if($isOwner && $hostReportable->count() > 0)
-            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
-                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_attendance_report') }}</h2>
-                </div>
-                @if($hostHasUnreported)
-                    <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_attendance_report_description') }}</p>
-                @else
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="material-symbols-outlined text-lg text-on-secondary-container" aria-hidden="true">task_alt</span>
-                        <p class="text-sm text-on-surface">{{ __('games.content_attendance_all_reported') }}</p>
+        @if($showAttendanceUI && ($isHost || $ownParticipant))
+            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6"
+                     x-data="{ disputeOpen: null }">
+
+                {{-- ── Header ────────────────────────────────────────────────────── --}}
+
+                {{-- State 1: Form header --}}
+                @if($windowOpen && !$hasSubmitted)
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
+                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">
+                            {{ __('games.title_submit_attendance') }}
+                        </h2>
+                    </div>
+                    @if($attendanceTimeRemaining)
+                        <div class="flex items-center gap-1.5 mb-4 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
+                            {{ __('games.label_time_remaining', ['time' => $attendanceTimeRemaining]) }}
+                        </div>
+                    @endif
+                    <p class="text-sm text-on-surface-variant mb-4">
+                        @if($isHost)
+                            {{ __('games.content_attendance_report_description') }}
+                        @else
+                            {{ __('games.content_report_others_description') }}
+                        @endif
+                    </p>
+
+                {{-- State 2: Tallies header --}}
+                @elseif($windowOpen && $hasSubmitted)
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-xl text-on-secondary-container" aria-hidden="true">task_alt</span>
+                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">
+                            {{ __('games.title_attendance_submitted') }}
+                        </h2>
+                    </div>
+                    @if($currentUserAttendanceStatus)
+                        <div class="flex items-center gap-1.5 mb-2 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">person</span>
+                            {{ __('games.label_your_status', ['status' => $currentUserAttendanceStatus->label()]) }}
+                        </div>
+                    @endif
+                    @if($attendanceTimeRemaining)
+                        <div class="flex items-center gap-1.5 mb-4 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
+                            {{ __('games.label_time_remaining', ['time' => $attendanceTimeRemaining]) }}
+                        </div>
+                    @else
+                        <div class="flex items-center gap-1.5 mb-4 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+                            {{ __('games.label_all_reports_submitted') }}
+                        </div>
+                    @endif
+
+                {{-- State 3: Resolved header --}}
+                @elseif($isResolved)
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-xl text-on-secondary-container" aria-hidden="true">verified</span>
+                        <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">
+                            {{ __('games.title_attendance_resolved') }}
+                        </h2>
+                    </div>
+                    @if($currentUserAttendanceStatus)
+                        <div class="flex items-center gap-1.5 mb-2 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">person</span>
+                            {{ __('games.label_your_status', ['status' => $currentUserAttendanceStatus->label()]) }}
+                        </div>
+                    @endif
+                    {{-- Resolution method label --}}
+                    <div class="flex items-center gap-1.5 mb-4 text-xs text-on-surface-variant">
+                        <span class="material-symbols-outlined text-sm" aria-hidden="true">info</span>
+                        @php
+                            $resolutionMethod = match($game->attendance_resolution_method) {
+                                'early_consensus' => __('games.label_resolution_consensus'),
+                                'timeout' => __('games.label_resolution_timeout'),
+                                'manual' => __('games.label_resolution_host_override'),
+                                default => $game->attendance_resolution_method ?? '—',
+                            };
+                        @endphp
+                        {{ __('games.label_resolution_method', ['method' => $resolutionMethod]) }}
                     </div>
                 @endif
+
+                {{-- ── Participant list (shared across all states) ─────────────────── --}}
+
                 <div class="space-y-3">
-                    @foreach($hostReportable as $participant)
-                        <div class="flex items-center justify-between gap-3 bg-surface rounded-lg p-3">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <x-user-link :user="$participant->user" avatar-size="w-7 h-7" :truncate="true" />
-                                @if($participant->attendance_status)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $participant->attendance_status === \App\Enums\AttendanceStatus::Attended ? 'bg-secondary-container text-on-secondary-container' : 'bg-error/10 text-error' }}">
-                                        {{ $participant->attendance_status->label() }}
+                    @foreach($reportableParticipants as $participant)
+                        @php
+                            $isHostParticipant = $participant->user_id === $game->owner_id;
+                            $preGameStatus = in_array($participant->attendance_status, $preGameStatuses)
+                                ? $participant->attendance_status : null;
+                            $participantTallies = $attendanceTallies[$participant->user_id] ?? [];
+                            $leadingStatus = null;
+                            $leadingCount = 0;
+                            foreach ($participantTallies as $status => $count) {
+                                if ($count > $leadingCount) {
+                                    $leadingCount = $count;
+                                    $leadingStatus = $status;
+                                }
+                            }
+                        @endphp
+
+                        <div class="flex flex-col bg-surface rounded-lg p-3 @if($preGameStatus) opacity-60 @endif">
+                            {{-- Name row --}}
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    @if($isHostParticipant)
+                                        <span class="material-symbols-outlined text-sm text-primary" aria-hidden="true">shield</span>
+                                    @endif
+                                    <x-user-link :user="$participant->user" avatar-size="w-7 h-7" :truncate="true" />
+                                    @if($isHostParticipant)
+                                        <span class="text-xs text-on-surface-variant">({{ __('games.label_host') }})</span>
+                                    @endif
+                                </div>
+
+                                {{-- Pre-game status badge --}}
+                                @if($preGameStatus)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container-high text-on-surface-variant">
+                                        {{ $preGameStatus->label() }}
                                     </span>
                                 @endif
                             </div>
-                            @if(! $participant->attendance_status)
-                                <div class="flex items-center gap-1.5 shrink-0">
+
+                            {{-- ── State 1: Interactive pills ─────────────────────────── --}}
+
+                            @if($windowOpen && !$hasSubmitted && !$preGameStatus)
+                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                    {{-- Attended pill --}}
                                     <button
-                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'attended')"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
+                                        type="button"
+                                        @click="
+                                            $wire.set('attendanceReports.{{ $participant->id }}.status', 'attended');
+                                            $wire.set('attendanceReports.{{ $participant->id }}.reason', null);
+                                        "
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all
+                                            {{ ($attendanceReports[$participant->id]['status'] ?? 'attended') === 'attended'
+                                                ? 'bg-secondary-container text-on-secondary-container ring-2 ring-secondary/30'
+                                                : 'bg-surface-container-high text-on-surface-variant hover:bg-secondary-container/50' }}"
                                     >
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
                                         {{ __('attendance.status_attended') }}
                                     </button>
+
+                                    {{-- No Show pill --}}
                                     <button
-                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'no_show')"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-error/10 text-error hover:opacity-90 transition-opacity"
+                                        type="button"
+                                        @click="
+                                            $wire.set('attendanceReports.{{ $participant->id }}.status', 'no_show');
+                                            $wire.set('attendanceReports.{{ $participant->id }}.reason', null);
+                                        "
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all
+                                            {{ ($attendanceReports[$participant->id]['status'] ?? '') === 'no_show'
+                                                ? 'bg-error/15 text-error ring-2 ring-error/30'
+                                                : 'bg-surface-container-high text-on-surface-variant hover:bg-error/10' }}"
                                     >
                                         <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
                                         {{ __('attendance.status_no_show') }}
                                     </button>
-                                    <button
-                                        wire:click="reportParticipantAttendance('{{ $participant->id }}', 'excused')"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:opacity-90 transition-opacity"
-                                    >
-                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">event_busy</span>
-                                        {{ __('attendance.status_excused') }}
-                                    </button>
-                                </div>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </section>
-        @endif
 
-        {{-- Participant attendance reporting: report others (including host) --}}
-        @if(!$isOwner && $ownParticipant && $participantReportable->count() > 0)
-            <section class="bg-surface-container-low rounded-xl shadow-ambient p-6">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="material-symbols-outlined text-xl text-on-surface-variant" aria-hidden="true">how_to_reg</span>
-                    <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('games.title_attendance_report') }}</h2>
-                </div>
-                @if($participantHasUnreported)
-                    <p class="text-sm text-on-surface-variant mb-4">{{ __('games.content_report_others_description') }}</p>
-                @else
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="material-symbols-outlined text-lg text-on-secondary-container" aria-hidden="true">task_alt</span>
-                        <p class="text-sm text-on-surface">{{ __('games.content_attendance_all_reported') }}</p>
-                    </div>
-                @endif
-                    <div class="space-y-3">
-                        @foreach($participantReportable as $participant)
-                            <div class="flex items-center justify-between gap-3 bg-surface rounded-lg p-3">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    @if($participant->user_id === $game->owner_id)
-                                        <span class="material-symbols-outlined text-sm text-primary" aria-hidden="true">shield</span>
-                                    @endif
-                                    <x-user-link :user="$participant->user" avatar-size="w-7 h-7" :truncate="true" />
-                                    @if($participant->user_id === $game->owner_id)
-                                        <span class="text-xs text-on-surface-variant">({{ __('games.label_host') }})</span>
-                                    @endif
-                                    @if($participant->attendance_status)
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $participant->attendance_status === \App\Enums\AttendanceStatus::Attended ? 'bg-secondary-container text-on-secondary-container' : 'bg-error/10 text-error' }}">
-                                            {{ $participant->attendance_status->label() }}
-                                        </span>
-                                    @endif
-                                </div>
-                                @if(! $participant->attendance_status)
-                                    <div class="flex items-center gap-1.5 shrink-0">
+                                    {{-- Excused pill (host only) --}}
+                                    @if($isHost)
                                         <button
-                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'attended')"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-secondary-container text-on-secondary-container hover:opacity-90 transition-opacity"
-                                        >
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">check_circle</span>
-                                            {{ __('attendance.status_attended') }}
-                                        </button>
-                                        <button
-                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'no_show')"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-error/10 text-error hover:opacity-90 transition-opacity"
-                                        >
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">cancel</span>
-                                            {{ __('attendance.status_no_show') }}
-                                        </button>
-                                        <button
-                                            wire:click="reportParticipantAttendance('{{ $participant->id }}', 'excused')"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-container-high text-on-surface-variant hover:opacity-90 transition-opacity"
+                                            type="button"
+                                            @click="$wire.set('attendanceReports.{{ $participant->id }}.status', 'excused')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all
+                                                {{ ($attendanceReports[$participant->id]['status'] ?? '') === 'excused'
+                                                    ? 'bg-surface-container-highest text-on-surface ring-2 ring-outline-variant'
+                                                    : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest/50' }}"
                                         >
                                             <span class="material-symbols-outlined text-sm" aria-hidden="true">event_busy</span>
                                             {{ __('attendance.status_excused') }}
                                         </button>
+                                    @endif
+                                </div>
+
+                                {{-- Excused reason textarea (conditional) --}}
+                                @if($isHost && ($attendanceReports[$participant->id]['status'] ?? '') === 'excused')
+                                    <div class="mt-2">
+                                        <textarea
+                                            wire:model="attendanceReports.{{ $participant->id }}.reason"
+                                            rows="2"
+                                            maxlength="500"
+                                            class="w-full rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                                            placeholder="{{ __('games.placeholder_excused_reason') }}"
+                                        ></textarea>
                                     </div>
                                 @endif
-                            </div>
-                        @endforeach
+                            @endif
+
+                            {{-- ── State 2 & 3: Vote tallies (read-only) ─────────────── --}}
+
+                            @if(($windowOpen && $hasSubmitted) || $isResolved)
+                                @if(!$preGameStatus && !empty($participantTallies))
+                                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                                        @foreach([\App\Enums\AttendanceStatus::Attended, \App\Enums\AttendanceStatus::NoShow, \App\Enums\AttendanceStatus::Excused] as $status)
+                                            @php($count = $participantTallies[$status->value] ?? 0)
+                                            @if($count > 0)
+                                                @php($isLeading = $status->value === $leadingStatus && ($isResolved || $leadingCount > 1))
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                                    {{ $status === \App\Enums\AttendanceStatus::Attended
+                                                        ? ($isLeading ? 'bg-secondary-container text-on-secondary-container' : 'bg-secondary-container/40 text-on-secondary-container')
+                                                        : ($status === \App\Enums\AttendanceStatus::NoShow
+                                                            ? ($isLeading ? 'bg-error/15 text-error' : 'bg-error/5 text-error/70')
+                                                            : ($isLeading ? 'bg-surface-container-highest text-on-surface' : 'bg-surface-container-high text-on-surface-variant')) }}">
+                                                    @if($status === \App\Enums\AttendanceStatus::Attended)
+                                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">check_circle</span>
+                                                    @elseif($status === \App\Enums\AttendanceStatus::NoShow)
+                                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">cancel</span>
+                                                    @else
+                                                        <span class="material-symbols-outlined text-xs" aria-hidden="true">event_busy</span>
+                                                    @endif
+                                                    {{ $status->label() }} ({{ $count }})
+                                                </span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @elseif(!$preGameStatus)
+                                    <div class="mt-2 text-xs text-on-surface-variant italic">
+                                        {{ __('attendance.status_not_reported') }}
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- ── State 3: Viewer's own dispute button (outside participant loop) ── --}}
+                @if($isResolved && $ownParticipant
+                    && $ownParticipant->attendance_status === \App\Enums\AttendanceStatus::NoShow
+                    && !$ownParticipant->attendance_disputed_at)
+                    <div class="mt-4 p-3 bg-error/5 rounded-lg border border-error/20"
+                         x-data="{ ownDisputeOpen: false }">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="material-symbols-outlined text-base text-error" aria-hidden="true">warning</span>
+                            <span class="text-sm font-medium text-error">{{ __('games.label_your_status', ['status' => \App\Enums\AttendanceStatus::NoShow->label()]) }}</span>
+                        </div>
+                        <button
+                            type="button"
+                            @click="ownDisputeOpen = true"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-error/10 text-error hover:bg-error/20 transition-colors"
+                        >
+                            <span class="material-symbols-outlined text-sm" aria-hidden="true">gavel</span>
+                            {{ __('games.action_dispute_attendance') }}
+                        </button>
+
+                        {{-- Dispute confirmation --}}
+                        <div x-show="ownDisputeOpen" x-transition class="mt-2 space-y-2">
+                            <label class="block text-xs font-medium text-on-surface-variant">
+                                {{ __('games.placeholder_dispute_reason') }}
+                            </label>
+                            <textarea
+                                wire:model.defer="disputeReason"
+                                rows="3"
+                                maxlength="1000"
+                                class="w-full rounded-lg border border-outline-variant bg-surface-container-low text-on-surface text-sm px-3 py-2 focus:ring-2 focus:ring-error focus:border-error"
+                                placeholder="{{ __('games.placeholder_dispute_reason') }}"
+                            ></textarea>
+                            @error('disputeReason')
+                                <p class="text-xs text-error">{{ $message }}</p>
+                            @enderror
+                            <button
+                                wire:click="disputeAttendance('{{ $ownParticipant->id }}')"
+                                wire:loading.attr.disabled
+                                class="inline-flex items-center gap-1 px-4 py-2 bg-error text-on-error text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                            >
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                                {{ __('games.action_submit_dispute') }}
+                            </button>
+                        </div>
                     </div>
+                @endif
+
+                {{-- ── State 1: Submit button ────────────────────────────────────────── --}}
+
+                @if($windowOpen && !$hasSubmitted)
+                    <div class="mt-4">
+                        <button
+                            wire:click="submitAttendanceReport()"
+                            wire:loading.attr.disabled
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity"
+                        >
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                            {{ __('games.action_submit_attendance_report') }}
+                            <span wire:loading class="inline-flex items-center">
+                                <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
+                            </span>
+                        </button>
+                    </div>
+                @endif
             </section>
         @endif
     @endif

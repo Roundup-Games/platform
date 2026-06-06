@@ -29,6 +29,8 @@ enum NotificationCategory: string
     // Attendance
     case AttendanceReported = 'attendance_reported';
     case DisputeResolved = 'dispute_resolved';
+    case AttendanceNudge = 'attendance_nudge';
+    case AttendanceResolved = 'attendance_resolved';
 
     // Status
     case GameCancelled = 'game_cancelled';
@@ -73,6 +75,8 @@ enum NotificationCategory: string
             self::TeamMemberRemoved => __('notifications.category_team_member_removed'),
             self::AttendanceReported => __('notifications.category_attendance_reported'),
             self::DisputeResolved => __('notifications.category_dispute_resolved'),
+            self::AttendanceNudge => __('notifications.category_attendance_nudge'),
+            self::AttendanceResolved => __('notifications.category_attendance_resolved'),
             self::GameCancelled => __('notifications.category_game_cancelled'),
             self::GameCompleted => __('notifications.category_game_completed'),
             self::CampaignCancelled => __('notifications.category_campaign_cancelled'),
@@ -93,7 +97,7 @@ enum NotificationCategory: string
             self::NewFollower => 'social',
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
-            self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved => 'participation',
+            self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
             self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated => 'status',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
@@ -123,7 +127,7 @@ enum NotificationCategory: string
             ],
             'participation' => [
                 'label' => __('notifications.group_participation'),
-                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved],
+                'categories' => [self::ParticipantJoined, self::ParticipantRemoved, self::TeamMemberRemoved, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved],
             ],
             'status' => [
                 'label' => __('notifications.group_status'),
@@ -192,6 +196,8 @@ enum NotificationCategory: string
             self::TeamMemberRemoved => true,
             self::AttendanceReported => true,
             self::DisputeResolved => true,
+            self::AttendanceNudge => false,
+            self::AttendanceResolved => true,
             self::GameCancelled => true,
             self::GameCompleted => true,
             self::CampaignCancelled => true,

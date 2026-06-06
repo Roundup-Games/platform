@@ -9,6 +9,7 @@ use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
+use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Review;
@@ -16,11 +17,13 @@ use App\Models\SessionDebriefing;
 use App\Models\SessionZeroConfirmation;
 use App\Models\ShortLink;
 use App\Notifications\ParticipantRemoved;
+use App\Services\AttendanceService;
 use App\Services\DebriefingService;
 use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
+use Carbon\CarbonInterface;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
 use App\Traits\HandlesWaitlist;
@@ -46,11 +49,17 @@ class GameDetail extends Component
 
     public Game $game;
 
+    /** @var array<string, array{status: string, reason: ?string}> Attendance form data keyed by participant ID */
+    public array $attendanceReports = [];
+
     /** @var array<string, string> Debriefing form responses keyed by prompt key */
     public array $debriefingResponses = [];
 
     /** @var string|null Recap content for host write-recap form */
     public ?string $recapContent = null;
+
+    /** @var string|null Reason for attendance dispute */
+    public ?string $disputeReason = null;
 
     /** @var string|null Validated share token captured on mount, persists across Livewire updates */
     #[Locked]
@@ -75,6 +84,11 @@ class GameDetail extends Component
 
         // Detect short link arrival via ph_link_id cookie
         $this->detectShortLink();
+
+        // Initialize attendance form defaults (everyone = attended) if window is open
+        if ($this->isAttendanceWindowOpen()) {
+            $this->initializeAttendanceReports();
+        }
     }
 
     // ── Trait contracts ────────────────────────────────
@@ -107,6 +121,261 @@ class GameDetail extends Component
     public function getBackRoute(): string
     {
         return route('games.show', $this->game->id);
+    }
+
+    // ── Attendance UI ──────────────────────────────────
+
+    /**
+     * Initialize attendance form with defaults: all approved participants = attended.
+     */
+    private function initializeAttendanceReports(): void
+    {
+        $viewerId = $this->viewerId();
+
+        $this->attendanceReports = $this->game->participants
+            ->filter(fn ($p) => $p->status === ParticipantStatus::Approved
+                && $p->user_id !== $viewerId)
+            ->mapWithKeys(fn ($p) => [
+                $p->id => ['status' => AttendanceStatus::Attended->value, 'reason' => null],
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Whether the attendance reporting window is open and unresolved.
+     */
+    #[Computed]
+    public function isAttendanceWindowOpen(): bool
+    {
+        $game = $this->game;
+
+        if ($game->status !== GameStatus::Completed) {
+            return false;
+        }
+
+        // Already resolved
+        if ($game->attendance_resolved_at !== null) {
+            return false;
+        }
+
+        // Window hasn't opened yet
+        if ($game->attendance_window_opens_at && now()->lt($game->attendance_window_opens_at)) {
+            return false;
+        }
+
+        // Window has closed
+        if ($game->attendance_window_closes_at && now()->gt($game->attendance_window_closes_at)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the current user has submitted at least one attendance report for this game.
+     */
+    #[Computed]
+    public function hasSubmittedAttendance(): bool
+    {
+        $viewerId = $this->viewerId();
+
+        if (! $viewerId) {
+            return false;
+        }
+
+        return AttendanceReport::where('game_id', $this->game->id)
+            ->where('reporter_id', $viewerId)
+            ->exists();
+    }
+
+    /**
+     * Vote tallies per participant, grouped by status.
+     *
+     * Returns array keyed by reported_id => [status => count, ...]
+     */
+    #[Computed]
+    public function attendanceTallies(): array
+    {
+        if ($this->game->status !== GameStatus::Completed) {
+            return [];
+        }
+
+        return app(AttendanceService::class)->getVoteTallies($this->game);
+    }
+
+    /**
+     * The current viewer's own resolved attendance status (or null if unresolved).
+     */
+    #[Computed]
+    public function currentUserAttendanceStatus(): ?AttendanceStatus
+    {
+        $viewerId = $this->viewerId();
+
+        if (! $viewerId) {
+            return null;
+        }
+
+        $participant = $this->game->participants
+            ->first(fn ($p) => $p->user_id === $viewerId
+                && $p->status === ParticipantStatus::Approved);
+
+        return $participant?->attendance_status;
+    }
+
+    /**
+     * Human-readable time remaining until the attendance window closes.
+     *
+     * Returns a string like '2h 30m' or null if not applicable.
+     */
+    #[Computed]
+    public function attendanceTimeRemaining(): ?string
+    {
+        if (! $this->isAttendanceWindowOpen()) {
+            return null;
+        }
+
+        $closesAt = $this->game->attendance_window_closes_at;
+
+        if (! $closesAt) {
+            return null;
+        }
+
+        $diff = now()->diffForHumans($closesAt, short: true, parts: 2, syntax: CarbonInterface::DIFF_ABSOLUTE);
+
+        if ($closesAt->isPast()) {
+            return null; // Already past
+        }
+
+        return $diff;
+    }
+
+    /**
+     * Submit the attendance form (batch of reports from $attendanceReports property).
+     *
+     * Translates form data into the batch format expected by AttendanceService.
+     */
+    public function submitAttendanceReport(string|array $participantIdOrReports = [], ?string $status = null): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer) {
+            return;
+        }
+
+        $game = $this->game;
+
+        // Handle legacy single-report shorthand: (participantId, status)
+        if (is_string($participantIdOrReports) && $status !== null) {
+            $participant = $game->participants->first(fn ($p) => $p->id === $participantIdOrReports);
+
+            if (! $participant || ! $participant->user) {
+                session()->flash('error', __('games.error_attendance_participant_not_found'));
+
+                return;
+            }
+
+            $reports = [
+                ['reported_id' => $participant->user->id, 'status' => $status],
+            ];
+        } else {
+            // Form-based submission: use $attendanceReports property
+            $this->validate([
+                'attendanceReports' => ['required', 'array', 'min:1'],
+                'attendanceReports.*.status' => ['required', 'string', 'in:attended,no_show,excused'],
+                'attendanceReports.*.reason' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            // Convert form data (keyed by participant ID) to service batch format
+            $reports = [];
+            foreach ($this->attendanceReports as $participantId => $data) {
+                $participant = $game->participants->first(fn ($p) => $p->id === $participantId);
+
+                if (! $participant || ! $participant->user) {
+                    continue;
+                }
+
+                // Excused requires a reason
+                if (($data['status'] === AttendanceStatus::Excused->value) && empty($data['reason'])) {
+                    session()->flash('error', __('games.error_attendance_excused_reason_required'));
+
+                    return;
+                }
+
+                $reports[] = [
+                    'reported_id' => $participant->user->id,
+                    'status' => $data['status'],
+                    'reason' => $data['reason'] ?? null,
+                ];
+            }
+
+            if (empty($reports)) {
+                session()->flash('error', __('games.error_attendance_no_reports'));
+
+                return;
+            }
+        }
+
+        $result = app(AttendanceService::class)->submitReport(
+            $game,
+            $viewer,
+            $reports,
+        );
+
+        if ($result['success']) {
+            // Reload participants to reflect updated state
+            $game->load('participants.user');
+            unset($this->hasSubmittedAttendance, $this->attendanceTallies);
+            session()->flash('success', __('games.flash_attendance_reported'));
+        } else {
+            session()->flash('error', $result['reason']);
+        }
+    }
+
+    /**
+     * Dispute the resolved attendance status for a NoShow participant.
+     *
+     * Delegates to AttendanceService::disputeAttendanceStatus() which creates
+     * an Escalated ticket and marks attendance_disputed_at on the participant.
+     */
+    public function disputeAttendance(string $participantId): void
+    {
+        $viewer = Auth::user();
+
+        if (! $viewer) {
+            return;
+        }
+
+        $this->validate([
+            'disputeReason' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'disputeReason.required' => __('games.error_dispute_reason_required'),
+            'disputeReason.min' => __('games.error_dispute_reason_min'),
+            'disputeReason.max' => __('games.error_dispute_reason_max'),
+        ]);
+
+        $participant = $this->game->participants
+            ->first(fn ($p) => $p->id === $participantId);
+
+        if (! $participant) {
+            session()->flash('error', __('games.error_attendance_participant_not_found'));
+
+            return;
+        }
+
+        $result = app(AttendanceService::class)->disputeAttendanceStatus(
+            $participant,
+            $this->disputeReason,
+            $viewer,
+        );
+
+        if ($result['success']) {
+            $this->disputeReason = null;
+            $this->game->load('participants.user');
+            unset($this->currentUserAttendanceStatus);
+            session()->flash('success', __('games.flash_attendance_disputed'));
+        } else {
+            session()->flash('error', $result['reason']);
+        }
     }
 
     // ── Host-initiated removal (game-specific override) ──
@@ -668,6 +937,11 @@ class GameDetail extends Component
             'canCreateMoreShortLinks' => Auth::user()
                 ? app(ShortLinkService::class)->canCreateMore($this->game, Auth::user())
                 : false,
+            'isAttendanceWindowOpen' => $this->isAttendanceWindowOpen(),
+            'hasSubmittedAttendance' => $this->hasSubmittedAttendance(),
+            'attendanceTallies' => $this->attendanceTallies(),
+            'currentUserAttendanceStatus' => $this->currentUserAttendanceStatus(),
+            'attendanceTimeRemaining' => $this->attendanceTimeRemaining(),
         ]);
     }
 }

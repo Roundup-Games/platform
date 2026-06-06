@@ -261,92 +261,8 @@ class HostAttendanceIntegrationTest extends TestCase
 
     // ── 3. Host Auto-Attend ───────────────────────────
 
-    public function test_auto_attend_includes_host_participant(): void
-    {
-        $host = User::factory()->create();
-        $player = User::factory()->create();
-
-        // Game completed >48h ago
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-            'date_time' => now()->subHours(49),
-            'max_players' => 6,
-        ]);
-
-        $hostParticipant = $this->createOwnerParticipant($game, $host, attendanceStatus: null);
-        $playerParticipant = $this->createPlayerParticipant($game, $player, attendanceStatus: null);
-
-        $count = $this->attendanceService->autoAttendAfter48Hours();
-
-        $this->assertEquals(2, $count, 'Both host and player should be auto-attended');
-
-        $hostParticipant->refresh();
-        $this->assertEquals(AttendanceStatus::Attended, $hostParticipant->attendance_status,
-            'Host should be auto-attended');
-
-        $playerParticipant->refresh();
-        $this->assertEquals(AttendanceStatus::Attended, $playerParticipant->attendance_status,
-            'Player should be auto-attended');
-    }
-
-    public function test_auto_attend_updates_host_reliability_score(): void
-    {
-        $host = User::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-            'date_time' => now()->subHours(49),
-            'max_players' => 6,
-        ]);
-
-        $this->createOwnerParticipant($game, $host, attendanceStatus: null);
-
-        $this->attendanceService->autoAttendAfter48Hours();
-
-        $host->refresh();
-        $this->assertNotNull($host->reliability_score, 'Host reliability should be computed after auto-attend');
-        $this->assertEquals(100.0, $host->reliability_score['score']);
-        $this->assertEquals(1, $host->reliability_score['game_count']);
-    }
-
-    public function test_auto_attend_skips_recent_games(): void
-    {
-        $host = User::factory()->create();
-
-        // Game completed <48h ago
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-            'date_time' => now()->subHours(24),
-            'max_players' => 6,
-        ]);
-
-        $this->createOwnerParticipant($game, $host, attendanceStatus: null);
-
-        $count = $this->attendanceService->autoAttendAfter48Hours();
-
-        $this->assertEquals(0, $count, 'Games within 48h should not be auto-attended');
-    }
-
-    public function test_auto_attend_skips_cancelled_games(): void
-    {
-        $host = User::factory()->create();
-
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Canceled,
-            'date_time' => now()->subHours(49),
-            'max_players' => 6,
-        ]);
-
-        $this->createOwnerParticipant($game, $host, attendanceStatus: null);
-
-        $count = $this->attendanceService->autoAttendAfter48Hours();
-
-        $this->assertEquals(0, $count, 'Cancelled games should not be auto-attended');
-    }
+    // NOTE: The old auto-attend-after-48h flow was replaced by the consensus
+    // resolution engine. See AttendanceResolutionTest for the new tests.
 
     // ── 4. Notification Exclusion ─────────────────────
 
@@ -544,33 +460,9 @@ class HostAttendanceIntegrationTest extends TestCase
         $this->assertEquals('newcomer', $result['tier']); // <5 games
     }
 
-    public function test_host_auto_attend_then_manual_report_flow(): void
-    {
-        $host = User::factory()->create();
-        $player = User::factory()->create();
-
-        // Create a game >48h ago with no attendance
-        $game = Game::factory()->create([
-            'owner_id' => $host->id,
-            'status' => GameStatus::Completed,
-            'date_time' => now()->subHours(49),
-            'max_players' => 6,
-        ]);
-
-        $hostParticipant = $this->createOwnerParticipant($game, $host, attendanceStatus: null);
-        $this->createPlayerParticipant($game, $player, attendanceStatus: null);
-
-        // Run auto-attend
-        $count = $this->attendanceService->autoAttendAfter48Hours();
-        $this->assertEquals(2, $count);
-
-        $hostParticipant->refresh();
-        $this->assertEquals(AttendanceStatus::Attended, $hostParticipant->attendance_status);
-
-        // Reliability score should be 100%
-        $host->refresh();
-        $this->assertEquals(100.0, $host->reliability_score['score']);
-    }
+    // NOTE: test_host_auto_attend_then_manual_report_flow removed —
+    // the old auto-attend flow was replaced by the consensus resolution engine.
+    // See AttendanceResolutionTest for the new tests.
 
     // ── Helpers ────────────────────────────────────────
 
