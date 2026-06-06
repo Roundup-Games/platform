@@ -98,6 +98,9 @@ Route::prefix('{locale}')
         Route::get('/game-systems/request', App\Livewire\GameSystems\RequestGameSystemPage::class)
             ->middleware(['auth', 'profile.complete'])
             ->name('game-systems.request');
+        Route::get('/propose-venue', App\Livewire\Venues\ProposeVenue::class)
+            ->middleware(['auth', 'profile.complete'])
+            ->name('venues.propose');
         Route::get('/game-systems/requests/mine', App\Livewire\GameSystems\MyRequestsPage::class)
             ->middleware(['auth', 'profile.complete'])
             ->name('game-systems.requests.mine');

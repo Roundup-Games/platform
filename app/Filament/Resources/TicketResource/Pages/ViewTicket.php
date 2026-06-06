@@ -9,6 +9,7 @@ use App\Filament\Resources\TicketResource;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Review;
 use App\Models\User;
 use App\Notifications\AccountSuspended;
@@ -18,6 +19,7 @@ use App\Services\BggClient;
 use App\Services\BggSyncService;
 use App\Services\BggXmlParser;
 use App\Services\GameSystemRequestService;
+use App\Services\VenueProposalService;
 use Escalated\Filament\Resources\TicketResource\Pages\ViewTicket as BaseViewTicket;
 use Escalated\Laravel\Enums\ActivityType;
 use Escalated\Laravel\Enums\TicketPriority;
@@ -138,6 +140,7 @@ class ViewTicket extends BaseViewTicket
             'content_report' => $this->buildContentReportSection($metadata),
             'review_report' => $this->buildReviewReportSection($metadata),
             'game_system_request' => $this->buildGameSystemRequestSection($metadata),
+            'venue_proposal' => $this->buildVenueProposalSection($metadata),
             'account_recovery', 'data_export_request' => $this->buildAccountSupportSection($metadata),
             'billing_support' => $this->buildBillingSupportSection($metadata),
             default => $this->buildGenericMetadataSection($metadata),
@@ -499,6 +502,7 @@ class ViewTicket extends BaseViewTicket
             'user' => "/profile/{$id}",
             'game' => "/dashboard/games/{$id}",
             'campaign' => "/dashboard/campaigns/{$id}",
+            'location' => "/admin/locations/{$id}/edit",
             'review' => null, // Reviews don't have a direct admin URL
             default => null,
         };
@@ -507,6 +511,12 @@ class ViewTicket extends BaseViewTicket
     protected function getHeaderActions(): array
     {
         $actions = parent::getHeaderActions();
+
+        // Insert venue proposal actions for Events department venue_proposal tickets
+        $venueProposalActions = $this->getVenueProposalActions();
+        if (! empty($venueProposalActions)) {
+            array_splice($actions, 0, 0, $venueProposalActions);
+        }
 
         // Insert data export action for data_export_request tickets
         $dataExportActions = $this->getDataExportActions();
@@ -783,6 +793,280 @@ class ViewTicket extends BaseViewTicket
     {
         return ($ticket->ticket_type ?? null) === 'content_report'
             && ($ticket->department?->name ?? null) === 'Safety';
+    }
+
+    /**
+     * Check if the ticket is a venue proposal in the Events department.
+     */
+    protected function isVenueProposal(Ticket $ticket): bool
+    {
+        return app(VenueProposalService::class)->isVenueProposalTicket($ticket);
+    }
+
+    /**
+     * Get venue proposal actions. Only visible on Events department venue_proposal tickets
+     * that are still open (not closed/resolved).
+     */
+    protected function getVenueProposalActions(): array
+    {
+        $ticket = $this->getRecord();
+
+        if (! $ticket || ! $this->isVenueProposal($ticket)) {
+            return [];
+        }
+
+        return [
+            Action::make('approveVenueProposal')
+                ->label('Approve Venue')
+                ->icon(Heroicon::OutlinedCheckCircle)
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Approve Venue Proposal')
+                ->modalDescription(function () use ($ticket) {
+                    $name = $ticket->metadata['venue_name'] ?? $ticket->subject;
+                    $existing = $ticket->metadata['existing_location_id'] ?? null;
+                    if ($existing) {
+                        return "This will update the existing location (ID: {$existing}) with the proposed venue details and mark it as verified.";
+                    }
+
+                    return "This will create a new verified location for \"{$name}\" and resolve the ticket.";
+                })
+                ->modalSubmitActionLabel('Approve')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function () use ($ticket) {
+                    $this->performApproveVenueProposal($ticket);
+                }),
+
+            Action::make('rejectVenueProposal')
+                ->label('Reject Venue')
+                ->icon(Heroicon::OutlinedXCircle)
+                ->color('danger')
+                ->modalHeading('Reject Venue Proposal')
+                ->modalDescription('Please provide a reason for rejecting this venue proposal.')
+                ->schema([
+                    Textarea::make('rejection_reason')
+                        ->label('Rejection reason')
+                        ->placeholder('e.g. Venue does not meet community guidelines, duplicate entry, etc.')
+                        ->required()
+                        ->maxLength(1000),
+                ])
+                ->modalSubmitActionLabel('Reject')
+                ->visible(fn () => $ticket->isOpen())
+                ->action(function (array $data) use ($ticket) {
+                    $this->performRejectVenueProposal($ticket, $data['rejection_reason']);
+                }),
+        ];
+    }
+
+    /**
+     * Build the metadata Infolist section for a venue proposal ticket.
+     */
+    protected function buildVenueProposalSection(array $metadata): Section
+    {
+        $entries = [];
+
+        // Venue name
+        if (! empty($metadata['venue_name'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_name')
+                ->label('Venue name')
+                ->state($metadata['venue_name']);
+        }
+
+        // Address
+        if (! empty($metadata['venue_address'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_address')
+                ->label('Address')
+                ->state($metadata['venue_address']);
+        }
+
+        // City
+        if (! empty($metadata['venue_city'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_city')
+                ->label('City')
+                ->state($metadata['venue_city']);
+        }
+
+        // Postal code
+        if (! empty($metadata['venue_postal_code'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_postal_code')
+                ->label('Postal code')
+                ->state($metadata['venue_postal_code']);
+        }
+
+        // Country
+        if (! empty($metadata['venue_country'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_country')
+                ->label('Country')
+                ->state($metadata['venue_country']);
+        }
+
+        // Venue type
+        if (! empty($metadata['venue_type'])) {
+            $venueTypeLabel = \App\Enums\VenueType::tryFrom($metadata['venue_type'])?->label() ?? $metadata['venue_type'];
+            $entries[] = Infolists\Components\TextEntry::make('metadata_venue_type')
+                ->label('Venue type')
+                ->state($venueTypeLabel)
+                ->badge()
+                ->color('info');
+        }
+
+        // Website
+        if (! empty($metadata['website_url'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_website_url')
+                ->label('Website')
+                ->state($metadata['website_url'])
+                ->url($metadata['website_url'], shouldOpenInNewTab: true)
+                ->color('primary')
+                ->columnSpanFull();
+        }
+
+        // Geocoded display name
+        if (! empty($metadata['geocoded_display_name'])) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_geocoded_display')
+                ->label('Geocoded as')
+                ->state($metadata['geocoded_display_name'])
+                ->columnSpanFull()
+                ->color('gray');
+        }
+
+        // Existing location link
+        if (! empty($metadata['existing_location_id'])) {
+            $existingLocation = Location::find($metadata['existing_location_id']);
+            $entries[] = Infolists\Components\TextEntry::make('metadata_existing_location')
+                ->label('Existing location')
+                ->state($existingLocation ? $existingLocation->name : "ID: {$metadata['existing_location_id']}")
+                ->url($existingLocation ? "/admin/locations/{$existingLocation->id}/edit" : null, shouldOpenInNewTab: true)
+                ->color('warning')
+                ->icon('heroicon-o-link');
+        }
+
+        // Linked location (after approval)
+        if (! empty($metadata['location_id'])) {
+            $location = Location::find($metadata['location_id']);
+            $entries[] = Infolists\Components\TextEntry::make('metadata_linked_location')
+                ->label('Linked location')
+                ->state($location ? $location->name : "ID: {$metadata['location_id']}")
+                ->url($location ? "/admin/locations/{$location->id}/edit" : null, shouldOpenInNewTab: true)
+                ->color('success')
+                ->icon('heroicon-o-check-circle');
+        }
+
+        // Proposer notes
+        $notes = $metadata['proposer_notes'] ?? $metadata['notes'] ?? null;
+        if (! empty($notes)) {
+            $entries[] = Infolists\Components\TextEntry::make('metadata_notes')
+                ->label('Notes')
+                ->state($notes)
+                ->columnSpanFull();
+        }
+
+        // Structured schema fields (actor)
+        if (isset($metadata['schema'])) {
+            $entries = array_merge($entries, $this->buildStructuredEntries($metadata));
+        }
+
+        return Section::make('Venue Proposal Details')
+            ->schema($entries)
+            ->columns(2)
+            ->icon('heroicon-o-map-pin');
+    }
+
+    /**
+     * Approve a venue proposal: create/update Location with is_verified=true, resolve ticket.
+     */
+    protected function performApproveVenueProposal(Ticket $ticket): void
+    {
+        try {
+            $admin = auth()->user();
+            $ticketService = app(TicketService::class);
+            $proposalService = app(VenueProposalService::class);
+
+            $location = null;
+
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $proposalService, &$location) {
+                // Use VenueProposalService to create/update the location
+                $location = $proposalService->approveProposal($ticket);
+
+                // Add internal note linking to the created/updated location
+                $ticketService->addNote($ticket, $admin, "Venue proposal approved. Location: {$location->name} (ID: {$location->id})");
+
+                // Resolve the ticket
+                $ticketService->resolve($ticket, $admin);
+            });
+
+            Log::info('venue_proposal.approved_by_admin', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'location_id' => $location->id,
+                'location_name' => $location->name,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Venue approved')
+                ->body("The venue \"{$location->name}\" has been created/updated as a verified location.")
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to approve venue proposal', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Approval failed')
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * Reject a venue proposal: resolve ticket with rejection reason, no location changes.
+     */
+    protected function performRejectVenueProposal(Ticket $ticket, string $reason): void
+    {
+        try {
+            $admin = auth()->user();
+            $ticketService = app(TicketService::class);
+
+            DB::transaction(function () use ($ticket, $admin, $ticketService, $reason) {
+                // Add reply with rejection reason
+                $ticketService->reply($ticket, $admin, "Venue proposal rejected: {$reason}");
+
+                // Add internal note
+                $ticketService->addNote($ticket, $admin, "Venue proposal rejected. Reason: {$reason}");
+
+                // Resolve the ticket
+                $ticketService->resolve($ticket, $admin);
+            });
+
+            Log::info('venue_proposal.rejected_by_admin', [
+                'ticket_id' => $ticket->id,
+                'ticket_reference' => $ticket->reference,
+                'reason' => $reason,
+                'admin_id' => $admin->id,
+            ]);
+
+            Notification::make()
+                ->warning()
+                ->title('Venue proposal rejected')
+                ->body('The ticket has been resolved with the rejection reason.')
+                ->send();
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to reject venue proposal', [
+                'ticket_id' => $ticket->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            Notification::make()
+                ->danger()
+                ->title('Rejection failed')
+                ->body($e->getMessage())
+                ->send();
+        }
     }
 
     /**
