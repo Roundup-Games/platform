@@ -115,10 +115,23 @@ class EventResource extends Resource
 
                 Section::make('Venue')
                     ->schema([
+                        Select::make('location_id')
+                            ->label('Verified Venue')
+                            ->searchable(['name', 'city'])
+                            ->preload()
+                            ->nullable()
+                            ->helperText('Link to a verified venue from the directory. Falls back to manual fields below.')
+                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Location::where('is_verified', true)
+                                ->where(fn ($q) => $q->where('name', 'ILIKE', "%{$search}%")
+                                    ->orWhere('city', 'ILIKE', "%{$search}%"))
+                                ->limit(20)
+                                ->pluck('name', 'id')
+                                ->toArray()),
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('venue_name')
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->helperText('Manual venue name if not linked above.'),
                                 TextInput::make('venue_address')
                                     ->maxLength(255),
                                 TextInput::make('city')

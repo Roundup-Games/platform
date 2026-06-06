@@ -59,6 +59,8 @@ class CreateGame extends Component
 
     public ?string $location_id = null;
 
+    public string $location_instructions = '';
+
     public string $visibility = 'protected';
 
     public array $minimum_requirements = [];
@@ -94,6 +96,7 @@ class CreateGame extends Component
             'price' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
             'location_id' => 'nullable|uuid|exists:locations,id',
+            'location_instructions' => 'nullable|string|max:1000',
             'visibility' => Visibility::validationRule(),
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
@@ -126,6 +129,12 @@ class CreateGame extends Component
     public function onLocationRemoved(): void
     {
         $this->location_id = null;
+    }
+
+    #[On('location-instructions-updated')]
+    public function onLocationInstructionsUpdated(string $instructions): void
+    {
+        $this->location_instructions = $instructions;
     }
 
     #[On('vibe-preferences-changed')]
@@ -176,6 +185,7 @@ class CreateGame extends Component
         $this->description = $source->description ?? '';
         $this->game_system_id = $source->game_system_id;
         $this->location_id = $source->location_id;
+        $this->location_instructions = $source->location_instructions ?? '';
         $this->price = $source->price !== null ? (string) $source->price : '';
         $this->language = $source->language ?? 'en';
         $this->visibility = $source->visibility?->value ?? 'protected';
@@ -402,6 +412,7 @@ class CreateGame extends Component
                 'language' => $validated['language'],
                 'location_id' => $this->location_id,
                 'location' => ['details' => ''],
+                'location_instructions' => $validated['location_instructions'] ?? null,
                 'status' => GameStatus::Scheduled,
                 'visibility' => $validated['visibility'],
                 'minimum_requirements' => $validated['minimum_requirements'] ?: null,

@@ -145,7 +145,7 @@
                     </div>
 
                     <div>
-                        <livewire:components.location-picker :location-id="$location_id" mode="session" />
+                        <livewire:components.venue-picker :location-id="$location_id" :location-instructions="$location_instructions" />
                     </div>
                 </div>
             </section>

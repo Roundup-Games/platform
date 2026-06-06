@@ -181,7 +181,7 @@
                     <x-form-section-header :number="3" :icon="'location_on'" :title="__('location.content_location')" />
 
                     <div>
-                        <livewire:components.location-picker :location-id="$location_id" mode="session" />
+                        <livewire:components.venue-picker :location-id="$location_id" :location-instructions="$location_instructions" />
                     </div>
                 </section>
 
