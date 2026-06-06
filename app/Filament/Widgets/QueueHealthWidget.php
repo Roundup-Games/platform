@@ -4,7 +4,7 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\DB;
+use Laravel\Horizon\Contracts\JobRepository;
 
 class QueueHealthWidget extends StatsOverviewWidget
 {
@@ -16,40 +16,37 @@ class QueueHealthWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $pendingJobs = DB::table('jobs')->count();
-        $failedJobs = DB::table('failed_jobs')->count();
+        /** @var JobRepository $jobs */
+        $jobs = app(JobRepository::class);
 
-        $perQueue = DB::table('jobs')
-            ->select('queue', DB::raw('count(*) as count'))
-            ->groupBy('queue')
-            ->pluck('count', 'queue')
-            ->toArray();
+        $pending = $jobs->countPending();
+        $failed = $jobs->countFailed();
+        $completed = $jobs->countCompleted();
 
-        $stats = [
-            Stat::make('Pending Jobs', $pendingJobs)
-                ->description($this->queueBreakdown($perQueue))
+        return [
+            Stat::make('Pending Jobs', $pending)
+                ->description($pending > 0 ? 'Queued and waiting' : 'All caught up')
                 ->descriptionIcon('heroicon-o-clock')
-                ->color($pendingJobs > 100 ? 'warning' : 'success'),
-            Stat::make('Failed Jobs', $failedJobs)
-                ->description($failedJobs > 0 ? 'Needs attention' : 'All clear')
+                ->color($pending > 50 ? 'warning' : 'success'),
+            Stat::make('Failed Jobs', $failed)
+                ->description($failed > 0 ? 'Needs attention' : 'All clear')
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
-                ->color($failedJobs > 0 ? 'danger' : 'success'),
+                ->color($failed > 0 ? 'danger' : 'success'),
+            Stat::make('Completed', $completed)
+                ->description('Recently processed')
+                ->descriptionIcon('heroicon-o-check-circle')
+                ->color('success'),
+            Stat::make('Horizon', 'Dashboard')
+                ->description('Manage queues, retry failed jobs')
+                ->descriptionIcon('heroicon-o-arrow-top-right-on-square')
+                ->url(url('/horizon'))
+                ->color('info')
+                ->openUrlInNewTab(),
+            Stat::make('Schedule', 'Tasks')
+                ->description('View scheduled tasks')
+                ->descriptionIcon('heroicon-o-clock')
+                ->url(route('filament.admin.pages.system.scheduled-tasks'))
+                ->color('info'),
         ];
-
-        return $stats;
-    }
-
-    /**
-     * @param  array<string, int>  $perQueue
-     */
-    private function queueBreakdown(array $perQueue): string
-    {
-        if (empty($perQueue)) {
-            return 'No pending jobs';
-        }
-
-        return collect($perQueue)
-            ->map(fn (int $count, string $queue) => "{$queue}: {$count}")
-            ->implode(' · ');
     }
 }

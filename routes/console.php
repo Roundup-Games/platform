@@ -94,12 +94,9 @@ Artisan::command('bgg:weekly-sync', function () {
 })->purpose('Run weekly BGG sync for all existing game systems');
 
 Artisan::command('platform-scores:compute', function () {
-    $service = app(\App\Services\PlatformScoreService::class);
-    $stats = $service->computeAll();
+    \App\Jobs\ComputePlatformScores::dispatch();
 
-    $this->info("Scored {$stats['scored']} systems ({$stats['errors']} errors) in {$stats['duration_ms']}ms");
-
-    return $stats['errors'] > 0 ? 1 : 0;
+    $this->info('ComputePlatformScores job dispatched to the queue.');
 })->purpose('Compute platform popularity scores for all game systems');
 
 use Illuminate\Support\Facades\Schedule;
@@ -157,3 +154,10 @@ Schedule::command('anonymize:stale-invite-emails')->weekly()->sundays()->at('04:
 
 // Privacy — prune expired data export ZIPs (older than 7 days)
 Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();
+
+// Data integrity — audit checks + automated repair
+Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
+Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
+
+// Horizon metrics snapshot (powers the throughput/wait-time graphs)
+Schedule::command('horizon:snapshot')->everyFiveMinutes();

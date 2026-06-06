@@ -8,6 +8,8 @@ use App\Notifications\GameSystemRequestApproved;
 use App\Services\GameSystemRequestService;
 use App\Services\NotificationService;
 use Escalated\Laravel\Events\TicketResolved;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -19,9 +21,12 @@ use Illuminate\Support\Facades\Log;
  * 2. Creates a GameSystem (syncing from BGG if bgg_url is present)
  * 3. Updates ticket metadata with game_system_id
  * 4. Sends GameSystemRequestApproved notification to the requester
+ *
+ * Implements ShouldQueue so the BGG sync + DB writes run asynchronously via Horizon.
  */
-class HandleGameSystemTicketResolved
+class HandleGameSystemTicketResolved implements ShouldQueue
 {
+    use InteractsWithQueue;
     /**
      * Handle the event.
      */

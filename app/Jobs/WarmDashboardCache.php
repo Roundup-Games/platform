@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Async job that warms dashboard cache sections for a user.
@@ -91,6 +92,13 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
 
             return;
         }
+
+        // Queue workers have no HTTP request, so the {locale} route parameter
+        // is never set by the SetLocale middleware. Without this, every route()
+        // call in ActionCenterService throws UrlGenerationException.
+        $locale = $user->preferredLocale() ?? config('app.locale', 'en');
+        app()->setLocale($locale);
+        URL::defaults(['locale' => $locale]);
 
         $itemCounts = [];
 

@@ -289,4 +289,20 @@ class EnrichPostHogProfile implements ShouldQueue
             ->where('event_type', ActivityType::InvitationAccepted->value)
             ->count();
     }
+
+    /**
+     * Handle a job failure after all retries exhausted.
+     *
+     * Enrichment is best-effort — log for ops visibility but
+     * do not block the queue worker.
+     */
+    public function failed(?\Throwable $exception = null): void
+    {
+        Log::channel('daily')->error('posthog.enrichment_job.exhausted_retries', [
+            'type' => $this->type,
+            'user_id' => $this->userId,
+            'exception' => $exception?->getMessage(),
+            'exception_class' => $exception ? get_class($exception) : null,
+        ]);
+    }
 }

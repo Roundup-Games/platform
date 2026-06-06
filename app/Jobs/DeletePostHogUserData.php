@@ -73,4 +73,19 @@ class DeletePostHogUserData implements ShouldQueue
             throw $e;
         }
     }
+
+    /**
+     * Handle a job failure after all retries exhausted.
+     *
+     * PostHog deletion is best-effort — log for ops visibility but
+     * do not block the queue worker.
+     */
+    public function failed(?\Throwable $exception = null): void
+    {
+        Log::error('posthog.delete_user_data.failed', [
+            'user_id' => $this->userId,
+            'exception' => $exception?->getMessage(),
+            'exception_class' => $exception ? get_class($exception) : null,
+        ]);
+    }
 }
