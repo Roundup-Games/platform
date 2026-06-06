@@ -321,10 +321,89 @@
                             </div>
 
                             <div>
-                                <label for="edit-game-location" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_location') }}</label>
-                                <input type="text" id="edit-game-location" wire:model="edit_location_details"
-                                       class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                                @error('edit_location_details') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
+                                <label class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_location') }}</label>
+
+                                {{-- Compact venue picker for edit modal --}}
+                                @if($edit_location_id)
+                                    <div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-high">
+                                        <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">pin_drop</span>
+                                        <div class="flex-1 min-w-0">
+                                            @php
+                                                $editLoc = \App\Models\Location::find($edit_location_id);
+                                            @endphp
+                                            @if($editLoc)
+                                                <div class="text-sm font-medium text-on-surface truncate">{{ $editLoc->name }}</div>
+                                                @if($editLoc->city)
+                                                    <div class="text-xs text-on-surface-variant truncate">{{ $editLoc->city }}{{ $editLoc->address ? ', ' . $editLoc->address : '' }}</div>
+                                                @endif
+                                            @endif
+                                        </div>
+                                        <button type="button" wire:click="editClearLocation"
+                                                class="p-1 rounded hover:bg-surface-container-high/80 text-on-surface-variant hover:text-error transition-colors"
+                                                aria-label="{{ __('common.action_remove') }}">
+                                            <span class="material-symbols-outlined text-base" aria-hidden="true">close</span>
+                                        </button>
+                                    </div>
+                                @else
+                                    {{-- Mode tabs --}}
+                                    <div class="flex gap-1 mb-2">
+                                        <button type="button" wire:click="editSetAddressMode('venue')"
+                                                class="px-3 py-1 text-xs font-medium rounded-lg transition-colors {{ $edit_address_mode === 'venue' ? 'bg-secondary/20 text-secondary' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
+                                            <span class="material-symbols-outlined text-xs align-middle mr-0.5" aria-hidden="true">store</span>
+                                            {{ __('venues.label_venue') }}
+                                        </button>
+                                        <button type="button" wire:click="editSetAddressMode('address')"
+                                                class="px-3 py-1 text-xs font-medium rounded-lg transition-colors {{ $edit_address_mode === 'address' ? 'bg-secondary/20 text-secondary' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
+                                            <span class="material-symbols-outlined text-xs align-middle mr-0.5" aria-hidden="true">edit_location</span>
+                                            {{ __('venues.label_address') }}
+                                        </button>
+                                    </div>
+
+                                    @if($edit_address_mode === 'venue')
+                                        {{-- Venue search --}}
+                                        <div class="flex gap-2">
+                                            <input type="text" wire:model="edit_venue_query" placeholder="{{ __('venues.placeholder_search_venues') }}"
+                                                   class="flex-1 rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+                                                   wire:keydown.enter="editSearchVenues" />
+                                            <button type="button" wire:click="editSearchVenues"
+                                                    class="px-3 py-1.5 bg-secondary/10 text-secondary rounded-lg text-sm font-medium hover:bg-secondary/20 transition-colors">
+                                                <span class="material-symbols-outlined text-sm align-middle" aria-hidden="true">search</span>
+                                            </button>
+                                        </div>
+                                        @if($edit_venue_searched && count($edit_venue_results) > 0)
+                                            <div class="mt-2 max-h-36 overflow-y-auto rounded-lg border border-outline-variant/30 divide-y divide-outline-variant/20">
+                                                @foreach($edit_venue_results as $v)
+                                                    <button type="button" wire:click="editSelectVenue('{{ $v['id'] }}')"
+                                                            class="w-full text-left px-3 py-2 hover:bg-surface-container-high transition-colors">
+                                                        <div class="text-sm font-medium text-on-surface truncate">{{ $v['name'] }}</div>
+                                                        <div class="text-xs text-on-surface-variant truncate">{{ $v['city'] ?? '' }}{{ ($v['address'] ?? '') ? ', ' . $v['address'] : '' }}</div>
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        @elseif($edit_venue_searched)
+                                            <p class="mt-1 text-xs text-on-surface-variant">{{ __('venues.content_no_venues_found_edit') }}</p>
+                                        @endif
+                                    @else
+                                        {{-- Address input --}}
+                                        <div class="space-y-2">
+                                            <input type="text" wire:model="edit_address_city" placeholder="{{ __('location.placeholder_city') }} *"
+                                                   class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                            @error('edit_address_city') <p class="text-xs text-error">{{ $message }}</p> @enderror
+                                            <input type="text" wire:model="edit_address_street" placeholder="{{ __('location.placeholder_street_address_neighborhood') }}"
+                                                   class="w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                            <button type="button" wire:click="editSaveAddress"
+                                                    class="px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:brightness-110 active:scale-95 transition-all">
+                                                {{ __('venues.action_save_address') }}
+                                            </button>
+                                        </div>
+                                    @endif
+                                @endif
+
+                                {{-- Instructions --}}
+                                @if($edit_location_id)
+                                    <input type="text" wire:model="edit_location_instructions" placeholder="{{ __('venues.placeholder_instructions') }}"
+                                           class="mt-2 w-full rounded-lg bg-surface-container-high border border-transparent text-on-surface text-sm placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
+                                @endif
                             </div>
 
                             <div class="flex justify-end gap-3 pt-2">

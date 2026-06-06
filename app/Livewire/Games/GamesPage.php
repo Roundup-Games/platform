@@ -38,6 +38,16 @@ class GamesPage extends Component
     public ?string $edit_expected_duration = '';
     public string $edit_visibility = 'private';
     public string $edit_location_details = '';
+    public ?string $edit_location_id = null;
+    public string $edit_location_instructions = '';
+
+    // ── Venue Search State (edit modal) ────────────────
+    public string $edit_venue_query = '';
+    public array $edit_venue_results = [];
+    public bool $edit_venue_searched = false;
+    public string $edit_address_city = '';
+    public string $edit_address_street = '';
+    public string $edit_address_mode = 'venue'; // venue | address
 
     public function mount(): void
     {
@@ -59,11 +69,82 @@ class GamesPage extends Component
         $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
         $this->edit_visibility = $game->visibility?->value ?? 'private';
         $this->edit_location_details = $game->location['details'] ?? '';
+        $this->edit_location_id = $game->location_id;
+        $this->edit_location_instructions = $game->location_instructions ?? '';
+
+        if ($game->location_id && $game->location) {
+            $this->edit_address_city = $game->location->city ?? '';
+            $this->edit_address_street = $game->location->address ?? '';
+        };
     }
 
     public function cancelEdit(): void
     {
-        $this->reset(['editingGameId', 'edit_name', 'edit_description', 'edit_expected_duration', 'edit_visibility', 'edit_location_details']);
+        $this->reset([
+            'editingGameId', 'edit_name', 'edit_description', 'edit_expected_duration',
+            'edit_visibility', 'edit_location_details', 'edit_location_id', 'edit_location_instructions',
+            'edit_venue_query', 'edit_venue_results', 'edit_venue_searched',
+            'edit_address_city', 'edit_address_street', 'edit_address_mode',
+        ]);
+    }
+
+    // ── Edit Modal: Venue Search ─────────────────────────
+
+    public function editSearchVenues(): void
+    {
+        $this->edit_venue_results = app(\App\Services\VenueSearchService::class)
+            ->search(
+                lat: null,
+                lng: null,
+                query: $this->edit_venue_query,
+                limit: 8,
+            )
+            ->toArray();
+        $this->edit_venue_searched = true;
+    }
+
+    public function editSelectVenue(string $venueId): void
+    {
+        $venue = \App\Models\Location::where('id', $venueId)->where('is_verified', true)->first();
+        if (! $venue) {
+            return;
+        }
+        $this->edit_location_id = $venue->id;
+        $this->edit_address_city = $venue->city ?? '';
+        $this->edit_address_street = $venue->address ?? '';
+        $this->edit_venue_results = [];
+        $this->edit_venue_searched = false;
+        $this->edit_venue_query = '';
+    }
+
+    public function editClearLocation(): void
+    {
+        $this->edit_location_id = null;
+        $this->edit_address_city = '';
+        $this->edit_address_street = '';
+    }
+
+    public function editSaveAddress(): void
+    {
+        $this->validateOnly('edit_address_city', ['edit_address_city' => 'required|string|max:255']);
+
+        $location = \App\Models\Location::create([
+            'name' => trim($this->edit_address_street
+                ? $this->edit_address_street . ', ' . $this->edit_address_city
+                : $this->edit_address_city),
+            'address' => $this->edit_address_street ?: null,
+            'city' => $this->edit_address_city,
+            'source' => 'manual',
+        ]);
+
+        $this->edit_location_id = $location->id;
+    }
+
+    public function editSetAddressMode(string $mode): void
+    {
+        if (in_array($mode, ['venue', 'address'])) {
+            $this->edit_address_mode = $mode;
+        }
     }
 
     public function saveGameEdit(): void
@@ -112,6 +193,13 @@ class GamesPage extends Component
         if ($oldLocation !== $this->edit_location_details) {
             $changes['location'] = ['details' => $this->edit_location_details];
             $changedLabels[] = __('games.field_location');
+        }
+        if ($game->location_id !== $this->edit_location_id) {
+            $changes['location_id'] = $this->edit_location_id ?: null;
+            $changedLabels[] = __('games.field_location');
+        }
+        if (($game->location_instructions ?? '') !== $this->edit_location_instructions) {
+            $changes['location_instructions'] = $this->edit_location_instructions ?: null;
         }
 
         if (empty($changes)) {
