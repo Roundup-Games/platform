@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
+use App\Models\AttendanceReport;
 use App\Relations\StringKeyMorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -47,6 +48,8 @@ class Game extends Model
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',
         'share_token', 'share_token_expires_at', 'bench_mode',
+        'attendance_window_opens_at', 'attendance_window_closes_at',
+        'attendance_resolved_at', 'attendance_resolution_method',
     ];
 
     protected function casts(): array
@@ -71,6 +74,10 @@ class Game extends Model
             'share_token' => 'string',
             'share_token_expires_at' => 'datetime',
             'bench_mode' => 'boolean',
+            'attendance_window_opens_at' => 'datetime',
+            'attendance_window_closes_at' => 'datetime',
+            'attendance_resolved_at' => 'datetime',
+            'attendance_resolution_method' => 'string',
         ];
     }
 
@@ -142,6 +149,11 @@ class Game extends Model
     public function sessionDebriefings(): HasMany
     {
         return $this->hasMany(SessionDebriefing::class);
+    }
+
+    public function attendanceReports(): HasMany
+    {
+        return $this->hasMany(AttendanceReport::class);
     }
 
     public function bulletins(): HasMany

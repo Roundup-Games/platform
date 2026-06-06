@@ -20,6 +20,7 @@ use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -319,8 +320,13 @@ class GamesPage extends Component
             return;
         }
 
-        $game->status = GameStatus::Completed;
-        $game->save();
+        DB::transaction(function () use ($game) {
+            $game->status = GameStatus::Completed;
+            $game->save();
+
+            // Open attendance reporting window
+            app(AttendanceService::class)->handleGameCompletion($game);
+        });
 
         Log::info('Game completed', [
             'game_id' => $game->id,

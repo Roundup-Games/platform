@@ -4,6 +4,9 @@
     'maxVisible' => 8,
 ])
 
+{{-- Action Center: renders prioritized action items including attendance nudges, --}}
+{{-- waitlist confirmations, invitations, recaps, and other pending actions. --}}
+
 @php
     $totalItems = count($items);
     $visibleItems = array_slice($items, 0, $maxVisible);

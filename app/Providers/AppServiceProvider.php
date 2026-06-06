@@ -13,7 +13,6 @@ use App\Models\Review;
 use App\Models\Team;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\PushChannel;
-use App\Listeners\HandleAttendanceDisputeTicketResolved;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Observers\ActivityLogObserver;
@@ -135,9 +134,6 @@ class AppServiceProvider extends ServiceProvider
         // Escalated ticket event listeners for game system requests
         EventFacade::listen(TicketResolved::class, HandleGameSystemTicketResolved::class);
         EventFacade::listen(TicketClosed::class, HandleGameSystemTicketClosed::class);
-
-        // Escalated ticket event listener for attendance disputes
-        EventFacade::listen(TicketResolved::class, HandleAttendanceDisputeTicketResolved::class);
 
         // Escalated helpdesk authorization gates
         // escalated-admin: full Escalated admin (settings, roles, webhooks, etc.)

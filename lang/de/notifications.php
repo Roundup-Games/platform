@@ -247,6 +247,20 @@ return [
     'push_title_dispute_upheld' => 'Einspruch geprüft',
     'push_body_dispute_upheld' => 'Die Anwesenheitsmeldung für :game wurde beibehalten',
 
+    // Anwesenheitserinnerung
+    'category_attendance_nudge' => 'Anwesenheitserinnerung',
+    'subject_attendance_nudge' => 'Bestätige deine Anwesenheit für :game',
+    'body_attendance_nudge' => 'Deine Anwesenheit für **:game** am :date muss bestätigt werden. Die Frist ist :deadline.',
+    'push_title_attendance_nudge' => 'Anwesenheitserinnerung',
+    'push_body_attendance_nudge' => 'Bestätige deine Anwesenheit für :game bis :deadline',
+
+    // Anwesenheit geklärt
+    'category_attendance_resolved' => 'Anwesenheit geklärt',
+    'subject_attendance_resolved' => 'Anwesenheit für :game geklärt',
+    'body_attendance_resolved' => 'Deine Anwesenheit für **:game** am :date wurde als **:status** geklärt.',
+    'push_title_attendance_resolved' => 'Anwesenheit geklärt',
+    'push_body_attendance_resolved' => 'Deine Anwesenheit für :game wurde als :status geklärt',
+
     // Nachbericht veröffentlicht
     'subject_recap_posted' => ':host hat einen Nachbericht für :game geschrieben',
     'body_recap_posted' => '**:host** hat einen Nachbericht für **:game** verfasst. Schau ihn dir an!',

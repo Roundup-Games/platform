@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ScopedRoleService;
 
@@ -34,7 +35,26 @@ class AttendanceReportPolicy
     }
 
     /**
-     * Dispute an attendance report: user must be the reported participant.
+     * Submit attendance reports (consensus system): user must be an approved participant.
+     */
+    public function submitReport(User $user, Game $game): bool
+    {
+        return $game->participants()
+            ->where('user_id', $user->id)
+            ->where('status', ParticipantStatus::Approved)
+            ->exists();
+    }
+
+    /**
+     * Dispute an attendance status: user must be the participant's own user.
+     */
+    public function disputeAttendanceStatus(User $user, GameParticipant $participant): bool
+    {
+        return $user->id === $participant->user_id;
+    }
+
+    /**
+     * Dispute an attendance report (legacy): user must be the reported participant.
      */
     public function dispute(User $user, AttendanceReport $report): bool
     {

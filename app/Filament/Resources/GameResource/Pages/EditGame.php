@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\GameResource\Pages;
 
+use App\Enums\AttendanceResolutionMethod;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
-use App\Services\SeoCacheService;
+use App\Services\AttendanceService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
 use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable;
@@ -21,6 +24,30 @@ class EditGame extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('resolveAttendance')
+                ->label('Resolve Attendance')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn () => $this->record->status->value === 'completed'
+                    && $this->record->attendance_resolved_at === null)
+                ->requiresConfirmation()
+                ->modalHeading('Resolve Attendance')
+                ->modalDescription('Manually trigger attendance resolution for this game. This will resolve attendance for all participants based on filed reports.')
+                ->action(function () {
+                    /** @var AttendanceService $service */
+                    $service = app(AttendanceService::class);
+                    $service->resolveGameAttendance(
+                        $this->record,
+                        AttendanceResolutionMethod::Manual,
+                    );
+
+                    Notification::make()
+                        ->title('Attendance resolved successfully')
+                        ->success()
+                        ->send();
+
+                    $this->redirect($this->getUrl(['record' => $this->record]));
+                }),
             LocaleSwitcher::make(),
             ...parent::getHeaderActions(),
             DeleteAction::make(),
@@ -29,6 +56,6 @@ class EditGame extends EditRecord
 
     protected function afterSave(): void
     {
-        app(SeoCacheService::class)->forgetByModel($this->record);
+        app(\App\Services\SeoCacheService::class)->forgetByModel($this->record);
     }
 }
