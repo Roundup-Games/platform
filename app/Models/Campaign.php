@@ -38,7 +38,7 @@ class Campaign extends Model
     ];
 
     protected $fillable = [
-        'owner_id', 'game_system_id', 'location_id', 'name', 'description', 'images',
+        'owner_id', 'game_system_id', 'location_id', 'location_instructions', 'name', 'description', 'images',
         'recurrence', 'time_of_day', 'session_duration', 'price_per_session',
         'language', 'status', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',

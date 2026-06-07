@@ -10,6 +10,7 @@ use App\Enums\VibeFlag;
 use App\Models\Campaign;
 use App\Models\GameSystem;
 use App\Services\OwnerParticipantService;
+use App\Services\VenueTrustService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,8 @@ class CreateCampaign extends Component
     public ?string $game_system_id = null;
 
     public ?string $location_id = null;
+
+    public string $location_instructions = '';
 
     public string $description = '';
 
@@ -74,6 +77,7 @@ class CreateCampaign extends Component
             'name' => 'required|string|max:255',
             'game_system_id' => 'nullable|uuid|exists:game_systems,id',
             'location_id' => 'nullable|uuid|exists:locations,id',
+            'location_instructions' => 'nullable|string|max:1000',
             'description' => 'nullable|string|max:10000',
             'recurrence' => 'required|in:weekly,bi-weekly,monthly,custom',
             'time_of_day' => 'required|date_format:H:i',
@@ -106,6 +110,12 @@ class CreateCampaign extends Component
     public function onLocationRemoved(): void
     {
         $this->location_id = null;
+    }
+
+    #[On('location-instructions-updated')]
+    public function onLocationInstructionsUpdated(string $instructions): void
+    {
+        $this->location_instructions = $instructions;
     }
 
     #[On('vibe-preferences-changed')]
@@ -174,7 +184,17 @@ class CreateCampaign extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->can_create_public_entries;
+        return $user && app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
+    }
+
+    #[Computed]
+    public function publicViaVenue(): bool
+    {
+        if ($this->canCreatePublic && Auth::user()?->can_create_public_entries) {
+            return false; // GM — doesn't need venue indicator
+        }
+
+        return $this->canCreatePublic; // true only via venue bypass
     }
 
     // ── Actions ──────────────────────────────────────────
@@ -225,6 +245,7 @@ class CreateCampaign extends Component
                 'owner_id' => Auth::id(),
                 'game_system_id' => $validated['game_system_id'],
                 'location_id' => $this->location_id,
+                'location_instructions' => $validated['location_instructions'] ?? null,
                 'name' => $translatable['name'],
                 'description' => $translatable['description'],
                 'recurrence' => $validated['recurrence'],

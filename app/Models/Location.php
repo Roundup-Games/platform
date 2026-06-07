@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\VenueType;
 use App\Services\Geohash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -29,6 +31,12 @@ class Location extends Model
         'place_id',
         'source',
         'metadata',
+        'is_verified',
+        'venue_type',
+        'venue_notes',
+        'website_url',
+        'managed_by',
+        'venue_metadata',
     ];
 
     protected function casts(): array
@@ -37,6 +45,9 @@ class Location extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'metadata' => 'array',
+            'is_verified' => 'boolean',
+            'venue_type' => VenueType::class,
+            'venue_metadata' => 'array',
         ];
     }
 
@@ -68,6 +79,11 @@ class Location extends Model
         return $this->hasMany(Game::class);
     }
 
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
@@ -76,6 +92,21 @@ class Location extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function managedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'managed_by');
+    }
+
+    public function scopeVerified($query)
+    {
+        return $query->where('is_verified', true);
+    }
+
+    public function scopeByVenueType($query, string $type)
+    {
+        return $query->where('venue_type', $type);
     }
 
     // ── Scopes ─────────────────────────────────────────
@@ -104,6 +135,11 @@ class Location extends Model
             ['place_id' => $placeId],
             $attributes
         );
+    }
+
+    public function isVenue(): bool
+    {
+        return (bool) $this->is_verified;
     }
 
     // ── Helpers ────────────────────────────────────────
