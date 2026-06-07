@@ -292,4 +292,27 @@ describe('EditsVenueLocation trait integration', function () {
             ->assertSet('edit_location_name', '')
             ->assertSet('edit_location_city', '');
     });
+
+    it('returns venue search results as arrays not stdClass', function () {
+        $game = createGameWithLocation($this->owner, $this->gameSystem);
+
+        Location::factory()->create([
+            'name' => 'Board Game Cafe',
+            'city' => 'Munich',
+            'is_verified' => true,
+            'venue_type' => VenueType::Cafe,
+        ]);
+
+        $result = Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+            ->call('editGame', $game->id)
+            ->set('edit_venue_query', 'Board')
+            ->call('editSearchVenues')
+            ->assertSet('edit_venue_searched', true)
+            ->get('edit_venue_results');
+
+        expect($result)->toHaveCount(1);
+        expect($result[0])->toBeArray();
+        expect($result[0])->toHaveKeys(['id', 'name', 'city', 'address', 'venue_type', 'distance_km']);
+        expect($result[0]['name'])->toBe('Board Game Cafe');
+    });
 });

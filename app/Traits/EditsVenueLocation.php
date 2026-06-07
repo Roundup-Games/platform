@@ -36,7 +36,14 @@ trait EditsVenueLocation
 
         $this->edit_venue_results = app(VenueSearchService::class)
             ->search(lat: null, lng: null, query: $this->edit_venue_query, limit: 8)
-            ->toArray();
+            ->map(fn ($v) => [
+                'id' => $v->id,
+                'name' => $v->name,
+                'city' => $v->city,
+                'address' => $v->address,
+                'venue_type' => $v->venue_type,
+                'distance_km' => $v->distance_km,
+            ])->values()->all();
         $this->edit_venue_searched = true;
     }
 
