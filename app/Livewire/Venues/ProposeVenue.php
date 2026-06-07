@@ -143,7 +143,7 @@ class ProposeVenue extends Component
             'country' => trim($this->country),
             'venue_type' => $this->venue_type,
             'website_url' => $this->website_url ? trim($this->website_url) : null,
-            'notes' => $this->proposer_notes ? trim($this->proposer_notes) : null,
+            'proposer_notes' => $this->proposer_notes ? trim($this->proposer_notes) : null,
             'admin_notes' => $this->notes ? trim($this->notes) : null,
             'latitude' => $geocodeResult['lat'] ?? null,
             'longitude' => $geocodeResult['lng'] ?? null,
@@ -151,7 +151,14 @@ class ProposeVenue extends Component
             'existing_location_id' => $existingLocation?->id,
         ];
 
-        $ticket = $proposalService->createProposal($user, $proposalData);
+        try {
+            $ticket = $proposalService->createProposal($user, $proposalData);
+        } catch (\RuntimeException $e) {
+            report($e);
+            $this->addError('name', __('location.error_proposal_submission_failed'));
+
+            return;
+        }
 
         $this->ticketReference = $ticket->reference;
         $this->reset(['name', 'address', 'city', 'postal_code', 'country', 'venue_type', 'website_url', 'notes', 'proposer_notes']);

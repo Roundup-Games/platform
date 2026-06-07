@@ -117,7 +117,7 @@ class EventResource extends Resource
                     ->schema([
                         Select::make('location_id')
                             ->label('Verified Venue')
-                            ->searchable(['name', 'city'])
+                            ->searchable()
                             ->preload()
                             ->nullable()
                             ->helperText('Link to a verified venue from the directory. Falls back to manual fields below.')
@@ -126,7 +126,10 @@ class EventResource extends Resource
                                     ->orWhere('city', 'ILIKE', "%{$search}%"))
                                 ->limit(20)
                                 ->pluck('name', 'id')
-                                ->toArray()),
+                                ->toArray())
+                            ->getOptionLabelUsing(fn (?string $value): ?string => $value
+                                ? \App\Models\Location::find($value)?->name
+                                : null),
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('venue_name')

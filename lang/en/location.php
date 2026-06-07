@@ -62,4 +62,7 @@ return [
     'type_convention' => 'Convention / Convention Center',
     'type_bar' => 'Bar / Pub',
     'type_other' => 'Other',
+
+    // Errors
+    'error_proposal_submission_failed' => 'Failed to submit venue proposal. Please try again later.',
 ];

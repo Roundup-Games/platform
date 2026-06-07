@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,27 +24,33 @@ class LocationMergeService
      *
      * @throws \Throwable
      */
-    public function merge(Location $source, Location $target): array
+    public function merge(Location $source, Location $target, ?User $actedBy = null): array
     {
+        if ($source->id === $target->id) {
+            throw new \InvalidArgumentException('Cannot merge a location into itself.');
+        }
+
         $sourceId = (string) $source->id;
         $targetId = (string) $target->id;
 
-        $counts = DB::transaction(function () use ($sourceId, $targetId, $source) {
+        $now = now();
+
+        $counts = DB::transaction(function () use ($sourceId, $targetId, $source, $now) {
             $games = DB::table('games')
                 ->where('location_id', $sourceId)
-                ->update(['location_id' => $targetId]);
+                ->update(['location_id' => $targetId, 'updated_at' => $now]);
 
             $events = DB::table('events')
                 ->where('location_id', $sourceId)
-                ->update(['location_id' => $targetId]);
+                ->update(['location_id' => $targetId, 'updated_at' => $now]);
 
             $campaigns = DB::table('campaigns')
                 ->where('location_id', $sourceId)
-                ->update(['location_id' => $targetId]);
+                ->update(['location_id' => $targetId, 'updated_at' => $now]);
 
             $users = DB::table('users')
                 ->where('location_id', $sourceId)
-                ->update(['location_id' => $targetId]);
+                ->update(['location_id' => $targetId, 'updated_at' => $now]);
 
             $source->delete();
 
@@ -59,7 +66,7 @@ class LocationMergeService
             'source_id' => $sourceId,
             'target_id' => $targetId,
             'counts' => $counts,
-            'merged_by' => auth()->id(),
+            'merged_by' => $actedBy?->id ?? auth()->id(),
         ]);
 
         return [

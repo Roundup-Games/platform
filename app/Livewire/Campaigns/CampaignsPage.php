@@ -18,6 +18,7 @@ use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
+use App\Traits\EditsVenueLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -27,6 +28,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class CampaignsPage extends Component
 {
+    use EditsVenueLocation;
     use WithPagination;
 
     // ── Edit Campaign State ──────────────────────────────
@@ -38,6 +40,9 @@ class CampaignsPage extends Component
     public string $edit_visibility = 'private';
     public ?string $edit_location_id = null;
     public string $edit_location_instructions = '';
+    public string $edit_location_name = '';
+    public string $edit_location_city = '';
+    public string $edit_location_address = '';
 
     // ── Venue Search State (edit modal) ────────────────
     public string $edit_venue_query = '';
@@ -68,10 +73,13 @@ class CampaignsPage extends Component
         $this->edit_visibility = $campaign->visibility?->value ?? 'private';
         $this->edit_location_id = $campaign->location_id;
         $this->edit_location_instructions = $campaign->location_instructions ?? '';
+        $this->edit_location_name = $campaign->linkedLocation?->name ?? '';
+        $this->edit_location_city = $campaign->linkedLocation?->city ?? '';
+        $this->edit_location_address = $campaign->linkedLocation?->address ?? '';
 
-        if ($campaign->location_id && $campaign->location) {
-            $this->edit_address_city = $campaign->location->city ?? '';
-            $this->edit_address_street = $campaign->location->address ?? '';
+        if ($campaign->location_id && $campaign->linkedLocation) {
+            $this->edit_address_city = $campaign->linkedLocation->city ?? '';
+            $this->edit_address_street = $campaign->linkedLocation->address ?? '';
         }
     }
 
@@ -80,64 +88,13 @@ class CampaignsPage extends Component
         $this->reset([
             'editingCampaignId', 'edit_name', 'edit_description', 'edit_session_duration', 'edit_visibility',
             'edit_location_id', 'edit_location_instructions',
+            'edit_location_name', 'edit_location_city', 'edit_location_address',
             'edit_venue_query', 'edit_venue_results', 'edit_venue_searched',
             'edit_address_city', 'edit_address_street', 'edit_address_mode',
         ]);
     }
 
-    // ── Edit Modal: Venue Search ─────────────────────────
-
-    public function editSearchVenues(): void
-    {
-        $this->edit_venue_results = app(\App\Services\VenueSearchService::class)
-            ->search(lat: null, lng: null, query: $this->edit_venue_query, limit: 8)
-            ->toArray();
-        $this->edit_venue_searched = true;
-    }
-
-    public function editSelectVenue(string $venueId): void
-    {
-        $venue = \App\Models\Location::where('id', $venueId)->where('is_verified', true)->first();
-        if (! $venue) {
-            return;
-        }
-        $this->edit_location_id = $venue->id;
-        $this->edit_address_city = $venue->city ?? '';
-        $this->edit_address_street = $venue->address ?? '';
-        $this->edit_venue_results = [];
-        $this->edit_venue_searched = false;
-        $this->edit_venue_query = '';
-    }
-
-    public function editClearLocation(): void
-    {
-        $this->edit_location_id = null;
-        $this->edit_address_city = '';
-        $this->edit_address_street = '';
-    }
-
-    public function editSaveAddress(): void
-    {
-        $this->validateOnly('edit_address_city', ['edit_address_city' => 'required|string|max:255']);
-
-        $location = \App\Models\Location::create([
-            'name' => trim($this->edit_address_street
-                ? $this->edit_address_street . ', ' . $this->edit_address_city
-                : $this->edit_address_city),
-            'address' => $this->edit_address_street ?: null,
-            'city' => $this->edit_address_city,
-            'source' => 'manual',
-        ]);
-
-        $this->edit_location_id = $location->id;
-    }
-
-    public function editSetAddressMode(string $mode): void
-    {
-        if (in_array($mode, ['venue', 'address'])) {
-            $this->edit_address_mode = $mode;
-        }
-    }
+    // Venue search/address actions provided by EditsVenueLocation trait
 
     public function saveCampaignEdit(): void
     {
@@ -169,20 +126,20 @@ class CampaignsPage extends Component
         }
         if (($campaign->description ?? '') !== $this->edit_description) {
             $changes['description'] = $this->edit_description ?: null;
-            $changedLabels[] = __('games.field_description');
+            $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_session_duration !== '' ? (float) $this->edit_session_duration : null;
         if ($campaign->session_duration != $newDuration) {
             $changes['session_duration'] = $newDuration ?? 2;
             $changedLabels[] = __('campaigns.field_duration');
         }
-        if ($campaign->visibility !== $this->edit_visibility) {
+        if ($campaign->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
             $changedLabels[] = __('campaigns.field_visibility');
         }
         if ($campaign->location_id !== $this->edit_location_id) {
             $changes['location_id'] = $this->edit_location_id ?: null;
-            $changedLabels[] = __('games.field_location');
+            $changedLabels[] = __('common.field_location');
         }
         if (($campaign->location_instructions ?? '') !== $this->edit_location_instructions) {
             $changes['location_instructions'] = $this->edit_location_instructions ?: null;

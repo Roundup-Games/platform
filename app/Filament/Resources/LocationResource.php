@@ -110,7 +110,8 @@ class LocationResource extends Resource
                                     ->columnSpanFull(),
                                 Textarea::make('venue_metadata')
                                     ->rows(3)
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->disabled()
                             ]),
                     ]),
             ]);
@@ -135,10 +136,10 @@ class LocationResource extends Resource
                     ->toggleable(),
                 TextColumn::make('latitude')
                     ->toggleable()
-                    ->formatStateUsing(fn ($state): string => $state ? number_format((float) $state, 4) : '-'),
+                    ->formatStateUsing(fn ($state): string => $state !== null ? number_format((float) $state, 4) : '-'),
                 TextColumn::make('longitude')
                     ->toggleable()
-                    ->formatStateUsing(fn ($state): string => $state ? number_format((float) $state, 4) : '-'),
+                    ->formatStateUsing(fn ($state): string => $state !== null ? number_format((float) $state, 4) : '-'),
                 TextColumn::make('source')
                     ->badge()
                     ->toggleable(),
@@ -150,7 +151,7 @@ class LocationResource extends Resource
                     ->label('Venue Type')
                     ->badge()
                     ->toggleable()
-                    ->formatStateUsing(fn (VenueType $state): string => $state->label()),
+                    ->formatStateUsing(fn (?VenueType $state): string => $state?->label() ?? '-'),
                 TextColumn::make('games_count')
                     ->label('Games')
                     ->counts('games')
@@ -231,7 +232,7 @@ class LocationResource extends Resource
                             'unverified_by' => auth()->id(),
                         ]);
                         \Filament\Notifications\Notification::make()
-                            ->title('Location unverifed')
+                            ->title('Location unverified')
                             ->warning()
                             ->send();
                     }),
@@ -276,7 +277,7 @@ class LocationResource extends Resource
                             return;
                         }
 
-                        $result = app(LocationMergeService::class)->merge($record, $target);
+                        $result = app(LocationMergeService::class)->merge($record, $target, auth()->user());
 
                         \Filament\Notifications\Notification::make()
                             ->title('Locations merged successfully')

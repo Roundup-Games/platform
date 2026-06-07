@@ -984,14 +984,19 @@ class ViewTicket extends BaseViewTicket
             $location = null;
 
             DB::transaction(function () use ($ticket, $admin, $ticketService, $proposalService, &$location) {
+                $lockedTicket = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+                if (! $lockedTicket->isOpen()) {
+                    throw new \RuntimeException('This ticket is no longer open.');
+                }
+
                 // Use VenueProposalService to create/update the location
-                $location = $proposalService->approveProposal($ticket);
+                $location = $proposalService->approveProposal($lockedTicket);
 
                 // Add internal note linking to the created/updated location
-                $ticketService->addNote($ticket, $admin, "Venue proposal approved. Location: {$location->name} (ID: {$location->id})");
+                $ticketService->addNote($lockedTicket, $admin, "Venue proposal approved. Location: {$location->name} (ID: {$location->id})");
 
                 // Resolve the ticket
-                $ticketService->resolve($ticket, $admin);
+                $ticketService->resolve($lockedTicket, $admin);
             });
 
             Log::info('venue_proposal.approved_by_admin', [
@@ -1032,14 +1037,19 @@ class ViewTicket extends BaseViewTicket
             $ticketService = app(TicketService::class);
 
             DB::transaction(function () use ($ticket, $admin, $ticketService, $reason) {
+                $lockedTicket = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+                if (! $lockedTicket->isOpen()) {
+                    throw new \RuntimeException('This ticket is no longer open.');
+                }
+
                 // Add reply with rejection reason
-                $ticketService->reply($ticket, $admin, "Venue proposal rejected: {$reason}");
+                $ticketService->reply($lockedTicket, $admin, "Venue proposal rejected: {$reason}");
 
                 // Add internal note
-                $ticketService->addNote($ticket, $admin, "Venue proposal rejected. Reason: {$reason}");
+                $ticketService->addNote($lockedTicket, $admin, "Venue proposal rejected. Reason: {$reason}");
 
                 // Resolve the ticket
-                $ticketService->resolve($ticket, $admin);
+                $ticketService->resolve($lockedTicket, $admin);
             });
 
             Log::info('venue_proposal.rejected_by_admin', [

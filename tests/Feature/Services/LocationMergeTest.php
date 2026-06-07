@@ -102,20 +102,20 @@ describe('merge with no dependencies', function () {
 describe('transaction safety', function () {
     test('merge is wrapped in a transaction', function () {
         $game = Game::factory()->create(['location_id' => $this->source->id]);
-
-        // Force a failure inside the transaction by making delete throw.
-        // We use a raw DB listener to roll back after update.
         $sourceId = $this->source->id;
 
-        // Easier approach: just verify DB::transaction is being used
-        // by confirming atomicity — partial updates must not persist.
-        // We'll create a scenario where the source cannot be deleted
-        // (already deleted mid-transaction won't work with soft-delete-less model).
-        // Instead verify the counts return correctly and source is gone.
-        $result = $this->service->merge($this->source, $this->target);
+        // Force a failure during source delete to trigger rollback.
+        Location::deleting(function ($location) use ($sourceId) {
+            if ($location->id === $sourceId) {
+                throw new \RuntimeException('forced delete failure');
+            }
+        });
 
-        // Verify all changes applied atomically
-        expect(Location::find($sourceId))->toBeNull();
-        expect($game->fresh()->location_id)->toBe($this->target->id);
+        expect(fn () => $this->service->merge($this->source, $this->target))
+            ->toThrow(\RuntimeException::class);
+
+        // Rollback check: no partial reassignment persisted.
+        expect(Location::find($sourceId))->not->toBeNull();
+        expect($game->fresh()->location_id)->toBe($sourceId);
     });
 });

@@ -111,7 +111,7 @@ it('creates a ticket with correct ticket_type and metadata on successful submiss
     expect($ticket->metadata['venue_country'])->toBe('DEU');
     expect($ticket->metadata['venue_type'])->toBe('cafe');
     expect($ticket->metadata['website_url'])->toBe('https://example.com');
-    expect($ticket->metadata['notes'])->toBe('Great venue for board gaming');
+    expect($ticket->metadata['proposer_notes'])->toBe('Great venue for board gaming');
     expect($ticket->metadata['latitude'])->toBe('52.5200');
     expect($ticket->metadata['longitude'])->toBe('13.4050');
     expect($ticket->metadata['geocoded_display_name'])->toBe('Berlin, Germany');

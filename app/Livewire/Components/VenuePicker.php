@@ -26,7 +26,9 @@ use Livewire\Component;
  */
 class VenuePicker extends Component
 {
-    use HasGuestLocation;
+    use HasGuestLocation {
+        HasGuestLocation::onGuestLocationUpdated as private syncGuestLocation;
+    }
 
     // ── Configuration ──────────────────────────────────
 
@@ -174,7 +176,7 @@ class VenuePicker extends Component
             if ($result) {
                 $this->lat = $result['lat'];
                 $this->lng = $result['lng'];
-                $this->resolveAddressAndEmit();
+                $this->resolveAddressAndEmit($result);
             } else {
                 // Geocoder couldn't find it — save anyway without coordinates
                 $this->saveAddressWithoutCoordinates();
@@ -234,9 +236,10 @@ class VenuePicker extends Component
 
     // ── Guest Location Hook ────────────────────────────
 
+    #[On('guest-location-updated')]
     public function onGuestLocationUpdated(float $lat, float $lng, string $source = 'unknown'): void
     {
-        parent::onGuestLocationUpdated($lat, $lng, $source);
+        $this->syncGuestLocation($lat, $lng, $source);
 
         // Auto-trigger venue search once location arrives
         if ($this->editing && $this->mode === 'venue' && !$this->venueSearchPerformed) {
@@ -325,15 +328,18 @@ class VenuePicker extends Component
         );
     }
 
-    private function resolveAddressAndEmit(): void
+    private function resolveAddressAndEmit(?array $cachedGeocode = null): void
     {
         if ($this->lat === null || $this->lng === null) {
             return;
         }
 
-        $geocodingService = app(GeocodingService::class);
-        $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
-        $geocodeResult = $geocodingService->geocode($query);
+        $geocodeResult = $cachedGeocode;
+        if (!$geocodeResult) {
+            $geocodingService = app(GeocodingService::class);
+            $query = trim($this->city . ($this->address ? ', ' . $this->address : ''));
+            $geocodeResult = $geocodingService->geocode($query);
+        }
 
         $placeId = null;
         $country = null;

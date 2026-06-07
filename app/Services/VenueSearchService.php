@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\VenueType;
 use App\Models\Location;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Search verified venues with proximity sorting.
@@ -39,10 +38,11 @@ class VenueSearchService
 
         // Text search on name and city
         if ($query && trim($query) !== '') {
-            $qb->where(function ($q) use ($query) {
-                $q->where('name', 'ILIKE', "%{$query}%")
-                    ->orWhere('city', 'ILIKE', "%{$query}%")
-                    ->orWhere('address', 'ILIKE', "%{$query}%");
+            $escaped = $this->escapeLikePattern($query);
+            $qb->where(function ($q) use ($escaped) {
+                $q->where('name', 'ILIKE', "%{$escaped}%")
+                    ->orWhere('city', 'ILIKE', "%{$escaped}%")
+                    ->orWhere('address', 'ILIKE', "%{$escaped}%");
             });
         }
 
@@ -75,10 +75,11 @@ class VenueSearchService
             ->whereBetween('longitude', [$bounds['minLng'], $bounds['maxLng']]);
 
         if ($query && trim($query) !== '') {
-            $innerQuery->where(function ($q) use ($query) {
-                $q->where('name', 'ILIKE', "%{$query}%")
-                    ->orWhere('city', 'ILIKE', "%{$query}%")
-                    ->orWhere('address', 'ILIKE', "%{$query}%");
+            $escaped = $this->escapeLikePattern($query);
+            $innerQuery->where(function ($q) use ($escaped) {
+                $q->where('name', 'ILIKE', "%{$escaped}%")
+                    ->orWhere('city', 'ILIKE', "%{$escaped}%")
+                    ->orWhere('address', 'ILIKE', "%{$escaped}%");
             });
         }
 
@@ -134,5 +135,15 @@ class VenueSearchService
             'venue_type' => $loc->venue_type?->value,
             'distance_km' => $distanceKm,
         ];
+    }
+
+    /**
+     * Escape special LIKE wildcard characters in user input.
+     *
+     * Prevents % and _ in user queries from being interpreted as SQL wildcards.
+     */
+    private function escapeLikePattern(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

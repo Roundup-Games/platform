@@ -3,7 +3,7 @@
         {{-- Page Header --}}
         <div class="mb-6 sm:mb-8">
             <div class="flex items-center gap-3 mb-1">
-                <a href="{{ route('game-systems') }}" wire:navigate class="text-on-surface-variant hover:text-on-surface transition-colors">
+                <a href="{{ route('game-systems') }}" wire:navigate aria-label="{{ __('common.action_back') }}" class="text-on-surface-variant hover:text-on-surface transition-colors">
                     <span class="material-symbols-outlined text-xl" aria-hidden="true">arrow_back</span>
                 </a>
                 <h1 class="text-2xl font-heading font-bold tracking-tight text-on-surface">{{ __('location.heading_propose_venue') }}</h1>
@@ -21,7 +21,7 @@
                         <p class="mt-1 text-xs text-on-primary-container/70">{{ __('location.content_proposal_reference', ['reference' => $ticketReference]) }}</p>
                     @endif
                     @if($existingLocation)
-                        <p class="mt-2 text-sm text-on-primary-container/80">{{ __('location.content_proposal_existing_location', ['city' => '']) }}</p>
+                        <p class="mt-2 text-sm text-on-primary-container/80">{{ __('location.content_proposal_existing_location', ['city' => $existingLocation?->city ?? '']) }}</p>
                     @endif
                     <button wire:click="$set('submitted', false)" class="mt-2 text-sm text-primary hover:underline">{{ __('location.action_propose_another') }}</button>
                 </div>

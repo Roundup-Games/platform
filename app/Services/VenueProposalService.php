@@ -104,23 +104,40 @@ class VenueProposalService
 
         $metadata = $ticket->metadata ?? [];
 
-        $location = Location::updateOrCreate(
-            [
-                'name' => trim($metadata['venue_name'] ?? $this->extractName($ticket)),
-                'address' => $metadata['venue_address'] ?? '',
-            ],
-            [
-                'is_verified' => true,
-                'venue_type' => $metadata['venue_type'] ?? null,
-                'website_url' => $metadata['website_url'] ?? null,
-                'venue_notes' => $metadata['notes'] ?? null,
-                'source' => 'venue_proposal',
-                'venue_metadata' => [
+        $payload = [
+            'is_verified' => true,
+            'venue_type' => $metadata['venue_type'] ?? null,
+            'website_url' => $metadata['website_url'] ?? null,
+            'venue_notes' => $metadata['notes'] ?? $metadata['proposer_notes'] ?? null,
+            'source' => 'venue_proposal',
+            'city' => $metadata['venue_city'] ?? null,
+            'postal_code' => $metadata['venue_postal_code'] ?? null,
+            'country' => $metadata['venue_country'] ?? null,
+            'latitude' => $metadata['latitude'] ?? null,
+            'longitude' => $metadata['longitude'] ?? null,
+            'venue_metadata' => array_merge(
+                $metadata['venue_metadata'] ?? [],
+                [
                     'approved_from_ticket' => $ticket->reference,
                     'proposed_by_user_id' => $metadata['actor']['id'] ?? null,
+                    'geocoded_display_name' => $metadata['geocoded_display_name'] ?? null,
+                ]
+            ),
+        ];
+
+        $existingId = $metadata['existing_location_id'] ?? null;
+        if ($existingId && $existing = Location::find($existingId)) {
+            $existing->update($payload);
+            $location = $existing;
+        } else {
+            $location = Location::updateOrCreate(
+                [
+                    'name' => trim($metadata['venue_name'] ?? $this->extractName($ticket)),
+                    'address' => $metadata['venue_address'] ?? '',
                 ],
-            ]
-        );
+                $payload
+            );
+        }
 
         // Update ticket metadata to record the linked location
         $metadata['location_id'] = $location->id;

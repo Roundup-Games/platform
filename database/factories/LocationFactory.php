@@ -36,7 +36,7 @@ class LocationFactory extends Factory
      */
     public function verifiedVenue(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn () => [
             'is_verified' => true,
             'venue_type' => fake()->randomElement(VenueType::cases())->value,
             'venue_notes' => fake()->optional()->sentence(),

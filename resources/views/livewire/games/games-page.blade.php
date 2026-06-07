@@ -328,15 +328,10 @@
                                     <div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-high">
                                         <span class="material-symbols-outlined text-lg text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">pin_drop</span>
                                         <div class="flex-1 min-w-0">
-                                            @php
-                                                $editLoc = \App\Models\Location::find($edit_location_id);
-                                            @endphp
-                                            @if($editLoc)
-                                                <div class="text-sm font-medium text-on-surface truncate">{{ $editLoc->name }}</div>
-                                                @if($editLoc->city)
-                                                    <div class="text-xs text-on-surface-variant truncate">{{ $editLoc->city }}{{ $editLoc->address ? ', ' . $editLoc->address : '' }}</div>
+                                            <div class="text-sm font-medium text-on-surface truncate">{{ $edit_location_name }}</div>
+                                            @if($edit_location_city)
+                                                <div class="text-xs text-on-surface-variant truncate">{{ $edit_location_city }}{{ $edit_location_address ? ', ' . $edit_location_address : '' }}</div>
                                                 @endif
-                                            @endif
                                         </div>
                                         <button type="button" wire:click="editClearLocation"
                                                 class="p-1 rounded hover:bg-surface-container-high/80 text-on-surface-variant hover:text-error transition-colors"

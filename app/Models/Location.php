@@ -79,6 +79,11 @@ class Location extends Model
         return $this->hasMany(Game::class);
     }
 
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);

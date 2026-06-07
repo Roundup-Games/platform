@@ -62,4 +62,7 @@ return [
     'type_convention' => 'Convention / Messegelände',
     'type_bar' => 'Bar / Pub',
     'type_other' => 'Sonstiges',
+
+    // Errors
+    'error_proposal_submission_failed' => 'Vorschlag konnte nicht gesendet werden. Bitte versuche es später erneut.',
 ];
