@@ -112,6 +112,7 @@ class LocationResource extends Resource
                                     ->rows(3)
                                     ->columnSpanFull()
                                     ->disabled()
+                                    ->formatStateUsing(fn ($state): string => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : ($state ?? ''))
                             ]),
                     ]),
             ]);

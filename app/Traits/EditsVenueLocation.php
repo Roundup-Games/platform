@@ -11,6 +11,9 @@ use App\Services\VenueSearchService;
  * Requires the consuming Livewire component to define:
  * - public ?string $edit_location_id = null;
  * - public string $edit_location_instructions = '';
+ * - public string $edit_location_name = '';
+ * - public string $edit_location_city = '';
+ * - public string $edit_location_address = '';
  * - public string $edit_venue_query = '';
  * - public array $edit_venue_results = [];
  * - public bool $edit_venue_searched = false;
@@ -18,8 +21,6 @@ use App\Services\VenueSearchService;
  * - public string $edit_address_street = '';
  * - public string $edit_address_mode = 'venue';
  * - public ?string $editingGameId or $editingCampaignId (for implicit auth guard)
- *
- * And to set $this->edit_location_name in editGame()/editCampaign().
  */
 trait EditsVenueLocation
 {
@@ -29,7 +30,9 @@ trait EditsVenueLocation
      */
     public function editSearchVenues(): void
     {
-        $this->requireEditContext();
+        if (! $this->requireEditContext()) {
+            return;
+        }
 
         $this->edit_venue_results = app(VenueSearchService::class)
             ->search(lat: null, lng: null, query: $this->edit_venue_query, limit: 8)
@@ -42,7 +45,9 @@ trait EditsVenueLocation
      */
     public function editSelectVenue(string $venueId): void
     {
-        $this->requireEditContext();
+        if (! $this->requireEditContext()) {
+            return;
+        }
 
         $venue = Location::where('id', $venueId)->where('is_verified', true)->first();
         if (! $venue) {
@@ -65,7 +70,9 @@ trait EditsVenueLocation
      */
     public function editClearLocation(): void
     {
-        $this->requireEditContext();
+        if (! $this->requireEditContext()) {
+            return;
+        }
 
         $this->edit_location_id = null;
         $this->edit_location_name = '';
@@ -83,7 +90,9 @@ trait EditsVenueLocation
      */
     public function editSaveAddress(): void
     {
-        $this->requireEditContext();
+        if (! $this->requireEditContext()) {
+            return;
+        }
 
         $this->validateOnly('edit_address_city', ['edit_address_city' => 'required|string|max:255']);
 
@@ -116,14 +125,9 @@ trait EditsVenueLocation
      * Guard: ensure an edit context is active before performing venue actions.
      * Prevents unauthorized Location creation when no entity is being edited.
      */
-    private function requireEditContext(): void
+    private function requireEditContext(): bool
     {
-        $hasContext = property_exists($this, 'editingGameId') && $this->editingGameId !== null
-            || property_exists($this, 'editingCampaignId') && $this->editingCampaignId !== null;
-
-        if (! $hasContext) {
-            // Silently return — the UI shouldn't show these actions when no entity is being edited
-            return;
-        }
+        return (property_exists($this, 'editingGameId') && $this->editingGameId !== null)
+            || (property_exists($this, 'editingCampaignId') && $this->editingCampaignId !== null);
     }
 }

@@ -124,9 +124,6 @@ class GamesPage extends Component
         $changes = [];
         $changedLabels = [];
 
-        $changes = [];
-        $changedLabels = [];
-
         if ($game->name !== $this->edit_name) {
             $changes['name'] = $this->edit_name;
             $changedLabels[] = __('games.field_name');

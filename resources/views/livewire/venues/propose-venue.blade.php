@@ -21,7 +21,7 @@
                         <p class="mt-1 text-xs text-on-primary-container/70">{{ __('location.content_proposal_reference', ['reference' => $ticketReference]) }}</p>
                     @endif
                     @if($existingLocation)
-                        <p class="mt-2 text-sm text-on-primary-container/80">{{ __('location.content_proposal_existing_location', ['city' => $existingLocation?->city ?? '']) }}</p>
+                        <p class="mt-2 text-sm text-on-primary-container/80">{{ __('location.content_proposal_existing_location', ['city' => $existingLocationCity ?? '']) }}</p>
                     @endif
                     <button wire:click="$set('submitted', false)" class="mt-2 text-sm text-primary hover:underline">{{ __('location.action_propose_another') }}</button>
                 </div>

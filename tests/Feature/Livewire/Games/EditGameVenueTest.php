@@ -202,11 +202,22 @@ describe('Location data pre-loaded in edit modal', function () {
 
 describe('Venue action auth guard', function () {
     it('venue search actions require active edit context', function () {
+        // Seed a verified venue so the guard is actually tested —
+        // without it, the test passes because search returns empty regardless.
+        Location::factory()->create([
+            'name' => 'Should Not Appear',
+            'city' => 'Berlin',
+            'is_verified' => true,
+            'venue_type' => VenueType::Cafe,
+            'latitude' => 52.52,
+            'longitude' => 13.40,
+        ]);
+
         $component = Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class);
 
         // These should silently no-op without an active edit context
         $component
-            ->set('edit_venue_query', 'Test')
+            ->set('edit_venue_query', 'Should Not Appear')
             ->call('editSearchVenues')
             ->assertSet('edit_venue_results', [])
             ->call('editClearLocation')

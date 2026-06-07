@@ -40,6 +40,8 @@ class ProposeVenue extends Component
 
     public ?bool $existingLocation = null;
 
+    public ?string $existingLocationCity = null;
+
     // ── Lifecycle ────────────────────────────────────
 
     public function mount(): void
@@ -133,6 +135,7 @@ class ProposeVenue extends Component
             ->first();
 
         $this->existingLocation = $existingLocation !== null;
+        $this->existingLocationCity = $existingLocation?->city;
 
         // Build proposal data
         $proposalData = [
