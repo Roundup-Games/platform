@@ -25,6 +25,15 @@ class SessionReminder extends BaseNotification
     ) {}
 
     /**
+     * Push-only notification — no mail channel.
+     * Override BaseNotification's default which includes MailChannel.
+     */
+    public function via(object $notifiable): array
+    {
+        return [DatabaseChannel::class];
+    }
+
+    /**
      * Get the database representation of the notification.
      *
      * @return array<string, mixed>
@@ -42,6 +51,7 @@ class SessionReminder extends BaseNotification
             'action_url' => route('games.show', ['locale' => $locale, 'id' => $this->game->id]),
         ];
     }
+
 
     /**
      * Get the push notification representation.
@@ -79,6 +89,7 @@ class SessionReminder extends BaseNotification
         );
     }
 
+
     /**
      * No actor for block-list checking — this is a system notification.
      */
@@ -86,4 +97,5 @@ class SessionReminder extends BaseNotification
     {
         return null;
     }
+
 }
