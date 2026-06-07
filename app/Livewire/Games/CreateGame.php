@@ -11,6 +11,7 @@ use App\Enums\VibeFlag;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Services\OwnerParticipantService;
+use App\Services\VenueTrustService;
 use App\Services\ShortLinkService;
 use App\Traits\BuildsTranslatableFormFields;
 use Illuminate\Support\Facades\Auth;
@@ -58,6 +59,8 @@ class CreateGame extends Component
 
     public ?string $location_id = null;
 
+    public string $location_instructions = '';
+
     public string $visibility = 'protected';
 
     public array $minimum_requirements = [];
@@ -93,6 +96,7 @@ class CreateGame extends Component
             'price' => 'nullable|numeric|min:0',
             'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
             'location_id' => 'nullable|uuid|exists:locations,id',
+            'location_instructions' => 'nullable|string|max:1000',
             'visibility' => Visibility::validationRule(),
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
@@ -125,6 +129,12 @@ class CreateGame extends Component
     public function onLocationRemoved(): void
     {
         $this->location_id = null;
+    }
+
+    #[On('location-instructions-updated')]
+    public function onLocationInstructionsUpdated(string $instructions): void
+    {
+        $this->location_instructions = $instructions;
     }
 
     #[On('vibe-preferences-changed')]
@@ -175,6 +185,7 @@ class CreateGame extends Component
         $this->description = $source->description ?? '';
         $this->game_system_id = $source->game_system_id;
         $this->location_id = $source->location_id;
+        $this->location_instructions = $source->location_instructions ?? '';
         $this->price = $source->price !== null ? (string) $source->price : '';
         $this->language = $source->language ?? 'en';
         $this->visibility = $source->visibility?->value ?? 'protected';
@@ -320,7 +331,17 @@ class CreateGame extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->can_create_public_entries;
+        return $user && app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
+    }
+
+    #[Computed]
+    public function publicViaVenue(): bool
+    {
+        if ($this->canCreatePublic && Auth::user()?->can_create_public_entries) {
+            return false; // GM — doesn't need venue indicator
+        }
+
+        return $this->canCreatePublic; // true only via venue bypass
     }
 
     // ── Actions ──────────────────────────────────────────
@@ -391,6 +412,7 @@ class CreateGame extends Component
                 'language' => $validated['language'],
                 'location_id' => $this->location_id,
                 'location' => ['details' => ''],
+                'location_instructions' => $validated['location_instructions'] ?? null,
                 'status' => GameStatus::Scheduled,
                 'visibility' => $validated['visibility'],
                 'minimum_requirements' => $validated['minimum_requirements'] ?: null,

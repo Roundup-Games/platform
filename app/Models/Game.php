@@ -43,7 +43,7 @@ class Game extends Model
 
     protected $fillable = [
         'owner_id', 'campaign_id', 'game_system_id', 'name', 'date_time',
-        'description', 'expected_duration', 'price', 'language', 'location', 'location_id',
+        'description', 'expected_duration', 'price', 'language', 'location', 'location_id', 'location_instructions',
         'status', 'game_type', 'minimum_requirements', 'visibility', 'safety_rules',
         'min_players', 'max_players', 'experience_level', 'complexity', 'vibe_flags',
         'reminder_sent_at', 'reminder_24h_sent_at', 'recap', 'min_reliability_preference',

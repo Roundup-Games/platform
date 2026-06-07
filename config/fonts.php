@@ -95,6 +95,9 @@ return [
 
         // M047 dashboard icons
         'castle', 'military_tech', 'replay', 'route', 'today', 'waving_hand',
+
+        // Venue picker
+        'store', 'storefront', 'pin_drop',
     ],
 
     /*

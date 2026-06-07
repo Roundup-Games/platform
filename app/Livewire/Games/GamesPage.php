@@ -19,6 +19,7 @@ use App\Services\GameActivityFeedService;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
+use App\Traits\EditsVenueLocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +30,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class GamesPage extends Component
 {
+    use EditsVenueLocation;
     use WithPagination;
 
     // ── Edit Game State ────────────────────────────────
@@ -39,6 +41,19 @@ class GamesPage extends Component
     public ?string $edit_expected_duration = '';
     public string $edit_visibility = 'private';
     public string $edit_location_details = '';
+    public ?string $edit_location_id = null;
+    public string $edit_location_instructions = '';
+    public string $edit_location_name = '';
+    public string $edit_location_city = '';
+    public string $edit_location_address = '';
+
+    // ── Venue Search State (edit modal) ────────────────
+    public string $edit_venue_query = '';
+    public array $edit_venue_results = [];
+    public bool $edit_venue_searched = false;
+    public string $edit_address_city = '';
+    public string $edit_address_street = '';
+    public string $edit_address_mode = 'venue'; // venue | address
 
     public function mount(): void
     {
@@ -60,12 +75,30 @@ class GamesPage extends Component
         $this->edit_expected_duration = $game->expected_duration ? (string) $game->expected_duration : '';
         $this->edit_visibility = $game->visibility?->value ?? 'private';
         $this->edit_location_details = $game->location['details'] ?? '';
+        $this->edit_location_id = $game->location_id;
+        $this->edit_location_instructions = $game->location_instructions ?? '';
+        $this->edit_location_name = $game->linkedLocation?->name ?? '';
+        $this->edit_location_city = $game->linkedLocation?->city ?? '';
+        $this->edit_location_address = $game->linkedLocation?->address ?? '';
+
+        if ($game->location_id && $game->linkedLocation) {
+            $this->edit_address_city = $game->linkedLocation->city ?? '';
+            $this->edit_address_street = $game->linkedLocation->address ?? '';
+        }
     }
 
     public function cancelEdit(): void
     {
-        $this->reset(['editingGameId', 'edit_name', 'edit_description', 'edit_expected_duration', 'edit_visibility', 'edit_location_details']);
+        $this->reset([
+            'editingGameId', 'edit_name', 'edit_description', 'edit_expected_duration',
+            'edit_visibility', 'edit_location_details', 'edit_location_id', 'edit_location_instructions',
+            'edit_location_name', 'edit_location_city', 'edit_location_address',
+            'edit_venue_query', 'edit_venue_results', 'edit_venue_searched',
+            'edit_address_city', 'edit_address_street', 'edit_address_mode',
+        ]);
     }
+
+    // Venue search/address actions provided by EditsVenueLocation trait
 
     public function saveGameEdit(): void
     {
@@ -105,14 +138,23 @@ class GamesPage extends Component
             $changes['expected_duration'] = $newDuration ?? 2;
             $changedLabels[] = __('games.field_duration');
         }
-        if ($game->visibility !== $this->edit_visibility) {
+        if ($game->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
             $changedLabels[] = __('games.field_visibility');
         }
         $oldLocation = $game->location['details'] ?? '';
         if ($oldLocation !== $this->edit_location_details) {
             $changes['location'] = ['details' => $this->edit_location_details];
-            $changedLabels[] = __('games.field_location');
+        }
+        if ($game->location_id !== $this->edit_location_id) {
+            $changes['location_id'] = $this->edit_location_id ?: null;
+            $changedLabels[] = __('common.field_location');
+        } elseif ($oldLocation !== $this->edit_location_details) {
+            // Location details changed but location_id stayed the same
+            $changedLabels[] = __('common.field_location');
+        }
+        if (($game->location_instructions ?? '') !== $this->edit_location_instructions) {
+            $changes['location_instructions'] = $this->edit_location_instructions ?: null;
         }
 
         if (empty($changes)) {
