@@ -5,13 +5,14 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use Illuminate\Notifications\Channels\DatabaseChannel;
 
 /**
- * Push-only notification sent to game participants when their session
+ * Notification sent to game participants when their session
  * is starting within the next hour.
  *
  * Dispatched by the SendSessionReminders artisan command, not by user actions.
- * Intentionally has no mail or database representation — push-only by design.
+ * Database-only notification — no mail channel.
  */
 class SessionReminder extends BaseNotification
 {
@@ -25,7 +26,7 @@ class SessionReminder extends BaseNotification
     ) {}
 
     /**
-     * Push-only notification — no mail channel.
+     * Database-only notification — no mail channel.
      * Override BaseNotification's default which includes MailChannel.
      */
     public function via(object $notifiable): array
