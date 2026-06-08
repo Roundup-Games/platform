@@ -25,6 +25,14 @@ class ScheduledTasksPage extends Page
 
     protected string $view = 'filament.pages.system.scheduled-tasks';
 
+    public function getViewData(): array
+    {
+        return [
+            'tasks' => $this->getTasks(),
+            'stats' => $this->getStats(),
+        ];
+    }
+
     public static function canAccess(): bool
     {
         return auth()->user()?->isAdmin() ?? false;
