@@ -120,12 +120,7 @@ class NotificationService
 
                     return;
                 }
-                $driver = $query->getQuery()->getConnection()->getDriverName();
-                if ($driver === 'pgsql') {
-                    $query->whereRaw("CAST(data AS json)->>'{$key}' = CAST(? AS text)", [$entityId]);
-                } else {
-                    $query->where("data->{$key}", $entityId);
-                }
+                $query->where("data->{$key}", $entityId);
             }
 
             $count = $query->update(['read_at' => now()]);
