@@ -34,25 +34,25 @@ class GmDirectory extends Component
     #[Url(as: 'sort')]
     public string $sortBy = 'highest_rated';
 
-    // ── Pagination ──────────────────────────────────────
+    // ── Load-more (display count) ────────────────────────
 
-    protected $paginationTheme = 'tailwind';
+    public int $displayCount = 12;
 
-    // ── Updating hooks (reset page on filter change) ────
+    // ── Updating hooks (reset display on filter change) ─
 
     public function updatingSearch(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingMinRating(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function updatingSortBy(): void
     {
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     // ── Actions ─────────────────────────────────────────
@@ -60,21 +60,26 @@ class GmDirectory extends Component
     public function toggleSpecialization(string $value): void
     {
         $this->specialization = $this->specialization === $value ? null : $value;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     #[On('value-updated')]
     public function onGameSystemUpdated($value): void
     {
         $this->game_system_id = $value;
-        $this->resetPage();
+        $this->displayCount = 12;
     }
 
     public function clearFilters(): void
     {
         $this->reset(['search', 'specialization', 'game_system_id', 'min_rating', 'sortBy']);
         $this->sortBy = 'highest_rated';
-        $this->resetPage();
+        $this->displayCount = 12;
+    }
+
+    public function loadMore(): void
+    {
+        $this->displayCount += 12;
     }
 
     public function hasActiveFilters(): bool
@@ -131,7 +136,7 @@ class GmDirectory extends Component
             default => $query->orderByRaw('COALESCE(average_rating, 0) DESC'),
         };
 
-        $results = $query->paginate(12);
+        $results = $query->paginate($this->displayCount);
 
         // Load top proficiencies for each GM
         $results->through(function ($gmProfile) {

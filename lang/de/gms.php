@@ -16,6 +16,8 @@ return [
     'action_clear_filters' => 'Filter zurücksetzen',
     'content_no_gms_found' => 'Keine Game Master gefunden',
     'content_try_adjusting_filters' => 'Versuche, deine Suche oder Filter anzupassen.',
+    'action_load_more' => 'Mehr laden',
+    'content_showing_of_total' => ':shown von :total Game Mastern angezeigt',
 
     // SEO
     'seo_title_gm_directory' => 'Game-Master-Verzeichnis',
