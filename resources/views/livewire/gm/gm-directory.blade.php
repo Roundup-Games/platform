@@ -157,10 +157,28 @@
                 @endforeach
             </div>
 
-            {{-- ── Pagination ─────────────────────────────────────── --}}
-            <div class="mt-8">
-                {{ $results->links() }}
-            </div>
+            {{-- ── Load More ─────────────────────────────────────── --}}
+            @if($results->hasMorePages())
+                <div class="mt-8 text-center">
+                    <button wire:click="loadMore"
+                            wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-surface-container-high text-on-surface text-sm font-medium rounded-xl shadow-ambient hover:bg-surface-container transition-colors">
+                        <span wire:loading.remove wire:target="loadMore">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">expand_more</span>
+                        </span>
+                        <span wire:loading wire:target="loadMore">
+                            <span class="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
+                        </span>
+                        {{ __('gms.action_load_more') }}
+                    </button>
+                    <p class="mt-2 text-xs text-on-surface-variant">
+                        {{ __('gms.content_showing_of_total', [
+                            'shown' => $results->count(),
+                            'total' => $results->total(),
+                        ]) }}
+                    </p>
+                </div>
+            @endif
         @else
             {{-- ── Empty State ────────────────────────────────────── --}}
             <div class="text-center py-16">
