@@ -75,6 +75,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libavif-bin \
     && rm -rf /var/lib/apt/lists/*
 
+# Raise PHP memory limit for image conversion jobs — GD decompresses large
+# images into bitmaps that can exceed the default 256 MB limit.
+COPY --chown=www-data:www-data docker/s6-worker/queue/php-memory.ini /usr/local/etc/php/conf.d/zzz-memory.ini
+
 # Add queue and scheduler S6 service definitions
 COPY --chmod=755 docker/s6-worker/queue/ /etc/s6-overlay/s6-rc.d/queue/
 COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
