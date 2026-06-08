@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Pages\System\ScheduledTasksPage;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Laravel\Horizon\Contracts\JobRepository;
@@ -45,7 +46,7 @@ class QueueHealthWidget extends StatsOverviewWidget
             Stat::make('Schedule', 'Tasks')
                 ->description('View scheduled tasks')
                 ->descriptionIcon('heroicon-o-clock')
-                ->url(route('filament.admin.pages.system.scheduled-tasks'))
+                ->url(fn (): string => ScheduledTasksPage::getUrl())
                 ->color('info'),
         ];
     }
