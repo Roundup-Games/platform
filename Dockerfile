@@ -62,6 +62,19 @@ USER root
 RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/nginx \
    && rm /etc/s6-overlay/s6-rc.d/user/contents.d/php-fpm
 
+# Install image optimizer binaries for Spatie MediaLibrary conversions
+# These only run on the queue worker — no need to bloat the web container.
+# Covers all 7 optimizers configured in config/media-library.php:
+#   jpegoptim, pngquant, optipng, gifsicle, cwebp (via webp), avifenc (via libavif-bin)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        jpegoptim \
+        pngquant \
+        optipng \
+        gifsicle \
+        webp \
+        libavif-bin \
+    && rm -rf /var/lib/apt/lists/*
+
 # Add queue and scheduler S6 service definitions
 COPY --chmod=755 docker/s6-worker/queue/ /etc/s6-overlay/s6-rc.d/queue/
 COPY --chmod=755 docker/s6-worker/scheduler/ /etc/s6-overlay/s6-rc.d/scheduler/
