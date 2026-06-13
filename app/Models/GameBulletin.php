@@ -2,16 +2,29 @@
 
 namespace App\Models;
 
+use Database\Factories\GameBulletinFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $content
+ * @property string $game_id
+ * @property int $user_id
+ * @property Carbon|null $expires_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class GameBulletin extends Model
 {
+    /** @use HasFactory<GameBulletinFactory> */
     use HasFactory;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -56,11 +69,17 @@ class GameBulletin extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -71,12 +90,15 @@ class GameBulletin extends Model
     /**
      * Scope to bulletins that have not expired.
      * A bulletin without an expires_at is considered never-expiring.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeNotExpired($query)
+    public function scopeNotExpired(Builder $query)
     {
         return $query->where(function ($q) {
             $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', now());
+                ->orWhere('expires_at', '>', now());
         });
     }
 

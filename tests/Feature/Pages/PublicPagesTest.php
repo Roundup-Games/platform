@@ -3,7 +3,10 @@
 use App\Models\User;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
-use function Pest\Laravel\{get, post, actingAs};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 
 // Max lengths must be one character over the validation rules
 // (name: max:255, subject: max:255, message: max:5000)
@@ -69,7 +72,7 @@ describe('HowItWorksPage', function () {
 
 describe('ContactPage', function () {
     beforeEach(function () {
-        \Escalated\Laravel\Models\Department::firstOrCreate(
+        Department::firstOrCreate(
             ['name' => 'Contact'],
             ['description' => 'General inquiries and questions', 'is_active' => true],
         );

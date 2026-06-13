@@ -4,6 +4,7 @@ namespace App\Livewire\Components;
 
 use App\Enums\SafetyTool;
 use App\Enums\SafetyToolCategory;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -43,6 +44,9 @@ class SafetyToolPicker extends Component
 
     public string $mode = 'selection';
 
+    /**
+     * @param  array<int, string>  $selected
+     */
     public function mount(
         array $selected = [],
         string $linesAndVeilsText = '',
@@ -147,7 +151,7 @@ class SafetyToolPicker extends Component
         return $result;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.safety-tool-picker');
     }

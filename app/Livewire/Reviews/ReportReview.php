@@ -14,7 +14,7 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -60,12 +60,13 @@ class ReportReview extends Component
 
         if (! $review) {
             $this->addError('reason', __('reviews.error_review_not_found'));
+
             return;
         }
 
         Gate::authorize('report', $review);
 
-        $reporter = Auth::user();
+        $reporter = authenticatedUser();
 
         // Rate limit: 5 review reports per user per hour
         $rateLimitKey = "review-reports:{$reporter->id}";
@@ -90,7 +91,7 @@ class ReportReview extends Component
                 return;
             }
 
-            $review->report($reporter->id, $this->reason);
+            $review->report((string) $reporter->id, $this->reason ?? '');
 
             Log::info('review.reported', [
                 'review_id' => $review->id,
@@ -117,6 +118,9 @@ class ReportReview extends Component
         $this->showModal = false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -124,6 +128,9 @@ class ReportReview extends Component
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function messages(): array
     {
         return [
@@ -132,7 +139,7 @@ class ReportReview extends Component
         ];
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.reviews.report-review');
     }
@@ -149,7 +156,7 @@ class ReportReview extends Component
             reporter: $reporter,
             reviewId: (string) $review->id,
             reviewAuthorId: (string) $review->reviewer_id,
-            reviewAuthorName: $reviewAuthor?->name ?? __('Unknown'),
+            reviewAuthorName: $reviewAuthor->name ?? __('Unknown'),
             reason: $this->reason ?? 'other',
             details: $this->description,
         );
@@ -157,7 +164,7 @@ class ReportReview extends Component
         $ticket = Ticket::create([
             'requester_type' => User::class,
             'requester_id' => $reporter->id,
-            'subject' => 'Review Report: ' . ucfirst($this->reason ?? 'other'),
+            'subject' => 'Review Report: '.ucfirst($this->reason ?? 'other'),
             'description' => $this->buildTicketDescription($review, $reporter),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::High->value,
@@ -189,12 +196,12 @@ class ReportReview extends Component
         $reviewAuthor = $review->reviewer;
         $lines = [
             "**Reported by:** {$reporter->name}",
-            "**Reason:** " . ucfirst($this->reason ?? 'other'),
+            '**Reason:** '.ucfirst($this->reason ?? 'other'),
             '',
             '**Review details:**',
             "- Rating: {$review->rating}/5",
-            '- Author: ' . ($reviewAuthor?->name ?? 'Unknown'),
-            '- Content: ' . ($review->body ?? '(no content)'),
+            '- Author: '.($reviewAuthor->name ?? 'Unknown'),
+            '- Content: '.($review->body ?? '(no content)'),
             '',
             "**Review ID:** {$review->id}",
         ];
@@ -205,7 +212,7 @@ class ReportReview extends Component
     /**
      * Notify all global admins about the reported review.
      */
-    private function notifyAdmins(Review $review, $reporter): void
+    private function notifyAdmins(Review $review, User $reporter): void
     {
         $notificationService = app(NotificationService::class);
 

@@ -3,6 +3,7 @@
 namespace App\Livewire\Components;
 
 use App\Enums\VibeFlag;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -39,6 +40,9 @@ class VibePreferencePicker extends Component
     #[Locked]
     public ?string $gameType = null;
 
+    /**
+     * @param  array<string, string|null>  $preferences
+     */
     public function mount(array $preferences = [], string $mode = 'preference', ?string $gameType = null): void
     {
         $this->mode = $mode;
@@ -194,7 +198,7 @@ class VibePreferencePicker extends Component
             ->all();
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.vibe-preference-picker');
     }

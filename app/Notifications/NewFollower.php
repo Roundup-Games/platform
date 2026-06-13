@@ -17,15 +17,15 @@ class NewFollower extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
         $actionUrl = route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]);
 
         return (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
             ->greeting(__('notifications.email_greeting', ['name' => $notifiable->name ?? $notifiable->email]))
-            ->line(__('notifications.body_new_follower', ['follower' => $this->follower->name, 'brand' => config('company.display_name')]))
+            ->line(__('notifications.body_new_follower', ['follower' => $this->follower->name, 'brand' => is_string($b = config('company.display_name')) ? $b : '']))
             ->action(__('notifications.action_new_follower'), $actionUrl)
             ->line($this->unsubscribeLine($notifiable, 'new_follower'));
     }
@@ -35,9 +35,9 @@ class NewFollower extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'new_follower',
@@ -58,9 +58,9 @@ class NewFollower extends BaseNotification
     /**
      * Get the push notification representation.
      */
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
             title: __('notifications.push_title_new_follower'),

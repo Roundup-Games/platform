@@ -1,10 +1,15 @@
 <?php
 
 use App\Enums\EventStatus;
+use App\Livewire\Events\CreateEvent;
+use App\Livewire\Events\EventAnnouncements;
+use App\Livewire\Events\ManageEvent;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 // ── CreateEvent ────────────────────────────────────────
 
@@ -27,7 +32,7 @@ describe('CreateEvent', function () {
         $user->givePermissionTo('create event');
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', '')
             ->call('nextStep')
             ->assertHasErrors('name');
@@ -39,7 +44,7 @@ describe('CreateEvent', function () {
         $user->givePermissionTo('create event');
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', 'Summer Tournament')
             ->set('type', 'tournament')
             ->set('start_date', now()->addDays(14)->format('Y-m-d'))
@@ -54,7 +59,7 @@ describe('CreateEvent', function () {
         $user->givePermissionTo('create event');
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('name', '')
             ->call('goToStep', 3)
             ->assertHasErrors('name')
@@ -67,7 +72,7 @@ describe('CreateEvent', function () {
         $user->givePermissionTo('create event');
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('step', 4)
             ->set('newDivisionName', 'Open Division')
             ->set('newDivisionDescription', 'For all skill levels')
@@ -86,7 +91,7 @@ describe('CreateEvent', function () {
         $startDate = now()->addDays(14)->format('Y-m-d');
         $endDate = now()->addDays(16)->format('Y-m-d');
 
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('step', 5)
             ->set('name', 'Test Tournament')
             ->set('type', 'tournament')
@@ -121,7 +126,7 @@ describe('CreateEvent', function () {
 
         actingAs($user);
 
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('step', 5)
             ->set('name', 'Division Event')
             ->set('type', 'tournament')
@@ -146,7 +151,7 @@ describe('CreateEvent', function () {
 
         actingAs($user);
 
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('step', 5)
             ->set('name', 'Rules Event')
             ->set('type', 'tournament')
@@ -171,7 +176,7 @@ describe('CreateEvent', function () {
         $opensAt = now()->addDays(2)->format('Y-m-d\TH:i');
         $closesAt = now()->addDays(10)->format('Y-m-d\TH:i');
 
-        Livewire\Livewire::test(App\Livewire\Events\CreateEvent::class)
+        Livewire\Livewire::test(CreateEvent::class)
             ->set('step', 5)
             ->set('name', 'Window Event')
             ->set('type', 'tournament')
@@ -210,7 +215,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Save Changes')
             ->assertSet('name', 'My Tournament');
@@ -227,7 +232,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->assertSet('name', 'Existing Event')
             ->assertSet('type', 'league')
             ->assertSet('venue_name', 'Main Arena')
@@ -244,7 +249,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        $component = Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('name', 'New Name')
             ->set('city', 'New City')
             ->call('save');
@@ -262,7 +267,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->call('publishEvent');
 
         expect($event->fresh()->status)->toBe(EventStatus::Published);
@@ -276,7 +281,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->call('openRegistration');
 
         expect($event->fresh()->status)->toBe(EventStatus::RegistrationOpen);
@@ -290,7 +295,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->call('closeRegistration');
 
         expect($event->fresh()->status)->toBe(EventStatus::RegistrationClosed);
@@ -304,7 +309,7 @@ describe('ManageEvent', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->call('cancelEvent');
 
         expect($event->fresh()->status)->toBe(EventStatus::Cancelled);
@@ -322,7 +327,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('No announcements yet');
     });
@@ -332,7 +337,7 @@ describe('EventAnnouncements', function () {
         $event = Event::factory()->create(['organizer_id' => $user->id]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('showCreateForm')
             ->set('title', 'Test Title')
             ->set('content', 'Test content.')
@@ -358,7 +363,7 @@ describe('EventAnnouncements', function () {
         $event = Event::factory()->create(['organizer_id' => $user->id]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('showCreateForm')
             ->set('title', '')
             ->set('content', '')
@@ -378,7 +383,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug]);
+        $component = Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug]);
 
         if ($initialPublished) {
             $component->call('unpublishAnnouncement', $announcement->id);
@@ -404,7 +409,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('togglePin', $announcement->id);
 
         expect($announcement->fresh()->is_pinned)->toBeTrue();
@@ -421,7 +426,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('deleteAnnouncement', $announcement->id);
 
         expect(EventAnnouncement::find($announcement->id))->toBeNull();
@@ -439,7 +444,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('editAnnouncement', $announcement->id)
             ->assertSet('editingId', $announcement->id)
             ->assertSet('title', 'Original Title')
@@ -459,7 +464,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('editAnnouncement', $announcement->id)
             ->set('title', 'Updated Title')
             ->set('content', 'Updated content')
@@ -483,7 +488,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        $component = Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('setFilterStatus', 'published');
 
         $announcements = $component->instance()->announcements;
@@ -509,7 +514,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug]);
+        $component = Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug]);
 
         $counts = $component->instance()->counts;
         expect($counts['total'])->toBe(3);
@@ -523,7 +528,7 @@ describe('EventAnnouncements', function () {
         $event = Event::factory()->create(['organizer_id' => $user->id]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug])
             ->call('showCreateForm')
             ->set('title', 'Some title')
             ->call('cancelForm')
@@ -546,7 +551,7 @@ describe('EventAnnouncements', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Events\EventAnnouncements::class, ['slug' => $event->slug]);
+        $component = Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $event->slug]);
         $announcements = $component->instance()->announcements;
 
         expect($announcements->first()->title)->toBe('Pinned');

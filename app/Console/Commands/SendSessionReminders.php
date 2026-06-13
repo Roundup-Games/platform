@@ -6,6 +6,7 @@ use App\Enums\NotificationCategory;
 use App\Models\Game;
 use App\Notifications\SessionReminder;
 use App\Services\NotificationService;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -48,9 +49,9 @@ class SendSessionReminders extends Command
         [$notified24h, $errorCount24h] = $this->sendRemindersForWindow(
             $notificationService,
             $dryRun,
-            now(),
+            CarbonImmutable::now(),
             '24h',
-            now()->copy()->addHours(24),
+            CarbonImmutable::now()->addHours(24),
             'reminder_24h_sent_at',
         );
         $totalNotifiedCount += $notified24h;
@@ -60,9 +61,9 @@ class SendSessionReminders extends Command
         [$notified1h, $errorCount1h] = $this->sendRemindersForWindow(
             $notificationService,
             $dryRun,
-            now(),
+            CarbonImmutable::now(),
             '1h',
-            now()->copy()->addHour(),
+            CarbonImmutable::now()->addHour(),
             'reminder_sent_at',
         );
         $totalNotifiedCount += $notified1h;
@@ -88,9 +89,9 @@ class SendSessionReminders extends Command
     private function sendRemindersForWindow(
         NotificationService $notificationService,
         bool $dryRun,
-        $now,
+        CarbonImmutable $now,
         string $window,
-        $windowEnd,
+        CarbonImmutable $windowEnd,
         string $sentAtColumn,
     ): array {
         $games = Game::query()
@@ -117,7 +118,7 @@ class SendSessionReminders extends Command
                 // Get approved participants (excluding owner)
                 $approvedParticipants = $game->participants
                     ->where('status', 'approved')
-                    ->filter(fn ($p) => $p->user_id !== $game->owner_id);
+                    ->filter(fn ($p) => (string) $p->user_id !== (string) $game->owner_id);
 
                 foreach ($approvedParticipants as $participant) {
                     $user = $participant->user;

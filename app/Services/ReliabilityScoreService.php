@@ -164,10 +164,10 @@ class ReliabilityScoreService
     public function resolveWeight(GameParticipant $participant, AttendanceStatus $status): float
     {
         $key = $status->value;
-        $baseWeight = self::WEIGHTS[$key] ?? 0.0;
+        $baseWeight = self::WEIGHTS[$key];
 
         // Host-specific penalty weights — use the raw constant, not grief multiplier
-        if ($participant->game && $participant->game->owner_id === $participant->user_id) {
+        if ($participant->game && (string) $participant->game->owner_id === (string) $participant->user_id) {
             if ($status === AttendanceStatus::NoShow) {
                 return self::HOST_WEIGHTS['host_no_show'];
             }
@@ -181,7 +181,7 @@ class ReliabilityScoreService
         // System records have attendance_reported_by === null OR
         // reporter === reported (self-report/auto-attend).
         $isSystemGenerated = $participant->attendance_reported_by === null
-            || $participant->attendance_reported_by === $participant->user_id;
+            || (string) $participant->attendance_reported_by === (string) $participant->user_id;
 
         if ($isSystemGenerated) {
             return $baseWeight;

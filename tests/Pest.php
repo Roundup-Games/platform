@@ -2,10 +2,13 @@
 
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Testing\TestResponse;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
@@ -29,6 +32,7 @@ use Tests\TestCase;
 
 $unitDirsNeedingTransactions = [
     'Unit/SEO',
+    'Unit/Services',
 ];
 
 pest()->extend(TestCase::class)
@@ -44,7 +48,7 @@ foreach ($unitDirsNeedingTransactions as $dir) {
         ->beforeEach(function () {
             URL::defaults(['locale' => 'en']);
         })
-    ->in($dir);
+        ->in($dir);
 }
 
 /*
@@ -76,14 +80,14 @@ foreach ($unitDirsNeedingTransactions as $dir) {
  */
 function seedPermissions()
 {
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $entities = ['user', 'team', 'game', 'campaign', 'event', 'membership', 'game system'];
     $actions = ['view', 'create', 'update', 'delete'];
 
     foreach ($entities as $entity) {
         foreach ($actions as $action) {
-            \Spatie\Permission\Models\Permission::firstOrCreate([
+            Permission::firstOrCreate([
                 'name' => "{$action} {$entity}",
                 'guard_name' => 'web',
             ]);
@@ -91,13 +95,13 @@ function seedPermissions()
     }
 
     foreach (['view dashboard', 'manage roles', 'view audit log', 'manage settings', 'manage tickets'] as $perm) {
-        \Spatie\Permission\Models\Permission::firstOrCreate([
+        Permission::firstOrCreate([
             'name' => $perm,
             'guard_name' => 'web',
         ]);
     }
 
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 }
 
 /**
@@ -107,16 +111,16 @@ function seedRoles()
 {
     seedPermissions();
 
-    $allPerms = \Spatie\Permission\Models\Permission::all();
+    $allPerms = Permission::all();
 
-    $platformAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+    $platformAdmin = Role::firstOrCreate([
         'name' => 'Platform Admin',
         'guard_name' => 'web',
         'team_id' => null,
     ]);
     $platformAdmin->syncPermissions($allPerms);
 
-    $gamesAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+    $gamesAdmin = Role::firstOrCreate([
         'name' => 'Games Admin',
         'guard_name' => 'web',
         'team_id' => null,
@@ -129,7 +133,7 @@ function seedRoles()
         'view user',
     ]);
 
-    $teamAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+    $teamAdmin = Role::firstOrCreate([
         'name' => 'Team Admin',
         'guard_name' => 'web',
         'team_id' => null,
@@ -144,7 +148,7 @@ function seedRoles()
         'view user',
     ]);
 
-    $eventAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+    $eventAdmin = Role::firstOrCreate([
         'name' => 'Event Admin',
         'guard_name' => 'web',
         'team_id' => null,
@@ -158,7 +162,7 @@ function seedRoles()
         'view user',
     ]);
 
-    $serviceAdmin = \Spatie\Permission\Models\Role::firstOrCreate([
+    $serviceAdmin = Role::firstOrCreate([
         'name' => 'Service Admin',
         'guard_name' => 'web',
         'team_id' => null,
@@ -169,7 +173,7 @@ function seedRoles()
         'view user',
     ]);
 
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 }
 
 /**
@@ -219,7 +223,7 @@ function openSlot(Game $game): void
  * Only asserts the name portion — does not couple to the title suffix format
  * (separator, site name), so title template changes don't break tests.
  */
-function assertPageTitle(\Illuminate\Testing\TestResponse $response, string $expectedName): void
+function assertPageTitle(TestResponse $response, string $expectedName): void
 {
     $content = $response->content();
     preg_match('/<title>(.*?)<\/title>/', $content, $matches);
@@ -232,14 +236,14 @@ function assertPageTitle(\Illuminate\Testing\TestResponse $response, string $exp
  * Assert that the response contains an OG meta tag with the expected property and content.
  * Verifies property and value are in the same <meta> element.
  */
-function assertOgMetaTag(\Illuminate\Testing\TestResponse $response, string $property, string $expectedContent): void
+function assertOgMetaTag(TestResponse $response, string $property, string $expectedContent): void
 {
     $content = $response->content();
     // Match <meta property="og:xxx" content="yyy"> or <meta content="yyy" property="og:xxx">
-    $pattern = '/<meta\s[^>]*property=["\']' . preg_quote($property, '/') . '["\'][^>]*content=["\']([^"\']*)["\'][^>]*>/';
+    $pattern = '/<meta\s[^>]*property=["\']'.preg_quote($property, '/').'["\'][^>]*content=["\']([^"\']*)["\'][^>]*>/';
     if (! preg_match($pattern, $content, $matches)) {
         // Try reversed attribute order
-        $pattern2 = '/<meta\s[^>]*content=["\']([^"\']*)["\'][^>]*property=["\']' . preg_quote($property, '/') . '["\'][^>]*>/';
+        $pattern2 = '/<meta\s[^>]*content=["\']([^"\']*)["\'][^>]*property=["\']'.preg_quote($property, '/').'["\'][^>]*>/';
         preg_match($pattern2, $content, $matches);
     }
     $actual = $matches[1] ?? '';
@@ -250,7 +254,7 @@ function assertOgMetaTag(\Illuminate\Testing\TestResponse $response, string $pro
 /**
  * Assert that the response contains an OG meta tag property (content value not checked).
  */
-function assertOgMetaTagPresent(\Illuminate\Testing\TestResponse $response, string $property): void
+function assertOgMetaTagPresent(TestResponse $response, string $property): void
 {
     $content = $response->content();
     test()->assertStringContainsString("property=\"{$property}\"", $content,
@@ -280,7 +284,7 @@ function extractJsonLdSchemas(string $html): array
     $schemas = [];
     foreach ($matches[1] as $json) {
         $decoded = json_decode($json, true);
-        expect(json_last_error())->toBe(JSON_ERROR_NONE, 'JSON-LD parse error: ' . json_last_error_msg());
+        expect(json_last_error())->toBe(JSON_ERROR_NONE, 'JSON-LD parse error: '.json_last_error_msg());
         $schemas[] = $decoded;
     }
 

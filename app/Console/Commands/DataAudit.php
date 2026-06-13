@@ -59,8 +59,8 @@ class DataAudit extends Command
 
         $unknownChecks = array_diff($checks, self::CHECK_METHODS);
         if ($unknownChecks) {
-            $this->error('Unknown check(s): ' . implode(', ', $unknownChecks));
-            $this->line('Available: ' . implode(', ', self::CHECK_METHODS));
+            $this->error('Unknown check(s): '.implode(', ', $unknownChecks));
+            $this->line('Available: '.implode(', ', self::CHECK_METHODS));
 
             return self::FAILURE;
         }
@@ -70,7 +70,7 @@ class DataAudit extends Command
 
         $results = collect();
         foreach ($checks as $check) {
-            $method = 'check' . Str::studly($check);
+            $method = 'check'.Str::studly($check);
             if (! method_exists($this, $method)) {
                 $this->warn("  Skipped {$check}: no implementation (expected method {$method})");
 
@@ -82,7 +82,7 @@ class DataAudit extends Command
 
         $durationMs = $startedAt->diffInMilliseconds(now());
 
-        $this->outputResults($results, $durationMs);
+        $this->outputResults($results, (int) $durationMs);
 
         Log::info('data_audit.completed', [
             'duration_ms' => $durationMs,
@@ -107,6 +107,8 @@ class DataAudit extends Command
      * Participants still Pending past their confirmation deadline.
      * The SweepExpiredConfirmations command should catch these — if
      * they accumulate, the sweep is failing or not running.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkStalePendingParticipants(): array
     {
@@ -144,6 +146,8 @@ class DataAudit extends Command
      * Games whose date_time is in the past but status is still 'scheduled'.
      * These should have been completed or canceled by the host. If they
      * accumulate, it suggests a UX gap in post-game resolution.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkGamesPastDueNotResolved(): array
     {
@@ -171,6 +175,8 @@ class DataAudit extends Command
      * nearby_discovery_views rows pointing to deleted users.
      * FK is cascadeOnDelete so these should not exist — if they do,
      * the FK constraint was bypassed or the migration hasn't run.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkOrphanedDiscoveryViews(): array
     {
@@ -197,6 +203,8 @@ class DataAudit extends Command
     /**
      * Failed jobs older than 24 hours — the backlog that hasn't been
      * retried or investigated. This is the "needs attention" signal.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkFailedJobsBacklog(): array
     {
@@ -212,7 +220,7 @@ class DataAudit extends Command
             ->toArray();
 
         $breakdown = collect($byQueue)
-            ->map(fn (int $c, string $q) => "{$q}: {$c}")
+            ->map(fn (mixed $c, mixed $q) => (is_string($q) ? $q : '?').': '.(is_int($c) ? $c : 0))
             ->implode(', ');
 
         return [
@@ -220,7 +228,7 @@ class DataAudit extends Command
             'label' => 'Failed Jobs Backlog',
             'count' => $total,
             'severity' => $total > 10 ? 'error' : ($total > 0 ? 'warning' : 'ok'),
-            'detail' => "total: {$total}, stale(>24h): {$stale}" . ($breakdown ? " [{$breakdown}]" : ''),
+            'detail' => "total: {$total}, stale(>24h): {$stale}".($breakdown ? " [{$breakdown}]" : ''),
             'sample_ids' => [],
         ];
     }
@@ -229,6 +237,8 @@ class DataAudit extends Command
      * Active short links for games/campaigns that are already completed
      * or canceled. The model event should expire these — if it didn't,
      * the link is still resolvable and could confuse users.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkUnexpiredLinksForResolvedEntities(): array
     {
@@ -273,6 +283,8 @@ class DataAudit extends Command
     /**
      * Active campaigns that have been running for >30 days with zero
      * sessions (games). Likely abandoned setup or a broken workflow.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkCampaignsInactiveNoSessions(): array
     {
@@ -310,6 +322,8 @@ class DataAudit extends Command
      * Completed games where at least one approved participant has no
      * attendance_status recorded. The auto-attend sweep should catch
      * these after 48h — if they persist, the sweep is not running.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkCompletedGamesMissingAttendance(): array
     {
@@ -344,6 +358,8 @@ class DataAudit extends Command
      * Applications (game_applications, campaign_applications) still
      * pending for entities that are no longer accepting — completed,
      * canceled, or past their date.
+     *
+     * @return array{label: string, count: int, detail: string, sample_ids?: array<int, mixed>}
      */
     private function checkStalePendingApplications(): array
     {
@@ -376,18 +392,22 @@ class DataAudit extends Command
 
     // ── Output ───────────────────────────────────────────────────────
 
+    /**
+     * @param  Collection<int, array{check: string, label: string, count: int, severity: string, detail: string, sample_ids?: array<int, mixed>}>  $results
+     */
     private function outputResults(Collection $results, int $durationMs): void
     {
         if ($this->jsonOutput) {
-            $this->line(json_encode([
+            $this->line((string) json_encode([
                 'duration_ms' => $durationMs,
-                'checks' => $results->map(fn (array $r) => [
-                    'check' => $r['check'],
-                    'count' => $r['count'],
-                    'severity' => $r['severity'],
-                    'detail' => $r['detail'],
-                    'sample_ids' => $r['sample_ids'],
-                ])->values()->toArray(),
+                'checks' => $results->map(/** @param array{check: string, label: string, count: int, severity: string, detail: string, sample_ids?: array<int, mixed>} $r */
+                    fn (array $r) => [
+                        'check' => $r['check'],
+                        'count' => $r['count'],
+                        'severity' => $r['severity'],
+                        'detail' => $r['detail'],
+                        'sample_ids' => $r['sample_ids'] ?? [],
+                    ])->values()->toArray(),
             ], JSON_PRETTY_PRINT));
 
             return;
@@ -396,12 +416,13 @@ class DataAudit extends Command
         $this->newLine();
         $this->table(
             ['Check', 'Count', 'Severity', 'Detail'],
-            $results->map(fn (array $r) => [
-                $r['label'],
-                $r['count'],
-                $r['severity'],
-                $r['detail'] . ($r['sample_ids'] ? ' (sample: ' . collect($r['sample_ids'])->take(3)->join(', ') . ')' : ''),
-            ])->toArray(),
+            $results->map(/** @param array{check: string, label: string, count: int, severity: string, detail: string, sample_ids?: array<int, mixed>} $r */
+                fn (array $r) => [
+                    $r['label'],
+                    $r['count'],
+                    $r['severity'],
+                    $r['detail'].((isset($r['sample_ids']) && $r['sample_ids']) ? ' (sample: '.collect($r['sample_ids'])->filter(fn (mixed $v) => is_string($v) || is_int($v))->map(fn (mixed $v): string => (string) $v)->take(3)->join(', ').')' : ''),
+                ])->toArray(),
         );
 
         $this->newLine();
@@ -418,11 +439,11 @@ class DataAudit extends Command
     // ── Helpers ──────────────────────────────────────────────────────
 
     /**
-     * @param  \Illuminate\Support\Collection<int, mixed>  $ids
-     * @return string[]
+     * @param  Collection<int, mixed>  $ids
+     * @return array<int, mixed>
      */
     private function sampleIds(Collection $ids, int $limit = 5): array
     {
-        return $ids->take($limit)->map(fn (mixed $id) => (string) $id)->values()->toArray();
+        return array_values($ids->take($limit)->map(fn (mixed $id): string => to_string_id($id))->values()->toArray());
     }
 }

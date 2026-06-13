@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ */
 class BggSyncLog extends Model
 {
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -37,6 +41,7 @@ class BggSyncLog extends Model
         ];
     }
 
+    /** @return BelongsTo<GameSystem, $this> */
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);

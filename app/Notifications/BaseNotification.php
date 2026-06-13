@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Channels\DatabaseChannel;
@@ -24,13 +25,16 @@ use Illuminate\Notifications\Notification;
 abstract class BaseNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
     /**
      * Default channel resolution. In production, NotificationService
      * resolves channels from user preferences and passes them explicitly,
      * so this method is not reached. It exists as a fallback for tests
      * and any direct notify() calls.
+     *
+     * @return array<int, string>
      */
-    public function via(object $notifiable): array
+    public function via(User $notifiable): array
     {
         return [DatabaseChannel::class, MailChannel::class];
     }

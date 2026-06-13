@@ -9,8 +9,8 @@ use App\Jobs\DeletePostHogUserData;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
-use App\Services\DashboardCacheService;
-use App\Services\NotificationService;
+use App\Notifications\EntityCancelled;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -54,7 +54,7 @@ class UserAnonymizationService
      */
     public function anonymize(User $user): void
     {
-        $userId = $user->id;
+        $userId = (string) $user->id;
 
         Log::info('User anonymization started', [
             'user_id' => $userId,
@@ -70,8 +70,8 @@ class UserAnonymizationService
             //    Original email/name are NOT logged to comply with Art. 17 erasure.
             Log::info('User anonymization: audit snapshot', [
                 'user_id' => $userId,
-                'email_hash' => hash_hmac('sha256', $user->email, config('app.key')),
-                'slug_hash' => hash_hmac('sha256', $user->slug ?? '', config('app.key')),
+                'email_hash' => hash_hmac('sha256', $user->email, is_string($key = config('app.key')) ? $key : ''),
+                'slug_hash' => hash_hmac('sha256', $user->slug ?? '', is_string($key) ? $key : ''),
                 'had_analytics_consent' => $hadAnalyticsConsent,
             ]);
 
@@ -144,14 +144,14 @@ class UserAnonymizationService
 
         // 6. Queue PostHog data deletion (outside transaction — API call)
         if ($hadAnalyticsConsent) {
-            DeletePostHogUserData::dispatch($userId);
+            DeletePostHogUserData::dispatch((string) $userId);
         }
 
         // 7. Invalidate discovery caches so the anonymized user doesn't
         //    appear in search, directories, or "people near you" with
         //    stale pre-anonymization data.
         try {
-            app(DashboardCacheService::class)->invalidateForUser($userId);
+            app(DashboardCacheService::class)->invalidateForUser((string) $userId);
         } catch (\Throwable $e) {
             Log::warning('User anonymization: discovery cache invalidation failed', [
                 'user_id' => $userId,
@@ -212,9 +212,12 @@ class UserAnonymizationService
                     ->get();
 
                 foreach ($participants as $participant) {
+                    if ($participant->user === null) {
+                        continue;
+                    }
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new \App\Notifications\EntityCancelled($game),
+                        new EntityCancelled($game),
                         NotificationCategory::GameCancelled,
                     );
                 }
@@ -248,9 +251,12 @@ class UserAnonymizationService
                     ->get();
 
                 foreach ($participants as $participant) {
+                    if ($participant->user === null) {
+                        continue;
+                    }
                     app(NotificationService::class)->send(
                         $participant->user,
-                        new \App\Notifications\EntityCancelled($campaign),
+                        new EntityCancelled($campaign),
                         NotificationCategory::CampaignCancelled,
                     );
                 }
@@ -273,7 +279,9 @@ class UserAnonymizationService
 
             if ($mediaCount > 0) {
                 // Delete each media file properly (removes files from disk + DB records)
-                $user->media->each(fn (Media $media) => $media->delete());
+                $mediaFiles = $user->media;
+                /** @var Collection<int, Media> $mediaFiles */
+                $mediaFiles->each(fn (Media $media) => $media->delete());
 
                 Log::debug('User anonymization: deleted media files', [
                     'user_id' => $user->id,

@@ -1,14 +1,14 @@
 <?php
 
-
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\GM\GmWorkspace;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
@@ -256,7 +256,7 @@ describe('GmWorkspace Participant Stats', function () {
         // The response should contain 1 repeat player and 2 unique players
         // We check the component data via Livewire test
         Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
+            ->test(GmWorkspace::class)
             ->assertViewHas('totalUniquePlayers', 2)
             ->assertViewHas('repeatPlayers', 1);
     });
@@ -265,7 +265,7 @@ describe('GmWorkspace Participant Stats', function () {
         $gm = $this->createSubscribedGm();
 
         Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
+            ->test(GmWorkspace::class)
             ->assertViewHas('totalUniquePlayers', 0)
             ->assertViewHas('repeatPlayers', 0)
             ->assertViewHas('totalGames', 0);
@@ -276,7 +276,7 @@ describe('GmWorkspace Participant Stats', function () {
         Game::factory()->count(5)->create(['owner_id' => $gm->id]);
 
         Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
+            ->test(GmWorkspace::class)
             ->assertViewHas('totalGames', 5);
     });
 
@@ -292,7 +292,7 @@ describe('GmWorkspace Participant Stats', function () {
         ]);
 
         Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
+            ->test(GmWorkspace::class)
             ->assertViewHas('activeCampaigns', 3);
     });
 });

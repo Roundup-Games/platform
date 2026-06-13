@@ -1,13 +1,16 @@
 <?php
 
+use App\Models\Game;
 use App\Models\User;
+use App\Notifications\EntityCancelled;
 use App\Notifications\EntityInvitation;
 use App\Notifications\NewFollower;
 use App\Notifications\ParticipantJoined;
 use App\Services\NotificationQueryService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 beforeEach(function () {
-    $this->service = new NotificationQueryService();
+    $this->service = new NotificationQueryService;
     $this->user = User::factory()->create();
 });
 
@@ -25,12 +28,12 @@ describe('getGroupedForUser', function () {
         $group = $groups->first();
         expect($group->type)->toBe('NewFollower');
         expect($group->count)->toBe(1);
-        expect($group->actor_names)->toBe(['Alice']);
-        expect($group->display_string)->toBe('Alice followed you');
-        expect($group->is_read)->toBeFalse();
+        expect($group->actorNames)->toBe(['Alice']);
+        expect($group->displayString)->toBe('Alice followed you');
+        expect($group->isRead)->toBeFalse();
         // group_key includes type and date
-        expect($group->group_key)->toStartWith('NewFollower_');
-        expect($group->group_key)->toContain(now()->toDateString());
+        expect($group->groupKey)->toStartWith('NewFollower_');
+        expect($group->groupKey)->toContain(now()->toDateString());
     });
 
     it('groups multiple same-type notifications on the same day', function () {
@@ -49,15 +52,15 @@ describe('getGroupedForUser', function () {
         $group = $groups->first();
         expect($group->type)->toBe('NewFollower');
         expect($group->count)->toBe(3);
-        expect($group->actor_names)->toHaveCount(3);
-        expect($group->display_string)->toBe('Alice, Bob, and 1 other followed you');
-        expect($group->is_read)->toBeFalse();
+        expect($group->actorNames)->toHaveCount(3);
+        expect($group->displayString)->toBe('Alice, Bob, and 1 other followed you');
+        expect($group->isRead)->toBeFalse();
     });
 
     it('creates separate groups for different notification types', function () {
         $follower = User::factory()->create(['name' => 'Alice']);
         $inviter = User::factory()->create();
-        $game = \App\Models\Game::factory()->create();
+        $game = Game::factory()->create();
 
         $this->user->notify(new NewFollower($follower));
         $this->user->notify(new EntityInvitation($game, $inviter));
@@ -78,7 +81,7 @@ describe('getGroupedForUser', function () {
         $this->user->notifications()->first()->markAsRead();
 
         $groups = $this->service->getGroupedForUser($this->user);
-        expect($groups->first()->is_read)->toBeTrue();
+        expect($groups->first()->isRead)->toBeTrue();
     });
 
     it('marks group as unread when any notification is unread', function () {
@@ -90,7 +93,7 @@ describe('getGroupedForUser', function () {
         $this->user->notifications()->first()->markAsRead();
 
         $groups = $this->service->getGroupedForUser($this->user);
-        expect($groups->first()->is_read)->toBeFalse();
+        expect($groups->first()->isRead)->toBeFalse();
     });
 
     it('produces two-actor display string correctly', function () {
@@ -101,7 +104,7 @@ describe('getGroupedForUser', function () {
         $this->user->notify(new NewFollower($follower2));
 
         $groups = $this->service->getGroupedForUser($this->user);
-        expect($groups->first()->display_string)->toBe('Alice and Bob followed you');
+        expect($groups->first()->displayString)->toBe('Alice and Bob followed you');
     });
 
     it('deduplicates actor names', function () {
@@ -115,8 +118,8 @@ describe('getGroupedForUser', function () {
         $group = $groups->first();
 
         expect($group->count)->toBe(2);
-        expect($group->actor_names)->toBe(['Alice']);
-        expect($group->display_string)->toBe('Alice followed you');
+        expect($group->actorNames)->toBe(['Alice']);
+        expect($group->displayString)->toBe('Alice followed you');
     });
 
     it('resolves category from notification type', function () {
@@ -137,7 +140,7 @@ describe('getPaginatedForUser', function () {
 
         $paginator = $this->service->getPaginatedForUser($this->user);
 
-        expect($paginator)->toBeInstanceOf(\Illuminate\Contracts\Pagination\LengthAwarePaginator::class);
+        expect($paginator)->toBeInstanceOf(LengthAwarePaginator::class);
         expect($paginator->items())->toHaveCount(1);
         expect($paginator->total())->toBe(1);
     });
@@ -168,7 +171,7 @@ describe('getPaginatedForUser', function () {
 
         $group = $items[0];
         expect($group->count)->toBe(2);
-        expect($group->display_string)->toBe('Alice and Bob followed you');
+        expect($group->displayString)->toBe('Alice and Bob followed you');
     });
 });
 
@@ -176,37 +179,37 @@ describe('getPaginatedForUser', function () {
 
 describe('display strings', function () {
     it('handles notification types without actors (status changes)', function () {
-        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Epic Quest']]);
-        $this->user->notify(new \App\Notifications\EntityCancelled($game));
+        $game = Game::factory()->create(['name' => ['en' => 'Epic Quest']]);
+        $this->user->notify(new EntityCancelled($game));
 
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();
 
-        expect($group->actor_names)->toBeEmpty();
-        expect($group->display_string)->toBe('Game cancelled: Epic Quest');
+        expect($group->actorNames)->toBeEmpty();
+        expect($group->displayString)->toBe('Game cancelled: Epic Quest');
     });
 
     it('handles invitation display strings with entity context', function () {
         $inviter = User::factory()->create(['name' => 'Dana']);
-        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'Test Game']]);
+        $game = Game::factory()->create(['name' => ['en' => 'Test Game']]);
 
         $this->user->notify(new EntityInvitation($game, $inviter));
 
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();
 
-        expect($group->display_string)->toBe('Dana invited you to a game');
+        expect($group->displayString)->toBe('Dana invited you to a game');
     });
 
     it('handles participant joined with entity context', function () {
         $participant = User::factory()->create(['name' => 'Eve']);
-        $game = \App\Models\Game::factory()->create(['name' => ['en' => 'My Game']]);
+        $game = Game::factory()->create(['name' => ['en' => 'My Game']]);
 
         $this->user->notify(new ParticipantJoined($participant, $game, 'game'));
 
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();
 
-        expect($group->display_string)->toBe('Eve joined');
+        expect($group->displayString)->toBe('Eve joined');
     });
 });

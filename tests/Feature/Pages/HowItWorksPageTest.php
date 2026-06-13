@@ -1,6 +1,9 @@
 <?php
 
-use function Pest\Laravel\{get, actingAs};
+use App\Models\User;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 describe('HowItWorksPage', function () {
     it('renders the how-it-works page for guests', function () {
@@ -15,7 +18,7 @@ describe('HowItWorksPage', function () {
     });
 
     it('shows only browse sessions CTA for authenticated users', function () {
-        actingAs(\App\Models\User::factory()->create([
+        actingAs(User::factory()->create([
             'profile_complete' => true,
         ]));
 

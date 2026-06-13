@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -475,6 +475,7 @@ describe('structured logging', function () {
 
         Log::shouldReceive('info')->with('waitlist.confirmed', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->confirmPromotion($promoted);
     });
@@ -493,6 +494,7 @@ describe('structured logging', function () {
         Log::shouldReceive('warning')->with('waitlist.confirmation_expired', Mockery::on(fn ($ctx) => isset($ctx['game_id'], $ctx['participant_id'])))->once();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         $this->service->handleExpiredConfirmation($promoted);
     });

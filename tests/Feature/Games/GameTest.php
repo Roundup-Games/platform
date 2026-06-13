@@ -2,13 +2,25 @@
 
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\RelationshipType;
+use App\Livewire\Games\ApplyToGame;
+use App\Livewire\Games\CreateGame;
+use App\Livewire\Games\GameDetail;
+use App\Livewire\Games\ManageParticipants;
+use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
+use App\Models\UserRelationship;
 use Illuminate\Support\Facades\Gate;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
+use function Pest\Laravel\get;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -87,7 +99,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
         $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Epic One-Shot Adventure')
             ->set('game_system_id', $system->id)
@@ -113,7 +125,7 @@ describe('CreateGame Component — Direct Set + Save', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Quick Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -132,10 +144,10 @@ describe('CreateGame Component — Direct Set + Save', function () {
 
     it('stores location_id from LocationPicker', function () {
         $user = gameTestCreateUserWithPermission();
-        $location = \App\Models\Location::factory()->create();
+        $location = Location::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Location Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -158,7 +170,7 @@ describe('Game Detail Route', function () {
         $game = gameTestCreateGame(['visibility' => 'public', 'name' => ['en' => 'Open Session']]);
 
         // Use Livewire directly since the layout has auth()-dependent code
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertSee('Open Session');
     });
@@ -203,11 +215,11 @@ describe('Game Invite Participant', function () {
     it('creates pending invited participant for a friend', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
         $friend = User::factory()->create();
-        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
-        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants')
             ->assertHasNoErrors();
@@ -224,7 +236,7 @@ describe('Game Invite Participant', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [])
             ->call('inviteParticipants')
             ->assertHasErrors(['selectedFriendIds']);
@@ -234,7 +246,7 @@ describe('Game Invite Participant', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$owner->id])
             ->call('inviteParticipants');
 
@@ -248,8 +260,8 @@ describe('Game Invite Participant', function () {
     it('rejects duplicate invite silently', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
         $friend = User::factory()->create();
-        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
-        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
 
         GameParticipant::create([
             'game_id' => $game->id,
@@ -259,7 +271,7 @@ describe('Game Invite Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -271,7 +283,7 @@ describe('Game Invite Participant', function () {
         $stranger = User::factory()->create();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$stranger->id])
             ->call('inviteParticipants');
 
@@ -285,11 +297,11 @@ describe('Game Invite Participant', function () {
     it('resets selected friend IDs after success', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner();
         $friend = User::factory()->create();
-        \App\Models\UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => \App\Enums\RelationshipType::Follow]);
-        \App\Models\UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => \App\Enums\RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $owner->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $owner->id, 'type' => RelationshipType::Follow]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants')
             ->assertSet('selectedFriendIds', []);
@@ -302,7 +314,7 @@ describe('Game Application — ApplyToGame', function () {
         $user = gameTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Let me in!')
             ->call('submitApplication')
             ->assertRedirect(route('games.show', $game->id));
@@ -327,11 +339,11 @@ describe('Game Application — ApplyToGame', function () {
         $user = gameTestCreateOwner();
 
         // Make user a friend of the owner so they can view/apply
-        \App\Models\UserRelationship::follow($owner, $user);
-        \App\Models\UserRelationship::follow($user, $owner);
+        UserRelationship::follow($owner, $user);
+        UserRelationship::follow($user, $owner);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Please consider me')
             ->call('submitApplication');
 
@@ -362,7 +374,7 @@ describe('Game Application — ApplyToGame', function () {
         ['owner' => $owner, 'game' => $game] = gameTestCreateGameWithOwner(['visibility' => 'public']);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->call('submitApplication')
             ->assertHasErrors(['message']);
     });
@@ -385,7 +397,7 @@ describe('Game Application — ApplyToGame', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->assertSee('already a participant');
     });
 
@@ -410,7 +422,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', $participant->id);
 
         assertDatabaseHas('game_participants', [
@@ -444,7 +456,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('rejectApplication', $participant->id);
 
         // Records are deleted (so user can re-apply)
@@ -470,7 +482,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', $participant->id);
 
         // Status unchanged
@@ -495,7 +507,7 @@ describe('Game Remove/Cancel Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
         // Record is soft-removed (status changed, not hard-deleted)
@@ -520,7 +532,7 @@ describe('Game Remove/Cancel Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $ownerParticipant->id);
 
         assertDatabaseHas('game_participants', [
@@ -541,7 +553,7 @@ describe('Game Remove/Cancel Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('cancelInvite', $participant->id);
 
         // Record is deleted (so user can be re-invited)
@@ -560,7 +572,7 @@ describe('CreateGame — Duration', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'No Duration')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -576,7 +588,7 @@ describe('CreateGame — Duration', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('expected_duration', '2.3')
             ->assertSet('expected_duration', '2.5');
@@ -587,7 +599,7 @@ describe('CreateGame — Duration', function () {
         $system = GameSystem::factory()->create(['average_play_time' => 120]); // 2 hours
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Auto Duration')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -608,7 +620,7 @@ describe('CreateGame — Player Counts', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Bad Range')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -624,7 +636,7 @@ describe('CreateGame — Vibe Flags', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Vibey Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -646,7 +658,7 @@ describe('CreateGame — Vibe Flags', function () {
         $user = gameTestCreateUserWithPermission();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Test')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -675,7 +687,7 @@ describe('CreateGame — Full Auto-fill from Game System', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Full Auto Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -703,7 +715,7 @@ describe('CreateGame — Visibility Gating', function () {
         $user = gameTestCreateUserWithPermission(canCreatePublic: true);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Public Game')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -721,7 +733,7 @@ describe('CreateGame — Visibility Gating', function () {
         $user = gameTestCreateUserWithPermission(canCreatePublic: false);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_type', 'board_game')
             ->set('name', 'Attempted Public')
             ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
@@ -743,7 +755,7 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
         $system = GameSystem::factory()->create(['bgg_average_weight' => 1.5]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_system_id', $system->id)
             ->assertSet('experience_level', 'beginner');
     });
@@ -753,7 +765,7 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
         $system = GameSystem::factory()->create(['bgg_average_weight' => 2.8]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_system_id', $system->id)
             ->assertSet('experience_level', 'intermediate');
     });
@@ -763,7 +775,7 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
         $system = GameSystem::factory()->create(['bgg_average_weight' => 4.2]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('game_system_id', $system->id)
             ->assertSet('experience_level', 'advanced');
     });
@@ -773,7 +785,7 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
         $system = GameSystem::factory()->create(['bgg_average_weight' => 4.0]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\CreateGame::class)
+            ->test(CreateGame::class)
             ->set('experience_level', 'beginner')
             ->set('game_system_id', $system->id)
             ->assertSet('experience_level', 'beginner');
@@ -786,13 +798,13 @@ describe('CreateGame — Autofill Experience Level from BGG Weight', function ()
 
 describe('GameDetail Component — Campaign Context', function () {
     it('shows campaign link when game belongs to campaign', function () {
-        $campaign = \App\Models\Campaign::factory()->create(['name' => ['en' => 'The Grand Adventure']]);
+        $campaign = Campaign::factory()->create(['name' => ['en' => 'The Grand Adventure']]);
         $game = gameTestCreateGame([
             'campaign_id' => $campaign->id,
             'visibility' => 'public',
         ]);
 
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertSee('Part of Campaign: The Grand Adventure')
             ->assertSee(route('campaigns.detail', $campaign->id));
     });
@@ -800,8 +812,7 @@ describe('GameDetail Component — Campaign Context', function () {
     it('hides campaign link when game has no campaign', function () {
         $game = gameTestCreateGame(['visibility' => 'public']);
 
-        Livewire\Livewire::test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertDontSee('Part of Campaign');
     });
 });
-

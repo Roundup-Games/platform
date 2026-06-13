@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\VibeFlag;
 use App\Models\GameSystem;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Stateless service for resolving user preference logic.
@@ -24,7 +25,7 @@ class UserPreferenceResolver
      *  - Handles circular safety: a system can be both a base (has expansions)
      *    and an expansion (has base_game_id).
      *
-     * @return array{favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, avoided: \Illuminate\Database\Eloquent\Collection<int, GameSystem>, implied_favorites: \Illuminate\Database\Eloquent\Collection<int, GameSystem>}
+     * @return array{favorites: Collection<int, GameSystem>, avoided: Collection<int, GameSystem>, implied_favorites: Collection<int, GameSystem>}
      */
     public function resolvedGameSystemPreferences(User $user): array
     {
@@ -34,7 +35,7 @@ class UserPreferenceResolver
 
         // Collect implied favorites from expansions of favorited base games
         // Only include expansions that are NOT explicitly avoided (avoid wins)
-        $impliedIds = collect();
+        $impliedIds = new Collection;
         foreach ($favorites as $system) {
             foreach ($system->expansions as $expansion) {
                 if (! $avoidedIds->has($expansion->id)) {
@@ -88,14 +89,14 @@ class UserPreferenceResolver
     {
         $explicitFavorites = $user->favoriteVibes()
             ->pluck('vibe_preference_value')
-            ->map(fn (VibeFlag $flag) => $flag->value)
+            ->map(fn (mixed $flag) => $flag instanceof VibeFlag ? $flag->value : (is_string($flag) ? $flag : ''))
             ->unique()
             ->values()
             ->all();
 
         $explicitAvoids = $user->avoidedVibes()
             ->pluck('vibe_preference_value')
-            ->map(fn (VibeFlag $flag) => $flag->value)
+            ->map(fn (mixed $flag) => $flag instanceof VibeFlag ? $flag->value : (is_string($flag) ? $flag : ''))
             ->unique()
             ->values()
             ->all();
@@ -123,8 +124,8 @@ class UserPreferenceResolver
         }
 
         return [
-            'favorites' => array_values(array_keys($favoriteSet)),
-            'avoided' => array_values(array_keys($avoidSet)),
+            'favorites' => array_keys($favoriteSet),
+            'avoided' => array_keys($avoidSet),
         ];
     }
 }

@@ -17,7 +17,7 @@ class PushSubscriptionFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'endpoint' => 'https://fcm.googleapis.com/fcm/send/' . fake()->unique()->sha1,
+            'endpoint' => 'https://fcm.googleapis.com/fcm/send/'.fake()->unique()->sha1,
             'p256h_key' => base64_encode(random_bytes(65)),
             'auth_token' => base64_encode(random_bytes(16)),
             'user_agent' => fake()->optional()->userAgent(),

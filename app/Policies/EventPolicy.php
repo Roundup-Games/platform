@@ -44,7 +44,7 @@ class EventPolicy
         }
 
         // Organizers can always view their own events
-        if ($event->organizer_id === $user->id) {
+        if ((string) $event->organizer_id === (string) $user->id) {
             return true;
         }
 
@@ -66,7 +66,7 @@ class EventPolicy
     public function update(User $user, Event $event): bool
     {
         // Organizer can always update their own event
-        if ($event->organizer_id === $user->id) {
+        if ((string) $event->organizer_id === (string) $user->id) {
             return true;
         }
 
@@ -80,7 +80,7 @@ class EventPolicy
     public function delete(User $user, Event $event): bool
     {
         // Organizer can delete their own event
-        if ($event->organizer_id === $user->id) {
+        if ((string) $event->organizer_id === (string) $user->id) {
             return true;
         }
 

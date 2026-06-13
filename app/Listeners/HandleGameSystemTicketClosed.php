@@ -4,10 +4,14 @@ namespace App\Listeners;
 
 use App\Enums\NotificationCategory;
 use App\Models\GameSystem;
+use App\Models\User;
 use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
+use App\Services\GameSystemRequestService;
 use App\Services\NotificationService;
 use Escalated\Laravel\Events\TicketClosed;
+use Escalated\Laravel\Models\Reply;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -25,13 +29,14 @@ use Illuminate\Support\Facades\Log;
 class HandleGameSystemTicketClosed implements ShouldQueue
 {
     use InteractsWithQueue;
+
     /**
      * Handle the event.
      */
     public function handle(TicketClosed $event): void
     {
         $ticket = $event->ticket;
-        $service = app(\App\Services\GameSystemRequestService::class);
+        $service = app(GameSystemRequestService::class);
 
         if (! $service->isGameSystemRequestTicket($ticket)) {
             return;
@@ -48,11 +53,13 @@ class HandleGameSystemTicketClosed implements ShouldQueue
 
     /**
      * Handle duplicate flow: notify requester about the existing game system.
+     *
+     * @param  array<string, mixed>  $metadata
      */
-    protected function handleDuplicate($ticket, array $metadata): void
+    protected function handleDuplicate(Ticket $ticket, array $metadata): void
     {
-        $existingSystemId = $metadata['duplicate_of_game_system_id'];
-        $existingSystem = GameSystem::find($existingSystemId);
+        $existingSystemId = $metadata['duplicate_of_game_system_id'] ?? null;
+        $existingSystem = GameSystem::find(is_string($existingSystemId) ? $existingSystemId : null);
 
         if (! $existingSystem) {
             Log::error('Duplicate game system not found for ticket', [
@@ -79,7 +86,7 @@ class HandleGameSystemTicketClosed implements ShouldQueue
     /**
      * Handle rejection flow: extract rejection reason from internal note, notify requester.
      */
-    protected function handleRejection($ticket): void
+    protected function handleRejection(Ticket $ticket): void
     {
         $rejectionReason = $this->extractRejectionReason($ticket);
 
@@ -102,9 +109,9 @@ class HandleGameSystemTicketClosed implements ShouldQueue
     /**
      * Extract rejection reason from the latest internal note on the ticket.
      */
-    protected function extractRejectionReason($ticket): ?string
+    protected function extractRejectionReason(Ticket $ticket): ?string
     {
-        // Load internal notes if not already loaded
+        /** @var Reply|null $latestNote */
         $latestNote = $ticket->internalNotes()
             ->latest()
             ->first();
@@ -115,13 +122,14 @@ class HandleGameSystemTicketClosed implements ShouldQueue
     /**
      * Send notification to the ticket requester.
      */
-    protected function notifyRequester($ticket, callable $notificationFactory): void
+    protected function notifyRequester(Ticket $ticket, callable $notificationFactory): void
     {
         $requester = $ticket->requester;
 
-        if (! $requester) {
-            Log::warning('Cannot send notification — no requester on ticket', [
+        if (! ($requester instanceof User)) {
+            Log::warning('Cannot send notification — requester is not a User', [
                 'ticket_id' => $ticket->id,
+                'requester_type' => $requester ? get_class($requester) : null,
             ]);
 
             return;

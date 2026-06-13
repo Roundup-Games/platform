@@ -4,7 +4,7 @@ namespace App\Livewire\Billing;
 
 use App\Models\MembershipType;
 use App\Services\GmRoleService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -18,7 +18,7 @@ class BillingPortal extends Component
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Build the Paddle customer portal URL if the user has a Paddle ID
         if ($user->paddle_id) {
@@ -28,7 +28,7 @@ class BillingPortal extends Component
 
     public function cancelSubscription(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $subscription = $user->subscription();
 
         if (! $subscription || ! $subscription->active()) {
@@ -61,7 +61,7 @@ class BillingPortal extends Component
 
     public function resumeSubscription(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $subscription = $user->subscription();
 
         if (! $subscription || ! $subscription->onGracePeriod()) {
@@ -93,7 +93,7 @@ class BillingPortal extends Component
 
     public function cancelGmSubscription(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if (! $user->hasGmSubscription()) {
             session()->flash('error', __('billing.error_no_active_gm_subscription_to_cancel'));
@@ -112,11 +112,11 @@ class BillingPortal extends Component
 
     public function reactivateGmSubscription(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Check if they have a canceled GM subscription they can reactivate
         $canceledGmSub = $user->localSubscriptions()
-            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
             ->where('status', 'canceled')
             ->first();
 
@@ -137,7 +137,7 @@ class BillingPortal extends Component
 
     public function activateLocalPlan(string $planId): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $plan = MembershipType::active()->findOrFail($planId);
 
         if ($plan->type !== 'local') {
@@ -178,16 +178,16 @@ class BillingPortal extends Component
         session()->flash('error', __('billing.error_this_plan_is_not_available_for_purchase_yet'));
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $subscription = $user->subscription();
         $transactions = $user->transactions()->latest('billed_at')->take(10)->get();
         $membershipTypes = MembershipType::active()->orderBy('price_cents')->get();
 
         // Check for active GM (local) subscription
         $gmSubscription = $user->localSubscriptions()
-            ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+            ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
             ->first(); // active or canceled
 
         return view('livewire.billing.billing-portal', [

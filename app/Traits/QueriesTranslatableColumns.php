@@ -2,6 +2,9 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
 /**
  * Add locale-scoped WHERE clauses for spatie-translatable JSON columns.
  *
@@ -35,14 +38,21 @@ trait QueriesTranslatableColumns
      *
      * Handles LIKE wildcard escaping internally. Callers should pass the raw
      * (unescaped) search term — do NOT pre-escape with escapeLikeWildcards().
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @param  literal-string  $field
      */
-    protected function whereTranslatableLike($query, string $field, string $search): void
+    protected function whereTranslatableLike(Builder $query, string $field, string $search): void
     {
         $this->assertTranslatableColumn($field);
 
         $locale = app()->getLocale();
         $escaped = $this->escapeTranslatableLike($search);
-        $query->whereRaw("{$field}->>? ILIKE ?", [$locale, "%{$escaped}%"]);
+        /** @var literal-string $sql */
+        $sql = "{$field}->>? ILIKE ?";
+        $query->whereRaw($sql, [$locale, "%{$escaped}%"]);
     }
 
     /**
@@ -51,14 +61,21 @@ trait QueriesTranslatableColumns
      *
      * Handles LIKE wildcard escaping internally. Callers should pass the raw
      * (unescaped) search term — do NOT pre-escape with escapeLikeWildcards().
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @param  literal-string  $field
      */
-    protected function orWhereTranslatableLike($query, string $field, string $search): void
+    protected function orWhereTranslatableLike(Builder $query, string $field, string $search): void
     {
         $this->assertTranslatableColumn($field);
 
         $locale = app()->getLocale();
         $escaped = $this->escapeTranslatableLike($search);
-        $query->orWhereRaw("{$field}->>? ILIKE ?", [$locale, "%{$escaped}%"]);
+        /** @var literal-string $sql */
+        $sql = "{$field}->>? ILIKE ?";
+        $query->orWhereRaw($sql, [$locale, "%{$escaped}%"]);
     }
 
     /**
@@ -82,7 +99,7 @@ trait QueriesTranslatableColumns
     {
         if (! in_array($field, $this->knownTranslatableColumns, true)) {
             throw new \InvalidArgumentException(
-                "Column '{$field}' is not a known translatable column. " .
+                "Column '{$field}' is not a known translatable column. ".
                 'Add it to $knownTranslatableColumns if it should be queryable.'
             );
         }

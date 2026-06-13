@@ -2,40 +2,41 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\ParticipantRole;
 use App\Enums\RelationshipType;
+use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Services\Geohash;
 use App\Services\PeopleDiscoveryService;
 use App\Services\ProfileVisibilityResolver;
-use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
 
 class PeopleDiscoveryServiceTest extends TestCase
 {
-    use DatabaseTransactions;
     use CreatesUsers;
+    use DatabaseTransactions;
 
     private PeopleDiscoveryService $service;
 
     // Berlin coordinates (Mitte area)
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new PeopleDiscoveryService(new ProfileVisibilityResolver());
+        $this->service = new PeopleDiscoveryService(new ProfileVisibilityResolver);
         Cache::flush();
     }
 
@@ -59,7 +60,7 @@ class PeopleDiscoveryServiceTest extends TestCase
     private function attachToTeam(User $user, Team $team): void
     {
         DB::table('team_members')->insert([
-            'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+            'id' => (string) Str::orderedUuid(),
             'team_id' => $team->id,
             'user_id' => $user->id,
             'role' => ParticipantRole::Player->value,
@@ -676,7 +677,7 @@ class PeopleDiscoveryServiceTest extends TestCase
         // discover() is cache-only — it should never dispatch jobs
         $this->discoverWithStatus($viewer, self::LAT, self::LNG);
 
-        Queue::assertNotPushed(\App\Jobs\UpdateUserDiscoveryCache::class);
+        Queue::assertNotPushed(UpdateUserDiscoveryCache::class);
     }
 
     #[Test]
@@ -903,13 +904,10 @@ class PeopleDiscoveryServiceTest extends TestCase
     }
 
     /**
-     * Call the private jaccard() method via reflection.
+     * Call the jaccard() method directly (static, no reflection needed).
      */
     private function callJaccard(array $a, array $b): float
     {
-        $method = new \ReflectionMethod(PeopleDiscoveryService::class, 'jaccard');
-        $method->setAccessible(true);
-
-        return $method->invoke($this->service, $a, $b);
+        return PeopleDiscoveryService::jaccard($a, $b);
     }
 }

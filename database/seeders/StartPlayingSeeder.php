@@ -12,9 +12,13 @@ use Illuminate\Support\Str;
 class StartPlayingSeeder extends Seeder
 {
     protected int $genreCount = 0;
+
     protected int $mechanicCount = 0;
+
     protected int $publisherCount = 0;
+
     protected int $systemCount = 0;
+
     protected int $parseFailures = 0;
 
     /**
@@ -48,7 +52,7 @@ class StartPlayingSeeder extends Seeder
         $this->seedSystems($systemsData, $genreLookup, $mechanicLookup, $publisherLookup);
 
         // 7. Summary
-        $this->command->info("StartPlayingSeeder complete:");
+        $this->command->info('StartPlayingSeeder complete:');
         $this->command->info("  Genres seeded:     {$this->genreCount}");
         $this->command->info("  Mechanics seeded:   {$this->mechanicCount}");
         $this->command->info("  Publishers seeded:  {$this->publisherCount}");
@@ -79,7 +83,7 @@ class StartPlayingSeeder extends Seeder
             );
 
             // Update description if the category already existed without one
-            if ($description && !$category->description) {
+            if ($description && ! $category->description) {
                 $category->update(['description' => $description]);
             }
 
@@ -109,7 +113,7 @@ class StartPlayingSeeder extends Seeder
                 ]
             );
 
-            if ($description && !$model->description) {
+            if ($description && ! $model->description) {
                 $model->update(['description' => $description]);
             }
 
@@ -128,7 +132,7 @@ class StartPlayingSeeder extends Seeder
             $slug = $genre['slug'];
             $similarSlugs = $genre['similar_genres'] ?? [];
 
-            if (empty($similarSlugs) || !isset($genreLookup[$slug])) {
+            if (empty($similarSlugs) || ! isset($genreLookup[$slug])) {
                 continue;
             }
 
@@ -160,7 +164,7 @@ class StartPlayingSeeder extends Seeder
             $slug = $mechanic['slug'];
             $similarSlugs = $mechanic['similar_mechanics'] ?? [];
 
-            if (empty($similarSlugs) || !isset($mechanicLookup[$slug])) {
+            if (empty($similarSlugs) || ! isset($mechanicLookup[$slug])) {
                 continue;
             }
 
@@ -196,7 +200,7 @@ class StartPlayingSeeder extends Seeder
 
             $slug = Str::slug($publisherName);
 
-            if (!isset($lookup[$slug])) {
+            if (! isset($lookup[$slug])) {
                 $publisher = GameSystemPublisher::firstOrCreate(
                     ['slug' => $slug],
                     ['name' => $publisherName]
@@ -366,6 +370,7 @@ class StartPlayingSeeder extends Seeder
                     }
                 }
             }
+
             return $item;
         }, $data);
     }
@@ -442,8 +447,9 @@ class StartPlayingSeeder extends Seeder
     {
         $path = database_path("seeders/data/{$filename}");
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             $this->command->error("Data file not found: {$path}");
+
             return [];
         }
 

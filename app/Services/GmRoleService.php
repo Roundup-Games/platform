@@ -30,6 +30,7 @@ class GmRoleService
 
         if (! $gmPlan) {
             Log::error('GM plan not found in membership_types. Ensure MembershipTypeSeeder has been run.');
+
             return false;
         }
 
@@ -90,7 +91,7 @@ class GmRoleService
         DB::transaction(function () use ($user) {
             // Mark local subscription as canceled
             $subscription = LocalSubscription::where('user_id', $user->id)
-                ->whereHas('membershipType', fn($q) => $q->whereJsonContains('metadata->gm_plan', true))
+                ->whereHas('membershipType', fn ($q) => $q->whereJsonContains('metadata->gm_plan', true))
                 ->active()
                 ->first();
 

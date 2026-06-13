@@ -98,7 +98,7 @@ class HandleExpiredConfirmation implements ShouldQueue
 
         Log::info('waitlist.expired_confirmation_job.processing', [
             'participant_id' => $participant->id,
-            $meta['foreignKey'] => $participant->{$meta['foreignKey']},
+            $meta->foreignKey => $participant->{$meta->foreignKey},
             'expired_at' => $participant->confirmation_expires_at?->toIso8601String(),
         ]);
 

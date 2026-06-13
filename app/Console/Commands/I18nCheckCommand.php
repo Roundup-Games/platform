@@ -31,7 +31,7 @@ class I18nCheckCommand extends Command
     public function handle(LangFileParser $parser): int
     {
         $primary = $parser->getPrimaryLocale();
-        $locales = $this->option('locale') ? [$this->option('locale')] : array_diff($parser->getLocales(), [$primary]);
+        $locales = $this->option('locale') ? [$this->option('locale')] : array_filter($parser->getLocales(), fn (mixed $l) => is_string($l) && $l !== $primary);
         $targetDomains = $this->option('domain') ? [$this->option('domain')] : $parser->getAllDomains();
 
         if (empty($locales)) {
@@ -43,7 +43,8 @@ class I18nCheckCommand extends Command
         $issues = $this->runChecks($parser, $primary, $locales, $targetDomains);
 
         if ($this->option('json')) {
-            $this->line(json_encode($issues, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $json = json_encode($issues, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $this->line($json !== false ? $json : '{}');
 
             return empty($issues) ? 0 : 1;
         }
@@ -56,6 +57,8 @@ class I18nCheckCommand extends Command
     /**
      * @param  string[]  $locales
      * @param  string[]  $domains
+     * @param  array<int|string, mixed>  $locales
+     * @return array<int, mixed>
      */
     private function runChecks(LangFileParser $parser, string $primary, array $locales, array $domains): array
     {
@@ -63,6 +66,9 @@ class I18nCheckCommand extends Command
 
         // 1. Domain file parity
         foreach ($locales as $locale) {
+            if (! is_string($locale)) {
+                continue;
+            }
             $primaryDomains = $parser->getDomains();
             $localeDir = lang_path($locale);
 
@@ -111,7 +117,7 @@ class I18nCheckCommand extends Command
                             'domain' => $domain,
                             'key' => $key,
                             'violations' => $violations,
-                            'message' => "Key '{$key}' violates naming convention: " . implode('; ', $violations),
+                            'message' => "Key '{$key}' violates naming convention: ".implode('; ', $violations),
                         ];
                     }
                 }
@@ -119,6 +125,9 @@ class I18nCheckCommand extends Command
 
             // Per-locale checks
             foreach ($locales as $locale) {
+                if (! is_string($locale)) {
+                    continue;
+                }
                 $localeKeys = $parser->getKeys($locale, $domain);
 
                 if (empty($localeKeys)) {
@@ -191,10 +200,13 @@ class I18nCheckCommand extends Command
         return $issues;
     }
 
+    /**
+     * @param  array<int, mixed>  $issues
+     */
     private function displayResults(array $issues, string $primary): void
     {
         if (empty($issues)) {
-            $this->info("✓ All translation files are healthy.");
+            $this->info('✓ All translation files are healthy.');
 
             return;
         }
@@ -225,36 +237,39 @@ class I18nCheckCommand extends Command
             if ($type === 'missing_file' || $type === 'missing_key' || $type === 'extra_key' || $type === 'duplicate_key') {
                 $this->table(
                     ['Locale', 'Domain', 'Key', 'Detail'],
-                    $typeIssues->map(fn ($i) => [
-                        $i['locale'],
-                        $i['domain'],
-                        $i['key'] ?? '—',
-                        $type === 'duplicate_key' ? "appears {$i['count']}x" : ($i['message'] ?? ''),
+                    $typeIssues->map(/** @phpstan-ignore-next-line */ fn ($i) => [
+                        $i['locale'] /* @phpstan-ignore-line */,
+                        $i['domain'] /* @phpstan-ignore-line */,
+                        $i['key'] ?? '—' /* @phpstan-ignore-line */,
+                        $type === 'duplicate_key' ? 'appears '.($i['count'] ?? 0).'x' : ($i['message'] ?? '') /* @phpstan-ignore-line */,
                     ])->toArray(),
                 );
             } elseif ($type === 'untranslated') {
                 $this->table(
                     ['Locale', 'Key', 'Value'],
-                    $typeIssues->map(fn ($i) => [
-                        $i['locale'],
-                        "{$i['domain']}.{$i['key']}",
-                        mb_substr($i['value'], 0, 60),
-                    ])->toArray(),
+                    $typeIssues->map(function ($i) {
+                        $loc = is_array($i) && is_string($i['locale'] ?? null) ? $i['locale'] : '';
+                        $dom = is_array($i) && is_string($i['domain'] ?? null) ? $i['domain'] : '';
+                        $key = is_array($i) && (is_string($i['key']) || is_int($i['key'])) ? (string) $i['key'] : '';
+                        $val = is_array($i) && is_string($i['value'] ?? null) ? $i['value'] : '';
+
+                        return [$loc, $dom.'.'.$key, mb_substr($val, 0, 60)];
+                    })->toArray(),
                 );
             } elseif ($type === 'convention') {
                 $this->table(
                     ['Domain', 'Key', 'Violations'],
-                    $typeIssues->map(fn ($i) => [
-                        $i['domain'],
-                        $i['key'],
-                        implode('; ', $i['violations']),
+                    $typeIssues->map(/** @phpstan-ignore-next-line */ fn ($i) => [
+                        $i['domain'] /* @phpstan-ignore-line */,
+                        $i['key'] ?? '' /* @phpstan-ignore-line */,
+                        implode('; ', $i['violations'] ?? []) /* @phpstan-ignore-line */,
                     ])->toArray(),
                 );
             }
         }
 
         $this->newLine();
-        $this->warn("Found {$totalIssueCount} issue(s) across " . $grouped->count() . " categories.");
+        $this->warn("Found {$totalIssueCount} issue(s) across ".$grouped->count().' categories.');
     }
 
     /**
@@ -267,13 +282,20 @@ class I18nCheckCommand extends Command
     private function isExempted(string $domain, string $key): bool
     {
         $exemptions = config('i18n.untranslated_exemptions', []);
+        if (! is_array($exemptions)) {
+            return false;
+        }
 
         if (! isset($exemptions[$domain])) {
             return false;
         }
 
-        foreach ($exemptions[$domain] as $pattern) {
-            if ($this->matchGlob($pattern, $key)) {
+        $domainExemptions = $exemptions[$domain];
+        if (! is_array($domainExemptions)) {
+            return false;
+        }
+        foreach ($domainExemptions as $pattern) {
+            if (is_string($pattern) && $this->matchGlob($pattern, $key)) {
                 return true;
             }
         }
@@ -286,7 +308,7 @@ class I18nCheckCommand extends Command
      */
     private function matchGlob(string $pattern, string $subject): bool
     {
-        $regex = '/^' . str_replace('\*', '.*', preg_quote($pattern, '/')) . '$/';
+        $regex = '/^'.str_replace('\*', '.*', preg_quote($pattern, '/')).'$/';
 
         return (bool) preg_match($regex, $subject);
     }

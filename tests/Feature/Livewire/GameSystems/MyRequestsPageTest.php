@@ -10,6 +10,7 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -21,7 +22,7 @@ class MyRequestsPageTest extends TestCase
     {
         parent::setUp();
 
-        \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
+        URL::defaults(['locale' => 'en']);
         $this->seed(EscalatedSetupSeeder::class);
     }
 

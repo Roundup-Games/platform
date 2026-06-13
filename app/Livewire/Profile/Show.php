@@ -10,14 +10,16 @@ use App\Models\User;
 use App\Rules\ValidUserName;
 use App\Services\DashboardCacheService;
 use App\Services\GmSocialLinkService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 #[Layout('layouts.app')]
@@ -46,17 +48,17 @@ class Show extends Component
 
     public ?string $locationId = null;
 
-    /** @var array<int> */
+    /** @var array<int|string, mixed> */
     public array $favoriteGameSystemIds = [];
 
-    /** @var array<int> */
+    /** @var array<int|string, mixed> */
     public array $avoidedGameSystemIds = [];
 
-    /** @var array<string, string|null> Map of VibeFlag value → null|'favorite'|'avoid' */
+    /** @var array<int|string, mixed> Map of VibeFlag value → null|'favorite'|'avoid' */
     public array $vibePreferences = [];
 
     #[Validate(['nullable', 'image', 'max:1024'])]
-    public $avatar;
+    public ?TemporaryUploadedFile $avatar = null;
 
     public bool $saved = false;
 
@@ -64,15 +66,15 @@ class Show extends Component
 
     public bool $socialLinksSaved = false;
 
-    /** @var array<string, array{handle: string, instance?: string}> Per-platform social link data */
+    /** @var array<int|string, mixed> Per-platform social link data */
     public array $socialLinks = [];
 
-    /** @var array<string, array{name: string, icon: string, ...}> Platform config for rendering */
+    /** @var array<int|string, mixed> Platform config for rendering */
     public array $platforms = [];
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $this->name = $user->name;
         $this->email = $user->email;
         $this->slug = $user->slug ?? '';
@@ -80,7 +82,7 @@ class Show extends Component
         $this->gender_consent = (bool) $user->gender_consent;
         $this->pronouns = $user->pronouns ?? '';
         $this->phone = $user->phone ?? '';
-        $this->preferredLanguage = $user->preferred_language?->value ?? '';
+        $this->preferredLanguage = $user->preferred_language->value ?? '';
         $this->bio = $user->bio ?? '';
         $this->locationId = $user->location_id;
         $this->favoriteGameSystemIds = $user->gameSystemPreferences()
@@ -93,12 +95,14 @@ class Show extends Component
             ->toArray();
 
         // Load existing vibe preferences
-        $this->vibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
+        $this->vibePreferences = $user->vibePreferences?->mapWithKeys(function ($pref) {
             return [$pref->vibe_preference_value->value => $pref->preference_type];
-        })->toArray();
+        })->toArray() ?? [];
 
         // Load social links for GMs
-        $this->platforms = collect(config('platforms'))
+        /** @var array<string, array{name: string, icon: string, sort_order: int}> $platformsConfig */
+        $platformsConfig = config('platforms');
+        $this->platforms = collect($platformsConfig)
             ->sortBy('sort_order')
             ->toArray();
 
@@ -107,15 +111,21 @@ class Show extends Component
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $selectedIds
+     */
     public function selectionChanged(string $preferenceType, array $selectedIds): void
     {
         if ($preferenceType === 'favorite') {
-            $this->favoriteGameSystemIds = array_map('strval', $selectedIds);
+            $this->favoriteGameSystemIds = array_values($selectedIds);
         } elseif ($preferenceType === 'avoid') {
-            $this->avoidedGameSystemIds = array_map('strval', $selectedIds);
+            $this->avoidedGameSystemIds = array_values($selectedIds);
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function getListeners(): array
     {
         return [
@@ -124,6 +134,9 @@ class Show extends Component
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $preferences
+     */
     public function vibePreferencesChanged(array $preferences): void
     {
         $this->vibePreferences = $preferences;
@@ -149,7 +162,7 @@ class Show extends Component
 
     public function saveProfile(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255', new ValidUserName],
@@ -206,7 +219,7 @@ class Show extends Component
         if ($this->avatar) {
             $user->clearMediaCollection('avatar');
             $filename = $this->avatar->getClientOriginalName()
-                ?? ('avatar.'.($this->avatar->extension() ?: 'jpg'));
+                ?: ('avatar.'.($this->avatar->extension() ?: 'jpg'));
             $user->addMedia($this->avatar->getRealPath())
                 ->usingName($user->name.' avatar')
                 ->usingFileName($filename)
@@ -223,11 +236,11 @@ class Show extends Component
 
         // Dispatch discovery cache refresh if location changed
         if ($user->location_id !== ($oldLocationId ?? null)) {
-            UpdateUserDiscoveryCache::dispatch($user->id, 'location_change');
+            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'location_change');
 
             // Invalidate dashboard caches affected by location change
             $dashboardCache = app(DashboardCacheService::class);
-            $dashboardCache->invalidateForUser($user->id, ['opportunities']);
+            $dashboardCache->invalidateForUser((string) $user->id, ['opportunities']);
 
             // Invalidate trending for old and new geohash tiles
             if ($oldLocationId) {
@@ -246,7 +259,7 @@ class Show extends Component
 
     public function savePreferences(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $validated = $this->validate([
             'favoriteGameSystemIds' => ['array'],
@@ -258,7 +271,7 @@ class Show extends Component
         ]);
 
         // Capture pre-update values for change detection BEFORE any writes
-        $oldVibePreferences = $user->vibePreferences->mapWithKeys(function ($pref) {
+        $oldVibePreferences = $user->vibePreferences?->mapWithKeys(function ($pref) {
             return [$pref->vibe_preference_value->value => $pref->preference_type];
         })->toArray();
         $oldFavoriteIds = $user->gameSystemPreferences()
@@ -271,10 +284,13 @@ class Show extends Component
             ->sort()->values()->toArray();
 
         // Sync game system preferences (favorites AND avoids)
-        $favoriteSync = collect($validated['favoriteGameSystemIds'])->mapWithKeys(fn ($id) => [
-            $id => ['preference_type' => 'favorite'],
+        /** @var array<int, string> $favoriteIds */
+        $favoriteIds = $validated['favoriteGameSystemIds'];
+        $favoriteSync = collect($favoriteIds)->mapWithKeys(fn (string $id) => [$id => ['preference_type' => 'favorite'],
         ]);
-        $avoidSync = collect($validated['avoidedGameSystemIds'])->mapWithKeys(fn ($id) => [
+        /** @var array<int, string> $avoidedIds */
+        $avoidedIds = $validated['avoidedGameSystemIds'];
+        $avoidSync = collect($avoidedIds)->mapWithKeys(fn (string $id) => [
             $id => ['preference_type' => 'avoid'],
         ]);
         $user->gameSystemPreferences()->sync(array_replace($favoriteSync->toArray(), $avoidSync->toArray()));
@@ -300,8 +316,12 @@ class Show extends Component
 
         // Detect changes for discovery cache invalidation
         $vibesChanged = $oldVibePreferences !== $this->vibePreferences;
-        $newFavoriteIds = collect($validated['favoriteGameSystemIds'])->map('strval')->sort()->values()->toArray();
-        $newAvoidedIds = collect($validated['avoidedGameSystemIds'])->map('strval')->sort()->values()->toArray();
+        /** @var array<int, string> $favoriteIdsForCompare */
+        $favoriteIdsForCompare = $validated['favoriteGameSystemIds'];
+        $newFavoriteIds = collect($favoriteIdsForCompare)->map('strval')->sort()->values()->toArray();
+        /** @var array<int, string> $avoidedIdsForCompare */
+        $avoidedIdsForCompare = $validated['avoidedGameSystemIds'];
+        $newAvoidedIds = collect($avoidedIdsForCompare)->map('strval')->sort()->values()->toArray();
         $gameSystemsChanged = $oldFavoriteIds !== $newFavoriteIds || $oldAvoidedIds !== $newAvoidedIds;
 
         $user->update([
@@ -319,16 +339,16 @@ class Show extends Component
         ]);
 
         if ($vibesChanged) {
-            UpdateUserDiscoveryCache::dispatch($user->id, 'vibe_change');
+            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'vibe_change');
         }
         if ($gameSystemsChanged) {
-            UpdateUserDiscoveryCache::dispatch($user->id, 'game_system_change');
+            UpdateUserDiscoveryCache::dispatch((string) $user->id, 'game_system_change');
         }
 
         // Invalidate dashboard opportunities cache when preferences change
         if ($vibesChanged || $gameSystemsChanged) {
             app(DashboardCacheService::class)->invalidateForUser(
-                $user->id, ['opportunities'],
+                (string) $user->id, ['opportunities'],
             );
         }
 
@@ -337,7 +357,7 @@ class Show extends Component
 
     public function removeAvatar(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $user->clearMediaCollection('avatar');
 
         Log::info('Avatar removed', ['user_id' => $user->id]);
@@ -346,14 +366,15 @@ class Show extends Component
     /**
      * Load existing social links for the current user.
      */
-    protected function loadSocialLinks($user): void
+    protected function loadSocialLinks(User $user): void
     {
         $existingLinks = $user->gmSocialLinks()->get()->keyBy('platform');
 
         foreach (array_keys($this->platforms) as $key) {
+            $link = $existingLinks->get($key);
             $this->socialLinks[$key] = [
-                'handle' => $existingLinks->has($key) ? $existingLinks[$key]->handle : '',
-                'instance' => $existingLinks->has($key) ? ($existingLinks[$key]->instance ?? '') : '',
+                'handle' => $link !== null ? $link->handle : '',
+                'instance' => $link !== null ? ($link->instance ?? '') : '',
             ];
         }
     }
@@ -363,7 +384,7 @@ class Show extends Component
      */
     public function saveSocialLinks(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if (! $user->isGM()) {
             return;
@@ -372,7 +393,7 @@ class Show extends Component
         $rules = ['socialLinks' => ['required', 'array']];
         foreach ($this->platforms as $key => $platform) {
             $rules["socialLinks.{$key}.handle"] = ['nullable', 'string', 'max:255'];
-            if ($platform['instance_required'] ?? false) {
+            if (is_array($platform) && ($platform['instance_required'] ?? false)) {
                 $rules["socialLinks.{$key}.instance"] = ['nullable', 'string', 'max:255'];
             }
         }
@@ -383,12 +404,14 @@ class Show extends Component
             $service = app(GmSocialLinkService::class);
             // Transform keyed array ['twitter' => ['handle' => 'x']]
             // into the format syncLinksForUser expects: [['platform' => 'twitter', 'handle' => 'x']].
-            $links = collect($validated['socialLinks'])->map(fn ($data, $platform) => [
+            /** @var array<string, array{handle: string, instance?: string}> $socialLinksData */
+            $socialLinksData = $validated['socialLinks'];
+            $links = collect($socialLinksData)->map(fn (array $data, string $platform): array => [
                 'platform' => $platform,
-                'handle' => $data['handle'] ?? '',
-                'instance' => $data['instance'] ?? '',
+                'handle' => $data['handle'],
+                'instance' => (string) ($data['instance'] ?? ''),
             ])->values()->toArray();
-
+            /** @var array<int, array{platform: string, handle: string, instance?: string}> $links */
             $service->syncLinksForUser($user, $links);
 
             Log::info('GM social links updated', [
@@ -409,9 +432,9 @@ class Show extends Component
         }
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $locationRecord = $this->locationId ? Location::find($this->locationId) : null;
 
         return view('livewire.profile.show', [

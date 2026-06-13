@@ -66,10 +66,11 @@ class PlatformScoreService
     {
         $weights = self::WEIGHTS[$type ?? 'boardgame'] ?? self::WEIGHTS['boardgame'];
 
-        return ($favorites * $weights['favorites'])
+        return max(0,
+            ($favorites * $weights['favorites'])
             + ($games * $weights['games'])
             + ($campaigns * $weights['campaigns'])
-            + ($activeGames * $weights['active_games']);
+            + ($activeGames * $weights['active_games']));
     }
 
     /**
@@ -99,7 +100,9 @@ class PlatformScoreService
         GameSystem::query()->select('id')->chunkById(100, function ($systems) use (&$scored, &$errors) {
             foreach ($systems as $system) {
                 try {
-                    $system->platform_score = $this->computeScore($system);
+                    $score = $this->computeScore($system);
+                    assert($score >= 0);
+                    $system->platform_score = $score;
                     $system->updateQuietly(['platform_score' => $system->platform_score]);
                     $scored++;
                 } catch (Throwable $e) {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\UserAnonymizationService;
 use Illuminate\Support\Facades\Schema;
 
 describe('User anonymization', function () {
@@ -40,12 +41,12 @@ describe('User anonymization', function () {
 
         // The model method now delegates to UserAnonymizationService.
         // Mock the service to verify delegation.
-        $mock = Mockery::mock(\App\Services\UserAnonymizationService::class);
+        $mock = Mockery::mock(UserAnonymizationService::class);
         $mock->shouldReceive('anonymize')->once()->withArgs(function ($arg) use ($userId) {
             return $arg->id === $userId;
         });
 
-        app()->instance(\App\Services\UserAnonymizationService::class, $mock);
+        app()->instance(UserAnonymizationService::class, $mock);
 
         $user->anonymize();
     });

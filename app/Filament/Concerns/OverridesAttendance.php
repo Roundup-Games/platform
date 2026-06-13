@@ -5,6 +5,9 @@ namespace App\Filament\Concerns;
 use App\Enums\AttendanceStatus;
 use App\Models\GameParticipant;
 use App\Services\AttendanceService;
+use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 
 /**
@@ -13,26 +16,30 @@ use Filament\Notifications\Notification;
  * Both AttendanceReportsRelationManager and ParticipantsRelationManager expose
  * an "Override Attendance" action. This trait extracts the common form + action
  * handler so bug fixes propagate to both contexts.
+ *
+ * See Filament docs — loaded by resource pages via OverridesAttendance::class
+ *
+ * @phpstan-ignore trait.unused
  */
 trait OverridesAttendance
 {
     /**
      * Build the override action form fields.
      *
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     protected function attendanceOverrideFormFields(): array
     {
         return [
-            \Filament\Forms\Components\Select::make('new_status')
+            Select::make('new_status')
                 ->label('New Attendance Status')
                 ->options(
                     collect(AttendanceStatus::cases())->mapWithKeys(
-                        fn(AttendanceStatus $case) => [$case->value => $case->label()]
+                        fn (AttendanceStatus $case) => [$case->value => $case->label()]
                     )
                 )
                 ->required(),
-            \Filament\Forms\Components\Textarea::make('override_reason')
+            Textarea::make('override_reason')
                 ->label('Reason for Override')
                 ->required()
                 ->maxLength(500),

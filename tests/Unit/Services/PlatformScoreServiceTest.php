@@ -3,7 +3,7 @@
 use App\Services\PlatformScoreService;
 
 beforeEach(function () {
-    $this->service = new PlatformScoreService();
+    $this->service = new PlatformScoreService;
 });
 
 describe('calculateScore — pure formula', function () {

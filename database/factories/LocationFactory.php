@@ -17,7 +17,7 @@ class LocationFactory extends Factory
     {
         // Generate coordinates roughly in the DACH region (Germany/Austria/Switzerland)
         return [
-            'name' => fake()->company() . ' ' . fake()->randomElement(['Spielhalle', 'Café', 'Community Center', 'Games Store']),
+            'name' => fake()->company().' '.fake()->randomElement(['Spielhalle', 'Café', 'Community Center', 'Games Store']),
             'description' => fake()->optional()->sentence(),
             'address' => fake()->streetAddress(),
             'city' => fake()->randomElement(['Berlin', 'Munich', 'Vienna', 'Zurich', 'Hamburg', 'Cologne', 'Frankfurt', 'Stuttgart']),
@@ -25,7 +25,7 @@ class LocationFactory extends Factory
             'country' => fake()->randomElement(['DEU', 'AUT', 'CHE']),
             'latitude' => fake()->latitude(47.0, 54.0),
             'longitude' => fake()->longitude(6.0, 14.0),
-            'place_id' => 'ChIJ' . fake()->regexify('[A-Za-z0-9_-]{25}'),
+            'place_id' => 'ChIJ'.fake()->regexify('[A-Za-z0-9_-]{25}'),
             'source' => fake()->randomElement(['google', 'manual', 'geocode']),
             'metadata' => null,
         ];

@@ -2,12 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use Filament\Facades\Filament;
-use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 
 class AuthenticateFilament extends Middleware
 {
@@ -17,7 +13,7 @@ class AuthenticateFilament extends Middleware
      */
     protected function redirectTo($request): ?string
     {
-        if (!$request->expectsJson()) {
+        if (! $request->expectsJson()) {
             return route('login');
         }
 
@@ -29,29 +25,27 @@ class AuthenticateFilament extends Middleware
      *
      * - Guests → redirect to platform login
      * - Authenticated without panel access → 403 (handled by our exception handler)
+     *
+     * @param  array<string, mixed>  $guards
      */
     protected function authenticate($request, array $guards): void
     {
         $guard = Filament::auth();
 
-        if (!$guard->check()) {
+        if (! $guard->check()) {
             $this->unauthenticated($request, $guards);
-
-            return;
         }
 
         $this->auth->shouldUse(Filament::getAuthGuard());
 
-        /** @var Model $user */
         $user = $guard->user();
+
+        if (! $user) {
+            $this->unauthenticated($request, $guards);
+        }
 
         $panel = Filament::getCurrentOrDefaultPanel();
 
-        abort_if(
-            $user instanceof FilamentUser
-                ? (!$user->canAccessPanel($panel))
-                : (config('app.env') !== 'local'),
-            403,
-        );
+        abort_unless($panel && $user->canAccessPanel($panel), 403);
     }
 }

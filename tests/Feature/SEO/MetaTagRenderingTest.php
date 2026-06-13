@@ -7,7 +7,8 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\User;
-use function Pest\Laravel\{get, actingAs};
+
+use function Pest\Laravel\get;
 
 // ── Entity Smoke Tests: one per entity to verify route+SEO wiring ────
 // Full getDynamicSEOData() coverage is in *SeoTest.php files.

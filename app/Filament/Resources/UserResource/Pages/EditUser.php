@@ -22,13 +22,13 @@ class EditUser extends EditRecord
         $wasDisabled = $this->record->is_disabled;
         $nowDisabled = (bool) ($data['is_disabled'] ?? false);
 
-        if ($nowDisabled && !$wasDisabled) {
+        if ($nowDisabled && ! $wasDisabled) {
             $data['disabled_at'] = $data['disabled_at'] ?? now();
             Log::warning('User account disabled via admin form', [
                 'user_id' => $this->record->id,
                 'disabled_by' => auth()->id(),
             ]);
-        } elseif (!$nowDisabled && $wasDisabled) {
+        } elseif (! $nowDisabled && $wasDisabled) {
             $data['disabled_at'] = null;
             Log::info('User account re-enabled via admin form', [
                 'user_id' => $this->record->id,

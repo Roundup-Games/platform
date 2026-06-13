@@ -3,13 +3,11 @@
 namespace App\Console\Commands\Admin;
 
 use App\Models\User;
-use App\Services\ScopedRoleService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Models\Role;
 
-use function Laravel\Prompts\info;
 use function Laravel\Prompts\password;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
@@ -47,7 +45,7 @@ class AdminUserCreateCommand extends Command
                 ? 'Password must be at least 8 characters.'
                 : null,
         );
-        $roleName = $this->option('role') ?? select(
+        $roleName = $this->option('role') ?? (string) select(
             label: 'Role',
             options: ['Platform Admin', 'Games Admin'],
             default: 'Platform Admin',
@@ -73,8 +71,8 @@ class AdminUserCreateCommand extends Command
 
         $user->assignRole($roleName);
 
-        app()->setLocale(config('app.locale', 'en'));
-        \Illuminate\Support\Facades\URL::defaults(['locale' => app()->getLocale()]);
+        app()->setLocale(is_string($l = config('app.locale', 'en')) ? $l : 'en');
+        URL::defaults(['locale' => app()->getLocale()]);
 
         $loginUrl = route('login', [], false);
 

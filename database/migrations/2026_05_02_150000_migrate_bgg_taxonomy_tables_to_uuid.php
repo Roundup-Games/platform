@@ -49,11 +49,11 @@ return new class extends Migration
      * Map from taxonomy table name to [pivot table, FK column name].
      */
     private array $pivotMap = [
-        'game_system_categories'  => ['game_system_category',  'game_system_category_id'],
-        'game_system_mechanics'   => ['game_system_mechanic',   'game_system_mechanic_id'],
-        'game_system_designers'   => ['game_system_designer',   'game_system_designer_id'],
-        'game_system_publishers'  => ['game_system_publisher',  'game_system_publisher_id'],
-        'game_system_families'    => ['game_system_family',     'game_system_family_id'],
+        'game_system_categories' => ['game_system_category',  'game_system_category_id'],
+        'game_system_mechanics' => ['game_system_mechanic',   'game_system_mechanic_id'],
+        'game_system_designers' => ['game_system_designer',   'game_system_designer_id'],
+        'game_system_publishers' => ['game_system_publisher',  'game_system_publisher_id'],
+        'game_system_families' => ['game_system_family',     'game_system_family_id'],
     ];
 
     /**
@@ -147,7 +147,7 @@ return new class extends Migration
         // Phase 5: Drop and re-add FK columns as uuid in pivot tables
         foreach ($this->pivotMap as $taxonomyTable => [$pivotTable, $fkColumn]) {
             // Drop primary key (composite) if this column is part of it
-            Schema::table($pivotTable, function (Blueprint $t) use ($fkColumn) {
+            Schema::table($pivotTable, function (Blueprint $t) {
                 $t->dropPrimary();
             });
 

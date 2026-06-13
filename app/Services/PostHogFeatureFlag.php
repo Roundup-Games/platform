@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
-
 /**
  * Wraps PostHog PHP SDK feature flag evaluation with graceful fallback.
  *
@@ -41,6 +39,7 @@ class PostHogFeatureFlag
      */
     public function checkFlag(string $key, ?string $userId = null, mixed $default = false): string|bool|null
     {
+        $default = is_bool($default) || is_string($default) || $default === null ? $default : false;
         $userId = $this->resolveUserId($userId);
 
         if ($userId === null) {
@@ -50,14 +49,16 @@ class PostHogFeatureFlag
         $cacheKey = "{$key}:{$userId}";
 
         if (array_key_exists($cacheKey, $this->cache)) {
-            return $this->cache[$cacheKey];
+            $cached = $this->cache[$cacheKey];
+
+            return $cached;
         }
 
         $result = $this->evaluate($key, $userId, $default);
+        $typed = is_bool($result) || is_string($result) || $result === null ? $result : $default;
+        $this->cache[$cacheKey] = $typed;
 
-        $this->cache[$cacheKey] = $result;
-
-        return $result;
+        return $typed;
     }
 
     /**

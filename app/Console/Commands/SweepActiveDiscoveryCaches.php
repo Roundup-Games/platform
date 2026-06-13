@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\NearbyDiscoveryView;
+use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -30,7 +30,7 @@ class SweepActiveDiscoveryCaches extends Command
         $dryRun = (bool) $this->option('dry-run');
         $startedAt = now();
 
-        $this->info("Starting discovery sweep (window: {$window}m" . ($dryRun ? ', dry-run' : '') . ')');
+        $this->info("Starting discovery sweep (window: {$window}m".($dryRun ? ', dry-run' : '').')');
         Log::info('discovery.sweep.started', [
             'window_minutes' => $window,
             'dry_run' => $dryRun,
@@ -66,12 +66,14 @@ class SweepActiveDiscoveryCaches extends Command
             ->with('user.linkedLocation')
             ->chunkById(100, function ($views) use ($dryRun, &$dispatchCount, &$skipCount, &$failCount) {
                 foreach ($views as $view) {
+                    /** @var NearbyDiscoveryView $view */
                     $user = $view->user;
 
                     if (! $user) {
                         continue;
                     }
 
+                    /** @var User $user */
                     $location = $user->linkedLocation;
 
                     if (! $location) {
@@ -92,7 +94,7 @@ class SweepActiveDiscoveryCaches extends Command
                     }
 
                     if ($dryRun) {
-                        $this->line("  Would dispatch for user {$user->id}" .
+                        $this->line("  Would dispatch for user {$user->id}".
                             " (cached: {$cachedGeohash}, current: {$currentGeohash})");
                         $dispatchCount++;
 
@@ -100,7 +102,7 @@ class SweepActiveDiscoveryCaches extends Command
                     }
 
                     try {
-                        UpdateUserDiscoveryCache::dispatch($user->id, 'sweep');
+                        UpdateUserDiscoveryCache::dispatch((string) $user->id, 'sweep');
                         $dispatchCount++;
                     } catch (\Throwable $e) {
                         $failCount++;
@@ -116,9 +118,9 @@ class SweepActiveDiscoveryCaches extends Command
         $durationMs = $startedAt->diffInMilliseconds(now());
 
         $this->newLine();
-        $this->info("Sweep complete.");
+        $this->info('Sweep complete.');
         $this->info("  Active users: {$totalActive}");
-        $this->info("  " . ($dryRun ? 'Would dispatch' : 'Dispatched') . ": {$dispatchCount}");
+        $this->info('  '.($dryRun ? 'Would dispatch' : 'Dispatched').": {$dispatchCount}");
         $this->info("  Skipped (location unchanged): {$skipCount}");
 
         if ($failCount > 0) {

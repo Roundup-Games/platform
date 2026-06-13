@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Notifications;
 
+use App\Dto\NotificationGroup;
 use App\Services\NotificationQueryService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -37,18 +39,18 @@ class NotificationBell extends Component
 
     public function mount(): void
     {
-        $this->unreadCount = $this->queryService->getUnreadCount(Auth::user());
+        $this->unreadCount = $this->queryService->getUnreadCount(authenticatedUser());
     }
 
     /**
      * Get recent grouped notifications for the dropdown.
      *
-     * @return \Illuminate\Support\Collection<int, object>
+     * @return Collection<int, NotificationGroup>
      */
     #[Computed]
     public function recentNotifications()
     {
-        return $this->queryService->getGroupedForUser(Auth::user(), limit: 10);
+        return $this->queryService->getGroupedForUser(authenticatedUser(), limit: 10);
     }
 
     /**
@@ -58,7 +60,7 @@ class NotificationBell extends Component
      */
     public function markAsRead(string $groupKey): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Parse group key: "{TypeShortName}_{Y-m-d}"
         $parts = explode('_', $groupKey);
@@ -100,7 +102,7 @@ class NotificationBell extends Component
      */
     public function markAllRead(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $marked = $user->unreadNotifications()->update(['read_at' => now()]);
 
@@ -120,7 +122,7 @@ class NotificationBell extends Component
      */
     public function refreshUnreadCount(): void
     {
-        $this->unreadCount = $this->queryService->getUnreadCount(Auth::user());
+        $this->unreadCount = $this->queryService->getUnreadCount(authenticatedUser());
         unset($this->recentNotifications);
     }
 
@@ -130,7 +132,7 @@ class NotificationBell extends Component
     #[On('notification-received')]
     public function onNotificationReceived(): void
     {
-        $this->unreadCount = $this->queryService->getUnreadCount(Auth::user());
+        $this->unreadCount = $this->queryService->getUnreadCount(authenticatedUser());
         unset($this->recentNotifications);
     }
 
@@ -156,7 +158,7 @@ class NotificationBell extends Component
         return null;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.notifications.notification-bell');
     }

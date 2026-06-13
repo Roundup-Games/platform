@@ -6,7 +6,6 @@ use App\Livewire\Reports\ReportContent;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
-use App\Notifications\AccountSuspended;
 use App\Notifications\ContentRemoved;
 use App\Notifications\ContentReportWarning;
 use Escalated\Laravel\Enums\TicketPriority;

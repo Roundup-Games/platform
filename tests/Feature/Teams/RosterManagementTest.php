@@ -1,10 +1,15 @@
 <?php
 
+use App\Livewire\Teams\ManageRoster;
+use App\Livewire\Teams\PendingInvites;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Tests\Traits\CreatesTeams;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get};
+
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\get;
 
 uses(CreatesTeams::class);
 
@@ -38,7 +43,7 @@ describe('ManageRoster Authorization', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain(['name' => 'Roster Test']);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->assertOk()
             ->assertSee('Manage Roster')
             ->assertSee('Roster Test');
@@ -49,10 +54,9 @@ describe('ManageRoster Authorization', function () {
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($stranger)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->assertForbidden();
     });
-
 
 });
 
@@ -64,7 +68,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'player@example.com', 'profile_complete' => true]);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'player@example.com')
             ->set('inviteRole', 'player')
             ->call('inviteMember');
@@ -78,13 +82,11 @@ describe('ManageRoster Invite', function () {
         ]);
     })->group('smoke');
 
-
-
     it('rejects invite for non-existent email', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'nobody@example.com')
             ->call('inviteMember')
             ->assertHasErrors(['inviteEmail']);
@@ -94,7 +96,7 @@ describe('ManageRoster Invite', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', $captain->email)
             ->call('inviteMember')
             ->assertHasErrors(['inviteEmail']);
@@ -110,7 +112,7 @@ describe('ManageRoster Invite', function () {
         ]);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'busy@example.com')
             ->call('inviteMember')
             ->assertHasErrors(['inviteEmail']);
@@ -125,7 +127,7 @@ describe('ManageRoster Invite', function () {
         ]);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'dup@example.com')
             ->call('inviteMember')
             ->assertHasErrors(['inviteEmail']);
@@ -141,7 +143,7 @@ describe('ManageRoster Invite', function () {
         ]);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'return@example.com')
             ->set('inviteRole', 'coach')
             ->call('inviteMember');
@@ -163,7 +165,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'newplayer@example.com', 'profile_complete' => true]);
 
         Livewire\Livewire::actingAs($coach)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'newplayer@example.com')
             ->set('inviteRole', 'player')
             ->call('inviteMember');
@@ -181,7 +183,7 @@ describe('ManageRoster Invite', function () {
         $target = User::factory()->create(['email' => 'target@example.com', 'profile_complete' => true]);
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'target@example.com')
             ->call('inviteMember')
             ->assertForbidden();
@@ -196,7 +198,7 @@ describe('ManageRoster Role Management', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('promoteMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -210,7 +212,7 @@ describe('ManageRoster Role Management', function () {
         ['member' => $member] = rosterAddMember($team, 'substitute');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('promoteMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -224,7 +226,7 @@ describe('ManageRoster Role Management', function () {
         ['member' => $member] = rosterAddMember($team, 'coach');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('promoteMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -238,7 +240,7 @@ describe('ManageRoster Role Management', function () {
         ['user' => $coach, 'member' => $member] = rosterAddMember($team, 'coach');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('demoteMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -252,7 +254,7 @@ describe('ManageRoster Role Management', function () {
         ['member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('demoteMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -268,7 +270,7 @@ describe('ManageRoster Role Management', function () {
             ->first();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('demoteMember', $member->id);
 
         // Should still be captain
@@ -286,7 +288,7 @@ describe('ManageRoster Role Management', function () {
             ->first();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('demoteMember', $captainMember->id);
 
         assertDatabaseHas('team_members', [
@@ -300,7 +302,7 @@ describe('ManageRoster Role Management', function () {
         ['member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('setRole', $member->id, 'superadmin');
 
         // Role unchanged
@@ -315,7 +317,7 @@ describe('ManageRoster Role Management', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('promoteMember', $member->id)
             ->assertForbidden();
     });
@@ -329,7 +331,7 @@ describe('ManageRoster Member Details', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('startEditing', $member->id)
             ->set('editJerseyNumber', '10')
             ->set('editPosition', 'Forward')
@@ -350,7 +352,7 @@ describe('ManageRoster Member Details', function () {
         $member->update(['jersey_number' => '10', 'position' => 'Forward']);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('startEditing', $member->id)
             ->set('editJerseyNumber', '')
             ->set('editPosition', '')
@@ -368,7 +370,7 @@ describe('ManageRoster Member Details', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('startEditing', $member->id)
             ->set('editJerseyNumber', '99')
             ->call('saveMemberDetails')
@@ -384,7 +386,7 @@ describe('ManageRoster Remove', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -400,7 +402,7 @@ describe('ManageRoster Remove', function () {
             ->first();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $captainMember->id);
 
         // Captain should still be active
@@ -419,7 +421,7 @@ describe('ManageRoster Remove', function () {
             ->first();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $captainMember->id);
 
         assertDatabaseHas('team_members', [
@@ -433,7 +435,7 @@ describe('ManageRoster Remove', function () {
         ['member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $member->id);
 
         $member->refresh();
@@ -446,7 +448,7 @@ describe('ManageRoster Remove', function () {
         ['user' => $otherPlayer, 'member' => $otherMember] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('removeMember', $otherMember->id)
             ->assertForbidden();
     });
@@ -468,7 +470,7 @@ describe('ManageRoster Cancel Invite', function () {
         ]);
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('cancelInvite', $pendingMember->id);
 
         assertDatabaseHas('team_members', [
@@ -487,7 +489,7 @@ describe('ManageRoster Leave', function () {
         ['user' => $player, 'member' => $member] = rosterAddMember($team, 'player');
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('leaveTeam')
             ->assertRedirect(route('teams.browse'));
 
@@ -501,7 +503,7 @@ describe('ManageRoster Leave', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('leaveTeam');
 
         // Should still be active
@@ -520,7 +522,7 @@ describe('ManageRoster Leave', function () {
             ->first();
 
         Livewire\Livewire::actingAs($captain)
-            ->test(App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->call('leaveTeam')
             ->assertRedirect(route('teams.browse'));
 
@@ -550,7 +552,7 @@ describe('PendingInvites', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->assertOk()
             ->assertSee('Invite Team');
     });
@@ -559,7 +561,7 @@ describe('PendingInvites', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->assertOk()
             ->assertSee('No pending invites');
     });
@@ -579,7 +581,7 @@ describe('PendingInvites', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->call('acceptInvite', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -603,7 +605,7 @@ describe('PendingInvites', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->call('declineInvite', $member->id);
 
         assertDatabaseHas('team_members', [
@@ -632,7 +634,7 @@ describe('PendingInvites', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->call('acceptInvite', $invite->id);
 
         // Should still be pending
@@ -658,10 +660,10 @@ describe('PendingInvites', function () {
         ]);
 
         // findPendingInvite scopes to Auth::id(), so calling with wrong user throws
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->call('acceptInvite', $member->id);
     });
 
@@ -680,10 +682,10 @@ describe('PendingInvites', function () {
             'joined_at' => now(), 'invited_by' => $inviter->id,
         ]);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->call('declineInvite', $member->id);
     });
 
@@ -701,7 +703,7 @@ describe('PendingInvites', function () {
         TeamMember::create(['team_id' => $team2->id, 'user_id' => $user->id, 'role' => 'player', 'status' => 'pending', 'joined_at' => now(), 'invited_by' => $inviter2->id]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(App\Livewire\Teams\PendingInvites::class)
+            ->test(PendingInvites::class)
             ->assertOk()
             ->assertSee('Team Alpha')
             ->assertSee('Team Beta');

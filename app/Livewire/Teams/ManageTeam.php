@@ -4,6 +4,7 @@ namespace App\Livewire\Teams;
 
 use App\Models\Team;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -24,6 +25,9 @@ class ManageTeam extends Component
     public string $description = '';
 
     // ── Translatable fields ──
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['description'];
@@ -120,7 +124,7 @@ class ManageTeam extends Component
         $this->redirect(route('teams.browse'), navigate: true);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.teams.manage-team', [
             'team' => $this->team,

@@ -2,18 +2,18 @@
 
 use App\Enums\ActivityType;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\ActivityLog;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\ActivityLogService;
-use App\Enums\ParticipantStatus;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
-    $this->service = new ActivityLogService();
+    $this->service = new ActivityLogService;
     $this->user = User::factory()->create();
 });
 
@@ -54,8 +54,7 @@ describe('log()', function () {
     it('returns null when logging fails', function () {
         Log::shouldReceive('warning')
             ->once()
-            ->with('Activity log write failed', \Mockery::on(fn ($ctx) =>
-                $ctx['event_type'] === 'review_received'
+            ->with('Activity log write failed', Mockery::on(fn ($ctx) => $ctx['event_type'] === 'review_received'
                 && $ctx['user_id'] === $this->user->id
             ));
 

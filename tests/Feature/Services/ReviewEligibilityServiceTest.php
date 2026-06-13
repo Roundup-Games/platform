@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Services;
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -11,7 +12,6 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewEligibilityService;
-use App\Enums\ParticipantRole;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 

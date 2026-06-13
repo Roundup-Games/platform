@@ -45,10 +45,6 @@ class PruneDataExports extends Command
 
             $lastModified = $disk->lastModified($file);
 
-            if ($lastModified === false) {
-                continue;
-            }
-
             $fileDate = now()->createFromTimestamp($lastModified);
 
             if ($fileDate->lt($cutoff)) {
@@ -81,5 +77,4 @@ class PruneDataExports extends Command
 
         return self::SUCCESS;
     }
-
 }

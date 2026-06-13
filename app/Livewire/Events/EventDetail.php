@@ -3,6 +3,7 @@
 namespace App\Livewire\Events;
 
 use App\Models\Event;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -20,7 +21,7 @@ class EventDetail extends Component
         seo()->for($event);
     }
 
-    public function render()
+    public function render(): View
     {
         $this->event->load([
             'announcements' => fn ($q) => $q->published()->orderByDesc('is_pinned')->orderByDesc('created_at'),

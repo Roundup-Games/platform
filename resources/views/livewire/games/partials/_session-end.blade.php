@@ -67,7 +67,7 @@
 @auth
     @if($game->status === \App\Enums\GameStatus::Completed)
         @php
-            $viewerId = \Illuminate\Support\Facades\Auth::id();
+            $viewerId = auth()->id();
             $isHost = $isOwner;
             $allApproved = $game->participants->where('status', \App\Enums\ParticipantStatus::Approved);
             $ownParticipant = $allApproved->first(fn ($p) => $p->user_id === $viewerId);

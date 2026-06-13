@@ -6,6 +6,8 @@ use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Review;
 use App\Services\ShortLinkService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Livewire\Attributes\Computed;
@@ -55,7 +57,7 @@ class PublicCampaignDetail extends Component
             $link = app(ShortLinkService::class)->resolveLinkById((int) $linkId);
             if ($link !== null
                 && $link->linkable_type === Campaign::class
-                && (string) $link->linkable_id === (string) $campaign->getKey()) {
+                && $link->linkable_id === (is_string($k = $campaign->getKey()) ? (string) $k : '')) {
                 $this->validatedShortLinkId = $link->id;
                 $this->validatedShortLinkCode = $link->code;
             }
@@ -93,6 +95,9 @@ class PublicCampaignDetail extends Component
             ->count();
     }
 
+    /**
+     * @return Collection<int, Review>|\Illuminate\Database\Eloquent\Collection<int, Review>
+     */
     #[Computed]
     public function reviews()
     {
@@ -125,17 +130,17 @@ class PublicCampaignDetail extends Component
         // Use the code cached during mount — avoids a DB lookup that can return null
         // if the link is revoked between mount and render, keeping hasShareLink/shareLinkUrl consistent.
         if ($this->validatedShortLinkCode !== null) {
-            return url('/link/' . $this->validatedShortLinkCode);
+            return url('/link/'.$this->validatedShortLinkCode);
         }
 
         if ($this->campaign->share_token === null) {
             return null;
         }
 
-        return route('campaigns.detail', $this->campaign->id) . '?share=' . $this->campaign->share_token;
+        return route('campaigns.detail', $this->campaign->id).'?share='.$this->campaign->share_token;
     }
 
-    public function render()
+    public function render(): View
     {
         $relations = [
             'owner',

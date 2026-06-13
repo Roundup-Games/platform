@@ -1,9 +1,9 @@
 <?php
 
 use App\Enums\GameStatus;
-use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameBulletinBoard;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\GameParticipant;
@@ -59,13 +59,13 @@ function createApprovedParticipant(Game $game): User
 describe('mount and rendering', function () {
     it('mounts with a valid game', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertOk();
     });
 
     it('owner can view the bulletin board', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canViewBoard', true);
     });
 
@@ -73,7 +73,7 @@ describe('mount and rendering', function () {
         $participant = createApprovedParticipant($this->game);
 
         Livewire::actingAs($participant)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canViewBoard', true);
     });
 
@@ -81,12 +81,12 @@ describe('mount and rendering', function () {
         $stranger = User::factory()->create();
 
         Livewire::actingAs($stranger)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canViewBoard', false);
     });
 
     it('guest cannot view the bulletin board', function () {
-        Livewire::test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+        Livewire::test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canViewBoard', false);
     });
 });
@@ -96,7 +96,7 @@ describe('mount and rendering', function () {
 describe('canCreateBulletin', function () {
     it('owner of a scheduled game can create bulletins', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canCreateBulletin', true);
     });
 
@@ -104,7 +104,7 @@ describe('canCreateBulletin', function () {
         $participant = createApprovedParticipant($this->game);
 
         Livewire::actingAs($participant)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canCreateBulletin', false);
     });
 
@@ -112,7 +112,7 @@ describe('canCreateBulletin', function () {
         $this->game->update(['status' => GameStatus::Completed]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canCreateBulletin', false);
     });
 
@@ -120,7 +120,7 @@ describe('canCreateBulletin', function () {
         $this->game->update(['status' => GameStatus::Canceled]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canCreateBulletin', false);
     });
 
@@ -128,7 +128,7 @@ describe('canCreateBulletin', function () {
         $stranger = User::factory()->create();
 
         Livewire::actingAs($stranger)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->assertSet('canCreateBulletin', false);
     });
 });
@@ -149,7 +149,7 @@ describe('bulletin list', function () {
         ]);
 
         $component = Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game]);
+            ->test(GameBulletinBoard::class, ['game' => $this->game]);
 
         $bulletins = $component->get('bulletins');
         expect($bulletins)->toHaveCount(2);
@@ -172,7 +172,7 @@ describe('bulletin list', function () {
         ]);
 
         $component = Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game]);
+            ->test(GameBulletinBoard::class, ['game' => $this->game]);
 
         $bulletins = $component->get('bulletins');
         expect($bulletins)->toHaveCount(1);
@@ -185,7 +185,7 @@ describe('bulletin list', function () {
 describe('create', function () {
     it('creates a bulletin as the game owner', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Running 10 minutes late!')
             ->call('create')
             ->assertHasNoErrors();
@@ -200,7 +200,7 @@ describe('create', function () {
 
     it('sets expires_at to the game date_time', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Test bulletin')
             ->call('create');
 
@@ -210,7 +210,7 @@ describe('create', function () {
 
     it('clears the content field after creation', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Test bulletin')
             ->call('create')
             ->assertSet('content', '');
@@ -218,7 +218,7 @@ describe('create', function () {
 
     it('refreshes the bulletin list after creation', function () {
         $component = Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game]);
+            ->test(GameBulletinBoard::class, ['game' => $this->game]);
 
         expect($component->get('bulletins'))->toHaveCount(0);
 
@@ -227,14 +227,14 @@ describe('create', function () {
 
         // Re-mount to check persisted state
         $component2 = Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game]);
+            ->test(GameBulletinBoard::class, ['game' => $this->game]);
 
         expect($component2->get('bulletins'))->toHaveCount(1);
     });
 
     it('validates content is required', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', '')
             ->call('create')
             ->assertHasErrors(['content' => 'required']);
@@ -242,7 +242,7 @@ describe('create', function () {
 
     it('validates content max length is 280 characters', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', str_repeat('a', 281))
             ->call('create')
             ->assertHasErrors(['content' => 'max']);
@@ -250,7 +250,7 @@ describe('create', function () {
 
     it('accepts content of exactly 280 characters', function () {
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', str_repeat('a', 280))
             ->call('create')
             ->assertHasNoErrors();
@@ -262,7 +262,7 @@ describe('create', function () {
         $participant = createApprovedParticipant($this->game);
 
         Livewire::actingAs($participant)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Unauthorized post')
             ->call('create');
 
@@ -273,7 +273,7 @@ describe('create', function () {
         $stranger = User::factory()->create();
 
         Livewire::actingAs($stranger)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Hijack attempt')
             ->call('create');
 
@@ -291,7 +291,7 @@ describe('notifications', function () {
         $participant2 = createApprovedParticipant($this->game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Game starts in 30 minutes!')
             ->call('create');
 
@@ -305,7 +305,7 @@ describe('notifications', function () {
         Notification::fake();
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Host update')
             ->call('create');
 
@@ -327,7 +327,7 @@ describe('notifications', function () {
         ]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Update')
             ->call('create');
 
@@ -343,7 +343,7 @@ describe('notifications', function () {
         $participant = createApprovedParticipant($this->game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Important update!')
             ->call('create');
 
@@ -370,7 +370,7 @@ describe('notifications', function () {
         $participant = createApprovedParticipant($this->game);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'Push test')
             ->call('create');
 
@@ -381,7 +381,7 @@ describe('notifications', function () {
             function (BulletinPosted $notification) use ($participant) {
                 $push = $notification->toPush($participant);
                 expect($push)->not->toBeNull();
-                expect($push->tag)->toBe('bulletin-' . $this->game->bulletins()->first()->id);
+                expect($push->tag)->toBe('bulletin-'.$this->game->bulletins()->first()->id);
                 expect($push->url)->toContain($this->game->id);
 
                 return true;
@@ -396,7 +396,7 @@ describe('logging', function () {
     it('logs bulletin creation', function () {
         Log::shouldReceive('info')
             ->once()
-            ->with('Game bulletin created', \Mockery::on(function ($context) {
+            ->with('Game bulletin created', Mockery::on(function ($context) {
                 return $context['game_id'] === $this->game->id
                     && $context['user_id'] === $this->owner->id
                     && isset($context['bulletin_id'])
@@ -409,7 +409,7 @@ describe('logging', function () {
         Log::shouldReceive('info')->byDefault();
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\GameBulletinBoard::class, ['game' => $this->game])
+            ->test(GameBulletinBoard::class, ['game' => $this->game])
             ->set('content', 'This is a test bulletin!')
             ->call('create');
     });

@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Teams;
 
-use App\Models\TeamMember;
 use App\Enums\ParticipantStatus;
+use App\Models\TeamMember;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
@@ -68,7 +69,7 @@ class PendingInvites extends Component
             ->firstOrFail();
     }
 
-    public function render()
+    public function render(): View
     {
         $pendingInvites = TeamMember::where('user_id', Auth::id())
             ->where('status', 'pending')

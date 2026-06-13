@@ -1,9 +1,11 @@
 <?php
 
+use App\Dto\DiscoveryFilters;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\DiscoveryQueryService;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
@@ -125,7 +127,7 @@ describe('Campaign card next session display', function () {
 
 describe('Campaign sort key with next session', function () {
     test('campaign with upcoming session uses session date as sort key', function () {
-        $service = app(\App\Services\DiscoveryQueryService::class);
+        $service = app(DiscoveryQueryService::class);
 
         $campaign = createPublicCampaign($this->owner, $this->gameSystem);
 
@@ -138,7 +140,7 @@ describe('Campaign sort key with next session', function () {
             'date_time' => $sessionDateTime,
         ]);
 
-        $query = $service->buildCampaignsQuery([], null, 0, null, null, false, null);
+        $query = $service->buildCampaignsQuery(new DiscoveryFilters, null, 0, null, null, false, null);
         $campaigns = $query->get();
 
         $campaigns->each(fn ($item) => [
@@ -152,12 +154,12 @@ describe('Campaign sort key with next session', function () {
     });
 
     test('campaign without upcoming session uses created_at as sort key', function () {
-        $service = app(\App\Services\DiscoveryQueryService::class);
+        $service = app(DiscoveryQueryService::class);
 
         $campaign = createPublicCampaign($this->owner, $this->gameSystem);
         // No sessions
 
-        $query = $service->buildCampaignsQuery([], null, 0, null, null, false, null);
+        $query = $service->buildCampaignsQuery(new DiscoveryFilters, null, 0, null, null, false, null);
         $campaigns = $query->get();
 
         $campaigns->each(fn ($item) => [

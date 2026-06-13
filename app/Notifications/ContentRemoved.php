@@ -17,7 +17,7 @@ class ContentRemoved extends BaseNotification
         public string $reason,
     ) {}
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject(__('notifications.subject_content_removed'))
@@ -32,7 +32,10 @@ class ContentRemoved extends BaseNotification
             ->line(__('notifications.body_content_removed_guidelines'));
     }
 
-    public function toDatabase(object $notifiable): array
+    /**
+     * @return array<string, mixed>
+     */
+    public function toDatabase(User $notifiable): array
     {
         return [
             'type' => 'content_removed',

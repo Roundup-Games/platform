@@ -93,10 +93,10 @@ return new class extends Migration
 
         // Backfill any existing locations that have coordinates but missing/stale geohash
         // The trigger will fire for each row, but we use a direct approach for efficiency
-        DB::unprepared("
+        DB::unprepared('
             UPDATE locations SET geohash_4 = NULL
             WHERE latitude IS NULL OR longitude IS NULL
-        ");
+        ');
         // For rows with coordinates, let the trigger handle it via a no-op update
         // We touch only rows that actually need fixing
         $locations = DB::table('locations')

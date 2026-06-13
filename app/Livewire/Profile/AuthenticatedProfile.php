@@ -4,10 +4,13 @@ namespace App\Livewire\Profile;
 
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
-use Illuminate\Support\Facades\Auth;
+use App\Services\ReviewAggregateService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -53,10 +56,10 @@ class AuthenticatedProfile extends Component
     {
         $this->profileUser = $user;
 
-        $viewer = Auth::user();
-        $this->isOwnProfile = $viewer && $viewer->is($user);
+        $viewer = authenticatedUser();
+        $this->isOwnProfile = $viewer->is($user);
 
-        if ($viewer && ! $this->isOwnProfile) {
+        if (! $this->isOwnProfile) {
             $this->isFollowing = $viewer->isFollowing($user);
             $this->isFollowedBy = $viewer->isFollowedBy($user);
             $this->isFriend = $viewer->isFriend($user);
@@ -74,8 +77,8 @@ class AuthenticatedProfile extends Component
 
     public function follow(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $viewer->is($this->profileUser) || $this->hasBlocked || $this->isBlockedBy) {
+        $viewer = authenticatedUser();
+        if ($viewer->is($this->profileUser) || $this->hasBlocked || $this->isBlockedBy) {
             return;
         }
 
@@ -89,8 +92,8 @@ class AuthenticatedProfile extends Component
 
     public function unfollow(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $viewer->is($this->profileUser)) {
+        $viewer = authenticatedUser();
+        if ($viewer->is($this->profileUser)) {
             return;
         }
 
@@ -104,8 +107,8 @@ class AuthenticatedProfile extends Component
 
     public function block(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $viewer->is($this->profileUser)) {
+        $viewer = authenticatedUser();
+        if ($viewer->is($this->profileUser)) {
             return;
         }
 
@@ -122,8 +125,8 @@ class AuthenticatedProfile extends Component
 
     public function unblock(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $viewer->is($this->profileUser)) {
+        $viewer = authenticatedUser();
+        if ($viewer->is($this->profileUser)) {
             return;
         }
 
@@ -142,7 +145,7 @@ class AuthenticatedProfile extends Component
         $this->reviewsPage++;
     }
 
-    public function render()
+    public function render(): View
     {
         $eagerLoads = [];
 
@@ -161,13 +164,13 @@ class AuthenticatedProfile extends Component
         // Load teams through TeamMember to avoid belongsToMany pivot issue
         $teamMemberships = collect();
         if (in_array('teams', $this->visibleFields)) {
-            $teamMemberships = \App\Models\TeamMember::where('user_id', $this->profileUser->id)
+            $teamMemberships = TeamMember::where('user_id', $this->profileUser->id)
                 ->where('status', 'active')
                 ->with('team')
                 ->latest('joined_at')
                 ->limit(5)
                 ->get()
-                ->filter(fn ($m) => $m->team);
+                ->filter(fn ($m) => $m->team !== null);
         }
 
         // Visibility-scoped games and campaigns
@@ -181,13 +184,14 @@ class AuthenticatedProfile extends Component
         $gmReviews = null;
         $gmSocialLinks = collect();
         if ($this->profileUser->gmProfile) {
-            $gmReviews = app(\App\Services\ReviewAggregateService::class)
+            $gmReviews = app(ReviewAggregateService::class)
                 ->recentReviews($this->profileUser->gmProfile, 5, $this->reviewsPage);
             $gmSocialLinks = $this->profileUser->gmSocialLinks()->get()
                 ->sortBy(fn ($link) => config("platforms.{$link->platform}.sort_order", 999));
         }
 
         // Reliability data: tier is always visible, detailed stats respect 'stats' privacy
+        /** @var array{tier?: string, score?: int, game_count?: int} $reliabilityData */
         $reliabilityData = $this->profileUser->reliability_score ?? [];
         $reliabilityTier = $reliabilityData['tier'] ?? 'newcomer';
         $reliabilityScore = $reliabilityData['score'] ?? 0;
@@ -216,6 +220,8 @@ class AuthenticatedProfile extends Component
      * Friend/teammate: public + protected
      * Stranger/unauthenticated: public only
      * Blocked: empty (nothing visible)
+     *
+     * @return array<int, string>
      */
     private function visibilityScope(): array
     {
@@ -236,22 +242,21 @@ class AuthenticatedProfile extends Component
 
     private function isFriendOrTeammate(): bool
     {
-        $viewer = Auth::user();
-        if (! $viewer) {
-            return false;
-        }
+        $viewer = authenticatedUser();
 
         return $viewer->isFriendOrTeammate($this->profileUser);
     }
 
     /**
      * Resolve visibility-scoped games: owned + participated, deduplicated.
+     *
+     * @return Collection<int, Game>
      */
     private function resolveVisibleGames()
     {
         $scope = $this->visibilityScope();
         if (empty($scope)) {
-            return collect();
+            return new Collection;
         }
 
         $userId = $this->profileUser->id;
@@ -285,12 +290,14 @@ class AuthenticatedProfile extends Component
 
     /**
      * Resolve visibility-scoped campaigns: owned + participated, deduplicated.
+     *
+     * @return Collection<int, Campaign>
      */
     private function resolveVisibleCampaigns()
     {
         $scope = $this->visibilityScope();
         if (empty($scope)) {
-            return collect();
+            return new Collection;
         }
 
         $userId = $this->profileUser->id;

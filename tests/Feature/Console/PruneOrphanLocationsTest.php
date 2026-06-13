@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Campaign;
-use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;

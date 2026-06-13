@@ -2,22 +2,23 @@
 
 use App\Http\Middleware\PostHogIdentifyUsers;
 use App\Models\User;
-use Illuminate\Http\Request;
 use App\Services\PostHogClient;
-use Illuminate\Support\Facades\Config;
 use App\Services\PostHogConsentChecker;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Config;
 use Tests\Helpers\TestablePostHogClient;
 
 function makeOkResponse()
 {
-    return new \Illuminate\Http\Response('', 200);
+    return new Response('', 200);
 }
 
 beforeEach(function () {
     Config::set('posthog.enabled', true);
     Config::set('posthog.api_key', null); // No real key in tests — server-side identify is skipped
 
-    $this->posthogClient = new TestablePostHogClient();
+    $this->posthogClient = new TestablePostHogClient;
     $this->app->instance(PostHogClient::class, $this->posthogClient);
 
     // Grant analytics consent by default in tests — individual tests can override

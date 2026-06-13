@@ -12,8 +12,8 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -51,7 +51,7 @@ describe('Scenario 1: Guest opens private game share link', function () {
         ]);
 
         // Guest visits the share link URL
-        $response = $this->get(route('games.detail', ['id' => $game->id]) . '?share=' . $token);
+        $response = $this->get(route('games.detail', ['id' => $game->id]).'?share='.$token);
 
         // Page loads (200 OK — game is visible via valid share token)
         $response->assertStatus(200);

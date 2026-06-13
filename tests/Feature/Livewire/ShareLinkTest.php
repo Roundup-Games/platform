@@ -139,7 +139,7 @@ describe('GameDetail share links', function () {
 
         $url = $component->get('shareLinkUrl');
         expect($url)->toContain($game->id);
-        expect($url)->toContain('share=' . $token);
+        expect($url)->toContain('share='.$token);
     });
 
     it('reports hasShareLink correctly', function () {
@@ -167,7 +167,7 @@ describe('GameDetail share links', function () {
         ]);
 
         Log::shouldReceive('info')
-            ->with('Share link generated', \Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'game' && $ctx['entity_id'] === $game->id))
+            ->with('Share link generated', Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'game' && $ctx['entity_id'] === $game->id))
             ->once();
 
         Log::shouldReceive('debug')->andReturn(null);
@@ -295,7 +295,7 @@ describe('CampaignDetail share links', function () {
 
         $url = $component->get('shareLinkUrl');
         expect($url)->toContain($campaign->id);
-        expect($url)->toContain('share=' . $token);
+        expect($url)->toContain('share='.$token);
     });
 
     it('logs share link generation', function () {
@@ -305,7 +305,7 @@ describe('CampaignDetail share links', function () {
         ]);
 
         Log::shouldReceive('info')
-            ->with('Share link generated', \Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'campaign' && $ctx['entity_id'] === $campaign->id))
+            ->with('Share link generated', Mockery::on(fn ($ctx) => $ctx['entity_type'] === 'campaign' && $ctx['entity_id'] === $campaign->id))
             ->once();
 
         Log::shouldReceive('debug')->andReturn(null);

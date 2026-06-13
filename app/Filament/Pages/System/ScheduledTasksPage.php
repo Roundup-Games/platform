@@ -13,9 +13,9 @@ use UnitEnum;
 
 class ScheduledTasksPage extends Page
 {
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clock';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
-    protected static string | UnitEnum | null $navigationGroup = 'System';
+    protected static string|UnitEnum|null $navigationGroup = 'System';
 
     protected static ?int $navigationSort = 10;
 
@@ -39,13 +39,13 @@ class ScheduledTasksPage extends Page
     }
 
     /**
-     * @return array<int, array{
+     * @return list<array{
      *     command: string,
      *     description: string|null,
      *     expression: string,
      *     human_expression: string,
-     *     next_run: \Carbon\Carbon,
-     *     without_overlapping: int|null,
+     *     next_run: Carbon,
+     *     without_overlapping: bool|int|null,
      *     on_one_server: bool,
      * }>
      */
@@ -64,12 +64,12 @@ class ScheduledTasksPage extends Page
 
             $tasks[] = [
                 'command' => $command,
-                'description' => $event->description ?: null,
+                'description' => ($event->description ?? null) ?: null,
                 'expression' => $event->expression,
                 'human_expression' => $this->humanizeExpression($event->expression),
                 'next_run' => Carbon::instance($cron->getNextRunDate($now->toDateTime(), 0, true)),
                 'without_overlapping' => $event->withoutOverlapping ?: null,
-                'on_one_server' => (bool) ($event->onOneServer ?? false),
+                'on_one_server' => (bool) $event->onOneServer,
             ];
         }
 
@@ -106,7 +106,7 @@ class ScheduledTasksPage extends Page
 
         // Closure-based events — use the description as the identifier
         if (empty($command)) {
-            return $event->description ?: 'Closure';
+            return property_exists($event, 'description') && $event->description ? (string) $event->description : 'Closure';
         }
 
         return $command;

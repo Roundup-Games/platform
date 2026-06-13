@@ -4,9 +4,11 @@ namespace App\Console\Commands\Admin;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
 
 class AdminUserEnableCommand extends Command
 {
@@ -66,25 +68,29 @@ class AdminUserEnableCommand extends Command
             ->get(['email', 'name', 'disabled_at']);
 
         if ($disabled->isNotEmpty()) {
-            return select(
+            return (string) select(
                 label: 'Select user to enable',
-                options: $disabled->mapWithKeys(function ($u) {
+                options: $disabled->mapWithKeys(function (User $u) {
                     $when = $u->disabled_at?->diffForHumans() ?? 'unknown';
+
                     return [$u->email => "{$u->name} ({$u->email}) — disabled {$when}"];
-                }),
+                })->all(),
             );
         }
 
         return text(label: 'Email address', required: true);
     }
 
-    private function getGlobalRoles(User $user): \Illuminate\Support\Collection
+    /**
+     * @return Collection<int, string>
+     */
+    private function getGlobalRoles(User $user): Collection
     {
         return DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_type', User::class)
             ->where('model_has_roles.model_id', $user->id)
             ->whereNull('model_has_roles.team_id')
-            ->pluck('roles.name');
+            ->pluck('roles.name')->filter(fn (mixed $name) => is_string($name))->map(fn (mixed $name): string => (string) $name);
     }
 }

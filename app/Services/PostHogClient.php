@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use PostHog\PostHog;
 use Illuminate\Support\Facades\Log;
+use PostHog\PostHog;
 
 /**
  * Centralized wrapper around the PostHog PHP SDK.
@@ -35,6 +35,8 @@ class PostHogClient
 
     /**
      * Capture an event. No-op when PostHog is disabled.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function capture(array $payload): void
     {
@@ -54,6 +56,8 @@ class PostHogClient
 
     /**
      * Identify a user with $set/$set_once properties. No-op when disabled.
+     *
+     * @param  array<string, mixed>  $payload
      */
     public function identify(array $payload): void
     {
@@ -73,6 +77,8 @@ class PostHogClient
 
     /**
      * Identify a group for group analytics. No-op when disabled.
+     *
+     * @param  array<string, mixed>  $properties
      */
     public function groupIdentify(string $groupType, string $groupKey, array $properties = []): void
     {

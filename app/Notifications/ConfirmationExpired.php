@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class ConfirmationExpired extends BaseNotification
@@ -15,9 +16,9 @@ class ConfirmationExpired extends BaseNotification
         public Game|Campaign $entity,
     ) {}
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_confirmation_expired', [
@@ -34,9 +35,9 @@ class ConfirmationExpired extends BaseNotification
     /**
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'confirmation_expired',
@@ -47,9 +48,9 @@ class ConfirmationExpired extends BaseNotification
         ];
     }
 
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
             title: __('notifications.push_title_confirmation_expired'),

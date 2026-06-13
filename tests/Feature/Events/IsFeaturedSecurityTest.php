@@ -1,9 +1,11 @@
 <?php
 
+use App\Livewire\Events\ManageEvent;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
+use Spatie\Permission\PermissionRegistrar;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -26,7 +28,7 @@ function featuredCreateAdmin(): User
     ]);
 
     setPermissionsTeamId(null);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
     $admin->assignRole('Platform Admin');
     $admin->unsetRelations();
 
@@ -51,7 +53,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
 
         Log::shouldReceive('warning')->once()->with(
             'Non-admin attempted to change is_featured',
-            \Mockery::on(fn (array $ctx) => $ctx['user_id'] === $organizer->id
+            Mockery::on(fn (array $ctx) => $ctx['user_id'] === $organizer->id
                 && $ctx['event_id'] === $event->id
                 && $ctx['attempted_value'] === true
             ),
@@ -60,7 +62,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
-            ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->set('is_featured', true)
             ->call('save');
 
@@ -79,7 +81,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
-            ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->set('is_featured', false)
             ->call('save');
 
@@ -95,7 +97,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($admin)
-            ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->set('is_featured', true)
             ->call('save');
 
@@ -113,7 +115,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($admin)
-            ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->set('is_featured', false)
             ->call('save');
 
@@ -129,7 +131,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
         Log::shouldReceive('debug')->zeroOrMoreTimes();
 
         Livewire::actingAs($organizer)
-            ->test(\App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+            ->test(ManageEvent::class, ['slug' => $event->slug])
             ->set('name', 'Updated Event Name')
             ->call('save');
 

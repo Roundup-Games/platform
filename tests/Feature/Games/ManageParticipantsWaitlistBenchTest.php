@@ -1,12 +1,12 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\ManageParticipants as CampaignManageParticipants;
 use App\Livewire\Games\ManageParticipants as GameManageParticipants;
 use App\Models\CampaignParticipant;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantRole;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);

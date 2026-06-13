@@ -26,10 +26,12 @@ class NotificationController extends Controller
             abort(404, __('notifications.unsubscribe_unknown_category'));
         }
 
-        // Update the user's notification settings: disable mail for this category
-        $settings = $user->notification_settings ?? NotificationCategory::defaultSettings();
+        // notification_settings is cast to array in User model
+        /** @var array<string, mixed> $settings */
+        $settings = $user->notification_settings;
+        $existingCategory = is_array($settings[$category] ?? null) ? $settings[$category] : [];
         $settings[$category] = [
-            'database' => $settings[$category]['database'] ?? true,
+            'database' => (bool) ($existingCategory['database'] ?? true),
             'mail' => false,
         ];
 

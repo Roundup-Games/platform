@@ -9,6 +9,8 @@ use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +23,6 @@ class BenchService
      * Creates a participant record with status=benched and benched_at=now().
      *
      * @param  Campaign|Game  $entity  Campaign or campaign-session Game
-     * @return CampaignParticipant|GameParticipant
      *
      * @throws \LogicException if entity is not a campaign/session, not full, or user is already a participant
      */
@@ -36,7 +37,7 @@ class BenchService
         }
 
         // Owner cannot be benched on their own entity
-        if ($entity->owner_id === $user->id) {
+        if ((string) $entity->owner_id === (string) $user->id) {
             throw new \LogicException('Cannot add to bench: you are the host.');
         }
 
@@ -102,7 +103,7 @@ class BenchService
      */
     public function promoteFromBench(string $participantId, string $entityType, ?User $promoter = null): void
     {
-        $promoterId = $promoter?->id ?? 'system';
+        $promoterId = $promoter->id ?? 'system';
 
         DB::transaction(function () use ($participantId, $entityType, $promoterId) {
             $isCampaign = $entityType === 'campaign';
@@ -117,7 +118,9 @@ class BenchService
             }
 
             $entityClass = $isCampaign ? Campaign::class : Game::class;
-            $lockedEntity = $entityClass::lockForUpdate()->findOrFail($participant->$foreignKey);
+            /** @var string $foreignId */
+            $foreignId = $participant->getAttribute($foreignKey);
+            $lockedEntity = $entityClass::lockForUpdate()->findOrFail($foreignId);
 
             $approvedCount = $lockedEntity->participants()
                 ->where('status', ParticipantStatus::Approved->value)
@@ -144,10 +147,9 @@ class BenchService
     /**
      * Get all benched participants for an entity.
      *
-     * @param  Campaign|Game  $entity
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return EloquentCollection<int, CampaignParticipant>|EloquentCollection<int, GameParticipant>
      */
-    public function getBenchList(Campaign|Game $entity): \Illuminate\Database\Eloquent\Collection
+    public function getBenchList(Campaign|Game $entity): EloquentCollection
     {
         return $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
@@ -160,6 +162,7 @@ class BenchService
      */
     public function handleEntityCancellation(Campaign|Game $entity): void
     {
+        /** @var Collection<int, GameParticipant|CampaignParticipant> $benched */
         $benched = $entity->participants()
             ->where('status', ParticipantStatus::Benched->value)
             ->get();

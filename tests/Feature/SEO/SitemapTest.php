@@ -11,7 +11,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
-use function Pest\Laravel\{get};
+use function Pest\Laravel\get;
 
 // ── Sitemap Index (/sitemap.xml) ───────────────────────
 

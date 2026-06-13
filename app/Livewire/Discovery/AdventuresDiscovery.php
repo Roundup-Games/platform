@@ -12,6 +12,7 @@ use App\Models\Game;
 use App\Models\Location;
 use App\Services\DiscoveryQueryService;
 use App\Traits\HasGuestLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +29,7 @@ class AdventuresDiscovery extends Component
 
     // ── Shared filters (safety_tools differs per page) ──
 
+    /** @var array<int, string> */
     #[Url]
     public array $safety_tools = [];
 
@@ -144,7 +146,7 @@ class AdventuresDiscovery extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         seo(new SEOData(
             title: __('discovery.seo_title_browse_adventures'),
@@ -158,7 +160,7 @@ class AdventuresDiscovery extends Component
         $lng = $this->guestLng;
 
         // Fallback to the logged-in user's saved location when browser geolocation is unavailable
-        if (! $hasLocation && $user && $user->location_id) {
+        if (! $hasLocation && $user?->location_id) {
             $userLocation = Location::find($user->location_id);
             if ($userLocation) {
                 $lat = (float) $userLocation->latitude;
@@ -171,11 +173,11 @@ class AdventuresDiscovery extends Component
 
         // Build base queries via service, then scope to TTRPG systems
         $campaignsQuery = $service->buildCampaignsQuery(
-            $filters->toArray(), $user, $this->radius, $lat, $lng, $hasLocation, null,
+            $filters, $user, $this->radius, $lat, $lng, $hasLocation, null,
         )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
 
         $gamesQuery = $service->buildGamesQuery(
-            $filters->toArray(), $user, $this->radius, $lat, $lng, $hasLocation, null,
+            $filters, $user, $this->radius, $lat, $lng, $hasLocation, null,
         )->whereHas('gameSystem', fn ($q) => $q->where('type', 'ttrpg'));
 
         // Apply session_type filter
@@ -225,19 +227,19 @@ class AdventuresDiscovery extends Component
 
         $campaigns = $campaignsQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = PHP_INT_MAX - ($item->created_at?->timestamp ?? 0),
+            $item->discoverable_sort_key = PHP_INT_MAX - (int) ($item->created_at->timestamp ?? 0),
         ]);
 
         $games = $gamesQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'game',
-            $item->discoverable_sort_key = $item->date_time?->timestamp ?? 0,
+            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0),
         ]);
 
-        $merged = $campaigns->merge($games);
+        $merged = collect()->merge($campaigns)->merge($games);
 
         // Apply proximity filtering if radius is set
         if ($this->radius > 0 && $hasLocation) {
-            $result = $service->applyProximityFilter($merged, $lat, $lng, $this->radius);
+            $result = $service->applyProximityFilter($merged, (float) $lat, (float) $lng, $this->radius);
             $merged = $result['collection'];
             $this->usingFallbackRadius = $result['usingFallback'];
         } else {

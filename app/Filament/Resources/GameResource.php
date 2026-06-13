@@ -2,23 +2,28 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\AttendanceResolutionMethod;
+use App\Enums\ContentLanguage;
+use App\Enums\GameStatus;
+use App\Enums\GameType;
+use App\Enums\Visibility;
 use App\Filament\Components\SeoFields;
 use App\Filament\Resources\GameResource\Pages;
 use App\Filament\Resources\GameResource\RelationManagers\AttendanceReportsRelationManager;
 use App\Filament\Resources\GameResource\RelationManagers\ParticipantsRelationManager;
 use App\Models\Game;
+use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use BackedEnum;
-use App\Enums\AttendanceResolutionMethod;
-use App\Enums\GameStatus;
-use App\Enums\GameType;
-use App\Enums\Visibility;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
@@ -34,7 +39,7 @@ class GameResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedPuzzlePiece;
     }
@@ -97,7 +102,7 @@ class GameResource extends Resource
                                     ->step(0.01)
                                     ->default(0),
                                 Select::make('language')
-                                    ->options(collect(\App\Enums\ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
+                                    ->options(collect(ContentLanguage::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
                                     ->default('en'),
                             ]),
                     ]),
@@ -130,18 +135,18 @@ class GameResource extends Resource
                     ->schema([
                         Grid::make(3)
                             ->schema([
-                                \Filament\Forms\Components\Placeholder::make('attendance_resolution_method_display')
+                                Placeholder::make('attendance_resolution_method_display')
                                     ->label('Resolution Method')
                                     ->content(fn ($record) => $record?->attendance_resolution_method
                                         ? AttendanceResolutionMethod::tryFrom($record->attendance_resolution_method)?->label() ?? $record->attendance_resolution_method
                                         : 'Not resolved'),
-                                \Filament\Forms\Components\Placeholder::make('attendance_resolved_at_display')
+                                Placeholder::make('attendance_resolved_at_display')
                                     ->label('Resolved At')
                                     ->content(fn ($record) => $record?->attendance_resolved_at?->format('M j, Y g:i A') ?? '—'),
-                                \Filament\Forms\Components\Placeholder::make('attendance_window_display')
+                                Placeholder::make('attendance_window_display')
                                     ->label('Reporting Window')
                                     ->content(fn ($record) => $record?->attendance_window_opens_at
-                                        ? $record->attendance_window_opens_at->format('M j, Y g:i A') . ' → ' . $record->attendance_window_closes_at?->format('M j, Y g:i A')
+                                        ? $record->attendance_window_opens_at->format('M j, Y g:i A').' → '.$record->attendance_window_closes_at?->format('M j, Y g:i A')
                                         : '—'),
                             ]),
                     ])
@@ -211,11 +216,11 @@ class GameResource extends Resource
                 //
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

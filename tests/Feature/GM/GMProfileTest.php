@@ -2,18 +2,19 @@
 
 namespace Tests\Feature\GM;
 
-use App\Enums\GmProficiency;
 use App\Models\GMProfile;
 use App\Models\User;
+use App\Services\GmRoleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use PHPUnit\Framework\Attributes\Group;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 use Tests\Traits\CreatesUsers;
 
 class GMProfileTest extends TestCase
 {
-    use DatabaseTransactions;
     use CreatesUsers;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {
@@ -76,11 +77,11 @@ class GMProfileTest extends TestCase
 
     // ── Profile Lifecycle via GmRoleService ────────────────────
 
-    #[\PHPUnit\Framework\Attributes\Group('smoke')]
+    #[Group('smoke')]
     public function test_profile_created_on_role_assignment(): void
     {
         $user = $this->createSubscribedUser();
-        $service = app(\App\Services\GmRoleService::class);
+        $service = app(GmRoleService::class);
 
         $this->assertNull($user->gmProfile);
 
@@ -96,7 +97,7 @@ class GMProfileTest extends TestCase
     public function test_profile_preserved_after_role_revocation(): void
     {
         $user = $this->createSubscribedUser();
-        $service = app(\App\Services\GmRoleService::class);
+        $service = app(GmRoleService::class);
 
         $service->assignGMRole($user);
         $profileId = $user->gmProfile->id;
@@ -113,7 +114,7 @@ class GMProfileTest extends TestCase
     public function test_profile_reactivated_on_role_reassignment(): void
     {
         $user = $this->createSubscribedUser();
-        $service = app(\App\Services\GmRoleService::class);
+        $service = app(GmRoleService::class);
 
         $service->assignGMRole($user);
         $profileId = $user->gmProfile->id;
@@ -131,7 +132,7 @@ class GMProfileTest extends TestCase
     public function test_subscription_lapse_preserves_profile_data(): void
     {
         $user = $this->createSubscribedUser();
-        $service = app(\App\Services\GmRoleService::class);
+        $service = app(GmRoleService::class);
 
         $service->assignGMRole($user);
 
@@ -162,5 +163,4 @@ class GMProfileTest extends TestCase
 
         $this->assertDatabaseMissing('gm_profiles', ['id' => $profileId]);
     }
-
 }

@@ -5,6 +5,9 @@ namespace App\Console\Commands;
 use App\Enums\CampaignStatus;
 use App\Enums\EventStatus;
 use App\Enums\GameStatus;
+use App\Models\Campaign;
+use App\Models\Event;
+use App\Models\Game;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use Illuminate\Console\Command;
@@ -48,9 +51,9 @@ class PruneExpiredShortLinks extends Command
             // Phase 3: Hard-delete old analytics hits
             $hitsDeleted = $this->pruneOldAnalyticsHits($days, $dryRun);
 
-            $this->info("Phase 1 (entity expiry): {$expiredCount} link(s) " . ($dryRun ? 'would be ' : '') . "marked for expiry");
-            $this->info("Phase 2 (expired cleanup): {$deletedCount} link(s) " . ($dryRun ? 'would be ' : '') . "soft-deleted");
-            $this->info("Phase 3 (analytics retention): {$hitsDeleted} hit(s) " . ($dryRun ? 'would be ' : '') . "hard-deleted (older than {$days} days)");
+            $this->info("Phase 1 (entity expiry): {$expiredCount} link(s) ".($dryRun ? 'would be ' : '').'marked for expiry');
+            $this->info("Phase 2 (expired cleanup): {$deletedCount} link(s) ".($dryRun ? 'would be ' : '').'soft-deleted');
+            $this->info("Phase 3 (analytics retention): {$hitsDeleted} hit(s) ".($dryRun ? 'would be ' : '')."hard-deleted (older than {$days} days)");
 
             Log::channel('daily')->info('prune.expired_links', [
                 'entity_expiry_count' => $expiredCount,
@@ -90,7 +93,7 @@ class PruneExpiredShortLinks extends Command
             ->whereNull('expires_at')
             ->where(function ($q) use ($cutoff) {
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', \App\Models\Game::class)
+                    $subQ->where('linkable_type', Game::class)
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
                             $sub->selectRaw('CAST(id AS VARCHAR)')
                                 ->from('games')
@@ -99,7 +102,7 @@ class PruneExpiredShortLinks extends Command
                         });
                 });
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', \App\Models\Campaign::class)
+                    $subQ->where('linkable_type', Campaign::class)
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
                             $sub->selectRaw('CAST(id AS VARCHAR)')
                                 ->from('campaigns')
@@ -108,7 +111,7 @@ class PruneExpiredShortLinks extends Command
                         });
                 });
                 $q->orWhere(function ($subQ) use ($cutoff) {
-                    $subQ->where('linkable_type', \App\Models\Event::class)
+                    $subQ->where('linkable_type', Event::class)
                         ->whereIn('linkable_id', function ($sub) use ($cutoff) {
                             $sub->selectRaw('CAST(id AS VARCHAR)')
                                 ->from('events')
@@ -179,7 +182,8 @@ class PruneExpiredShortLinks extends Command
             ->chunkById(500, function ($hits) use (&$count) {
                 // ShortLinkHit has no model events — bulk DELETE is safe and
                 // generates one statement per chunk instead of 500 individual deletes.
-                $count += ShortLinkHit::whereIn('id', $hits->pluck('id'))->delete();
+                $deleted = ShortLinkHit::whereIn('id', $hits->pluck('id'))->delete();
+                $count += is_int($deleted) ? $deleted : 0;
             });
 
         return $count;

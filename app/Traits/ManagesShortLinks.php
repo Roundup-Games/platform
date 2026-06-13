@@ -4,10 +4,11 @@ namespace App\Traits;
 
 use App\Enums\JoinSource;
 use App\Enums\ParticipantRole;
+use App\Models\Game;
 use App\Models\ShortLink;
 use App\Services\ShortLinkService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 
@@ -44,16 +45,22 @@ trait ManagesShortLinks
 
         $entity = $this->getEntity();
 
+        $entityKey = $entity->getKey();
+        assert(is_int($entityKey) || is_string($entityKey));
+
         if ($link->linkable_type === get_class($entity)
-            && (string) $link->linkable_id === (string) $entity->getKey()) {
+            && (string) $link->linkable_id === (string) $entityKey) {
             $this->validatedShortLinkId = $link->id;
         }
     }
 
     // ── Short Link Computed Properties ───────────────────
 
+    /**
+     * @return \Illuminate\Support\Collection<int, ShortLink>
+     */
     #[Computed]
-    public function getShortLinks()
+    public function getShortLinks(): \Illuminate\Support\Collection
     {
         return app(ShortLinkService::class)->getLinksForEntity($this->getEntity());
     }
@@ -71,7 +78,7 @@ trait ManagesShortLinks
     {
         $shortLinks = $this->getShortLinks();
         if ($shortLinks->isNotEmpty()) {
-            return url('/link/' . $shortLinks->first()->code);
+            return url('/link/'.$shortLinks->first()->code);
         }
 
         $entity = $this->getEntity();
@@ -79,22 +86,23 @@ trait ManagesShortLinks
             return null;
         }
 
-        $route = $entity instanceof \App\Models\Game
+        $route = $entity instanceof Game
             ? 'games.show'
             : 'campaigns.show';
 
-        return route($route, $entity->getKey()) . '?share=' . $entity->share_token;
+        return route($route, $entity->getKey()).'?share='.$entity->share_token;
     }
 
     // ── Short Link Actions ───────────────────────────────
 
     public function createShortLink(?string $label = null): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
         $entity = $this->getEntity();
 
-        if (! $viewer || $entity->owner_id !== $viewer->id) {
+        if ((string) $entity->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
@@ -102,6 +110,7 @@ trait ManagesShortLinks
 
         if (! $service->canCreateMore($entity, $viewer)) {
             session()->flash('error', __('common.error_max_links_reached'));
+
             return;
         }
 
@@ -114,7 +123,7 @@ trait ManagesShortLinks
             'entity_type' => get_class($entity),
             'entity_id' => $entity->getKey(),
             'link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3) . '…',
+            'code_prefix' => substr($link->code, 0, 3).'…',
             'user_id' => $viewer->id,
         ]);
 
@@ -124,17 +133,21 @@ trait ManagesShortLinks
 
     public function revokeShortLink(int $linkId): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
         $entity = $this->getEntity();
 
-        if (! $viewer || $entity->owner_id !== $viewer->id) {
+        if ((string) $entity->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
+
             return;
         }
 
+        $entityKey = $entity->getKey();
+        assert(is_int($entityKey) || is_string($entityKey));
+
         $link = ShortLink::where('id', $linkId)
             ->where('linkable_type', get_class($entity))
-            ->where('linkable_id', (string) $entity->getKey())
+            ->where('linkable_id', (string) $entityKey)
             ->firstOrFail();
 
         app(ShortLinkService::class)->revokeLink($link);
@@ -143,7 +156,7 @@ trait ManagesShortLinks
             'entity_type' => get_class($entity),
             'entity_id' => $entity->getKey(),
             'link_id' => $linkId,
-            'code_prefix' => substr($link->code, 0, 3) . '…',
+            'code_prefix' => substr($link->code, 0, 3).'…',
             'user_id' => $viewer->id,
         ]);
 
@@ -190,7 +203,7 @@ trait ManagesShortLinks
      */
     protected function buildShareJoinBaseData(Model $entity, string $viewerId): array
     {
-        $fkColumn = $entity instanceof \App\Models\Game ? 'game_id' : 'campaign_id';
+        $fkColumn = $entity instanceof Game ? 'game_id' : 'campaign_id';
 
         $data = [
             $fkColumn => $entity->getKey(),

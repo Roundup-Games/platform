@@ -4,6 +4,7 @@ use App\Livewire\Media\ImageUpload;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 describe('ImageUpload security', function () {
@@ -57,5 +58,5 @@ describe('ImageUpload security', function () {
 
         // Both locked properties should reject client-side updates
         $component->set('model_type', 'App\Models\Event');
-    })->throws(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class)->group('smoke');
+    })->throws(CannotUpdateLockedPropertyException::class)->group('smoke');
 });

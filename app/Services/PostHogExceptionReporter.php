@@ -2,9 +2,15 @@
 
 namespace App\Services;
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PostHog\ExceptionPayloadBuilder;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 /**
@@ -99,31 +105,27 @@ class PostHogExceptionReporter
     private function isClientError(Throwable $e): bool
     {
         // Symfony HTTP exceptions carry status codes (NotFound, Forbidden, etc.)
-        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+        if ($e instanceof HttpException) {
             return $e->getStatusCode() < 500;
         }
 
         // Laravel's ModelNotFoundException is typically a 404
-        if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+        if ($e instanceof ModelNotFoundException) {
             return true;
         }
 
         // Authentication/authorization exceptions
-        if ($e instanceof \Illuminate\Auth\AuthenticationException) {
-            return true;
-        }
-
-        if ($e instanceof \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException) {
+        if ($e instanceof AuthenticationException) {
             return true;
         }
 
         // Token mismatch (CSRF) — 419
-        if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+        if ($e instanceof TokenMismatchException) {
             return true;
         }
 
         // Validation exceptions — 422
-        if ($e instanceof \Illuminate\Validation\ValidationException) {
+        if ($e instanceof ValidationException) {
             return true;
         }
 
@@ -142,7 +144,7 @@ class PostHogExceptionReporter
      */
     private function passesRateLimit(Throwable $e): bool
     {
-        $key = self::CACHE_KEY_PREFIX . md5(get_class($e));
+        $key = self::CACHE_KEY_PREFIX.md5(get_class($e));
 
         try {
             // Ensure key exists with TTL before incrementing.
@@ -174,18 +176,20 @@ class PostHogExceptionReporter
         $user = Auth::user();
 
         if ($user) {
-            return (string) $user->getAuthIdentifier();
+            $authId = $user->getAuthIdentifier();
+
+            return to_string_id($authId);
         }
 
         // Anonymous — use a random UUID stored in the session.
         // Generated once per session, reused across requests for grouping.
         // No PII (IP, UA) is used as input — purely random identifier.
         if (! $anonId = session('posthog_anon_id')) {
-            $anonId = (string) \Illuminate\Support\Str::uuid();
+            $anonId = (string) Str::uuid();
             session(['posthog_anon_id' => $anonId]);
         }
 
-        return 'anon:' . substr($anonId, 0, 16);
+        return 'anon:'.substr(is_string($anonId) ? $anonId : '', 0, 16);
     }
 
     /**
@@ -194,7 +198,6 @@ class PostHogExceptionReporter
      */
     private function buildFingerprint(Throwable $e): string
     {
-        return md5(get_class($e) . '|' . $e->getFile() . '|' . $e->getMessage());
+        return md5(get_class($e).'|'.$e->getFile().'|'.$e->getMessage());
     }
-
 }

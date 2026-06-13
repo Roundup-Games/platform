@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Dto\BBox;
+
 /**
  * Lightweight geohash encoder for tile-prefix generation.
  *
@@ -101,9 +103,8 @@ class Geohash
      * Useful for understanding the coverage area of a cached tile.
      *
      * @param  string  $prefix  Geohash prefix
-     * @return array{minLat: float, maxLat: float, minLng: float, maxLng: float}
      */
-    public static function prefixBounds(string $prefix): array
+    public static function prefixBounds(string $prefix): BBox
     {
         // Decode by reconstructing the ranges
         $latRange = [-90.0, 90.0];
@@ -140,11 +141,11 @@ class Geohash
             }
         }
 
-        return [
-            'minLat' => $latRange[0],
-            'maxLat' => $latRange[1],
-            'minLng' => $lngRange[0],
-            'maxLng' => $lngRange[1],
-        ];
+        return new BBox(
+            minLat: $latRange[0],
+            maxLat: $latRange[1],
+            minLng: $lngRange[0],
+            maxLng: $lngRange[1],
+        );
     }
 }

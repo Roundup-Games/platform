@@ -97,24 +97,24 @@ return new class extends Migration
                 Schema::table($table, function (Blueprint $t) use ($column) {
                     $t->dropForeign([$column]);
                 });
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Constraint may not exist — continue
             }
         }
 
         // ── Step 4: Drop composite PKs that include user FK columns ──
         // These must be dropped before we can drop the column
-        $compositePkTables = array_filter($this->fkColumns, fn($f) => $f[3]);
+        $compositePkTables = array_filter($this->fkColumns, fn ($f) => $f[3]);
         foreach ($compositePkTables as [$table]) {
             DB::statement("ALTER TABLE {$table} DROP CONSTRAINT {$table}_pkey");
         }
 
         // ── Step 5: Migrate each FK column via temp column + JOIN ──
         foreach ($this->fkColumns as [$table, $column, $nullable]) {
-            $newCol = $column . $tempCol;
+            $newCol = $column.$tempCol;
 
             // Add temp uuid column
-            DB::statement("ALTER TABLE {$table} ADD COLUMN {$newCol} uuid" . ($nullable ? '' : ' NOT NULL DEFAULT \'00000000-0000-0000-0000-000000000000\''));
+            DB::statement("ALTER TABLE {$table} ADD COLUMN {$newCol} uuid".($nullable ? '' : ' NOT NULL DEFAULT \'00000000-0000-0000-0000-000000000000\''));
 
             // Populate via JOIN against mapping table
             DB::statement("UPDATE {$table} SET {$newCol} = m.new_uuid FROM {$mapTable} m WHERE {$table}.{$column} = m.old_id");
@@ -124,23 +124,23 @@ return new class extends Migration
             DB::statement("ALTER TABLE {$table} RENAME COLUMN {$newCol} TO {$column}");
 
             // Remove default if we added one
-            if (!$nullable) {
+            if (! $nullable) {
                 DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} DROP DEFAULT");
             }
         }
 
         // Same for non-FK columns (sessions.user_id)
         foreach ($this->nonFkColumns as [$table, $column, $nullable]) {
-            $newCol = $column . $tempCol;
+            $newCol = $column.$tempCol;
 
-            DB::statement("ALTER TABLE {$table} ADD COLUMN {$newCol} uuid" . ($nullable ? '' : ' NOT NULL DEFAULT \'00000000-0000-0000-0000-000000000000\''));
+            DB::statement("ALTER TABLE {$table} ADD COLUMN {$newCol} uuid".($nullable ? '' : ' NOT NULL DEFAULT \'00000000-0000-0000-0000-000000000000\''));
 
             DB::statement("UPDATE {$table} SET {$newCol} = m.new_uuid FROM {$mapTable} m WHERE {$table}.{$column} = m.old_id");
 
             DB::statement("ALTER TABLE {$table} DROP COLUMN {$column}");
             DB::statement("ALTER TABLE {$table} RENAME COLUMN {$newCol} TO {$column}");
 
-            if (!$nullable) {
+            if (! $nullable) {
                 DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} DROP DEFAULT");
             }
         }
@@ -156,11 +156,11 @@ return new class extends Migration
         ];
 
         foreach ($morphColumns as $morph) {
-            if (!Schema::hasColumn($morph['table'], $morph['id_col'])) {
+            if (! Schema::hasColumn($morph['table'], $morph['id_col'])) {
                 continue;
             }
 
-            $newCol = $morph['id_col'] . '_new';
+            $newCol = $morph['id_col'].'_new';
 
             // Add temp varchar column
             DB::statement("ALTER TABLE {$morph['table']} ADD COLUMN {$newCol} varchar(36)");
@@ -350,8 +350,8 @@ return new class extends Migration
 
         // Convert model_id from bigint to varchar(36) and map User model IDs
         // First, convert to text temporarily to hold UUID strings
-        DB::statement("ALTER TABLE model_has_roles ADD COLUMN _new_model_id varchar(36)");
-        DB::statement("ALTER TABLE model_has_permissions ADD COLUMN _new_model_id varchar(36)");
+        DB::statement('ALTER TABLE model_has_roles ADD COLUMN _new_model_id varchar(36)');
+        DB::statement('ALTER TABLE model_has_permissions ADD COLUMN _new_model_id varchar(36)');
 
         // Map User model entries using the mapping table
         DB::statement("UPDATE model_has_roles SET _new_model_id = m.new_uuid::text FROM {$mapTable} m WHERE model_has_roles.model_type = 'App\\\\Models\\\\User' AND model_has_roles.model_id = m.old_id");
@@ -362,10 +362,10 @@ return new class extends Migration
         DB::statement("UPDATE model_has_permissions SET _new_model_id = model_id::text WHERE model_type != 'App\\\\Models\\\\User' AND _new_model_id IS NULL");
 
         // Swap columns
-        DB::statement("ALTER TABLE model_has_roles DROP COLUMN model_id");
-        DB::statement("ALTER TABLE model_has_roles RENAME COLUMN _new_model_id TO model_id");
-        DB::statement("ALTER TABLE model_has_permissions DROP COLUMN model_id");
-        DB::statement("ALTER TABLE model_has_permissions RENAME COLUMN _new_model_id TO model_id");
+        DB::statement('ALTER TABLE model_has_roles DROP COLUMN model_id');
+        DB::statement('ALTER TABLE model_has_roles RENAME COLUMN _new_model_id TO model_id');
+        DB::statement('ALTER TABLE model_has_permissions DROP COLUMN model_id');
+        DB::statement('ALTER TABLE model_has_permissions RENAME COLUMN _new_model_id TO model_id');
 
         // Restore Spatie unique constraints
         DB::statement('ALTER TABLE model_has_roles ADD CONSTRAINT model_has_roles_model_id_model_type_unique UNIQUE (model_id, model_type, team_id)');
@@ -378,6 +378,6 @@ return new class extends Migration
     public function down(): void
     {
         // Not reversible due to UUID→int data loss. Restore from backup.
-        throw new \RuntimeException('This migration cannot be rolled back. Restore from database backup.');
+        throw new RuntimeException('This migration cannot be rolled back. Restore from database backup.');
     }
 };

@@ -5,14 +5,15 @@ namespace App\Livewire\Campaigns;
 use App\Enums\CampaignStatus;
 use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
-use App\Enums\Visibility;
 use App\Enums\VibeFlag;
+use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\GameSystem;
 use App\Services\OwnerParticipantService;
-use App\Services\VenueTrustService;
 use App\Services\ShortLinkService;
+use App\Services\VenueTrustService;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -22,13 +23,18 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+/** @property-read bool $canCreatePublic */
 #[Layout('layouts.app')]
 class CreateCampaign extends Component
 {
     use BuildsTranslatableFormFields;
+
     public string $name = '';
 
     // ── Translatable fields ──
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['name', 'description'];
@@ -54,8 +60,10 @@ class CreateCampaign extends Component
 
     public string $visibility = 'protected';
 
+    /** @var array<int, string> */
     public array $minimum_requirements = [];
 
+    /** @var array<int|string, mixed> */
     public array $safety_rules = [];
 
     public ?int $min_players = null;
@@ -71,6 +79,9 @@ class CreateCampaign extends Component
 
     public bool $bench_mode = false;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return array_merge([
@@ -83,13 +94,13 @@ class CreateCampaign extends Component
             'time_of_day' => 'required|date_format:H:i',
             'session_duration' => 'nullable|numeric|min:0.5|max:24',
             'price_per_session' => 'nullable|numeric|min:0',
-            'language' => 'required|string|in:' . implode(',', ContentLanguage::values()),
+            'language' => 'required|string|in:'.implode(',', ContentLanguage::values()),
             'visibility' => Visibility::validationRule(),
             'minimum_requirements' => 'nullable|array',
             'safety_rules' => 'nullable|array',
             'min_players' => 'nullable|integer|min:1|max:99',
             'max_players' => 'nullable|integer|min:1|max:99',
-            'experience_level' => 'nullable|string|in:' . implode(',', ExperienceLevel::values()),
+            'experience_level' => 'nullable|string|in:'.implode(',', ExperienceLevel::values()),
             'complexity' => 'nullable|numeric|min:1|max:5',
             'bench_mode' => 'boolean',
         ], $this->translatableValidationRules(
@@ -118,12 +129,18 @@ class CreateCampaign extends Component
         $this->location_instructions = $instructions;
     }
 
+    /**
+     * @param  array<string, string|null>  $preferences
+     */
     #[On('vibe-preferences-changed')]
     public function onVibePreferencesChanged(array $preferences): void
     {
         $this->vibePreferences = $preferences;
     }
 
+    /**
+     * @param  array<int|string, mixed>  $safetyRules
+     */
     #[On('safety-tools-changed')]
     public function onSafetyToolsChanged(array $safetyRules): void
     {
@@ -131,7 +148,7 @@ class CreateCampaign extends Component
     }
 
     #[On('value-updated')]
-    public function onGameSystemPicked($value): void
+    public function onGameSystemPicked(mixed $value): void
     {
         $id = is_string($value) && Str::isUuid($value) ? $value : null;
         $this->game_system_id = $id;
@@ -157,23 +174,29 @@ class CreateCampaign extends Component
 
     // ── Computed ─────────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function languageOptions(): array
     {
         $options = [];
         foreach (ContentLanguage::cases() as $case) {
-            $options[$case->value] = __('common.label_language_' . $case->value);
+            $options[$case->value] = __('common.label_language_'.$case->value);
         }
 
         return $options;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function experienceLevelOptions(): array
     {
         $options = ['' => __('discovery.content_any')];
         foreach (ExperienceLevel::cases() as $case) {
-            $options[$case->value] = __('games.content_experience_' . $case->value);
+            $options[$case->value] = __('games.content_experience_'.$case->value);
         }
 
         return $options;
@@ -182,15 +205,15 @@ class CreateCampaign extends Component
     #[Computed]
     public function canCreatePublic(): bool
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
-        return $user && app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
+        return app(VenueTrustService::class)->canCreatePublic($user, $this->location_id);
     }
 
     #[Computed]
     public function publicViaVenue(): bool
     {
-        if ($this->canCreatePublic && Auth::user()?->can_create_public_entries) {
+        if ($this->canCreatePublic && authenticatedUser()->can_create_public_entries) {
             return false; // GM — doesn't need venue indicator
         }
 
@@ -225,7 +248,7 @@ class CreateCampaign extends Component
 
         // Gate bench_mode to GM users only (defense-in-depth; UI disables toggle for non-GMs)
         $benchMode = $this->bench_mode;
-        if ($benchMode && ! Auth::user()->isGM()) {
+        if ($benchMode && ! authenticatedUser()->isGM()) {
             Log::warning('Non-GM user attempted to enable bench_mode on campaign creation', [
                 'user_id' => Auth::id(),
                 'attempted_bench_mode' => true,
@@ -277,9 +300,9 @@ class CreateCampaign extends Component
         ]);
 
         // Auto-generate short link for GMs
-        if (Auth::user()->isGM()) {
+        if (authenticatedUser()->isGM()) {
             try {
-                app(ShortLinkService::class)->createLink($campaign, Auth::user(), [
+                app(ShortLinkService::class)->createLink($campaign, authenticatedUser(), [
                     'label' => 'Default',
                     'expires_at' => now()->addDays(30),
                 ]);
@@ -296,10 +319,10 @@ class CreateCampaign extends Component
         $this->redirect(route('campaigns.show', $campaign->id), navigate: true);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.campaigns.create-campaign', [
-            'isGM' => Auth::user()?->isGM() ?? false,
+            'isGM' => authenticatedUser()->isGM(),
         ]);
     }
 

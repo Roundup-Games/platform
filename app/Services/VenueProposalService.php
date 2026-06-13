@@ -40,6 +40,7 @@ class VenueProposalService
      *
      * @param  User  $user  The authenticated user proposing the venue
      * @param  array  $data  Validated proposal data: name, address, venue_type, website_url?, notes?
+     * @param  array<string, mixed>  $data
      * @return Ticket The created ticket
      *
      * @throws \RuntimeException When the Events department is not configured
@@ -56,15 +57,15 @@ class VenueProposalService
         $venueType = $data['venue_type'] ?? null;
         $venueTypeLabel = $venueType instanceof VenueType
             ? $venueType->label()
-            : ($venueType ? VenueType::tryFrom($venueType)?->label() ?? $venueType : null);
+            : ($venueType ? VenueType::tryFrom(is_int($venueType) || is_string($venueType) ? $venueType : '')?->label() ?? (is_string($venueType) || is_int($venueType) ? (string) $venueType : '') : null);
 
-        $metadata = $this->buildMetadata($user, $data, $venueType);
+        $metadata = $this->buildMetadata($user, $data, $venueType instanceof VenueType ? $venueType->value : (is_string($venueType) ? $venueType : null));
 
         $ticket = Ticket::create([
             'requester_type' => User::class,
             'requester_id' => $user->id,
-            'subject' => 'Venue Proposal: ' . trim($data['name']),
-            'description' => $this->buildDescription($data, $venueTypeLabel),
+            'subject' => 'Venue Proposal: '.trim(is_string($dn = $data['name'] ?? '') ? $dn : ''),
+            'description' => $this->buildDescription($data, is_string($venueTypeLabel) ? $venueTypeLabel : null),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
             'department_id' => $department->id,
@@ -77,7 +78,7 @@ class VenueProposalService
 
         Log::info('venue_proposal.submitted', [
             'user_id' => $user->id,
-            'venue_name' => trim($data['name']),
+            'venue_name' => trim(is_string($dn = $data['name'] ?? '') ? $dn : ''),
             'ticket_id' => $ticket->id,
             'ticket_reference' => $ticket->reference,
         ]);
@@ -116,23 +117,23 @@ class VenueProposalService
             'latitude' => $metadata['latitude'] ?? null,
             'longitude' => $metadata['longitude'] ?? null,
             'venue_metadata' => array_merge(
-                $metadata['venue_metadata'] ?? [],
+                is_array($metadata['venue_metadata'] ?? null) ? $metadata['venue_metadata'] : [],
                 [
                     'approved_from_ticket' => $ticket->reference,
-                    'proposed_by_user_id' => $metadata['actor']['id'] ?? null,
+                    'proposed_by_user_id' => is_array($metadata['actor'] ?? null) ? ($metadata['actor']['id'] ?? null) : null,
                     'geocoded_display_name' => $metadata['geocoded_display_name'] ?? null,
                 ]
             ),
         ];
 
         $existingId = $metadata['existing_location_id'] ?? null;
-        if ($existingId && $existing = Location::find($existingId)) {
+        if (is_string($existingId) && $existingId !== '' && $existing = Location::find($existingId)) {
             $existing->update($payload);
             $location = $existing;
         } else {
             $location = Location::updateOrCreate(
                 [
-                    'name' => trim($metadata['venue_name'] ?? $this->extractName($ticket)),
+                    'name' => trim(is_string($vn = $metadata['venue_name'] ?? $this->extractName($ticket)) ? $vn : ''),
                     'address' => $metadata['venue_address'] ?? '',
                 ],
                 $payload
@@ -164,7 +165,7 @@ class VenueProposalService
         return Ticket::where('requester_type', User::class)
             ->where('requester_id', $user->id)
             ->where('ticket_type', 'venue_proposal')
-            ->whereRaw('LOWER(subject) LIKE ?', ['%venue proposal: ' . $escapedName])
+            ->whereRaw('LOWER(subject) LIKE ?', ['%venue proposal: '.$escapedName])
             ->whereIn('status', [TicketStatus::Open->value, TicketStatus::InProgress->value])
             ->exists();
     }
@@ -203,6 +204,9 @@ class VenueProposalService
      *
      * Follows the TicketPayloadRenderer schema convention:
      *   schema, actor, action, entities, reason, details, context
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     protected function buildMetadata(User $user, array $data, ?string $venueType): array
     {
@@ -214,12 +218,12 @@ class VenueProposalService
             'reason' => 'venue_proposal',
             'details' => $data['proposer_notes'] ?? $data['notes'] ?? null,
             // Flat keys for venue proposal data
-            'venue_name' => trim($data['name']),
+            'venue_name' => trim(is_string($dn = $data['name'] ?? '') ? $dn : ''),
             'venue_address' => $data['address'] ?? null,
             'venue_city' => $data['city'] ?? null,
             'venue_postal_code' => $data['postal_code'] ?? null,
             'venue_country' => $data['country'] ?? null,
-            'venue_type' => $venueType instanceof VenueType ? $venueType->value : $venueType,
+            'venue_type' => $venueType,
             'website_url' => $data['website_url'] ?? null,
             'proposer_notes' => $data['proposer_notes'] ?? null,
             'admin_notes' => $data['admin_notes'] ?? null,
@@ -234,36 +238,38 @@ class VenueProposalService
 
     /**
      * Build a human-readable description for the venue proposal ticket.
+     *
+     * @param  array<string, mixed>  $data
      */
     protected function buildDescription(array $data, ?string $venueTypeLabel): string
     {
         $lines = [
-            '**Venue Name:** ' . trim($data['name']),
-            '**Address:** ' . ($data['address'] ?? 'N/A'),
+            '**Venue Name:** '.trim(is_string($dn = $data['name'] ?? '') ? $dn : ''),
+            '**Address:** '.(is_string($a = $data['address'] ?? 'N/A') ? $a : 'N/A'),
         ];
 
-        if (! empty($data['city'])) {
-            $lines[] = '**City:** ' . $data['city'];
+        if (! empty($data['city']) && is_string($data['city'])) {
+            $lines[] = '**City:** '.$data['city'];
         }
 
-        if (! empty($data['postal_code'])) {
-            $lines[] = '**Postal Code:** ' . $data['postal_code'];
+        if (! empty($data['postal_code']) && is_string($data['postal_code'])) {
+            $lines[] = '**Postal Code:** '.$data['postal_code'];
         }
 
-        if (! empty($data['country'])) {
-            $lines[] = '**Country:** ' . $data['country'];
+        if (! empty($data['country']) && is_string($data['country'])) {
+            $lines[] = '**Country:** '.$data['country'];
         }
 
         if ($venueTypeLabel) {
-            $lines[] = '**Venue Type:** ' . $venueTypeLabel;
+            $lines[] = '**Venue Type:** '.$venueTypeLabel;
         }
 
-        if (! empty($data['website_url'])) {
-            $lines[] = '**Website:** ' . $data['website_url'];
+        if (! empty($data['website_url']) && is_string($data['website_url'])) {
+            $lines[] = '**Website:** '.$data['website_url'];
         }
 
-        if (! empty($data['existing_location_id'])) {
-            $lines[] = '**Existing Location:** Yes (ID: ' . $data['existing_location_id'] . ')';
+        if (! empty($data['existing_location_id']) && (is_string($data['existing_location_id']))) {
+            $lines[] = '**Existing Location:** Yes (ID: '.$data['existing_location_id'].')';
         }
 
         $lines[] = '';
@@ -283,7 +289,7 @@ class VenueProposalService
             $lines[] = 'No additional notes provided.';
         }
 
-        return implode("\n", $lines);
+        return implode("\n", array_map(fn (mixed $l) => is_string($l) ? $l : '', $lines));
     }
 
     /**

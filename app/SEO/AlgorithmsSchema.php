@@ -16,7 +16,7 @@ class AlgorithmsSchema extends CustomSchemaFluent
 {
     public string $type = 'FAQPage';
 
-    public Collection $questions;
+    public Collection $questions; // @phpstan-ignore missingType.generics
 
     public function initializeMarkup(SEOData $SEOData): void
     {
@@ -80,12 +80,17 @@ class AlgorithmsSchema extends CustomSchemaFluent
         ]);
     }
 
+    /**
+     * @return Collection<int, mixed>
+     */
     public function generateInner(): Collection
     {
-        return collect([
+        $result = collect([
             '@context' => 'https://schema.org',
             '@type' => 'FAQPage',
             'mainEntity' => $this->questions,
         ])->pipeThrough($this->markupTransformers);
+
+        return $result instanceof Collection ? $result : collect();
     }
 }

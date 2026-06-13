@@ -3,6 +3,7 @@
 namespace Tests\Feature\Services;
 
 use App\Services\GeocodingService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
@@ -225,7 +226,7 @@ class GeocodingServiceTest extends TestCase
     public function geocode_handles_connection_timeout()
     {
         Http::fake(function () {
-            throw new \Illuminate\Http\Client\ConnectionException('Connection timed out');
+            throw new ConnectionException('Connection timed out');
         });
 
         $result = $this->service->geocode('Berlin');

@@ -18,9 +18,10 @@ use Tests\TestCase;
 
 class DashboardScheduleServiceTest extends TestCase
 {
-
     private DashboardScheduleService $service;
+
     private User $user;
+
     private GameSystem $gameSystem;
 
     protected function setUp(): void
@@ -279,7 +280,7 @@ class DashboardScheduleServiceTest extends TestCase
         $this->assertEquals($lastGame->name, $result['game']['name']);
         $this->assertEquals($this->gameSystem->name, $result['game']['system']);
         $this->assertEquals(3.5, $result['game']['expected_duration']);
-        $this->assertStringContainsString('clone=' . $lastGame->id, $result['clone_url']);
+        $this->assertStringContainsString('clone='.$lastGame->id, $result['clone_url']);
     }
 
     public function test_host_again_bridge_uses_completed_games_as_host_only(): void

@@ -72,10 +72,10 @@ return new class extends Migration
         }
 
         // Drop index on team_id
-        $indexExists = DB::selectOne("
+        $indexExists = DB::selectOne('
             SELECT 1 FROM pg_indexes
             WHERE indexname = ? AND tablename = ?
-        ", [$indexName, $table]);
+        ', [$indexName, $table]);
 
         if ($indexExists) {
             DB::statement("DROP INDEX {$indexName}");

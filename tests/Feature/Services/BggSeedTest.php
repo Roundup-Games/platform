@@ -1,8 +1,11 @@
 <?php
 
+use App\Exceptions\BggApiException;
 use App\Models\GameSystem;
+use App\Services\BggClient;
 use App\Services\BggSeedService;
 use App\Services\BggSyncService;
+use App\Services\BggXmlParser;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -11,14 +14,14 @@ beforeEach(function () {
 
 function createSeedService(): BggSeedService
 {
-    $client = new \App\Services\BggClient(
+    $client = new BggClient(
         baseUrl: 'https://boardgamegeek.com/xmlapi2',
         token: 'test-token',
         rateLimitSeconds: 0,
         maxRetries: 3,
         retrySleepSeconds: 0,
     );
-    $parser = new \App\Services\BggXmlParser;
+    $parser = new BggXmlParser;
     $syncService = new BggSyncService($client, $parser, 20);
 
     return new BggSeedService($syncService);
@@ -29,7 +32,7 @@ it('seeds base games and discovers expansions', function () {
     $baseXml = $this->gloomhavenXml;
 
     // Expansion XML for discovered IDs (246900, 256238)
-    $expansionXml = <<<XML
+    $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgameexpansion" id="246900">
@@ -113,7 +116,7 @@ it('seeds idempotently — no duplicates on re-run', function () {
 
 it('handles empty expansion discovery', function () {
     // Minimal game with no expansion links
-    $noExpansionXml = <<<XML
+    $noExpansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="12345">
@@ -157,12 +160,12 @@ it('reports failures in exit code', function () {
 
     // BggSyncService throws BggApiException on 500 — seed propagates it
     expect(fn () => $service->seedTop500(ids: [174430]))
-        ->toThrow(\App\Exceptions\BggApiException::class);
+        ->toThrow(BggApiException::class);
 });
 
 it('runs bgg:seed-top500 command end-to-end', function () {
     $baseXml = $this->gloomhavenXml;
-    $expansionXml = <<<XML
+    $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgameexpansion" id="246900">

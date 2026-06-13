@@ -52,11 +52,11 @@ class AdminUserListCommand extends Command
             $users->map(fn (User $user) => [
                 $user->name,
                 $user->email,
-                $rolesByUser->get($user->id)?->roles ?? '—',
+                $rolesByUser->get($user->id)->roles ?? '—',
                 $user->isDisabled()
                     ? "<fg=red;options=bold>disabled</> ({$user->disabled_at?->format('Y-m-d')})"
                     : '<fg=green;options=bold>active</>',
-                $user->created_at->format('Y-m-d'),
+                $user->created_at?->format('Y-m-d'),
             ]),
         );
 

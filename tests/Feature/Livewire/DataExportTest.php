@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\ExportDownloadController;
+use App\Livewire\Settings\Show;
+use App\Livewire\Support\ContactSupport;
+use App\Models\LinkedAccount;
 use App\Models\User;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
@@ -11,6 +15,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -23,8 +28,8 @@ beforeEach(function () {
 
 describe('Profile Data Export Request', function () {
     it('creates a data_export_request ticket from profile', function () {
-        $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Settings\Show::class);
+        $component = Livewire::actingAs($this->user)
+            ->test(Show::class);
 
         $component->call('requestExport');
         $component->assertHasNoErrors();
@@ -43,8 +48,8 @@ describe('Profile Data Export Request', function () {
     });
 
     it('prevents duplicate open export requests', function () {
-        $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Settings\Show::class);
+        $component = Livewire::actingAs($this->user)
+            ->test(Show::class);
         $component->call('requestExport');
         $component->assertHasNoErrors();
 
@@ -60,8 +65,8 @@ describe('Profile Data Export Request', function () {
     });
 
     it('allows new request after existing one is resolved', function () {
-        $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Settings\Show::class);
+        $component = Livewire::actingAs($this->user)
+            ->test(Show::class);
         $component->call('requestExport');
 
         // Resolve the ticket
@@ -71,8 +76,8 @@ describe('Profile Data Export Request', function () {
         $ticket->update(['status' => TicketStatus::Resolved->value]);
 
         // Reload component — should see no pending request now
-        $component = \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Settings\Show::class);
+        $component = Livewire::actingAs($this->user)
+            ->test(Show::class);
         $component->call('requestExport');
         $component->assertHasNoErrors();
 
@@ -166,7 +171,7 @@ describe('Export Command', function () {
         $zipContent = Storage::disk('local')->get($storedPath);
         $tempZip = writeTempZip($zipContent);
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($tempZip);
 
         foreach ($manifest['files'] as $fileEntry) {
@@ -210,8 +215,8 @@ describe('Export Command', function () {
 
         // Create another user with a distinctive name and email
         $otherUser = User::factory()->create([
-            'name' => 'Other User UniqueName ' . Str::random(8),
-            'email' => 'other-' . Str::random(8) . '@example.com',
+            'name' => 'Other User UniqueName '.Str::random(8),
+            'email' => 'other-'.Str::random(8).'@example.com',
         ]);
 
         // Generate export for $this->user
@@ -228,7 +233,7 @@ describe('Export Command', function () {
         // This catches data leaks in all gatherers (games, campaigns, teams, etc.)
         $zipContent = Storage::disk('local')->get($storedPath);
         $tempZip = writeTempZip($zipContent);
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($tempZip);
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -249,7 +254,7 @@ describe('Export Command', function () {
         Storage::fake('local');
 
         // Create a linked account with provider_meta
-        \App\Models\LinkedAccount::factory()->create([
+        LinkedAccount::factory()->create([
             'user_id' => $this->user->id,
             'provider' => 'google',
             'provider_meta' => ['access_token' => 'secret-value', 'scope' => 'openid'],
@@ -290,9 +295,9 @@ describe('Signed Download URL', function () {
         }
 
         // Create a resolved ticket with export_path metadata (mirrors production flow)
-        $department = \Escalated\Laravel\Models\Department::factory()->create(['name' => 'Account Support']);
-        \Escalated\Laravel\Models\Ticket::factory()->create([
-            'requester_type' => \App\Models\User::class,
+        $department = Department::factory()->create(['name' => 'Account Support']);
+        Ticket::factory()->create([
+            'requester_type' => User::class,
             'requester_id' => $this->user->id,
             'ticket_type' => 'data_export_request',
             'status' => 'resolved',
@@ -305,7 +310,7 @@ describe('Signed Download URL', function () {
         $signedUrl = URL::signedRoute('export.download', [
             'locale' => 'en',
             'user' => $this->user->id,
-            'token' => \App\Http\Controllers\ExportDownloadController::deriveFileToken($exportPath),
+            'token' => ExportDownloadController::deriveFileToken($exportPath),
         ], now()->addDays(7));
 
         $response = $this->actingAs($this->user)->get($signedUrl);
@@ -323,7 +328,7 @@ describe('Signed Download URL', function () {
             'user' => $this->user->id,
             'token' => 'invalid-token',
         ], now()->addDays(7));
-        $tamperedUrl = $signedUrl . '&tampered=1';
+        $tamperedUrl = $signedUrl.'&tampered=1';
 
         $response = $this->actingAs($this->user)->get($tamperedUrl);
         $response->assertStatus(403);
@@ -388,8 +393,8 @@ describe('Signed Download URL', function () {
 
 describe('Contact Support Data Request', function () {
     it('creates a data_export_request ticket type', function () {
-        \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Support\ContactSupport::class)
+        Livewire::actingAs($this->user)
+            ->test(ContactSupport::class)
             ->set('subject', 'I want my data')
             ->set('description', 'Please export all my data.')
             ->set('issueType', 'data_request')
@@ -407,8 +412,8 @@ describe('Contact Support Data Request', function () {
     });
 
     it('applies data-export tag to the ticket', function () {
-        \Livewire\Livewire::actingAs($this->user)
-            ->test(\App\Livewire\Support\ContactSupport::class)
+        Livewire::actingAs($this->user)
+            ->test(ContactSupport::class)
             ->set('subject', 'Export please')
             ->set('description', 'My data.')
             ->set('issueType', 'data_request')
@@ -433,7 +438,7 @@ function extractZipFileNames(string $storedPath): array
     $zipContent = Storage::disk('local')->get($storedPath);
     $tempZip = writeTempZip($zipContent);
 
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
     test()->assertTrue($zip->open($tempZip), 'Failed to open generated ZIP');
 
     $fileNames = [];
@@ -452,7 +457,7 @@ function extractJsonFromZip(string $storedPath, string $fileName): array
     $zipContent = Storage::disk('local')->get($storedPath);
     $tempZip = writeTempZip($zipContent);
 
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
     $zip->open($tempZip);
     $json = $zip->getFromName($fileName);
     $zip->close();
@@ -463,7 +468,7 @@ function extractJsonFromZip(string $storedPath, string $fileName): array
 
 function writeTempZip(string $content): string
 {
-    $tempZip = tempnam(sys_get_temp_dir(), 'export_test_') . '.zip';
+    $tempZip = tempnam(sys_get_temp_dir(), 'export_test_').'.zip';
     file_put_contents($tempZip, $content);
 
     return $tempZip;

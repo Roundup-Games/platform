@@ -1,12 +1,16 @@
 <?php
 
+use App\Livewire\Events\EventDetail;
+use App\Livewire\Events\ManageEvent;
+use App\Livewire\Events\ManageRegistrations;
+use App\Livewire\Events\RegisterForEvent;
 use App\Models\Event;
-use App\Models\EventAnnouncement;
 use App\Models\EventRegistration;
 use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
 
 // ── Registration Window Enforcement ───────────────────
 
@@ -23,7 +27,7 @@ describe('Registration Window Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     })->group('smoke');
 
@@ -39,7 +43,7 @@ describe('Registration Window Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     })->group('smoke');
 
@@ -55,7 +59,7 @@ describe('Registration Window Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertOk()
             ->assertSee('Register for Event');
     });
@@ -76,7 +80,7 @@ describe('Registration Mode Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertSet('registrationMode', 'team')
             ->set('registrationMode', 'individual')
             ->call('register')
@@ -102,7 +106,7 @@ describe('Registration Mode Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('registrationMode', 'team')
             ->set('selectedTeamId', (string) $team->id)
             ->call('register')
@@ -141,7 +145,7 @@ describe('Capacity Enforcement', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('selectedTeamId', (string) $team->id)
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
@@ -168,7 +172,7 @@ describe('Capacity Enforcement', function () {
 
         $user = User::factory()->create(['profile_complete' => true]);
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     })->group('smoke');
@@ -191,10 +195,10 @@ describe('Early Bird Pricing', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertSet('registrationMode', 'team')
             ->assertSee('Early Bird Discount')
-            ->assertSee('-' . format_currency(5000))
+            ->assertSee('-'.format_currency(5000))
             ->assertSee(format_currency(15000));
     });
 
@@ -212,7 +216,7 @@ describe('Early Bird Pricing', function () {
         ], $override));
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertDontSee('Early Bird Discount');
     })->with([
         'no deadline' => [['early_bird_deadline' => null]],
@@ -235,7 +239,7 @@ describe('Registration with Notes', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->set('notes', 'I need a vegetarian meal')
             ->call('register');
 
@@ -259,7 +263,7 @@ describe('Organizer Event Status Transitions', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\ManageEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(ManageEvent::class, ['slug' => $event->slug])
             ->set('activeTab', 'rules')
             ->set('schedule', "9:00 AM Check-in\n10:00 AM Matches\n12:00 PM Lunch")
             ->call('save');
@@ -282,7 +286,7 @@ describe('Manage Registrations Edge Cases', function () {
         EventRegistration::factory()->pending()->create(['event_id' => $event->id]);
 
         actingAs($organizer);
-        $component = Livewire\Livewire::test(App\Livewire\Events\ManageRegistrations::class, ['slug' => $event->slug]);
+        $component = Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $event->slug]);
 
         $paymentCounts = $component->instance()->paymentCounts;
         expect($paymentCounts['paid'])->toBe(1);
@@ -303,7 +307,7 @@ describe('Event Detail Window Display', function () {
             'registration_closes_at' => now()->subDay(),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('Registration Closed');
     });
 
@@ -329,7 +333,7 @@ describe('Event Detail Window Display', function () {
             ]);
         }
 
-        Livewire\Livewire::test(App\Livewire\Events\EventDetail::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee('9/10');
     });
 });
@@ -355,7 +359,7 @@ describe('Duplicate Registration Edge Cases', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register');
 
         // New confirmed registration should be created
@@ -383,7 +387,7 @@ describe('Duplicate Registration Edge Cases', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Events\RegisterForEvent::class, ['slug' => $event->slug])
+        Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->call('register')
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
     });

@@ -8,9 +8,9 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
-use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -79,7 +79,7 @@ describe('Welcome card personalization', function () {
     });
 
     test('welcome card shows preferred systems', function () {
-        $system = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e-welcome-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'D&D 5e', 'slug' => 'dnd-5e-welcome-'.uniqid()]);
         $user = User::factory()->create(['created_at' => now()->subDays(2)]);
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
@@ -100,7 +100,7 @@ describe('Welcome card personalization', function () {
             'longitude' => 13.405,
         ]);
 
-        $system = GameSystem::create(['name' => 'Welcome System', 'slug' => 'welcome-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Welcome System', 'slug' => 'welcome-sys-'.uniqid()]);
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
             'location_id' => $location->id,
@@ -111,7 +111,7 @@ describe('Welcome card personalization', function () {
 
         // Create a matching scheduled game nearby
         Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Welcome Matching Game',
@@ -166,7 +166,7 @@ describe('Preference matches with relevance badges', function () {
             'longitude' => 9.5,
         ]);
 
-        $system = GameSystem::create(['name' => 'Badge System', 'slug' => 'badge-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Badge System', 'slug' => 'badge-sys-'.uniqid()]);
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
             'location_id' => $location->id,
@@ -176,7 +176,7 @@ describe('Preference matches with relevance badges', function () {
         $owner = User::factory()->create();
 
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Badge Test Game',
@@ -216,8 +216,8 @@ describe('Preference matches with relevance badges', function () {
             'longitude' => 8.5,
         ]);
 
-        $preferredSystem = GameSystem::create(['name' => 'Taste System', 'slug' => 'taste-sys-' . uniqid()]);
-        $otherSystem = GameSystem::create(['name' => 'Other Taste System', 'slug' => 'other-taste-sys-' . uniqid()]);
+        $preferredSystem = GameSystem::create(['name' => 'Taste System', 'slug' => 'taste-sys-'.uniqid()]);
+        $otherSystem = GameSystem::create(['name' => 'Other Taste System', 'slug' => 'other-taste-sys-'.uniqid()]);
 
         $user = User::factory()->create([
             'created_at' => now()->subDays(2),
@@ -228,7 +228,7 @@ describe('Preference matches with relevance badges', function () {
         $owner = User::factory()->create();
 
         $preferredGame = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $preferredSystem->id,
             'name' => 'Taste Match Game',
@@ -244,7 +244,7 @@ describe('Preference matches with relevance badges', function () {
         ]);
 
         $otherGame = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $otherSystem->id,
             'name' => 'No Taste Match Game',
@@ -323,12 +323,12 @@ describe('Progress tracker steps', function () {
             'profile_complete' => true,
         ]);
 
-        $system = GameSystem::create(['name' => 'Progress System', 'slug' => 'progress-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'Progress System', 'slug' => 'progress-sys-'.uniqid()]);
         $user->gameSystemPreferences()->attach($system->id, ['preference_type' => 'favorite']);
 
         $owner = User::factory()->create();
         $game = Game::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'owner_id' => $owner->id,
             'game_system_id' => $system->id,
             'name' => 'Progress Game',
@@ -395,7 +395,7 @@ describe('Nearby people rendering', function () {
             'longitude' => 13.0,
         ]);
 
-        $system = GameSystem::create(['name' => 'People System', 'slug' => 'people-sys-' . uniqid()]);
+        $system = GameSystem::create(['name' => 'People System', 'slug' => 'people-sys-'.uniqid()]);
 
         $user = User::factory()->create([
             'created_at' => now()->subDays(3),

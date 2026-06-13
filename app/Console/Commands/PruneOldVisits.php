@@ -23,7 +23,8 @@ class PruneOldVisits extends Command
 
         $query = UserAppVisit::where('visit_date', '<', $cutoff);
 
-        $count = $dryRun ? $query->count() : $query->delete();
+        $rawCount = $dryRun ? $query->count() : $query->delete();
+        $count = is_numeric($rawCount) ? (int) $rawCount : 0;
 
         $this->info($dryRun
             ? "Would delete {$count} old visit record(s) (older than {$maxAge} days)"

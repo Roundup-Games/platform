@@ -1,13 +1,15 @@
 <?php
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantRole;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Tests\Traits\CreatesGameInstances;
@@ -231,8 +233,8 @@ test('registration logs matched invites', function () {
  */
 function registerUser(string $email): User
 {
-    $controller = new \App\Http\Controllers\Auth\RegisteredUserController();
-    $request = \Illuminate\Http\Request::create('/register', 'POST', [
+    $controller = new RegisteredUserController;
+    $request = Request::create('/register', 'POST', [
         'name' => 'Test User',
         'email' => $email,
         'password' => 'secret-password123',
@@ -250,7 +252,7 @@ function registerUser(string $email): User
     ]);
 
     // Call matchPendingInvitations via reflection since it's private
-    $method = new \ReflectionMethod($controller, 'matchPendingInvitations');
+    $method = new ReflectionMethod($controller, 'matchPendingInvitations');
     $method->setAccessible(true);
     $method->invoke($controller, $user);
 

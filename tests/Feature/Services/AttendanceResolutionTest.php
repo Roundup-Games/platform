@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
 
 uses(DatabaseTransactions::class);

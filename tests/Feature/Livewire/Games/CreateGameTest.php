@@ -3,9 +3,10 @@
 use App\Livewire\Games\CreateGame;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
-
-use function Pest\Laravel\{actingAs, assertDatabaseHas};
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -142,7 +143,6 @@ describe('CreateGame — TTRPG Creation', function () {
         expect($game->safety_rules['tools'])->toContain('x-card', 'lines-veils');
     })->group('smoke');
 
-
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -177,20 +177,20 @@ describe('CreateGame — Type-Specific Validation', function () {
 describe('CreateGame — Analytics', function () {
     it('logs game_type with game creation event', function () {
         $user = createGameTestUser();
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
+        Log::shouldReceive('info')
             ->once()
-            ->with('Game created', \Mockery::on(function ($context) {
+            ->with('Game created', Mockery::on(function ($context) {
                 return isset($context['game_type']) && $context['game_type'] === 'board_game'
                     && isset($context['name']);
             }));
 
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
+        Log::shouldReceive('info')
             ->once()
-            ->with('owner_participant.created', \Mockery::any());
+            ->with('game_owner_participant.created', Mockery::any());
 
-        \Illuminate\Support\Facades\Log::shouldReceive('debug')->andReturn(null);
-        \Illuminate\Support\Facades\Log::shouldReceive('warning')->andReturn(null);
-        \Illuminate\Support\Facades\Log::shouldReceive('error')->andReturn(null);
+        Log::shouldReceive('debug')->andReturn(null);
+        Log::shouldReceive('warning')->andReturn(null);
+        Log::shouldReceive('error')->andReturn(null);
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class)
@@ -210,7 +210,7 @@ describe('CreateGame — Clone Source', function () {
     it('pre-fills all fields from a TTRPG clone source except date_time', function () {
         $user = createGameTestUser();
         $system = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
-        $location = \App\Models\Location::factory()->create();
+        $location = Location::factory()->create();
 
         $source = Game::factory()->create([
             'owner_id' => $user->id,
@@ -304,7 +304,7 @@ describe('CreateGame — Clone Source', function () {
 
         Livewire\Livewire::actingAs($user)
             ->test(CreateGame::class, ['clone' => '00000000-0000-0000-0000-000000000000']);
-    })->throws(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+    })->throws(ModelNotFoundException::class);
 
     it('can save a cloned game with new date_time creating a new record', function () {
         $user = createGameTestUser();

@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\Event;
+use App\Models\Team;
 use App\Models\User;
 use App\Services\ScopedRoleService;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     seedRoles();
@@ -14,7 +17,7 @@ beforeEach(function () {
 
     // Assign global roles (at null context for true global assignment)
     setPermissionsTeamId(null);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $this->platformAdmin->assignRole('Platform Admin');
     $this->platformAdmin->unsetRelations();
@@ -24,10 +27,10 @@ beforeEach(function () {
 
     // Assign scoped roles
     $service = app(ScopedRoleService::class);
-    $team = \App\Models\Team::factory()->create(['is_active' => true, 'created_by' => $this->teamAdmin->id]);
+    $team = Team::factory()->create(['is_active' => true, 'created_by' => $this->teamAdmin->id]);
     $service->assignTeamScopedRole($this->teamAdmin, 'Team Admin', $team);
 
-    $event = \App\Models\Event::factory()->create(['organizer_id' => $this->eventAdmin->id, 'is_public' => true]);
+    $event = Event::factory()->create(['organizer_id' => $this->eventAdmin->id, 'is_public' => true]);
     $service->assignEventScopedRole($this->eventAdmin, 'Event Admin', $event);
 });
 

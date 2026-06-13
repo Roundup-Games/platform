@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Fixes C4: trial_ends_at was declared as string but User model casts it as
 // 'datetime' and Cashier expects a timestamp column.
@@ -26,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::getDriverName() === 'pgsql') {
-            DB::statement("ALTER TABLE users ALTER COLUMN trial_ends_at TYPE varchar(255) USING trial_ends_at::varchar(255)");
+            DB::statement('ALTER TABLE users ALTER COLUMN trial_ends_at TYPE varchar(255) USING trial_ends_at::varchar(255)');
         } else {
             Schema::table('users', function (Blueprint $table) {
                 $table->string('trial_ends_at')->nullable()->change();

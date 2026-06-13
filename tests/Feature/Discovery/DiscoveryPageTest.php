@@ -1,15 +1,20 @@
 <?php
 
+use App\Enums\ParticipantStatus;
+use App\Livewire\Discovery\DiscoveryPage;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
-use App\Enums\ParticipantStatus;
-use function Pest\Laravel\{actingAs};
+use App\Models\UserRelationship;
+
+use function Pest\Laravel\actingAs;
 
 describe('DiscoveryPage', function () {
     it('renders the discovery page for guests', function () {
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertOk()
             ->assertSee('Discover');
     })->group('smoke');
@@ -28,7 +33,7 @@ describe('DiscoveryPage', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertSee('Public Game Session')
             ->assertSee('Public Campaign');
     })->group('smoke');
@@ -47,7 +52,7 @@ describe('DiscoveryPage', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('mode', 'games')
             ->assertSee('Visible Game')
             ->assertDontSee('Hidden Campaign');
@@ -67,7 +72,7 @@ describe('DiscoveryPage', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('mode', 'campaigns')
             ->assertSee('Visible Campaign')
             ->assertDontSee('Hidden Game');
@@ -88,7 +93,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(5),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('search', 'Dragonslayer')
             ->assertSee('Dragonslayer Quest')
             ->assertDontSee('Unrelated Session');
@@ -108,7 +113,7 @@ describe('DiscoveryPage', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertDontSee('Private Game')
             ->assertDontSee('Private Campaign');
     })->group('smoke');
@@ -129,7 +134,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         actingAs($user);
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertSee('Recommended for You')
             ->assertSee('Recommended Game');
     });
@@ -149,7 +154,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addMonths(2),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('date', 'this_week')
             ->assertSee('This Week Game')
             ->assertDontSee('Next Month Game');
@@ -170,7 +175,7 @@ describe('DiscoveryPage', function () {
             'recurrence' => 'monthly',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('recurrence', 'weekly')
             ->assertSee('Weekly Campaign')
             ->assertDontSee('Monthly Campaign');
@@ -184,7 +189,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $results = $component->viewData('results');
 
         // Initial display should show 12 items
@@ -199,7 +204,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
 
         // Initial load: 12 items
         expect($component->viewData('results')->count())->toBe(12);
@@ -216,7 +221,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(fake()->numberBetween(1, 30)),
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
 
         // Load more to see all 13
         $component->call('loadMore');
@@ -250,7 +255,7 @@ describe('DiscoveryPage', function () {
             'vibe_flags' => ['competitive', 'tactical'],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('vibe_flags', ['cooperative'])
             ->assertSee('Cooperative Game')
             ->assertSee('Cooperative Campaign')
@@ -273,7 +278,7 @@ describe('DiscoveryPage', function () {
             'status' => 'active',
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('search', 'forgotten realms')
             ->assertSee('Regular Game')
             ->assertDontSee('Regular Campaign');
@@ -295,7 +300,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $recommendations = $component->viewData('recommendations');
 
         $names = collect($recommendations)->pluck('name')->toArray();
@@ -339,7 +344,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $recommendations = $component->viewData('recommendations');
 
         $names = collect($recommendations)->pluck('name')->toArray();
@@ -384,7 +389,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         actingAs($user);
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $recommendations = $component->viewData('recommendations');
 
         $names = collect($recommendations)->pluck('name')->toArray();
@@ -404,7 +409,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($user);
         $component = Livewire\Livewire::withQueryParams(['vibe_flags' => ['horror']])
-            ->test(App\Livewire\Discovery\DiscoveryPage::class);
+            ->test(DiscoveryPage::class);
 
         // URL value should not be overridden by mount() pre-selection
         $vibes = $component->get('vibe_flags');
@@ -413,7 +418,7 @@ describe('DiscoveryPage', function () {
     });
 
     it('does not pre-select vibe flags for guest users', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         expect($component->get('vibe_flags'))->toBe([]);
     });
 
@@ -426,14 +431,14 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $component->call('setRadius', 25)
             ->assertSet('radius', 25.0)
             ->assertSet('usingFallbackRadius', false);
     });
 
     it('setRadius rejects invalid radius values', function () {
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class);
+        $component = Livewire\Livewire::test(DiscoveryPage::class);
         $component->call('setRadius', 99)
             ->assertSet('radius', 0.0);
     });
@@ -445,7 +450,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('radius', 25)
             ->call('clearFilters')
             ->assertSet('radius', 0.0)
@@ -454,7 +459,7 @@ describe('DiscoveryPage', function () {
 
     it('uses user saved location as fallback when guest location unavailable', function () {
         // User's saved location: Berlin center
-        $userLocation = \App\Models\Location::factory()->create([
+        $userLocation = Location::factory()->create([
             'latitude' => 52.5200,
             'longitude' => 13.4050,
         ]);
@@ -464,7 +469,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         // Game nearby in Berlin (< 5km away)
-        $nearbyLocation = \App\Models\Location::factory()->create([
+        $nearbyLocation = Location::factory()->create([
             'latitude' => 52.5300,
             'longitude' => 13.4100,
         ]);
@@ -477,7 +482,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         // Game far away in Munich (~500km)
-        $farLocation = \App\Models\Location::factory()->create([
+        $farLocation = Location::factory()->create([
             'latitude' => 48.1351,
             'longitude' => 11.5820,
         ]);
@@ -492,7 +497,7 @@ describe('DiscoveryPage', function () {
         actingAs($user);
 
         // Use games mode so results go through getGamesResults (simpler path)
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        $component = Livewire\Livewire::test(DiscoveryPage::class)
             ->set('mode', 'games');
 
         // Without radius filter, both games show
@@ -511,7 +516,7 @@ describe('DiscoveryPage', function () {
     });
 
     it('prefers guest location over user saved location', function () {
-        $userLocation = \App\Models\Location::factory()->create([
+        $userLocation = Location::factory()->create([
             'latitude' => 52.5200,
             'longitude' => 13.4050,
         ]);
@@ -523,7 +528,7 @@ describe('DiscoveryPage', function () {
         actingAs($user);
 
         // Simulate guest location being set (browser geolocation)
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        $component = Livewire\Livewire::test(DiscoveryPage::class)
             ->set('guestLat', 48.1351)
             ->set('guestLng', 11.5820);
 
@@ -547,7 +552,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($stranger);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertDontSee('Protected Session');
     });
 
@@ -564,7 +569,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($stranger);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertDontSee('Protected Campaign');
     });
 
@@ -573,8 +578,8 @@ describe('DiscoveryPage', function () {
         $friend = User::factory()->create(['profile_complete' => true]);
 
         // Create mutual follow (both follow each other)
-        \App\Models\UserRelationship::follow($friend, $owner);
-        \App\Models\UserRelationship::follow($owner, $friend);
+        UserRelationship::follow($friend, $owner);
+        UserRelationship::follow($owner, $friend);
 
         Game::factory()->create([
             'name' => ['en' => 'Friends Only Session'],
@@ -586,7 +591,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($friend);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertSee('Friends Only Session');
     });
 
@@ -603,7 +608,7 @@ describe('DiscoveryPage', function () {
         ]);
 
         // Add user as participant
-        \App\Models\GameParticipant::create([
+        GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $participant->id,
             'status' => ParticipantStatus::Approved->value,
@@ -611,7 +616,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($participant);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertSee('Joined Protected Session');
     });
 
@@ -628,7 +633,7 @@ describe('DiscoveryPage', function () {
 
         actingAs($owner);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertSee('My Protected Session');
     });
 
@@ -640,7 +645,7 @@ describe('DiscoveryPage', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->assertDontSee('Guest Hidden Session');
     });
 

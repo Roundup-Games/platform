@@ -7,7 +7,6 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
-use Carbon\Carbon;
 
 /**
  * Builds the "Your Schedule" section for the established-mode dashboard.
@@ -19,6 +18,7 @@ use Carbon\Carbon;
 class DashboardScheduleService
 {
     use DashboardFormatting;
+
     /**
      * Get upcoming games for the user, grouped into time buckets.
      *
@@ -31,6 +31,8 @@ class DashboardScheduleService
      * Each game entry: id, name, system_badge, date_time, relative_time,
      * player_count, max_players, is_hosting, campaign_name.
      * Sorted by date_time within each group.
+     *
+     * @return array<string, mixed>
      */
     public function getUpcomingGames(User $user): array
     {
@@ -45,6 +47,8 @@ class DashboardScheduleService
      * if user has upcoming games or no completed games.
      *
      * Delegates to DashboardCacheService to avoid duplicating the query logic.
+     *
+     * @return array<string, mixed>
      */
     public function getHostAgainBridge(User $user): ?array
     {
@@ -68,6 +72,8 @@ class DashboardScheduleService
      *
      * Returns id, name, date_time, relative_time — or null.
      * Used by ActionCenterService::getClearSummary.
+     *
+     * @return array<string, mixed>
      */
     public function getNextUpcomingGame(User $user): ?array
     {
@@ -91,7 +97,7 @@ class DashboardScheduleService
         return [
             'id' => $game->id,
             'name' => $game->name,
-            'date_time' => $game->date_time->toIso8601String(),
+            'date_time' => $game->date_time?->toIso8601String(),
             'relative_time' => $this->formatRelativeTime($game->date_time),
         ];
     }
@@ -122,7 +128,7 @@ class DashboardScheduleService
      * schedule timeline covers a 14-day window (not just this week), and
      * includes additional relations (campaign, participant counts).
      *
-     * @return array{today: array, this_week: array, coming_up: array}
+     * @return array{today: list<array<string, mixed>>, this_week: list<array<string, mixed>>, coming_up: list<array<string, mixed>>}
      */
     private function buildUpcomingGroups(User $user): array
     {
@@ -152,6 +158,10 @@ class DashboardScheduleService
         $comingUp = [];
 
         foreach ($games as $game) {
+            if ($game->date_time === null) {
+                continue;
+            }
+
             $entry = $this->serializeGameEntry($game, $user);
 
             if ($game->date_time->lte($endOfToday)) {
@@ -172,6 +182,8 @@ class DashboardScheduleService
 
     /**
      * Serialize a Game model into the schedule entry format.
+     *
+     * @return array<string, mixed>
      */
     private function serializeGameEntry(Game $game, User $user): array
     {
@@ -184,13 +196,12 @@ class DashboardScheduleService
                 'name' => $game->gameSystem?->name,
                 'icon' => $game->gameSystem?->coverImageUrl('thumb'),
             ],
-            'date_time' => $game->date_time->toIso8601String(),
+            'date_time' => $game->date_time?->toIso8601String(),
             'relative_time' => $this->formatRelativeTime($game->date_time),
             'player_count' => $playerCount,
             'max_players' => $game->max_players,
-            'is_hosting' => $game->owner_id === $user->id,
+            'is_hosting' => (string) $game->owner_id === (string) $user->id,
             'campaign_name' => $game->campaign?->name,
         ];
     }
-
 }

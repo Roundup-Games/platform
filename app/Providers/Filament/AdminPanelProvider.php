@@ -2,9 +2,8 @@
 
 namespace App\Providers\Filament;
 
-use App\Http\Middleware\AuthenticateFilament;
 use App\Filament\Plugins\AppEscalatedFilamentPlugin;
-use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
+use App\Http\Middleware\AuthenticateFilament;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -19,6 +18,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -47,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->plugin(
                 SpatieTranslatablePlugin::make()
-                    ->defaultLocales(config('app.available_locales', ['en']))
+                    ->defaultLocales(is_array($l = config('app.available_locales', ['en'])) ? $l : ['en'])
             )
             ->middleware([
                 EncryptCookies::class,

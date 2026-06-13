@@ -6,6 +6,7 @@ use App\Enums\VenueType;
 use App\Models\Location;
 use App\Services\GeocodingService;
 use App\Services\VenueProposalService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -46,13 +47,14 @@ class ProposeVenue extends Component
 
     public function mount(): void
     {
-        if (! Auth::check()) {
-            $this->redirectRoute('login');
-        }
+        // Route is protected by 'auth' middleware
     }
 
     // ── Validation ───────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -61,13 +63,16 @@ class ProposeVenue extends Component
             'city' => 'required|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'country' => 'required|string|max:3',
-            'venue_type' => 'required|string|in:' . implode(',', VenueType::values()),
+            'venue_type' => 'required|string|in:'.implode(',', VenueType::values()),
             'website_url' => 'nullable|url|max:500',
             'notes' => 'nullable|string|max:1000',
             'proposer_notes' => 'nullable|string|max:500',
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function validationAttributes(): array
     {
         return [
@@ -91,12 +96,7 @@ class ProposeVenue extends Component
     ): void {
         $this->validate();
 
-        $user = Auth::user();
-        if (! $user) {
-            $this->redirectRoute('login');
-
-            return;
-        }
+        $user = authenticatedUser();
 
         $normalizedName = trim($this->name);
 
@@ -108,7 +108,7 @@ class ProposeVenue extends Component
         }
 
         // Rate limit: 5 proposals per day per user
-        $rateLimitKey = 'venue-proposal:' . $user->id;
+        $rateLimitKey = 'venue-proposal:'.$user->id;
 
         if (! RateLimiter::attempt($rateLimitKey, 5, fn () => true, decaySeconds: 86400)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
@@ -119,12 +119,12 @@ class ProposeVenue extends Component
         }
 
         // Geocode the full address (graceful failure)
-        $fullAddress = trim($this->address) . ', ' . trim($this->city);
+        $fullAddress = trim($this->address).', '.trim($this->city);
         if ($this->postal_code) {
-            $fullAddress .= ', ' . trim($this->postal_code);
+            $fullAddress .= ', '.trim($this->postal_code);
         }
         if ($this->country) {
-            $fullAddress .= ', ' . trim($this->country);
+            $fullAddress .= ', '.trim($this->country);
         }
 
         $geocodeResult = $geocodingService->geocode($fullAddress);
@@ -172,7 +172,7 @@ class ProposeVenue extends Component
 
     // ── Render ───────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.venues.propose-venue');
     }

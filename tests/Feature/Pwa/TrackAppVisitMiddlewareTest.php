@@ -2,7 +2,9 @@
 
 use App\Models\User;
 use App\Models\UserAppVisit;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 describe('TrackAppVisit Middleware', function () {
     beforeEach(function () {

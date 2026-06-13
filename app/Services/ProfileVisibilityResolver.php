@@ -41,8 +41,8 @@ class ProfileVisibilityResolver
     /**
      * Get the list of profile field keys visible to the given viewer.
      *
-     * @param User|null $viewer  The viewing user (null for guests).
-     * @param User      $owner   The profile owner.
+     * @param  User|null  $viewer  The viewing user (null for guests).
+     * @param  User  $owner  The profile owner.
      * @return string[] List of visible field keys.
      */
     public function profileFieldsVisible(?User $viewer, User $owner): array
@@ -61,10 +61,13 @@ class ProfileVisibilityResolver
         $level = $viewer ? $owner->getRelationshipLevel($viewer) : 'stranger';
 
         $visible = [];
+        /** @var array<string, string>|null $settings */
         $settings = $owner->privacy_settings ?? [];
 
         foreach (self::FIELDS as $field) {
-            $setting = $settings[$field] ?? self::DEFAULT_VISIBILITY;
+            $setting = is_array($settings) && isset($settings[$field])
+                ? $settings[$field]
+                : self::DEFAULT_VISIBILITY;
 
             if ($this->isFieldVisible($setting, $level)) {
                 $visible[] = $field;
@@ -81,9 +84,9 @@ class ProfileVisibilityResolver
     {
         return match ($setting) {
             'everyone' => true,
-            'friends'  => $level === 'friend_or_teammate',
-            'nobody'   => false,
-            default    => true, // Unknown settings default to visible
+            'friends' => $level === 'friend_or_teammate',
+            'nobody' => false,
+            default => true, // Unknown settings default to visible
         };
     }
 }

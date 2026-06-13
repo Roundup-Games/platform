@@ -23,6 +23,9 @@ class DashboardQuickActionsService
 {
     /**
      * Get 1-3 quick action buttons adapted to the user's role and state.
+
+     *
+     * @return array<int, array{label: string, url: string, style: string, icon: string}>
      */
     public function getQuickActions(User $user): array
     {
@@ -123,6 +126,8 @@ class DashboardQuickActionsService
 
     /**
      * Select the primary (first) action based on role and upcoming state.
+     *
+     * @return array{label: string, url: string, style: string, icon: string}
      */
     private function selectPrimaryAction(string $role, bool $hasUpcoming, User $user): array
     {
@@ -139,7 +144,7 @@ class DashboardQuickActionsService
                 'style' => 'primary',
                 'icon' => 'add_circle',
             ],
-            $role === 'gm' && $hasUpcoming => [
+            $role === 'gm' => [
                 'label' => 'profile.dashboard_quick_gm_workspace',
                 'url' => route('gm.workspace'),
                 'style' => 'primary',
@@ -168,6 +173,9 @@ class DashboardQuickActionsService
      *  - Create Game: for GMs if not the primary action
      *  - My Campaigns: for campaign members
      *  - Find Campaigns: if not in any campaign
+
+     *
+     * @return array<int, array{label: string, url: string, style: string, icon: string}>
      */
     private function selectSecondaryActions(string $role, bool $hasUpcoming, User $user, string $primaryLabel): array
     {

@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Dto\VenueSearchResult;
 use App\Enums\VenueType;
 use App\Models\Location;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,7 +23,7 @@ class VenueSearchService
     /**
      * Search verified venues near a point, optionally filtered by text query.
      *
-     * @return \Illuminate\Support\Collection Each item: { id, name, city, address, venue_type, distance_km }
+     * @return Collection<int, VenueSearchResult>
      */
     public function search(
         ?float $lat = null,
@@ -30,7 +32,7 @@ class VenueSearchService
         ?string $venueType = null,
         float $radiusKm = 50,
         int $limit = 20,
-    ): \Illuminate\Support\Collection {
+    ): Collection {
         $qb = Location::query()
             ->where('is_verified', true)
             ->whereNotNull('latitude')
@@ -56,11 +58,12 @@ class VenueSearchService
             return $qb->orderBy('name')
                 ->limit($limit)
                 ->get()
-                ->map(fn ($loc) => $this->formatResult($loc, null));
+                ->map(fn (Location $loc) => $this->formatResult($loc, null));
         }
 
         // Proximity ordering with Haversine (subquery pattern for PostgreSQL)
         $bounds = app(ProximityQuery::class)->boundingBox($lat, $lng, $radiusKm);
+        /** @var literal-string $distSql */
         [$distSql, $distBindings] = $this->haversineSql(
             'locations.latitude', 'locations.longitude', $lat, $lng,
         );
@@ -71,8 +74,8 @@ class VenueSearchService
             ->where('is_verified', true)
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->whereBetween('latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('longitude', [$bounds['minLng'], $bounds['maxLng']]);
+            ->whereBetween('latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('longitude', [$bounds->minLng, $bounds->maxLng]);
 
         if ($query && trim($query) !== '') {
             $escaped = $this->escapeLikePattern($query);
@@ -88,20 +91,16 @@ class VenueSearchService
         }
 
         // Outer query: filter by exact radius using the computed distance
-        return DB::table(DB::raw("({$innerQuery->toSql()}) AS proxied"))
+        /** @var literal-string $subSql */
+        $subSql = "({$innerQuery->toSql()}) AS proxied";
+
+        return DB::table(DB::raw($subSql))
             ->mergeBindings($innerQuery)
             ->where('distance_km', '<=', $radiusKm)
             ->orderBy('distance_km')
             ->limit($limit)
             ->get()
-            ->map(fn ($row) => (object) [
-                'id' => $row->id,
-                'name' => $row->name,
-                'city' => $row->city,
-                'address' => $row->address,
-                'venue_type' => $row->venue_type,
-                'distance_km' => round((float) $row->distance_km, 1),
-            ]);
+            ->map(fn (object $row) => $this->resultFromRow($row));
     }
 
     /**
@@ -114,6 +113,9 @@ class VenueSearchService
             ->first();
     }
 
+    /**
+     * @return list{string, list<int|float>}
+     */
     private function haversineSql(string $latCol, string $lngCol, float $centerLat, float $centerLng): array
     {
         $sql = "(? * 2 * ASIN(SQRT(
@@ -125,16 +127,36 @@ class VenueSearchService
         return [$sql, [self::EARTH_RADIUS_KM, $centerLat, $centerLat, $centerLng]];
     }
 
-    private function formatResult(Location $loc, ?float $distanceKm): object
+    private function formatResult(Location $loc, ?float $distanceKm): VenueSearchResult
     {
-        return (object) [
-            'id' => $loc->id,
-            'name' => $loc->name,
-            'city' => $loc->city,
-            'address' => $loc->address,
-            'venue_type' => $loc->venue_type?->value,
-            'distance_km' => $distanceKm,
-        ];
+        return new VenueSearchResult(
+            id: $loc->id,
+            name: $loc->name,
+            city: $loc->city,
+            address: $loc->address,
+            venueType: $loc->venue_type?->value,
+            distanceKm: $distanceKm,
+        );
+    }
+
+    /**
+     * Hydrate a VenueSearchResult from a raw proximity-query row.
+     *
+     * The row comes from a selectRaw() Haversine subquery, so its columns
+     * are untyped (mixed). We narrow each field explicitly: id/name are
+     * NOT NULL columns, the rest are nullable text plus the computed float.
+     */
+    private function resultFromRow(object $row): VenueSearchResult
+    {
+        /** @var object{id: mixed, name: mixed, city: mixed, address: mixed, venue_type: mixed, distance_km: mixed} $row */
+        return new VenueSearchResult(
+            id: is_string($row->id) ? $row->id : '',
+            name: is_string($row->name) ? $row->name : '',
+            city: is_string($row->city) ? $row->city : null,
+            address: is_string($row->address) ? $row->address : null,
+            venueType: is_string($row->venue_type) ? $row->venue_type : null,
+            distanceKm: is_numeric($row->distance_km) ? round((float) $row->distance_km, 1) : null,
+        );
     }
 
     /**

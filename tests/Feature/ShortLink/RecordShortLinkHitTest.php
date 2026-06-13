@@ -6,7 +6,6 @@ use App\Models\GameSystem;
 use App\Models\ShortLink;
 use App\Models\ShortLinkHit;
 use App\Services\PostHogClient;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
@@ -112,7 +111,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
 
         $posthog = $this->mock(PostHogClient::class);
         $posthog->shouldReceive('capture')->once()->withArgs(function (array $payload) use ($ip, $ua) {
-            $expected = 'link:' . hash('xxh128', $ip . $ua);
+            $expected = 'link:'.hash('xxh128', $ip.$ua);
             expect($payload['distinctId'])->toBe($expected);
 
             return true;
@@ -159,7 +158,7 @@ describe('RecordShortLinkHit job — PostHog', function () {
 describe('RecordShortLinkHit job — error handling', function () {
     it('does not fail when PostHog throws an exception', function () {
         $posthog = $this->mock(PostHogClient::class);
-        $posthog->shouldReceive('capture')->once()->andThrow(new \RuntimeException('PostHog down'));
+        $posthog->shouldReceive('capture')->once()->andThrow(new RuntimeException('PostHog down'));
 
         // Should not throw
         (new RecordShortLinkHit(

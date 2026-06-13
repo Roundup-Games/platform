@@ -2,18 +2,51 @@
 
 namespace App\Services\StartPlaying;
 
+/**
+ * Parse StartPlaying.games Apollo cache data into structured arrays.
+ *
+ * All cache data arrives as array<string, mixed> from JSON. The typed accessor
+ * helpers (arr, items, str) ensure PHPStan level 9 compliance by narrowing
+ * mixed values at each access point.
+ */
 class SpParser
 {
     /**
+     * Read an array value from a mixed-offset source, defaulting to empty array.
+     *
+     * @param  array<string|int, mixed>  $source
+     * @return array<string|int, mixed>
+     */
+    private function arr(array $source, string|int $key): array
+    {
+        $value = $source[$key] ?? null;
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Ensure a mixed value is iterable, returning as array or empty array.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function items(mixed $value): array
+    {
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Safely cast a mixed value to string, with a default fallback.
+     */
+    private function str(mixed $value, string $default = ''): string
+    {
+        return is_string($value) ? $value : $default;
+    }
+
+    /**
      * Parse a game system detail page from the Apollo cache.
      *
-     * System pages have a SeoPage with heroSection containing metadata
-     * (player range, genres/themes, publisher, release date, mechanic),
-     * FAQs, external links, showcases, instructions, and reviews.
-     *
-     * @param  array<string, mixed>  $cache  The initialCache from SpClient::fetchPage()
-     * @param  string  $slug  The system slug (e.g. 'daggerheart')
-     * @return array<string, mixed>|null Parsed system data or null if not found.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     public function parseSystem(array $cache, string $slug): ?array
     {
@@ -22,31 +55,37 @@ class SpParser
             return null;
         }
 
-        $heroSection = $seoPage['heroSection'] ?? [];
-        $metadata = $this->parseHeroMetadata($heroSection['metadata'] ?? []);
+        $heroSection = $this->arr($seoPage, 'heroSection');
+        $rawMetadata = $this->arr($heroSection, 'metadata');
+        $metadata = $this->parseHeroMetadata(array_values($rawMetadata));
 
         // Resolve publisher from metadata
         $publisher = null;
         $publisherUrl = null;
-        $publisherItems = $metadata['Publisher'] ?? [];
+        $publisherItems = $this->items($metadata['Publisher'] ?? null);
         if (! empty($publisherItems)) {
-            $publisher = $publisherItems[0]['text'] ?? null;
-            $publisherUrl = $publisherItems[0]['url'] ?? null;
+            $first = is_array($publisherItems[0] ?? null) ? $publisherItems[0] : [];
+            $publisher = $this->str($first['text'] ?? null);
+            $publisherUrl = is_string($first['url'] ?? null) ? $first['url'] : null;
         }
 
         // Resolve release date
         $releaseDate = null;
-        $releaseDateItems = $metadata['Release Date'] ?? [];
+        $releaseDateItems = $this->items($metadata['Release Date'] ?? null);
         if (! empty($releaseDateItems)) {
-            $releaseDate = $releaseDateItems[0]['text'] ?? null;
+            $first = is_array($releaseDateItems[0] ?? null) ? $releaseDateItems[0] : [];
+            $releaseDate = $this->str($first['text'] ?? null);
         }
 
         // Resolve player range from Details
         $playerRange = null;
         $mechanic = null;
-        $detailsItems = $metadata['Details'] ?? [];
+        $detailsItems = $this->items($metadata['Details'] ?? null);
         foreach ($detailsItems as $item) {
-            $text = $item['text'] ?? '';
+            if (! is_array($item)) {
+                continue;
+            }
+            $text = is_string($item['text'] ?? null) ? $item['text'] : '';
             if (preg_match('/\d+.*(?:Player|player)/i', $text)) {
                 $playerRange = $text;
             }
@@ -57,32 +96,36 @@ class SpParser
 
         // Resolve genres/Themes
         $genres = [];
-        $themeItems = $metadata['Themes'] ?? [];
+        $themeItems = $this->items($metadata['Themes'] ?? null);
         foreach ($themeItems as $item) {
-            $genres[] = $item['text'];
+            if (is_array($item) && is_string($item['text'] ?? null)) {
+                $genres[] = $item['text'];
+            }
         }
 
         // Resolve FAQs
         $faqs = [];
-        foreach ($seoPage['faqs'] ?? [] as $faqRef) {
-            $faq = $this->resolveRef($cache, $faqRef['__ref'] ?? '');
+        foreach ($this->arr($seoPage, 'faqs') as $faqRef) {
+            $ref = is_array($faqRef) ? $this->str($faqRef['__ref'] ?? null) : '';
+            $faq = $this->resolveRef($cache, $ref);
             if ($faq) {
                 $faqs[] = [
-                    'questionText' => $faq['questionText'] ?? '',
-                    'answerText' => $faq['answerText'] ?? '',
+                    'questionText' => $this->str($faq['questionText'] ?? null),
+                    'answerText' => $this->str($faq['answerText'] ?? null),
                 ];
             }
         }
 
         // Resolve external links
         $externalLinks = [];
-        foreach ($seoPage['externalLinks'] ?? [] as $linkRef) {
-            $link = $this->resolveRef($cache, $linkRef['__ref'] ?? '');
+        foreach ($this->arr($seoPage, 'externalLinks') as $linkRef) {
+            $ref = is_array($linkRef) ? $this->str($linkRef['__ref'] ?? null) : '';
+            $link = $this->resolveRef($cache, $ref);
             if ($link) {
                 $externalLinks[] = [
-                    'title' => $link['title'] ?? '',
-                    'url' => $link['url'] ?? '',
-                    'type' => $link['type'] ?? '',
+                    'title' => $this->str($link['title'] ?? null),
+                    'url' => $this->str($link['url'] ?? null),
+                    'type' => $this->str($link['type'] ?? null),
                     'image' => $link['image'] ?? null,
                     'description' => $link['description'] ?? null,
                 ];
@@ -91,22 +134,24 @@ class SpParser
 
         // Resolve showcases
         $showcases = [];
-        foreach ($seoPage['showcases'] ?? [] as $showcaseRef) {
-            $showcase = $this->resolveRef($cache, $showcaseRef['__ref'] ?? '');
+        foreach ($this->arr($seoPage, 'showcases') as $showcaseRef) {
+            $ref = is_array($showcaseRef) ? $this->str($showcaseRef['__ref'] ?? null) : '';
+            $showcase = $this->resolveRef($cache, $ref);
             if ($showcase) {
                 $items = [];
-                foreach ($showcase['items'] ?? [] as $itemRef) {
-                    $item = $this->resolveRef($cache, $itemRef['__ref'] ?? '');
+                foreach ($this->arr($showcase, 'items') as $itemRef) {
+                    $itemRefStr = is_array($itemRef) ? $this->str($itemRef['__ref'] ?? null) : '';
+                    $item = $this->resolveRef($cache, $itemRefStr);
                     if ($item) {
                         $items[] = [
-                            'title' => $item['title'] ?? '',
-                            'description' => $item['description'] ?? '',
+                            'title' => $this->str($item['title'] ?? null),
+                            'description' => $this->str($item['description'] ?? null),
                             'image' => $item['image'] ?? null,
                         ];
                     }
                 }
                 $showcases[] = [
-                    'title' => $showcase['title'] ?? '',
+                    'title' => $this->str($showcase['title'] ?? null),
                     'items' => $items,
                 ];
             }
@@ -114,21 +159,23 @@ class SpParser
 
         // Resolve instructions
         $instructions = null;
-        $instructionRefs = $seoPage['instructions'] ?? [];
+        $instructionRefs = $this->arr($seoPage, 'instructions');
         if (! empty($instructionRefs)) {
-            $instr = $this->resolveRef($cache, $instructionRefs[0]['__ref'] ?? '');
+            $firstRef = is_array($instructionRefs[0] ?? null) ? $instructionRefs[0] : [];
+            $ref = $this->str($firstRef['__ref'] ?? null);
+            $instr = $this->resolveRef($cache, $ref);
             if ($instr) {
                 $instructions = [
-                    'title' => $instr['title'] ?? '',
-                    'description' => $instr['description'] ?? '',
+                    'title' => $this->str($instr['title'] ?? null),
+                    'description' => $this->str($instr['description'] ?? null),
                     'videoUrl' => $instr['videoUrl'] ?? null,
                 ];
             }
         }
 
         // Reviews stats
-        $totalReviewCount = $seoPage['totalReviewCount'] ?? 0;
-        $starRatingStats = $seoPage['starRatingStats'] ?? [];
+        $totalReviewCount = is_int($seoPage['totalReviewCount'] ?? 0) ? $seoPage['totalReviewCount'] : 0;
+        $starRatingStats = $this->arr($seoPage, 'starRatingStats');
 
         // Compute average rating from star distribution
         $spRating = null;
@@ -136,8 +183,11 @@ class SpParser
             $weightedSum = 0;
             $totalCount = 0;
             foreach ($starRatingStats as $stat) {
-                $star = (int) ($stat['starRating'] ?? 0);
-                $total = (int) ($stat['total'] ?? 0);
+                if (! is_array($stat)) {
+                    continue;
+                }
+                $star = is_int($stat['starRating'] ?? null) ? $stat['starRating'] : 0;
+                $total = is_int($stat['total'] ?? null) ? $stat['total'] : 0;
                 $weightedSum += $star * $total;
                 $totalCount += $total;
             }
@@ -148,15 +198,15 @@ class SpParser
         $entitySlug = $slug;
         $primaryRef = $seoPage['seoEntityPrimary'] ?? null;
         if (is_array($primaryRef) && isset($primaryRef['__ref'])) {
-            $entity = $this->resolveRef($cache, $primaryRef['__ref']);
+            $entity = $this->resolveRef($cache, $this->str($primaryRef['__ref']));
             if ($entity && isset($entity['slug'])) {
-                $entitySlug = $entity['slug'];
+                $entitySlug = $this->str($entity['slug']);
             }
         }
 
         return [
             'slug' => $entitySlug,
-            'name' => $heroSection['title'] ?? $seoPage['title'] ?? $slug,
+            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'creator' => $heroSection['descriptionSecondary'] ?? null,
             'hero_image' => $heroSection['image'] ?? null,
@@ -179,12 +229,8 @@ class SpParser
     /**
      * Parse a genre detail page from the Apollo cache.
      *
-     * Genre pages have a SeoPage with heroSection (description),
-     * and a SeoEntity with relatedSeoEntities (popular RPGs) and similarSeoEntities.
-     *
-     * @param  array<string, mixed>  $cache  The initialCache from SpClient::fetchPage()
-     * @param  string  $slug  The genre slug (e.g. 'fantasy')
-     * @return array<string, mixed>|null Parsed genre data or null if not found.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     public function parseGenre(array $cache, string $slug): ?array
     {
@@ -193,7 +239,7 @@ class SpParser
             return null;
         }
 
-        $heroSection = $seoPage['heroSection'] ?? [];
+        $heroSection = $this->arr($seoPage, 'heroSection');
 
         // Find the SeoEntity for this genre
         $entity = $this->findSeoEntity($cache, $slug, 'GAME_GENRE');
@@ -202,10 +248,13 @@ class SpParser
         $popularRpgs = [];
         if ($entity) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
-            foreach ($entity[$relatedKey] ?? [] as $related) {
+            foreach ($this->arr($entity, $relatedKey) as $related) {
+                if (! is_array($related)) {
+                    continue;
+                }
                 $popularRpgs[] = [
-                    'slug' => $related['slug'] ?? '',
-                    'title' => $related['title'] ?? '',
+                    'slug' => $this->str($related['slug'] ?? null),
+                    'title' => $this->str($related['title'] ?? null),
                     'image' => $related['thumbnailImage'] ?? null,
                     'description' => $related['thumbnailDescription'] ?? null,
                 ];
@@ -215,11 +264,14 @@ class SpParser
         // Extract similar genres from similarSeoEntities
         $similarGenres = [];
         if ($entity) {
-            foreach ($entity['similarSeoEntities({})'] ?? [] as $similar) {
-                $pages = $similar['seoPages'] ?? [];
+            foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
+                if (! is_array($similar)) {
+                    continue;
+                }
+                $pages = $this->items($similar['seoPages'] ?? null);
                 if (! empty($pages)) {
-                    $page = $pages[0];
-                    $canonicalUrl = $page['canonicalUrl'] ?? '';
+                    $page = is_array($pages[0]) ? $pages[0] : [];
+                    $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarGenres[] = ltrim($canonicalUrl, '/');
                 }
             }
@@ -227,19 +279,20 @@ class SpParser
 
         // Resolve FAQs
         $faqs = [];
-        foreach ($seoPage['faqs'] ?? [] as $faqRef) {
-            $faq = $this->resolveRef($cache, $faqRef['__ref'] ?? '');
+        foreach ($this->arr($seoPage, 'faqs') as $faqRef) {
+            $ref = is_array($faqRef) ? $this->str($faqRef['__ref'] ?? null) : '';
+            $faq = $this->resolveRef($cache, $ref);
             if ($faq) {
                 $faqs[] = [
-                    'questionText' => $faq['questionText'] ?? '',
-                    'answerText' => $faq['answerText'] ?? '',
+                    'questionText' => $this->str($faq['questionText'] ?? null),
+                    'answerText' => $this->str($faq['answerText'] ?? null),
                 ];
             }
         }
 
         return [
             'slug' => $slug,
-            'name' => $heroSection['title'] ?? $seoPage['title'] ?? $slug,
+            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_genres' => $similarGenres,
@@ -250,11 +303,8 @@ class SpParser
     /**
      * Parse a mechanic detail page from the Apollo cache.
      *
-     * Mechanic pages follow the same structure as genre pages.
-     *
-     * @param  array<string, mixed>  $cache  The initialCache from SpClient::fetchPage()
-     * @param  string  $slug  The mechanic slug (e.g. 'd20-system')
-     * @return array<string, mixed>|null Parsed mechanic data or null if not found.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     public function parseMechanic(array $cache, string $slug): ?array
     {
@@ -263,7 +313,7 @@ class SpParser
             return null;
         }
 
-        $heroSection = $seoPage['heroSection'] ?? [];
+        $heroSection = $this->arr($seoPage, 'heroSection');
 
         // Find the SeoEntity for this mechanic
         $entity = $this->findSeoEntity($cache, $slug, 'GAME_MECHANIC');
@@ -272,10 +322,13 @@ class SpParser
         $popularRpgs = [];
         if ($entity) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
-            foreach ($entity[$relatedKey] ?? [] as $related) {
+            foreach ($this->arr($entity, $relatedKey) as $related) {
+                if (! is_array($related)) {
+                    continue;
+                }
                 $popularRpgs[] = [
-                    'slug' => $related['slug'] ?? '',
-                    'title' => $related['title'] ?? '',
+                    'slug' => $this->str($related['slug'] ?? null),
+                    'title' => $this->str($related['title'] ?? null),
                     'image' => $related['thumbnailImage'] ?? null,
                     'description' => $related['thumbnailDescription'] ?? null,
                 ];
@@ -285,11 +338,14 @@ class SpParser
         // Extract similar mechanics from similarSeoEntities
         $similarMechanics = [];
         if ($entity) {
-            foreach ($entity['similarSeoEntities({})'] ?? [] as $similar) {
-                $pages = $similar['seoPages'] ?? [];
+            foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
+                if (! is_array($similar)) {
+                    continue;
+                }
+                $pages = $this->items($similar['seoPages'] ?? null);
                 if (! empty($pages)) {
-                    $page = $pages[0];
-                    $canonicalUrl = $page['canonicalUrl'] ?? '';
+                    $page = is_array($pages[0]) ? $pages[0] : [];
+                    $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarMechanics[] = ltrim($canonicalUrl, '/');
                 }
             }
@@ -297,7 +353,7 @@ class SpParser
 
         return [
             'slug' => $slug,
-            'name' => $heroSection['title'] ?? $seoPage['title'] ?? $slug,
+            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_mechanics' => $similarMechanics,
@@ -307,12 +363,8 @@ class SpParser
     /**
      * Parse a playstyle detail page from the Apollo cache.
      *
-     * Playstyle pages follow the same structure as genre/mechanic pages
-     * but with SeoEntity type GAME_STYLE.
-     *
-     * @param  array<string, mixed>  $cache  The initialCache from SpClient::fetchPage()
-     * @param  string  $slug  The style slug (e.g. 'roleplay-heavy')
-     * @return array<string, mixed>|null Parsed style data or null if not found.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     public function parseStyle(array $cache, string $slug): ?array
     {
@@ -321,7 +373,7 @@ class SpParser
             return null;
         }
 
-        $heroSection = $seoPage['heroSection'] ?? [];
+        $heroSection = $this->arr($seoPage, 'heroSection');
 
         // Find the SeoEntity for this style
         $entity = $this->findSeoEntity($cache, $slug, 'GAME_STYLE');
@@ -330,10 +382,13 @@ class SpParser
         $popularRpgs = [];
         if ($entity) {
             $relatedKey = 'relatedSeoEntities({"filter":{"type":{"eq":"GAME_SYSTEM"}}})';
-            foreach ($entity[$relatedKey] ?? [] as $related) {
+            foreach ($this->arr($entity, $relatedKey) as $related) {
+                if (! is_array($related)) {
+                    continue;
+                }
                 $popularRpgs[] = [
-                    'slug' => $related['slug'] ?? '',
-                    'title' => $related['title'] ?? '',
+                    'slug' => $this->str($related['slug'] ?? null),
+                    'title' => $this->str($related['title'] ?? null),
                     'image' => $related['thumbnailImage'] ?? null,
                     'description' => $related['thumbnailDescription'] ?? null,
                 ];
@@ -343,11 +398,14 @@ class SpParser
         // Extract similar styles from similarSeoEntities
         $similarStyles = [];
         if ($entity) {
-            foreach ($entity['similarSeoEntities({})'] ?? [] as $similar) {
-                $pages = $similar['seoPages'] ?? [];
+            foreach ($this->arr($entity, 'similarSeoEntities({})') as $similar) {
+                if (! is_array($similar)) {
+                    continue;
+                }
+                $pages = $this->items($similar['seoPages'] ?? null);
                 if (! empty($pages)) {
-                    $page = $pages[0];
-                    $canonicalUrl = $page['canonicalUrl'] ?? '';
+                    $page = is_array($pages[0]) ? $pages[0] : [];
+                    $canonicalUrl = $this->str($page['canonicalUrl'] ?? null);
                     $similarStyles[] = ltrim($canonicalUrl, '/');
                 }
             }
@@ -355,7 +413,7 @@ class SpParser
 
         return [
             'slug' => $slug,
-            'name' => $heroSection['title'] ?? $seoPage['title'] ?? $slug,
+            'name' => $this->str($heroSection['title'] ?? null) ?: $this->str($seoPage['title'] ?? null) ?: $slug,
             'description' => $heroSection['descriptionPrimary'] ?? null,
             'popular_rpgs' => $popularRpgs,
             'similar_styles' => $similarStyles,
@@ -365,12 +423,8 @@ class SpParser
     /**
      * Resolve an Apollo cache __ref pointer to its cached object.
      *
-     * Apollo's normalized cache stores objects with keys like "TypeName:id".
-     * References within objects use {"__ref": "TypeName:id"} to point to other objects.
-     *
-     * @param  array<string, mixed>  $cache  The full initialCache
-     * @param  string  $ref  The __ref string (e.g. "CategoryPageFAQ:abc123")
-     * @return array<string, mixed>|null The resolved object, or null if not found.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     public function resolveRef(array $cache, string $ref): ?array
     {
@@ -380,32 +434,32 @@ class SpParser
 
         $entry = $cache[$ref] ?? null;
 
-        if ($entry === null || ! is_array($entry)) {
+        if (! is_array($entry)) {
             return null;
         }
 
+        /** @var array<string, mixed> $entry */
         return $entry;
     }
 
     /**
      * Find the SeoPage from the cache that corresponds to the given slug.
      *
-     * System detail pages have a ROOT_QUERY with a seoPage key filtered by slug.
-     * The ROOT_QUERY value is a __ref pointing to the SeoPage object in the cache.
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     private function findSeoPage(array $cache, string $slug): ?array
     {
-        $rootQuery = $cache['ROOT_QUERY'] ?? [];
+        $rootQuery = $this->arr($cache, 'ROOT_QUERY');
 
         // Look for the seoPage query key that contains the slug
         foreach ($rootQuery as $key => $value) {
-            if (str_starts_with($key, 'seoPage(') && str_contains($key, $slug)) {
+            if (is_string($key) && str_starts_with($key, 'seoPage(') && str_contains($key, $slug)) {
                 if (is_array($value) && isset($value['__ref'])) {
-                    return $this->resolveRef($cache, $value['__ref']);
+                    return $this->resolveRef($cache, $this->str($value['__ref']));
                 }
                 // Some pages have the seoPage as null (listing pages)
                 if ($value === null) {
-                    // For listing pages, there's no single seoPage
                     continue;
                 }
             }
@@ -414,7 +468,7 @@ class SpParser
         // Fallback: scan all SeoPage entries for matching canonicalUrl or seoEntityPrimary
         foreach ($cache as $key => $value) {
             if (str_starts_with($key, 'SeoPage:') && is_array($value)) {
-                $canonicalUrl = $value['canonicalUrl'] ?? '';
+                $canonicalUrl = $this->str($value['canonicalUrl'] ?? null);
                 if (ltrim($canonicalUrl, '/') === $slug) {
                     return $value;
                 }
@@ -426,6 +480,9 @@ class SpParser
 
     /**
      * Find the SeoEntity for a given slug and type.
+     *
+     * @param  array<string, mixed>  $cache
+     * @return array<string, mixed>|null
      */
     private function findSeoEntity(array $cache, string $slug, string $type): ?array
     {
@@ -433,8 +490,8 @@ class SpParser
             if (
                 str_starts_with($key, 'SeoEntity:')
                 && is_array($value)
-                && ($value['slug'] ?? null) === $slug
-                && ($value['type'] ?? null) === $type
+                && (is_string($value['slug'] ?? null) ? $value['slug'] : '') === $slug
+                && (is_string($value['type'] ?? null) ? $value['type'] : '') === $type
             ) {
                 return $value;
             }
@@ -456,12 +513,18 @@ class SpParser
     {
         $result = [];
         foreach ($metadata as $group) {
-            $title = $group['title'] ?? '';
+            if (! is_array($group)) {
+                continue;
+            }
+            $title = $this->str($group['title'] ?? null);
             $items = [];
-            foreach ($group['items'] ?? [] as $item) {
+            foreach ($this->items($group['items'] ?? null) as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
                 $items[] = [
-                    'text' => $item['text'] ?? '',
-                    'url' => $item['url'] ?? null,
+                    'text' => $this->str($item['text'] ?? null),
+                    'url' => is_string($item['url'] ?? null) ? $item['url'] : null,
                 ];
             }
             $result[$title] = $items;

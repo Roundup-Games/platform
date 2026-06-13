@@ -5,15 +5,23 @@ namespace App\Livewire\Events;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Team;
-use Illuminate\Support\Facades\Auth;
+use App\Models\TeamMember;
+use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\QueryException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
+/**
+ * @property-read int $effectiveFee
+ * @property-read bool $isEarlyBird
+ */
 #[Layout('components.public-layout')]
 class RegisterForEvent extends Component
 {
@@ -54,14 +62,13 @@ class RegisterForEvent extends Component
         // 'both' defaults to 'individual'
     }
 
+    /**
+     * @return Collection<int, Team>
+     */
     #[Computed]
-    public function userTeams()
+    public function userTeams(): Collection
     {
-        $user = Auth::user();
-
-        if (! $user) {
-            return collect();
-        }
+        $user = authenticatedUser();
 
         return Team::whereHas('members', function ($q) use ($user) {
             $q->where('user_id', $user->id)
@@ -88,7 +95,7 @@ class RegisterForEvent extends Component
             $base = $this->event->individual_registration_fee ?? 0;
         }
 
-        if ($this->event->early_bird_discount && $this->event->early_bird_deadline && now()->lt($this->earlyBirdDeadline())) {
+        if ($this->event->early_bird_discount && $this->event->early_bird_deadline && ($deadline = $this->earlyBirdDeadline()) !== null && now()->lt($deadline)) {
             return max(0, $base - $this->event->early_bird_discount);
         }
 
@@ -100,10 +107,11 @@ class RegisterForEvent extends Component
     {
         return $this->event->early_bird_discount
             && $this->event->early_bird_deadline
-            && now()->lt($this->earlyBirdDeadline());
+            && ($deadline = $this->earlyBirdDeadline()) !== null
+            && now()->lt($deadline);
     }
 
-    private function earlyBirdDeadline(): \Illuminate\Support\Carbon
+    private function earlyBirdDeadline(): ?Carbon
     {
         return $this->event->early_bird_deadline;
     }
@@ -124,13 +132,7 @@ class RegisterForEvent extends Component
 
     public function register(): void
     {
-        $user = Auth::user();
-
-        if (! $user) {
-            $this->redirectRoute('login');
-
-            return;
-        }
+        $user = authenticatedUser();
 
         // Re-validate registration window (may have closed since page load)
         $this->event->refresh();
@@ -167,19 +169,31 @@ class RegisterForEvent extends Component
         $roster = null;
         if ($registrationMode === 'team' && $selectedTeamId) {
             $team = Team::with('activeMembers')->find($selectedTeamId);
-            $roster = $team->activeMembers->map(function ($member) {
-                return [
-                    'user_id' => $member->user_id,
-                    'name' => $member->user?->name ?? 'Unknown',
-                    'role' => $member->role,
-                ];
-            })->toArray();
+            if ($team === null) {
+                session()->flash('error', __('events.error_team_not_found'));
+
+                return;
+            }
+            $activeMembers = $team->activeMembers;
+            /** @var Collection<int, TeamMember> $activeMembers */
+            $roster = $activeMembers
+                ->map(function (TeamMember $member) {
+                    return [
+                        'user_id' => $member->user_id,
+                        'name' => $member->user->name ?? 'Unknown',
+                        'role' => $member->role,
+                    ];
+                })->toArray();
         }
 
         try {
             $registration = DB::transaction(function () use ($eventId, $userId, $selectedTeamId, $registrationMode, $division, $notes, $fee, $roster) {
                 // Pessimistic lock on the event row to serialize capacity checks
                 $event = Event::lockForUpdate()->find($eventId);
+
+                if ($event === null) {
+                    throw new \RuntimeException(__('events.error_event_not_found'));
+                }
 
                 if (! $event->hasCapacity()) {
                     throw new \RuntimeException(__('events.content_this_event_is_now_full'));
@@ -223,7 +237,8 @@ class RegisterForEvent extends Component
                 'user_id' => $userId,
                 'error' => $e->getMessage(),
             ]);
-            session()->flash('error', __('events.content_you_are_already_registered_for_this_event'));            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
+            session()->flash('error', __('events.content_you_are_already_registered_for_this_event'));
+            $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
 
             return;
         } catch (\RuntimeException $e) {
@@ -254,7 +269,7 @@ class RegisterForEvent extends Component
         }
     }
 
-    private function validateTeamRegistration($user): void
+    private function validateTeamRegistration(User $user): void
     {
         if (! in_array($this->event->registration_type, ['team', 'both'])) {
             $this->addError('registrationMode', __('events.error_this_event_does_not_support_team_registration'));
@@ -270,7 +285,7 @@ class RegisterForEvent extends Component
         }
     }
 
-    private function validateIndividualRegistration($user): void
+    private function validateIndividualRegistration(User $user): void
     {
         if (! in_array($this->event->registration_type, ['individual', 'both'])) {
             $this->addError('registrationMode', __('events.error_this_event_does_not_support'));
@@ -279,7 +294,7 @@ class RegisterForEvent extends Component
 
     private function initPaymentCheckout(EventRegistration $registration, int $fee): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Check if event has a Paddle price ID in metadata
         $priceId = $this->event->metadata['paddle_price_id'] ?? null;
@@ -301,7 +316,7 @@ class RegisterForEvent extends Component
 
             // Store a reference on the registration for reconciliation after webhook
             $registration->update([
-                'payment_id' => 'paddle_checkout_' . $registration->id,
+                'payment_id' => 'paddle_checkout_'.$registration->id,
             ]);
 
             Log::info('Paddle checkout options prepared for registration', [
@@ -325,7 +340,7 @@ class RegisterForEvent extends Component
         $this->redirectRoute('events.detail', ['slug' => $this->event->slug]);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.events.register-for-event');
     }

@@ -4,11 +4,12 @@ namespace App\Livewire\Events;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use App\Traits\EscapesLikeWildcards;
+use App\Traits\QueriesTranslatableColumns;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use App\Traits\EscapesLikeWildcards;
-use App\Traits\QueriesTranslatableColumns;
 use Livewire\WithPagination;
 
 #[Layout('components.public-layout')]
@@ -56,7 +57,7 @@ class EventListing extends Component
         $this->resetPage();
     }
 
-    public function render()
+    public function render(): View
     {
         $query = Event::query()
             ->where('is_public', true)
@@ -74,7 +75,7 @@ class EventListing extends Component
                 $escaped = $this->escapeLikeWildcards($this->search);
                 $this->whereTranslatableLike($q, 'name', $this->search);
                 $q->orWhere('city', $this->likeOperator(), "%{$escaped}%")
-                  ->orWhere('venue_name', $this->likeOperator(), "%{$escaped}%");
+                    ->orWhere('venue_name', $this->likeOperator(), "%{$escaped}%");
             }))
             ->when($this->type, fn ($q) => $q->where('type', $this->type))
             ->when($this->status, fn ($q) => $q->where('status', $this->status))

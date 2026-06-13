@@ -1,0 +1,13 @@
+<?php
+
+namespace Escalated\Laravel\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property string $body
+ * @property bool $is_internal_note
+ * @property-read \Escalated\Laravel\Models\Ticket $ticket
+ * @property-read Model|null $author
+ */
+class Reply extends Model {}

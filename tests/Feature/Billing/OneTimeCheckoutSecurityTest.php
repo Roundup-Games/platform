@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Middleware\TrackAppVisit;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Cashier;
 
-use function Pest\Laravel\{actingAs, post};
+use function Pest\Laravel\actingAs;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ function checkoutCreateCustomer(User $user, ?string $paddleId = null): void
     Cashier::$customerModel::create([
         'billable_type' => get_class($user),
         'billable_id' => $user->id,
-        'paddle_id' => $paddleId ?? 'ctm_' . $user->id,
+        'paddle_id' => $paddleId ?? 'ctm_'.$user->id,
         'name' => $user->name,
         'email' => $user->email,
     ]);
@@ -49,7 +49,7 @@ describe('Controller Tests', function () {
         Http::preventStrayRequests();
 
         $response = actingAs($user)
-            ->withoutMiddleware(\App\Http\Middleware\TrackAppVisit::class)
+            ->withoutMiddleware(TrackAppVisit::class)
             ->post(route('billing.one-time-checkout'), [
                 'price_id' => 'pri_cheaper_price',
                 'event_id' => $event->id,
@@ -99,7 +99,7 @@ describe('Controller Tests', function () {
         Http::preventStrayRequests();
 
         $response = actingAs($user)
-            ->withoutMiddleware(\App\Http\Middleware\TrackAppVisit::class)
+            ->withoutMiddleware(TrackAppVisit::class)
             ->post(route('billing.one-time-checkout'), [
                 'price_id' => 'pri_any_price',
                 'event_id' => $event->id,

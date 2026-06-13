@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Billing;
 
+use App\Models\Event;
 use App\Models\MembershipType;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -43,7 +45,7 @@ class Checkout extends Component
     {
         $this->validate();
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if ($this->mode === 'subscription') {
             $this->initSubscriptionCheckout($user);
@@ -52,7 +54,7 @@ class Checkout extends Component
         }
     }
 
-    private function initSubscriptionCheckout($user): void
+    private function initSubscriptionCheckout(User $user): void
     {
         // Refresh from DB in case it was set via mount
         $plan = $this->membershipType ?? MembershipType::active()->find($this->membershipTypeId);
@@ -82,7 +84,7 @@ class Checkout extends Component
         $this->dispatch('open-paddle-checkout', options: $checkoutOptions);
     }
 
-    private function initOneTimeCheckout($user): void
+    private function initOneTimeCheckout(User $user): void
     {
         // One-time payments must be tied to an event — reject if no eventId
         if (! $this->eventId) {
@@ -97,7 +99,7 @@ class Checkout extends Component
         }
 
         // Load event and cross-check price_id
-        $event = \App\Models\Event::findOrFail($this->eventId);
+        $event = Event::findOrFail($this->eventId);
         $expectedPriceId = $event->metadata['paddle_price_id'] ?? null;
 
         if (! $expectedPriceId) {
@@ -139,7 +141,7 @@ class Checkout extends Component
         $this->dispatch('open-paddle-checkout', options: $checkoutOptions);
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.billing.checkout');
     }

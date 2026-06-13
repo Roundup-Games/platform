@@ -2,17 +2,24 @@
 
 namespace App\Models;
 
+use Database\Factories\PushSubscriptionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 use Minishlink\WebPush\Subscription;
 
+/**
+ * @property string $id
+ */
 class PushSubscription extends Model
 {
+    /** @use HasFactory<PushSubscriptionFactory> */
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -39,6 +46,7 @@ class PushSubscription extends Model
     |--------------------------------------------------------------------------
     */
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -52,8 +60,11 @@ class PushSubscription extends Model
 
     /**
      * Scope to subscriptions belonging to a specific user.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeForUser($query, string $userId)
+    public function scopeForUser(Builder $query, string $userId)
     {
         return $query->where('user_id', $userId);
     }

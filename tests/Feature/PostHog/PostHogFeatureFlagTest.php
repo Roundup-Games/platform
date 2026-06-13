@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\PostHog;
 
+use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogFeatureFlag;
 use Illuminate\Support\Facades\Blade;
@@ -20,13 +21,14 @@ use Tests\TestCase;
 class PostHogFeatureFlagTest extends TestCase
 {
     private TestablePostHogClient $posthogClient;
+
     private ?PostHogFeatureFlag $realService = null;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->posthogClient = new TestablePostHogClient();
+        $this->posthogClient = new TestablePostHogClient;
         $this->app->instance(PostHogClient::class, $this->posthogClient);
 
         // Stash a reference to the real service before tests may replace it with mocks
@@ -231,7 +233,7 @@ class PostHogFeatureFlagTest extends TestCase
     #[Test]
     public function check_flag_resolves_user_id_from_auth_when_not_provided(): void
     {
-        $user = \App\Models\User::factory()->make(['id' => 99]);
+        $user = User::factory()->make(['id' => 99]);
         auth()->login($user);
 
         $this->posthogClient->setFlagResult('my-flag', 'variant-b');
@@ -335,7 +337,8 @@ class PostHogFeatureFlagTest extends TestCase
      */
     private function bindNullReturningClientAndGetService(): PostHogFeatureFlag
     {
-        $nullClient = new class extends TestablePostHogClient {
+        $nullClient = new class extends TestablePostHogClient
+        {
             public function getFeatureFlag(string $key, string $distinctId): string|bool|null
             {
                 return null;

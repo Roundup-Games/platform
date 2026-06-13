@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Campaigns;
 
+use App\Enums\ActivityType;
 use App\Enums\AttendanceStatus;
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
@@ -19,11 +20,13 @@ use App\Services\NotificationService;
 use App\Services\ParticipantService;
 use App\Services\WaitlistService;
 use App\Traits\EditsVenueLocation;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 #[Layout('layouts.app')]
 class CampaignsPage extends Component
@@ -33,23 +36,39 @@ class CampaignsPage extends Component
 
     // ── Edit Campaign State ──────────────────────────────
     public ?string $editingCampaignId = null;
+
     public ?string $confirmingAction = null;
+
     public string $edit_name = '';
+
     public string $edit_description = '';
+
     public ?string $edit_session_duration = '';
+
     public string $edit_visibility = 'private';
+
     public ?string $edit_location_id = null;
+
     public string $edit_location_instructions = '';
+
     public string $edit_location_name = '';
+
     public string $edit_location_city = '';
+
     public string $edit_location_address = '';
 
     // ── Venue Search State (edit modal) ────────────────
     public string $edit_venue_query = '';
+
+    /** @var array<int, mixed> */
     public array $edit_venue_results = [];
+
     public bool $edit_venue_searched = false;
+
     public string $edit_address_city = '';
+
     public string $edit_address_street = '';
+
     public string $edit_address_mode = 'venue';
 
     public function mount(): void
@@ -70,12 +89,12 @@ class CampaignsPage extends Component
         $this->edit_name = $campaign->name;
         $this->edit_description = $campaign->description ?? '';
         $this->edit_session_duration = $campaign->session_duration ? (string) $campaign->session_duration : '';
-        $this->edit_visibility = $campaign->visibility?->value ?? 'private';
+        $this->edit_visibility = $campaign->visibility->value ?? 'private';
         $this->edit_location_id = $campaign->location_id;
         $this->edit_location_instructions = $campaign->location_instructions ?? '';
-        $this->edit_location_name = $campaign->linkedLocation?->name ?? '';
-        $this->edit_location_city = $campaign->linkedLocation?->city ?? '';
-        $this->edit_location_address = $campaign->linkedLocation?->address ?? '';
+        $this->edit_location_name = $campaign->linkedLocation->name ?? '';
+        $this->edit_location_city = $campaign->linkedLocation->city ?? '';
+        $this->edit_location_address = $campaign->linkedLocation->address ?? '';
 
         if ($campaign->location_id && $campaign->linkedLocation) {
             $this->edit_address_city = $campaign->linkedLocation->city ?? '';
@@ -113,7 +132,7 @@ class CampaignsPage extends Component
         ]);
 
         // Gate public visibility
-        if ($this->edit_visibility === 'public' && ! Auth::user()->can_create_public_entries) {
+        if ($this->edit_visibility === 'public' && ! authenticatedUser()->can_create_public_entries) {
             $this->edit_visibility = 'protected';
         }
 
@@ -147,6 +166,7 @@ class CampaignsPage extends Component
 
         if (empty($changes)) {
             $this->cancelEdit();
+
             return;
         }
 
@@ -154,8 +174,8 @@ class CampaignsPage extends Component
 
         // Log activity
         app(ActivityLogService::class)->log(
-            \App\Enums\ActivityType::CampaignUpdated,
-            Auth::user(),
+            ActivityType::CampaignUpdated,
+            authenticatedUser(),
             $campaign,
             ['changed_fields' => $changedLabels],
         );
@@ -176,6 +196,9 @@ class CampaignsPage extends Component
                     ->get();
 
                 foreach ($participants as $participant) {
+                    if ($participant->user === null) {
+                        continue;
+                    }
                     app(NotificationService::class)->send(
                         $participant->user,
                         new EntityUpdated($campaign, $changedLabels),
@@ -194,15 +217,15 @@ class CampaignsPage extends Component
         session()->flash('success', __('campaigns.flash_campaign_updated'));
     }
 
-    public function render()
+    public function render(): View
     {
-        seo(new \RalphJSmit\Laravel\SEO\Support\SEOData(
+        seo(new SEOData(
             title: __('campaigns.seo_title_my_campaigns'),
-            description: __('campaigns.seo_description_my_campaigns', ['brand' => config('company.display_name')]),
+            description: __('campaigns.seo_description_my_campaigns', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
             robots: 'noindex, nofollow',
         ));
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // My Campaigns — owned by the user
         $ownedCampaigns = Campaign::where('owner_id', $user->id)
@@ -240,11 +263,11 @@ class CampaignsPage extends Component
 
     public function leaveCampaign(string $campaignId): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $campaign = Campaign::findOrFail($campaignId);
 
         // Owner cannot leave their own campaign
-        if ($campaign->owner_id === $user->id) {
+        if ((string) $campaign->owner_id === (string) $user->id) {
             session()->flash('error', __('campaigns.error_cannot_leave_own_campaign'));
 
             return;
@@ -301,6 +324,7 @@ class CampaignsPage extends Component
 
         if ($campaign->status !== CampaignStatus::Active) {
             session()->flash('error', __('campaigns.error_campaign_not_active'));
+
             return;
         }
 
@@ -311,7 +335,7 @@ class CampaignsPage extends Component
         Log::info('Campaign canceled', [
             'entity_id' => $campaign->id,
             'owner_id' => $campaign->owner_id,
-            'previous_status' => $previousStatus?->value,
+            'previous_status' => $previousStatus->value,
             'new_status' => 'cancelled',
         ]);
 
@@ -324,6 +348,9 @@ class CampaignsPage extends Component
                 ->get();
 
             foreach ($approvedParticipants as $participant) {
+                if ($participant->user === null) {
+                    continue;
+                }
                 app(NotificationService::class)->send(
                     $participant->user,
                     new EntityCancelled($campaign),
@@ -347,6 +374,7 @@ class CampaignsPage extends Component
 
         if ($campaign->status !== CampaignStatus::Active) {
             session()->flash('error', __('campaigns.error_campaign_not_active'));
+
             return;
         }
 
@@ -357,7 +385,7 @@ class CampaignsPage extends Component
         Log::info('Campaign completed', [
             'entity_id' => $campaign->id,
             'owner_id' => $campaign->owner_id,
-            'previous_status' => $previousStatus?->value,
+            'previous_status' => $previousStatus->value,
             'new_status' => 'completed',
         ]);
 
@@ -370,6 +398,9 @@ class CampaignsPage extends Component
                 ->get();
 
             foreach ($approvedParticipants as $participant) {
+                if ($participant->user === null) {
+                    continue;
+                }
                 app(NotificationService::class)->send(
                     $participant->user,
                     new EntityCompleted($campaign),
@@ -391,10 +422,14 @@ class CampaignsPage extends Component
         $participant = CampaignParticipant::findOrFail($participantId);
         $campaign = $participant->campaign;
 
+        if ($campaign === null) {
+            return;
+        }
+
         $result = app(ParticipantService::class)->acceptInvitation(
             $participant,
             $campaign,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {
@@ -409,10 +444,14 @@ class CampaignsPage extends Component
         $participant = CampaignParticipant::findOrFail($participantId);
         $campaign = $participant->campaign;
 
+        if ($campaign === null) {
+            return;
+        }
+
         $result = app(ParticipantService::class)->declineInvitation(
             $participant,
             $campaign,
-            Auth::user(),
+            authenticatedUser(),
         );
 
         if ($result->success) {

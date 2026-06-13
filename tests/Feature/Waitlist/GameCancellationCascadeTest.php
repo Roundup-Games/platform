@@ -1,15 +1,16 @@
 <?php
 
-use App\Enums\ParticipantStatus;
+use App\Enums\AttendanceStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\AttendanceService;
+use App\Services\BenchService;
 use App\Services\WaitlistService;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);
@@ -107,7 +108,7 @@ describe('game cancellation', function () {
         ]);
 
         // Benched participants are resolved by BenchService, not WaitlistService
-        app(\App\Services\BenchService::class)->handleEntityCancellation($game);
+        app(BenchService::class)->handleEntityCancellation($game);
 
         expect($bp1->fresh()->status)->toBe(ParticipantStatus::Rejected);
         expect($bp2->fresh()->status)->toBe(ParticipantStatus::Rejected);
@@ -186,7 +187,7 @@ describe('host cancellation offence', function () {
 
         // Host should have late_cancel attendance status
         $hostParticipant = $game->participants()->where('user_id', $host->id)->first();
-        expect($hostParticipant->attendance_status)->toBe(\App\Enums\AttendanceStatus::LateCancel);
+        expect($hostParticipant->attendance_status)->toBe(AttendanceStatus::LateCancel);
 
         // Attendance report should be created
         expect(AttendanceReport::where([

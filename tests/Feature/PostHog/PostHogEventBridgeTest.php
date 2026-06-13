@@ -29,7 +29,7 @@ use Tests\Helpers\TestablePostHogClient;
 beforeEach(function () {
     Config::set('posthog.enabled', true);
     Config::set('posthog.api_key', 'phc_test_key');
-    $this->posthogClient = new TestablePostHogClient();
+    $this->posthogClient = new TestablePostHogClient;
     $this->app->instance(PostHogClient::class, $this->posthogClient);
 
     // Grant analytics consent by default — individual tests can override
@@ -103,7 +103,7 @@ it('maps each ActivityType to the correct PostHog event name through ActivityLog
 
     $user = User::factory()->create();
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
 
     foreach (ActivityType::cases() as $type) {
         $result = $service->log($type, $user);
@@ -139,7 +139,7 @@ it('enriches GameCreated with game_system, visibility, and max_players propertie
     // Reset calls captured by observer during factory creation
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::GameCreated, $user, $game);
 
     expect($this->posthogClient->capturedCalls)->toHaveCount(1);
@@ -176,7 +176,7 @@ it('enriches PlayerJoined with game_system and participant_role', function () {
     // Reset calls captured by observers during factory creation
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::PlayerJoined, $user, $participant);
 
     expect($this->posthogClient->capturedCalls)->toHaveCount(1);
@@ -194,7 +194,8 @@ it('does not propagate PostHog capture failure — ActivityLog still writes', fu
     $user = User::factory()->create();
 
     // Client that throws on capture
-    $failingClient = new class extends TestablePostHogClient {
+    $failingClient = new class extends TestablePostHogClient
+    {
         public function capture(array $payload): void
         {
             throw new RuntimeException('PostHog SDK connection refused');
@@ -202,7 +203,7 @@ it('does not propagate PostHog capture failure — ActivityLog still writes', fu
     };
     $this->app->instance(PostHogClient::class, $failingClient);
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user);
 
     // ActivityLog entry was still written to DB
@@ -230,7 +231,7 @@ it('dispatches EnrichPostHogProfile job on GameCreated', function () {
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::GameCreated, $user, $game);
 
     // Event was captured inline
@@ -255,7 +256,7 @@ it('dispatches EnrichPostHogProfile job on PlayerJoined', function () {
         'game_system_id' => $gameSystem->id,
     ]);
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::PlayerJoined, $user, $game);
 
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($user) {
@@ -276,7 +277,7 @@ it('dispatches EnrichPostHogProfile job on SessionScheduled', function () {
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::SessionScheduled, $user, $game);
 
     Queue::assertPushed(EnrichPostHogProfile::class, function ($job) use ($user, $game) {
@@ -295,7 +296,7 @@ it('does not forward to PostHog when POSTHOG_ENABLED is false', function () {
 
     $user = User::factory()->create();
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user);
 
     // ActivityLog entry still written
@@ -313,7 +314,7 @@ it('does not forward when API key is null', function () {
 
     $user = User::factory()->create();
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user);
 
     expect($result)->not->toBeNull();
@@ -335,7 +336,7 @@ it('bridge captures server-side events distinct from autocapture UI events', fun
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::GameCreated, $user, $game);
 
     // The bridge event name uses namespace.action format —
@@ -376,7 +377,7 @@ it('forwards to PostHog only for game owner via logForParticipants', function ()
         'role' => ParticipantRole::Player->value,
     ]);
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->logForParticipants(ActivityType::GameCreated, $game, ['source' => 'dashboard']);
 
     // Only one PostHog event — for the owner, not the player
@@ -417,7 +418,7 @@ it('dispatches EnrichPostHogProfile for team group analytics on GameCreated', fu
         'game_system_id' => $gameSystem->id,
     ]);
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::GameCreated, $user, $game);
 
     // Enrichment job dispatched — team group analytics run async
@@ -444,7 +445,7 @@ it('enriches CampaignCreated with game_system and visibility', function () {
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::CampaignCreated, $user, $campaign);
 
     $props = $this->posthogClient->capturedCalls[0]['properties'];
@@ -474,7 +475,7 @@ it('enriches ReviewReceived with rating and game_system', function () {
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::ReviewReceived, $reviewer, $review);
 
     $props = $this->posthogClient->capturedCalls[0]['properties'];
@@ -498,7 +499,7 @@ it('enriches FollowReceived with actual follower count from DB', function () {
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $service->log(ActivityType::FollowReceived, $follower, $followedUser);
 
     $props = $this->posthogClient->capturedCalls[0]['properties'];
@@ -524,7 +525,7 @@ it('tracks user journey: game created → player joined → session scheduled', 
     $game->id = (string) Str::uuid();
     $game->saveQuietly();
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
 
     // Step 1: Owner creates game
     $service->log(ActivityType::GameCreated, $owner, $game);
@@ -707,7 +708,7 @@ it('does not forward events to PostHog when analytics consent is denied', functi
 
     $this->posthogClient->capturedCalls = [];
 
-    $service = new ActivityLogService();
+    $service = new ActivityLogService;
     $result = $service->log(ActivityType::GameCreated, $user, $game);
 
     // ActivityLog entry is still written — consent only gates PostHog
@@ -759,7 +760,8 @@ it('logs warning on capture failure', function () {
                 && $ctx['error'] === 'PostHog down';
         }));
 
-    $throwingClient = new class extends TestablePostHogClient {
+    $throwingClient = new class extends TestablePostHogClient
+    {
         public function capture(array $payload): void
         {
             throw new RuntimeException('PostHog down');
@@ -872,7 +874,7 @@ it('handles null subject gracefully for all event types via bridge', function ()
     $user = User::factory()->make(['id' => 1]);
 
     foreach (ActivityType::cases() as $type) {
-        $client = new TestablePostHogClient();
+        $client = new TestablePostHogClient;
         $this->app->instance(PostHogClient::class, $client);
 
         Queue::fake();

@@ -7,7 +7,6 @@ use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class AccountRecoverySupportTest extends TestCase
@@ -15,6 +14,7 @@ class AccountRecoverySupportTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Department $accountSupportDept;
 
     protected function setUp(): void

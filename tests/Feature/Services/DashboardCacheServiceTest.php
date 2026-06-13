@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Jobs\WarmDashboardCache;
+use App\Jobs\WarmTrendingNearby;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Location;
@@ -133,11 +134,12 @@ class DashboardCacheServiceTest extends TestCase
     #[Test]
     public function get_trending_nearby_stores_result_in_cache(): void
     {
-        $this->service->getTrendingNearby('u33d');
+        // Trending nearby uses async cache warming — verify the warm job
+        // is dispatched on cache miss and a default structure is returned.
+        $result = $this->service->getTrendingNearby('u33d');
 
-        $cached = Cache::get('dashboard:trending:u33d');
-        $this->assertNotNull($cached);
-        $this->assertArrayHasKey('games', $cached);
+        Queue::assertPushed(WarmTrendingNearby::class);
+        $this->assertArrayHasKey('games', $result);
     }
 
     #[Test]
@@ -505,11 +507,12 @@ class DashboardCacheServiceTest extends TestCase
     #[Test]
     public function warm_trending_nearby_returns_game_count(): void
     {
-        // Empty tile — should return 0
-        $result = $this->service->warmTrendingNearby('u33d');
+        // Use a remote tile (Antarctica) that no other test populates
+        $emptyTile = 'kddd';
+        $result = $this->service->warmTrendingNearby($emptyTile);
 
         $this->assertEquals(0, $result);
-        $cached = Cache::get('dashboard:trending:u33d');
+        $cached = Cache::get("dashboard:trending:{$emptyTile}");
         $this->assertNotNull($cached);
         $this->assertCount(0, $cached['games']);
     }

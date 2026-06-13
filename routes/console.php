@@ -1,8 +1,12 @@
 <?php
 
+use App\Jobs\ComputePlatformScores;
+use App\Models\GameSystem;
+use App\Services\BggSeedService;
 use App\Services\BggSyncService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Symfony\Component\Console\Input\InputOption;
 
 Artisan::command('inspire', function () {
@@ -29,10 +33,10 @@ Artisan::command('bgg:sync', function () {
     $service = app(BggSyncService::class);
     $result = $service->syncGameSystems($ids);
 
-    $this->info("Synced: {$result['synced']}, Failed: {$result['failed']}");
+    $this->info("Synced: {$result->synced}, Failed: {$result->failed}");
 
-    if (! empty($result['errors'])) {
-        foreach ($result['errors'] as $error) {
+    if (! empty($result->errors)) {
+        foreach ($result->errors as $error) {
             $this->warn("- {$error}");
         }
 
@@ -41,12 +45,12 @@ Artisan::command('bgg:sync', function () {
 
     return 0;
 })->purpose('Sync game systems from BoardGameGeek by BGG ID')
-  ->addOption('ids', null, InputOption::VALUE_REQUIRED, 'Comma-delimited BGG IDs');
+    ->addOption('ids', null, InputOption::VALUE_REQUIRED, 'Comma-delimited BGG IDs');
 
 Artisan::command('bgg:seed-top500', function () {
     $this->info('Seeding top 500 BGG games...');
 
-    $seedService = app(\App\Services\BggSeedService::class);
+    $seedService = app(BggSeedService::class);
 
     $result = $seedService->seedTop500(function (string $message) {
         $this->line("  {$message}");
@@ -57,13 +61,13 @@ Artisan::command('bgg:seed-top500', function () {
     $this->line("  Base games: {$result['base_synced']} synced, {$result['base_failed']} failed");
     $this->line("  Expansions discovered: {$result['total_expansions_discovered']}");
     $this->line("  Expansions synced: {$result['expansions_synced']}, failed: {$result['expansions_failed']}");
-    $this->line('  Total: ' . ($result['base_synced'] + $result['expansions_synced']) . ' game systems');
+    $this->line('  Total: '.($result['base_synced'] + $result['expansions_synced']).' game systems');
 
     return ($result['base_failed'] + $result['expansions_failed']) > 0 ? 1 : 0;
 })->purpose('Seed database with top 500 BGG games and their expansions');
 
 Artisan::command('bgg:weekly-sync', function () {
-    $ids = \App\Models\GameSystem::whereNotNull('bgg_id')->pluck('bgg_id');
+    $ids = GameSystem::whereNotNull('bgg_id')->pluck('bgg_id');
 
     if ($ids->isEmpty()) {
         $this->info('No game systems to sync.');
@@ -71,22 +75,22 @@ Artisan::command('bgg:weekly-sync', function () {
         return 0;
     }
 
-    $this->info('Weekly sync: syncing ' . count($ids) . ' game system(s) from BGG...');
+    $this->info('Weekly sync: syncing '.count($ids).' game system(s) from BGG...');
 
     try {
         $service = app(BggSyncService::class);
         $result = $service->syncGameSystems($ids->toArray());
 
-        $this->info("Synced: {$result['synced']}, Failed: {$result['failed']}");
+        $this->info("Synced: {$result->synced}, Failed: {$result->failed}");
 
-        if (! empty($result['errors'])) {
-            foreach ($result['errors'] as $error) {
+        if (! empty($result->errors)) {
+            foreach ($result->errors as $error) {
                 $this->warn("- {$error}");
             }
         }
 
-        return $result['failed'] > 0 ? 1 : 0;
-    } catch (\Throwable $e) {
+        return $result->failed > 0 ? 1 : 0;
+    } catch (Throwable $e) {
         $this->error("Weekly sync failed: {$e->getMessage()}");
 
         return 1;
@@ -94,12 +98,10 @@ Artisan::command('bgg:weekly-sync', function () {
 })->purpose('Run weekly BGG sync for all existing game systems');
 
 Artisan::command('platform-scores:compute', function () {
-    \App\Jobs\ComputePlatformScores::dispatch();
+    ComputePlatformScores::dispatch();
 
     $this->info('ComputePlatformScores job dispatched to the queue.');
 })->purpose('Compute platform popularity scores for all game systems');
-
-use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('bgg:weekly-sync')->weekly()->mondays()->at('03:00');
 

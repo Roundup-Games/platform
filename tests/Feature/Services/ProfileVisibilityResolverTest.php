@@ -7,7 +7,7 @@ use App\Models\UserRelationship;
 use App\Services\ProfileVisibilityResolver;
 
 beforeEach(function () {
-    $this->resolver = new ProfileVisibilityResolver();
+    $this->resolver = new ProfileVisibilityResolver;
     $this->owner = User::factory()->create();
 });
 
@@ -60,14 +60,14 @@ describe('Visibility matrix: every field × every relationship level', function 
     it('teammate sees "everyone" + "friends" fields (same as friend)', function () {
         $teammate = User::factory()->create();
         $team = Team::factory()->create();
-        \App\Models\TeamMember::create([
+        TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $this->owner->id,
             'role' => 'player',
             'status' => 'active',
             'joined_at' => now(),
         ]);
-        \App\Models\TeamMember::create([
+        TeamMember::create([
             'team_id' => $team->id,
             'user_id' => $teammate->id,
             'role' => 'player',

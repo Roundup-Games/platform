@@ -15,7 +15,7 @@ return new class extends Migration
     {
         $allowedValues = "ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying]";
 
-        DB::statement("ALTER TABLE campaign_participants ADD COLUMN join_source character varying NULL");
+        DB::statement('ALTER TABLE campaign_participants ADD COLUMN join_source character varying NULL');
         DB::statement("ALTER TABLE campaign_participants ADD CONSTRAINT campaign_participants_join_source_check CHECK ((join_source)::text = ANY ({$allowedValues}::text[]))");
     }
 

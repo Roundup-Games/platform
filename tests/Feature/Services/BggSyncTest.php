@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\BggApiException;
+use App\Exceptions\BggParseException;
 use App\Models\BggSyncLog;
 use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
@@ -39,8 +40,8 @@ it('syncs a GameSystem with full taxonomy', function () {
     $service = createService();
     $result = $service->syncGameSystems([174430]);
 
-    expect($result['synced'])->toBe(1);
-    expect($result['failed'])->toBe(0);
+    expect($result->synced)->toBe(1);
+    expect($result->failed)->toBe(0);
 
     // Assert GameSystem exists with all fields
     $game = GameSystem::where('bgg_id', 174430)->first();
@@ -100,11 +101,11 @@ it('idempotent sync creates no duplicates', function () {
 
     // First sync
     $result1 = $service->syncGameSystems([174430]);
-    expect($result1['synced'])->toBe(1);
+    expect($result1->synced)->toBe(1);
 
     // Second sync
     $result2 = $service->syncGameSystems([174430]);
-    expect($result2['synced'])->toBe(1);
+    expect($result2->synced)->toBe(1);
 
     // Exactly 1 GameSystem
     expect(GameSystem::where('bgg_id', 174430)->count())->toBe(1);
@@ -129,7 +130,7 @@ it('idempotent sync creates no duplicates', function () {
 });
 
 it('syncs a batch of multiple IDs', function () {
-    $multiXml = <<<XML
+    $multiXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="174430">
@@ -174,8 +175,8 @@ it('syncs a batch of multiple IDs', function () {
     $service = createService();
     $result = $service->syncGameSystems([174430, 224517]);
 
-    expect($result['synced'])->toBe(2);
-    expect($result['failed'])->toBe(0);
+    expect($result->synced)->toBe(2);
+    expect($result->failed)->toBe(0);
 
     expect(GameSystem::whereIn('bgg_id', [174430, 224517])->count())->toBe(2);
 
@@ -229,14 +230,14 @@ it('retries on 202 cache miss then succeeds', function () {
     $service = createService();
     $result = $service->syncGameSystems([174430]);
 
-    expect($result['synced'])->toBe(1);
+    expect($result->synced)->toBe(1);
     expect($callCount)->toBe(2);
 
     expect(GameSystem::where('bgg_id', 174430)->exists())->toBeTrue();
 });
 
 it('handles item with no taxonomy links', function () {
-    $minimalXml = <<<XML
+    $minimalXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="12345">
@@ -265,7 +266,7 @@ it('handles item with no taxonomy links', function () {
     $service = createService();
     $result = $service->syncGameSystems([12345]);
 
-    expect($result['synced'])->toBe(1);
+    expect($result->synced)->toBe(1);
 
     $game = GameSystem::where('bgg_id', 12345)->first();
     expect($game)->not->toBeNull();
@@ -285,7 +286,7 @@ it('handles malformed XML by marking item as failed', function () {
     $service = createService();
 
     expect(fn () => $service->syncGameSystems([174430]))
-        ->toThrow(\App\Exceptions\BggParseException::class);
+        ->toThrow(BggParseException::class);
 
     $log = BggSyncLog::first();
     expect($log->status)->toBe('failed');
@@ -293,7 +294,7 @@ it('handles malformed XML by marking item as failed', function () {
 });
 
 it('resolves base_game_id for expansion items', function () {
-    $expansionXml = <<<XML
+    $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgameexpansion" id="246900">
@@ -343,7 +344,7 @@ it('resolves base_game_id for expansion items', function () {
 });
 
 it('auto-fetches missing base game when syncing an expansion', function () {
-    $expansionXml = <<<XML
+    $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgameexpansion" id="246900">
@@ -377,8 +378,8 @@ it('auto-fetches missing base game when syncing an expansion', function () {
     $service = createService();
     $result = $service->syncGameSystems([246900]);
 
-    expect($result['synced'])->toBe(1);
-    expect($result['failed'])->toBe(0);
+    expect($result->synced)->toBe(1);
+    expect($result->failed)->toBe(0);
 
     // Both records created
     expect(GameSystem::where('bgg_id', 246900)->exists())->toBeTrue();
@@ -395,7 +396,7 @@ it('auto-fetches missing base game when syncing an expansion', function () {
 });
 
 it('continues when auto-fetch of base game fails', function () {
-    $expansionXml = <<<XML
+    $expansionXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgameexpansion" id="246900">
@@ -429,8 +430,8 @@ it('continues when auto-fetch of base game fails', function () {
     $result = $service->syncGameSystems([246900]);
 
     // Expansion was synced (not failed), even though base game fetch errored
-    expect($result['synced'])->toBe(1);
-    expect($result['failed'])->toBe(0);
+    expect($result->synced)->toBe(1);
+    expect($result->failed)->toBe(0);
 
     // Expansion exists but has no base_game_id (base game couldn't be fetched)
     $expansion = GameSystem::where('bgg_id', 246900)->first();
@@ -446,12 +447,12 @@ it('returns discovered expansion IDs from sync', function () {
     $service = createService();
     $result = $service->syncGameSystems([174430]);
 
-    expect($result['synced'])->toBe(1);
-    expect($result['discovered_expansion_ids'])->toContain(246900, 256238);
+    expect($result->synced)->toBe(1);
+    expect($result->discoveredExpansionIds)->toContain(246900, 256238);
 });
 
 it('returns empty discovered_expansion_ids when no expansions linked', function () {
-    $minimalXml = <<<XML
+    $minimalXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="12345">
@@ -480,8 +481,8 @@ it('returns empty discovered_expansion_ids when no expansions linked', function 
     $service = createService();
     $result = $service->syncGameSystems([12345]);
 
-    expect($result['synced'])->toBe(1);
-    expect($result['discovered_expansion_ids'])->toBe([]);
+    expect($result->synced)->toBe(1);
+    expect($result->discoveredExpansionIds)->toBe([]);
 });
 
 it('continues sync when cover image download fails', function () {
@@ -494,8 +495,8 @@ it('continues sync when cover image download fails', function () {
     $result = $service->syncGameSystems([174430]);
 
     // Sync succeeds even though image fails
-    expect($result['synced'])->toBe(1);
-    expect($result['failed'])->toBe(0);
+    expect($result->synced)->toBe(1);
+    expect($result->failed)->toBe(0);
 
     $game = GameSystem::where('bgg_id', 174430)->first();
     expect($game)->not->toBeNull();
@@ -530,7 +531,7 @@ it('runs bgg:sync command end-to-end via artisan', function () {
 });
 
 it('runs bgg:sync command with multiple IDs', function () {
-    $multiXml = <<<XML
+    $multiXml = <<<'XML'
     <?xml version="1.0" encoding="UTF-8"?>
     <items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
       <item type="boardgame" id="174430">

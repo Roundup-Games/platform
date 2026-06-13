@@ -3,9 +3,11 @@
 namespace App\Livewire\Games;
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Traits\ManagesParticipants;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -57,7 +59,7 @@ class ManageParticipants extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         $this->game->load([
             'participants.user',
@@ -65,14 +67,14 @@ class ManageParticipants extends Component
         ]);
 
         $approvedParticipants = $this->game->participants
-            ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
+            ->filter(fn ($p) => $p->status === ParticipantStatus::Approved)
             ->filter(fn ($p) => $p->role !== ParticipantRole::Owner);
 
         $pendingApplicants = $this->game->participants
-            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === ParticipantStatus::Pending);
 
         $pendingInvites = $this->game->participants
-            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === ParticipantStatus::Pending);
 
         return view('livewire.games.manage-participants', [
             'game' => $this->game,

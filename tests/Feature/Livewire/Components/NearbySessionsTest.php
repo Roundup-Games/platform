@@ -5,8 +5,8 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
+use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
-
 
 // ── Berlin Alexanderplatz — reference point
 beforeEach(function () {
@@ -338,10 +338,9 @@ describe('Observability', function () {
             'visibility' => 'public',
         ]);
 
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
+        Log::shouldReceive('info')
             ->once()
-            ->withArgs(fn (string $message, array $context) =>
-                $message === 'Location gate converted' &&
+            ->withArgs(fn (string $message, array $context) => $message === 'Location gate converted' &&
                 $context['source'] === 'browser' &&
                 $context['result_count'] === 1
             );

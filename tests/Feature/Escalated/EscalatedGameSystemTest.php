@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Dto\SyncResult;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Models\GameSystem;
@@ -13,6 +14,8 @@ use App\Services\BggSyncService;
 use App\Services\GameSystemRequestService;
 use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Events\TicketClosed;
+use Escalated\Laravel\Events\TicketResolved;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
@@ -33,7 +36,9 @@ class EscalatedGameSystemTest extends TestCase
     use DatabaseTransactions;
 
     private User $user;
+
     private Department $department;
+
     private GameSystemRequestService $service;
 
     protected function setUp(): void
@@ -130,11 +135,11 @@ class EscalatedGameSystemTest extends TestCase
         ]);
 
         // Resolve (approve) the ticket
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
+        Event::forget(TicketResolved::class);
         $ticket->markResolved($this->user);
 
         // Manually invoke the listener
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket->fresh(), $this->user);
+        $event = new TicketResolved($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // GameSystem was created
@@ -166,7 +171,7 @@ class EscalatedGameSystemTest extends TestCase
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([266192])
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         // Pre-create the GameSystem that would result from sync
@@ -182,10 +187,10 @@ class EscalatedGameSystemTest extends TestCase
         ]);
 
         // Resolve and invoke listener
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
+        Event::forget(TicketResolved::class);
         $ticket->markResolved($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket->fresh(), $this->user);
+        $event = new TicketResolved($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Ticket metadata updated
@@ -201,10 +206,10 @@ class EscalatedGameSystemTest extends TestCase
             'bgg_url' => 'https://example.com/not-bgg',
         ]);
 
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
+        Event::forget(TicketResolved::class);
         $ticket->markResolved($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket->fresh(), $this->user);
+        $event = new TicketResolved($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Falls back to manual creation
@@ -230,7 +235,7 @@ class EscalatedGameSystemTest extends TestCase
 
         $countBefore = GameSystem::count();
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($otherTicket, $this->user);
+        $event = new TicketResolved($otherTicket, $this->user);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         $this->assertEquals($countBefore, GameSystem::count());
@@ -247,13 +252,13 @@ class EscalatedGameSystemTest extends TestCase
         $ticket->addReply($admin, 'This game already exists in our catalog.', true);
 
         // Close the ticket — forget both events to avoid side effects from markResolved
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
         // Invoke listener
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Rejection notification sent
@@ -275,12 +280,12 @@ class EscalatedGameSystemTest extends TestCase
     {
         $ticket = $this->submitRequest();
 
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         $notification = $this->user->notifications()
@@ -308,13 +313,13 @@ class EscalatedGameSystemTest extends TestCase
         $ticket->updateQuietly(['metadata' => $metadata]);
 
         // Close the ticket
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
         // Invoke listener
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Duplicate notification sent
@@ -345,12 +350,12 @@ class EscalatedGameSystemTest extends TestCase
         $metadata['duplicate_of_game_system_id'] = Str::uuid()->toString();
         $ticket->updateQuietly(['metadata' => $metadata]);
 
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // No game system notification sent since game system doesn't exist
@@ -375,7 +380,7 @@ class EscalatedGameSystemTest extends TestCase
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([12345])
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         // Pre-create GameSystem that BGG sync would produce
@@ -457,10 +462,10 @@ class EscalatedGameSystemTest extends TestCase
         $this->assertEquals('game_system_request', $ticket->ticket_type);
 
         // Step 2: Admin resolves (approves) the ticket
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
+        Event::forget(TicketResolved::class);
         $ticket->markResolved($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketResolved($ticket->fresh(), $this->user);
+        $event = new TicketResolved($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketResolved::class)->handle($event);
 
         // Step 3: GameSystem exists
@@ -490,12 +495,12 @@ class EscalatedGameSystemTest extends TestCase
         $admin = User::factory()->create();
         $ticket->addReply($admin, 'Not appropriate for our catalog.', true);
 
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Step 3: No GameSystem created
@@ -525,12 +530,12 @@ class EscalatedGameSystemTest extends TestCase
         $metadata['duplicate_of_game_system_id'] = $existingSystem->id;
         $ticket->updateQuietly(['metadata' => $metadata]);
 
-        Event::forget(\Escalated\Laravel\Events\TicketResolved::class);
-        Event::forget(\Escalated\Laravel\Events\TicketClosed::class);
+        Event::forget(TicketResolved::class);
+        Event::forget(TicketClosed::class);
         $ticket->markResolved($this->user);
         $ticket->markClosed($this->user);
 
-        $event = new \Escalated\Laravel\Events\TicketClosed($ticket->fresh(), $this->user);
+        $event = new TicketClosed($ticket->fresh(), $this->user);
         app(HandleGameSystemTicketClosed::class)->handle($event);
 
         // Step 3: User received duplicate notification

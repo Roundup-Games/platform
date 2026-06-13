@@ -95,5 +95,4 @@ describe('Notification preferences', function () {
         expect($target->notifications()->where('type', NewFollower::class)->count())->toBe(0);
     });
 
-
 });

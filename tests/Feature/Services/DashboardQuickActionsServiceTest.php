@@ -21,8 +21,8 @@ use Tests\TestCase;
 
 class DashboardQuickActionsServiceTest extends TestCase
 {
-
     private DashboardQuickActionsService $service;
+
     private GameSystem $gameSystem;
 
     protected function setUp(): void

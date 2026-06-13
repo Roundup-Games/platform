@@ -5,6 +5,7 @@ namespace Tests\Feature\Discovery;
 use App\Models\Location;
 use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -48,7 +49,7 @@ class LocationGeohashTest extends TestCase
         // to simulate locations that existed before the column was added
         $loc1 = Location::withoutEvents(function () {
             return Location::create([
-                'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+                'id' => (string) Str::orderedUuid(),
                 'name' => 'Berlin',
                 'city' => 'Berlin',
                 'latitude' => 52.5163,
@@ -58,7 +59,7 @@ class LocationGeohashTest extends TestCase
 
         $loc2 = Location::withoutEvents(function () {
             return Location::create([
-                'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+                'id' => (string) Str::orderedUuid(),
                 'name' => 'Munich',
                 'city' => 'Munich',
                 'latitude' => 48.1351,
@@ -96,7 +97,7 @@ class LocationGeohashTest extends TestCase
     {
         Location::withoutEvents(function () {
             Location::create([
-                'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+                'id' => (string) Str::orderedUuid(),
                 'name' => 'No Coords',
                 'city' => 'Nowhere',
                 'latitude' => null,
@@ -108,5 +109,4 @@ class LocationGeohashTest extends TestCase
             ->expectsOutputToContain('All locations already have geohash_4 set')
             ->assertSuccessful();
     }
-
 }

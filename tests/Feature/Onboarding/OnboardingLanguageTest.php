@@ -5,7 +5,6 @@ use App\Livewire\Onboarding\CompleteProfile;
 use App\Models\User;
 use Livewire\Livewire;
 
-
 it('sets preferred_language to De when onboarding with de locale', function () {
     app()->setLocale('de');
 

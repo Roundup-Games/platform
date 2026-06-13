@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Listeners;
 
-use App\Enums\NotificationCategory;
+use App\Dto\SyncResult;
 use App\Listeners\HandleGameSystemTicketClosed;
 use App\Listeners\HandleGameSystemTicketResolved;
 use App\Models\GameSystem;
@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Notifications\GameSystemRequestApproved;
 use App\Notifications\GameSystemRequestDuplicate;
 use App\Notifications\GameSystemRequestRejected;
+use App\Services\BggSyncService;
 use Database\Seeders\EscalatedSetupSeeder;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Events\TicketClosed as TicketClosedEvent;
@@ -26,6 +27,7 @@ class GameSystemTicketListenerTest extends TestCase
     use DatabaseTransactions;
 
     private User $user;
+
     private Department $department;
 
     protected function setUp(): void
@@ -382,11 +384,11 @@ class GameSystemTicketListenerTest extends TestCase
     public function test_approval_extracts_bgg_id_from_url_for_sync(): void
     {
         // We mock BggSyncService to avoid making real BGG API calls
-        $this->mock(\App\Services\BggSyncService::class, function ($mock) {
+        $this->mock(BggSyncService::class, function ($mock) {
             $mock->shouldReceive('syncGameSystems')
                 ->once()
                 ->with([12345])
-                ->andReturn(['synced' => 1, 'failed' => 0, 'errors' => []]);
+                ->andReturn(new SyncResult(synced: 1, failed: 0, errors: []));
         });
 
         // Create a GameSystem that would be returned by BGG sync
@@ -483,7 +485,7 @@ class GameSystemTicketListenerTest extends TestCase
         ]);
 
         // Mock BggSyncService to throw an exception (simulating sync failure)
-        $this->mock(\App\Services\BggSyncService::class, function ($mock) {
+        $this->mock(BggSyncService::class, function ($mock) {
             $mock->shouldReceive('syncGameSystems')
                 ->andThrow(new \RuntimeException('BGG API is down'));
         });

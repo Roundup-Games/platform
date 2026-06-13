@@ -26,7 +26,7 @@ class PushSubscriptionController extends Controller
         ]);
 
         // Rate limit: 10 subscriptions per minute per user
-        $rateKey = 'push-subscribe:' . $request->user()->id;
+        $rateKey = 'push-subscribe:'.authenticatedUser()->id;
         if (RateLimiter::tooManyAttempts($rateKey, 10)) {
             return response()->json([
                 'message' => 'Too many subscription attempts. Please try again later.',
@@ -40,10 +40,12 @@ class PushSubscriptionController extends Controller
         // device/browser each get their own subscription row. Without user_id
         // in the match conditions, a second user would silently steal the first
         // user's subscription via updateOrCreate.
+        $userId = authenticatedUser()->id;
+
         $subscription = PushSubscription::updateOrCreate(
             [
                 'endpoint' => $request->input('endpoint'),
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
             ],
             [
                 'p256h_key' => $request->input('keys.p256h'),
@@ -54,7 +56,7 @@ class PushSubscriptionController extends Controller
 
         Log::info('Push subscription created', [
             'subscription_id' => $subscription->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'is_new' => $subscription->wasRecentlyCreated,
         ]);
 
@@ -76,7 +78,7 @@ class PushSubscriptionController extends Controller
         ]);
 
         $subscription = PushSubscription::where('endpoint', $request->input('endpoint'))
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', authenticatedUser()->id)
             ->first();
 
         if (! $subscription) {
@@ -89,7 +91,7 @@ class PushSubscriptionController extends Controller
 
         Log::info('Push subscription removed', [
             'subscription_id' => $subscription->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $subscription->user_id,
         ]);
 
         return response()->json(null, 204);

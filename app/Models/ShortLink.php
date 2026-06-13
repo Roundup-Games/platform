@@ -2,18 +2,31 @@
 
 namespace App\Models;
 
+use Database\Factories\ShortLinkFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * @property int|null $count
+ * @property string $code
+ * @property string $original_url
+ * @property Carbon|null $expires_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class ShortLink extends Model
 {
+    /** @use HasFactory<ShortLinkFactory> */
     use HasFactory;
+
     use SoftDeletes;
+
     protected $fillable = [
         'code',
         'url',
@@ -41,7 +54,8 @@ class ShortLink extends Model
     {
         // Cache invalidation on update — clear both old and new code keys.
         static::updating(function (self $link) {
-            Cache::forget("short_link:{$link->getOriginal('code')}");
+            $originalCode = $link->getOriginal('code');
+            Cache::forget('short_link:'.(is_string($originalCode) ? $originalCode : ''));
             if ($link->isDirty('code')) {
                 Cache::forget("short_link:{$link->code}");
             }
@@ -56,16 +70,23 @@ class ShortLink extends Model
 
     // ── Relationships ────────────────────────────────────
 
+    /** @return MorphTo<Model, $this> */
     public function linkable(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return HasMany<ShortLinkHit, $this>
+     */
     public function hits(): HasMany
     {
         return $this->hasMany(ShortLinkHit::class);

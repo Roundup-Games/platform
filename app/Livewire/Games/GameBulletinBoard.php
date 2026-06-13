@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Notifications\BulletinPosted;
 use App\Policies\GameBulletinPolicy;
 use App\Services\NotificationService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -36,9 +38,12 @@ class GameBulletinBoard extends Component
     {
         $user = Auth::user();
 
-        return $user && $user->can('create', [GameBulletin::class, $this->game]);
+        return $user?->can('create', [GameBulletin::class, $this->game]) ?? false;
     }
 
+    /**
+     * @return Collection<int, GameBulletin>
+     */
     #[Computed]
     public function bulletins()
     {
@@ -53,12 +58,13 @@ class GameBulletinBoard extends Component
     public function isElevatedAccess(): bool
     {
         $user = Auth::user();
-        if (! $user) {
+
+        if ($user === null) {
             return false;
         }
 
         // If the user is the game host, this is normal access — not elevated
-        if ($this->game->owner_id === $user->id) {
+        if ((string) $this->game->owner_id === (string) $user->id) {
             return false;
         }
 
@@ -70,7 +76,8 @@ class GameBulletinBoard extends Component
     public function canViewBoard(): bool
     {
         $user = Auth::user();
-        if (! $user) {
+
+        if ($user === null) {
             return false;
         }
 
@@ -99,8 +106,8 @@ class GameBulletinBoard extends Component
 
         $bulletin = GameBulletin::postAsHost(
             gameId: $this->game->id,
-            userId: Auth::id(),
-            content: $sanitizedContent,
+            userId: (string) Auth::id(),
+            content: $sanitizedContent ?? '',
             expiresAt: $this->game->date_time?->toDateTimeString(),
         );
 
@@ -125,7 +132,7 @@ class GameBulletinBoard extends Component
 
     private function notifyParticipants(GameBulletin $bulletin): void
     {
-        $host = Auth::user();
+        $host = authenticatedUser();
         $notification = new BulletinPosted($this->game, $host, $bulletin);
 
         $participants = $this->game->participants()
@@ -141,6 +148,9 @@ class GameBulletinBoard extends Component
         $participantUsers = $participants->pluck('user')->filter();
 
         foreach ($participantUsers as $participant) {
+            if (! ($participant instanceof User)) {
+                continue;
+            }
             try {
                 app(NotificationService::class)->send(
                     $participant,
@@ -158,7 +168,7 @@ class GameBulletinBoard extends Component
         }
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.games.game-bulletin-board', [
             'canViewBoard' => $this->canViewBoard(),

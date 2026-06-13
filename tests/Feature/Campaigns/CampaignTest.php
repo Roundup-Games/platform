@@ -1,12 +1,21 @@
 <?php
 
+use App\Enums\CampaignStatus;
+use App\Enums\GameType;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
+use App\Livewire\Campaigns\AddSessionToCampaign;
+use App\Livewire\Campaigns\CreateCampaign;
+use App\Livewire\Campaigns\PublicCampaignDetail;
 use App\Models\Campaign;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -17,6 +26,7 @@ function campaignTestCreateOwner(array $overrides = []): User
     setPermissionsTeamId(null);
     $user->givePermissionTo('create campaign');
     $user->unsetRelations();
+
     return $user;
 }
 
@@ -40,6 +50,7 @@ function campaignTestCreateOwnerWithGamePermission(array $overrides = []): User
     setPermissionsTeamId(1);
     $user->givePermissionTo(['create campaign', 'create game']);
     $user->unsetRelations();
+
     return $user;
 }
 
@@ -53,7 +64,7 @@ describe('CreateCampaign Component', function () {
         $system = GameSystem::factory()->create();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Curse of Strahd')
             ->set('game_system_id', $system->id)
             ->set('description', 'A gothic horror adventure')
@@ -72,15 +83,15 @@ describe('CreateCampaign Component', function () {
         expect($campaign->game_system_id)->toBe($system->id);
         expect($campaign->recurrence)->toBe('weekly');
         expect($campaign->time_of_day)->toBe('20:00');
-        expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
-        expect($campaign->status)->toBe(\App\Enums\CampaignStatus::Active);
+        expect($campaign->visibility)->toBe(Visibility::Protected);
+        expect($campaign->status)->toBe(CampaignStatus::Active);
     });
 
     it('creates campaign with minimum required fields', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Simple Campaign')
             ->set('recurrence', 'monthly')
             ->set('time_of_day', '18:00')
@@ -89,14 +100,14 @@ describe('CreateCampaign Component', function () {
 
         $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
         expect($campaign->getTranslation('name', 'en'))->toBe('Simple Campaign');
-        expect($campaign->status)->toBe(\App\Enums\CampaignStatus::Active);
+        expect($campaign->status)->toBe(CampaignStatus::Active);
     });
 
     it('gates public visibility for non-approved users', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Gated Campaign')
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
@@ -105,7 +116,7 @@ describe('CreateCampaign Component', function () {
 
         // Should be downgraded to protected since user lacks can_create_public_entries
         $campaign = Campaign::where('owner_id', $user->id)->firstOrFail();
-        expect($campaign->visibility)->toBe(\App\Enums\Visibility::Protected);
+        expect($campaign->visibility)->toBe(Visibility::Protected);
     });
 
 });
@@ -118,7 +129,7 @@ describe('Campaign Detail Route', function () {
     it('shows public campaign via Livewire component', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'public', 'name' => ['en' => 'Open Campaign']]);
 
-        Livewire\Livewire::test(\App\Livewire\Campaigns\PublicCampaignDetail::class, ['id' => $campaign->id])
+        Livewire\Livewire::test(PublicCampaignDetail::class, ['id' => $campaign->id])
             ->assertOk()
             ->assertSee('Open Campaign');
     });
@@ -164,7 +175,7 @@ describe('Campaign Detail Route', function () {
         $campaign = campaignTestCreateCampaign(['visibility' => 'private']);
         $player = User::factory()->create(['profile_complete' => true]);
 
-        \App\Models\CampaignParticipant::create([
+        CampaignParticipant::create([
             'campaign_id' => $campaign->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,
@@ -185,7 +196,7 @@ describe('AddSessionToCampaign — Authorization', function () {
         $stranger = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($stranger)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->assertForbidden();
     });
 
@@ -195,7 +206,7 @@ describe('AddSessionToCampaign — Authorization', function () {
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Test Session')
             ->set('date_time', '2026-05-01 19:00')
             ->call('save')
@@ -209,7 +220,7 @@ describe('AddSessionToCampaign — Creation', function () {
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Session 3 — The Lost Temple')
             ->set('date_time', '2026-05-01 19:00')
             ->call('save')
@@ -242,7 +253,7 @@ describe('AddSessionToCampaign — Creation', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Inherited Session')
             ->set('date_time', '2026-06-15 18:00')
             ->call('save')
@@ -251,7 +262,7 @@ describe('AddSessionToCampaign — Creation', function () {
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game)->not->toBeNull()
             ->and($game->game_system_id)->toBe($system->id)
-            ->and($game->visibility)->toBe(\App\Enums\Visibility::Public)
+            ->and($game->visibility)->toBe(Visibility::Public)
             ->and($game->language)->toBe('de')
             ->and($game->min_players)->toBe(3)
             ->and($game->max_players)->toBe(6)
@@ -272,7 +283,7 @@ describe('AddSessionToCampaign — Creation', function () {
         $campaign = Campaign::factory()->create(['owner_id' => $owner->id]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'TTRPG Session')
             ->set('date_time', now()->addMonths(4)->format('Y-m-d H:i'))
             ->call('save')
@@ -280,8 +291,8 @@ describe('AddSessionToCampaign — Creation', function () {
 
         $game = Game::where('campaign_id', $campaign->id)->first();
         expect($game)->not->toBeNull()
-            ->and($game->game_type)->toBeInstanceOf(\App\Enums\GameType::class)
-            ->and($game->game_type)->toBe(\App\Enums\GameType::Ttrpg);
+            ->and($game->game_type)->toBeInstanceOf(GameType::class)
+            ->and($game->game_type)->toBe(GameType::Ttrpg);
     });
 
     it('logs warning when campaign game system is not ttrpg', function () {
@@ -294,7 +305,7 @@ describe('AddSessionToCampaign — Creation', function () {
 
         Log::shouldReceive('warning')
             ->once()
-            ->with('add_session_to_campaign.non_ttrpg_system', \Mockery::on(function ($context) use ($campaign, $system) {
+            ->with('add_session_to_campaign.non_ttrpg_system', Mockery::on(function ($context) use ($campaign, $system) {
                 return $context['campaign_id'] === $campaign->id
                     && $context['game_system_id'] === $system->id
                     && $context['game_system_type'] === 'boardgame';
@@ -305,7 +316,7 @@ describe('AddSessionToCampaign — Creation', function () {
         Log::shouldReceive('debug')->byDefault();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Boardgame System Session')
             ->set('date_time', now()->addMonths(4)->format('Y-m-d H:i'))
             ->call('save');
@@ -321,7 +332,7 @@ describe('CreateCampaign — Translatable Fields', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'English Campaign')
             ->set('description', 'English description')
             ->set('recurrence', 'weekly')
@@ -339,7 +350,7 @@ describe('CreateCampaign — Translatable Fields', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'English Campaign')
             ->set('description', 'English description')
             ->set('pendingTranslations.de.name', 'Deutsche Kampagne')
@@ -361,7 +372,7 @@ describe('CreateCampaign — Translatable Fields', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Deutsche Kampagne')
             ->set('description', 'Eine großartige Kampagne')
             ->set('recurrence', 'weekly')
@@ -379,7 +390,7 @@ describe('CreateCampaign — Translatable Fields', function () {
         $user = campaignTestCreateOwner();
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->set('name', 'Test Campaign')
             ->set('recurrence', 'weekly')
             ->set('time_of_day', '19:00')
@@ -394,7 +405,7 @@ describe('CreateCampaign — Translatable Fields', function () {
         $user = campaignTestCreateOwner();
 
         $html = Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Campaigns\CreateCampaign::class)
+            ->test(CreateCampaign::class)
             ->html();
 
         expect($html)

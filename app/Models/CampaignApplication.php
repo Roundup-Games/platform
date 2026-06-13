@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Str;
 
-class CampaignApplication extends Model
+class CampaignApplication extends Pivot
 {
+    protected $table = 'campaign_applications';
+
     protected $keyType = 'string';
-    public $incrementing = false;
 
     protected $fillable = ['campaign_id', 'user_id', 'status', 'message'];
 
@@ -22,11 +23,17 @@ class CampaignApplication extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Campaign, $this>
+     */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

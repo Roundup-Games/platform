@@ -9,13 +9,13 @@ use App\Notifications\Channels\PushChannel;
 use App\Services\NotificationService;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
-use Tests\TestCase;
 
 describe('NotificationService', function () {
     beforeEach(function () {
-        $this->service = new NotificationService();
+        $this->service = new NotificationService;
     });
 
     // ── resolveChannels ──────────────────────────────────────────
@@ -363,9 +363,9 @@ class TestNotification extends \Illuminate\Notifications\Notification
         return $this->data;
     }
 
-    public function toMail(object $notifiable): \Illuminate\Notifications\Messages\MailMessage
+    public function toMail(object $notifiable): MailMessage
     {
-        return (new \Illuminate\Notifications\Messages\MailMessage)
+        return (new MailMessage)
             ->line('Test notification');
     }
 }

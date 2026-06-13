@@ -3,10 +3,10 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
-
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Str;
 
 class ReviewReported extends BaseNotification
 {
@@ -22,7 +22,7 @@ class ReviewReported extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject(__('notifications.subject_review_reported'))
@@ -40,7 +40,7 @@ class ReviewReported extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
         return [
             'type' => 'review_reported',
@@ -64,7 +64,7 @@ class ReviewReported extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

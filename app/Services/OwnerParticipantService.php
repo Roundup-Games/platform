@@ -93,7 +93,7 @@ class OwnerParticipantService
                 Log::info("{$logLabel}_owner_participant.role_upgraded", [
                     "{$logLabel}_id" => $entity->id,
                     'user_id' => $ownerId,
-                    'previous_role' => $participant->role->value,
+                    'previous_role' => $participant->role->value ?? '',
                 ]);
                 $participant->update(['role' => ParticipantRole::Owner]);
             }

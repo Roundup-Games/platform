@@ -4,6 +4,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\ShortLink;
 use App\Models\User;
+use App\Services\ShortLinkService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -17,7 +18,7 @@ beforeEach(function () {
 describe('ShortLinkService — code generation', function () {
     it('auto-generates a 7-char alphanumeric code via service', function () {
         $user = User::factory()->create();
-        $service = app(\App\Services\ShortLinkService::class);
+        $service = app(ShortLinkService::class);
         $link = $service->createLink($this->game, $user);
 
         expect($link->code)->toBeString();
@@ -27,7 +28,7 @@ describe('ShortLinkService — code generation', function () {
 
     it('generates different codes for different links', function () {
         $user = User::factory()->create();
-        $service = app(\App\Services\ShortLinkService::class);
+        $service = app(ShortLinkService::class);
         $link1 = $service->createLink($this->game, $user);
         $link2 = $service->createLink($this->game, $user);
 
@@ -44,9 +45,9 @@ describe('ShortLinkService — code generation', function () {
 
         try {
             $user = User::factory()->create();
-            $service = app(\App\Services\ShortLinkService::class);
+            $service = app(ShortLinkService::class);
             expect(fn () => $service->createLink($this->game, $user))
-                ->toThrow(\RuntimeException::class);
+                ->toThrow(RuntimeException::class);
         } finally {
             Str::createRandomStringsUsing(null);
         }
@@ -54,7 +55,7 @@ describe('ShortLinkService — code generation', function () {
 
     it('accepts an explicit code via service params', function () {
         $user = User::factory()->create();
-        $service = app(\App\Services\ShortLinkService::class);
+        $service = app(ShortLinkService::class);
         $link = $service->createLink($this->game, $user, ['code' => 'CUSTOM1']);
 
         expect($link->code)->toBe('CUSTOM1');
@@ -70,12 +71,12 @@ describe('ShortLink model — cache invalidation', function () {
             'code' => 'CACHE1',
         ]);
 
-        Cache::put("short_link:CACHE1", $link, 3600);
-        expect(Cache::has("short_link:CACHE1"))->toBeTrue();
+        Cache::put('short_link:CACHE1', $link, 3600);
+        expect(Cache::has('short_link:CACHE1'))->toBeTrue();
 
         $link->update(['label' => 'updated']);
 
-        expect(Cache::has("short_link:CACHE1"))->toBeFalse();
+        expect(Cache::has('short_link:CACHE1'))->toBeFalse();
     });
 
     it('clears both old and new cache keys when code changes', function () {
@@ -84,12 +85,12 @@ describe('ShortLink model — cache invalidation', function () {
             'code' => 'OLDCODE',
         ]);
 
-        Cache::put("short_link:OLDCODE", $link, 3600);
+        Cache::put('short_link:OLDCODE', $link, 3600);
 
         $link->update(['code' => 'NEWCODE']);
 
-        expect(Cache::has("short_link:OLDCODE"))->toBeFalse();
-        expect(Cache::has("short_link:NEWCODE"))->toBeFalse();
+        expect(Cache::has('short_link:OLDCODE'))->toBeFalse();
+        expect(Cache::has('short_link:NEWCODE'))->toBeFalse();
     });
 
     it('clears cache on delete', function () {
@@ -98,11 +99,11 @@ describe('ShortLink model — cache invalidation', function () {
             'code' => 'DELMEE',
         ]);
 
-        Cache::put("short_link:DELMEE", $link, 3600);
+        Cache::put('short_link:DELMEE', $link, 3600);
 
         $link->delete();
 
-        expect(Cache::has("short_link:DELMEE"))->toBeFalse();
+        expect(Cache::has('short_link:DELMEE'))->toBeFalse();
     });
 });
 

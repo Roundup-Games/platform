@@ -6,8 +6,10 @@ use App\Enums\ContentLanguage;
 use App\Enums\ExperienceLevel;
 use App\Enums\VibeFlag;
 use App\Models\Game;
+use App\Models\GameSystem;
 use App\Traits\EscapesLikeWildcards;
 use App\Traits\QueriesTranslatableColumns;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -30,6 +32,7 @@ class GameListing extends Component
     #[Url]
     public string $experience_level = '';
 
+    /** @var array<int, string> */
     #[Url]
     public array $vibe_flags = [];
 
@@ -51,8 +54,8 @@ class GameListing extends Component
     public function mount(): void
     {
         $user = Auth::user();
-        if (!$this->language) {
-            $this->language = ($user && $user->preferred_language)
+        if (! $this->language) {
+            $this->language = ($user?->preferred_language)
                 ? $user->preferred_language->value
                 : app()->getLocale();
         }
@@ -129,7 +132,7 @@ class GameListing extends Component
         return $this->search
             || $this->game_system_id
             || $this->experience_level
-            || !empty($this->vibe_flags)
+            || ! empty($this->vibe_flags)
             || ($this->language && $this->language !== app()->getLocale())
             || $this->date
             || $this->price
@@ -137,7 +140,7 @@ class GameListing extends Component
             || $this->complexity_max;
     }
 
-    public function render()
+    public function render(): View
     {
         $user = Auth::user();
 
@@ -145,16 +148,14 @@ class GameListing extends Component
             // Visibility scoping: public for everyone, protected for friends/teammates/participants, private excluded
             ->where(function ($q) use ($user) {
                 $q->where('visibility', 'public');
-                if ($user) {
-                    $q->orWhere(function ($q) use ($user) {
-                        $q->where('visibility', 'protected')
-                            ->where(function ($q) use ($user) {
-                                $allowedOwnerIds = $user->getAllowedOwnerIdsForProtectedContent();
-                                $q->whereIn('owner_id', $allowedOwnerIds)
-                                    ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $user->id));
-                            });
-                    });
-                }
+                $q->orWhere(function ($q) use ($user) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($user) {
+                            $allowedOwnerIds = $user?->getAllowedOwnerIdsForProtectedContent() ?? [];
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $user ? $pq->where('user_id', $user->id) : $pq->whereRaw('1 = 0'));
+                        });
+                });
             })
             // Only scheduled upcoming games
             ->where('status', 'scheduled')
@@ -175,7 +176,7 @@ class GameListing extends Component
         $query->when($this->experience_level, fn ($q) => $q->where('experience_level', $this->experience_level));
 
         // Vibe flags filter (JSON containment)
-        $query->when(!empty($this->vibe_flags), function ($q) {
+        $query->when(! empty($this->vibe_flags), function ($q) {
             foreach ($this->vibe_flags as $flag) {
                 $q->whereJsonContains('vibe_flags', $flag);
             }
@@ -201,7 +202,7 @@ class GameListing extends Component
 
         return view('livewire.games.game-listing', [
             'games' => $games,
-            'gameSystems' => \App\Models\GameSystem::orderBy('name')->get(['id', 'name']),
+            'gameSystems' => GameSystem::orderBy('name')->get(['id', 'name']),
             'experienceLevels' => ExperienceLevel::cases(),
             'vibeFlagGroups' => VibeFlag::grouped(),
             'languages' => ContentLanguage::cases(),

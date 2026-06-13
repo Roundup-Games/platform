@@ -28,8 +28,9 @@ class EnsureLocaleDefaults
 
         if (! isset($defaults['locale'])) {
             $locale = session('locale', config('app.fallback_locale'));
+            $locales = config('app.available_locales');
 
-            if (in_array($locale, config('app.available_locales'), true)) {
+            if (is_string($locale) && is_array($locales) && in_array($locale, $locales, true)) {
                 URL::defaults(['locale' => $locale]);
             }
         }

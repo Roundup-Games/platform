@@ -1,15 +1,15 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\VenueType;
-use App\Models\Campaign;
+use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -65,7 +65,7 @@ describe('Location change notification dedup', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_location_details', 'Changed details text')
             ->set('edit_location_id', $newVenue->id)
@@ -80,6 +80,7 @@ describe('Location change notification dedup', function () {
                     $notification->changedFields,
                     fn (string $field) => $field === __('common.field_location'),
                 ));
+
                 return $locationCount === 1;
             }
         );
@@ -99,7 +100,7 @@ describe('Location change notification dedup', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_location_details', 'New details text')
             ->call('saveGameEdit');
@@ -132,7 +133,7 @@ describe('Location change notification dedup', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_location_id', $newVenue->id)
             ->call('saveGameEdit');
@@ -157,7 +158,7 @@ describe('Location change notification dedup', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_location_instructions', 'Ring the bell twice')
             ->call('saveGameEdit');
@@ -180,7 +181,7 @@ describe('Location data pre-loaded in edit modal', function () {
         ]);
         $game = createGameWithLocation($this->owner, $this->gameSystem, $location);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->assertSet('edit_location_name', 'Board Game Cafe')
             ->assertSet('edit_location_city', 'Berlin')
@@ -190,7 +191,7 @@ describe('Location data pre-loaded in edit modal', function () {
     it('handles null location gracefully in edit modal', function () {
         $game = createGameWithLocation($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->assertSet('edit_location_name', '')
             ->assertSet('edit_location_city', '')
@@ -213,7 +214,7 @@ describe('Venue action auth guard', function () {
             'longitude' => 13.40,
         ]);
 
-        $component = Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class);
+        $component = Livewire::actingAs($this->owner)->test(GamesPage::class);
 
         // These should silently no-op without an active edit context
         $component
@@ -238,7 +239,7 @@ describe('EditsVenueLocation trait integration', function () {
             'venue_type' => VenueType::Cafe,
         ]);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->call('editSelectVenue', $venue->id)
             ->assertSet('edit_location_id', $venue->id)
@@ -255,7 +256,7 @@ describe('EditsVenueLocation trait integration', function () {
             'is_verified' => false,
         ]);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->call('editSelectVenue', $unverified->id)
             ->assertSet('edit_location_id', $game->location_id); // unchanged
@@ -264,7 +265,7 @@ describe('EditsVenueLocation trait integration', function () {
     it('creates a new Location via editSaveAddress', function () {
         $game = createGameWithLocation($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_address_mode', 'address')
             ->set('edit_address_city', 'Hamburg')
@@ -285,7 +286,7 @@ describe('EditsVenueLocation trait integration', function () {
         $location = Location::factory()->create(['name' => 'Venue', 'city' => 'Berlin']);
         $game = createGameWithLocation($this->owner, $this->gameSystem, $location);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->call('editClearLocation')
             ->assertSet('edit_location_id', null)
@@ -303,7 +304,7 @@ describe('EditsVenueLocation trait integration', function () {
             'venue_type' => VenueType::Cafe,
         ]);
 
-        $result = Livewire::actingAs($this->owner)->test(\App\Livewire\Games\GamesPage::class)
+        $result = Livewire::actingAs($this->owner)->test(GamesPage::class)
             ->call('editGame', $game->id)
             ->set('edit_venue_query', 'Board')
             ->call('editSearchVenues')

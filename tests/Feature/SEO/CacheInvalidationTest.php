@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Services\SeoCacheService;
 use Illuminate\Support\Facades\Cache;
 
-use function Pest\Laravel\{get};
+use function Pest\Laravel\get;
 
 beforeEach(function () {
     Cache::flush();
@@ -29,7 +29,7 @@ describe('Sitemap cache lifecycle', function () {
         get('/sitemap-game-systems.xml')->assertOk();
         $cached = $this->seoCache->getSitemap('game-systems');
         expect($cached)->not->toBeNull();
-        expect($cached)->toContain('/game-systems/' . $system->slug);
+        expect($cached)->toContain('/game-systems/'.$system->slug);
 
         $system->update(['name' => 'Beta System']);
 
@@ -40,7 +40,7 @@ describe('Sitemap cache lifecycle', function () {
         $fresh = $this->seoCache->getSitemap('game-systems');
         expect($fresh)->not->toBeNull();
         $system->refresh();
-        expect($fresh)->toContain('/game-systems/' . $system->slug);
+        expect($fresh)->toContain('/game-systems/'.$system->slug);
     });
 
     it('Event: populate → update → cache cleared → regenerate reflects new data', function () {

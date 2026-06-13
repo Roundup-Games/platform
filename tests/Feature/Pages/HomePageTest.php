@@ -4,8 +4,9 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
-use function Pest\Laravel\{get, actingAs};
 
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 // ═══════════════════════════════════════════════════════════
 // RENDERING

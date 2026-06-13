@@ -74,11 +74,11 @@
                                     <span class="text-sm text-on-surface-variant">{{ __('campaigns.activity_completed_campaign') }}</span>
                                     @break
                                 @case('session_scheduled')
-                                    @if($activity->entity_campaign)
+                                    @if($activity->entityCampaign)
                                         <span class="text-sm text-on-surface-variant">
                                             {{ __('campaigns.activity_scheduled_session_for') }}
-                                            <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $activity->entity_campaign->id]) }}" wire:navigate class="font-medium text-secondary hover:text-secondary/80 transition-colors">
-                                                {{ $activity->entity_campaign->name }}
+                                            <a href="{{ route('campaigns.detail', ['locale' => app()->getLocale(), 'id' => $activity->entityCampaign->id]) }}" wire:navigate class="font-medium text-secondary hover:text-secondary/80 transition-colors">
+                                                {{ $activity->entityCampaign->name }}
                                             </a>
                                         </span>
                                     @else
@@ -127,7 +127,7 @@
 
                             <span class="inline-flex items-center gap-1">
                                 <span class="material-symbols-outlined text-xs" aria-hidden="true">schedule</span>
-                                {{ $activity->created_at->diffForHumans() }}
+                                {{ $activity->createdAt->diffForHumans() }}
                             </span>
                         </div>
                     </div>

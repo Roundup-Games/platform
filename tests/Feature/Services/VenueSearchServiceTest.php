@@ -19,6 +19,7 @@ class VenueSearchServiceTest extends TestCase
 
     // Berlin Alexanderplatz
     private float $centerLat = 52.5219;
+
     private float $centerLng = 13.4117;
 
     protected function setUp(): void
@@ -77,7 +78,7 @@ class VenueSearchServiceTest extends TestCase
         $this->assertCount(2, $results);
         $this->assertEquals($near->id, $results->first()->id);
         $this->assertEquals($far->id, $results->last()->id);
-        $this->assertLessThan($results->last()->distance_km, $results->first()->distance_km);
+        $this->assertLessThan($results->last()->distanceKm, $results->first()->distanceKm);
     }
 
     #[Test]
@@ -162,7 +163,7 @@ class VenueSearchServiceTest extends TestCase
 
         $this->assertCount(2, $results);
         $this->assertEquals('Alpha Venue', $results->first()->name);
-        $this->assertNull($results->first()->distance_km);
+        $this->assertNull($results->first()->distanceKm);
     }
 
     #[Test]

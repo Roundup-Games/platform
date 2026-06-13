@@ -13,6 +13,9 @@ use Carbon\Carbon;
  */
 class ActionItem
 {
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     public function __construct(
         public readonly string $type,
         public readonly string $priority,
@@ -27,6 +30,8 @@ class ActionItem
 
     /**
      * Serialize to a cache-safe array (no Eloquent models, no Carbon objects).
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -45,19 +50,21 @@ class ActionItem
 
     /**
      * Reconstruct from a cached array.
+     *
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {
         return new self(
-            type: $data['type'] ?? 'unknown',
-            priority: $data['priority'] ?? 'low',
-            title: $data['title'] ?? '',
-            description: $data['description'] ?? '',
-            actionUrl: $data['action_url'] ?? '',
-            actionLabel: $data['action_label'] ?? '',
-            icon: $data['icon'] ?? 'info',
-            createdAt: Carbon::parse($data['created_at'] ?? now()->toIso8601String()),
-            metadata: $data['metadata'] ?? [],
+            type: is_string($data['type'] ?? null) ? $data['type'] : 'unknown',
+            priority: is_string($data['priority'] ?? null) ? $data['priority'] : 'low',
+            title: is_string($data['title'] ?? null) ? $data['title'] : '',
+            description: is_string($data['description'] ?? null) ? $data['description'] : '',
+            actionUrl: is_string($data['action_url'] ?? null) ? $data['action_url'] : '',
+            actionLabel: is_string($data['action_label'] ?? null) ? $data['action_label'] : '',
+            icon: is_string($data['icon'] ?? null) ? $data['icon'] : 'info',
+            createdAt: Carbon::parse(is_string($data['created_at'] ?? null) ? $data['created_at'] : now()->toIso8601String()),
+            metadata: is_array($data['metadata'] ?? null) ? $data['metadata'] : [],
         );
     }
 

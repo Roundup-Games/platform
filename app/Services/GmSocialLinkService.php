@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\GmSocialLink;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class GmSocialLinkService
@@ -17,7 +18,7 @@ class GmSocialLinkService
     {
         $config = config("platforms.{$platform}");
 
-        if (! $config) {
+        if (! is_array($config)) {
             Log::warning('gm_social_link.unknown_platform', [
                 'platform' => $platform, 'action' => 'generate_url',
             ]);
@@ -25,10 +26,11 @@ class GmSocialLinkService
             return null;
         }
 
-        $url = $config['url_template'];
+        $url = is_string($config['url_template'] ?? null) ? $config['url_template'] : '';
 
         if (str_contains($url, '{instance}')) {
-            if (($config['instance_required'] ?? false) && empty($instance)) {
+            $instanceRequired = $config['instance_required'] ?? false;
+            if ($instanceRequired && empty($instance)) {
                 return null;
             }
             $url = str_replace('{instance}', $instance ?? '', $url);
@@ -57,7 +59,7 @@ class GmSocialLinkService
     {
         $config = config("platforms.{$platform}");
 
-        if (! $config) {
+        if (! is_array($config)) {
             return ['valid' => false, 'error' => "Unknown platform: {$platform}"];
         }
 
@@ -65,7 +67,7 @@ class GmSocialLinkService
             return ['valid' => false, 'error' => 'Handle is required.'];
         }
 
-        $pattern = $config['handle_pattern'] ?? null;
+        $pattern = is_string($config['handle_pattern'] ?? null) ? $config['handle_pattern'] : null;
 
         if (! is_string($pattern) || $pattern === '' || @preg_match($pattern, '') === false) {
             Log::warning('gm_social_link.invalid_handle_pattern_config', [
@@ -80,7 +82,9 @@ class GmSocialLinkService
                 'platform' => $platform, 'handle' => $handle, 'pattern' => $pattern,
             ]);
 
-            return ['valid' => false, 'error' => "Invalid handle for {$config['name']}."];
+            $platformName = is_string($config['name'] ?? null) ? $config['name'] : $platform;
+
+            return ['valid' => false, 'error' => "Invalid handle for {$platformName}."];
         }
 
         return ['valid' => true];
@@ -94,7 +98,9 @@ class GmSocialLinkService
     public function validateInstance(string $instance): array
     {
         $mastodonConfig = config('platforms.mastodon');
-        $pattern = $mastodonConfig['instance_pattern'] ?? null;
+        $pattern = is_array($mastodonConfig) && is_string($mastodonConfig['instance_pattern'] ?? null)
+            ? $mastodonConfig['instance_pattern']
+            : null;
 
         if (! is_string($pattern) || $pattern === '' || @preg_match($pattern, '') === false) {
             return ['valid' => false, 'error' => 'Instance validation is temporarily unavailable.'];
@@ -110,15 +116,24 @@ class GmSocialLinkService
     /**
      * Get all platforms sorted by sort_order from config.
      *
-     * @return array<string, array>
+     * @return array<string, mixed>
      */
     public function getPlatforms(): array
     {
-        $platforms = config('platforms', []);
+        $raw = config('platforms', []);
+        if (! is_array($raw) || array_keys($raw) === range(0, count($raw) - 1)) {
+            return [];
+        }
 
-        uasort($platforms, fn ($a, $b) => ($a['sort_order'] ?? 999) <=> ($b['sort_order'] ?? 999));
+        /** @var array<string, mixed> $raw */
+        uasort($raw, function (mixed $a, mixed $b): int {
+            $orderA = is_array($a) && is_int($a['sort_order'] ?? null) ? $a['sort_order'] : 999;
+            $orderB = is_array($b) && is_int($b['sort_order'] ?? null) ? $b['sort_order'] : 999;
 
-        return $platforms;
+            return $orderA <=> $orderB;
+        });
+
+        return $raw;
     }
 
     /**
@@ -128,10 +143,10 @@ class GmSocialLinkService
      * Items with an empty handle are treated as deletions.
      * Platforms present in config but absent from $links are also removed.
      *
-     * @param  array<int, array{platform: string, handle: string, instance?: string}>  $links
+     * @param  array<int, array{platform?: string, handle?: string, instance?: string}>  $links
      * @return array{synced: int, errors: array<string, string>}
      */
-    public function syncLinksForUser($user, array $links): array
+    public function syncLinksForUser(User $user, array $links): array
     {
         $synced = 0;
         $errors = [];
@@ -151,27 +166,32 @@ class GmSocialLinkService
             // Empty handle = remove the link
             if ($handle === '') {
                 $this->deleteLink($user, $platform);
+
                 continue;
             }
 
             // Validate handle
             $validation = $this->validateHandle($platform, $handle);
             if (! $validation['valid']) {
-                $errors[$platform] = $validation['error'];
+                $errors[$platform] = $validation['error'] ?? 'Invalid handle.';
+
                 continue;
             }
 
             // Validate instance if required
             $platformConfig = config("platforms.{$platform}");
-            if (($platformConfig['instance_required'] ?? false) && empty($instance)) {
+            $instanceRequired = is_array($platformConfig) && ($platformConfig['instance_required'] ?? false);
+            if ($instanceRequired && empty($instance)) {
                 $errors[$platform] = 'Instance is required for this platform.';
+
                 continue;
             }
 
-            if (($platformConfig['instance_required'] ?? false) && $instance) {
+            if (! empty($instance)) {
                 $instanceValidation = $this->validateInstance($instance);
                 if (! $instanceValidation['valid']) {
-                    $errors[$platform] = $instanceValidation['error'];
+                    $errors[$platform] = $instanceValidation['error'] ?? 'Invalid instance.';
+
                     continue;
                 }
             }
@@ -194,10 +214,11 @@ class GmSocialLinkService
         }
 
         // Remove links for known platforms that weren't submitted (user unchecked them).
-        $knownPlatforms = array_keys(config('platforms', []));
+        $platformsConfig = config('platforms', []);
+        $knownPlatforms = is_array($platformsConfig) ? array_keys($platformsConfig) : [];
         $orphanPlatforms = array_diff($knownPlatforms, $submittedPlatforms);
         foreach ($orphanPlatforms as $platform) {
-            $this->deleteLink($user, $platform);
+            $this->deleteLink($user, (string) $platform);
         }
 
         return ['synced' => $synced, 'errors' => $errors];
@@ -206,7 +227,7 @@ class GmSocialLinkService
     /**
      * Delete a social link for a user/platform pair.
      */
-    private function deleteLink($user, string $platform): void
+    private function deleteLink(User $user, string $platform): void
     {
         $deleted = GmSocialLink::where('user_id', $user->id)
             ->where('platform', $platform)

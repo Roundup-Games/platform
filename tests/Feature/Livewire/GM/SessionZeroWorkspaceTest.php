@@ -1,14 +1,15 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
+use App\Livewire\GM\GmWorkspace;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use Spatie\Permission\Models\Role;
 use Tests\Traits\CreatesUsers;
 
 uses(CreatesUsers::class);
@@ -79,7 +80,6 @@ describe('GmWorkspace Session Zero Surveys', function () {
             ->assertSee(route('session-zero.view', ['locale' => 'en', 'uuid' => $survey->uuid]));
     });
 
-
     it('shows survey count badge when surveys exist', function () {
         $gm = $this->createSubscribedGm();
 
@@ -93,12 +93,11 @@ describe('GmWorkspace Session Zero Surveys', function () {
         $response->assertOk();
 
         Livewire\Livewire::actingAs($gm)
-            ->test(App\Livewire\GM\GmWorkspace::class)
+            ->test(GmWorkspace::class)
             ->assertViewHas('sessionZeroSurveys', function ($surveys) {
                 return $surveys->count() === 3;
             });
     });
-
 
 });
 
@@ -162,7 +161,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('activeSessionZero')
             ->assertSee('Session Zero for This Game')
             ->assertSee('View Session Zero');
@@ -187,7 +186,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('activeSessionZero')
             ->assertSee('View Session Zero');
     });
@@ -217,7 +216,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($stranger)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertDontSee('Hidden Session Zero')
             ->assertDontSee('View Session Zero');
     });
@@ -230,7 +229,7 @@ describe('GameDetail Session Zero Link', function () {
         $game = Game::factory()->create(['owner_id' => $owner->id]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('activeSessionZero', null)
             ->assertDontSee('View Session Zero');
     });
@@ -255,7 +254,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('activeSessionZero', null)
             ->assertDontSee('Archived Survey');
     });
@@ -295,7 +294,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('isSessionZeroConfirmed', true)
             ->assertSee('You have confirmed reading this Session Zero');
     });
@@ -330,7 +329,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($player)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertViewHas('isSessionZeroConfirmed', false);
     });
 
@@ -353,7 +352,7 @@ describe('GameDetail Session Zero Link', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee(route('session-zero.view', ['locale' => 'en', 'uuid' => $survey->uuid]));
     });
 });

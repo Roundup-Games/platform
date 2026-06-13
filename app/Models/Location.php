@@ -4,17 +4,45 @@ namespace App\Models;
 
 use App\Enums\VenueType;
 use App\Services\Geohash;
+use Database\Factories\LocationFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property string $name
+ * @property string|null $description
+ * @property string|null $address
+ * @property string|null $city
+ * @property string|null $postal_code
+ * @property string|null $country
+ * @property string|null $latitude
+ * @property string|null $longitude
+ * @property string|null $geohash_4
+ * @property string|null $place_id
+ * @property string|null $source
+ * @property array<string, mixed>|null $metadata
+ * @property bool $is_verified
+ * @property VenueType|null $venue_type
+ * @property array<string, mixed>|null $venue_metadata
+ * @property string|null $website_url
+ * @property int|null $managed_by
+ * @property string|null $venue_notes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Location extends Model
 {
+    /** @use HasFactory<LocationFactory> */
     use HasFactory;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -74,37 +102,60 @@ class Location extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return HasMany<Game, $this>
+     */
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
     }
 
+    /**
+     * @return HasMany<Campaign, $this>
+     */
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
     }
 
+    /**
+     * @return HasMany<Event, $this>
+     */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
     }
 
+    /**
+     * @return HasMany<User, $this>
+     */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function managedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'managed_by');
     }
 
-    public function scopeVerified($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeVerified(Builder $query)
     {
         return $query->where('is_verified', true);
     }
 
-    public function scopeByVenueType($query, string $type)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeByVenueType(Builder $query, string $type)
     {
         return $query->where('venue_type', $type);
     }
@@ -119,8 +170,10 @@ class Location extends Model
      * @param  float  $maxLat  Northern boundary latitude
      * @param  float  $minLng  Western boundary longitude
      * @param  float  $maxLng  Eastern boundary longitude
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeWithinBounds($query, float $minLat, float $maxLat, float $minLng, float $maxLng)
+    public function scopeWithinBounds(Builder $query, float $minLat, float $maxLat, float $minLng, float $maxLng): Builder
     {
         return $query->whereBetween('latitude', [$minLat, $maxLat])
             ->whereBetween('longitude', [$minLng, $maxLng]);
@@ -128,6 +181,8 @@ class Location extends Model
 
     /**
      * Find or create a location by place_id for deduplication.
+     *
+     * @param  array<string, mixed>  $attributes
      */
     public static function findOrCreateByPlaceId(string $placeId, array $attributes = []): ?self
     {

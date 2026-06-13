@@ -33,6 +33,6 @@ class GMProfilePolicy
      */
     public function update(User $user, GMProfile $profile): bool
     {
-        return $user->id === $profile->user_id;
+        return (string) $user->id === (string) $profile->user_id;
     }
 }

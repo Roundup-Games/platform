@@ -1,7 +1,8 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\ApplyToGame;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -59,7 +60,7 @@ describe('ApplyToGame capacity guard', function () {
         $applicant = User::factory()->create();
 
         Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'I want to join!')
             ->call('submitApplication');
 
@@ -100,7 +101,7 @@ describe('ApplyToGame capacity guard', function () {
         $applicant = User::factory()->create();
 
         Livewire::actingAs($applicant)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Let me in!')
             ->call('submitApplication');
 

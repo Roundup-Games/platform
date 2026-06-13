@@ -73,7 +73,7 @@ class PostHogConsentChecker
      *
      * Returns null if the cookie is missing or malformed.
      *
-     * @return array<string, bool>|null
+     * @return array<int|string, mixed>|null
      */
     public function getConsentState(?Request $request = null): ?array
     {

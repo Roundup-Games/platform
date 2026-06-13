@@ -1,10 +1,14 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\AddSessionToCampaign;
+use App\Livewire\Games\ManageParticipants;
+use App\Livewire\Teams\ManageRoster;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\TeamMember;
@@ -13,9 +17,8 @@ use App\Models\UserRelationship;
 use App\Notifications\EntityInvitation;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
+use Livewire\Livewire;
 
 beforeEach(function () {
     URL::defaults(['locale' => 'en']);
@@ -47,8 +50,8 @@ describe('Game Invitation → GameInvitation', function () {
             'visibility' => 'public',
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -77,8 +80,8 @@ describe('Game Invitation → GameInvitation', function () {
             'game_system_id' => $gameSystem->id,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -103,15 +106,13 @@ describe('Game Invitation → GameInvitation', function () {
             'game_system_id' => $gameSystem->id,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
         expect($friend->notifications()->where('type', EntityInvitation::class)->count())->toBe(0);
     });
-
-
 
     it('does not dispatch notification for non-friend invite attempt', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
@@ -123,8 +124,8 @@ describe('Game Invitation → GameInvitation', function () {
             'game_system_id' => $gameSystem->id,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$stranger->id])
             ->call('inviteParticipants');
 
@@ -144,8 +145,8 @@ describe('Game Invitation → GameInvitation', function () {
             'game_system_id' => $gameSystem->id,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+        Livewire::actingAs($owner)
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend1->id, $friend2->id])
             ->call('inviteParticipants');
 
@@ -171,8 +172,8 @@ describe('Campaign Invitation → CampaignInvitation', function () {
             'visibility' => 'public',
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
+        Livewire::actingAs($owner)
+            ->test(App\Livewire\Campaigns\ManageParticipants::class, ['id' => $campaign->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -186,7 +187,6 @@ describe('Campaign Invitation → CampaignInvitation', function () {
             ->and($data)->toHaveKey('action_url');
     });
 
-
 });
 
 // ══════════════════════════════════════════════════════
@@ -196,7 +196,9 @@ describe('Campaign Invitation → CampaignInvitation', function () {
 describe('Session Added to Campaign → SessionAddedToCampaign', function () {
     it('dispatches SessionAddedToCampaign to approved campaign participants', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
-        seedPermissions(); setPermissionsTeamId(1); $owner->givePermissionTo('create game');
+        seedPermissions();
+        setPermissionsTeamId(1);
+        $owner->givePermissionTo('create game');
         $participant = User::factory()->create(['profile_complete' => true]);
 
         $gameSystem = GameSystem::factory()->create();
@@ -213,8 +215,8 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+        Livewire::actingAs($owner)
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Test Session')
             ->set('date_time', now()->addDays(7)->format('Y-m-d H:i:s'))
             ->call('save')
@@ -237,7 +239,9 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
 
     it('does not dispatch to campaign owner', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
-        seedPermissions(); setPermissionsTeamId(1); $owner->givePermissionTo('create game');
+        seedPermissions();
+        setPermissionsTeamId(1);
+        $owner->givePermissionTo('create game');
 
         $gameSystem = GameSystem::factory()->create();
         $campaign = Campaign::factory()->create([
@@ -246,8 +250,8 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
             'status' => 'active',
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+        Livewire::actingAs($owner)
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Test Session 2')
             ->set('date_time', now()->addDays(7)->format('Y-m-d H:i:s'))
             ->call('save')
@@ -256,11 +260,11 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
         expect($owner->fresh()->notifications()->where('type', SessionAddedToCampaign::class)->count())->toBe(0);
     });
 
-
-
     it('does not dispatch to pending or rejected participants', function () {
         $owner = User::factory()->create(['profile_complete' => true]);
-        seedPermissions(); setPermissionsTeamId(1); $owner->givePermissionTo('create game');
+        seedPermissions();
+        setPermissionsTeamId(1);
+        $owner->givePermissionTo('create game');
         $owner->unsetRelations();
 
         $pendingUser = User::factory()->create(['profile_complete' => true]);
@@ -279,8 +283,8 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        \Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+        Livewire::actingAs($owner)
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Session 1')
             ->set('date_time', now()->addDays(7)->format('Y-m-d H:i:s'))
             ->call('save')
@@ -310,8 +314,8 @@ describe('Team Invitation → TeamInvitation', function () {
             'joined_at' => now(),
         ]);
 
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+        Livewire::actingAs($captain)
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'player@example.com')
             ->call('inviteMember');
 
@@ -325,8 +329,6 @@ describe('Team Invitation → TeamInvitation', function () {
             ->and($data['inviter_id'])->toBe($captain->id)
             ->and($data)->toHaveKey('action_url');
     });
-
-
 
     it('does not dispatch notification when user already has active team membership', function () {
         $captain = User::factory()->create(['profile_complete' => true]);
@@ -350,8 +352,8 @@ describe('Team Invitation → TeamInvitation', function () {
             'joined_at' => now(),
         ]);
 
-        \Livewire\Livewire::actingAs($captain)
-            ->test(\App\Livewire\Teams\ManageRoster::class, ['slug' => $team->slug])
+        Livewire::actingAs($captain)
+            ->test(ManageRoster::class, ['slug' => $team->slug])
             ->set('inviteEmail', 'busy@example.com')
             ->call('inviteMember');
 

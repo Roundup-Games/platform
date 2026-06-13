@@ -24,8 +24,12 @@ class ReviewAggregateService
                 ->selectRaw('COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as cnt')
                 ->first();
 
+            if ($aggregates === null) {
+                return;
+            }
+
             $gmProfile->forceFill([
-                'average_rating' => $aggregates->cnt > 0 ? round($aggregates->avg_rating, 2) : null,
+                'average_rating' => $aggregates->cnt > 0 ? round((float) $aggregates->avg_rating, 2) : null,
                 'review_count' => (int) $aggregates->cnt,
             ])->save();
 
@@ -54,7 +58,7 @@ class ReviewAggregateService
 
         $frequency = [];
         foreach ($reviews as $review) {
-            foreach ($review->proficiency_tags ?? [] as $tag) {
+            foreach ((array) $review->proficiency_tags as $tag) {
                 $frequency[$tag] = ($frequency[$tag] ?? 0) + 1;
             }
         }
@@ -68,6 +72,8 @@ class ReviewAggregateService
 
     /**
      * Get recent published reviews for a GM, paginated.
+     *
+     * @return LengthAwarePaginator<int, Review>
      */
     public function recentReviews(GMProfile $gmProfile, int $perPage = 5, int $page = 1): LengthAwarePaginator
     {

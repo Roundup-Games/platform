@@ -101,7 +101,7 @@ describe('Privacy Settings', function () {
 
         Log::shouldReceive('info')
             ->once()
-            ->with('Privacy settings updated', \Mockery::on(function ($ctx) use ($user) {
+            ->with('Privacy settings updated', Mockery::on(function ($ctx) use ($user) {
                 return $ctx['user_id'] === $user->id
                     && isset($ctx['settings']);
             }));

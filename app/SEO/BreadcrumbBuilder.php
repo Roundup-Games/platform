@@ -2,7 +2,6 @@
 
 namespace App\SEO;
 
-use Illuminate\Support\Facades\Request;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 
 /**
@@ -16,23 +15,13 @@ class BreadcrumbBuilder
     /**
      * Build breadcrumbs for the current request context.
      *
-     * Returns an array of ['name' => string, 'url' => string] items,
-     * starting with Home and ending with the current page.
-     *
-     * Intermediate labels use localized translation keys so breadcrumbs
-     * render in the visitor's locale (en/de).
-     *
-     * @return array<int, array{name: string, url: string}>
-     */
-    /**
-     * Build breadcrumbs for the current request context.
-     *
      * @param  string|null  $pageTitle  Override leaf name (e.g., from SEOData title).
-     *                                   Falls back to route parameter derivation.
+     *                                  Falls back to route parameter derivation.
+     * @return array<int, array{name: string, url: string}>
      */
     public function build(?string $pageTitle = null): array
     {
-        $route = Request::route();
+        $route = request()->route();
         if (! $route) {
             return [$this->homeCrumb()];
         }
@@ -128,6 +117,8 @@ class BreadcrumbBuilder
 
     /**
      * Create a SchemaCollection with breadcrumbs attached.
+     *
+     * @return SchemaCollection<int|string>
      */
     public function buildSchemaCollection(?string $pageTitle = null): SchemaCollection
     {
@@ -144,7 +135,7 @@ class BreadcrumbBuilder
     /**
      * Prepend Home breadcrumb to the given items.
      *
-     * @param array<int, array{0: string, 1: string}> $items
+     * @param  array<int, array{0: string, 1: string}>  $items
      * @return array<int, array{name: string, url: string}>
      */
     protected function crumbs(array $items): array
@@ -172,14 +163,15 @@ class BreadcrumbBuilder
      * Resolve the leaf (current page) breadcrumb name from route parameters.
      *
      * @param  string|null  $pageTitle  Title from SEOData, used for UUID routes.
+     * @param  array<string, mixed>  $params
      */
     protected function resolveLeafName(array $params, ?string $pageTitle = null): string
     {
-        if (isset($params['slug'])) {
+        if (isset($params['slug']) && is_string($params['slug'])) {
             return $this->slugToTitle($params['slug']);
         }
 
-        if (isset($params['username'])) {
+        if (isset($params['username']) && is_string($params['username'])) {
             return $params['username'];
         }
 
@@ -188,7 +180,7 @@ class BreadcrumbBuilder
             if ($pageTitle) {
                 // Strip any configured title suffix (e.g., " | Roundup Games")
                 $suffix = config('seo.title.suffix', '');
-                if ($suffix && str_ends_with($pageTitle, $suffix)) {
+                if (is_string($suffix) && $suffix && str_ends_with($pageTitle, $suffix)) {
                     $pageTitle = substr($pageTitle, 0, -strlen($suffix));
                 }
 

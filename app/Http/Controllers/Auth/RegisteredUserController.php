@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Enums\ParticipantRole;
+use App\Http\Controllers\Controller;
+use App\Models\CampaignParticipant;
+use App\Models\GameParticipant;
 use App\Models\User;
+use App\Rules\ValidUserName;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\QueryException;
-use App\Rules\ValidUserName;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -40,12 +42,14 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $sanitizedName = ValidUserName::sanitize($request->name);
+        $name = is_string($request->name) ? $request->name : '';
+        $password = is_string($request->password) ? $request->password : '';
+        $sanitizedName = ValidUserName::sanitize($name);
 
         $user = User::create([
             'name' => $sanitizedName,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($password),
             'password_set_at' => now(),
             'profile_complete' => false,
             'slug' => User::generateUniqueSlug($sanitizedName),
@@ -74,7 +78,7 @@ class RegisteredUserController extends Controller
         $email = strtolower($user->email);
 
         // Match game invitations
-        $gameMatches = \App\Models\GameParticipant::where('invitee_email', $email)
+        $gameMatches = GameParticipant::where('invitee_email', $email)
             ->whereNull('user_id')
             ->where('status', 'pending')
             ->where('role', ParticipantRole::Invited->value)
@@ -89,6 +93,7 @@ class RegisteredUserController extends Controller
                     'game_id' => $participant->game_id,
                     'invitee_email' => $email,
                 ]);
+
                 continue;
             }
             Log::info('registration.matched_game_invite', [
@@ -99,7 +104,7 @@ class RegisteredUserController extends Controller
         }
 
         // Match campaign invitations
-        $campaignMatches = \App\Models\CampaignParticipant::where('invitee_email', $email)
+        $campaignMatches = CampaignParticipant::where('invitee_email', $email)
             ->whereNull('user_id')
             ->where('status', 'pending')
             ->where('role', ParticipantRole::Invited->value)
@@ -114,6 +119,7 @@ class RegisteredUserController extends Controller
                     'campaign_id' => $participant->campaign_id,
                     'invitee_email' => $email,
                 ]);
+
                 continue;
             }
             Log::info('registration.matched_campaign_invite', [

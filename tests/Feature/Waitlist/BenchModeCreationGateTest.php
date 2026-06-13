@@ -9,8 +9,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
-use function Pest\Laravel\{actingAs, assertDatabaseHas};
-
 beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
 });
@@ -97,7 +95,7 @@ describe('CreateGame — bench_mode GM gate', function () {
 
         // Verify the security warning was logged
         Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on game creation', \Mockery::on(function ($ctx) use ($user) {
+            ->with('Non-GM user attempted to enable bench_mode on game creation', Mockery::on(function ($ctx) use ($user) {
                 return isset($ctx['user_id']) && $ctx['user_id'] === $user->id;
             }))
             ->once();
@@ -193,7 +191,7 @@ describe('CreateCampaign — bench_mode GM gate', function () {
 
         // Verify the security warning was logged
         Log::shouldHaveReceived('warning')
-            ->with('Non-GM user attempted to enable bench_mode on campaign creation', \Mockery::on(function ($ctx) use ($user) {
+            ->with('Non-GM user attempted to enable bench_mode on campaign creation', Mockery::on(function ($ctx) use ($user) {
                 return isset($ctx['user_id']) && $ctx['user_id'] === $user->id;
             }))
             ->once();

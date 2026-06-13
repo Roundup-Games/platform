@@ -1,14 +1,15 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\CampaignsPage;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\EntityUpdated;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -37,8 +38,8 @@ describe('Edit Campaign Modal', function () {
     it('opens edit modal with campaign data', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
             ->call('editCampaign', $campaign->id)
             ->assertSet('editingCampaignId', $campaign->id)
             ->assertSet('edit_name', 'Test Campaign')
@@ -52,8 +53,8 @@ describe('Save Campaign Edit', function () {
     it('updates campaign name', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
             ->call('editCampaign', $campaign->id)
             ->set('edit_name', 'Updated Campaign Name')
             ->call('saveCampaignEdit');
@@ -64,8 +65,8 @@ describe('Save Campaign Edit', function () {
     it('logs activity on update', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
             ->call('editCampaign', $campaign->id)
             ->set('edit_name', 'Changed Name')
             ->call('saveCampaignEdit');
@@ -91,8 +92,8 @@ describe('Save Campaign Edit', function () {
 
         Notification::fake();
 
-        Livewire::actingAs($this->owner)->test(\App\Livewire\Campaigns\CampaignsPage::class)
-            
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
             ->call('editCampaign', $campaign->id)
             ->set('edit_name', 'Changed Name')
             ->call('saveCampaignEdit');

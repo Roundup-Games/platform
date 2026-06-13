@@ -71,6 +71,6 @@ class MembershipTypeSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($plans) . ' membership plans.');
+        $this->command->info('Seeded '.count($plans).' membership plans.');
     }
 }

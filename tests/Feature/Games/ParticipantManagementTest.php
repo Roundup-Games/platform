@@ -1,14 +1,22 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\ApplyToGame;
+use App\Livewire\Games\ManageParticipants;
 use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantRole;
+use App\Models\UserRelationship;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesRelationships;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get, post};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
+use function Pest\Laravel\get;
 
 uses(CreatesGameInstances::class, CreatesRelationships::class);
 
@@ -50,7 +58,7 @@ describe('Game Invite Participant', function () {
         $this->makeMutualFriends($owner, $friend);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants')
             ->assertHasNoErrors()
@@ -68,7 +76,7 @@ describe('Game Invite Participant', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [])
             ->call('inviteParticipants')
             ->assertHasErrors(['selectedFriendIds']);
@@ -78,7 +86,7 @@ describe('Game Invite Participant', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$owner->id])
             ->call('inviteParticipants');
 
@@ -95,7 +103,7 @@ describe('Game Invite Participant', function () {
         $stranger = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$stranger->id])
             ->call('inviteParticipants');
 
@@ -120,7 +128,7 @@ describe('Game Invite Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -138,7 +146,7 @@ describe('Game Invite Participant', function () {
         $this->makeMutualFriends($owner, $friend2);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend1->id, $friend2->id])
             ->call('inviteParticipants')
             ->assertHasNoErrors()
@@ -179,7 +187,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Application approved');
@@ -215,7 +223,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('rejectApplication', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Application rejected');
@@ -242,7 +250,7 @@ describe('Game Approve/Reject Application', function () {
         ]);
 
         $component = Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', $participant->id);
 
         // Status should not have changed
@@ -267,7 +275,7 @@ describe('Game Remove Participant', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Participant removed');
@@ -290,7 +298,7 @@ describe('Game Remove Participant', function () {
             ->firstOrFail();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $ownerParticipant->id)
             ->assertSee('Cannot remove the game owner');
 
@@ -315,7 +323,7 @@ describe('Game Cancel Invite', function () {
         ]);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('cancelInvite', $participant->id)
             ->assertHasNoErrors()
             ->assertSee('Invite cancelled');
@@ -339,10 +347,10 @@ describe('Game Cancel Invite', function () {
         // Canceling a non-invited participant should throw ModelNotFoundException
         try {
             Livewire\Livewire::actingAs($owner)
-                ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+                ->test(ManageParticipants::class, ['id' => $game->id])
                 ->call('cancelInvite', $participant->id);
             $this->fail('Expected exception was not thrown');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             $this->assertTrue(true); // Expected
         }
     });
@@ -368,8 +376,8 @@ describe('Game ApplyToGame', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Protected games require friend/teammate relationship for view access
-        \App\Models\UserRelationship::follow($user, $owner);
-        \App\Models\UserRelationship::follow($owner, $user);
+        UserRelationship::follow($user, $owner);
+        UserRelationship::follow($owner, $user);
 
         actingAs($user)
             ->get(route('games.apply', $game->id))
@@ -390,7 +398,7 @@ describe('Game ApplyToGame', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Excited to play!')
             ->call('submitApplication')
             ->assertHasNoErrors()
@@ -417,11 +425,11 @@ describe('Game ApplyToGame', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         // Protected games require friend/teammate relationship for view access
-        \App\Models\UserRelationship::follow($user, $owner);
-        \App\Models\UserRelationship::follow($owner, $user);
+        UserRelationship::follow($user, $owner);
+        UserRelationship::follow($owner, $user);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'Please let me join')
             ->call('submitApplication')
             ->assertHasNoErrors()
@@ -447,7 +455,7 @@ describe('Game ApplyToGame', function () {
         ['owner' => $owner, 'game' => $game] = $this->createGameWithOwner(['visibility' => 'public']);
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', 'My own game')
             ->call('submitApplication')
             ->assertHasErrors(['message']);
@@ -473,7 +481,7 @@ describe('Game ApplyToGame', function () {
 
         // Should show info message that user already has pending application
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->assertSee('already a participant');
     });
 
@@ -489,7 +497,7 @@ describe('Game ApplyToGame', function () {
         ]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->assertSee('already a participant');
     });
 
@@ -498,7 +506,7 @@ describe('Game ApplyToGame', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', '')
             ->call('submitApplication')
             ->assertHasNoErrors();
@@ -515,7 +523,7 @@ describe('Game ApplyToGame', function () {
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Games\ApplyToGame::class, ['id' => $game->id])
+            ->test(ApplyToGame::class, ['id' => $game->id])
             ->set('message', str_repeat('a', 1001))
             ->call('submitApplication')
             ->assertHasErrors(['message' => 'max']);
@@ -562,7 +570,7 @@ describe('Game Participant Status Transitions', function () {
 
         // Step 2: Owner approves
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('approveApplication', $participant->id);
 
         assertDatabaseHas('game_participants', [
@@ -574,7 +582,7 @@ describe('Game Participant Status Transitions', function () {
 
         // Step 3: Owner removes — record stays with status=removed
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('removeParticipant', $participant->id);
 
         assertDatabaseHas('game_participants', [
@@ -591,7 +599,7 @@ describe('Game Participant Status Transitions', function () {
 
         // Step 1: Owner invites via friend IDs
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->set('selectedFriendIds', [$friend->id])
             ->call('inviteParticipants');
 
@@ -608,7 +616,7 @@ describe('Game Participant Status Transitions', function () {
             ->first();
 
         Livewire\Livewire::actingAs($owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->call('cancelInvite', $participant->id);
 
         assertDatabaseMissing('game_participants', [
@@ -617,5 +625,3 @@ describe('Game Participant Status Transitions', function () {
         ]);
     });
 });
-
-

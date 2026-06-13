@@ -1,13 +1,14 @@
 <?php
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Services\WaitlistService;
-use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 
@@ -63,7 +64,7 @@ describe('late cancellation detection', function () {
 
         // Cancel via Livewire component (the real flow)
         Livewire::actingAs($participant->user)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('cancelOwnParticipation', $participant->id);
 
         expect($participant->fresh()->attendance_status)->toBe(AttendanceStatus::LateCancel);
@@ -86,8 +87,7 @@ describe('below-min-player warning', function () {
         $thirdPlayer = createApprovedParticipantForLateCancel($game);
 
         Log::shouldReceive('warning')
-            ->with('waitlist.below_min_players', \Mockery::on(fn ($ctx) =>
-                $ctx['game_id'] === $game->id
+            ->with('waitlist.below_min_players', Mockery::on(fn ($ctx) => $ctx['game_id'] === $game->id
                 && $ctx['current_roster'] < $ctx['min_players']
             ))
             ->once();
@@ -130,7 +130,7 @@ describe('below-min-player warning', function () {
 
         // below_min_players warning should NOT be logged
         Log::shouldReceive('warning')
-            ->with('waitlist.below_min_players', \Mockery::any())
+            ->with('waitlist.below_min_players', Mockery::any())
             ->never();
         Log::shouldReceive('info')->zeroOrMoreTimes();
         Log::shouldReceive('warning')->zeroOrMoreTimes();

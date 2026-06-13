@@ -68,6 +68,7 @@ class BggXmlParser
      * Parse a full `<items>` XML document into an array of parsed item arrays.
      *
      * @return array<int, array>
+     * @return list<array<string, mixed>>
      *
      * @throws BggParseException
      */
@@ -94,6 +95,8 @@ class BggXmlParser
 
     /**
      * Parse a single `<item>` SimpleXMLElement into a structured array.
+     *
+     * @return array<string, mixed>
      */
     public function parseItem(SimpleXMLElement $item): array
     {
@@ -167,6 +170,8 @@ class BggXmlParser
 
     /**
      * Extract all link-type taxonomy data from the item.
+     *
+     * @return array<string, mixed>
      */
     private function extractLinks(SimpleXMLElement $item): array
     {
@@ -226,6 +231,8 @@ class BggXmlParser
 
     /**
      * Extract statistics/ratings from the item.
+     *
+     * @return array<string, mixed>
      */
     private function extractStatistics(SimpleXMLElement $item): array
     {
@@ -279,7 +286,7 @@ class BggXmlParser
     /**
      * Cast an XML attribute value to int, or null if missing/empty.
      */
-    private function nullableInt(mixed $value): ?int
+    private function nullableInt(SimpleXMLElement|string|null $value): ?int
     {
         if ($value === null) {
             return null;
@@ -297,7 +304,7 @@ class BggXmlParser
     /**
      * Cast an XML attribute value to float, or null if missing/empty.
      */
-    private function nullableFloat(mixed $value): ?float
+    private function nullableFloat(SimpleXMLElement|string|null $value): ?float
     {
         if ($value === null) {
             return null;
@@ -315,7 +322,7 @@ class BggXmlParser
     /**
      * Return a string value, or null if the element is absent.
      */
-    private function nullableString(mixed $element): ?string
+    private function nullableString(SimpleXMLElement|string|null $element): ?string
     {
         if ($element === null) {
             return null;

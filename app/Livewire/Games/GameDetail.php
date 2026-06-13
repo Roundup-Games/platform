@@ -23,12 +23,14 @@ use App\Services\NotificationService;
 use App\Services\ReviewEligibilityService;
 use App\Services\ShortLinkService;
 use App\Services\WaitlistService;
-use Carbon\CarbonInterface;
 use App\Traits\HandlesBench;
 use App\Traits\HandlesSessionEnd;
 use App\Traits\HandlesWaitlist;
 use App\Traits\ManagesParticipants;
 use App\Traits\ManagesShortLinks;
+use Carbon\CarbonInterface;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +51,7 @@ class GameDetail extends Component
 
     public Game $game;
 
-    /** @var array<string, array{status: string, reason: ?string}> Attendance form data keyed by participant ID */
+    /** @var array<int|string, mixed> Attendance form data keyed by participant ID */
     public array $attendanceReports = [];
 
     /** @var array<string, string> Debriefing form responses keyed by prompt key */
@@ -192,6 +194,8 @@ class GameDetail extends Component
      * Vote tallies per participant, grouped by status.
      *
      * Returns array keyed by reported_id => [status => count, ...]
+     *
+     * @return array<string, mixed>
      */
     #[Computed]
     public function attendanceTallies(): array
@@ -253,14 +257,12 @@ class GameDetail extends Component
      * Submit the attendance form (batch of reports from $attendanceReports property).
      *
      * Translates form data into the batch format expected by AttendanceService.
+     *
+     * @param  array<string, mixed>  $participantIdOrReports
      */
     public function submitAttendanceReport(string|array $participantIdOrReports = [], ?string $status = null): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         $game = $this->game;
 
@@ -288,6 +290,9 @@ class GameDetail extends Component
             // Convert form data (keyed by participant ID) to service batch format
             $reports = [];
             foreach ($this->attendanceReports as $participantId => $data) {
+                if (! is_array($data)) {
+                    continue;
+                }
                 $participant = $game->participants->first(fn ($p) => $p->id === $participantId);
 
                 if (! $participant || ! $participant->user) {
@@ -301,10 +306,12 @@ class GameDetail extends Component
                     return;
                 }
 
+                $user = $participant->user;
+
                 $reports[] = [
-                    'reported_id' => $participant->user->id,
+                    'reported_id' => (string) $user->id,
                     'status' => $data['status'],
-                    'reason' => $data['reason'] ?? null,
+                    'reason' => $data['reason'] ?? '',
                 ];
             }
 
@@ -318,7 +325,7 @@ class GameDetail extends Component
         $result = app(AttendanceService::class)->submitReport(
             $game,
             $viewer,
-            $reports,
+            $reports, // @phpstan-ignore argument.type
         );
 
         if ($result['success']) {
@@ -339,11 +346,7 @@ class GameDetail extends Component
      */
     public function disputeAttendance(string $participantId): void
     {
-        $viewer = Auth::user();
-
-        if (! $viewer) {
-            return;
-        }
+        $viewer = authenticatedUser();
 
         $this->validate([
             'disputeReason' => ['required', 'string', 'min:10', 'max:1000'],
@@ -364,7 +367,7 @@ class GameDetail extends Component
 
         $result = app(AttendanceService::class)->disputeAttendanceStatus(
             $participant,
-            $this->disputeReason,
+            $this->disputeReason ?? '',
             $viewer,
         );
 
@@ -429,8 +432,8 @@ class GameDetail extends Component
 
     public function leaveGame(): void
     {
-        $user = Auth::user();
-        if (! $user || $this->isOwner()) {
+        $user = authenticatedUser();
+        if ($this->isOwner()) {
             session()->flash('error', __('games.error_cannot_leave_own_game'));
 
             return;
@@ -438,7 +441,7 @@ class GameDetail extends Component
 
         $participant = $this->game->participants
             ->first(fn ($p) => $p->user_id === $user->id
-                && in_array($p->status->value, [
+                && in_array($p->status?->value, [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Waitlisted->value,
                     ParticipantStatus::Benched->value,
@@ -463,7 +466,7 @@ class GameDetail extends Component
         Log::info('Player left game', [
             'game_id' => $this->game->id,
             'user_id' => $user->id,
-            'previous_status' => $participant->status->value,
+            'previous_status' => $participant->status?->value,
         ]);
 
         // Promote from waitlist if applicable
@@ -521,8 +524,8 @@ class GameDetail extends Component
 
     public function regenerateShareLink(): void
     {
-        $viewer = Auth::user();
-        if (! $viewer || $this->game->owner_id !== $viewer->id) {
+        $viewer = authenticatedUser();
+        if ((string) $this->game->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -545,9 +548,9 @@ class GameDetail extends Component
 
     public function joinViaShareLink(): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if (! $viewer || ! $this->canJoinViaShareLink()) {
+        if (! $this->canJoinViaShareLink()) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -572,6 +575,10 @@ class GameDetail extends Component
         try {
             DB::transaction(function () use ($viewer, &$joinSource, &$shortLinkId) {
                 $game = Game::lockForUpdate()->find($this->game->id);
+
+                if ($game === null) {
+                    throw new \RuntimeException('Game not found during join transaction.');
+                }
 
                 // Revalidate short link under lock to catch mid-session revocation.
                 // If revoked, fall back to share token if one is still valid.
@@ -666,7 +673,8 @@ class GameDetail extends Component
     public function canJoinViaShareLink(): bool
     {
         $viewer = Auth::user();
-        if (! $viewer) {
+
+        if ($viewer === null) {
             return false;
         }
 
@@ -680,14 +688,14 @@ class GameDetail extends Component
         }
 
         // Cannot be the owner
-        if ($this->game->owner_id === $viewer->id) {
+        if ((string) $this->game->owner_id === (string) $viewer->id) {
             return false;
         }
 
         // Cannot already be a participant
         $existingParticipant = $this->game->participants
             ->first(fn ($p) => $p->user_id === $viewer->id
-                && in_array($p->status->value, [
+                && in_array($p->status?->value, [
                     ParticipantStatus::Approved->value,
                     ParticipantStatus::Pending->value,
                     ParticipantStatus::Waitlisted->value,
@@ -699,7 +707,7 @@ class GameDetail extends Component
         }
 
         // Game must not be completed or canceled
-        if (in_array($this->game->status->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
+        if (in_array($this->game->status?->value, [GameStatus::Completed->value, GameStatus::Canceled->value])) {
             return false;
         }
 
@@ -710,13 +718,13 @@ class GameDetail extends Component
 
     private function viewerId(): ?string
     {
-        return Auth::id();
+        return ($id = Auth::id()) !== null ? (string) $id : null;
     }
 
     #[Computed]
     public function isOwner(): bool
     {
-        return ($id = $this->viewerId()) && $this->game->owner_id === $id;
+        return ($id = $this->viewerId()) && (string) $this->game->owner_id === (string) $id;
     }
 
     #[Computed]
@@ -725,7 +733,7 @@ class GameDetail extends Component
         $id = $this->viewerId();
 
         return $id && $this->game->participants
-            ->contains(fn ($p) => $p->user_id === $id && in_array($p->status->value, [
+            ->contains(fn ($p) => $p->user_id === $id && in_array($p->status?->value, [
                 ParticipantStatus::Approved->value,
                 ParticipantStatus::Pending->value,
                 ParticipantStatus::Waitlisted->value,
@@ -809,7 +817,7 @@ class GameDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && $this->game->visibility !== Visibility::Private
             && (! $this->isGameFull() || $this->game->isBenchMode())
-            && ! in_array($this->game->status->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
+            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
     }
 
     #[Computed]
@@ -819,9 +827,12 @@ class GameDetail extends Component
             && ! $this->isOwner() && ! $this->isParticipant() && ! $this->hasExistingApplication()
             && ! $this->game->isBenchMode() && $this->isGameFull()
             && $this->game->visibility !== Visibility::Private
-            && ! in_array($this->game->status->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
+            && ! in_array($this->game->status?->value, [GameStatus::Canceled->value, GameStatus::Completed->value]);
     }
 
+    /**
+     * @return Collection<int, GameParticipant>
+     */
     #[Computed]
     public function waitlistedPlayers()
     {
@@ -830,6 +841,9 @@ class GameDetail extends Component
             : collect();
     }
 
+    /**
+     * @return Collection<int, GameParticipant>
+     */
     #[Computed]
     public function benchedPlayers()
     {
@@ -838,6 +852,9 @@ class GameDetail extends Component
             : collect();
     }
 
+    /**
+     * @return Collection<int, Review>
+     */
     #[Computed]
     public function reviews()
     {
@@ -849,9 +866,18 @@ class GameDetail extends Component
     #[Computed]
     public function canReview(): bool
     {
-        return ($viewer = Auth::user()) && app(ReviewEligibilityService::class)->canReviewSession($viewer, $this->game);
+        $viewer = Auth::user();
+
+        if ($viewer === null) {
+            return false;
+        }
+
+        return app(ReviewEligibilityService::class)->canReviewSession($viewer, $this->game);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function sessionZeroState(): array
     {
@@ -865,6 +891,9 @@ class GameDetail extends Component
         return ['active' => $active, 'isConfirmed' => $confirmed];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Computed]
     public function debriefingState(): array
     {
@@ -890,7 +919,7 @@ class GameDetail extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         $this->game->load([
             'owner', 'campaign', 'gameSystem.categories', 'gameSystem.mechanics',
@@ -927,8 +956,9 @@ class GameDetail extends Component
             'userDebriefing' => $db['userDebriefing'],
             'hostDebriefings' => $db['hostDebriefings'],
             'debriefingSummary' => $db['summary'],
-            'comfortNotes' => $this->game->game_type?->value === 'board_game'
-                && isset($this->game->safety_rules['comfort_notes'])
+            'comfortNotes' => ($this->game->game_type?->value === 'board_game'
+                && is_array($this->game->safety_rules ?? null)
+                && isset($this->game->safety_rules['comfort_notes']))
                     ? $this->game->safety_rules['comfort_notes'] : null,
             'hasShareLink' => $this->hasShareLink(),
             'shareLinkUrl' => $this->shareLinkUrl(),

@@ -3,15 +3,19 @@
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+use Spatie\Permission\Models\Role;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 // ── BreadcrumbBuilder Tests ────────────────────────────
 
 describe('BreadcrumbBuilder', function () {
     it('includes breadcrumb JSON-LD on all public game system pages', function () {
-        $system = GameSystem::factory()->create(['slug' => 'test-breadcrumb-' . Str::random(6)]);
+        $system = GameSystem::factory()->create(['slug' => 'test-breadcrumb-'.Str::random(6)]);
 
         $response = get(route('game-systems.show', $system->slug));
         $response->assertOk();
@@ -24,7 +28,7 @@ describe('BreadcrumbBuilder', function () {
     it('builds correct breadcrumb trail for game-systems.show', function () {
         $system = GameSystem::factory()->create([
             'name' => ['en' => 'D&D 5e'],
-            'slug' => 'dd-5e-breadcrumb-' . Str::random(6),
+            'slug' => 'dd-5e-breadcrumb-'.Str::random(6),
         ]);
 
         $response = get(route('game-systems.show', $system->slug));
@@ -44,7 +48,7 @@ describe('GameSystem Product Schema', function () {
         $system = GameSystem::factory()->create([
             'name' => ['en' => 'Catan'],
             'description' => ['en' => '<p>A classic resource management board game</p>'],
-            'slug' => 'catan-prod-' . Str::random(6),
+            'slug' => 'catan-prod-'.Str::random(6),
         ]);
 
         $response = get(route('game-systems.show', $system->slug));
@@ -58,7 +62,7 @@ describe('GameSystem Product Schema', function () {
 
     it('renders AggregateRating when sp_rating exists', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'rated-game-' . Str::random(6),
+            'slug' => 'rated-game-'.Str::random(6),
             'sp_rating' => 4.5,
             'sp_review_count' => 23,
             'bgg_average_rating' => null,
@@ -76,7 +80,7 @@ describe('GameSystem Product Schema', function () {
 
     it('renders AggregateRating with BGG scale when only BGG rating exists', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'bgg-rated-' . Str::random(6),
+            'slug' => 'bgg-rated-'.Str::random(6),
             'sp_rating' => null,
             'sp_review_count' => null,
             'bgg_average_rating' => 7.82,
@@ -94,7 +98,7 @@ describe('GameSystem Product Schema', function () {
 
     it('skips AggregateRating when no ratings exist', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'no-ratings-' . Str::random(6),
+            'slug' => 'no-ratings-'.Str::random(6),
             'sp_rating' => null,
             'sp_review_count' => null,
             'bgg_average_rating' => null,
@@ -110,7 +114,7 @@ describe('GameSystem Product Schema', function () {
 
     it('renders FAQPage when faq_content exists', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'faq-game-' . Str::random(6),
+            'slug' => 'faq-game-'.Str::random(6),
             'bgg_average_rating' => null,
             'bgg_users_rated' => null,
             'faq_content' => [
@@ -131,7 +135,7 @@ describe('GameSystem Product Schema', function () {
 
     it('skips FAQPage when faq_content is empty', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'no-faq-' . Str::random(6),
+            'slug' => 'no-faq-'.Str::random(6),
             'bgg_average_rating' => null,
             'bgg_users_rated' => null,
             'faq_content' => null,
@@ -146,7 +150,7 @@ describe('GameSystem Product Schema', function () {
 
     it('includes brand/creator in Product schema when available', function () {
         $system = GameSystem::factory()->create([
-            'slug' => 'branded-game-' . Str::random(6),
+            'slug' => 'branded-game-'.Str::random(6),
             'creator' => 'Wizards of the Coast',
             'bgg_average_rating' => null,
             'bgg_users_rated' => null,
@@ -183,7 +187,7 @@ describe('Game Event Schema', function () {
         expect($content)->toContain('"startDate"');
         expect($content)->toContain('"endDate"');
         expect($content)->toContain('"eventStatus"');
-        expect($content)->toContain('"maximumAttendees":6');
+        expect($content)->toContain('"maximumAttendeeCapacity":6');
         expect($content)->toContain('"isAccessibleForFree":true');
     });
 
@@ -245,7 +249,7 @@ describe('Game Event Schema', function () {
     });
 
     it('renders location from linked location', function () {
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'name' => 'Game Store',
             'address' => '123 Board St',
             'city' => 'Berlin',
@@ -340,7 +344,7 @@ describe('Campaign Event Schema', function () {
     });
 
     it('renders location from linked location', function () {
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'name' => 'Community Center',
             'city' => 'Munich',
             'country' => 'DE',
@@ -366,7 +370,7 @@ describe('Team Organization Schema', function () {
     it('renders Organization JSON-LD with name and url for active team', function () {
         $team = Team::factory()->create([
             'name' => 'Berlin Board Gamers',
-            'slug' => 'berlin-board-gamers-' . Str::random(6),
+            'slug' => 'berlin-board-gamers-'.Str::random(6),
             'is_active' => true,
         ]);
 
@@ -381,7 +385,7 @@ describe('Team Organization Schema', function () {
 
     it('renders address with city and country', function () {
         $team = Team::factory()->create([
-            'slug' => 'addr-team-' . Str::random(6),
+            'slug' => 'addr-team-'.Str::random(6),
             'is_active' => true,
             'city' => 'Hamburg',
             'country' => 'DE',
@@ -398,7 +402,7 @@ describe('Team Organization Schema', function () {
 
     it('renders foundingDate when founded_year is set', function () {
         $team = Team::factory()->create([
-            'slug' => 'founded-team-' . Str::random(6),
+            'slug' => 'founded-team-'.Str::random(6),
             'is_active' => true,
             'founded_year' => 2020,
         ]);
@@ -412,7 +416,7 @@ describe('Team Organization Schema', function () {
 
     it('renders sameAs from social_links', function () {
         $team = Team::factory()->create([
-            'slug' => 'social-team-' . Str::random(6),
+            'slug' => 'social-team-'.Str::random(6),
             'is_active' => true,
             'social_links' => [
                 'twitter' => 'https://twitter.com/berlingamers',
@@ -433,7 +437,7 @@ describe('Team Organization Schema', function () {
     it('skips Organization schema for inactive teams', function () {
         $user = User::factory()->create();
         $team = Team::factory()->create([
-            'slug' => 'inactive-team-' . Str::random(6),
+            'slug' => 'inactive-team-'.Str::random(6),
             'is_active' => false,
         ]);
 
@@ -456,7 +460,7 @@ describe('User Person Schema', function () {
     it('renders Person JSON-LD with name and url on public profile', function () {
         $user = User::factory()->create([
             'name' => 'Alice Gamer',
-            'slug' => 'alice-gamer-' . Str::random(6),
+            'slug' => 'alice-gamer-'.Str::random(6),
         ]);
 
         $response = get(route('profile.public', $user->slug));
@@ -471,7 +475,7 @@ describe('User Person Schema', function () {
 
     it('renders description from bio', function () {
         $user = User::factory()->create([
-            'slug' => 'bio-user-' . Str::random(6),
+            'slug' => 'bio-user-'.Str::random(6),
             'bio' => 'I love board games and TTRPGs',
         ]);
 
@@ -484,7 +488,7 @@ describe('User Person Schema', function () {
 
     it('renders image from avatar media', function () {
         $user = User::factory()->create([
-            'slug' => 'avatar-user-' . Str::random(6),
+            'slug' => 'avatar-user-'.Str::random(6),
             'avatar_url' => 'https://example.com/avatar.jpg',
         ]);
 
@@ -496,13 +500,13 @@ describe('User Person Schema', function () {
     });
 
     it('renders jobTitle Game Master when user has GM role', function () {
-        \Spatie\Permission\Models\Role::firstOrCreate([
+        Role::firstOrCreate([
             'name' => 'Game Master',
             'guard_name' => 'web',
             'team_id' => null,
         ]);
         $user = User::factory()->create([
-            'slug' => 'gm-user-' . Str::random(6),
+            'slug' => 'gm-user-'.Str::random(6),
         ]);
         $user->assignRole('Game Master');
 
@@ -515,7 +519,7 @@ describe('User Person Schema', function () {
 
     it('skips jobTitle when user is not a GM', function () {
         $user = User::factory()->create([
-            'slug' => 'non-gm-user-' . Str::random(6),
+            'slug' => 'non-gm-user-'.Str::random(6),
         ]);
 
         $response = get(route('profile.public', $user->slug));
@@ -527,7 +531,7 @@ describe('User Person Schema', function () {
 
     it('renders knowsAbout from favorite game systems', function () {
         $user = User::factory()->create([
-            'slug' => 'systems-user-' . Str::random(6),
+            'slug' => 'systems-user-'.Str::random(6),
         ]);
 
         $system1 = GameSystem::factory()->create(['name' => ['en' => 'D&D 5e']]);
@@ -549,7 +553,7 @@ describe('User Person Schema', function () {
 
     it('skips Person schema when profile is noindex', function () {
         $user = User::factory()->create([
-            'slug' => 'private-user-' . Str::random(6),
+            'slug' => 'private-user-'.Str::random(6),
             'privacy_settings' => [
                 'location' => 'nobody',
                 'game_systems' => 'nobody',
@@ -571,7 +575,7 @@ describe('User Person Schema', function () {
 
     it('includes BreadcrumbList alongside Person schema', function () {
         $user = User::factory()->create([
-            'slug' => 'breadcrumb-user-' . Str::random(6),
+            'slug' => 'breadcrumb-user-'.Str::random(6),
         ]);
 
         $response = get(route('profile.public', $user->slug));
@@ -592,7 +596,7 @@ describe('JSON-LD Structural Validation', function () {
         $system = GameSystem::factory()->create([
             'name' => ['en' => 'Struct Test Game'],
             'description' => ['en' => '<p>A test game for structural validation</p>'],
-            'slug' => 'struct-test-' . Str::random(6),
+            'slug' => 'struct-test-'.Str::random(6),
             'sp_rating' => 4.3,
             'sp_review_count' => 42,
             'bgg_average_rating' => null,
@@ -644,7 +648,7 @@ describe('JSON-LD Structural Validation', function () {
     });
 
     it('Game page emits valid Event JSON-LD with all required properties', function () {
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'name' => 'Game Cafe',
             'address' => '456 Dice Ave',
             'city' => 'Vienna',
@@ -695,8 +699,8 @@ describe('JSON-LD Structural Validation', function () {
         expect($event['organizer']['@type'])->toBe('Person');
 
         // Attendees
-        expect($event)->toHaveKey('maximumAttendees');
-        expect($event['maximumAttendees'])->toBe(8);
+        expect($event)->toHaveKey('maximumAttendeeCapacity');
+        expect($event['maximumAttendeeCapacity'])->toBe(8);
 
         // Offers (paid game)
         expect($event)->toHaveKey('offers');
@@ -740,7 +744,7 @@ describe('JSON-LD Structural Validation', function () {
     it('Team page emits valid Organization JSON-LD', function () {
         $team = Team::factory()->create([
             'name' => 'Struct Test Team',
-            'slug' => 'struct-team-' . Str::random(6),
+            'slug' => 'struct-team-'.Str::random(6),
             'is_active' => true,
             'city' => 'Leipzig',
             'country' => 'DE',
@@ -780,14 +784,14 @@ describe('JSON-LD Structural Validation', function () {
     });
 
     it('User page emits valid Person JSON-LD', function () {
-        \Spatie\Permission\Models\Role::firstOrCreate([
+        Role::firstOrCreate([
             'name' => 'Game Master',
             'guard_name' => 'web',
             'team_id' => null,
         ]);
         $user = User::factory()->create([
             'name' => 'Struct Person User',
-            'slug' => 'struct-person-' . Str::random(6),
+            'slug' => 'struct-person-'.Str::random(6),
             'bio' => 'Struct test bio',
         ]);
         $user->assignRole('Game Master');
@@ -816,14 +820,14 @@ describe('JSON-LD Structural Validation', function () {
     it('all JSON-LD blocks have @context on every page type', function () {
         // GameSystem
         $system = GameSystem::factory()->create([
-            'slug' => 'ctx-gs-' . Str::random(6),
+            'slug' => 'ctx-gs-'.Str::random(6),
             'bgg_average_rating' => null,
             'bgg_users_rated' => null,
         ]);
         $resp = get(route('game-systems.show', $system->slug));
         $schemas = extractJsonLdSchemas($resp->content());
         foreach ($schemas as $schema) {
-            expect(array_key_exists('@context', $schema))->toBeTrue("Schema missing @context: " . json_encode($schema));
+            expect(array_key_exists('@context', $schema))->toBeTrue('Schema missing @context: '.json_encode($schema));
         }
 
         // Game
@@ -831,7 +835,7 @@ describe('JSON-LD Structural Validation', function () {
         $resp = get(route('games.detail', $game->id));
         $schemas = extractJsonLdSchemas($resp->content());
         foreach ($schemas as $schema) {
-            expect(array_key_exists('@context', $schema))->toBeTrue("Schema missing @context on Game page");
+            expect(array_key_exists('@context', $schema))->toBeTrue('Schema missing @context on Game page');
         }
 
         // Campaign
@@ -839,26 +843,26 @@ describe('JSON-LD Structural Validation', function () {
         $resp = get(route('campaigns.detail', $campaign->id));
         $schemas = extractJsonLdSchemas($resp->content());
         foreach ($schemas as $schema) {
-            expect(array_key_exists('@context', $schema))->toBeTrue("Schema missing @context on Campaign page");
+            expect(array_key_exists('@context', $schema))->toBeTrue('Schema missing @context on Campaign page');
         }
 
         // Team
         $team = Team::factory()->create([
-            'slug' => 'ctx-team-' . Str::random(6),
+            'slug' => 'ctx-team-'.Str::random(6),
             'is_active' => true,
         ]);
         $resp = get(route('teams.detail', $team->slug));
         $schemas = extractJsonLdSchemas($resp->content());
         foreach ($schemas as $schema) {
-            expect(array_key_exists('@context', $schema))->toBeTrue("Schema missing @context on Team page");
+            expect(array_key_exists('@context', $schema))->toBeTrue('Schema missing @context on Team page');
         }
 
         // User
-        $user = User::factory()->create(['slug' => 'ctx-user-' . Str::random(6)]);
+        $user = User::factory()->create(['slug' => 'ctx-user-'.Str::random(6)]);
         $resp = get(route('profile.public', $user->slug));
         $schemas = extractJsonLdSchemas($resp->content());
         foreach ($schemas as $schema) {
-            expect(array_key_exists('@context', $schema))->toBeTrue("Schema missing @context on User page");
+            expect(array_key_exists('@context', $schema))->toBeTrue('Schema missing @context on User page');
         }
     });
 });

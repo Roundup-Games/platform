@@ -5,17 +5,20 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\GameSystemCategoryResource\Pages;
 use App\Models\GameSystemCategory;
 use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class GameSystemCategoryResource extends Resource
 {
@@ -23,12 +26,12 @@ class GameSystemCategoryResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function getNavigationGroup(): string | BackedEnum | null
+    public static function getNavigationGroup(): string|BackedEnum|null
     {
         return 'Game Systems';
     }
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedTag;
     }
@@ -45,7 +48,7 @@ class GameSystemCategoryResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (string $state, $set) => $set('slug', \Illuminate\Support\Str::slug($state))),
+                                    ->afterStateUpdated(fn (string $state, $set) => $set('slug', Str::slug($state))),
                                 TextInput::make('slug')
                                     ->required()
                                     ->maxLength(255)
@@ -111,11 +114,11 @@ class GameSystemCategoryResource extends Resource
             ])
             ->defaultSort('name', 'asc')
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

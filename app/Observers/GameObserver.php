@@ -23,7 +23,7 @@ class GameObserver
                 ->pluck('user_id')
                 ->push($game->owner_id)
                 ->unique()
-                ->map(fn ($id) => (string) $id)
+                ->map(fn (mixed $id): string => to_string_id($id))
                 ->all();
 
             $this->cache->invalidateForUsers($participantIds, ['contributions', 'recaps']);
@@ -55,7 +55,7 @@ class GameObserver
             ->push($game->owner_id)
             ->unique()
             ->values()
-            ->map(fn ($id) => (string) $id)
+            ->map(fn (mixed $id): string => to_string_id($id))
             ->all();
 
         if (! empty($affectedUserIds)) {

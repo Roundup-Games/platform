@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 class DashboardModeService
 {
     private const TTL_MODE = 300; // 5 minutes
+
     private const NEWCOMER_MAX_AGE_DAYS = 30;
 
     /**
@@ -40,7 +41,7 @@ class DashboardModeService
         $cacheKey = "dashboard:mode:{$user->id}";
 
         $cached = Cache::get($cacheKey);
-        if ($cached !== null) {
+        if (is_string($cached)) {
             return $cached;
         }
 

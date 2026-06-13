@@ -14,6 +14,7 @@ class ReviewPolicy
     public function __construct(
         private ReviewEligibilityService $eligibilityService,
     ) {}
+
     /**
      * Global admin bypass.
      */
@@ -48,7 +49,7 @@ class ReviewPolicy
      */
     public function update(User $user, Review $review): bool
     {
-        return $review->reviewer_id === $user->id;
+        return (string) $review->reviewer_id === (string) $user->id;
     }
 
     /**
@@ -68,7 +69,7 @@ class ReviewPolicy
      */
     public function report(User $user, Review $review): bool
     {
-        return $review->reviewer_id !== $user->id;
+        return (string) $review->reviewer_id !== (string) $user->id;
     }
 
     /**

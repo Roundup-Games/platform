@@ -19,6 +19,7 @@ class HubDetectionTest extends TestCase
 
     // Berlin Alexanderplatz
     private float $centerLat = 52.5219;
+
     private float $centerLng = 13.4117;
 
     protected function setUp(): void

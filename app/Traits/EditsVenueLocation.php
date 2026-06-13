@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Dto\VenueSearchResult;
 use App\Models\Location;
 use App\Services\VenueSearchService;
 
@@ -36,14 +37,16 @@ trait EditsVenueLocation
 
         $this->edit_venue_results = app(VenueSearchService::class)
             ->search(lat: null, lng: null, query: $this->edit_venue_query, limit: 8)
-            ->map(fn ($v) => [
-                'id' => $v->id,
-                'name' => $v->name,
-                'city' => $v->city,
-                'address' => $v->address,
-                'venue_type' => $v->venue_type,
-                'distance_km' => $v->distance_km,
-            ])->values()->all();
+            ->map(function (VenueSearchResult $v) {
+                return [
+                    'id' => $v->id,
+                    'name' => $v->name,
+                    'city' => $v->city,
+                    'address' => $v->address,
+                    'venue_type' => $v->venueType,
+                    'distance_km' => $v->distanceKm,
+                ];
+            })->values()->all();
         $this->edit_venue_searched = true;
     }
 
@@ -105,7 +108,7 @@ trait EditsVenueLocation
 
         $location = Location::create([
             'name' => trim($this->edit_address_street
-                ? $this->edit_address_street . ', ' . $this->edit_address_city
+                ? $this->edit_address_street.', '.$this->edit_address_city
                 : $this->edit_address_city),
             'address' => $this->edit_address_street ?: null,
             'city' => $this->edit_address_city,

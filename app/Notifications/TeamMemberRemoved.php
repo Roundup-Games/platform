@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
-
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,9 +23,9 @@ class TeamMemberRemoved extends BaseNotification
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_team_member_removed', [
@@ -45,9 +44,9 @@ class TeamMemberRemoved extends BaseNotification
      *
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'team_member_removed',
@@ -73,7 +72,7 @@ class TeamMemberRemoved extends BaseNotification
      * Get the push notification representation.
      * Not applicable for this notification type.
      */
-    public function toPush(object $notifiable): ?PushPayload
+    public function toPush(User $notifiable): ?PushPayload
     {
         return null;
     }

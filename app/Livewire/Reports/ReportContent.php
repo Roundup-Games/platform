@@ -12,7 +12,8 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -83,11 +84,7 @@ class ReportContent extends Component
     {
         $this->validate();
 
-        $reporter = Auth::user();
-        if (! $reporter) {
-            $this->addError('reason', __('auth.unauthenticated'));
-            return;
-        }
+        $reporter = authenticatedUser();
 
         // Rate limit: 5 reports per user per hour
         $rateLimitKey = "content-reports:{$reporter->id}";
@@ -155,14 +152,20 @@ class ReportContent extends Component
         $this->showModal = false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
-            'reason' => ['required', 'string', 'in:' . implode(',', self::REASONS)],
+            'reason' => ['required', 'string', 'in:'.implode(',', self::REASONS)],
             'description' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function messages(): array
     {
         return [
@@ -172,7 +175,7 @@ class ReportContent extends Component
         ];
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.reports.report-content');
     }
@@ -182,11 +185,13 @@ class ReportContent extends Component
      */
     public function getEntityTypeLabel(): string
     {
-        return __('reports.entity_' . $this->entityType);
+        return __('reports.entity_'.$this->entityType);
     }
 
     /**
      * Get the reasons list for the view.
+     *
+     * @return array<string, mixed>
      */
     public function getReasons(): array
     {
@@ -200,12 +205,9 @@ class ReportContent extends Component
     }
 
     /**
-     * Create an Escalated ticket in the Safety department for the reported entity.
-     */
-    /**
      * Check if the reporter is the owner of the entity being reported.
      */
-    private function isSelfReport($entity, User $reporter): bool
+    private function isSelfReport(Model $entity, User $reporter): bool
     {
         // User profiles: check if reporter is the profile owner
         if ($entity instanceof User) {
@@ -213,24 +215,23 @@ class ReportContent extends Component
         }
 
         // Games and campaigns: check ownership via owner_id
-        if (isset($entity->owner_id) && $entity->owner_id === $reporter->id) {
+        if (isset($entity->owner_id) && (string) $entity->owner_id === (string) $reporter->id) {
             return true;
         }
 
         // Defensive: check gm_id / user_id if present (for future entity types)
-        if (isset($entity->gm_id) && $entity->gm_id === $reporter->id) {
+        if (isset($entity->gm_id) && (string) $entity->gm_id === (string) $reporter->id) {
             return true;
         }
 
-        if (isset($entity->user_id) && $entity->user_id === $reporter->id) {
+        if (isset($entity->user_id) && (string) $entity->user_id === (string) $reporter->id) {
             return true;
         }
 
         return false;
     }
 
-
-    private function createSafetyTicket($entity, User $reporter): void
+    private function createSafetyTicket(Model $entity, User $reporter): void
     {
         $department = Department::where('name', 'Safety')->first();
         $entityName = $this->resolveEntityName($entity);
@@ -241,7 +242,7 @@ class ReportContent extends Component
             entityType: $this->entityType,
             entityId: $this->entityId,
             entityName: $entityName,
-            reason: $this->reason,
+            reason: $this->reason ?? '',
             details: $this->description,
             entityOwnerName: $entityOwner,
         );
@@ -249,7 +250,7 @@ class ReportContent extends Component
         $ticket = Ticket::create([
             'requester_type' => User::class,
             'requester_id' => $reporter->id,
-            'subject' => ucfirst($this->entityType) . ' Report: ' . $this->formatReason($this->reason),
+            'subject' => ucfirst($this->entityType).' Report: '.$this->formatReason($this->reason ?? ''),
             'description' => $this->buildTicketDescription($entity, $reporter, $entityName),
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::High->value,
@@ -260,7 +261,7 @@ class ReportContent extends Component
         ]);
 
         // Apply entity-type tag
-        $tagName = $this->entityType . '-report';
+        $tagName = $this->entityType.'-report';
         $tag = Tag::where('name', $tagName)->first();
         if ($tag) {
             $ticket->tags()->syncWithoutDetaching([$tag->id]);
@@ -284,7 +285,7 @@ class ReportContent extends Component
     /**
      * Resolve the display name for the reported entity.
      */
-    private function resolveEntityName($entity): string
+    private function resolveEntityName(Model $entity): string
     {
         return $entity->name ?? ($entity->title ?? ($entity->username ?? 'Unknown'));
     }
@@ -300,16 +301,16 @@ class ReportContent extends Component
     /**
      * Build a human-readable description for the safety ticket.
      */
-    private function buildTicketDescription($entity, User $reporter, string $entityName): string
+    private function buildTicketDescription(Model $entity, User $reporter, string $entityName): string
     {
         $entityOwner = $this->resolveEntityOwner($entity);
 
         $lines = [
             "**Reported by:** {$reporter->name}",
-            "**Reason:** " . $this->formatReason($this->reason),
+            '**Reason:** '.$this->formatReason($this->reason ?? ''),
             '',
             '**Reported entity:**',
-            "- Type: " . ucfirst($this->entityType),
+            '- Type: '.ucfirst($this->entityType),
             "- Name: {$entityName}",
             "- ID: {$this->entityId}",
         ];
@@ -330,26 +331,31 @@ class ReportContent extends Component
     /**
      * Resolve the owner/creator name for the reported entity.
      */
-    private function resolveEntityOwner($entity): ?string
+    private function resolveEntityOwner(Model $entity): ?string
     {
         if ($this->entityType === 'user') {
             return null; // Users don't have an "owner"
         }
 
         // Games and campaigns have an owner relationship
-        if (method_exists($entity, 'owner') && $entity->owner) {
-            return $entity->owner->name;
+        if (method_exists($entity, 'owner')) {
+            $owner = $entity->getAttribute('owner');
+            if (is_object($owner) && property_exists($owner, 'name')) {
+                return is_string($owner->name) ? $owner->name : '';
+            }
         }
 
         // Fallback: check for user_id / gm_id relationships
         if (isset($entity->gm_id)) {
             $gm = User::find($entity->gm_id);
-            return $gm?->name;
+
+            return $gm instanceof User ? $gm->name : null;
         }
 
         if (isset($entity->owner_id)) {
             $owner = User::find($entity->owner_id);
-            return $owner?->name;
+
+            return $owner instanceof User ? $owner->name : null;
         }
 
         return null;

@@ -2,13 +2,20 @@
 
 namespace App\Livewire\SessionZero;
 
+use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
+/**
+ * @property-read bool $isGm
+ * @property-read Collection<int, SessionZeroConfirmation> $confirmations
+ */
 #[Layout('layouts.app')]
 class ViewSessionZero extends Component
 {
@@ -39,19 +46,14 @@ class ViewSessionZero extends Component
             $existing = $survey->confirmations()->where('user_id', $user->id)->first();
             if ($existing) {
                 $this->confirmed = true;
-                $this->confirmedAt = $existing->confirmed_at->format('F j, Y \a\t g:i A');
+                $this->confirmedAt = $existing->confirmed_at?->format('F j, Y \a\t g:i A');
             }
         }
     }
 
     public function confirm(): void
     {
-        $user = Auth::user();
-
-        if (! $user) {
-            $this->redirect(route('login', app()->getLocale()));
-            return;
-        }
+        $user = authenticatedUser();
 
         $survey = $this->resolveSurvey();
 
@@ -71,6 +73,7 @@ class ViewSessionZero extends Component
         if ($exists) {
             $this->confirmed = true;
             $this->confirming = false;
+
             return;
         }
 
@@ -88,7 +91,7 @@ class ViewSessionZero extends Component
         ]);
 
         $this->confirmed = true;
-        $this->confirmedAt = $confirmation->confirmed_at->format('F j, Y \a\t g:i A');
+        $this->confirmedAt = $confirmation->confirmed_at?->format('F j, Y \a\t g:i A');
         $this->confirming = false;
     }
 
@@ -100,27 +103,26 @@ class ViewSessionZero extends Component
     public function getIsGmProperty(): bool
     {
         $user = Auth::user();
-        if (! $user) {
-            return false;
-        }
 
-        return $this->resolveSurvey()?->gmProfile?->user_id === $user->id;
+        return $user !== null
+            && $this->resolveSurvey()?->gmProfile?->user_id === $user->id;
     }
 
-    public function getConfirmationsProperty(): \Illuminate\Database\Eloquent\Collection
+    /** @return Collection<int, SessionZeroConfirmation> */
+    public function getConfirmationsProperty(): Collection
     {
         if (! $this->isGm) {
-            return new \Illuminate\Database\Eloquent\Collection;
+            return new Collection;
         }
 
         return $this->resolveSurvey()
             ?->confirmations()
             ->with('user')
             ->orderByDesc('confirmed_at')
-            ->get() ?? new \Illuminate\Database\Eloquent\Collection;
+            ->get() ?? new Collection;
     }
 
-    public function render()
+    public function render(): View
     {
         $survey = $this->resolveSurvey();
         $isGm = $this->isGm;

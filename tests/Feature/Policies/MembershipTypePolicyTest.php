@@ -3,8 +3,6 @@
 use App\Models\MembershipType;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     seedPermissions();

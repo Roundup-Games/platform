@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Enums\ContentLanguage;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -17,8 +18,8 @@ use Illuminate\Database\Eloquent\Model;
  * - switchLocale(string $locale) — swaps the active locale tab
  * - copyFromBaseline(string $field) — copies baseline value into the active locale
  *
- * @property string $activeLocale  Tracks which locale tab is currently displayed.
- * @property array  $pendingTranslations  [locale => [field => value]]
+ * @property string $activeLocale Tracks which locale tab is currently displayed.
+ * @property array<string, array<string, string>> $pendingTranslations [locale => [field => value]]
  */
 trait BuildsTranslatableFormFields
 {
@@ -46,10 +47,10 @@ trait BuildsTranslatableFormFields
         $translatableFields = $this->getTranslatableFields();
 
         // If we're leaving baseline, snapshot current field values into pendingTranslations
-        if ($this->activeLocale === $baselineLocale || !$this->activeLocale) {
+        if ($this->activeLocale === $baselineLocale || ! $this->activeLocale) {
             foreach ($translatableFields as $field) {
                 if (property_exists($this, $field)) {
-                    data_set($this, "pendingTranslations.{$baselineLocale}.{$field}", (string) $this->{$field});
+                    data_set($this, "pendingTranslations.{$baselineLocale}.{$field}", $this->getStringProperty($field));
                 }
             }
         }
@@ -76,7 +77,7 @@ trait BuildsTranslatableFormFields
 
         // Get the current baseline value from snapshot or live property
         $baselineValue = data_get($this, "pendingTranslations.{$baselineLocale}.{$field}")
-            ?? (property_exists($this, $field) ? (string) $this->{$field} : '');
+            ?? $this->getStringProperty($field);
 
         if ($this->activeLocale && $this->activeLocale !== $baselineLocale) {
             data_set($this, "pendingTranslations.{$this->activeLocale}.{$field}", $baselineValue);
@@ -106,7 +107,7 @@ trait BuildsTranslatableFormFields
      */
     protected function getBaselineLocale(): string
     {
-        if (property_exists($this, 'language') && !empty($this->language)) {
+        if (property_exists($this, 'language') && ! empty($this->language)) {
             return $this->language;
         }
 
@@ -122,8 +123,14 @@ trait BuildsTranslatableFormFields
     {
         $baseline = $this->getBaselineLocale();
 
+        $locales = config('app.available_locales', ['en']);
+        if (! is_array($locales)) {
+            $locales = ['en'];
+        }
+        /** @var string[] $locales */
+
         return array_values(array_filter(
-            config('app.available_locales', ['en']),
+            $locales,
             fn (string $locale) => $locale !== $baseline,
         ));
     }
@@ -143,7 +150,7 @@ trait BuildsTranslatableFormFields
      */
     public function getLocaleLabel(string $locale): string
     {
-        return \App\Enums\ContentLanguage::tryFrom($locale)?->label() ?? strtoupper($locale);
+        return ContentLanguage::tryFrom($locale)?->label() ?? strtoupper($locale);
     }
 
     /**
@@ -164,10 +171,10 @@ trait BuildsTranslatableFormFields
         $baselineLocale = $this->getBaselineLocale();
 
         if ($this->activeLocale === $baselineLocale || empty($this->activeLocale)) {
-            return property_exists($this, $field) ? (string) $this->{$field} : '';
+            return $this->getStringProperty($field);
         }
 
-        return data_get($this, "pendingTranslations.{$this->activeLocale}.{$field}", '');
+        return is_string($result = data_get($this, "pendingTranslations.{$this->activeLocale}.{$field}", '')) ? $result : '';
     }
 
     // ── Build / Load Methods ───────────────────────────
@@ -182,8 +189,9 @@ trait BuildsTranslatableFormFields
      * so they're available for secondary-locale reference (e.g. copyFromBaseline).
      * This method is not idempotent — calling it twice will overwrite the snapshot.
      *
-     * @param  string[]  $fields  Translatable field names
+     * @param  array<int, string>  $fields  Translatable field names
      * @param  string  $baselineLocale  The model's primary locale
+     * @param  array<string, mixed>  $input
      * @return array<string, array<string, string>>
      */
     protected function buildTranslatableValues(array $fields, string $baselineLocale, array $input = []): array
@@ -193,13 +201,13 @@ trait BuildsTranslatableFormFields
         // Snapshot current baseline values into pendingTranslations so they're
         // available for secondary-locale reference (e.g. copyFromBaseline).
         foreach ($fields as $field) {
-            $liveValue = $input[$field] ?? (property_exists($this, $field) ? (string) $this->{$field} : '');
+            $liveValue = isset($input[$field]) && is_string($input[$field]) ? $input[$field] : $this->getStringProperty($field);
             data_set($this, "pendingTranslations.{$baselineLocale}.{$field}", $liveValue);
         }
 
         foreach ($fields as $field) {
             // Baseline always comes from the live component property (wire:model writes here)
-            $baselineValue = $input[$field] ?? (property_exists($this, $field) ? (string) $this->{$field} : '');
+            $baselineValue = isset($input[$field]) && is_string($input[$field]) ? $input[$field] : $this->getStringProperty($field);
             $translations = [
                 $baselineLocale => $baselineValue,
             ];
@@ -210,28 +218,31 @@ trait BuildsTranslatableFormFields
                 if ($value === null || $value === '') {
                     $prop = "{$field}_{$locale}";
                     if (property_exists($this, $prop)) {
-                        $value = (string) $this->{$prop};
-                    } elseif (isset($input[$prop])) {
+                        $value = $this->getStringProperty($prop);
+                    } elseif (isset($input[$prop]) && is_string($input[$prop])) {
                         $value = $input[$prop];
                     }
                 }
                 if ($value !== null && $value !== '') {
-                    $translations[$locale] = $value;
+                    $translations[$locale] = is_string($value) ? $value : '';
                 }
             }
             $values[$field] = $translations;
         }
+
         return $values;
     }
 
     /**
      * Load translatable values from a model's stored translations.
      *
-     * Populates pendingTranslations from the model. Also sets legacy _de
-     * properties for backward compatibility if they exist on the component.
+     * @param  array<int, string>  $fields
+     *                                      Populates pendingTranslations from the model. Also sets legacy _de
+     *                                      properties for backward compatibility if they exist on the component.
      */
     protected function loadTranslatableValues(Model $model, array $fields, ?string $overrideLocale = null): void
     {
+        assert(method_exists($model, 'getTranslation'));
         $primaryLocale = $overrideLocale ?? $model->language ?? app()->getLocale();
 
         // Initialize activeLocale
@@ -268,7 +279,6 @@ trait BuildsTranslatableFormFields
      * Supports both legacy _de properties and the new pendingTranslations store.
      *
      * @param  array<string, mixed>  $fieldRules  [field => baseRules]
-     * @param  string  $primaryLanguage
      * @return array<string, mixed>
      */
     protected function translatableValidationRules(array $fieldRules, string $primaryLanguage): array
@@ -281,7 +291,8 @@ trait BuildsTranslatableFormFields
             // replace 'required' with 'nullable' (secondary locales are optional)
             // but preserve all other constraints (max, min, etc.).
             // Non-string rules (objects, closures) pass through unchanged.
-            $secondaryRules = collect(is_array($baseRules) ? $baseRules : explode('|', $baseRules))
+            $baseRulesArray = is_array($baseRules) ? $baseRules : (is_string($baseRules) ? explode('|', $baseRules) : []);
+            $secondaryRules = collect($baseRulesArray)
                 ->map(fn ($rule) => is_string($rule) && $rule === 'required' ? 'nullable' : $rule)
                 ->values()
                 ->all();
@@ -297,10 +308,25 @@ trait BuildsTranslatableFormFields
                 $rules["pendingTranslations.{$locale}.{$field}"] = $secondaryRules;
             }
         }
+
         return $rules;
     }
 
     // ── Internal Helpers ───────────────────────────────
+
+    /**
+     * Get a string property value from the component, returning default if not set.
+     * Handles dynamic property access safely for PHPStan level 9.
+     */
+    private function getStringProperty(string $field, string $default = ''): string
+    {
+        if (! property_exists($this, $field)) {
+            return $default;
+        }
+        $value = $this->{$field};
+
+        return is_string($value) ? $value : (is_scalar($value) ? (string) $value : $default);
+    }
 
     /**
      * Get secondary locales for a specific baseline locale.
@@ -309,8 +335,14 @@ trait BuildsTranslatableFormFields
      */
     protected function getSecondaryLocalesFor(string $baselineLocale): array
     {
+        $locales = config('app.available_locales', ['en']);
+        if (! is_array($locales)) {
+            $locales = ['en'];
+        }
+        /** @var string[] $locales */
+
         return array_values(array_filter(
-            config('app.available_locales', ['en']),
+            $locales,
             fn (string $locale) => $locale !== $baselineLocale,
         ));
     }

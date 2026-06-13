@@ -8,7 +8,6 @@ use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\GmRoleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Paddle\Cashier;
 use Spatie\Permission\Models\Role;
@@ -17,8 +16,8 @@ use Tests\Traits\CreatesUsers;
 
 class GmRoleServiceTest extends TestCase
 {
-    use DatabaseTransactions;
     use CreatesUsers;
+    use DatabaseTransactions;
 
     private GmRoleService $service;
 
@@ -184,7 +183,7 @@ class GmRoleServiceTest extends TestCase
             'billable_type' => get_class($user),
             'billable_id' => $user->id,
             'type' => 'default',
-            'paddle_id' => 'sub_resub_' . Str::random(12),
+            'paddle_id' => 'sub_resub_'.Str::random(12),
             'status' => 'active',
             'trial_ends_at' => null,
             'paused_at' => null,
@@ -317,7 +316,7 @@ class GmRoleServiceTest extends TestCase
             'billable_type' => get_class($user),
             'billable_id' => $user->id,
             'type' => 'default',
-            'paddle_id' => 'sub_resub_' . Str::random(12),
+            'paddle_id' => 'sub_resub_'.Str::random(12),
             'status' => 'active',
             'trial_ends_at' => null,
             'paused_at' => null,

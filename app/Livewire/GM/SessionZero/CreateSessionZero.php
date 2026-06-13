@@ -4,10 +4,9 @@ namespace App\Livewire\GM\SessionZero;
 
 use App\Enums\SafetyTool;
 use App\Models\Game;
-use App\Models\GMProfile;
 use App\Models\SessionZeroSurvey;
 use App\Services\GmRoleService;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -22,7 +21,7 @@ class CreateSessionZero extends Component
 
     public string $title = '';
 
-    /** @var string[] Selected safety tool values */
+    /** @var array<int|string, mixed> Selected safety tool values */
     public array $selectedSafetyTools = [];
 
     public string $linesAndVeilsText = '';
@@ -49,11 +48,12 @@ class CreateSessionZero extends Component
 
     public function mount(?string $game_id = null): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $gmRoleService = app(GmRoleService::class);
 
         if (! $gmRoleService->isGmActive($user)) {
             $this->redirect(route('dashboard', app()->getLocale()));
+
             return;
         }
 
@@ -62,7 +62,7 @@ class CreateSessionZero extends Component
         // Default title from game name when a game_id is provided
         if ($game_id) {
             $game = Game::find($game_id);
-            if ($game && $game->owner_id === $user->id) {
+            if ($game && (string) $game->owner_id === (string) $user->id) {
                 $this->title = __('session_zero.title_default_for_game', ['game' => $game->name]);
             }
         }
@@ -70,12 +70,15 @@ class CreateSessionZero extends Component
 
     // ── Validation ───────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'title' => 'required|string|max:255',
             'selectedSafetyTools' => 'nullable|array',
-            'selectedSafetyTools.*' => 'string|in:' . implode(',', SafetyTool::values()),
+            'selectedSafetyTools.*' => 'string|in:'.implode(',', SafetyTool::values()),
             'linesAndVeilsText' => 'nullable|string|max:2000',
             'safetyCustomNote' => 'nullable|string|max:2000',
             'tone_and_genre' => 'nullable|string|max:2000',
@@ -87,12 +90,18 @@ class CreateSessionZero extends Component
 
     // ── Event Listeners ──────────────────────────────────
 
+    /**
+     * @param  array<string, mixed>  $safetyRules
+     */
     #[On('safety-tools-changed')]
     public function onSafetyToolsChanged(array $safetyRules): void
     {
-        $this->selectedSafetyTools = $safetyRules['tools'] ?? [];
-        $this->linesAndVeilsText = $safetyRules['lines_and_veils_text'] ?? '';
-        $this->safetyCustomNote = $safetyRules['custom_note'] ?? '';
+        $tools = $safetyRules['tools'] ?? [];
+        $this->selectedSafetyTools = is_array($tools) ? $tools : [];
+        $text = $safetyRules['lines_and_veils_text'] ?? '';
+        $this->linesAndVeilsText = is_string($text) ? $text : '';
+        $note = $safetyRules['custom_note'] ?? '';
+        $this->safetyCustomNote = is_string($note) ? $note : '';
     }
 
     // ── Actions ──────────────────────────────────────────
@@ -101,11 +110,12 @@ class CreateSessionZero extends Component
     {
         $validated = $this->validate();
 
-        $user = Auth::user();
+        $user = authenticatedUser();
         $gmProfile = $user->gmProfile;
 
         if (! $gmProfile) {
             $this->redirect(route('dashboard', app()->getLocale()));
+
             return;
         }
 
@@ -113,7 +123,7 @@ class CreateSessionZero extends Component
         $gameId = $this->game_id;
         if ($gameId) {
             $game = Game::find($gameId);
-            if (! $game || $game->owner_id !== $user->id) {
+            if (! $game || (string) $game->owner_id !== (string) $user->id) {
                 $gameId = null;
             }
         }
@@ -152,6 +162,8 @@ class CreateSessionZero extends Component
 
     /**
      * Get the current safety rules payload for the picker component.
+     *
+     * @return array<string, mixed>
      */
     public function getSafetyRulesProperty(): array
     {
@@ -164,7 +176,7 @@ class CreateSessionZero extends Component
 
     // ── Render ───────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.gm.session-zero.create-session-zero');
     }

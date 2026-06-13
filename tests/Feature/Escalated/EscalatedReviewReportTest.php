@@ -6,6 +6,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Notifications\ReviewReported;
+use App\Services\ReviewAggregateService;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
@@ -254,7 +255,7 @@ it('ReviewObserver recalculates aggregates when review status changes from repor
     $reporter = User::factory()->create(['profile_complete' => true]);
 
     // Establish baseline: one published review
-    app(\App\Services\ReviewAggregateService::class)->updateAggregates($gmProfile);
+    app(ReviewAggregateService::class)->updateAggregates($gmProfile);
     expect($gmProfile->fresh()->review_count)->toBe(1);
     expect($gmProfile->fresh()->average_rating)->not->toBeNull();
 

@@ -1,12 +1,14 @@
 <?php
 
-use App\Models\MembershipType;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
 
-use function Pest\Laravel\{assertDatabaseHas, post};
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\post;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -23,7 +25,7 @@ function webhookCreateCustomer(User $user, ?string $paddleId = null): void
     Cashier::$customerModel::create([
         'billable_type' => get_class($user),
         'billable_id' => $user->id,
-        'paddle_id' => $paddleId ?? 'ctm_' . $user->id,
+        'paddle_id' => $paddleId ?? 'ctm_'.$user->id,
         'name' => $user->name,
         'email' => $user->email,
     ]);
@@ -35,7 +37,7 @@ function webhookCreateSubscription(User $user, array $overrides = []): Subscript
         'billable_type' => get_class($user),
         'billable_id' => $user->id,
         'type' => 'default',
-        'paddle_id' => 'sub_' . \Illuminate\Support\Str::random(12),
+        'paddle_id' => 'sub_'.Str::random(12),
         'status' => 'active',
         'trial_ends_at' => null,
         'paused_at' => null,
@@ -44,7 +46,7 @@ function webhookCreateSubscription(User $user, array $overrides = []): Subscript
     ]);
 }
 
-function webhookPostEvent(string $eventType, array $data, array $headers = []): \Illuminate\Testing\TestResponse
+function webhookPostEvent(string $eventType, array $data, array $headers = []): TestResponse
 {
     return post('/paddle/webhook', [
         'event_type' => $eventType,
@@ -106,7 +108,7 @@ function computePaddleSignature(string $payload, string $secret, ?int $timestamp
  * Uses $this->call() so $request->getContent() returns the exact raw body
  * the HMAC was computed over.
  */
-function postSignedWebhook(string $uri, string $rawBody, string $signature): \Illuminate\Testing\TestResponse
+function postSignedWebhook(string $uri, string $rawBody, string $signature): TestResponse
 {
     return test()->call('POST', $uri, [], [], [], [
         'CONTENT_TYPE' => 'application/json',

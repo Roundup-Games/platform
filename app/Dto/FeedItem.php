@@ -23,6 +23,8 @@ class FeedItem
 
     /**
      * Serialize to a cache-safe array (no Eloquent models).
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -44,22 +46,24 @@ class FeedItem
 
     /**
      * Reconstruct from a cached array.
+     *
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'],
-            type: $data['type'],
-            entityType: $data['entityType'],
-            entityId: $data['entityId'],
-            entityName: $data['entityName'],
-            userName: $data['userName'] ?? null,
-            userId: $data['userId'] ?? null,
-            createdAt: Carbon::parse($data['createdAt']),
-            gameSystemName: $data['gameSystemName'] ?? null,
-            participantCount: $data['participantCount'] ?? null,
-            maxPlayers: $data['maxPlayers'] ?? null,
-            imageUrl: $data['imageUrl'] ?? null,
+            id: is_string($data['id'] ?? null) ? $data['id'] : '',
+            type: is_string($data['type'] ?? null) ? $data['type'] : '',
+            entityType: is_string($data['entityType'] ?? null) ? $data['entityType'] : '',
+            entityId: is_string($data['entityId'] ?? null) ? $data['entityId'] : '',
+            entityName: is_string($data['entityName'] ?? null) ? $data['entityName'] : '',
+            userName: is_string($data['userName'] ?? null) ? $data['userName'] : null,
+            userId: is_string($data['userId'] ?? null) ? $data['userId'] : null,
+            createdAt: Carbon::parse(is_string($data['createdAt'] ?? null) || is_int($data['createdAt'] ?? null) ? $data['createdAt'] : 'now'),
+            gameSystemName: is_string($data['gameSystemName'] ?? null) ? $data['gameSystemName'] : null,
+            participantCount: is_int($data['participantCount'] ?? null) ? $data['participantCount'] : null,
+            maxPlayers: is_int($data['maxPlayers'] ?? null) ? $data['maxPlayers'] : null,
+            imageUrl: is_string($data['imageUrl'] ?? null) ? $data['imageUrl'] : null,
         );
     }
 }

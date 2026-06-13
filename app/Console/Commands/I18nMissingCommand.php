@@ -45,11 +45,15 @@ class I18nMissingCommand extends Command
         $falsePositives = [];
 
         foreach ($entries as $entry) {
-            $key = $entry['key'];
+            if (! is_array($entry)) {
+                continue;
+            }
+            $key = is_string($entry['key'] ?? null) ? $entry['key'] : '';
             $dot = strpos($key, '.');
 
             if ($dot === false) {
                 $falsePositives[] = array_merge($entry, ['reason' => 'No dot separator (not a domain key)']);
+
                 continue;
             }
 
@@ -58,6 +62,7 @@ class I18nMissingCommand extends Command
 
             if (! in_array($domain, $domains)) {
                 $falsePositives[] = array_merge($entry, ['reason' => "Unknown domain '{$domain}' (likely dynamic __() call)"]);
+
                 continue;
             }
 
@@ -65,6 +70,7 @@ class I18nMissingCommand extends Command
 
             if (in_array($keyPart, $existingKeys)) {
                 $falsePositives[] = array_merge($entry, ['reason' => 'Key exists in domain file (may be locale-specific gap)']);
+
                 continue;
             }
 
@@ -78,12 +84,12 @@ class I18nMissingCommand extends Command
 
             $this->table(
                 ['Key', 'Occurrences', 'Locales', 'First URL', 'First Seen'],
-                collect($confirmedMissing)->sortByDesc('total_count')->map(fn ($e) => [
-                    $e['key'],
-                    $e['total_count'],
-                    implode(', ', $e['locales']),
-                    mb_substr($e['first_url'], 0, 60),
-                    $e['first_seen'],
+                collect($confirmedMissing)->sortByDesc('total_count')->map(fn (array $e) => [
+                    is_string($e['key'] ?? null) ? $e['key'] : '',
+                    is_int($e['total_count'] ?? 0) ? $e['total_count'] : 0,
+                    implode(', ', array_filter(is_array($e['locales'] ?? null) ? $e['locales'] : [], fn (mixed $v) => is_string($v))),
+                    mb_substr(is_string($e['first_url'] ?? '') ? $e['first_url'] : '', 0, 60),
+                    is_string($e['first_seen'] ?? '') ? $e['first_seen'] : '',
                 ])->toArray(),
             );
         }
@@ -91,9 +97,12 @@ class I18nMissingCommand extends Command
         // Display false positives
         if (! empty($falsePositives)) {
             $this->newLine();
-            $this->line('  <fg=yellow>⚠</> Skipped ' . count($falsePositives) . ' false positive(s):');
+            $this->line('  <fg=yellow>⚠</> Skipped '.count($falsePositives).' false positive(s):');
 
             foreach ($falsePositives as $fp) {
+                $fpKey = $fp['key'];
+                $fpReason = $fp['reason'];
+                // @phpstan-ignore-next-line
                 $this->line("    • {$fp['key']} — {$fp['reason']}");
             }
         }

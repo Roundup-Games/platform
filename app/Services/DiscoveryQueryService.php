@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Dto\DiscoveryFilters;
+use App\Dto\ProximityResult;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
@@ -12,6 +14,7 @@ use App\Models\User;
 use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 
@@ -42,46 +45,60 @@ class DiscoveryQueryService
     /**
      * Apply common filters to a games or campaigns query builder.
      *
-     * @param  Builder  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      * @param  string  $priceColumn  Column name for price filtering ('price' for games, 'price_per_session' for campaigns)
-     * @param  array  $filters  Filter DTO/array with: search, game_system_id, experience_level, vibe_flags, safety_tools, language, price, complexity_min, complexity_max, category_ids, mechanic_ids
+     * @param  DiscoveryFilters  $filters  Typed filter DTO — all entity IDs are UUID strings
      */
-    public function applySharedFilters($query, string $priceColumn, array $filters): void
+    public function applySharedFilters(Builder $query, string $priceColumn, DiscoveryFilters $filters): void
     {
-        $query->when(! empty($filters['search']), fn ($q) => $q->where(function ($q) use ($filters) {
-            $this->whereTranslatableLike($q, 'name', $filters['search']);
-            $this->orWhereTranslatableLike($q, 'description', $filters['search']);
+        $search = $filters->search;
+        $gameSystemId = $filters->gameSystemId;
+        $experienceLevel = $filters->experienceLevel;
+        $vibeFlags = $filters->vibeFlags;
+        $safetyTools = $filters->safetyTools;
+        $language = $filters->language;
+        $priceMax = is_numeric($filters->price) ? (float) $filters->price : null;
+        $complexityMin = is_numeric($filters->complexityMin) ? (float) $filters->complexityMin : null;
+        $complexityMax = is_numeric($filters->complexityMax) ? (float) $filters->complexityMax : null;
+        $categoryIds = $filters->categoryIds;
+        $mechanicIds = $filters->mechanicIds;
+
+        $query->when(! empty($search), fn ($q) => $q->where(function ($q) use ($search) {
+            $this->whereTranslatableLike($q, 'name', (string) $search);
+            $this->orWhereTranslatableLike($q, 'description', (string) $search);
         }));
 
-        $query->when(! empty($filters['game_system_id']), fn ($q) => $q->where('game_system_id', $filters['game_system_id']));
-        $query->when(! empty($filters['experience_level']), fn ($q) => $q->where('experience_level', $filters['experience_level']));
+        $query->when(! empty($gameSystemId), fn ($q) => $q->where('game_system_id', $gameSystemId));
+        $query->when(! empty($experienceLevel), fn ($q) => $q->where('experience_level', $experienceLevel));
 
-        $query->when(! empty($filters['vibe_flags']), function ($q) use ($filters) {
-            foreach ($filters['vibe_flags'] as $flag) {
+        $query->when(! empty($vibeFlags), function ($q) use ($vibeFlags) {
+            foreach ($vibeFlags as $flag) {
                 $q->whereJsonContains('vibe_flags', $flag);
             }
         });
 
-        $query->when(! empty($filters['safety_tools']), function ($q) use ($filters) {
-            foreach ($filters['safety_tools'] as $tool) {
+        $query->when(! empty($safetyTools), function ($q) use ($safetyTools) {
+            foreach ($safetyTools as $tool) {
                 $q->whereJsonContains('safety_rules->tools', $tool);
             }
         });
 
-        $query->when(! empty($filters['language']), fn ($q) => $q->where('language', $filters['language']));
+        $query->when(! empty($language), fn ($q) => $q->where('language', $language));
 
-        $query->when(($filters['price'] ?? '') === 'free', fn ($q) => $q->where(fn ($q) => $q->where($priceColumn, 0)->orWhereNull($priceColumn)));
-        $query->when(($filters['price'] ?? '') === 'paid', fn ($q) => $q->where($priceColumn, '>', 0));
+        $query->when(($filters->price) === 'free', fn ($q) => $q->where(fn ($q) => $q->where($priceColumn, 0)->orWhereNull($priceColumn)));
+        $query->when(($filters->price) === 'paid', fn ($q) => $q->where($priceColumn, '>', 0));
 
-        $query->when(! empty($filters['complexity_min']), fn ($q) => $q->where('complexity', '>=', (float) $filters['complexity_min']));
-        $query->when(! empty($filters['complexity_max']), fn ($q) => $q->where('complexity', '<=', (float) $filters['complexity_max']));
+        $query->when(! empty($complexityMin), fn ($q) => $q->where('complexity', '>=', $complexityMin));
+        $query->when(! empty($complexityMax), fn ($q) => $q->where('complexity', '<=', $complexityMax));
 
-        $query->when(! empty($filters['category_ids']), function ($q) use ($filters) {
-            $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $filters['category_ids']));
+        $query->when(! empty($categoryIds), function ($q) use ($categoryIds) {
+            $q->whereHas('gameSystem.categories', fn ($q) => $q->whereIn('game_system_categories.id', $categoryIds));
         });
 
-        $query->when(! empty($filters['mechanic_ids']), function ($q) use ($filters) {
-            $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $filters['mechanic_ids']));
+        $query->when(! empty($mechanicIds), function ($q) use ($mechanicIds) {
+            $q->whereHas('gameSystem.mechanics', fn ($q) => $q->whereIn('game_system_mechanics.id', $mechanicIds));
         });
     }
 
@@ -95,8 +112,10 @@ class DiscoveryQueryService
      *  - Protected ("Connections Only"): visible to the owner, their mutual follows (friends),
      *    teammates on active teams, and existing participants.
      *  - Private: excluded from discovery entirely.
+     *
+     * @return Builder<Game>
      */
-    public function buildGamesQuery(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date)
+    public function buildGamesQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date): Builder
     {
         $query = Game::query()
             ->where($this->buildVisibilityClause($user))
@@ -129,8 +148,10 @@ class DiscoveryQueryService
      *
      * Visibility logic mirrors buildGamesQuery — protected campaigns are restricted
      * to the owner's connections (friends, teammates) and existing participants.
+     *
+     * @return Builder<Campaign>
      */
-    public function buildCampaignsQuery(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence)
+    public function buildCampaignsQuery(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence): Builder
     {
         $query = Campaign::query()
             ->where($this->buildVisibilityClause($user, 'campaigns'))
@@ -162,24 +183,32 @@ class DiscoveryQueryService
     /**
      * Apply proximity subquery to a games query builder.
      * Filters to games whose linked location falls within the given radius.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
-    public function applyProximitySubquery($query, string $table, float $lat, float $lng, float $radius): void
+    public function applyProximitySubquery(Builder $query, string $table, float $lat, float $lng, float $radius): void
     {
         $bounds = $this->proximity->boundingBox($lat, $lng, $radius);
 
         $query->whereHas('linkedLocation', function ($q) use ($bounds) {
             $q->whereNotNull('latitude')
                 ->whereNotNull('longitude')
-                ->whereBetween('latitude', [$bounds['minLat'], $bounds['maxLat']])
-                ->whereBetween('longitude', [$bounds['minLng'], $bounds['maxLng']]);
+                ->whereBetween('latitude', [$bounds->minLat, $bounds->maxLat])
+                ->whereBetween('longitude', [$bounds->minLng, $bounds->maxLng]);
         });
     }
 
     /**
      * Apply proximity subquery to a campaigns query builder.
      * Filters to campaigns that have at least one scheduled session within the radius.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
-    public function applyCampaignProximitySubquery($query, float $lat, float $lng, float $radius): void
+    public function applyCampaignProximitySubquery(Builder $query, float $lat, float $lng, float $radius): void
     {
         $nearbyResults = $this->proximity->nearby(
             $lat,
@@ -190,8 +219,16 @@ class DiscoveryQueryService
         );
 
         $nearbyCampaignIds = $nearbyResults
-            ->filter(fn ($r) => $r->entity->campaign_id !== null)
+            ->filter(function (mixed $r) {
+                if (! $r instanceof ProximityResult) {
+                    return false;
+                }
+                $entity = $r->entity;
+
+                return property_exists($entity, 'campaign_id') && $entity->campaign_id !== null;
+            })
             ->pluck('entity.campaign_id')
+            ->filter(fn (mixed $v) => is_string($v))
             ->unique()
             ->values()
             ->toArray();
@@ -201,6 +238,8 @@ class DiscoveryQueryService
 
     /**
      * Get a distance map [entity_id => distance_km] from ProximityQuery for a given entity type.
+     *
+     * @return array<string, mixed>
      */
     public function getProximityDistances(string $entityType, float $lat, float $lng, float $radiusKm): array
     {
@@ -212,11 +251,24 @@ class DiscoveryQueryService
             ['limit' => 200, 'status_filter' => false],
         );
 
-        return $results->mapWithKeys(fn ($r) => [$r->entity->id => $r->distance_km])->toArray();
+        return $results->mapWithKeys(function (mixed $r) {
+            if (! $r instanceof ProximityResult) {
+                return [];
+            }
+
+            $key = $r->entity->getKey();
+            if (! is_string($key)) {
+                return [];
+            }
+
+            return [$key => $r->distanceKm];
+        })->toArray();
     }
 
     /**
      * Get a distance map [campaign_id => distance_km] for campaigns via their scheduled sessions' locations.
+     *
+     * @return array<string, mixed>
      */
     public function getProximityCampaignDistances(float $lat, float $lng, float $radiusKm): array
     {
@@ -229,9 +281,27 @@ class DiscoveryQueryService
         );
 
         return $gameResults
-            ->filter(fn ($r) => $r->entity->campaign_id !== null)
+            ->filter(function (mixed $r) {
+                if (! $r instanceof ProximityResult) {
+                    return false;
+                }
+                $entity = $r->entity;
+
+                return property_exists($entity, 'campaign_id') && $entity->campaign_id !== null;
+            })
             ->groupBy('entity.campaign_id')
-            ->map(fn ($group) => $group->sortBy('distance_km')->first()->distance_km)
+            ->map(function (mixed $group) {
+                if (! $group instanceof Collection) { // @phpstan-ignore instanceof.alwaysTrue
+                    return null;
+                }
+                $first = $group->sortBy(fn (mixed $a, mixed $b) => ($a instanceof ProximityResult && $b instanceof ProximityResult) ? $a->distanceKm <=> $b->distanceKm : 0)->first(); // @phpstan-ignore instanceof.alwaysFalse, booleanAnd.alwaysFalse
+                if (! $first instanceof ProximityResult) {
+                    return null;
+                }
+
+                return $first->distanceKm;
+            })
+            ->filter()
             ->toArray();
     }
 
@@ -239,8 +309,10 @@ class DiscoveryQueryService
 
     /**
      * Get paginated games results with optional distance enrichment.
+     *
+     * @return LengthAwarePaginator<int, Game>
      */
-    public function getGamesResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, int $perPage = 12): LengthAwarePaginator
+    public function getGamesResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, int $perPage = 12): LengthAwarePaginator
     {
         $query = $this->buildGamesQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $date);
         $paginator = $query->paginate($perPage)->through(fn ($game) => tap($game, fn ($g) => $g->discoverable_type = 'game'));
@@ -254,8 +326,10 @@ class DiscoveryQueryService
 
     /**
      * Get paginated campaigns results with optional distance enrichment.
+     *
+     * @return LengthAwarePaginator<int, Campaign>
      */
-    public function getCampaignsResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence, int $perPage = 12): LengthAwarePaginator
+    public function getCampaignsResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $recurrence, int $perPage = 12): LengthAwarePaginator
     {
         $query = $this->buildCampaignsQuery($filters, $user, $radius, $lat, $lng, $hasLocation, $recurrence);
         $paginator = $query->paginate($perPage)->through(fn ($campaign) => tap($campaign, fn ($c) => $c->discoverable_type = 'campaign'));
@@ -269,8 +343,12 @@ class DiscoveryQueryService
 
     /**
      * Enrich a collection of items with distance_km from ProximityQuery.
+     *
+     * @template TItem of Game|Campaign
+     *
+     * @param  Collection<int, TItem>  $items
      */
-    public function enrichWithDistance($items, string $type, float $lat, float $lng, float $radius, bool $usingFallbackRadius): void
+    public function enrichWithDistance(Collection $items, string $type, float $lat, float $lng, float $radius, bool $usingFallbackRadius): void
     {
         $effectiveRadius = $usingFallbackRadius
             ? self::FALLBACK_RADIUS
@@ -279,12 +357,14 @@ class DiscoveryQueryService
         if ($type === 'game') {
             $distances = $this->getProximityDistances('game', $lat, $lng, $effectiveRadius);
             $items->each(function ($item) use ($distances) {
-                $item->distance_km = $distances[$item->id] ?? null;
+                $val = $distances[$item->id] ?? null;
+                $item->distance_km = is_numeric($val) ? (float) $val : null;
             });
         } else {
             $campaignDistances = $this->getProximityCampaignDistances($lat, $lng, $effectiveRadius);
             $items->each(function ($item) use ($campaignDistances) {
-                $item->distance_km = $campaignDistances[$item->id] ?? null;
+                $val = $campaignDistances[$item->id] ?? null;
+                $item->distance_km = is_numeric($val) ? (float) $val : null;
             });
         }
     }
@@ -299,9 +379,9 @@ class DiscoveryQueryService
      * When radius > 0 and guest location is available, results are filtered
      * by proximity and sorted by distance instead of timestamp.
      *
-     * @return array{results: LengthAwarePaginator, usingFallback: bool}
+     * @return array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool}
      */
-    public function getMergedResults(array $filters, $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence, int $perPage = 12): array
+    public function getMergedResults(DiscoveryFilters $filters, ?User $user, float $radius, ?float $lat, ?float $lng, bool $hasLocation, ?string $date, ?string $recurrence, int $perPage = 12): array
     {
         $usingFallback = false;
 
@@ -310,15 +390,16 @@ class DiscoveryQueryService
 
         $games = $gamesQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'game',
-            $item->discoverable_sort_key = $item->date_time?->timestamp ?? 0,
+            $item->discoverable_sort_key = (int) ($item->date_time->timestamp ?? 0),
         ]);
 
         $campaigns = $campaignsQuery->get()->each(fn ($item) => [
             $item->discoverable_type = 'campaign',
-            $item->discoverable_sort_key = $item->sessions->first()?->date_time?->timestamp ?? $item->created_at?->timestamp ?? 0,
+            $item->discoverable_sort_key = (int) ($item->sessions->first()->date_time->timestamp ?? $item->created_at->timestamp ?? 0),
         ]);
 
-        $merged = $games->merge($campaigns);
+        /** @var Collection<int, Game|Campaign> $merged */
+        $merged = collect([...$games, ...$campaigns]);
 
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {
             $proxResult = $this->applyProximityFilter($merged, $lat, $lng, $radius);
@@ -351,9 +432,10 @@ class DiscoveryQueryService
      *
      * Each remaining item gets a ->distance_km attribute for display.
      *
-     * @return array{collection: Collection, usingFallback: bool}
+     * @param  Collection<int, Game|Campaign>  $merged
+     * @return array{collection: Collection<int, Game|Campaign>, usingFallback: bool}
      */
-    public function applyProximityFilter($merged, float $lat, float $lng, float $radius): array
+    public function applyProximityFilter(Collection $merged, float $lat, float $lng, float $radius): array
     {
         $usingFallback = false;
 
@@ -368,10 +450,11 @@ class DiscoveryQueryService
             return isset($campaignDistances[$item->id]);
         })->map(function ($item) use ($gameDistances, $campaignDistances) {
             if ($item->discoverable_type === 'game') {
-                $item->distance_km = $gameDistances[$item->id];
+                $val = $gameDistances[$item->id] ?? null;
             } else {
-                $item->distance_km = $campaignDistances[$item->id];
+                $val = $campaignDistances[$item->id] ?? null;
             }
+            $item->distance_km = is_numeric($val) ? (float) $val : null;
 
             return $item;
         });
@@ -391,10 +474,11 @@ class DiscoveryQueryService
                 return isset($campaignDistances[$item->id]);
             })->map(function ($item) use ($gameDistances, $campaignDistances) {
                 if ($item->discoverable_type === 'game') {
-                    $item->distance_km = $gameDistances[$item->id];
+                    $val = $gameDistances[$item->id] ?? null;
                 } else {
-                    $item->distance_km = $campaignDistances[$item->id];
+                    $val = $campaignDistances[$item->id] ?? null;
                 }
+                $item->distance_km = is_numeric($val) ? (float) $val : null;
 
                 return $item;
             });
@@ -421,9 +505,9 @@ class DiscoveryQueryService
      *
      * @param  User|null  $user  Current user (null returns null)
      * @param  string|null  $systemType  Scope recommendations to a game system type (e.g., 'boardgame', 'ttrpg'). Null = all types.
-     * @return array|null Array of Game|Campaign models with discoverable_type attribute, or null if no recommendations
+     * @return array<string, mixed>|null
      */
-    public function getRecommendations($user, ?string $systemType = null): ?array
+    public function getRecommendations(?User $user, ?string $systemType = null): ?array
     {
         if (! $user) {
             return null;
@@ -432,10 +516,20 @@ class DiscoveryQueryService
         $resolved = $user->resolvedGameSystemPreferences();
         $resolvedVibes = $user->resolvedVibePreferences();
 
-        $favoriteIds = $resolved['favorites']->pluck('id')->toArray();
-        $impliedIds = $resolved['implied_favorites']->pluck('id')->toArray();
-        $avoidedIds = $resolved['avoided']->pluck('id')->toArray();
-        $favoriteVibes = $resolvedVibes['favorites'];
+        $favorites = $resolved['favorites'] ?? collect();
+        $implied = $resolved['implied_favorites'] ?? collect();
+        $avoided = $resolved['avoided'] ?? collect();
+
+        $pluckIds = fn (mixed $collection): array => ($collection instanceof Collection ? $collection : collect())
+            ->pluck('id')
+            ->filter(fn (mixed $id) => is_string($id))
+            ->values()
+            ->toArray();
+
+        $favoriteIds = $pluckIds($favorites);
+        $impliedIds = $pluckIds($implied);
+        $avoidedIds = $pluckIds($avoided);
+        $favoriteVibes = is_array($resolvedVibes['favorites'] ?? null) ? $resolvedVibes['favorites'] : [];
 
         // All allowed system IDs: favorites + implied, minus avoided
         $allowedSystemIds = array_values(array_diff(
@@ -445,7 +539,11 @@ class DiscoveryQueryService
 
         // Scope to a specific system type if requested
         if ($systemType !== null) {
-            $typeSystemIds = GameSystem::where('type', $systemType)->pluck('id')->toArray();
+            $typeSystemIds = GameSystem::where('type', $systemType)
+                ->pluck('id')
+                ->filter(fn (mixed $id) => is_string($id))
+                ->values()
+                ->toArray();
             $allowedSystemIds = array_values(array_intersect($allowedSystemIds, $typeSystemIds));
         }
 
@@ -592,8 +690,9 @@ class DiscoveryQueryService
      * Excludes: 'Expansion for Base-game', 'Fan Expansion', 'Print & Play'.
      *
      * @param  string|null  $type  Scope to a game system type (e.g., 'boardgame', 'ttrpg'). Null = boardgame (default behavior).
+     * @return Collection<int, GameSystemCategory>
      */
-    public function getCuratedCategories(?string $type = null)
+    public function getCuratedCategories(?string $type = null): Collection
     {
         // TTRPG scoping: simpler query without expansion exclusions
         if ($type === 'ttrpg') {
@@ -617,6 +716,8 @@ class DiscoveryQueryService
 
     /**
      * Top 15 genre categories scoped to TTRPG game systems.
+     *
+     * @return Collection<int, GameSystemCategory>
      */
     public function getCuratedTtrpgCategories(): Collection
     {
@@ -630,8 +731,10 @@ class DiscoveryQueryService
 
     /**
      * Top 15 mechanics by base-game system count.
+     *
+     * @return Collection<int, GameSystemMechanic>
      */
-    public function getCuratedMechanics()
+    public function getCuratedMechanics(): Collection
     {
         return GameSystemMechanic::query()
             ->whereHas('gameSystems', fn ($q) => $q->where(fn ($q) => $q->whereNull('base_game_id')->orWhere('bgg_type', 'boardgame')))
@@ -646,8 +749,13 @@ class DiscoveryQueryService
     /**
      * Apply overflow (waitlist + bench) count subqueries to a game or campaign query.
      * Consolidates the repeated withCount calls for waitlisted_count and benched_count.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
-    private function withOverflowCounts($query)
+    private function withOverflowCounts(Builder $query): Builder
     {
         return $query
             ->withCount(['participants as waitlisted_count' => fn ($q) => $q->where('status', 'waitlisted')])
@@ -687,7 +795,7 @@ class DiscoveryQueryService
      * Build a connection-aware visibility callback for inline use in query builders.
      * Returns the same logic as buildVisibilityClause but as a standalone callable.
      */
-    private function buildVisibilityClauseCallback($user): \Closure
+    private function buildVisibilityClauseCallback(?User $user): \Closure
     {
         return function ($q) use ($user) {
             $q->where('visibility', 'public');

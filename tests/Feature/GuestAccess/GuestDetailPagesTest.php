@@ -4,7 +4,9 @@ use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ function guestTestCreatePublicGame(array $overrides = []): Game
         'game_system_id' => $system->id,
         'visibility' => 'public',
         'status' => 'scheduled',
-        'name' => ['en' => 'Public Test Game ' . uniqid()],
+        'name' => ['en' => 'Public Test Game '.uniqid()],
         'location' => [
             'type' => 'in_person',
             'details' => '123 Main Street, Berlin, Germany',
@@ -49,7 +51,7 @@ function guestTestCreatePublicCampaign(array $overrides = []): Campaign
         'owner_id' => $owner->id,
         'game_system_id' => $system->id,
         'visibility' => 'public',
-        'name' => ['en' => 'Public Test Campaign ' . uniqid()],
+        'name' => ['en' => 'Public Test Campaign '.uniqid()],
         ...$overrides,
     ]);
 }
@@ -58,7 +60,7 @@ function guestTestCreatePublicUser(): User
 {
     return User::factory()->create([
         'profile_complete' => true,
-        'name' => 'Test User ' . uniqid(),
+        'name' => 'Test User '.uniqid(),
     ]);
 }
 

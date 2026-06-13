@@ -5,13 +5,14 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogConsentChecker;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 function makeMiddlewareResponse()
 {
-    return new \Illuminate\Http\Response('', 200);
+    return new Response('', 200);
 }
 
 beforeEach(function () {
@@ -27,7 +28,7 @@ describe('PostHog consent gating — middleware skips without consent', function
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Use real consent checker — no cookie set
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $user = User::factory()->create();
 
@@ -48,7 +49,7 @@ describe('PostHog consent gating — middleware skips without consent', function
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Real consent checker with denied analytics
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $user = User::factory()->create();
 
@@ -77,7 +78,7 @@ describe('PostHog consent gating — middleware proceeds with consent', function
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Real consent checker with granted analytics
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $user = User::factory()->create();
 
@@ -107,7 +108,7 @@ describe('PostHog consent gating — Do Not Track header', function () {
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Real consent checker with granted analytics
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $user = User::factory()->create();
 
@@ -131,7 +132,7 @@ describe('PostHog consent gating — Do Not Track header', function () {
 
 describe('PostHog consent gating — consent checker integration', function () {
     test('consent checker reads cookie_consent from request correctly', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', json_encode([
@@ -150,7 +151,7 @@ describe('PostHog consent gating — consent checker integration', function () {
     });
 
     test('consent checker returns false for missing cookie', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $request = Request::create('/games', 'GET');
 
@@ -159,7 +160,7 @@ describe('PostHog consent gating — consent checker integration', function () {
     });
 
     test('consent checker returns false for malformed cookie', function () {
-        $checker = new PostHogConsentChecker();
+        $checker = new PostHogConsentChecker;
 
         $symfonyRequest = SymfonyRequest::create('/games', 'GET');
         $symfonyRequest->cookies->set('cookie_consent', '{invalid json');
@@ -178,7 +179,7 @@ describe('Consent revocation persists to user model', function () {
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Real consent checker — no cookie set (revoked)
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $middleware = $this->app->make(PostHogIdentifyUsers::class);
 
@@ -202,7 +203,7 @@ describe('Consent revocation persists to user model', function () {
         $this->app->instance(PostHogClient::class, $posthogClient);
 
         // Consent checker with cookie present
-        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker());
+        $this->app->instance(PostHogConsentChecker::class, new PostHogConsentChecker);
 
         $middleware = $this->app->make(PostHogIdentifyUsers::class);
 

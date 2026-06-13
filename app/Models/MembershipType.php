@@ -2,15 +2,23 @@
 
 namespace App\Models;
 
+use Database\Factories\MembershipTypeFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property array{gm_plan?: bool}|null $metadata
+ */
 class MembershipType extends Model
 {
+    /** @use HasFactory<MembershipTypeFactory> */
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -36,13 +44,17 @@ class MembershipType extends Model
         ];
     }
 
-    public function scopeActive($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeActive(Builder $query)
     {
         return $query->where('status', 'active');
     }
 
     public function formattedPrice(): string
     {
-        return '$' . number_format($this->price_cents / 100, 2);
+        return '$'.number_format($this->price_cents / 100, 2);
     }
 }

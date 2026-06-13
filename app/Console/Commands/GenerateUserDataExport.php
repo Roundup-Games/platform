@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ActivityLog;
 use App\Models\Campaign;
+use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Game;
 use App\Models\GmSocialLink;
@@ -13,6 +14,8 @@ use App\Models\Review;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +64,7 @@ class GenerateUserDataExport extends Command
     {
         $userUuid = $this->argument('user');
 
+        /** @var User|null $user */
         $user = User::where('id', $userUuid)->first();
 
         if (! $user) {
@@ -71,7 +75,7 @@ class GenerateUserDataExport extends Command
 
         $this->info("Generating data export for user [{$user->name}] ({$user->id})");
 
-        $tempDir = $this->createTempDirectory($user->id);
+        $tempDir = $this->createTempDirectory((string) $user->id);
 
         try {
             $fileChecksums = [];
@@ -186,6 +190,9 @@ class GenerateUserDataExport extends Command
 
     // ── Data Gathering ────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherProfile(User $user): array
     {
         $attributes = $user->attributesToArray();
@@ -201,6 +208,9 @@ class GenerateUserDataExport extends Command
         return $export;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherLinkedAccounts(User $user): array
     {
         return $user->linkedAccounts()
@@ -219,10 +229,15 @@ class GenerateUserDataExport extends Command
             ->toArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherGames(User $user): array
     {
         // Whitelist game fields to avoid leaking other users' PII
-        $owned = $user->ownedGames()->get()->map(fn (Game $game) => [
+        $ownedGames = $user->ownedGames()->get();
+        /** @var Collection<int, Game> $ownedGames */
+        $owned = $ownedGames->map(fn (Game $game) => [
             'id' => $game->id,
             'name' => $game->name,
             'status' => $game->status?->value,
@@ -237,9 +252,9 @@ class GenerateUserDataExport extends Command
             ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
             ->where('game_participants.user_id', $user->id)
             ->select('games.id', 'games.name', 'games.status', 'games.date_time',
-                     'game_participants.role as pivot_role', 'game_participants.status as pivot_status')
+                'game_participants.role as pivot_role', 'game_participants.status as pivot_status')
             ->get()
-            ->map(fn ($game) => [
+            ->map(fn (Game $game) => [
                 'id' => $game->id,
                 'name' => $game->name,
                 'status' => $game->status,
@@ -256,6 +271,9 @@ class GenerateUserDataExport extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherCampaigns(User $user): array
     {
         // Whitelist campaign fields to avoid leaking other users' PII
@@ -272,9 +290,9 @@ class GenerateUserDataExport extends Command
             ->join('campaign_participants', 'campaigns.id', '=', 'campaign_participants.campaign_id')
             ->where('campaign_participants.user_id', $user->id)
             ->select('campaigns.id', 'campaigns.name', 'campaigns.status',
-                     'campaign_participants.role as pivot_role', 'campaign_participants.status as pivot_status')
+                'campaign_participants.role as pivot_role', 'campaign_participants.status as pivot_status')
             ->get()
-            ->map(fn ($campaign) => [
+            ->map(fn (Campaign $campaign) => [
                 'id' => $campaign->id,
                 'name' => $campaign->name,
                 'status' => $campaign->status,
@@ -290,34 +308,37 @@ class GenerateUserDataExport extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherEvents(User $user): array
     {
-        $organized = $user->organizedEvents()->get()->map(fn ($event) => [
+        $organized = $user->organizedEvents()->get()->map(fn (Event $event) => [
             'id' => $event->id,
             'name' => $event->name,
             'slug' => $event->slug,
             'status' => $event->status?->value,
-            'starts_at' => $event->starts_at?->toIso8601String(),
-            'ends_at' => $event->ends_at?->toIso8601String(),
+            'starts_at' => $event->start_date?->toIso8601String(),
+            'ends_at' => $event->end_date?->toIso8601String(),
             'created_at' => $event->created_at?->toIso8601String(),
         ]);
         $registrations = $user->eventRegistrations()
             ->with('event')
             ->get()
             ->map(
-            fn (EventRegistration $reg) => [
-                'id' => $reg->id,
-                'event_id' => $reg->event_id,
-                'event_name' => $reg->event?->name,
-                'registration_type' => $reg->registration_type,
-                'division' => $reg->division,
-                'status' => $reg->status,
-                'payment_status' => $reg->payment_status,
-                'confirmed_at' => $reg->confirmed_at?->toIso8601String(),
-                'cancelled_at' => $reg->cancelled_at?->toIso8601String(),
-                'created_at' => $reg->created_at?->toIso8601String(),
-            ],
-        );
+                fn (EventRegistration $reg) => [
+                    'id' => $reg->id,
+                    'event_id' => $reg->event_id,
+                    'event_name' => $reg->event?->name,
+                    'registration_type' => $reg->registration_type,
+                    'division' => $reg->division,
+                    'status' => $reg->status,
+                    'payment_status' => $reg->payment_status,
+                    'confirmed_at' => $reg->confirmed_at?->toIso8601String(),
+                    'cancelled_at' => $reg->cancelled_at?->toIso8601String(),
+                    'created_at' => $reg->created_at?->toIso8601String(),
+                ],
+            );
 
         return [
             'organized' => $organized->toArray(),
@@ -325,6 +346,9 @@ class GenerateUserDataExport extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherReviews(User $user): array
     {
         // Reviews written by this user — their own content
@@ -332,7 +356,7 @@ class GenerateUserDataExport extends Command
             'id' => $review->id,
             'rating' => $review->rating,
             'content' => $review->content,
-            'status' => $review->status?->value,
+            'status' => $review->status,
             'created_at' => $review->created_at?->toIso8601String(),
             'updated_at' => $review->updated_at?->toIso8601String(),
         ]);
@@ -344,7 +368,7 @@ class GenerateUserDataExport extends Command
                 'id' => $review->id,
                 'rating' => $review->rating,
                 'content' => $review->content,
-                'status' => $review->status?->value,
+                'status' => $review->status,
                 'created_at' => $review->created_at?->toIso8601String(),
             ]);
 
@@ -354,6 +378,9 @@ class GenerateUserDataExport extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherTeams(User $user): array
     {
         return $user->teams()->get()->map(
@@ -363,17 +390,20 @@ class GenerateUserDataExport extends Command
                 'slug' => $team->slug,
                 'created_at' => $team->created_at?->toIso8601String(),
                 'pivot' => [
-                    'role' => $team->pivot->role,
-                    'status' => $team->pivot->status,
-                    'jersey_number' => $team->pivot->jersey_number,
-                    'position' => $team->pivot->position,
-                    'joined_at' => $team->pivot->joined_at?->toIso8601String(),
-                    'left_at' => $team->pivot->left_at?->toIso8601String(),
+                    'role' => $team->pivot?->role,
+                    'status' => $team->pivot?->status,
+                    'jersey_number' => $team->pivot?->jersey_number,
+                    'position' => $team->pivot?->position,
+                    'joined_at' => $team->pivot?->joined_at ? Carbon::parse($team->pivot->joined_at)->toIso8601String() : null,
+                    'left_at' => $team->pivot?->left_at ? Carbon::parse($team->pivot->left_at)->toIso8601String() : null,
                 ],
             ],
         )->toArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherActivityLog(User $user): array
     {
         return ActivityLog::where('user_id', $user->id)
@@ -389,6 +419,9 @@ class GenerateUserDataExport extends Command
             ->toArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherPushSubscriptions(User $user): array
     {
         return $user->pushSubscriptions()
@@ -405,6 +438,9 @@ class GenerateUserDataExport extends Command
             ->toArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function gatherSocialLinks(User $user): array
     {
         return $user->gmSocialLinks()
@@ -423,6 +459,9 @@ class GenerateUserDataExport extends Command
 
     // ── Media ─────────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function copyMediaFiles(User $user, string $tempDir): array
     {
         $checksums = [];
@@ -459,6 +498,11 @@ class GenerateUserDataExport extends Command
 
     // ── Manifest ──────────────────────────────────────
 
+    /**
+     * @param  array<string, string>  $fileChecksums
+     * @param  array<string, mixed>  $fileChecksums
+     * @return array<string, mixed>
+     */
     protected function buildManifest(User $user, array $fileChecksums): array
     {
         return [
@@ -483,12 +527,16 @@ class GenerateUserDataExport extends Command
         return $tempDir;
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     protected function writeJson(string $dir, string $filename, array $data): string
     {
         $path = $dir.'/'.$filename;
-        File::put($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        File::put($path, $json !== false ? $json : '{}');
 
-        return hash_file('sha256', $path);
+        return hash_file('sha256', $path) ?: '';
     }
 
     protected function createZipArchive(string $sourceDir, User $user): string
@@ -508,7 +556,13 @@ class GenerateUserDataExport extends Command
         );
 
         foreach ($files as $file) {
+            if (! $file instanceof \SplFileInfo) {
+                continue;
+            }
             $filePath = $file->getRealPath();
+            if (! is_string($filePath)) {
+                continue;
+            }
             $relativePath = substr($filePath, strlen($sourceDir) + 1);
             $zip->addFile($filePath, $relativePath);
         }
@@ -540,5 +594,4 @@ class GenerateUserDataExport extends Command
 
         return $storedName;
     }
-
 }

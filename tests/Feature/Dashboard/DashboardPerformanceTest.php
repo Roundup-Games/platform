@@ -1,18 +1,15 @@
 <?php
 
-use App\Enums\GameStatus;
-use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Jobs\WarmDashboardCache;
+use App\Livewire\Dashboard;
 use App\Models\Game;
-use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardModeService;
-use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -60,11 +57,11 @@ describe('Dashboard performance', function () {
 
         // Warm the cache by visiting once
         $this->actingAs($user);
-        Livewire::test(\App\Livewire\Dashboard::class);
+        Livewire::test(Dashboard::class);
 
         // Now measure warm-cache render time
         $start = microtime(true);
-        Livewire::test(\App\Livewire\Dashboard::class);
+        Livewire::test(Dashboard::class);
         $elapsed = (microtime(true) - $start) * 1000;
 
         expect($elapsed)->toBeLessThan(200, "Warm dashboard render took {$elapsed}ms — exceeds 200ms threshold");
@@ -109,7 +106,7 @@ describe('Dashboard performance', function () {
 
         $this->actingAs($user);
         $start = microtime(true);
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $elapsed = (microtime(true) - $start) * 1000;
 
         // Verify data was actually computed

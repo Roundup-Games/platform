@@ -6,7 +6,10 @@ use Escalated\Laravel\Models\Reply;
 use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Notifications\TicketReplyNotification;
 use Illuminate\Support\Facades\Notification;
-use function Pest\Laravel\{actingAs, get, post};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
+use function Pest\Laravel\post;
 
 beforeEach(function () {
     Department::firstOrCreate(

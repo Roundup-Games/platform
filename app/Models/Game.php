@@ -5,33 +5,64 @@ namespace App\Models;
 use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\Visibility;
-use App\Models\AttendanceReport;
 use App\Relations\StringKeyMorphMany;
+use App\Services\ShortLinkService;
+use App\Services\SocialGraphService;
+use Database\Factories\GameFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\SchemaOrg\Event as SchemaEvent;
-use Spatie\SchemaOrg\Place;
-use Spatie\SchemaOrg\PostalAddress;
+use Spatie\SchemaOrg\EventStatusType;
 use Spatie\SchemaOrg\Offer;
 use Spatie\SchemaOrg\Person as SchemaPerson;
-use Spatie\SchemaOrg\EventStatusType;
+use Spatie\SchemaOrg\Place;
+use Spatie\SchemaOrg\PostalAddress;
 use Spatie\Translatable\HasTranslations;
 
+/**
+ * @property Carbon|null $date_time
+ * @property Carbon|null $reminder_sent_at
+ * @property Carbon|null $reminder_24h_sent_at
+ * @property Carbon|null $share_token_expires_at
+ * @property Carbon|null $attendance_window_opens_at
+ * @property Carbon|null $attendance_window_closes_at
+ * @property Carbon|null $attendance_resolved_at
+ * @property GameType|null $game_type
+ * @property Visibility|null $visibility
+ * @property GameStatus|null $status
+ * @property bool $bench_mode
+ * @property int|null $pending_count
+ * @property int|null $approved_count
+ * @property string|null $pivot_role
+ * @property string|null $pivot_status
+ * @property array<string, mixed>|null $location
+ * @property array<string, mixed>|null $safety_rules
+ * @property string|null $discoverable_type
+ * @property int|null $discoverable_sort_key
+ * @property float|null $distance_km
+ */
 class Game extends Model
 {
+    /** @use HasFactory<GameFactory> */
     use HasFactory;
+
     use HasSEO;
     use HasTranslations;
 
+    /** @var array<int, string> */
     public array $translatable = ['name', 'description'];
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     // bench_mode is GM-gated on create (CreateGame).
@@ -90,11 +121,11 @@ class Game extends Model
         });
 
         static::updated(function (self $game) {
-            if ($game->wasChanged('status') && in_array($game->status->value, ['completed', 'canceled'])) {
-                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($game);
+            if ($game->wasChanged('status') && in_array($game->status?->value, ['completed', 'canceled'])) {
+                app(ShortLinkService::class)->expireLinksForEntity($game);
 
                 // Expire all active bulletins for this game
-                \App\Models\GameBulletin::where('game_id', $game->id)
+                GameBulletin::where('game_id', $game->id)
                     ->where(function ($q) {
                         $q->whereNull('expires_at')
                             ->orWhere('expires_at', '>', now());
@@ -103,7 +134,7 @@ class Game extends Model
 
                 Log::info('Game bulletins expired on game completion', [
                     'game_id' => $game->id,
-                    'new_status' => $game->status->value,
+                    'new_status' => $game->status?->value,
                 ]);
             }
         });
@@ -111,51 +142,75 @@ class Game extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsTo<Campaign, $this>
+     */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 
+    /**
+     * @return BelongsTo<GameSystem, $this>
+     */
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);
     }
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function linkedLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
     }
 
+    /**
+     * @return HasMany<GameParticipant, $this>
+     */
     public function participants(): HasMany
     {
         return $this->hasMany(GameParticipant::class);
     }
 
+    /** @return HasMany<GameApplication, $this> */
     public function applications(): HasMany
     {
         return $this->hasMany(GameApplication::class);
     }
 
+    /**
+     * @return HasMany<SessionZeroSurvey, $this>
+     */
     public function sessionZeroSurveys(): HasMany
     {
         return $this->hasMany(SessionZeroSurvey::class);
     }
 
+    /** @return HasMany<SessionDebriefing, $this> */
     public function sessionDebriefings(): HasMany
     {
         return $this->hasMany(SessionDebriefing::class);
     }
 
+    /** @return HasMany<AttendanceReport, $this> */
     public function attendanceReports(): HasMany
     {
         return $this->hasMany(AttendanceReport::class);
     }
 
+    /**
+     * @return HasMany<GameBulletin, $this>
+     */
     public function bulletins(): HasMany
     {
         return $this->hasMany(GameBulletin::class);
@@ -163,7 +218,7 @@ class Game extends Model
 
     public function activeSessionZeroSurvey(): ?SessionZeroSurvey
     {
-        return $this->sessionZeroSurveys()->active()->first();
+        return $this->sessionZeroSurveys()->where('status', 'active')->first();
     }
 
     // ── Debriefing Helpers ─────────────────────────────
@@ -173,7 +228,7 @@ class Game extends Model
      */
     public function hasDebriefingTools(): bool
     {
-        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+        if (! is_array($this->safety_rules)) {
             return false;
         }
 
@@ -190,7 +245,7 @@ class Game extends Model
     {
         $prompts = [];
 
-        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+        if (! is_array($this->safety_rules)) {
             return $prompts;
         }
 
@@ -225,7 +280,7 @@ class Game extends Model
      */
     public function getDebriefingToolType(): ?string
     {
-        if (! $this->safety_rules || ! is_array($this->safety_rules)) {
+        if (! is_array($this->safety_rules)) {
             return null;
         }
 
@@ -242,15 +297,21 @@ class Game extends Model
 
     // ── Short Links ────────────────────────────────────
 
-    public function shortLinks()
+    /**
+     * @return StringKeyMorphMany<ShortLink, $this>
+     */
+    public function shortLinks(): StringKeyMorphMany
     {
-        return (new StringKeyMorphMany(
+        $relation = new StringKeyMorphMany(
             $this->newRelatedInstance(ShortLink::class)->newQuery(),
             $this,
             'linkable_type',
             'linkable_id',
             'id'
-        ))->where('linkable_type', static::class);
+        );
+        $relation->getQuery()->where('linkable_type', static::class);
+
+        return $relation;
     }
 
     // ── Share Token ────────────────────────────────────
@@ -276,7 +337,11 @@ class Game extends Model
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopePublic($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopePublic(Builder $query)
     {
         return $query->where('visibility', 'public');
     }
@@ -287,34 +352,45 @@ class Game extends Model
      * Guests see public only. Authenticated users see public + protected
      * items owned by their connections (friends, teammates) or where they
      * are a participant. Private items are never included in listings.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeVisibleTo($query, ?User $viewer = null)
+    public function scopeVisibleTo(Builder $query, ?User $viewer = null)
     {
         if ($viewer === null) {
             return $query->where('visibility', 'public');
         }
 
-        $allowedOwnerIds = app(\App\Services\SocialGraphService::class)
+        $allowedOwnerIds = app(SocialGraphService::class)
             ->getAllowedOwnerIdsForProtectedContent($viewer);
 
         return $query->where(function ($q) use ($allowedOwnerIds, $viewer) {
             $q->where('visibility', 'public')
-              ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
-                  $q->where('visibility', 'protected')
-                    ->where(function ($q) use ($allowedOwnerIds, $viewer) {
-                        $q->whereIn('owner_id', $allowedOwnerIds)
-                          ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
-                    });
-              });
+                ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($allowedOwnerIds, $viewer) {
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
+                        });
+                });
         });
     }
 
-    public function scopeScheduled($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeScheduled(Builder $query)
     {
         return $query->where('status', 'scheduled');
     }
 
-    public function scopeUpcoming($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('date_time', '>', now())->orderBy('date_time');
     }
@@ -342,8 +418,8 @@ class Game extends Model
         if ($this->campaign_id !== null) {
             $campaign = $this->getRelationValue('campaign');
 
-            if ($campaign === null) {
-                \Illuminate\Support\Facades\Log::warning('game.is_bench_mode.campaign_not_loaded', [
+            if ($campaign === null || ! ($campaign instanceof Campaign)) {
+                Log::warning('game.is_bench_mode.campaign_not_loaded', [
                     'game_id' => $this->id,
                     'campaign_id' => $this->campaign_id,
                     'message' => 'Campaign relationship not loaded — defaulting to waitlist mode. Eager-load campaign to avoid this.',
@@ -382,8 +458,8 @@ class Game extends Model
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
-                ->startDate($this->date_time->toISOString())
+                ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '')
+                ->startDate((string) $this->date_time->toISOString())
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
@@ -394,7 +470,7 @@ class Game extends Model
 
             // End date from expected_duration
             if ($this->expected_duration) {
-                $event->endDate($this->date_time->copy()->addHours((float) $this->expected_duration)->toISOString());
+                $event->endDate((string) $this->date_time->copy()->addHours((float) $this->expected_duration)->toISOString());
             }
 
             // Location
@@ -415,7 +491,7 @@ class Game extends Model
 
             // Maximum attendees
             if ($this->max_players) {
-                $event->maximumAttendees($this->max_players);
+                $event->maximumAttendeeCapacity($this->max_players);
             }
 
             // Free/paid
@@ -468,8 +544,10 @@ class Game extends Model
 
         // Fallback to location JSON array
         if ($this->location && ! empty($this->location['details'])) {
+            $details = $this->location['details'];
+
             return (new Place)
-                ->name($this->location['details']);
+                ->name(is_string($details) ? $details : '');
         }
 
         return null;

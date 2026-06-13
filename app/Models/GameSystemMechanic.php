@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ */
 class GameSystemMechanic extends Model
 {
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = ['id', 'name', 'slug', 'description'];
@@ -25,6 +29,9 @@ class GameSystemMechanic extends Model
         });
     }
 
+    /**
+     * @return BelongsToMany<GameSystem, $this>
+     */
     public function gameSystems(): BelongsToMany
     {
         return $this->belongsToMany(GameSystem::class, 'game_system_mechanic');
@@ -32,6 +39,8 @@ class GameSystemMechanic extends Model
 
     /**
      * Self-referencing cross-link: mechanics similar to this one.
+     *
+     * @return BelongsToMany<GameSystemMechanic, $this>
      */
     public function similarMechanics(): BelongsToMany
     {
@@ -45,6 +54,8 @@ class GameSystemMechanic extends Model
 
     /**
      * Inverse: mechanics that reference this one as similar.
+     *
+     * @return BelongsToMany<GameSystemMechanic, $this>
      */
     public function inverseSimilarMechanics(): BelongsToMany
     {

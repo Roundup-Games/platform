@@ -1,0 +1,11 @@
+<?php
+
+namespace Escalated\Laravel\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property string $name
+ * @property string|null $description
+ */
+class Department extends Model {}

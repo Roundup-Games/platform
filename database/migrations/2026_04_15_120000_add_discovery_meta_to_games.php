@@ -1,7 +1,5 @@
 <?php
 
-use App\Enums\ExperienceLevel;
-use App\Enums\VibeFlag;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

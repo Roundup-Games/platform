@@ -1,16 +1,17 @@
 <?php
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
+use App\Livewire\Games\ManageParticipants;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\ShortLink;
 use App\Models\User;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 
@@ -110,7 +111,7 @@ describe('Game share link UI', function () {
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call("revokeShortLink", $link->id);
+            ->call('revokeShortLink', $link->id);
 
         expect(ShortLink::find($link->id))->toBeNull();
     });
@@ -183,7 +184,7 @@ describe('Join source badge display in manage-participants', function () {
         ]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->assertSee('Share Link');
     });
 
@@ -202,7 +203,7 @@ describe('Join source badge display in manage-participants', function () {
         ]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->assertSee('Friend Invite');
     });
 
@@ -221,7 +222,7 @@ describe('Join source badge display in manage-participants', function () {
         ]);
 
         Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id])
+            ->test(ManageParticipants::class, ['id' => $game->id])
             ->assertSee('Application');
     });
 
@@ -240,7 +241,7 @@ describe('Join source badge display in manage-participants', function () {
         ]);
 
         $component = Livewire::actingAs($this->owner)
-            ->test(\App\Livewire\Games\ManageParticipants::class, ['id' => $game->id]);
+            ->test(ManageParticipants::class, ['id' => $game->id]);
 
         $html = $component->html();
         expect(preg_match('/person_add.*Friend Invite|link.*Share Link|edit_note.*Application/s', $html))->toBe(0);

@@ -7,6 +7,7 @@ use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class DashboardNewcomerService
 {
     use DashboardFormatting;
 
-    /** @var array<string, array<string>> Memoized exclusion lists per user to avoid redundant queries */
+    /** @var array<string, array<int, mixed>> Memoized exclusion lists per user to avoid redundant queries */
     private array $excludedGameIdsCache = [];
 
     public function __construct(
@@ -40,6 +41,8 @@ class DashboardNewcomerService
      * Returns personalised information for the welcome card: name, city,
      * preferred game systems, count of nearby games matching preferences,
      * and a computed welcome message key.
+     *
+     * @return array<string, mixed>
      */
     public function getWelcomeData(User $user): array
     {
@@ -53,7 +56,7 @@ class DashboardNewcomerService
      * not already participating). Scores by preference match, proximity,
      * and spots available. Returns top 6 games with relevance tags.
      *
-     * @return array{games: array, total_nearby: int, preference_match_rate: float}
+     * @return array<string, mixed>
      */
     public function getPreferenceWeightedMatches(User $user, string $geohash4): array
     {
@@ -66,7 +69,7 @@ class DashboardNewcomerService
      * Returns a 4-step progress tracker: Profile, Preferences, Find Game,
      * Attend Session. Each step has a completion status and route.
      *
-     * @return array{steps: array, current_step: int, completion_percentage: int}
+     * @return array<string, mixed>
      */
     public function getProgressTracker(User $user): array
     {
@@ -79,7 +82,7 @@ class DashboardNewcomerService
      * Queries users in the same geohash tile with public profiles,
      * sorted by taste compatibility (shared game systems).
      *
-     * @return array{people: array, total_nearby: int}
+     * @return array<string, mixed>
      */
     public function getNearbyPeople(User $user, string $geohash4): array
     {
@@ -91,7 +94,7 @@ class DashboardNewcomerService
     /**
      * Compute welcome data for a newcomer user.
      *
-     * @return array{first_name: string, city: string|null, preferred_systems: string[], matching_games_count: int, has_location: bool, welcome_message_key: string}
+     * @return array{first_name: string, city: string|null, preferred_systems: array<int, mixed>, matching_games_count: int, has_location: bool, welcome_message_key: string}
      */
     public function computeWelcomeData(User $user): array
     {
@@ -102,8 +105,8 @@ class DashboardNewcomerService
 
         // Top 3 preferred game system names
         $preferredSystems = $user->gameSystemPreferences()
-            ->pluck('game_systems.name')
             ->take(3)
+            ->pluck('game_systems.name')
             ->values()
             ->toArray();
 
@@ -149,7 +152,7 @@ class DashboardNewcomerService
      *   - filling_fast: ≤ 2 spots remaining
      *   - starting_soon: within 3 days
      *
-     * @return array{games: array, total_nearby: int, preference_match_rate: float}
+     * @return array<string, mixed>
      */
     public function computePreferenceWeightedMatches(User $user, string $geohash4): array
     {
@@ -172,8 +175,8 @@ class DashboardNewcomerService
             ->join('locations', 'games.location_id', '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']])
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
             ->where('games.status', GameStatus::Scheduled->value)
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
@@ -299,7 +302,7 @@ class DashboardNewcomerService
      *   3. Find Game — complete if user has any game participation (even pending)
      *   4. Attend Session — complete if user has attended a completed game
      *
-     * @return array{steps: array, current_step: int, completion_percentage: int}
+     * @return array<string, mixed>
      */
     public function computeProgressTracker(User $user): array
     {
@@ -380,22 +383,24 @@ class DashboardNewcomerService
      * Queries users in the same geohash tile with complete public profiles,
      * excluding self. Sorted by taste compatibility (shared game systems).
      *
-     * @return array{people: array, total_nearby: int}
+     * @return array<string, mixed>
      */
     public function computeNearbyPeople(User $user, string $geohash4): array
     {
         $bounds = Geohash::prefixBounds($geohash4);
 
         // Viewer's preferred game system IDs
-        $viewerSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')->toArray();
+        $viewerSystemIds = $user->gameSystemPreferences()->pluck('game_systems.id')
+            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        /** @var array<string> $viewerSystemIds */
 
         // Query nearby users with public profiles
         $nearbyUsers = User::query()
             ->join('locations', 'users.location_id', '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']])
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
             ->where('users.id', '!=', $user->id)
             ->where('users.profile_complete', true)
             ->whereNull('users.anonymized_at')
@@ -419,7 +424,9 @@ class DashboardNewcomerService
         }
 
         // Bulk-load game system preferences for all candidates
-        $candidateIds = $nearbyUsers->pluck('id')->toArray();
+        $candidateIds = $nearbyUsers->pluck('id')
+            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        /** @var array<string> $candidateIds */
         $candidateSystemPrefs = $this->bulkLoadGameSystemPreferences($candidateIds);
 
         // Bulk-load all unique game system names to avoid per-candidate queries
@@ -430,14 +437,16 @@ class DashboardNewcomerService
 
         // Score by shared game systems
         $scored = $nearbyUsers->map(function ($candidate) use ($viewerSystemIds, $candidateSystemPrefs, $systemNames) {
-            $candidateSystemIds = $candidateSystemPrefs[$candidate->id] ?? [];
+            $rawSystemIds = $candidateSystemPrefs[(string) $candidate->id] ?? [];
+            $candidateSystemIds = is_array($rawSystemIds) ? array_values(array_filter($rawSystemIds, fn (mixed $v) => is_string($v))) : [];
             $sharedSystems = array_intersect($viewerSystemIds, $candidateSystemIds);
             $sharedCount = count($sharedSystems);
 
             // Resolve the candidate's top system name from the bulk-loaded map
             $topSystemName = null;
             if (! empty($candidateSystemIds)) {
-                $topSystemName = $systemNames[$candidateSystemIds[0]] ?? null;
+                $firstId = $candidateSystemIds[0];
+                $topSystemName = $systemNames[$firstId] ?? null;
             }
 
             return [
@@ -483,10 +492,12 @@ class DashboardNewcomerService
 
     /**
      * Count nearby games matching the user's preferred game systems.
+     *
+     * @param  array<string, mixed>  $preferredSystemIds
      */
-    private function countMatchingNearbyGames(User $user, array $preferredSystemIds, $location): int
+    private function countMatchingNearbyGames(User $user, array $preferredSystemIds, ?Location $location): int
     {
-        if (empty($preferredSystemIds) || ! $location?->latitude || ! $location?->longitude) {
+        if (empty($preferredSystemIds) || $location === null || ! $location->latitude || ! $location->longitude) {
             return 0;
         }
 
@@ -503,8 +514,8 @@ class DashboardNewcomerService
             ->join('locations', 'games.location_id', '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']])
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
             ->where('games.status', GameStatus::Scheduled->value)
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
@@ -516,10 +527,12 @@ class DashboardNewcomerService
 
     /**
      * Get game IDs the user already owns or participates in.
+     *
+     * @return array<int, mixed>
      */
     private function getExcludedGameIds(User $user): array
     {
-        $cacheKey = $user->id;
+        $cacheKey = (string) $user->id;
         if (isset($this->excludedGameIdsCache[$cacheKey])) {
             return $this->excludedGameIdsCache[$cacheKey];
         }
@@ -535,6 +548,8 @@ class DashboardNewcomerService
      * Determine the welcome message key based on available data.
      *
      * Returns one of several keys that map to localized welcome messages.
+     *
+     * @param  array<string, mixed>  $preferredSystems
      */
     private function resolveWelcomeMessageKey(bool $hasLocation, array $preferredSystems, int $matchingGamesCount): string
     {
@@ -556,5 +571,4 @@ class DashboardNewcomerService
 
         return 'welcome_basic';
     }
-
 }

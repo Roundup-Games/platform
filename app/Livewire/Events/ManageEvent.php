@@ -6,6 +6,7 @@ use App\Enums\ContentLanguage;
 use App\Models\Event;
 use App\Services\ScopedRoleService;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,7 @@ class ManageEvent extends Component
     public Event $event;
 
     public ?string $confirmingAction = null;
+
     // ── Tab tracking ──────────────────────────────────
     public string $activeTab = 'details';
 
@@ -28,31 +30,51 @@ class ManageEvent extends Component
 
     // ── Basic Info ────────────────────────────────────
     public string $name = '';
+
     public string $short_description = '';
+
     public string $description = '';
+
     public string $type = 'tournament';
+
     public string $status = 'draft';
+
     public string $start_date = '';
+
     public string $end_date = '';
 
     // ── Venue ─────────────────────────────────────────
     public string $venue_name = '';
+
     public string $venue_address = '';
+
     public string $city = '';
+
     public string $country = '';
+
     public string $postal_code = '';
 
     // ── Registration & Fees ────────────────────────────
     public string $registration_type = 'team';
+
     public ?int $max_teams = null;
+
     public ?int $max_participants = null;
+
     public ?int $min_players_per_team = null;
+
     public ?int $max_players_per_team = null;
+
     public ?int $team_registration_fee = null;
+
     public ?int $individual_registration_fee = null;
+
     public ?int $early_bird_discount = null;
+
     public string $early_bird_deadline = '';
+
     public string $registration_opens_at = '';
+
     public string $registration_closes_at = '';
 
     // ── Divisions ─────────────────────────────────────
@@ -60,18 +82,27 @@ class ManageEvent extends Component
     public array $divisions = [];
 
     public string $newDivisionName = '';
+
     public string $newDivisionDescription = '';
 
     // ── Rules & Settings ──────────────────────────────
     public string $rules = '';
+
     public string $schedule = '';
+
     public string $contact_email = '';
+
     public string $contact_phone = '';
+
     public bool $is_public = true;
+
     public bool $is_featured = false;
 
     public bool $saved = false;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $baseRules = [
@@ -102,7 +133,7 @@ class ManageEvent extends Component
             'contact_phone' => 'nullable|string|max:30',
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
-            'language' => 'required|in:' . implode(',', ContentLanguage::values()),
+            'language' => 'required|in:'.implode(',', ContentLanguage::values()),
         ];
 
         return array_merge(
@@ -129,9 +160,9 @@ class ManageEvent extends Component
         $this->short_description = $e->short_description ?? '';
         $this->description = $e->description ?? '';
         $this->type = $e->type;
-        $this->status = $e->status->value;
-        $this->start_date = $e->start_date->format('Y-m-d');
-        $this->end_date = $e->end_date->format('Y-m-d');
+        $this->status = $e->status->value ?? 'draft';
+        $this->start_date = $e->start_date?->format('Y-m-d') ?? '';
+        $this->end_date = $e->end_date?->format('Y-m-d') ?? '';
         $this->venue_name = $e->venue_name ?? '';
         $this->venue_address = $e->venue_address ?? '';
         $this->city = $e->city ?? '';
@@ -148,9 +179,15 @@ class ManageEvent extends Component
         $this->early_bird_deadline = $e->early_bird_deadline ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
         $this->registration_opens_at = $e->registration_opens_at ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
         $this->registration_closes_at = $e->registration_closes_at ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
-        $this->divisions = $e->divisions ?? [];
-        $this->rules = is_array($e->rules) ? implode("\n", $e->rules) : ($e->rules ?? '');
-        $this->schedule = is_array($e->schedule) ? implode("\n", $e->schedule) : ($e->schedule ?? '');
+        /** @var array<int, array{name: string, description: string}> $divisions */
+        $divisions = $e->divisions ?? [];
+        $this->divisions = $divisions;
+        /** @var array<int, string>|string|null $rules */
+        $rules = $e->rules;
+        $this->rules = is_array($rules) ? implode("\n", $rules) : (string) ($rules ?? '');
+        /** @var array<int, string>|string|null $schedule */
+        $schedule = $e->schedule;
+        $this->schedule = is_array($schedule) ? implode("\n", $schedule) : (string) ($schedule ?? '');
         $this->contact_email = $e->contact_email ?? '';
         $this->contact_phone = $e->contact_phone ?? '';
         $this->is_public = $e->is_public;
@@ -163,6 +200,9 @@ class ManageEvent extends Component
         $this->loadTranslatableValues($e, ['name', 'description', 'short_description']);
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['name', 'description', 'short_description'];
@@ -226,12 +266,12 @@ class ManageEvent extends Component
         // Only global admins can change is_featured — non-admins keep the current value
         $isFeatured = $this->is_featured;
         if ($isFeatured !== (bool) $this->event->getOriginal('is_featured')) {
-            $user = Auth::user();
-            $isAdmin = $user && app(ScopedRoleService::class)->isGlobalAdmin($user);
+            $user = authenticatedUser();
+            $isAdmin = app(ScopedRoleService::class)->isGlobalAdmin($user);
 
             if (! $isAdmin) {
                 Log::warning('Non-admin attempted to change is_featured', [
-                    'user_id' => $user?->id,
+                    'user_id' => $user->id,
                     'event_id' => $this->event->id,
                     'attempted_value' => $isFeatured,
                 ]);
@@ -344,7 +384,7 @@ class ManageEvent extends Component
             'registration_opens_at' => $this->event->registration_opens_at ?? now(),
         ]);
         $this->status = 'registration_open';
-        $this->registration_opens_at = $this->event->registration_opens_at->format('Y-m-d\TH:i');
+        $this->registration_opens_at = $this->event->registration_opens_at?->format('Y-m-d\TH:i') ?? '';
 
         Log::info('Event registration opened', [
             'event_id' => $this->event->id,
@@ -416,10 +456,10 @@ class ManageEvent extends Component
      */
     private function resolveStatusString(mixed $status): string
     {
-        return $status instanceof \BackedEnum ? $status->value : (string) $status;
+        return $status instanceof \BackedEnum ? (string) $status->value : (is_string($status) ? $status : '');
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.events.manage-event');
     }

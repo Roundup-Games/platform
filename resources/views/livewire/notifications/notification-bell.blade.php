@@ -73,17 +73,17 @@
         <div class="max-h-96 overflow-y-auto divide-y divide-outline-variant/10">
             @forelse($notifications as $group)
                 <button
-                    wire:click="markAsRead('{{ $group->group_key }}')"
-                    class="w-full text-left px-4 py-3 hover:bg-surface-container-high transition-colors {{ $group->is_read ? 'opacity-60' : '' }}"
+                    wire:click="markAsRead('{{ $group->groupKey }}')"
+                    class="w-full text-left px-4 py-3 hover:bg-surface-container-high transition-colors {{ $group->isRead ? 'opacity-60' : '' }}"
                     role="menuitem"
                 >
                     <div class="flex items-start gap-3">
                         {{-- Unread indicator --}}
-                        <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $group->is_read ? 'bg-transparent' : 'bg-primary' }}"></span>
+                        <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $group->isRead ? 'bg-transparent' : 'bg-primary' }}"></span>
 
                         <div class="flex-1 min-w-0">
                             {{-- Display string --}}
-                            <p class="text-sm text-on-surface leading-snug line-clamp-2">{!! $group->display_html !!}</p>
+                            <p class="text-sm text-on-surface leading-snug line-clamp-2">{!! $group->displayHtml !!}</p>
 
                             {{-- Meta row: time ago + count --}}
                             <div class="flex items-center gap-2 mt-1">

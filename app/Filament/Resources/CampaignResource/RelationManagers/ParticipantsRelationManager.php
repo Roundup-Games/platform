@@ -4,8 +4,8 @@ namespace App\Filament\Resources\CampaignResource\RelationManagers;
 
 use App\Enums\ParticipantRole;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;

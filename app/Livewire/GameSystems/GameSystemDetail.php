@@ -3,6 +3,7 @@
 namespace App\Livewire\GameSystems;
 
 use App\Models\GameSystem;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -63,22 +64,22 @@ class GameSystemDetail extends Component
     public function toggleFavorite(): void
     {
         $this->resolveSystem();
-        $user = auth()->user();
-        abort_unless($user, 403);
+        abort_unless(auth()->check(), 403);
+        $user = authenticatedUser();
 
         $exists = $user->gameSystemPreferences()
-            ->where('game_system_id', $this->system->id)
+            ->where('game_system_id', $this->resolveSystem()->id)
             ->wherePivot('preference_type', 'favorite')
             ->exists();
 
         if ($exists) {
-            $user->gameSystemPreferences()->detach($this->system->id);
+            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_removed_from_favorites'));
         } else {
             // Remove avoid if present, then add favorite
-            $user->gameSystemPreferences()->detach($this->system->id);
-            $user->gameSystemPreferences()->attach($this->system->id, ['preference_type' => 'favorite']);
+            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
+            $user->gameSystemPreferences()->attach($this->resolveSystem()->id, ['preference_type' => 'favorite']);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_added_to_favorites'));
         }
@@ -87,22 +88,22 @@ class GameSystemDetail extends Component
     public function toggleAvoid(): void
     {
         $this->resolveSystem();
-        $user = auth()->user();
-        abort_unless($user, 403);
+        abort_unless(auth()->check(), 403);
+        $user = authenticatedUser();
 
         $exists = $user->gameSystemPreferences()
-            ->where('game_system_id', $this->system->id)
+            ->where('game_system_id', $this->resolveSystem()->id)
             ->wherePivot('preference_type', 'avoid')
             ->exists();
 
         if ($exists) {
-            $user->gameSystemPreferences()->detach($this->system->id);
+            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_removed_from_avoid_list'));
         } else {
             // Remove favorite if present, then add avoid
-            $user->gameSystemPreferences()->detach($this->system->id);
-            $user->gameSystemPreferences()->attach($this->system->id, ['preference_type' => 'avoid']);
+            $user->gameSystemPreferences()->detach($this->resolveSystem()->id);
+            $user->gameSystemPreferences()->attach($this->resolveSystem()->id, ['preference_type' => 'avoid']);
             $this->dispatch('preference-updated');
             session()->flash('status', __('games.flash_added_to_avoid_list'));
         }
@@ -118,11 +119,13 @@ class GameSystemDetail extends Component
 
         $this->resolveSystem();
 
-        $pref = auth()->user()->gameSystemPreferences()
-            ->where('game_system_id', $this->system->id)
-            ->first();
+        $pref = authenticatedUser()->gameSystemPreferences()
+            ->where('game_system_id', $this->resolveSystem()->id)
+            ->first()?->pivot;
 
-        return $pref?->pivot?->preference_type;
+        $val = $pref?->getAttribute('preference_type');
+
+        return is_string($val) ? $val : null;
     }
 
     public function getFavoritedCountProperty(): int
@@ -130,7 +133,7 @@ class GameSystemDetail extends Component
         $this->resolveSystem();
 
         return DB::table('user_game_system_preferences')
-            ->where('game_system_id', $this->system->id)
+            ->where('game_system_id', $this->resolveSystem()->id)
             ->where('preference_type', 'favorite')
             ->count();
     }
@@ -140,13 +143,15 @@ class GameSystemDetail extends Component
         $this->resolveSystem();
 
         return DB::table('user_game_system_preferences')
-            ->where('game_system_id', $this->system->id)
+            ->where('game_system_id', $this->resolveSystem()->id)
             ->where('preference_type', 'avoid')
             ->count();
     }
 
     /**
      * Returns active session and campaign counts for this game system.
+     *
+     * @return array<string, mixed>
      */
     public function getSessionCampaignStatsProperty(): array
     {
@@ -160,7 +165,7 @@ class GameSystemDetail extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         try {
             $system = $this->resolveSystem();

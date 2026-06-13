@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Str;
 
 /**
  * Integration tests for slug-based profile routing and model binding.
@@ -39,7 +41,7 @@ describe('User route model binding', function () {
     });
 
     it('returns null for non-existent UUID', function () {
-        $resolved = (new User)->resolveRouteBinding((string) \Illuminate\Support\Str::uuid());
+        $resolved = (new User)->resolveRouteBinding((string) Str::uuid());
 
         expect($resolved)->toBeNull();
     });
@@ -91,7 +93,7 @@ describe('Slug uniqueness constraints', function () {
         User::factory()->create(['name' => 'Unique Slug Test', 'slug' => 'unique-slug-test']);
 
         // Attempting to create a user with the same slug should fail
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         User::factory()->create(['name' => 'Another User', 'slug' => 'unique-slug-test']);
     });

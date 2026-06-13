@@ -7,7 +7,9 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Team;
 use App\Models\User;
-use function Pest\Laravel\{get, actingAs};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 // Per-entity visibility robots tests. The *SeoTest.php files unit-test
 // getDynamicSEOData() for every status/visibility combination. These

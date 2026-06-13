@@ -36,10 +36,10 @@ class PruneOrphanLocations extends Command
         if ($dryRun) {
             $this->info("[DRY-RUN] Would delete {$count} orphan location(s):");
             $orphans->limit(20)->each(fn (Location $loc) => $this->line(
-                "  - {$loc->id} {$loc->name} ({$loc->city}) created {$loc->created_at->diffForHumans()}"
+                "  - {$loc->id} {$loc->name} ({$loc->city}) created {$loc->created_at?->diffForHumans()}"
             ));
             if ($count > 20) {
-                $this->line("  ... and " . ($count - 20) . " more");
+                $this->line('  ... and '.($count - 20).' more');
             }
 
             return self::SUCCESS;

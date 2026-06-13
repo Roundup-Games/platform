@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
+use App\Models\User;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class WaitlistPromoted extends BaseNotification
@@ -16,9 +17,9 @@ class WaitlistPromoted extends BaseNotification
         public string $confirmationDeadline = '',
     ) {}
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_waitlist_promoted', [
@@ -36,9 +37,9 @@ class WaitlistPromoted extends BaseNotification
     /**
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'waitlist_promoted',
@@ -50,9 +51,9 @@ class WaitlistPromoted extends BaseNotification
         ];
     }
 
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
             title: __('notifications.push_title_waitlist_promoted'),

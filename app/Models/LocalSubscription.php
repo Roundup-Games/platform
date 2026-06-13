@@ -2,16 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ */
 class LocalSubscription extends Model
 {
+    /** @use HasFactory<Factory> */
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -37,11 +44,13 @@ class LocalSubscription extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<MembershipType, $this> */
     public function membershipType(): BelongsTo
     {
         return $this->belongsTo(MembershipType::class);
@@ -57,7 +66,11 @@ class LocalSubscription extends Model
         return $this->status === 'canceled';
     }
 
-    public function scopeActive($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeActive(Builder $query)
     {
         return $query->where('status', 'active');
     }

@@ -8,17 +8,26 @@ use App\Jobs\UpdateUserDiscoveryCache;
 use App\Notifications\NewFollower;
 use App\Services\NotificationService;
 use App\Services\PeopleDiscoveryService;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property string $user_id
+ * @property string $related_user_id
+ * @property RelationshipType $type
+ */
 class UserRelationship extends Model
 {
+    /** @use HasFactory<Factory> */
     use HasFactory;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = ['id', 'user_id', 'related_user_id', 'type'];
@@ -41,11 +50,15 @@ class UserRelationship extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function related(): BelongsTo
     {
         return $this->belongsTo(User::class, 'related_user_id');
@@ -59,23 +72,26 @@ class UserRelationship extends Model
      */
     public static function follow(User $initiator, User $target): self
     {
+        $initiatorId = (string) $initiator->id;
+        $targetId = (string) $target->id;
+
         Log::info('user.relationship.follow', [
-            'user_id' => $initiator->id,
-            'target_id' => $target->id,
+            'user_id' => $initiatorId,
+            'target_id' => $targetId,
             'action' => 'follow',
         ]);
 
         $rel = static::firstOrCreate(
             [
-                'user_id' => $initiator->id,
-                'related_user_id' => $target->id,
+                'user_id' => $initiatorId,
+                'related_user_id' => $targetId,
                 'type' => RelationshipType::Follow,
             ],
         );
 
         // Invalidate discovery caches — initiator's candidate pool changed
-        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
-        UpdateUserDiscoveryCache::dispatch($initiator->id, 'follow');
+        PeopleDiscoveryService::invalidateCacheFor($initiatorId);
+        UpdateUserDiscoveryCache::dispatch($initiatorId, 'follow');
 
         // Dashboard feed cache invalidation is handled by UserRelationshipObserver
 
@@ -89,8 +105,8 @@ class UserRelationship extends Model
                 );
             } catch (\Throwable $e) {
                 Log::error('notification.follow_dispatch_failed', [
-                    'initiator_id' => $initiator->id,
-                    'target_id' => $target->id,
+                    'initiator_id' => $initiatorId,
+                    'target_id' => $targetId,
                     'error' => $e->getMessage(),
                 ]);
             }
@@ -105,14 +121,17 @@ class UserRelationship extends Model
      */
     public static function unfollow(User $initiator, User $target): bool
     {
+        $initiatorId = (string) $initiator->id;
+        $targetId = (string) $target->id;
+
         Log::info('user.relationship.unfollow', [
-            'user_id' => $initiator->id,
-            'target_id' => $target->id,
+            'user_id' => $initiatorId,
+            'target_id' => $targetId,
             'action' => 'unfollow',
         ]);
 
-        $rel = static::where('user_id', $initiator->id)
-            ->where('related_user_id', $target->id)
+        $rel = static::where('user_id', $initiatorId)
+            ->where('related_user_id', $targetId)
             ->where('type', RelationshipType::Follow)
             ->first();
 
@@ -122,8 +141,8 @@ class UserRelationship extends Model
 
         $rel->delete();
 
-        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
-        UpdateUserDiscoveryCache::dispatch($initiator->id, 'unfollow');
+        PeopleDiscoveryService::invalidateCacheFor($initiatorId);
+        UpdateUserDiscoveryCache::dispatch($initiatorId, 'unfollow');
 
         // Dashboard feed cache invalidation is handled by UserRelationshipObserver (deleted event)
 
@@ -136,36 +155,39 @@ class UserRelationship extends Model
      */
     public static function block(User $initiator, User $target): self
     {
+        $initiatorId = (string) $initiator->id;
+        $targetId = (string) $target->id;
+
         // Remove follows in both directions as a side effect of blocking
-        static::where('user_id', $initiator->id)
-            ->where('related_user_id', $target->id)
+        static::where('user_id', $initiatorId)
+            ->where('related_user_id', $targetId)
             ->where('type', RelationshipType::Follow)
             ->delete();
 
-        static::where('user_id', $target->id)
-            ->where('related_user_id', $initiator->id)
+        static::where('user_id', $targetId)
+            ->where('related_user_id', $initiatorId)
             ->where('type', RelationshipType::Follow)
             ->delete();
 
         Log::info('user.relationship.block', [
-            'user_id' => $initiator->id,
-            'target_id' => $target->id,
+            'user_id' => $initiatorId,
+            'target_id' => $targetId,
             'action' => 'block',
         ]);
 
         $rel = static::firstOrCreate(
             [
-                'user_id' => $initiator->id,
-                'related_user_id' => $target->id,
+                'user_id' => $initiatorId,
+                'related_user_id' => $targetId,
                 'type' => RelationshipType::Block,
             ],
         );
 
         // Invalidate discovery caches for both users
-        PeopleDiscoveryService::invalidateCacheFor($initiator->id);
-        PeopleDiscoveryService::invalidateCacheFor($target->id);
-        UpdateUserDiscoveryCache::dispatch($initiator->id, 'block');
-        UpdateUserDiscoveryCache::dispatch($target->id, 'block');
+        PeopleDiscoveryService::invalidateCacheFor($initiatorId);
+        PeopleDiscoveryService::invalidateCacheFor($targetId);
+        UpdateUserDiscoveryCache::dispatch($initiatorId, 'block');
+        UpdateUserDiscoveryCache::dispatch($targetId, 'block');
 
         return $rel;
     }
@@ -176,23 +198,26 @@ class UserRelationship extends Model
      */
     public static function unblock(User $initiator, User $target): bool
     {
+        $initiatorId = (string) $initiator->id;
+        $targetId = (string) $target->id;
+
         Log::info('user.relationship.unblock', [
-            'user_id' => $initiator->id,
-            'target_id' => $target->id,
+            'user_id' => $initiatorId,
+            'target_id' => $targetId,
             'action' => 'unblock',
         ]);
 
-        $deleted = static::where('user_id', $initiator->id)
-            ->where('related_user_id', $target->id)
+        $deleted = static::where('user_id', $initiatorId)
+            ->where('related_user_id', $targetId)
             ->where('type', RelationshipType::Block)
             ->delete() > 0;
 
         if ($deleted) {
             // Both users' candidate pools change after unblock
-            PeopleDiscoveryService::invalidateCacheFor($initiator->id);
-            PeopleDiscoveryService::invalidateCacheFor($target->id);
-            UpdateUserDiscoveryCache::dispatch($initiator->id, 'unblock');
-            UpdateUserDiscoveryCache::dispatch($target->id, 'unblock');
+            PeopleDiscoveryService::invalidateCacheFor($initiatorId);
+            PeopleDiscoveryService::invalidateCacheFor($targetId);
+            UpdateUserDiscoveryCache::dispatch($initiatorId, 'unblock');
+            UpdateUserDiscoveryCache::dispatch($targetId, 'unblock');
         }
 
         return $deleted;

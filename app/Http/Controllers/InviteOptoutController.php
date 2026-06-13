@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SuppressedInviteEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class InviteOptoutController extends Controller
 {
@@ -13,6 +14,8 @@ class InviteOptoutController extends Controller
      *
      * Uses GET for the initial landing (email link), then POST for confirmation.
      * Two-step flow prevents email security scanners from triggering false suppression.
+     *
+     * @return View
      */
     public function show(Request $request, string $emailHash)
     {
@@ -35,6 +38,8 @@ class InviteOptoutController extends Controller
      * POST-only: email scanners and link prefetchers don't submit POST forms.
      * The emailHash is the SHA-256 of the invitee's email address.
      * Suppression is idempotent.
+     *
+     * @return View
      */
     public function confirm(Request $request, string $emailHash)
     {

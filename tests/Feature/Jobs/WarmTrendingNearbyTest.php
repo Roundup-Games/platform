@@ -3,8 +3,8 @@
 namespace Tests\Unit\Jobs;
 
 use App\Enums\GameStatus;
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Jobs\WarmTrendingNearby;
 use App\Models\Game;
 use App\Models\GameParticipant;

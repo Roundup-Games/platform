@@ -28,7 +28,7 @@ class EntityInvitationEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            to: $this->inviteeEmail,
+            to: [$this->inviteeEmail],
             subject: __('emails.entity_invitation_subject', ['inviter' => $this->inviterName, 'entity' => $this->entityName]),
         );
     }

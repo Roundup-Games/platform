@@ -49,7 +49,7 @@ class BackfillUserSlugs extends Command
         $updated = 0;
         $skipped = 0;
 
-        $usersWithoutSlug->chunk($batchSize, function ($users) use ($dryRun, $bar, &$updated, &$skipped) {
+        $usersWithoutSlug->chunk($batchSize, function ($users) use ($dryRun, $bar, &$updated) {
             foreach ($users as $user) {
                 if ($dryRun) {
                     $slug = User::generateUniqueSlug($user->name, $user->id);

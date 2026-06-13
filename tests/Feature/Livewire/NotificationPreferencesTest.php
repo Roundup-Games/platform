@@ -2,6 +2,7 @@
 
 use App\Enums\NotificationCategory;
 use App\Livewire\Settings\Show;
+use App\Models\PushSubscription;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -20,11 +21,11 @@ describe('notification preferences section', function () {
 
         // Verify 3 representative categories have correct channel defaults
         $component->assertSet('notificationSettings.new_follower.database', $defaults['new_follower']['database'])
-                  ->assertSet('notificationSettings.new_follower.mail', $defaults['new_follower']['mail'])
-                  ->assertSet('notificationSettings.game_invitation.database', $defaults['game_invitation']['database'])
-                  ->assertSet('notificationSettings.game_invitation.mail', $defaults['game_invitation']['mail'])
-                  ->assertSet('notificationSettings.session_reminder.database', $defaults['session_reminder']['database'])
-                  ->assertSet('notificationSettings.session_reminder.mail', $defaults['session_reminder']['mail']);
+            ->assertSet('notificationSettings.new_follower.mail', $defaults['new_follower']['mail'])
+            ->assertSet('notificationSettings.game_invitation.database', $defaults['game_invitation']['database'])
+            ->assertSet('notificationSettings.game_invitation.mail', $defaults['game_invitation']['mail'])
+            ->assertSet('notificationSettings.session_reminder.database', $defaults['session_reminder']['database'])
+            ->assertSet('notificationSettings.session_reminder.mail', $defaults['session_reminder']['mail']);
     });
 
     it('loads stored notification settings on mount', function () {
@@ -91,7 +92,7 @@ describe('notification preferences section', function () {
     });
 
     it('shows push subscription count when user has subscriptions', function () {
-        \App\Models\PushSubscription::factory()->create(['user_id' => $this->user->id]);
+        PushSubscription::factory()->create(['user_id' => $this->user->id]);
 
         Livewire::test(Show::class)
             ->assertSet('pushSubscriptionCount', 1)

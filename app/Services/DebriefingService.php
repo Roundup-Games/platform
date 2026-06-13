@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Enums\ActivityType;
 use App\Enums\GameStatus;
+use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\Game;
 use App\Models\SessionDebriefing;
 use App\Models\User;
+use App\Notifications\DebriefingAvailable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 class DebriefingService
@@ -22,6 +25,8 @@ class DebriefingService
      *
      * Validates: game is completed, user is an approved participant,
      * game has debriefing tools, and user hasn't already submitted.
+     *
+     * @param  array<string, mixed>  $responses
      */
     public function submitDebriefing(Game $game, User $user, array $responses): SessionDebriefing
     {
@@ -42,7 +47,7 @@ class DebriefingService
             throw new \LogicException(__('games.error_debriefing_not_participant'));
         }
 
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             throw new \LogicException(__('games.error_debriefing_host_cannot_submit'));
         }
 
@@ -57,8 +62,9 @@ class DebriefingService
         $prompts = $game->getDebriefingPrompts();
         $filteredResponses = [];
         foreach ($prompts as $key => $promptData) {
-            if (isset($responses[$key]) && ! empty(trim($responses[$key]))) {
-                $filteredResponses[$key] = trim($responses[$key]);
+            $response = $responses[$key] ?? null;
+            if (isset($response) && is_string($response) && trim($response) !== '') {
+                $filteredResponses[$key] = trim($response);
             }
         }
 
@@ -113,11 +119,14 @@ class DebriefingService
             ->filter();
 
         foreach ($participants as $participant) {
+            if (! ($participant instanceof User)) {
+                continue;
+            }
             try {
                 $this->notificationService->send(
                     $participant,
-                    new \App\Notifications\DebriefingAvailable($game),
-                    \App\Enums\NotificationCategory::GameUpdated,
+                    new DebriefingAvailable($game),
+                    NotificationCategory::GameUpdated,
                 );
             } catch (\Throwable $e) {
                 Log::warning('Failed to send debriefing notification', [
@@ -138,6 +147,8 @@ class DebriefingService
      * Get aggregated anonymized debriefing summary for participants.
      *
      * Returns counts and themes without attribution.
+     *
+     * @return array<string, mixed>
      */
     public function getAnonymizedSummary(Game $game): array
     {
@@ -168,8 +179,10 @@ class DebriefingService
 
     /**
      * Get debriefing submissions with responses for the host view.
+     *
+     * @return Collection<int, SessionDebriefing>
      */
-    public function getHostDebriefings(Game $game): \Illuminate\Database\Eloquent\Collection
+    public function getHostDebriefings(Game $game): Collection
     {
         return SessionDebriefing::where('game_id', $game->id)
             ->submitted()

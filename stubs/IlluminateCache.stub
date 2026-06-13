@@ -1,0 +1,9 @@
+<?php
+
+namespace Illuminate\Cache;
+
+/**
+ * @method mixed block(int|float $seconds, callable $callback = null)
+ */
+class Lock {}
+

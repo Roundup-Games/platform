@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +19,7 @@ beforeEach(function () {
     config(['posthog.enabled' => true]);
     config(['posthog.api_key' => 'phc_test_key']);
 
-    $this->posthogClient = new TestablePostHogClient();
+    $this->posthogClient = new TestablePostHogClient;
     $this->app->instance(PostHogClient::class, $this->posthogClient);
     Cache::flush();
 });
@@ -27,7 +29,6 @@ beforeEach(function () {
  * We bind TestablePostHogClient into the container and exercise the exception handler's
  * report() method to confirm the reportable() callback in bootstrap/app.php fires correctly.
  */
-
 describe('5xx exception pipeline', function () {
     it('reports a RuntimeException through the exception handler', function () {
         $handler = app(ExceptionHandler::class);
@@ -38,7 +39,7 @@ describe('5xx exception pipeline', function () {
 
     it('reports an ErrorException through the exception handler', function () {
         $handler = app(ExceptionHandler::class);
-        $handler->report(new \ErrorException('Undefined variable', 0, E_ERROR, '/app/test.php', 42));
+        $handler->report(new ErrorException('Undefined variable', 0, E_ERROR, '/app/test.php', 42));
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(1);
     });
@@ -80,7 +81,7 @@ describe('4xx exception pipeline', function () {
 
     it('does NOT capture a ModelNotFoundException', function () {
         $handler = app(ExceptionHandler::class);
-        $handler->report(new \Illuminate\Database\Eloquent\ModelNotFoundException());
+        $handler->report(new ModelNotFoundException);
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(0);
     });
@@ -97,7 +98,8 @@ describe('PostHog failure resilience', function () {
     it('exception handler does not throw when PostHog capture fails', function () {
         // PostHogClient::capture() catches SDK errors internally.
         // Use a client that silently drops (simulates caught SDK error).
-        $silentClient = new class extends TestablePostHogClient {
+        $silentClient = new class extends TestablePostHogClient
+        {
             public function capture(array $payload): void
             {
                 // Silent drop — PostHogClient caught the SDK error
@@ -166,7 +168,7 @@ describe('PostHog disabled state', function () {
 // to cover edge cases that Laravel's $internalDontReport filters out.
 
 it('uses authenticated user ID as distinct ID via reporter', function () {
-    $user = \App\Models\User::factory()->make(['id' => 42]);
+    $user = User::factory()->make(['id' => 42]);
     Auth::shouldReceive('user')->andReturn($user);
 
     $reporter = app(PostHogExceptionReporter::class);

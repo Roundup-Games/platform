@@ -3,6 +3,7 @@
 use App\Models\GmSocialLink;
 use App\Models\User;
 use App\Services\GmSocialLinkService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
@@ -300,7 +301,7 @@ describe('unique constraint', function () {
             'user_id' => $this->user->id,
             'platform' => 'twitter',
             'handle' => 'second',
-        ]))->toThrow(\Illuminate\Database\QueryException::class);
+        ]))->toThrow(QueryException::class);
     });
 
     it('allows same platform for different users', function () {

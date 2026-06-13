@@ -1,6 +1,9 @@
 <?php
 
-use function Pest\Laravel\{get, actingAs};
+use App\Models\User;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 describe('ForOrganizersPage', function () {
     it('renders the for-organizers page for guests', function () {
@@ -15,7 +18,7 @@ describe('ForOrganizersPage', function () {
     });
 
     it('shows session creation CTA for authenticated users', function () {
-        actingAs(\App\Models\User::factory()->create([
+        actingAs(User::factory()->create([
             'profile_complete' => true,
         ]));
 

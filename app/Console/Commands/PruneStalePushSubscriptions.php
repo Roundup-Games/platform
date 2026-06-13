@@ -23,7 +23,8 @@ class PruneStalePushSubscriptions extends Command
 
         $query = PushSubscription::where('updated_at', '<', $cutoff);
 
-        $count = $dryRun ? $query->count() : $query->delete();
+        $rawCount = $dryRun ? $query->count() : $query->delete();
+        $count = is_numeric($rawCount) ? (int) $rawCount : 0;
 
         $this->info($dryRun
             ? "Would delete {$count} stale push subscription(s) (not updated in {$maxAge}+ days)"

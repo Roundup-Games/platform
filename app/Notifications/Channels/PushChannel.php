@@ -4,8 +4,10 @@ namespace App\Notifications\Channels;
 
 use App\Dto\PushPayload;
 use App\Models\PushSubscription;
+use App\Models\User;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
+use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\WebPush;
 
 /**
@@ -29,7 +31,7 @@ class PushChannel
     /**
      * Send the push notification to all of the notifiable's subscriptions.
      */
-    public function send($notifiable, Notification $notification): void
+    public function send(mixed $notifiable, Notification $notification): void
     {
         // 0. Graceful degradation when VAPID keys are not configured
         if ($this->webPush === null) {
@@ -48,13 +50,16 @@ class PushChannel
         }
 
         // 2. Get user's subscriptions
+        if (! ($notifiable instanceof User)) {
+            return;
+        }
         $subscriptions = $notifiable->pushSubscriptions;
 
         if ($subscriptions->isEmpty()) {
             return;
         }
 
-        $payloadJson = json_encode($payload->toArray());
+        $payloadJson = json_encode($payload->toArray()) ?: '{}';
 
         // 3. Queue all subscriptions for batch sending
         foreach ($subscriptions as $subscription) {
@@ -75,6 +80,9 @@ class PushChannel
         // 4. Flush batch and process results
         try {
             foreach ($this->webPush->flush() as $report) {
+                if (! $report instanceof MessageSentReport) {
+                    continue;
+                }
                 $this->handleReport($report);
             }
         } catch (\Throwable $e) {
@@ -87,7 +95,7 @@ class PushChannel
     /**
      * Handle a push delivery report — clean up expired subscriptions.
      */
-    protected function handleReport($report): void
+    protected function handleReport(MessageSentReport $report): void
     {
         if ($report->isSuccess()) {
             return;

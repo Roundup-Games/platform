@@ -23,12 +23,15 @@ use App\Services\ActionCenterService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ActionCenterServiceTest extends TestCase
 {
     private ActionCenterService $service;
+
     private User $user;
+
     private GameSystem $gameSystem;
 
     protected function setUp(): void
@@ -504,7 +507,7 @@ class ActionCenterServiceTest extends TestCase
 
         // Submit a debriefing
         SessionDebriefing::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'tool_type' => 'debriefing',
@@ -894,7 +897,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'Running 10 minutes late!',
@@ -933,7 +936,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'Expired bulletin',
@@ -960,7 +963,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         $bulletin = GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'Old bulletin',
@@ -985,7 +988,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $this->user->id,
             'content' => 'My own bulletin',
@@ -1012,7 +1015,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'Host update',
@@ -1039,7 +1042,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         $bulletin = GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'Running late!',
@@ -1081,7 +1084,7 @@ class ActionCenterServiceTest extends TestCase
         ]);
 
         $bulletin = GameBulletin::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $host->id,
             'content' => 'See you soon!',

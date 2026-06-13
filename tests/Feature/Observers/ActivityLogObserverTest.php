@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\ActivityType;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
@@ -10,8 +12,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->owner = User::factory()->create();
@@ -41,7 +42,7 @@ describe('Game & Campaign observers', function () {
         $game = Game::factory()->create(['owner_id' => $this->owner->id, 'status' => 'scheduled']);
         $player = User::factory()->create();
         GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,
@@ -69,7 +70,7 @@ describe('Game & Campaign observers', function () {
         $game = Game::factory()->create(['owner_id' => $this->owner->id, 'status' => 'scheduled']);
         $player = User::factory()->create();
         GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,
@@ -98,7 +99,7 @@ describe('Participant observer', function () {
         $game = Game::factory()->create(['owner_id' => $this->owner->id]);
         $player = User::factory()->create();
         $participant = GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,
@@ -128,7 +129,7 @@ describe('Participant observer', function () {
         ActivityLog::query()->delete();
 
         GameParticipant::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'game_id' => $game->id,
             'user_id' => $player->id,
             'role' => ParticipantRole::Player->value,

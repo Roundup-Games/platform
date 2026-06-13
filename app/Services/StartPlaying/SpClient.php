@@ -32,7 +32,7 @@ class SpClient
      */
     public function fetchPage(string $slug): ?array
     {
-        $url = self::BASE_URL . '/play/' . $slug;
+        $url = self::BASE_URL.'/play/'.$slug;
 
         return $this->fetchAndParse($url, $slug);
     }
@@ -47,7 +47,7 @@ class SpClient
      */
     public function fetchListing(string $type): ?array
     {
-        $url = self::BASE_URL . '/play/' . $type;
+        $url = self::BASE_URL.'/play/'.$type;
 
         return $this->fetchAndParse($url, $type);
     }
@@ -60,30 +60,40 @@ class SpClient
      */
     public function extractListingSlugs(array $cache): array
     {
-        $rootQuery = $cache['ROOT_QUERY'] ?? [];
+        $rootQuery = is_array($cache['ROOT_QUERY'] ?? null) ? $cache['ROOT_QUERY'] : [];
 
         // Find the seoPages key (it has dynamic filter arguments)
         $seoPagesKey = null;
         foreach (array_keys($rootQuery) as $key) {
-            if (str_starts_with($key, 'seoPages')) {
+            if (is_string($key) && str_starts_with($key, 'seoPages')) {
                 $seoPagesKey = $key;
                 break;
             }
         }
 
-        if (! $seoPagesKey || ! isset($rootQuery[$seoPagesKey]['edges'])) {
+        if (! $seoPagesKey) {
+            return [];
+        }
+        $seoEntry = is_array($rootQuery[$seoPagesKey] ?? null) ? $rootQuery[$seoPagesKey] : [];
+        if (! isset($seoEntry['edges'])) {
             return [];
         }
 
+        $edges = is_array($seoEntry['edges']) ? $seoEntry['edges'] : [];
+
         $slugs = [];
-        foreach ($rootQuery[$seoPagesKey]['edges'] as $edge) {
-            $nodeRef = $edge['node']['__ref'] ?? null;
+        foreach ($edges as $edge) {
+            if (! is_array($edge)) {
+                continue;
+            }
+            $nodeRef = is_array($edge['node'] ?? null) && is_string($edge['node']['__ref'] ?? null)
+                ? $edge['node']['__ref'] : null;
             if (! $nodeRef) {
                 continue;
             }
 
-            $node = $cache[$nodeRef] ?? [];
-            $canonicalUrl = $node['canonicalUrl'] ?? null;
+            $node = is_array($cache[$nodeRef] ?? null) ? $cache[$nodeRef] : [];
+            $canonicalUrl = is_string($node['canonicalUrl'] ?? null) ? $node['canonicalUrl'] : null;
 
             if ($canonicalUrl) {
                 $slugs[] = ltrim($canonicalUrl, '/');
@@ -95,6 +105,8 @@ class SpClient
 
     /**
      * Fetch URL, parse __NEXT_DATA__, return the initialCache or null.
+     *
+     * @return array<string, mixed>
      */
     private function fetchAndParse(string $url, string $context): ?array
     {
@@ -105,7 +117,7 @@ class SpClient
 
         try {
             $response = Http::withHeaders([
-                'User-Agent' => config('app.name') . 'Bot/1.0 (+' . config('app.url') . ')',
+                'User-Agent' => (is_string($name = config('app.name')) ? $name : 'App').'Bot/1.0 (+'.(is_string($appUrl = config('app.url')) ? $appUrl : '').')',
                 'Accept' => 'text/html',
             ])
                 ->timeout(self::TIMEOUT)
@@ -182,9 +194,15 @@ class SpClient
             return null;
         }
 
-        $cache = $data['props']['pageProps']['initialCache'] ?? null;
+        if (! is_array($data)) {
+            return null;
+        }
 
-        if ($cache === null) {
+        $props = is_array($data['props'] ?? null) ? $data['props'] : [];
+        $pageProps = is_array($props['pageProps'] ?? null) ? $props['pageProps'] : [];
+        $cache = $pageProps['initialCache'] ?? null;
+
+        if (! is_array($cache)) {
             Log::warning('SP client: no initialCache in __NEXT_DATA__', [
                 'context' => $context,
             ]);
@@ -192,6 +210,7 @@ class SpClient
             return null;
         }
 
+        /** @var array<string, mixed> $cache */
         return $cache;
     }
 }

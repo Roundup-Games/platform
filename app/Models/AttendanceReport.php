@@ -3,16 +3,25 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\AttendanceReportFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * @property int|null $count
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class AttendanceReport extends Model
 {
+    /** @use HasFactory<AttendanceReportFactory> */
     use HasFactory;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -42,16 +51,25 @@ class AttendanceReport extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reporter_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function reported(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_id');

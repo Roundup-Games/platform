@@ -7,8 +7,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
-
 
 // ── Onboarding page access ────────────────────────────
 
@@ -446,7 +446,7 @@ it('rejects invalid game system IDs during onboarding', function () {
         ->set('pronouns', 'he/him')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('favoriteGameSystemIds', [$gs->id, \Illuminate\Support\Str::uuid()->toString()])
+        ->set('favoriteGameSystemIds', [$gs->id, Str::uuid()->toString()])
         ->call('complete')
         ->assertHasErrors(['favoriteGameSystemIds.1']);
 });
@@ -465,7 +465,7 @@ it('rejects all non-existent game system IDs during onboarding', function () {
         ->set('pronouns', 'he/him')
         ->call('nextStep')
         ->call('nextStep')
-        ->set('favoriteGameSystemIds', [\Illuminate\Support\Str::uuid()->toString(), \Illuminate\Support\Str::uuid()->toString()])
+        ->set('favoriteGameSystemIds', [Str::uuid()->toString(), Str::uuid()->toString()])
         ->call('complete')
         ->assertHasErrors(['favoriteGameSystemIds.0', 'favoriteGameSystemIds.1']);
 });
@@ -854,4 +854,3 @@ it('pre-fills location from existing user location_id on mount', function () {
         ->assertSet('lng', 9.993)
         ->assertSet('locationConfirmed', true);
 });
-

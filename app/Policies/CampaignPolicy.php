@@ -7,12 +7,12 @@ use App\Enums\Visibility;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Services\ScopedRoleService;
-use App\Services\ShortLinkService;
 use App\Traits\ValidatesShortLinkCookie;
 
 class CampaignPolicy
 {
     use ValidatesShortLinkCookie;
+
     /**
      * Global admin bypass.
      */
@@ -62,14 +62,14 @@ class CampaignPolicy
 
         if ($campaign->visibility === Visibility::Protected) {
             return $user !== null
-                && ($campaign->owner_id === $user->id
-                    || $user->isFriendOrTeammate($campaign->owner)
+                && ((string) $campaign->owner_id === (string) $user->id
+                    || ($campaign->owner && $user->isFriendOrTeammate($campaign->owner))
                     || $campaign->participants()->where('user_id', $user->id)->exists());
         }
 
         // Private campaigns require auth and ownership (or participation)
         return $user !== null
-            && ($campaign->owner_id === $user->id
+            && ((string) $campaign->owner_id === (string) $user->id
                 || $campaign->participants()->where('user_id', $user->id)->exists());
     }
 
@@ -87,7 +87,7 @@ class CampaignPolicy
      */
     public function update(User $user, Campaign $campaign): bool
     {
-        if ($campaign->owner_id === $user->id) {
+        if ((string) $campaign->owner_id === (string) $user->id) {
             return true;
         }
 
@@ -99,7 +99,7 @@ class CampaignPolicy
      */
     public function delete(User $user, Campaign $campaign): bool
     {
-        if ($campaign->owner_id === $user->id) {
+        if ((string) $campaign->owner_id === (string) $user->id) {
             return true;
         }
 

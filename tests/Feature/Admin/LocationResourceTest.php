@@ -4,17 +4,22 @@ use App\Enums\VenueType;
 use App\Filament\Resources\LocationResource\Pages\CreateLocation;
 use App\Filament\Resources\LocationResource\Pages\EditLocation;
 use App\Filament\Resources\LocationResource\Pages\ListLocations;
+use App\Models\Game;
 use App\Models\Location;
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Support\Str;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, assertDatabaseMissing, get, seed};
+use Spatie\Permission\PermissionRegistrar;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\assertDatabaseMissing;
+use function Pest\Laravel\get;
 
 beforeEach(function () {
     seedRoles();
 
     setPermissionsTeamId(null);
-    app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $this->platformAdmin = User::factory()->create();
     $this->platformAdmin->assignRole('Platform Admin');
@@ -155,7 +160,7 @@ describe('Merge action', function () {
     test('merge action reassigns games and deletes source', function () {
         $source = Location::factory()->create(['name' => 'Duplicate Venue']);
         $target = Location::factory()->create(['name' => 'Correct Venue']);
-        $game = \App\Models\Game::factory()->create(['location_id' => $source->id]);
+        $game = Game::factory()->create(['location_id' => $source->id]);
 
         actingAs($this->platformAdmin);
 

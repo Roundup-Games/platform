@@ -2,13 +2,12 @@
 
 namespace Tests\Feature\Services;
 
-use App\Enums\GmProficiency;
-use App\Models\Game;
 use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ReviewAggregateServiceTest extends TestCase
@@ -16,7 +15,9 @@ class ReviewAggregateServiceTest extends TestCase
     use DatabaseTransactions;
 
     private ReviewAggregateService $service;
+
     private GMProfile $gmProfile;
+
     private User $gmUser;
 
     protected function setUp(): void
@@ -34,7 +35,6 @@ class ReviewAggregateServiceTest extends TestCase
 
     // ── updateAggregates ───────────────────────────────
 
-    
     public function test_it_sets_null_rating_when_no_published_reviews(): void
     {
         $this->service->updateAggregates($this->gmProfile);
@@ -44,7 +44,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(0, $this->gmProfile->review_count);
     }
 
-    
     public function test_it_computes_average_rating_and_count(): void
     {
         $this->createPublishedReview(rating: 4);
@@ -57,7 +56,7 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(2, $this->gmProfile->review_count);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('nonPublishedStatuses')]
+    #[DataProvider('nonPublishedStatuses')]
     public function test_it_excludes_non_published_reviews(string $status): void
     {
         $this->createPublishedReview(rating: 5);
@@ -78,7 +77,6 @@ class ReviewAggregateServiceTest extends TestCase
         ];
     }
 
-    
     public function test_it_rounds_average_to_two_decimals(): void
     {
         // 4 + 5 = 4.666...
@@ -94,7 +92,6 @@ class ReviewAggregateServiceTest extends TestCase
 
     // ── topProficiencies ───────────────────────────────
 
-    
     public function test_it_returns_empty_collection_when_no_reviews(): void
     {
         $result = $this->service->topProficiencies($this->gmProfile);
@@ -102,7 +99,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertTrue($result->isEmpty());
     }
 
-    
     public function test_it_counts_tag_frequency_across_reviews(): void
     {
         $this->createPublishedReview(tags: ['storytelling', 'voices']);
@@ -120,7 +116,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(1, $result[2]['count']);
     }
 
-    
     public function test_it_limits_to_top_n(): void
     {
         $this->createPublishedReview(tags: ['creativity', 'inclusive', 'storytelling']);
@@ -133,7 +128,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(2, $result[0]['count']);
     }
 
-    
     public function test_it_excludes_non_published_reviews_from_proficiencies(): void
     {
         $this->createPublishedReview(tags: ['storytelling']);
@@ -145,7 +139,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals('storytelling', $result[0]['name']);
     }
 
-    
     public function test_it_ignores_reviews_with_null_tags(): void
     {
         $this->createPublishedReview(tags: null);
@@ -159,7 +152,6 @@ class ReviewAggregateServiceTest extends TestCase
 
     // ── recentReviews ──────────────────────────────────
 
-    
     public function test_it_returns_paginated_published_reviews(): void
     {
         $this->createPublishedReview(rating: 5);
@@ -172,7 +164,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertCount(2, $result->items());
     }
 
-    
     public function test_it_orders_reviews_newest_first(): void
     {
         $older = $this->createPublishedReview(rating: 3);
@@ -186,7 +177,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals($older->id, $result->items()[1]->id);
     }
 
-    
     public function test_it_paginates_correctly(): void
     {
         for ($i = 0; $i < 7; $i++) {
@@ -203,7 +193,6 @@ class ReviewAggregateServiceTest extends TestCase
 
     // ── Observer Integration ───────────────────────────
 
-    
     public function observer_updates_aggregates_on_review_created(): void
     {
         $this->createPublishedReview(rating: 4);
@@ -214,7 +203,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(2, $this->gmProfile->review_count);
     }
 
-    
     public function observer_updates_aggregates_on_status_change(): void
     {
         $review = $this->createPublishedReview(rating: 5);
@@ -227,7 +215,6 @@ class ReviewAggregateServiceTest extends TestCase
         $this->assertEquals(0, $this->gmProfile->review_count);
     }
 
-    
     public function observer_updates_aggregates_on_review_deleted(): void
     {
         $review = $this->createPublishedReview(rating: 4);

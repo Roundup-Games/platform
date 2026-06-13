@@ -75,7 +75,7 @@ class SeoCacheService
 
         $cached = Cache::get($cacheKey);
 
-        if ($cached !== null) {
+        if (is_string($cached)) {
             return $cached;
         }
 
@@ -97,7 +97,7 @@ class SeoCacheService
 
         $cached = Cache::get($cacheKey);
 
-        if ($cached !== null) {
+        if (is_string($cached)) {
             return $cached;
         }
 

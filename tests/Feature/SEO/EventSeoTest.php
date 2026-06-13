@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Event;
-use App\Models\User;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 describe('Event getDynamicSEOData', function () {

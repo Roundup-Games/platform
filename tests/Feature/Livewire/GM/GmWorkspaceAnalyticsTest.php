@@ -310,6 +310,7 @@ describe('Link analytics summary', function () {
             ->test(GmWorkspace::class)
             ->assertViewHas('linkAnalytics', function ($analytics) {
                 $byType = $analytics['linksByType'];
+
                 return $byType['Game'] === 2 && $byType['Campaign'] === 1;
             });
     });

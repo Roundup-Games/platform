@@ -1,10 +1,12 @@
 <?php
 
-use function Pest\Laravel\{get, assertRedirect};
+use Illuminate\Support\Facades\URL;
+
+use function Pest\Laravel\get;
 
 beforeEach(function () {
     // Set up URL defaults so locale-prefixed routes resolve correctly
-    \Illuminate\Support\Facades\URL::defaults(['locale' => 'en']);
+    URL::defaults(['locale' => 'en']);
     app()->setLocale('en');
 });
 

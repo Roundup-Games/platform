@@ -4,11 +4,10 @@ use App\Models\LinkedAccount;
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
 
-
 // ── New user registration via OAuth ─────────────────────
 
 it('creates a new user and linked account from Google OAuth', function () {
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('12345');
     $socialiteUser->shouldReceive('getEmail')->andReturn('test@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Test User');
@@ -44,7 +43,7 @@ it('creates a new user and linked account from Google OAuth', function () {
 })->group('smoke');
 
 it('marks email as verified for OAuth registered users', function () {
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('99999');
     $socialiteUser->shouldReceive('getEmail')->andReturn('new@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('New User');
@@ -76,7 +75,7 @@ it('logs in existing user via linked account', function () {
         'token' => 'old-token',
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('67890');
     $socialiteUser->shouldReceive('getEmail')->andReturn('existing@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Existing User');
@@ -106,7 +105,7 @@ it('creates linked account when logging in existing user by email match', functi
         'profile_complete' => true,
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('11111');
     $socialiteUser->shouldReceive('getEmail')->andReturn('match@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Match User');
@@ -138,7 +137,7 @@ it('updates avatar on OAuth login if user has none', function () {
         'profile_complete' => true,
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('22222');
     $socialiteUser->shouldReceive('getEmail')->andReturn('noavatar@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Avatar User');
@@ -161,7 +160,7 @@ it('does not overwrite existing avatar on OAuth login', function () {
         'profile_complete' => true,
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('33333');
     $socialiteUser->shouldReceive('getEmail')->andReturn('hasavatar@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Has Avatar');
@@ -182,7 +181,7 @@ it('does not overwrite existing avatar on OAuth login', function () {
 it('links a Google account to an authenticated user', function () {
     $user = User::factory()->create();
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('44444');
     $socialiteUser->shouldReceive('getEmail')->andReturn('linked@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Linked User');
@@ -223,7 +222,7 @@ it('rejects linking a Google account already linked to another user', function (
         'token' => 'tok',
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('55555');
     $socialiteUser->shouldReceive('getEmail')->andReturn('taken@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Taken User');
@@ -259,7 +258,7 @@ it('rejects linking a Google account already linked to another user', function (
 it('handles OAuth errors gracefully', function () {
     Socialite::shouldReceive('driver->user')
         ->once()
-        ->andThrow(new \Exception('OAuth failed'));
+        ->andThrow(new Exception('OAuth failed'));
 
     $response = $this->get('/auth/google/callback');
 
@@ -270,7 +269,7 @@ it('handles OAuth errors gracefully', function () {
 // ── Name fallback and redirect logic ───────────────────
 
 it('uses email prefix as name when OAuth provider returns no name', function () {
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('10001');
     $socialiteUser->shouldReceive('getEmail')->andReturn('john.doe@gmail.com');
     $socialiteUser->shouldReceive('getName')->andReturn(null);
@@ -289,7 +288,7 @@ it('uses email prefix as name when OAuth provider returns no name', function () 
 });
 
 it('redirects new OAuth user to onboarding (not dashboard)', function () {
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('10002');
     $socialiteUser->shouldReceive('getEmail')->andReturn('onboard@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Onboard User');
@@ -311,7 +310,7 @@ it('redirects incomplete OAuth user to onboarding on email match login', functio
         'profile_complete' => false,
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('10003');
     $socialiteUser->shouldReceive('getEmail')->andReturn('incomplete@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Incomplete User');
@@ -338,7 +337,7 @@ it('returns success when linking an already-linked provider to the same user', f
         'token' => 'existing-tok',
     ]);
 
-    $socialiteUser = Mockery::mock();
+    $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
     $socialiteUser->shouldReceive('getId')->andReturn('10004');
     $socialiteUser->shouldReceive('getEmail')->andReturn('same@google.com');
     $socialiteUser->shouldReceive('getName')->andReturn('Same User');

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\PaddleWebhookController;
 use App\Models\User;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class BillingSupportTest extends TestCase
@@ -15,6 +15,7 @@ class BillingSupportTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Department $billingDept;
 
     protected function setUp(): void
@@ -111,7 +112,7 @@ class BillingSupportTest extends TestCase
     /** @test */
     public function payment_failure_auto_creates_billing_ticket(): void
     {
-        $controller = new \App\Http\Controllers\PaddleWebhookController();
+        $controller = new PaddleWebhookController;
         $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
         $method->setAccessible(true);
 
@@ -141,7 +142,7 @@ class BillingSupportTest extends TestCase
     /** @test */
     public function payment_failure_skips_ticket_if_no_customer_id(): void
     {
-        $controller = new \App\Http\Controllers\PaddleWebhookController();
+        $controller = new PaddleWebhookController;
         $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
         $method->setAccessible(true);
 
@@ -152,7 +153,7 @@ class BillingSupportTest extends TestCase
     /** @test */
     public function payment_failure_skips_ticket_if_user_not_found(): void
     {
-        $controller = new \App\Http\Controllers\PaddleWebhookController();
+        $controller = new PaddleWebhookController;
         $method = new \ReflectionMethod($controller, 'createPaymentFailureTicket');
         $method->setAccessible(true);
 

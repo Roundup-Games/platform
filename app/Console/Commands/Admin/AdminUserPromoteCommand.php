@@ -4,9 +4,12 @@ namespace App\Console\Commands\Admin;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\text;
 
 class AdminUserPromoteCommand extends Command
 {
@@ -35,7 +38,7 @@ class AdminUserPromoteCommand extends Command
             return self::FAILURE;
         }
 
-        $roleName = $this->option('role') ?? select(
+        $roleName = $this->option('role') ?? (string) select(
             label: 'Role to assign',
             options: ['Platform Admin', 'Games Admin'],
             default: 'Platform Admin',
@@ -72,9 +75,9 @@ class AdminUserPromoteCommand extends Command
     {
         $users = User::orderBy('name')->limit(20)->get(['email', 'name']);
         if ($users->isNotEmpty()) {
-            return select(
+            return (string) select(
                 label: 'Select user to promote',
-                options: $users->mapWithKeys(fn ($u) => [$u->email => "{$u->name} ({$u->email})"]),
+                options: $users->mapWithKeys(fn (User $u) => [$u->email => "{$u->name} ({$u->email})"])->all(),
             );
         }
 
@@ -83,19 +86,23 @@ class AdminUserPromoteCommand extends Command
 
     private function ensureRolesExist(): void
     {
-        if (! \Spatie\Permission\Models\Role::where('name', 'Platform Admin')->whereNull('team_id')->exists()) {
+        if (! Role::where('name', 'Platform Admin')->whereNull('team_id')->exists()) {
             $this->warn('Admin roles not found. Seeding roles...');
             $this->call('db:seed', ['--class' => 'RoleSeeder', '--force' => true]);
         }
     }
 
-    private function getGlobalRoles(User $user): \Illuminate\Support\Collection
+    /**
+    /**
+     * @return Collection<int, string>
+     */
+    private function getGlobalRoles(User $user): Collection
     {
         return DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_type', User::class)
             ->where('model_has_roles.model_id', $user->id)
             ->whereNull('model_has_roles.team_id')
-            ->pluck('roles.name');
+            ->pluck('roles.name')->filter(fn (mixed $name) => is_string($name))->map(fn (mixed $name): string => (string) $name);
     }
 }

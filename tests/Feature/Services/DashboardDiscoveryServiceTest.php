@@ -17,17 +17,23 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardDiscoveryService;
+use App\Services\Geohash;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DashboardDiscoveryServiceTest extends TestCase
 {
+    use DatabaseTransactions;
 
     private DashboardDiscoveryService $service;
+
     private User $user;
+
     private GameSystem $gameSystem;
+
     private Location $location;
 
     protected function setUp(): void
@@ -62,7 +68,7 @@ class DashboardDiscoveryServiceTest extends TestCase
         ]);
 
         // Get geohash4 from game location
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
 
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
@@ -88,7 +94,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(48.2082, 16.3738, 4);
+        $geohash4 = Geohash::tilePrefix(48.2082, 16.3738, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertEmpty($results);
@@ -114,7 +120,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $ids = array_column($results, 'id');
@@ -135,7 +141,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertNotEmpty($results);
@@ -177,18 +183,18 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        // Game without preference match but sooner — no tags
+        // Game without preference match but sooner — no tags (3+ days avoids starting_soon)
         $gameB = Game::factory()->create([
             'owner_id' => $otherUser->id,
             'game_system_id' => $this->gameSystem->id,
             'location_id' => $sortLocation->id,
-            'date_time' => now()->addDays(2),
+            'date_time' => now()->addDays(3),
             'status' => GameStatus::Scheduled->value,
             'visibility' => 'public',
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(48.1351, 11.5820, 4);
+        $geohash4 = Geohash::tilePrefix(48.1351, 11.5820, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         // Game with preference tag should come first
@@ -221,7 +227,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(50.1109, 8.6821, 4);
+        $geohash4 = Geohash::tilePrefix(50.1109, 8.6821, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertNotEmpty($results);
@@ -242,7 +248,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertNotEmpty($results);
@@ -274,12 +280,19 @@ class DashboardDiscoveryServiceTest extends TestCase
             ]);
         }
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        // Owner is an explicit participant record since ea675d67
+        GameParticipant::factory()->create([
+            'game_id' => $game->id,
+            'user_id' => $otherUser->id,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $ids = array_column($results, 'id');
         $idx = array_search($game->id, $ids);
-        $this->assertNotFalse($idx, "Game should appear in results. IDs: " . json_encode($ids));
+        $this->assertNotFalse($idx, 'Game should appear in results. IDs: '.json_encode($ids));
         $this->assertContains('filling_fast', $results[$idx]['relevance_tags']);
         $this->assertContains('popular_nearby', $results[$idx]['relevance_tags']);
     }
@@ -297,7 +310,7 @@ class DashboardDiscoveryServiceTest extends TestCase
 
         // User follows the friend
         UserRelationship::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'user_id' => $this->user->id,
             'related_user_id' => $friend->id,
             'type' => RelationshipType::Follow->value,
@@ -319,19 +332,19 @@ class DashboardDiscoveryServiceTest extends TestCase
             'status' => ParticipantStatus::Approved->value,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(47.0767, 15.4213, 4);
+        $geohash4 = Geohash::tilePrefix(47.0767, 15.4213, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $ids = array_column($results, 'id');
         $idx = array_search($game->id, $ids);
-        $this->assertNotFalse($idx, "Game should appear in results. IDs: " . json_encode($ids));
+        $this->assertNotFalse($idx, 'Game should appear in results. IDs: '.json_encode($ids));
         $this->assertContains('friends_are_going', $results[$idx]['relevance_tags']);
     }
 
     public function test_nearby_noteworthy_returns_empty_for_no_games(): void
     {
         // Use a unique geohash far from any created games
-        $geohash4 = \App\Services\Geohash::tilePrefix(-33.8688, 151.2093, 4); // Sydney
+        $geohash4 = Geohash::tilePrefix(-33.8688, 151.2093, 4); // Sydney
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertEmpty($results);
@@ -353,7 +366,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             ]);
         }
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertLessThanOrEqual(6, count($results));
@@ -383,7 +396,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             ]);
         }
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $ids = array_column($results, 'id');
@@ -412,7 +425,7 @@ class DashboardDiscoveryServiceTest extends TestCase
             'max_players' => 6,
         ]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $results = $this->service->getNearbyNoteworthy($this->user, $geohash4);
 
         $this->assertNotEmpty($results);
@@ -445,8 +458,8 @@ class DashboardDiscoveryServiceTest extends TestCase
 
         $veteranHost = collect($cards)->firstWhere('key', 'veteran_host');
         $this->assertNotNull($veteranHost);
-        $this->assertEquals('dashboard.milestones.veteran_host.title', $veteranHost['title_key']);
-        $this->assertEquals('dashboard.milestones.veteran_host.description', $veteranHost['description_key']);
+        $this->assertEquals('profile.dashboard_story_veteran_host', $veteranHost['title_key']);
+        $this->assertEquals('profile.dashboard_story_veteran_host_desc', $veteranHost['description_key']);
         $this->assertEquals('trophy', $veteranHost['icon']);
         $this->assertNotNull($veteranHost['earned_at']);
     }
@@ -772,7 +785,7 @@ class DashboardDiscoveryServiceTest extends TestCase
         $followed = User::factory()->count(2)->create();
         foreach ($followed as $f) {
             UserRelationship::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'user_id' => $this->user->id,
                 'related_user_id' => $f->id,
                 'type' => RelationshipType::Follow->value,
@@ -787,7 +800,7 @@ class DashboardDiscoveryServiceTest extends TestCase
         $followed = User::factory()->count(3)->create();
         foreach ($followed as $f) {
             UserRelationship::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'user_id' => $this->user->id,
                 'related_user_id' => $f->id,
                 'type' => RelationshipType::Follow->value,
@@ -803,7 +816,7 @@ class DashboardDiscoveryServiceTest extends TestCase
         $followed = User::factory()->count(3)->create();
         foreach ($followed as $f) {
             UserRelationship::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'user_id' => $this->user->id,
                 'related_user_id' => $f->id,
                 'type' => RelationshipType::Follow->value,
@@ -826,7 +839,7 @@ class DashboardDiscoveryServiceTest extends TestCase
 
     public function test_explorer_counts_hosted_and_participated_systems(): void
     {
-        $uid = \Illuminate\Support\Str::uuid()->toString();
+        $uid = Str::uuid()->toString();
 
         // Host 3 different systems
         for ($i = 0; $i < 3; $i++) {

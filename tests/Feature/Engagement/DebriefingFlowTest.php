@@ -6,8 +6,8 @@ use App\Enums\ParticipantStatus;
 use App\Models\ActivityLog;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\SessionDebriefing;
 use App\Models\GameSystem;
+use App\Models\SessionDebriefing;
 use App\Models\User;
 use App\Services\DebriefingService;
 
@@ -53,7 +53,7 @@ describe('Debriefing Flow', function () {
             ->and($game->getDebriefingToolType())->toBe('stars-and-wishes');
     });
 
-    it('returns no debriefing tools for game without debriefing rules', function (array|null $safetyRules) {
+    it('returns no debriefing tools for game without debriefing rules', function (?array $safetyRules) {
         $game = Game::factory()->create([
             'owner_id' => $this->host->id,
             'game_system_id' => $this->gameSystem->id,
@@ -138,7 +138,7 @@ describe('Debriefing Flow', function () {
 
         expect(fn () => $this->service->submitDebriefing($game, $this->participant, [
             'what_to_change' => 'Nothing',
-        ]))->toThrow(\LogicException::class);
+        ]))->toThrow(LogicException::class);
     });
 
     it('prevents host from submitting debriefing', function () {
@@ -146,7 +146,7 @@ describe('Debriefing Flow', function () {
 
         expect(fn () => $this->service->submitDebriefing($game, $this->host, [
             'what_went_well' => 'Host reflection',
-        ]))->toThrow(\LogicException::class);
+        ]))->toThrow(LogicException::class);
     });
 
     it('prevents non-participant from submitting', function () {
@@ -155,7 +155,7 @@ describe('Debriefing Flow', function () {
 
         expect(fn () => $this->service->submitDebriefing($game, $stranger, [
             'what_went_well' => 'Sneaky',
-        ]))->toThrow(\LogicException::class);
+        ]))->toThrow(LogicException::class);
     });
 
     it('prevents submission on non-completed game', function () {
@@ -174,7 +174,7 @@ describe('Debriefing Flow', function () {
 
         expect(fn () => $this->service->submitDebriefing($game, $this->participant, [
             'what_went_well' => 'Not done yet',
-        ]))->toThrow(\LogicException::class);
+        ]))->toThrow(LogicException::class);
     });
 
     it('rejects empty responses', function () {
@@ -182,7 +182,7 @@ describe('Debriefing Flow', function () {
 
         expect(fn () => $this->service->submitDebriefing($game, $this->participant, [
             'what_went_well' => '   ',
-        ]))->toThrow(\LogicException::class);
+        ]))->toThrow(LogicException::class);
     });
 
     it('filters out empty prompt responses keeping non-empty ones', function () {

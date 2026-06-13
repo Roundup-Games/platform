@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -7,7 +8,6 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\WaitlistService;
-use App\Enums\ParticipantRole;
 
 beforeEach(function () {
     $this->service = app(WaitlistService::class);

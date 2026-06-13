@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\GmProficiency;
 use App\Models\GMProfile;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -25,7 +26,7 @@ class GMProfileFactory extends Factory
             'user_id' => User::factory(),
             'bio' => fake()->optional()->paragraph(),
             'specializations' => fake()->optional()->randomElements(
-                \App\Enums\GmProficiency::values(),
+                GmProficiency::values(),
                 fake()->numberBetween(1, 3),
             ),
             'average_rating' => null,
@@ -42,7 +43,7 @@ class GMProfileFactory extends Factory
         return $this->afterMaking(function (GMProfile $profile) {
             if (empty($profile->slug)) {
                 $name = $profile->user?->name ?? 'gm';
-                $profile->slug = Str::slug($name) . '-' . Str::random(6);
+                $profile->slug = Str::slug($name).'-'.Str::random(6);
             }
         });
     }

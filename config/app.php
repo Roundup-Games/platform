@@ -151,4 +151,6 @@ return [
 
     'legal_text_reviewed' => env('LEGAL_TEXT_REVIEWED', false),
 
+    'deploy_timestamp' => env('DEPLOY_TIMESTAMP'),
+
 ];

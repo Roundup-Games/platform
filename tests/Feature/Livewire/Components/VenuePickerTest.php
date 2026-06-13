@@ -4,6 +4,7 @@ use App\Enums\VenueType;
 use App\Livewire\Components\VenuePicker;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\GeocodingService;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -153,7 +154,7 @@ it('shows error when confirming address with empty city', function () {
 });
 
 it('saves address even when geocoding returns no results', function () {
-    $this->mock(\App\Services\GeocodingService::class, function ($mock) {
+    $this->mock(GeocodingService::class, function ($mock) {
         $mock->shouldReceive('geocode')->andReturn(null);
     });
 

@@ -27,7 +27,7 @@ class ReviewEligibilityService
             return false;
         }
 
-        if ($game->date_time->isFuture()) {
+        if ($game->date_time?->isFuture()) {
             return false;
         }
 
@@ -67,6 +67,8 @@ class ReviewEligibilityService
      * Get all entities (games and campaigns) the user is eligible to review.
      *
      * Returns a Collection of ['reviewable_type' => class, 'reviewable_id' => string, 'reviewable' => Model].
+     *
+     * @return Collection<int, Game>
      */
     public function getEligibleReviews(User $user): Collection
     {
@@ -138,7 +140,7 @@ class ReviewEligibilityService
     private function isApprovedGameParticipant(User $user, Game $game): bool
     {
         // The owner/host should not review their own session
-        if ($game->owner_id === $user->id) {
+        if ((string) $game->owner_id === (string) $user->id) {
             return false;
         }
 
@@ -151,7 +153,7 @@ class ReviewEligibilityService
     private function isApprovedCampaignParticipant(User $user, Campaign $campaign): bool
     {
         // The owner/organizer should not review their own campaign
-        if ($campaign->owner_id === $user->id) {
+        if ((string) $campaign->owner_id === (string) $user->id) {
             return false;
         }
 

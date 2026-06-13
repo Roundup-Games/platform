@@ -10,7 +10,7 @@ use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Tag;
 use Escalated\Laravel\Models\Ticket;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -48,7 +48,7 @@ class ContactSupport extends Component
     {
         $this->validate();
 
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         // Rate limit: 5 support tickets per user per hour
         $rateLimitKey = "account-support:{$user->id}";
@@ -73,6 +73,9 @@ class ContactSupport extends Component
         $this->reset('subject', 'description', 'issueType');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -82,6 +85,9 @@ class ContactSupport extends Component
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function messages(): array
     {
         return [
@@ -95,6 +101,8 @@ class ContactSupport extends Component
 
     /**
      * Get the issue types for the view.
+     *
+     * @return array<string, mixed>
      */
     public function getIssueTypes(): array
     {
@@ -103,7 +111,7 @@ class ContactSupport extends Component
         ])->toArray();
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.support.contact-support', [
             'issueTypes' => $this->getIssueTypes(),

@@ -3,15 +3,16 @@
 namespace App\Livewire\Settings;
 
 use App\Enums\NotificationCategory;
-use Escalated\Laravel\Enums\TicketChannel;
-use Escalated\Laravel\Enums\TicketPriority;
-use Escalated\Laravel\Enums\TicketStatus;
 use App\Models\User;
 use App\Services\ProfileVisibilityResolver;
 use App\Services\TicketPayloadRenderer;
 use App\Services\UserAnonymizationService;
+use Escalated\Laravel\Enums\TicketChannel;
+use Escalated\Laravel\Enums\TicketPriority;
+use Escalated\Laravel\Enums\TicketStatus;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,11 +25,11 @@ use Livewire\Component;
 class Show extends Component
 {
     // Privacy settings
-    /** @var array<string, string> Map of field key → visibility level (everyone/friends/nobody) */
+    /** @var array<string, mixed> Map of field key → visibility level (everyone/friends/nobody) */
     public array $privacySettings = [];
 
     // Notification settings
-    /** @var array<string, array{database: bool, mail: bool, push: bool}> Per-category notification channel preferences */
+    /** @var array<string, mixed> Per-category notification channel preferences */
     public array $notificationSettings = [];
 
     public bool $privacySaved = false;
@@ -61,10 +62,11 @@ class Show extends Component
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
         $this->userHasPassword = $user->hasPasswordSet();
 
         // Initialize privacy settings with defaults for unset fields
+        /** @var array<string, mixed> $storedSettings */
         $storedSettings = $user->privacy_settings ?? [];
         foreach (ProfileVisibilityResolver::FIELDS as $field) {
             $default = $field === 'location' ? 'everyone' : 'friends';
@@ -72,7 +74,9 @@ class Show extends Component
         }
 
         // Initialize notification settings from stored preferences or defaults
-        $storedNotifications = $user->notification_settings ?? [];
+        $rawNotifications = $user->notification_settings;
+        /** @var array<string, array<string, mixed>> $storedNotifications */
+        $storedNotifications = $rawNotifications ?? [];
         $defaults = NotificationCategory::defaultSettings();
         foreach (NotificationCategory::cases() as $category) {
             $key = $category->value;
@@ -96,7 +100,7 @@ class Show extends Component
 
     public function savePrivacySettings(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $validated = $this->validate([
             'privacySettings' => ['required', 'array'],
@@ -121,7 +125,7 @@ class Show extends Component
 
     public function saveNotificationSettings(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $validated = $this->validate([
             'notificationSettings' => ['required', 'array'],
@@ -157,7 +161,7 @@ class Show extends Component
 
     public function changePassword(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if ($user->hasPasswordSet()) {
             // Existing password — must confirm current
@@ -166,7 +170,7 @@ class Show extends Component
                 'password' => ['required', 'string', 'min:8', 'confirmed'],
             ]);
 
-            if (! Hash::check($this->current_password, $user->password)) {
+            if (! Hash::check($this->current_password, (string) $user->password)) {
                 Log::warning('Password change failed: incorrect current password', [
                     'user_id' => $user->id,
                 ]);
@@ -200,14 +204,14 @@ class Show extends Component
 
     public function deleteAccount(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         if ($user->hasPasswordSet()) {
             $this->validate([
                 'delete_password' => ['required', 'string'],
             ]);
 
-            if (! Hash::check($this->delete_password, $user->password)) {
+            if (! Hash::check($this->delete_password, (string) $user->password)) {
                 $this->addError('delete_password', 'The provided password is incorrect.');
 
                 return;
@@ -253,7 +257,7 @@ class Show extends Component
      */
     public function requestExport(): void
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $department = Department::where('name', 'Account Support')->first();
         if (! $department) {
@@ -316,9 +320,9 @@ class Show extends Component
         session()->flash('data_export_requested', __('profile.flash_data_export_requested'));
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
+        $user = authenticatedUser();
 
         $tickets = Ticket::where('requester_type', User::class)
             ->where('requester_id', $user->id)

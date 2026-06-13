@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
@@ -9,8 +11,6 @@ use App\Models\Review;
 use App\Models\User;
 use App\Services\ReviewAggregateService;
 use App\Services\ReviewEligibilityService;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\URL;
 
@@ -50,7 +50,7 @@ describe('Self-Review Prevention', function () {
         expect($service->canReviewCampaign($gm, $campaign))->toBeFalse();
     });
 
-    it('owner listed as approved player participant can technically pass eligibility', function () {
+    it('owner cannot review own session even if also an approved participant', function () {
         $gm = User::factory()->create(['profile_complete' => true]);
         GMProfile::factory()->create(['user_id' => $gm->id]);
         $game = Game::factory()->create([
@@ -58,7 +58,8 @@ describe('Self-Review Prevention', function () {
             'date_time' => now()->subDay(),
         ]);
 
-        // Even if the GM is somehow added as a player participant
+        // Even if the GM is somehow added as a player participant,
+        // ownership blocks self-review (commit b2cfd35c)
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => $gm->id,
@@ -67,8 +68,7 @@ describe('Self-Review Prevention', function () {
         ]);
 
         $service = app(ReviewEligibilityService::class);
-        // Eligibility service checks participation status, not ownership
-        expect($service->canReviewSession($gm, $game))->toBeTrue();
+        expect($service->canReviewSession($gm, $game))->toBeFalse();
     });
 });
 

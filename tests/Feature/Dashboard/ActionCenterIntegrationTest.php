@@ -1,10 +1,8 @@
 <?php
 
-use App\Enums\GameStatus;
 use App\Enums\ParticipantStatus;
 use App\Enums\RelationshipType;
-use App\Models\Campaign;
-use App\Models\CampaignParticipant;
+use App\Livewire\Dashboard;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
@@ -12,7 +10,6 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Services\ActionCenterService;
 use App\Services\DashboardCacheService;
 use Illuminate\Support\Facades\Cache;
 
@@ -349,7 +346,7 @@ describe('Dashboard integration', function () {
         $cacheService->warmActionCenter($this->user);
 
         // Dashboard should render without errors
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $component->assertStatus(200);
 
         // Cache key should still exist after render

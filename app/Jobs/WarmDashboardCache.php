@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\URL;
  * writing results to cache so subsequent dashboard loads are fast.
  * Follows the same pattern as UpdateUserDiscoveryCache.
  */
-class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
+class WarmDashboardCache implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -37,6 +37,8 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
     /**
      * Delay between retry attempts (seconds).
      * Exponential backoff to avoid hammering a transiently-failing service.
+     *
+     * @var list<int>
      */
     public array $backoff = [30, 60, 120];
 
@@ -97,8 +99,8 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
         // is never set by the SetLocale middleware. Without this, every route()
         // call in ActionCenterService throws UrlGenerationException.
         $locale = $user->preferredLocale() ?? config('app.locale', 'en');
-        app()->setLocale($locale);
-        URL::defaults(['locale' => $locale]);
+        app()->setLocale(is_string($locale) ? $locale : 'en');
+        URL::defaults(['locale' => is_string($locale) ? $locale : 'en']);
 
         $itemCounts = [];
 
@@ -110,7 +112,7 @@ class WarmDashboardCache implements ShouldQueue, ShouldBeUnique
 
         // Warm feed
         $feed = $cacheService->warmFeed($user);
-        $itemCounts['feed'] = count($feed['items'] ?? []);
+        $itemCounts['feed'] = is_array($feedItems = $feed['items'] ?? null) ? count($feedItems) : 0;
 
         // Warm recaps
         $recaps = $cacheService->warmRecaps($user);

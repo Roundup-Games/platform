@@ -14,6 +14,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Services\Concerns\DashboardFormatting;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 class DashboardDiscoveryService
 {
     use DashboardFormatting;
+
     /**
      * Get nearby noteworthy games — scheduled games in the next 14 days
      * within the user's geohash tile that they are not already participating in.
@@ -43,6 +45,8 @@ class DashboardDiscoveryService
      *
      * Each game: id, name, system_badge, date_time, relative_time,
      * spots_available, distance_km, relevance_tags (array of tag keys).
+     *
+     * @return array<string, mixed>
      */
     public function getNearbyNoteworthy(User $user, string $geohash4): array
     {
@@ -61,13 +65,15 @@ class DashboardDiscoveryService
      *
      * Each card: key, title_key (i18n), description_key, icon, earned_at (Carbon|null),
      * is_new (earned within 7 days). Only returns earned cards.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getMilestoneCards(User $user): array
     {
         $cached = app(DashboardCacheService::class)->getMilestoneCards($user);
 
         if (! empty($cached)) {
-            return $cached;
+            return array_values($cached);
         }
 
         $cards = $this->computeMilestoneCards($user);
@@ -98,6 +104,8 @@ class DashboardDiscoveryService
 
     /**
      * Compute nearby noteworthy games from scratch.
+     *
+     * @return array<string, mixed>
      */
     private function computeNearbyNoteworthy(User $user, string $geohash4): array
     {
@@ -130,14 +138,15 @@ class DashboardDiscoveryService
             ->whereColumn('game_participants.game_id', 'games.id')
             ->where('game_participants.status', ParticipantStatus::Approved->value);
 
+        /** @var Collection<int, Game> $games */
         $games = Game::query()
             ->select('games.*')
             ->selectSub($participantCountSubquery, 'participant_count')
             ->join('locations', 'games.location_id', '=', 'locations.id')
             ->whereNotNull('locations.latitude')
             ->whereNotNull('locations.longitude')
-            ->whereBetween('locations.latitude', [$bounds['minLat'], $bounds['maxLat']])
-            ->whereBetween('locations.longitude', [$bounds['minLng'], $bounds['maxLng']])
+            ->whereBetween('locations.latitude', [$bounds->minLat, $bounds->maxLat])
+            ->whereBetween('locations.longitude', [$bounds->minLng, $bounds->maxLng])
             ->where('games.status', GameStatus::Scheduled->value)
             ->where('games.date_time', '>=', now())
             ->where('games.date_time', '<=', now()->addDays(14))
@@ -265,12 +274,17 @@ class DashboardDiscoveryService
 
     /**
      * Compute all milestone cards the user has earned.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function computeMilestoneCardsPublic(User $user): array
     {
         return $this->computeMilestoneCards($user);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function computeMilestoneCards(User $user): array
     {
         $cards = [];
@@ -311,6 +325,8 @@ class DashboardDiscoveryService
     /**
      * veteran_host: hosted >= 10 completed games.
      * earned_at = date of the 10th completed game.
+     *
+     * @return array<string, mixed>
      */
     private function computeVeteranHost(User $user): ?array
     {
@@ -323,6 +339,7 @@ class DashboardDiscoveryService
         }
 
         // Find when the 10th game was completed
+        /** @var Game|null $tenthGame */
         $tenthGame = Game::where('owner_id', $user->id)
             ->where('status', GameStatus::Completed->value)
             ->orderBy('date_time')
@@ -343,6 +360,8 @@ class DashboardDiscoveryService
     /**
      * community_builder: >= 5 unique players across hosted sessions.
      * earned_at = date of the game that brought the 5th unique player.
+     *
+     * @return array<string, mixed>
      */
     private function computeCommunityBuilder(User $user): ?array
     {
@@ -365,6 +384,7 @@ class DashboardDiscoveryService
         }
 
         // Approximate earned_at: date of the most recent completed hosted game
+        /** @var Game|null $lastHosted */
         $lastHosted = Game::where('owner_id', $user->id)
             ->where('status', GameStatus::Completed->value)
             ->orderByDesc('date_time')
@@ -382,6 +402,8 @@ class DashboardDiscoveryService
     /**
      * campaign_commitment: active in campaign with >= 5 completed sessions.
      * earned_at = when the campaign reached 5 completed sessions.
+     *
+     * @return array<string, mixed>
      */
     private function computeCampaignCommitment(User $user): ?array
     {
@@ -395,6 +417,7 @@ class DashboardDiscoveryService
 
         // Find campaigns the user is in that have >= 5 completed sessions
         // Use whereHas with count check instead of havingRaw (PG grouping issue)
+        /** @var Campaign|null $campaign */
         $campaign = Campaign::whereIn('id', $campaignIds)
             ->where('status', CampaignStatus::Active->value)
             ->withCount(['sessions as completed_sessions_count' => function ($query) {
@@ -411,6 +434,7 @@ class DashboardDiscoveryService
         }
 
         // earned_at: date of the 5th completed session in this campaign
+        /** @var Game|null $fifthSession */
         $fifthSession = Game::where('campaign_id', $campaign->id)
             ->where('status', GameStatus::Completed->value)
             ->orderBy('date_time')
@@ -429,10 +453,13 @@ class DashboardDiscoveryService
     /**
      * trusted_voice: received >= 3 reviews with avg >= 4.5.
      * earned_at = date of the review that satisfied the threshold.
+     *
+     * @return array<string, mixed>
      */
     private function computeTrustedVoice(User $user): ?array
     {
         // Get user's GM profile
+        /** @var GMProfile|null $gmProfile */
         $gmProfile = GMProfile::where('user_id', $user->id)->first();
 
         if ($gmProfile === null) {
@@ -449,6 +476,7 @@ class DashboardDiscoveryService
         }
 
         // earned_at: date of the 3rd review
+        /** @var Review|null $thirdReview */
         $thirdReview = Review::where('gm_profile_id', $gmProfile->id)
             ->where('status', 'published')
             ->orderBy('created_at')
@@ -467,6 +495,8 @@ class DashboardDiscoveryService
     /**
      * explorer: played >= 5 different game systems (hosted + participated).
      * earned_at = date of the most recent completed game in a unique system.
+     *
+     * @return array<string, mixed>
      */
     private function computeExplorer(User $user): ?array
     {
@@ -494,6 +524,7 @@ class DashboardDiscoveryService
         }
 
         // Approximate earned_at: most recent completed game
+        /** @var Game|null $lastGame */
         $lastGame = Game::where(function ($q) use ($user, $participatedGameIds) {
             $q->where('owner_id', $user->id)
                 ->orWhereIn('id', $participatedGameIds);
@@ -513,6 +544,8 @@ class DashboardDiscoveryService
 
     /**
      * Build a milestone card array.
+     *
+     * @return array<string, mixed>
      */
     private function buildCard(
         string $key,

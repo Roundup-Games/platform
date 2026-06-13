@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\ParticipantStatus;
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\CampaignDetail;
 use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;

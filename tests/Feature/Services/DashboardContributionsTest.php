@@ -341,7 +341,7 @@ class DashboardContributionsTest extends TestCase
     // ── Cache integration ──────────────────────────────
 
     #[Test]
-    public function getContributions_caches_result(): void
+    public function get_contributions_caches_result(): void
     {
         $user = User::factory()->create();
 
@@ -352,7 +352,7 @@ class DashboardContributionsTest extends TestCase
     }
 
     #[Test]
-    public function warmContributions_stores_in_cache(): void
+    public function warm_contributions_stores_in_cache(): void
     {
         $user = User::factory()->create();
 
@@ -390,7 +390,7 @@ class DashboardContributionsTest extends TestCase
     // ── Invalidation ───────────────────────────────────
 
     #[Test]
-    public function invalidateForUser_clears_contributions_cache(): void
+    public function invalidate_for_user_clears_contributions_cache(): void
     {
         $user = User::factory()->create();
 

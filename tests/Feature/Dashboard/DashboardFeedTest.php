@@ -1,7 +1,9 @@
 <?php
 
 use App\Dto\FeedItem;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Dashboard;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
@@ -10,8 +12,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRelationship;
 use App\Services\DashboardCacheService;
-use App\Enums\ParticipantRole;
-use Carbon\Carbon;
+use App\Services\Geohash;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
@@ -56,7 +57,7 @@ describe('Community Feed — friends activity', function () {
         ]);
 
         // Verify feed data is computed correctly via viewData
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         // Feed should contain the friend's activity
@@ -109,7 +110,7 @@ describe('Community Feed — friends activity', function () {
             'status' => 'active',
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         // Should contain Anna's campaign activity
@@ -132,7 +133,7 @@ describe('Community Feed — friends activity', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         expect($feed->count())->toBeLessThanOrEqual(10);
@@ -165,7 +166,7 @@ describe('Community Feed — friends activity', function () {
             'role' => ParticipantRole::Player->value,
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         // Same game can appear multiple times for different activity types (created, player_joined)
@@ -192,7 +193,7 @@ describe('Community Feed — friends activity', function () {
             ]);
         }
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // shouldShowCommunityPulse should be true with 3+ follows and feed data
         expect($component->viewData('shouldShowCommunityPulse'))->toBeTrue();
@@ -204,7 +205,7 @@ describe('Community Feed — friends activity', function () {
 describe('Community Feed — empty state', function () {
     test('community pulse is hidden when user has fewer than 3 follows', function () {
         // User follows nobody — shouldShowCommunityPulse should be false
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         expect($component->viewData('shouldShowCommunityPulse'))->toBeFalse();
         // Community pulse heading should NOT be rendered
@@ -213,7 +214,7 @@ describe('Community Feed — empty state', function () {
 
     test('people discovery is available via quick actions', function () {
         // The dashboard provides ways to find people via the newcomer or established templates
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         // The component should render without error
         $component->assertStatus(200);
     });
@@ -243,7 +244,7 @@ describe('Community Feed — trending subsection', function () {
         $this->user->update(['location_id' => $location->id]);
 
         // Seed trending cache for the user's geohash tile
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $trendingGame = Game::factory()->create([
             'status' => 'scheduled',
             'date_time' => now()->addDays(3),
@@ -268,7 +269,7 @@ describe('Community Feed — trending subsection', function () {
             ],
         ], 600);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // Trending section should be shown (friends < 5, trending not empty)
         expect($component->viewData('hasTrendingSection'))->toBeTrue();
@@ -289,7 +290,7 @@ describe('Community Feed — trending subsection', function () {
             'date_time' => now()->addDays(3),
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         expect($component->viewData('hasTrendingSection'))->toBeFalse();
     });
@@ -310,7 +311,7 @@ describe('Community Feed — trending subsection', function () {
             'date_time' => now()->addDay(),
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
 
         // show_trending is false because trending items are empty (no location)
         expect($component->viewData('hasTrendingSection'))->toBeFalse();
@@ -336,7 +337,7 @@ describe('Community Feed — trending subsection', function () {
         ]);
         $this->user->update(['location_id' => $location->id]);
 
-        $geohash4 = \App\Services\Geohash::tilePrefix(52.5200, 13.4050, 4);
+        $geohash4 = Geohash::tilePrefix(52.5200, 13.4050, 4);
         $trendingGame = Game::factory()->create([
             'status' => 'scheduled',
             'date_time' => now()->addDays(5),
@@ -362,7 +363,7 @@ describe('Community Feed — trending subsection', function () {
         ], 600);
 
         // The trending data should be available via viewData('trendingItems')
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $trendingItems = $component->viewData('trendingItems');
         // Trending items should be populated (fire icon is rendered in the template via the trending section)
         expect($trendingItems)->not->toBeEmpty();
@@ -392,7 +393,7 @@ describe('Community Feed — action verbs', function () {
             'role' => ParticipantRole::Player->value,
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         // Feed should contain Joiner's activity
@@ -414,7 +415,7 @@ describe('Community Feed — action verbs', function () {
             'name' => ['en' => 'Finished Game'],
         ]);
 
-        $component = Livewire::test(\App\Livewire\Dashboard::class);
+        $component = Livewire::test(Dashboard::class);
         $feed = $component->viewData('communityFeed');
 
         // Feed should contain Finisher's activity

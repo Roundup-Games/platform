@@ -6,7 +6,9 @@ use App\Models\Event;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class ScopedRoleService
 {
@@ -119,14 +121,14 @@ class ScopedRoleService
         // forgetCachedPermissions() alone is insufficient — the Eloquent relation
         // is already loaded on the model instance.
         setPermissionsTeamId($team->id);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
         $user->unsetRelations();
 
         try {
             $hasPermission = $this->checkPermission($user, $permission);
         } finally {
             setPermissionsTeamId(null);
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
         }
 
@@ -147,14 +149,14 @@ class ScopedRoleService
 
         // Check event-scoped permissions
         setPermissionsTeamId($event->id);
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
         $user->unsetRelations();
 
         try {
             $hasPermission = $this->checkPermission($user, $permission);
         } finally {
             setPermissionsTeamId(null);
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
         }
 
@@ -178,7 +180,7 @@ class ScopedRoleService
             if ($user->hasPermissionTo($permission)) {
                 return true;
             }
-        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+        } catch (PermissionDoesNotExist) {
             // Permission not in current context, try global
         }
 
@@ -186,18 +188,18 @@ class ScopedRoleService
         $currentTeamId = getPermissionsTeamId();
         if ($currentTeamId !== null) {
             setPermissionsTeamId(null);
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
 
             try {
                 $hasGlobal = $user->hasPermissionTo($permission);
-            } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            } catch (PermissionDoesNotExist) {
                 $hasGlobal = false;
             }
 
             // Restore original context
             setPermissionsTeamId($currentTeamId);
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
 
             return $hasGlobal;
@@ -234,7 +236,7 @@ class ScopedRoleService
     /**
      * Get all teams where the user has a Team Admin scoped role.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection<int, Team>
      */
     public function getAdministeredTeams(User $user): Collection
     {
@@ -259,7 +261,7 @@ class ScopedRoleService
     /**
      * Get all events where the user has an Event Admin scoped role.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection<int, Event>
      */
     public function getAdministeredEvents(User $user): Collection
     {
@@ -305,22 +307,22 @@ class ScopedRoleService
 
         try {
             foreach ($scopedTeamIds as $teamId) {
-                setPermissionsTeamId($teamId);
-                app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+                setPermissionsTeamId(is_int($teamId) || is_string($teamId) ? $teamId : 0);
+                app()[PermissionRegistrar::class]->forgetCachedPermissions();
                 $user->unsetRelations();
 
                 try {
                     if ($user->hasPermissionTo($permission)) {
                         return true;
                     }
-                } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+                } catch (PermissionDoesNotExist) {
                     continue;
                 }
             }
         } finally {
             // Restore original context — guaranteed even on exception
             setPermissionsTeamId($originalTeamId);
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             $user->unsetRelations();
         }
 

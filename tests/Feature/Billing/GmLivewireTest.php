@@ -1,6 +1,7 @@
 <?php
 
-use App\Models\LocalSubscription;
+use App\Livewire\Billing\BillingPortal;
+use App\Livewire\Billing\MembershipPage;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\GmRoleService;
@@ -37,7 +38,7 @@ describe('MembershipPage', function () {
         $gmPlan = MembershipType::where('type', 'local')->first();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->call('initiateCheckout', $gmPlan->id);
 
         // Verify the user's GM state was actually changed
@@ -53,7 +54,7 @@ describe('MembershipPage', function () {
         app(GmRoleService::class)->activateGmSubscription($user);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class)
+            ->test(MembershipPage::class)
             ->call('initiateCheckout', $gmPlan->id)
             ->assertSee(__('billing.error_you_already_have_a_gm_subscription'));
     })->group('smoke');
@@ -63,7 +64,7 @@ describe('MembershipPage', function () {
         app(GmRoleService::class)->activateGmSubscription($user);
 
         $component = Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\MembershipPage::class);
+            ->test(MembershipPage::class);
 
         $component->assertViewHas('gmSubscription');
         $gmSub = $component->viewData('gmSubscription');
@@ -79,7 +80,7 @@ describe('BillingPortal', function () {
         expect($user->fresh()->isGM())->toBeTrue();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
+            ->test(BillingPortal::class)
             ->call('cancelGmSubscription')
             ->assertSee(__('billing.content_gm_subscription_canceled'));
 
@@ -94,7 +95,7 @@ describe('BillingPortal', function () {
         expect($user->fresh()->isGM())->toBeFalse();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
+            ->test(BillingPortal::class)
             ->call('reactivateGmSubscription')
             ->assertSee(__('billing.content_gm_subscription_reactivated'));
 
@@ -105,7 +106,7 @@ describe('BillingPortal', function () {
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\Billing\BillingPortal::class)
+            ->test(BillingPortal::class)
             ->call('cancelGmSubscription')
             ->assertSee(__('billing.error_no_active_gm_subscription_to_cancel'));
     });

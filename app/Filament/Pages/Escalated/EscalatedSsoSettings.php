@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages\Escalated;
 
-use Escated\Filament\Models\EscalatedSettings;
 use Escalated\Filament\Pages\SsoSettings;
 use Filament\Forms;
 use Filament\Forms\Form;

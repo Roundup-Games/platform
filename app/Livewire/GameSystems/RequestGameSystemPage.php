@@ -3,6 +3,7 @@
 namespace App\Livewire\GameSystems;
 
 use App\Services\GameSystemRequestService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -40,6 +41,9 @@ class RequestGameSystemPage extends Component
 
     // ── Validation ────────────────────────────────────
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -58,11 +62,7 @@ class RequestGameSystemPage extends Component
     {
         $this->validate();
 
-        $user = Auth::user();
-        if (! $user) {
-            $this->redirectRoute('login');
-            return;
-        }
+        $user = authenticatedUser();
 
         $service = app(GameSystemRequestService::class);
 
@@ -75,11 +75,12 @@ class RequestGameSystemPage extends Component
                 'user_id' => $user->id,
                 'name' => $normalizedName,
             ]);
+
             return;
         }
 
         // Rate limit: 3 requests per day per user
-        $rateLimitKey = 'game-system-request:' . $user->id;
+        $rateLimitKey = 'game-system-request:'.$user->id;
 
         if (! RateLimiter::attempt($rateLimitKey, 3, fn () => true, decaySeconds: 86400)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
@@ -88,6 +89,7 @@ class RequestGameSystemPage extends Component
             logger()->info('Game system request rate limit hit', [
                 'user_id' => $user->id,
             ]);
+
             return;
         }
 
@@ -108,7 +110,7 @@ class RequestGameSystemPage extends Component
 
     // ── Render ────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.game-systems.request-game-system-page');
     }

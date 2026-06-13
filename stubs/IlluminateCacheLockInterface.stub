@@ -1,0 +1,8 @@
+<?php
+
+namespace Illuminate\Contracts\Cache;
+
+/**
+ * @method mixed block(int|float $seconds, callable $callback = null)
+ */
+interface Lock {}

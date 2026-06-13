@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\JoinSource;
-use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;

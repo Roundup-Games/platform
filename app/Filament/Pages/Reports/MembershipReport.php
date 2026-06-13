@@ -4,13 +4,14 @@ namespace App\Filament\Pages\Reports;
 
 use App\Filament\Exports\MembershipExporter;
 use Filament\Actions\ExportAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Paddle\Subscription;
@@ -19,12 +20,12 @@ class MembershipReport extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    public static function getNavigationIcon(): string | \BackedEnum | null
+    public static function getNavigationIcon(): string|\BackedEnum|null
     {
         return 'heroicon-o-chart-bar';
     }
 
-    public static function getNavigationGroup(): string | \UnitEnum | null
+    public static function getNavigationGroup(): string|\UnitEnum|null
     {
         return 'Reports';
     }
@@ -120,9 +121,9 @@ class MembershipReport extends Page implements HasTable
                     ->searchable(),
                 Filter::make('created_at')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('created_from')
+                        DatePicker::make('created_from')
                             ->label('Start Date From'),
-                        \Filament\Forms\Components\DatePicker::make('created_until')
+                        DatePicker::make('created_until')
                             ->label('Start Date Until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {

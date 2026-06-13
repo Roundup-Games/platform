@@ -18,7 +18,10 @@ class GenerateVapidKeys extends Command
 
         if ($existingPublicKey && $existingPrivateKey && ! $this->confirm('VAPID keys already exist. Regenerate? This will invalidate existing push subscriptions.')) {
             $this->info('Using existing VAPID keys.');
-            $this->displayKeys($existingPublicKey, $existingPrivateKey);
+            $this->displayKeys(
+                is_string($existingPublicKey) ? $existingPublicKey : '',
+                is_string($existingPrivateKey) ? $existingPrivateKey : '',
+            );
 
             return self::SUCCESS;
         }

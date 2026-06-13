@@ -17,12 +17,12 @@ class BggSyncLogResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function getNavigationIcon(): string | BackedEnum | null
+    public static function getNavigationIcon(): string|BackedEnum|null
     {
         return Heroicon::OutlinedClipboardDocumentList;
     }
 
-    public static function getNavigationGroup(): string | BackedEnum | null
+    public static function getNavigationGroup(): string|BackedEnum|null
     {
         return 'BGG Data';
     }
@@ -67,7 +67,7 @@ class BggSyncLogResource extends Resource
                 TextColumn::make('duration')
                     ->label('Duration')
                     ->state(fn ($record) => $record->completed_at && $record->started_at
-                        ? $record->started_at->diffInSeconds($record->completed_at) . 's'
+                        ? $record->started_at->diffInSeconds($record->completed_at).'s'
                         : '-'
                     )
                     ->toggleable(),

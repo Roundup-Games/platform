@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SafetyTool;
+use App\Enums\SafetyToolCategory;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
@@ -9,14 +11,16 @@ use App\SEO\AlgorithmsSchema;
 use App\SEO\OrganizationSchema;
 use Escalated\Laravel\Models\Department;
 use Escalated\Laravel\Models\Ticket;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 
 class PageController extends Controller
 {
+    /** @return View */
     public function home()
     {
         // Weekly rolling activity: sessions happening this week
@@ -53,27 +57,28 @@ class PageController extends Controller
         return view('pages.home', compact('sessionsThisWeek', 'activeCampaigns', 'peopleThisWeek'));
     }
 
+    /** @return View */
     public function about()
     {
         seo(new SEOData(
             title: __('pages.seo_title_about'),
-            description: __('pages.seo_description_about', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_about', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
         ));
 
         return view('pages.about');
     }
 
-    public function howItWorks()
+    public function howItWorks(): View
     {
         seo(new SEOData(
             title: __('pages.seo_title_how_it_works'),
-            description: __('pages.seo_description_how_it_works', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_how_it_works', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
         ));
 
         return view('pages.how-it-works');
     }
 
-    public function forOrganizers()
+    public function forOrganizers(): View
     {
         $organizerCount = User::has('ownedGames')->count();
         $displayCount = $organizerCount >= 10 ? $organizerCount : 50;
@@ -86,27 +91,27 @@ class PageController extends Controller
         return view('pages.for-organizers', compact('displayCount'));
     }
 
-    public function contact()
+    public function contact(): View
     {
         seo(new SEOData(
             title: __('pages.seo_title_contact'),
-            description: __('pages.seo_description_contact', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_contact', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
         ));
 
         return view('pages.contact');
     }
 
-    public function ourPledge()
+    public function ourPledge(): View
     {
         seo(new SEOData(
             title: __('pages.seo_title_our_pledge'),
-            description: __('pages.seo_description_our_pledge', ['brand' => config('company.display_name')]),
+            description: __('pages.seo_description_our_pledge', ['brand' => is_string($b = config('company.display_name')) ? $b : '']),
         ));
 
         return view('pages.pledge');
     }
 
-    public function algorithms()
+    public function algorithms(): View
     {
         $schema = SchemaCollection::initialize();
         $schema->markup[AlgorithmsSchema::class][] = fn (AlgorithmsSchema $s) => $s;
@@ -120,10 +125,10 @@ class PageController extends Controller
         return view('pages.pledge-algorithms');
     }
 
-    public function safetyTools()
+    public function safetyTools(): View
     {
-        $tools = \App\Enums\SafetyTool::cases();
-        $categories = \App\Enums\SafetyToolCategory::cases();
+        $tools = SafetyTool::cases();
+        $categories = SafetyToolCategory::cases();
 
         seo(new SEOData(
             title: __('safety.seo_title_safety_tools'),
@@ -133,7 +138,7 @@ class PageController extends Controller
         return view('pages.safety-tools', compact('tools', 'categories'));
     }
 
-    public function privacy()
+    public function privacy(): View
     {
         seo(new SEOData(
             title: __('privacy.heading_title'),
@@ -143,7 +148,7 @@ class PageController extends Controller
         return view('pages.privacy');
     }
 
-    public function terms()
+    public function terms(): View
     {
         seo(new SEOData(
             title: __('terms.heading_title'),
@@ -153,7 +158,7 @@ class PageController extends Controller
         return view('pages.terms');
     }
 
-    public function impressum()
+    public function impressum(): View
     {
         seo(new SEOData(
             title: __('impressum.heading_title'),
@@ -163,7 +168,7 @@ class PageController extends Controller
         return view('pages.impressum');
     }
 
-    public function submitContact(Request $request)
+    public function submitContact(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -197,7 +202,7 @@ class PageController extends Controller
 
         if (auth()->check()) {
             /** @var User $user */
-            $user = auth()->user();
+            $user = authenticatedUser();
             Ticket::create($baseTicketData + [
                 'requester_type' => User::class,
                 'requester_id' => $user->id,

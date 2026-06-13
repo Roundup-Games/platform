@@ -4,6 +4,8 @@ namespace Tests\Feature\Observers;
 
 use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
+use App\Livewire\People\PeoplePage;
+use App\Livewire\Profile\Show;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\NearbyDiscoveryView;
@@ -11,6 +13,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Queue;
+use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -154,8 +157,8 @@ class DiscoveryCacheTriggersTest extends TestCase
             'location_id' => $oldLocation->id,
         ]);
 
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->set('locationId', $newLocation->id)
             ->call('saveProfile');
 
@@ -176,8 +179,8 @@ class DiscoveryCacheTriggersTest extends TestCase
             'location_id' => $location->id,
         ]);
 
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->call('saveProfile');
 
         Queue::assertNotPushed(function (UpdateUserDiscoveryCache $job) {
@@ -195,8 +198,8 @@ class DiscoveryCacheTriggersTest extends TestCase
         ]);
 
         // First save with no vibes, then add a vibe
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->set('vibePreferences', [VibeFlag::Atmospheric->value => 'favorite'])
             ->call('savePreferences');
 
@@ -216,8 +219,8 @@ class DiscoveryCacheTriggersTest extends TestCase
 
         $gameSystem = GameSystem::factory()->create();
 
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->set('favoriteGameSystemIds', [$gameSystem->id])
             ->call('savePreferences');
 
@@ -235,8 +238,8 @@ class DiscoveryCacheTriggersTest extends TestCase
         $user = User::factory()->create(['profile_complete' => true]);
         $user->gameSystemPreferences()->attach($gameSystem, ['preference_type' => 'favorite']);
 
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->set('favoriteGameSystemIds', [$gameSystem->id])
             ->call('savePreferences');
 
@@ -258,16 +261,16 @@ class DiscoveryCacheTriggersTest extends TestCase
 
         // First save: set initial vibes
         $initialVibes = [VibeFlag::Atmospheric->value => 'favorite'];
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             ->set('vibePreferences', $initialVibes)
             ->call('savePreferences');
 
         Queue::fake(); // Reset after first save
 
         // Second save: mount loads existing vibes, we set the same, no vibe_change should fire
-        \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\Profile\Show::class)
+        Livewire::actingAs($user)
+            ->test(Show::class)
             // Don't set vibePreferences — it's already loaded from DB by mount()
             ->call('savePreferences');
 
@@ -288,8 +291,8 @@ class DiscoveryCacheTriggersTest extends TestCase
         ]);
 
         // First view
-        $component = \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+        $component = Livewire::actingAs($user)
+            ->test(PeoplePage::class);
         $component->set('activeTab', 'nearby');
         $component->instance()->nearbyUsers;
 
@@ -299,8 +302,8 @@ class DiscoveryCacheTriggersTest extends TestCase
         // Advance time and view again
         $this->travel(1)->hour();
 
-        $component2 = \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+        $component2 = Livewire::actingAs($user)
+            ->test(PeoplePage::class);
         $component2->set('activeTab', 'nearby');
         $component2->instance()->nearbyUsers;
 
@@ -354,8 +357,8 @@ class DiscoveryCacheTriggersTest extends TestCase
         ]);
 
         // Access the nearbyUsers computed property via the component
-        $component = \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+        $component = Livewire::actingAs($user)
+            ->test(PeoplePage::class);
 
         $component->set('activeTab', 'nearby');
 
@@ -381,8 +384,8 @@ class DiscoveryCacheTriggersTest extends TestCase
             'location_id' => $location->id,
         ]);
 
-        $component = \Livewire\Livewire::actingAs($user)
-            ->test(\App\Livewire\People\PeoplePage::class);
+        $component = Livewire::actingAs($user)
+            ->test(PeoplePage::class);
 
         $component->set('activeTab', 'nearby');
         $component->instance()->nearbyUsers;

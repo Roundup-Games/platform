@@ -3,16 +3,24 @@
 namespace App\Models;
 
 use App\Enums\DebriefingToolType;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
+/**
+ * @property string $id
+ * @property array<string, mixed> $responses
+ */
 class SessionDebriefing extends Model
 {
+    /** @use HasFactory<Factory> */
     use HasFactory;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -43,11 +51,15 @@ class SessionDebriefing extends Model
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<Game, $this>
+     */
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -55,12 +67,20 @@ class SessionDebriefing extends Model
 
     // ── Scopes ─────────────────────────────────────────
 
-    public function scopeSubmitted($query)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeSubmitted(Builder $query): Builder
     {
         return $query->whereNotNull('submitted_at');
     }
 
-    public function scopeByToolType($query, string $toolType)
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeByToolType(Builder $query, string $toolType)
     {
         return $query->where('tool_type', $toolType);
     }

@@ -2,13 +2,14 @@
 
 namespace Tests\Feature\Livewire\SessionZero;
 
+use App\Livewire\SessionZero\ViewSessionZero;
 use App\Models\GMProfile;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -50,7 +51,7 @@ class ViewSessionZeroTest extends TestCase
 
     public function test_shows_survey_by_uuid(): void
     {
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+        Livewire::test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee('Test Session Zero')
             ->assertSee('Heroic fantasy')
             ->assertSee('Flanking rules apply')
@@ -61,16 +62,16 @@ class ViewSessionZeroTest extends TestCase
     public function test_aborts_404_for_invalid_uuid(): void
     {
         // Use a valid UUID format that doesn't exist
-        $fakeUuid = (string) \Illuminate\Support\Str::uuid();
+        $fakeUuid = (string) Str::uuid();
 
-        $this->get('/en/session-zero/' . $fakeUuid)->assertStatus(404);
+        $this->get('/en/session-zero/'.$fakeUuid)->assertStatus(404);
     }
 
     // ── Confirmation: Unauthenticated ────────────────────
 
     public function test_unauthenticated_user_sees_login_cta(): void
     {
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+        Livewire::test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee(__('session_zero.action_login_to_confirm'))
             ->assertDontSee(__('session_zero.action_confirm'));
     }
@@ -82,7 +83,7 @@ class ViewSessionZeroTest extends TestCase
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee(__('session_zero.action_confirm'))
             ->assertDontSee(__('session_zero.action_login_to_confirm'));
     }
@@ -92,7 +93,7 @@ class ViewSessionZeroTest extends TestCase
         $user = User::factory()->create(['profile_complete' => true]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm')
             ->assertSet('confirmed', true);
 
@@ -115,7 +116,7 @@ class ViewSessionZeroTest extends TestCase
         $initialCount = $this->survey->confirmation_count;
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
 
         $this->survey->refresh();
@@ -127,7 +128,7 @@ class ViewSessionZeroTest extends TestCase
         $user = User::factory()->create(['profile_complete' => true]);
 
         $component = Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
 
         // Call confirm again — should not create a duplicate
@@ -147,7 +148,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSet('confirmed', true)
             ->assertSee(__('session_zero.confirmation_confirmed'))
             ->assertDontSee(__('session_zero.action_confirm'));
@@ -163,7 +164,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSet('confirmed', true)
             ->assertSee($confirmation->confirmed_at->format('F j, Y'));
     }
@@ -185,7 +186,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($this->gmUser)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee('Alice')
             ->assertSee('Bob')
             ->assertSee(__('session_zero.heading_confirmations'));
@@ -202,7 +203,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertDontSee(__('session_zero.heading_confirmations'));
     }
 
@@ -216,7 +217,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($this->gmUser)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee($confirmation->confirmed_at->format('M j, Y'));
     }
 
@@ -230,7 +231,7 @@ class ViewSessionZeroTest extends TestCase
         ]);
 
         Livewire::actingAs($this->gmUser)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee('(1)');
     }
 
@@ -247,7 +248,7 @@ class ViewSessionZeroTest extends TestCase
             }));
 
         Livewire::actingAs($user)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
     }
 
@@ -259,11 +260,11 @@ class ViewSessionZeroTest extends TestCase
         $user2 = User::factory()->create(['profile_complete' => true]);
 
         Livewire::actingAs($user1)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
 
         Livewire::actingAs($user2)
-            ->test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+            ->test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->call('confirm');
 
         $this->assertDatabaseCount('session_zero_confirmations', 2);
@@ -276,7 +277,7 @@ class ViewSessionZeroTest extends TestCase
     {
         $this->survey->archive();
 
-        Livewire::test(\App\Livewire\SessionZero\ViewSessionZero::class, ['uuid' => $this->survey->uuid])
+        Livewire::test(ViewSessionZero::class, ['uuid' => $this->survey->uuid])
             ->assertSee('Test Session Zero')
             ->assertStatus(200);
     }

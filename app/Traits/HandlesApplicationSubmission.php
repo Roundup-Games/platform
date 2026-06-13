@@ -2,15 +2,17 @@
 
 namespace App\Traits;
 
+use App\Dto\TransactionDecisions;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\Visibility;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use App\Notifications\NewApplication;
 use App\Services\NotificationService;
 use App\Services\ParticipantService;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +30,7 @@ trait HandlesApplicationSubmission
     /**
      * The entity being applied to (Game or Campaign).
      */
-    abstract protected function getEntity(): Model;
+    abstract protected function getEntity(): Game|Campaign;
 
     /**
      * Entity-specific configuration and translation keys.
@@ -62,7 +64,7 @@ trait HandlesApplicationSubmission
         $config = $this->getApplicationConfig();
 
         // Cannot apply to a canceled or completed entity
-        $status = $entity->status->value;
+        $status = $entity->status?->value;
         if (in_array($status, ['canceled', 'cancelled', 'completed'])) {
             session()->flash('error', __('common.error_entity_no_longer_available'));
             $this->redirect(route($config['show_route'], $entity->id), navigate: true);
@@ -87,7 +89,7 @@ trait HandlesApplicationSubmission
         $this->validate();
 
         // Capture transaction decisions for post-transaction flash messages
-        $txDecisions = (object) ['isPublic' => null, 'isFull' => null, 'benchMode' => null];
+        $txDecisions = new TransactionDecisions;
 
         try {
             DB::transaction(function () use ($entityId, $userId, $message, $foreignKey, $applicationClass, $participantClass, $config, $txDecisions) {
@@ -208,7 +210,7 @@ trait HandlesApplicationSubmission
                 if ($owner) {
                     app(NotificationService::class)->send(
                         $owner,
-                        new NewApplication(Auth::user(), $entity, $config['entity_type']),
+                        new NewApplication(authenticatedUser(), $entity, $config['entity_type']),
                         NotificationCategory::NewApplication
                     );
                 }

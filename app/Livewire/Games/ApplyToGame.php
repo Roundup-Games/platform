@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameApplication;
 use App\Models\GameParticipant;
 use App\Traits\HandlesApplicationSubmission;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -55,7 +56,7 @@ class ApplyToGame extends Component
         }
     }
 
-    protected function getEntity(): \Illuminate\Database\Eloquent\Model
+    protected function getEntity(): Game
     {
         return $this->game;
     }
@@ -84,7 +85,7 @@ class ApplyToGame extends Component
         ];
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.games.apply-to-game', [
             'game' => $this->game,

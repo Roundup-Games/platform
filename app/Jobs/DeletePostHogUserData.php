@@ -32,6 +32,8 @@ class DeletePostHogUserData implements ShouldQueue
 
     /**
      * The number of seconds to wait before retrying the job.
+     *
+     * @var list<int>
      */
     public array $backoff = [60, 300, 900];
 

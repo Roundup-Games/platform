@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
  * Follows the same pattern as WarmDashboardCache — ShouldBeUnique per tile
  * so duplicate jobs don't stack up for the same geohash.
  */
-class WarmTrendingNearby implements ShouldQueue, ShouldBeUnique
+class WarmTrendingNearby implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;

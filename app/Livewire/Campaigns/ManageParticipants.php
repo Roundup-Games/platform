@@ -3,9 +3,11 @@
 namespace App\Livewire\Campaigns;
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Traits\ManagesParticipants;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -57,7 +59,7 @@ class ManageParticipants extends Component
 
     // ── Render ─────────────────────────────────────────
 
-    public function render()
+    public function render(): View
     {
         $this->campaign->load([
             'participants.user',
@@ -68,14 +70,14 @@ class ManageParticipants extends Component
         // campaigns are ongoing — the GM/organiser is a persistent participant.
         // This differs from Games where the owner is hidden from ManageParticipants.
         $approvedParticipants = $this->campaign->participants
-            ->filter(fn ($p) => $p->status === \App\Enums\ParticipantStatus::Approved)
+            ->filter(fn ($p) => $p->status === ParticipantStatus::Approved)
             ->sortBy(fn ($p) => $p->role === ParticipantRole::Owner ? 0 : 1);
 
         $pendingApplicants = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Applicant && $p->status === ParticipantStatus::Pending);
 
         $pendingInvites = $this->campaign->participants
-            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === \App\Enums\ParticipantStatus::Pending);
+            ->filter(fn ($p) => $p->role === ParticipantRole::Invited && $p->status === ParticipantStatus::Pending);
 
         return view('livewire.campaigns.manage-participants', [
             'campaign' => $this->campaign,

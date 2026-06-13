@@ -11,7 +11,7 @@ use Tests\TestCase;
 class FeatureFlagDirectiveTest extends TestCase
 {
     #[Test]
-    public function featureFlag_renders_content_when_flag_is_on(): void
+    public function feature_flag_renders_content_when_flag_is_on(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('isOn')
@@ -29,7 +29,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlag_hides_content_when_flag_is_off(): void
+    public function feature_flag_hides_content_when_flag_is_off(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('isOn')
@@ -47,7 +47,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlag_shows_else_content_when_flag_is_off(): void
+    public function feature_flag_shows_else_content_when_flag_is_off(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('isOn')
@@ -66,7 +66,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlagVariant_renders_content_when_variant_matches(): void
+    public function feature_flag_variant_renders_content_when_variant_matches(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('getVariant')
@@ -84,7 +84,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlagVariant_hides_content_when_variant_does_not_match(): void
+    public function feature_flag_variant_hides_content_when_variant_does_not_match(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('getVariant')
@@ -102,7 +102,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlagVariant_shows_else_when_variant_does_not_match(): void
+    public function feature_flag_variant_shows_else_when_variant_does_not_match(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('getVariant')
@@ -121,7 +121,7 @@ class FeatureFlagDirectiveTest extends TestCase
     }
 
     #[Test]
-    public function featureFlag_gracefully_handles_service_failure(): void
+    public function feature_flag_gracefully_handles_service_failure(): void
     {
         $mock = Mockery::mock(PostHogFeatureFlag::class);
         $mock->shouldReceive('isOn')

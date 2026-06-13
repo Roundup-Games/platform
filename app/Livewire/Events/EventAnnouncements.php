@@ -5,6 +5,8 @@ namespace App\Livewire\Events;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Traits\BuildsTranslatableFormFields;
+use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -23,6 +25,7 @@ class EventAnnouncements extends Component
 
     // ── Form State ────────────────────────────────────
     public bool $showForm = false;
+
     public ?string $editingId = null;
 
     // Inherit the event's language as the baseline locale for translations.
@@ -36,6 +39,9 @@ class EventAnnouncements extends Component
     public string $content = '';
 
     // ── Translatable fields ──
+    /**
+     * @return array<int, string>
+     */
     public function getTranslatableFields(): array
     {
         return ['title', 'content'];
@@ -64,6 +70,9 @@ class EventAnnouncements extends Component
 
     // ── Computed ──────────────────────────────────────
 
+    /**
+     * @return LengthAwarePaginator<int, EventAnnouncement>
+     */
     #[Computed]
     public function announcements()
     {
@@ -81,6 +90,9 @@ class EventAnnouncements extends Component
             ->paginate(10);
     }
 
+    /**
+     * @return array<string, int>
+     */
     #[Computed]
     public function counts(): array
     {
@@ -276,7 +288,7 @@ class EventAnnouncements extends Component
             ->firstOrFail();
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.events.event-announcements');
     }

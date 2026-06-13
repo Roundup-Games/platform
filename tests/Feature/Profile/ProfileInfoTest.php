@@ -3,6 +3,7 @@
 use App\Enums\ContentLanguage;
 use App\Livewire\Profile\Show;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
@@ -86,7 +87,7 @@ it('logs profile update event', function () {
     $user = User::factory()->create(['profile_complete' => true]);
 
     Log::shouldReceive('info')
-        ->with('Profile updated', \Mockery::type('array'))
+        ->with('Profile updated', Mockery::type('array'))
         ->once();
 
     Livewire::actingAs($user)
@@ -98,7 +99,7 @@ it('logs profile update event', function () {
 // ── Language Display ──────────────────────────────────
 
 it('loads preferred_language and location on mount', function () {
-    $location = \App\Models\Location::factory()->create([
+    $location = Location::factory()->create([
         'name' => 'Berlin',
         'city' => 'Berlin',
         'country' => 'DE',

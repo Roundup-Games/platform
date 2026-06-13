@@ -1,12 +1,13 @@
 <?php
 
 use App\Enums\JoinSource;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Livewire\Campaigns\ManageParticipants as CampaignManageParticipants;
 use App\Mail\EntityInvitationEmail;
 use App\Models\CampaignParticipant;
+use App\Models\SuppressedInviteEmail;
 use App\Models\User;
-use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Tests\Traits\CreatesGameInstances;
@@ -239,7 +240,7 @@ test('invite by email logs structured context on campaign', function () {
                 && isset($context['campaign_id'])
                 && $context['campaign_id'] === $this->campaign->id
                 && isset($context['invitee_email_hash'])
-                && $context['invitee_email_hash'] === \App\Models\SuppressedInviteEmail::hashEmail('logged@example.com');
+                && $context['invitee_email_hash'] === SuppressedInviteEmail::hashEmail('logged@example.com');
         })
         ->once();
 });

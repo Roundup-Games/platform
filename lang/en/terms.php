@@ -2,11 +2,11 @@
 
 return [
     'heading_title' => 'Terms of Use',
-    'seo_description' => 'The terms and conditions governing your use of the ' . config('company.display_name') . ' platform. Clear, fair, and written in plain language.',
+    'seo_description' => 'The terms and conditions governing your use of the '.config('company.display_name').' platform. Clear, fair, and written in plain language.',
 
     // ── Introduction ───────────────────────────────────
     'heading_introduction' => 'Introduction',
-    'content_introduction_1' => 'These Terms of Use ("Terms") govern your access to and use of the ' . config('company.display_name') . ' platform at roundup.games ("Platform"), operated by ' . config('company.legal_name') . ' ("we", "us", "our").',
+    'content_introduction_1' => 'These Terms of Use ("Terms") govern your access to and use of the '.config('company.display_name').' platform at roundup.games ("Platform"), operated by '.config('company.legal_name').' ("we", "us", "our").',
     'content_introduction_2' => 'By creating an account or using the Platform, you agree to these Terms. If you don\'t agree, please don\'t use the Platform.',
     'content_introduction_3' => 'We wrote these Terms to be clear and fair. If anything is unclear, feel free to reach out.',
 
@@ -27,7 +27,7 @@ return [
 
     // ── Community Conduct ──────────────────────────────
     'heading_community_conduct' => 'Community Conduct',
-    'content_conduct_intro' => config('company.display_name') . ' exists to bring people together around real tables. To keep the community safe and welcoming, all users must:',
+    'content_conduct_intro' => config('company.display_name').' exists to bring people together around real tables. To keep the community safe and welcoming, all users must:',
     'content_conduct_respect' => 'Treat all members with respect. Harassment, discrimination, hate speech, and threats are strictly prohibited.',
     'content_conduct_honesty' => 'Be honest in your interactions. Do not misrepresent your identity, experience, or intentions.',
     'content_conduct_reliability' => 'Honor your commitments. If you sign up for a session, show up — or cancel with reasonable notice. Persistent no-shows affect your reliability score and may result in restrictions.',
@@ -44,19 +44,19 @@ return [
 
     // ── Platform License ───────────────────────────────
     'heading_platform_license' => 'Platform License (Open Source)',
-    'content_license_1' => config('company.display_name') . ' is open-source software. The source code is publicly available on GitHub under the applicable open-source license.',
+    'content_license_1' => config('company.display_name').' is open-source software. The source code is publicly available on GitHub under the applicable open-source license.',
     'content_license_2' => 'Your use of the Platform is governed by these Terms. Your use of the source code is governed by the repository\'s license.',
-    'content_license_3' => 'The "' . config('company.display_name') . '" name, logo, and branding are not licensed under the open-source license and may not be used without written permission.',
+    'content_license_3' => 'The "'.config('company.display_name').'" name, logo, and branding are not licensed under the open-source license and may not be used without written permission.',
 
     // ── Subscriptions & Payments ───────────────────────
     'heading_subscriptions' => 'Subscriptions & Payments',
     'content_subscriptions_1' => 'Some features require a paid subscription. Subscription fees are billed through Paddle.com.',
     'content_subscriptions_2' => 'You may cancel your subscription at any time. Access continues until the end of the current billing period.',
-    'content_subscriptions_3' => 'Refund requests are handled on a case-by-case basis. Contact us at ' . config('company.contact.support') . '.',
+    'content_subscriptions_3' => 'Refund requests are handled on a case-by-case basis. Contact us at '.config('company.contact.support').'.',
 
     // ── Limitation of Liability ────────────────────────
     'heading_liability' => 'Limitation of Liability',
-    'content_liability_1' => config('company.display_name') . ' is a community platform. We facilitate connections between players and organizers, but we do not organize, run, or supervise individual gaming sessions.',
+    'content_liability_1' => config('company.display_name').' is a community platform. We facilitate connections between players and organizers, but we do not organize, run, or supervise individual gaming sessions.',
     'content_liability_2' => 'You participate in sessions at your own risk. We are not liable for the conduct of other users, the safety of physical venues, or any incidents that occur at in-person events.',
     'content_liability_3' => 'To the fullest extent permitted by German law, our liability for any damages arising from the use of the Platform is limited to cases of gross negligence or intentional misconduct.',
     'content_liability_4' => 'We do not guarantee uninterrupted or error-free operation of the Platform.',
@@ -69,7 +69,7 @@ return [
     // ── Governing Law ──────────────────────────────────
     'heading_governing_law' => 'Governing Law',
     'content_governing_1' => 'These Terms are governed by the laws of the Federal Republic of Germany.',
-    'content_governing_2' => 'Any disputes arising from these Terms shall be resolved in the courts of ' . config('company.governing_law.courts_city') . ', Germany, unless otherwise required by mandatory consumer protection law.',
+    'content_governing_2' => 'Any disputes arising from these Terms shall be resolved in the courts of '.config('company.governing_law.courts_city').', Germany, unless otherwise required by mandatory consumer protection law.',
 
     // ── Changes ────────────────────────────────────────
     'heading_changes' => 'Changes to These Terms',
@@ -79,7 +79,7 @@ return [
     // ── Contact ────────────────────────────────────────
     'heading_contact' => 'Contact',
     'content_contact_org' => config('company.legal_name'),
-    'content_contact_email' => 'Email: ' . config('company.contact.legal'),
+    'content_contact_email' => 'Email: '.config('company.contact.legal'),
 
     // ── Last Updated ───────────────────────────────────
     'content_last_updated' => 'Last updated: :date',

@@ -1,0 +1,31 @@
+<?php
+
+// Stub for Escalated\Laravel\Models\Ticket to add PHPStan property annotations
+
+namespace Escalated\Laravel\Models;
+
+use Escalated\Laravel\Enums\TicketStatus;
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * @property string $reference
+ * @property string|null $subject
+ * @property string|null $description
+ * @property int|null $assigned_to
+ * @property int|null $department_id
+ * @property int|null $contact_id
+ * @property string|null $requester_type
+ * @property int|null $requester_id
+ * @property string|null $guest_name
+ * @property string|null $guest_email
+ * @property string|null $guest_token
+ * @property string|null $ticket_type
+ * @property TicketStatus|null $status
+ * @property array<string, mixed>|null $metadata
+ * @property string|null $priority
+ * @property string|null $channel
+ * @property-read Department|null $department
+ * @property-read Model|null $requester
+ */
+class Ticket extends Model {}

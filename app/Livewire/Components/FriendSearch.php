@@ -2,8 +2,12 @@
 
 namespace App\Livewire\Components;
 
+use App\Enums\RelationshipType;
 use App\Models\User;
 use App\Traits\EscapesLikeWildcards;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -30,12 +34,15 @@ class FriendSearch extends Component
     /** @var string Current search query */
     public string $search = '';
 
-    /** @var int[] User IDs of selected friends */
+    /** @var string[] User IDs of selected friends */
     public array $selectedIds = [];
 
     /** @var bool Whether the dropdown is open */
     public bool $isOpen = false;
 
+    /**
+     * @param  array<int, string>  $selectedIds
+     */
     public function mount(array $selectedIds = []): void
     {
         $this->selectedIds = $selectedIds;
@@ -44,27 +51,31 @@ class FriendSearch extends Component
     /**
      * Search the current user's friends by name or email.
      * Only returns mutual follows (isFriend() check via SQL join).
+     *
+     * @return Collection<int, User>
      */
     #[Computed]
     public function searchResults()
     {
-        $user = Auth::user();
-        if (! $user || mb_strlen(trim($this->search)) < 2) {
+        $user = authenticatedUser();
+        if (mb_strlen(trim($this->search)) < 2) {
             return collect();
         }
 
         $term = trim($this->search);
-        $driver = User::query()->getQuery()->getConnection()->getDriverName();
+        /** @var Connection $connection */
+        $connection = User::query()->getQuery()->getConnection();
+        $driver = $connection->getDriverName();
         $likeOperator = $driver === 'pgsql' ? 'ilike' : 'like';
         $escapedTerm = $this->escapeLikeWildcards($term);
 
         // Get IDs of mutual follows (I follow them AND they follow me, no blocks)
         $iFollowIds = $user->followings()
-            ->where('type', \App\Enums\RelationshipType::Follow)
+            ->where('type', RelationshipType::Follow)
             ->pluck('related_user_id');
 
         $followsMeIds = $user->followers()
-            ->where('type', \App\Enums\RelationshipType::Follow)
+            ->where('type', RelationshipType::Follow)
             ->pluck('user_id');
 
         $friendIds = $iFollowIds->intersect($followsMeIds);
@@ -98,6 +109,8 @@ class FriendSearch extends Component
 
     /**
      * Get the full User models for currently selected IDs.
+     *
+     * @return Collection<int, User>
      */
     #[Computed]
     public function selectedFriends()
@@ -145,7 +158,7 @@ class FriendSearch extends Component
     public function removeFriend(string $userId): void
     {
         $this->selectedIds = array_values(
-            array_filter($this->selectedIds, fn ($id) => $id !== $userId)
+            array_filter($this->selectedIds, fn ($id) => (string) $id !== $userId)
         );
 
         unset($this->searchResults, $this->selectedFriends);
@@ -175,7 +188,7 @@ class FriendSearch extends Component
         $this->isOpen = true;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.friend-search');
     }

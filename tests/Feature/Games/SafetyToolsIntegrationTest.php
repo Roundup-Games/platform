@@ -1,11 +1,17 @@
 <?php
 
 use App\Enums\SafetyTool;
+use App\Livewire\Campaigns\CampaignDetail;
+use App\Livewire\Discovery\DiscoveryPage;
+use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
-use function Pest\Laravel\{actingAs, assertDatabaseHas, get};
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\get;
 
 // ═══════════════════════════════════════════════════════════
 // GAME CREATION — safety_rules JSON persistence
@@ -121,7 +127,7 @@ describe('Game detail page — safety tools display', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertSee('Safety Tools')
             ->assertSee('Session Zero')
@@ -144,7 +150,7 @@ describe('Game detail page — safety tools display', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertSee('Lines & Veils Details')
             ->assertSee('No spiders, no graphic torture');
@@ -164,7 +170,7 @@ describe('Game detail page — safety tools display', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertSee('Before the Game')
             ->assertSee('During the Game')
@@ -181,7 +187,7 @@ describe('Game detail page — safety tools display', function () {
             'safety_rules' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertDontSee('Lines & Veils Details')
             ->assertDontSee('Custom Safety Note');
@@ -201,7 +207,7 @@ describe('Game detail page — safety tools display', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+        Livewire\Livewire::test(GameDetail::class, ['id' => $game->id])
             ->assertOk()
             ->assertSee('Learn more about safety tools');
     });
@@ -225,7 +231,7 @@ describe('Campaign detail page — safety tools display', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+        Livewire\Livewire::test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertOk()
             ->assertSee('Safety Tools')
             ->assertSee('Session Zero')
@@ -243,7 +249,7 @@ describe('Campaign detail page — safety tools display', function () {
             'safety_rules' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Campaigns\CampaignDetail::class, ['id' => $campaign->id])
+        Livewire\Livewire::test(CampaignDetail::class, ['id' => $campaign->id])
             ->assertOk()
             ->assertDontSee('Lines & Veils Details')
             ->assertDontSee('Custom Safety Note');
@@ -276,7 +282,7 @@ describe('Discovery page — safety tools filter', function () {
             'safety_rules' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->call('toggleSafetyTool', 'x-card')
             ->assertSee('Safe Game Session')
             ->assertDontSee('Unsafe Game Session');
@@ -301,7 +307,7 @@ describe('Discovery page — safety tools filter', function () {
             'safety_rules' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->set('mode', 'campaigns')
             ->call('toggleSafetyTool', 'breaks')
             ->assertSee('Safe Campaign')
@@ -333,7 +339,7 @@ describe('Discovery page — safety tools filter', function () {
             ],
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->call('toggleSafetyTool', 'session-zero')
             ->call('toggleSafetyTool', 'x-card')
             ->assertSee('Full Match Game')
@@ -362,7 +368,7 @@ describe('Discovery page — safety tools filter', function () {
         ]);
 
         // Toggle on, verify filtered
-        $component = Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        $component = Livewire\Livewire::test(DiscoveryPage::class)
             ->call('toggleSafetyTool', 'session-zero')
             ->assertSee('Tool Match Game')
             ->assertDontSee('No Tools Game');
@@ -395,7 +401,7 @@ describe('Discovery page — safety tools filter', function () {
             'safety_rules' => null,
         ]);
 
-        Livewire\Livewire::test(App\Livewire\Discovery\DiscoveryPage::class)
+        Livewire\Livewire::test(DiscoveryPage::class)
             ->call('toggleSafetyTool', 'session-zero')
             ->call('clearFilters')
             ->assertSet('safety_tools', [])
@@ -441,7 +447,7 @@ describe('/safety-tools static page', function () {
         // The foreach loop provides dynamic coverage: when a new tool is added,
         // this test automatically verifies it appears on the page without needing
         // a hardcoded count update.
-        foreach (\App\Enums\SafetyTool::cases() as $tool) {
+        foreach (SafetyTool::cases() as $tool) {
             $response->assertSee($tool->label());
         }
     });

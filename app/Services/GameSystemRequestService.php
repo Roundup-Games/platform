@@ -4,13 +4,12 @@ namespace App\Services;
 
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Services\TicketPayloadRenderer;
-use Escalated\Laravel\Models\Department;
-use Escalated\Laravel\Models\Tag;
-use Escalated\Laravel\Models\Ticket;
 use Escalated\Laravel\Enums\TicketChannel;
 use Escalated\Laravel\Enums\TicketPriority;
 use Escalated\Laravel\Enums\TicketStatus;
+use Escalated\Laravel\Models\Department;
+use Escalated\Laravel\Models\Tag;
+use Escalated\Laravel\Models\Ticket;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,27 +29,35 @@ class GameSystemRequestService
      *
      * @param  User  $user  The authenticated user making the request
      * @param  array  $data  Validated request data: name, type, bgg_url?, publisher?, designer?, notes?
+     * @param  array<string, mixed>  $data
      * @return Ticket The created ticket
      */
     public function createRequest(User $user, array $data): Ticket
     {
         $department = Department::where('name', 'Game Systems')->firstOrFail();
 
+        $name = is_string($data['name'] ?? null) ? $data['name'] : '';
+        $bggUrl = is_string($data['bgg_url'] ?? null) ? $data['bgg_url'] : null;
+        $publisher = is_string($data['publisher'] ?? null) ? $data['publisher'] : null;
+        $designer = is_string($data['designer'] ?? null) ? $data['designer'] : null;
+        $type = is_string($data['type'] ?? null) ? $data['type'] : null;
+        $notes = is_string($data['notes'] ?? null) ? $data['notes'] : null;
+
         $metadata = TicketPayloadRenderer::gameSystemRequestPayload(
             user: $user,
-            name: trim($data['name']),
-            bggUrl: $data['bgg_url'] ?? null,
-            publisher: $data['publisher'] ?? null,
-            designer: $data['designer'] ?? null,
-            type: $data['type'] ?? null,
-            notes: $data['notes'] ?? null,
+            name: trim($name),
+            bggUrl: $bggUrl,
+            publisher: $publisher,
+            designer: $designer,
+            type: $type,
+            notes: $notes,
         );
 
         $ticket = Ticket::create([
             'requester_type' => User::class,
             'requester_id' => $user->id,
-            'subject' => 'Game System Request: ' . trim($data['name']),
-            'description' => $data['notes'] ?? '',
+            'subject' => 'Game System Request: '.trim($name),
+            'description' => is_string($data['notes'] ?? null) ? $data['notes'] : '',
             'status' => TicketStatus::Open->value,
             'priority' => TicketPriority::Medium->value,
             'department_id' => $department->id,
@@ -66,7 +73,7 @@ class GameSystemRequestService
 
         Log::info('Game system request submitted', [
             'user_id' => $user->id,
-            'name' => trim($data['name']),
+            'name' => trim($name),
             'ticket_id' => $ticket->id,
             'ticket_reference' => $ticket->reference,
         ]);
@@ -87,7 +94,7 @@ class GameSystemRequestService
         return Ticket::where('requester_type', User::class)
             ->where('requester_id', $user->id)
             ->where('ticket_type', 'game_system_request')
-            ->whereRaw('LOWER(subject) LIKE ?', ['%game system request: ' . $escapedName])
+            ->whereRaw('LOWER(subject) LIKE ?', ['%game system request: '.$escapedName])
             ->whereIn('status', [TicketStatus::Open->value, TicketStatus::InProgress->value])
             ->exists();
     }
@@ -99,6 +106,7 @@ class GameSystemRequestService
      * BggSyncService to sync, and updates the ticket with game_system_id.
      *
      * @return GameSystem The created/updated GameSystem
+     *
      * @throws \InvalidArgumentException When ticket is not a game system request or has no valid BGG URL
      * @throws \RuntimeException When BGG sync fails
      */
@@ -108,8 +116,8 @@ class GameSystemRequestService
             throw new \InvalidArgumentException('Ticket is not a game system request.');
         }
 
-        $metadata = $ticket->metadata ?? [];
-        $bggUrl = $metadata['bgg_url'] ?? null;
+        $metadata = is_array($ticket->metadata) ? $ticket->metadata : [];
+        $bggUrl = is_string($metadata['bgg_url'] ?? null) ? $metadata['bgg_url'] : null;
 
         if (! $bggUrl) {
             throw new \InvalidArgumentException('Ticket has no BGG URL in metadata.');
@@ -130,9 +138,9 @@ class GameSystemRequestService
 
         $result = app(BggSyncService::class)->syncGameSystems([$bggId]);
 
-        if ($result['failed'] > 0 && $result['synced'] === 0) {
+        if ($result->failed > 0 && $result->synced === 0) {
             throw new \RuntimeException(
-                'BGG sync failed: ' . implode('; ', $result['errors'])
+                'BGG sync failed: '.implode('; ', $result->errors)
             );
         }
 

@@ -17,9 +17,9 @@ class BelowMinPlayersWarning extends BaseNotification
         public int $minPlayers,
     ) {}
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return (new MailMessage)
             ->subject(__('notifications.subject_below_min_players', [
@@ -38,9 +38,9 @@ class BelowMinPlayersWarning extends BaseNotification
     /**
      * @return array<string, mixed>
      */
-    public function toDatabase(object $notifiable): array
+    public function toDatabase(User $notifiable): array
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return [
             'type' => 'below_min_players',
@@ -58,9 +58,9 @@ class BelowMinPlayersWarning extends BaseNotification
         return $this->game->owner;
     }
 
-    public function toPush(object $notifiable): PushPayload
+    public function toPush(User $notifiable): PushPayload
     {
-        $locale = $notifiable->preferred_language?->value ?? app()->getLocale();
+        $locale = $notifiable->preferred_language->value ?? app()->getLocale();
 
         return new PushPayload(
             title: __('notifications.push_title_below_min_players'),

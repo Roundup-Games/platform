@@ -7,9 +7,11 @@ use App\Models\Location;
 use App\Models\User;
 use App\Services\DashboardCacheService;
 use App\Services\DashboardModeService;
+use App\Services\Geohash;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,6 +20,7 @@ class WarmDashboardCacheTest extends TestCase
     use DatabaseTransactions;
 
     private const LAT = 52.5163;
+
     private const LNG = 13.3777;
 
     protected function setUp(): void
@@ -57,7 +60,7 @@ class WarmDashboardCacheTest extends TestCase
         $this->assertArrayHasKey('items', $feed);
 
         // Opportunities should be cached (user has a location)
-        $geohash4 = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        $geohash4 = Geohash::tilePrefix(self::LAT, self::LNG, 4);
         $opportunities = Cache::get("dashboard:opportunities:{$user->id}:{$geohash4}");
         $this->assertNotNull($opportunities);
         $this->assertArrayHasKey('games', $opportunities);
@@ -110,7 +113,7 @@ class WarmDashboardCacheTest extends TestCase
     #[Test]
     public function it_handles_missing_user_gracefully(): void
     {
-        $fakeId = (string) \Illuminate\Support\Str::orderedUuid();
+        $fakeId = (string) Str::orderedUuid();
 
         Log::shouldReceive('info')->atLeast(1);
         Log::shouldReceive('warning')->once()->with(
@@ -135,7 +138,7 @@ class WarmDashboardCacheTest extends TestCase
             'dashboard.warm.started',
             \Mockery::on(fn ($ctx) => $ctx['user_id'] === (string) $user->id
                 && $ctx['trigger_type'] === 'cache_miss_week',
-        ));
+            ));
 
         Log::shouldReceive('info')->once()->with(
             'dashboard.warm.completed',
@@ -143,7 +146,7 @@ class WarmDashboardCacheTest extends TestCase
                 && isset($ctx['duration_ms'])
                 && isset($ctx['item_counts'])
                 && isset($ctx['mode']),
-        ));
+            ));
 
         $job = new WarmDashboardCache((string) $user->id, 'cache_miss_week');
         $job->handle(app(DashboardCacheService::class), app(DashboardModeService::class));
@@ -152,7 +155,7 @@ class WarmDashboardCacheTest extends TestCase
     #[Test]
     public function it_logs_failure_on_exception(): void
     {
-        $userId = (string) \Illuminate\Support\Str::orderedUuid();
+        $userId = (string) Str::orderedUuid();
 
         Log::shouldReceive('error')->once()->with(
             'dashboard.warm.failed',
@@ -214,6 +217,7 @@ class WarmDashboardCacheTest extends TestCase
             'dashboard.warm.completed',
             \Mockery::on(function ($ctx) {
                 $counts = $ctx['item_counts'] ?? [];
+
                 return isset($counts['contributions'])
                     && isset($counts['feed'])
                     && isset($counts['opportunities'])
@@ -259,7 +263,7 @@ class WarmDashboardCacheTest extends TestCase
         $this->assertNotNull(Cache::get("dashboard:progress_tracker:{$user->id}"));
 
         // Nearby people should be cached (user has location)
-        $geohash4 = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        $geohash4 = Geohash::tilePrefix(self::LAT, self::LNG, 4);
         $this->assertNotNull(Cache::get("dashboard:nearby_people:{$user->id}:{$geohash4}"));
 
         // Established-only sections should NOT be cached
@@ -293,7 +297,7 @@ class WarmDashboardCacheTest extends TestCase
         $this->assertNotNull(Cache::get("dashboard:milestone_cards:{$user->id}"));
 
         // Nearby people should be cached (user has location)
-        $geohash4 = \App\Services\Geohash::tilePrefix(self::LAT, self::LNG, 4);
+        $geohash4 = Geohash::tilePrefix(self::LAT, self::LNG, 4);
         $this->assertNotNull(Cache::get("dashboard:nearby_people:{$user->id}:{$geohash4}"));
 
         // Newcomer-only sections should NOT be cached

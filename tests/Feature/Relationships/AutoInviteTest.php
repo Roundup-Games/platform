@@ -1,28 +1,30 @@
 <?php
 
 use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Campaigns\AddSessionToCampaign;
+use App\Livewire\Games\GameDetail;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
-use App\Enums\ParticipantStatus;
-use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 
 use function Pest\Laravel\assertDatabaseHas;
-
 
 // ── Helpers ─────────────────────────────────────────
 
 function autoInviteCreateOwnerWithGamePermission(): User
 {
-    \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'create campaign', 'guard_name' => 'web']);
-    \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'create game', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'create campaign', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'create game', 'guard_name' => 'web']);
     $owner = User::factory()->create(['profile_complete' => true]);
     setPermissionsTeamId(1);
     $owner->givePermissionTo(['create campaign', 'create game']);
     $owner->unsetRelations();
+
     return $owner;
 }
 
@@ -30,6 +32,7 @@ function autoInviteCreateCampaign(array $attrs = []): array
 {
     $owner = autoInviteCreateOwnerWithGamePermission();
     $campaign = Campaign::factory()->create(['owner_id' => $owner->id, ...$attrs]);
+
     return ['owner' => $owner, 'campaign' => $campaign];
 }
 
@@ -47,7 +50,7 @@ describe('AutoInvite — Session Creation', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Auto-Invite Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save')
@@ -70,7 +73,7 @@ describe('AutoInvite — Session Creation', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $owner->id, 'role' => ParticipantRole::Owner->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Owner Skip Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save')
@@ -80,8 +83,8 @@ describe('AutoInvite — Session Creation', function () {
         // M048: owner gets an owner participant, not an invited one
         $ownerParticipant = GameParticipant::where('game_id', $game->id)->where('user_id', $owner->id)->first();
         expect($ownerParticipant)->not->toBeNull();
-        expect($ownerParticipant->role)->toBe(\App\Enums\ParticipantRole::Owner);
-        expect($ownerParticipant->status)->toBe(\App\Enums\ParticipantStatus::Approved);
+        expect($ownerParticipant->role)->toBe(ParticipantRole::Owner);
+        expect($ownerParticipant->status)->toBe(ParticipantStatus::Approved);
         // No invited participant for the owner
         expect(GameParticipant::where('game_id', $game->id)->where('user_id', $owner->id)->where('role', 'invited')->exists())->toBeFalse();
     });
@@ -97,7 +100,7 @@ describe('AutoInvite — Session Creation', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $rejectedPlayer->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Rejected->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Mixed Status Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save')
@@ -115,7 +118,7 @@ describe('AutoInvite — Session Creation', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Empty Campaign Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save')
@@ -141,7 +144,7 @@ describe('AutoInvite — Accept', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Accept Test Session')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save');
@@ -150,7 +153,7 @@ describe('AutoInvite — Accept', function () {
         $participant = GameParticipant::where('game_id', $game->id)->where('user_id', $player->id)->first();
 
         Livewire::actingAs($player)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertHasNoErrors();
 
@@ -168,7 +171,7 @@ describe('AutoInvite — Accept', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Capacity Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save');
@@ -180,14 +183,14 @@ describe('AutoInvite — Accept', function () {
         // Player1 accepts — fills to 2 (max_players=2: owner + player1)
         $participant1 = GameParticipant::where('game_id', $game->id)->where('user_id', $player1->id)->first();
         Livewire::actingAs($player1)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant1->id)
             ->assertHasNoErrors();
 
         // Player2 tries to accept — game full, routes to bench
         $participant2 = GameParticipant::where('game_id', $game->id)->where('user_id', $player2->id)->first();
         Livewire::actingAs($player2)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant2->id)
             ->assertHasNoErrors();
 
@@ -204,7 +207,7 @@ describe('AutoInvite — Accept', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Wrong User Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save');
@@ -214,7 +217,7 @@ describe('AutoInvite — Accept', function () {
         $participant = GameParticipant::where('game_id', $game->id)->where('user_id', $player->id)->first();
 
         Livewire::actingAs($otherUser)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('acceptInvitation', $participant->id)
             ->assertSee('not yours');
 
@@ -236,7 +239,7 @@ describe('AutoInvite — Decline', function () {
         CampaignParticipant::create(['campaign_id' => $campaign->id, 'user_id' => $player->id, 'role' => ParticipantRole::Player->value, 'status' => ParticipantStatus::Approved->value]);
 
         Livewire::actingAs($owner)
-            ->test(\App\Livewire\Campaigns\AddSessionToCampaign::class, ['id' => $campaign->id])
+            ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Decline Test')
             ->set('date_time', '2026-07-01 19:00')
             ->call('save');
@@ -245,7 +248,7 @@ describe('AutoInvite — Decline', function () {
         $participant = GameParticipant::where('game_id', $game->id)->where('user_id', $player->id)->first();
 
         Livewire::actingAs($player)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id])
+            ->test(GameDetail::class, ['id' => $game->id])
             ->call('declineInvitation', $participant->id)
             ->assertHasNoErrors();
 
@@ -254,5 +257,3 @@ describe('AutoInvite — Decline', function () {
         ]);
     });
 });
-
-

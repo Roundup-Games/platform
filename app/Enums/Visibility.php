@@ -35,6 +35,6 @@ enum Visibility: string
      */
     public static function validationRule(): string
     {
-        return 'required|in:' . implode(',', self::values());
+        return 'required|in:'.implode(',', self::values());
     }
 }

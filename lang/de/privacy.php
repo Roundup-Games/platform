@@ -2,11 +2,11 @@
 
 return [
     'heading_title' => 'Datenschutzerklärung',
-    'seo_description' => 'Erfahre, wie ' . config('company.display_name') . ' deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
+    'seo_description' => 'Erfahre, wie '.config('company.display_name').' deine personenbezogenen Daten erfasst, verwendet und schützt. Unsere Datenschutzpraktiken verständlich erklärt.',
 
     // ── Einleitung ─────────────────────────────────────
     'heading_introduction' => 'Einleitung',
-    'content_introduction_1' => config('company.legal_name') . ' („wir", „uns", „unser") betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
+    'content_introduction_1' => config('company.legal_name').' („wir", „uns", „unser") betreibt die Plattform roundup.games — einen gemeinnützigen, quelloffenen Service, der Menschen hilft, lokale Brettspiel- und Tabletop-Rollenspiel-Sessions zu finden und zu organisieren.',
     'content_introduction_2' => 'Diese Datenschutzerklärung erläutert, welche personenbezogenen Daten wir erheben, warum wir sie erheben, auf welcher Rechtsgrundlage dies beruht, wer Zugriff hat und wie lange wir sie aufbewahren. Wir haben dies in klarer Sprache verfasst, weil Transparenz für uns keine Optionalität ist — sie ist grundlegend.',
     'content_introduction_3' => 'Diese Richtlinie gilt für alle Nutzer unserer Plattform, einschließlich Besucher, die ohne Konto surfen.',
 
@@ -106,7 +106,7 @@ return [
     'heading_contact' => 'Kontakt',
     'content_contact_intro' => 'Bei Fragen zu dieser Datenschutzerklärung oder deinen personenbezogenen Daten kontaktiere uns:',
     'content_contact_org' => config('company.legal_name'),
-    'content_contact_email' => 'E-Mail: ' . config('company.contact.privacy'),
+    'content_contact_email' => 'E-Mail: '.config('company.contact.privacy'),
 
     // ── Letzte Aktualisierung ──────────────────────────
     'content_last_updated' => 'Zuletzt aktualisiert: :date',

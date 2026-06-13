@@ -4,7 +4,6 @@ namespace App\Traits;
 
 use App\Enums\ParticipantStatus;
 use App\Services\BenchService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -12,9 +11,9 @@ trait HandlesBench
 {
     public function promoteFromBench(string $participantId): void
     {
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
-        if (! $viewer || $this->getEntity()->owner_id !== $viewer->id) {
+        if ((string) $this->getEntity()->owner_id !== (string) $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));
 
             return;
@@ -46,7 +45,7 @@ trait HandlesBench
     public function leaveBench(string $participantId): void
     {
         $participant = $this->findParticipantOrFail($participantId);
-        $viewer = Auth::user();
+        $viewer = authenticatedUser();
 
         if ($participant->user_id !== $viewer->id) {
             session()->flash('error', __('common.error_not_authorized'));

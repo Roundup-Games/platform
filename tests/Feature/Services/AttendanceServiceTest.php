@@ -1,16 +1,16 @@
 <?php
 
 use App\Enums\AttendanceStatus;
+use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Livewire\Games\GameDetail;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Services\AttendanceService;
 use App\Services\ReliabilityScoreService;
-use App\Enums\ParticipantRole;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->service = app(AttendanceService::class);
@@ -162,7 +162,6 @@ describe('reportAttendance', function () {
     });
 
 });
-
 
 // ── checkGriefResistance ─────────────────────────────────
 
@@ -370,7 +369,9 @@ describe('getVoteTallies', function () {
         ]);
 
         $queryCount = 0;
-        DB::listen(function () use (&$queryCount) { $queryCount++; });
+        DB::listen(function () use (&$queryCount) {
+            $queryCount++;
+        });
 
         $this->service->getVoteTallies($game);
 
@@ -603,7 +604,7 @@ describe('cancelled_early status', function () {
 
         // Simulate cancellation via Livewire component (cancelOwnParticipation)
         $component = Livewire::actingAs($player)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
+            ->test(GameDetail::class, ['id' => $game->id]);
 
         $component->call('cancelOwnParticipation', $participant->id);
 
@@ -635,7 +636,7 @@ describe('cancelled_early status', function () {
         ]);
 
         $component = Livewire::actingAs($player)
-            ->test(\App\Livewire\Games\GameDetail::class, ['id' => $game->id]);
+            ->test(GameDetail::class, ['id' => $game->id]);
 
         $component->call('cancelOwnParticipation', $participant->id);
 
@@ -660,7 +661,7 @@ describe('cancelled_early status', function () {
             'attendance_status' => AttendanceStatus::CancelledEarly,
         ]);
 
-        $reliabilityService = app(\App\Services\ReliabilityScoreService::class);
+        $reliabilityService = app(ReliabilityScoreService::class);
         $result = $reliabilityService->computeScore($user);
 
         // game_count = 5 (passes MIN_GAMES threshold of 5)

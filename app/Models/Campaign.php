@@ -5,29 +5,52 @@ namespace App\Models;
 use App\Enums\CampaignStatus;
 use App\Enums\Visibility;
 use App\Relations\StringKeyMorphMany;
+use App\Services\ShortLinkService;
+use App\Services\SocialGraphService;
+use Database\Factories\CampaignFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RalphJSmit\Laravel\SEO\SchemaCollection;
 use RalphJSmit\Laravel\SEO\Support\HasSEO;
 use RalphJSmit\Laravel\SEO\Support\SEOData;
 use Spatie\SchemaOrg\Event as SchemaEvent;
+use Spatie\SchemaOrg\EventStatusType;
+use Spatie\SchemaOrg\Person as SchemaPerson;
 use Spatie\SchemaOrg\Place;
 use Spatie\SchemaOrg\PostalAddress;
-use Spatie\SchemaOrg\Person as SchemaPerson;
-use Spatie\SchemaOrg\EventStatusType;
 use Spatie\Translatable\HasTranslations;
 
+/**
+ * @property Visibility|null $visibility
+ * @property CampaignStatus|null $status
+ * @property Carbon|null $share_token_expires_at
+ * @property bool $bench_mode
+ * @property int|null $completed_games_count
+ * @property int|null $approved_participant_count
+ * @property string|null $pivot_role
+ * @property string|null $pivot_status
+ * @property string|null $discoverable_type
+ * @property int|null $discoverable_sort_key
+ * @property float|null $distance_km
+ */
 class Campaign extends Model
 {
+    /** @use HasFactory<CampaignFactory> */
     use HasFactory;
+
     use HasSEO;
     use HasTranslations;
 
+    /** @var array<int, string> */
     public array $translatable = ['name', 'description'];
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     // bench_mode is GM-gated on create (CreateGame/CreateCampaign).
@@ -74,39 +97,55 @@ class Campaign extends Model
         });
 
         static::updated(function (self $campaign) {
-            if ($campaign->wasChanged('status') && in_array($campaign->status->value, ['completed', 'cancelled'])) {
-                app(\App\Services\ShortLinkService::class)->expireLinksForEntity($campaign);
+            if ($campaign->wasChanged('status') && in_array($campaign->status?->value, ['completed', 'cancelled'])) {
+                app(ShortLinkService::class)->expireLinksForEntity($campaign);
             }
         });
     }
 
     // ── Relationships ──────────────────────────────────
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsTo<GameSystem, $this>
+     */
     public function gameSystem(): BelongsTo
     {
         return $this->belongsTo(GameSystem::class);
     }
 
+    /**
+     * @return BelongsTo<Location, $this>
+     */
     public function linkedLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
     }
 
+    /**
+     * @return HasMany<Game, $this>
+     */
     public function sessions(): HasMany
     {
         return $this->hasMany(Game::class);
     }
 
+    /**
+     * @return HasMany<CampaignParticipant, $this>
+     */
     public function participants(): HasMany
     {
         return $this->hasMany(CampaignParticipant::class);
     }
 
+    /** @return HasMany<CampaignApplication, $this> */
     public function applications(): HasMany
     {
         return $this->hasMany(CampaignApplication::class);
@@ -114,15 +153,21 @@ class Campaign extends Model
 
     // ── Short Links ────────────────────────────────────
 
-    public function shortLinks()
+    /**
+     * @return StringKeyMorphMany<ShortLink, $this>
+     */
+    public function shortLinks(): StringKeyMorphMany
     {
-        return (new StringKeyMorphMany(
+        $relation = new StringKeyMorphMany(
             $this->newRelatedInstance(ShortLink::class)->newQuery(),
             $this,
             'linkable_type',
             'linkable_id',
             'id'
-        ))->where('linkable_type', static::class);
+        );
+        $relation->getQuery()->where('linkable_type', static::class);
+
+        return $relation;
     }
 
     // ── Share Token ────────────────────────────────────
@@ -154,25 +199,28 @@ class Campaign extends Model
      * Guests see public only. Authenticated users see public + protected
      * items owned by their connections (friends, teammates) or where they
      * are a participant. Private campaigns are never included in listings.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
-    public function scopeVisibleTo($query, ?User $viewer = null)
+    public function scopeVisibleTo(Builder $query, ?User $viewer = null)
     {
         if ($viewer === null) {
             return $query->where('visibility', 'public');
         }
 
-        $allowedOwnerIds = app(\App\Services\SocialGraphService::class)
+        $allowedOwnerIds = app(SocialGraphService::class)
             ->getAllowedOwnerIdsForProtectedContent($viewer);
 
         return $query->where(function ($q) use ($allowedOwnerIds, $viewer) {
             $q->where('visibility', 'public')
-              ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
-                  $q->where('visibility', 'protected')
-                    ->where(function ($q) use ($allowedOwnerIds, $viewer) {
-                        $q->whereIn('owner_id', $allowedOwnerIds)
-                          ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
-                    });
-              });
+                ->orWhere(function ($q) use ($allowedOwnerIds, $viewer) {
+                    $q->where('visibility', 'protected')
+                        ->where(function ($q) use ($allowedOwnerIds, $viewer) {
+                            $q->whereIn('owner_id', $allowedOwnerIds)
+                                ->orWhereHas('participants', fn ($pq) => $pq->where('user_id', $viewer->id));
+                        });
+                });
         });
     }
 
@@ -212,16 +260,16 @@ class Campaign extends Model
 
             $event = (new SchemaEvent)
                 ->name($this->name)
-                ->description(Str::limit(strip_tags($this->description ?? ''), 500) ?: null)
+                ->description(Str::limit(strip_tags((string) $this->description), 500) ?: '')
                 ->eventStatus(EventStatusType::EventScheduled)
                 ->eventAttendanceMode('OfflineEventAttendanceMode');
 
             // Start date: first session date if available
             $firstSession = $this->sessions->sortBy('date_time')->first();
             if ($firstSession && $firstSession->date_time) {
-                $event->startDate($firstSession->date_time->toISOString());
+                $event->startDate((string) $firstSession->date_time->toISOString());
                 if ($firstSession->expected_duration) {
-                    $event->endDate($firstSession->date_time->copy()->addHours((float) $firstSession->expected_duration)->toISOString());
+                    $event->endDate((string) $firstSession->date_time->copy()->addHours((float) $firstSession->expected_duration)->toISOString());
                 }
             }
 
@@ -243,7 +291,7 @@ class Campaign extends Model
 
             // Maximum attendees
             if ($this->max_players) {
-                $event->maximumAttendees($this->max_players);
+                $event->maximumAttendeeCapacity($this->max_players);
             }
 
             // Free/paid

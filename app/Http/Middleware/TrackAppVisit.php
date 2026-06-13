@@ -6,6 +6,7 @@ use App\Models\UserAppVisit;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class TrackAppVisit
@@ -26,7 +27,7 @@ class TrackAppVisit
 
             UserAppVisit::upsert(
                 [
-                    'id' => (string) \Illuminate\Support\Str::orderedUuid(),
+                    'id' => (string) Str::orderedUuid(),
                     'user_id' => $user->id,
                     'visit_date' => $today,
                 ],
@@ -48,7 +49,7 @@ class TrackAppVisit
     private function shouldTrack(Request $request): bool
     {
         return $request->isMethod('GET')
-            && !$request->is('api/*')
-            && !$request->header('X-Livewire');
+            && ! $request->is('api/*')
+            && ! $request->header('X-Livewire');
     }
 }

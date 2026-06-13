@@ -28,10 +28,11 @@ class GeocodeController extends Controller
             'query' => 'required|string|min:2|max:200',
         ]);
 
-        $query = trim($request->input('query'));
+        $rawQuery = $request->input('query');
+        $query = is_string($rawQuery) ? trim($rawQuery) : '';
 
         // Rate limit: 10 requests per minute per IP
-        $key = 'geocode:' . $request->ip();
+        $key = 'geocode:'.$request->ip();
         if (RateLimiter::tooManyAttempts($key, 10)) {
             $seconds = RateLimiter::availableIn($key);
 
@@ -63,7 +64,7 @@ class GeocodeController extends Controller
         }
 
         // Extract city and country from the raw Nominatim address data
-        $address = $result['raw']['address'] ?? [];
+        $address = is_array($result['raw']['address'] ?? null) ? $result['raw']['address'] : [];
 
         return response()->json([
             'lat' => $result['lat'],

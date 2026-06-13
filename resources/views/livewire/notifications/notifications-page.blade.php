@@ -31,11 +31,11 @@
         {{-- Notification Groups --}}
         <div class="space-y-3">
             @forelse($notifications as $group)
-                <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden {{ ! $group->is_read ? 'border-l-4 border-primary' : '' }}" wire:key="group-{{ $group->group_key }}-{{ $group->latest->id }}">
+                <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden {{ ! $group->isRead ? 'border-l-4 border-primary' : '' }}" wire:key="group-{{ $group->groupKey }}-{{ $group->latest->id }}">
                     <div class="flex items-start gap-4 p-4">
                         {{-- Unread indicator --}}
                         <div class="flex-shrink-0 mt-1">
-                            @if(! $group->is_read)
+                            @if(! $group->isRead)
                                 <span class="block w-2.5 h-2.5 rounded-full bg-primary"></span>
                             @else
                                 <span class="block w-2.5 h-2.5 rounded-full bg-outline-variant/30"></span>
@@ -45,8 +45,8 @@
                         {{-- Content --}}
                         <div class="flex-1 min-w-0">
                             {{-- Display string --}}
-                            <p class="text-sm {{ $group->is_read ? 'text-on-surface-variant' : 'text-on-surface font-medium' }} leading-snug">
-                                {!! $group->display_html !!}
+                            <p class="text-sm {{ $group->isRead ? 'text-on-surface-variant' : 'text-on-surface font-medium' }} leading-snug">
+                                {!! $group->displayHtml !!}
                             </p>
 
                             {{-- Meta row --}}
@@ -55,9 +55,9 @@
                                 @if($group->count > 1)
                                     <span class="text-xs text-on-surface-variant/60">&middot; {{ $group->count }} {{ __('notifications.label_notifications') }}</span>
                                 @endif
-                                @if(! $group->is_read)
+                                @if(! $group->isRead)
                                     <button
-                                        wire:click="markAsRead('{{ $group->group_key }}')"
+                                        wire:click="markAsRead('{{ $group->groupKey }}')"
                                         wire:loading.attr="disabled"
                                         class="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                                     >
@@ -70,23 +70,23 @@
                         {{-- Expand/collapse toggle --}}
                         @if($group->count > 1)
                             <button
-                                wire:click="toggleGroup('{{ $group->group_key }}')"
+                                wire:click="toggleGroup('{{ $group->groupKey }}')"
                                 class="flex-shrink-0 p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors"
-                                aria-label="{{ isset($expandedGroups[$group->group_key]) ? 'Collapse' : 'Expand' }} notification group"
+                                aria-label="{{ isset($expandedGroups[$group->groupKey]) ? 'Collapse' : 'Expand' }} notification group"
                             >
-                                <span class="material-symbols-outlined text-lg transition-transform {{ isset($expandedGroups[$group->group_key]) ? 'rotate-180' : '' }}">expand_more</span>
+                                <span class="material-symbols-outlined text-lg transition-transform {{ isset($expandedGroups[$group->groupKey]) ? 'rotate-180' : '' }}">expand_more</span>
                             </button>
                         @endif
                     </div>
 
                     {{-- Expanded individual items --}}
-                    @if($group->count > 1 && isset($expandedGroups[$group->group_key]))
+                    @if($group->count > 1 && isset($expandedGroups[$group->groupKey]))
                         <div class="border-t border-outline-variant/10 bg-surface-container-low/50">
                             @php
                                 // Fetch individual notifications for this group
                                 $individuals = $this->authUser->notifications()
-                                    ->where('type', $group->full_type)
-                                    ->whereDate('created_at', \Carbon\Carbon::parse($group->created_at->toDateString()))
+                                    ->where('type', $group->fullType)
+                                    ->whereDate('created_at', \Carbon\Carbon::parse($group->createdAt->toDateString()))
                                     ->orderBy('created_at', 'desc')
                                     ->get();
                             @endphp

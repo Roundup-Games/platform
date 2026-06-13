@@ -23,8 +23,10 @@ beforeEach(function () {
         app()->setLocale($locale);
 
         $results = $modelClass::where(function ($q) use ($field, $term) {
-            $trait = new class {
+            $trait = new class
+            {
                 use QueriesTranslatableColumns;
+
                 public function run(Builder $q, string $field, string $term): void
                 {
                     $this->whereTranslatableLike($q, $field, $term);
@@ -221,12 +223,15 @@ it('finds en-only event via fallback by querying both locales', function () {
 
     app()->setLocale('de');
     $results = Event::where(function ($q) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function runWhere(Builder $q, string $field, string $term): void
             {
                 $this->whereTranslatableLike($q, $field, $term);
             }
+
             public function runOrWhere(Builder $q, string $field, string $term): void
             {
                 $this->orWhereTranslatableLike($q, $field, $term);
@@ -244,8 +249,10 @@ it('finds en-only event via fallback by querying both locales', function () {
     // Now do a proper fallback: search de first, then en
     app()->setLocale('de');
     $fallbackResults = Event::where(function ($q) {
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function runWhere(Builder $q, string $field, string $term): void
             {
                 $this->whereTranslatableLike($q, $field, $term);
@@ -254,8 +261,10 @@ it('finds en-only event via fallback by querying both locales', function () {
         $trait->runWhere($q, 'name', 'English Only');
     })->orWhere(function ($q) {
         app()->setLocale('en');
-        $trait = new class {
+        $trait = new class
+        {
             use QueriesTranslatableColumns;
+
             public function runWhere(Builder $q, string $field, string $term): void
             {
                 $this->whereTranslatableLike($q, $field, $term);

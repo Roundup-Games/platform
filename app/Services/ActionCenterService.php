@@ -71,8 +71,8 @@ class ActionCenterService
      * Accepts optional pre-computed items to avoid re-querying when the
      * caller already has the items (e.g., empty from cache miss).
      *
-     * @param  array<ActionItem>|null  $items  Pre-computed items, or null to query.
-     * @return array{message: string, next_game: array|null}|null
+     * @param  array<int, ActionItem>|null  $items  Pre-computed items, or null to query.
+     * @return array{message: string, next_game: array{name: string, date_time: string, url: string}|null}|null
      */
     public function getClearSummary(User $user, ?array $items = null): ?array
     {
@@ -88,7 +88,7 @@ class ActionCenterService
             'message' => __('profile.dashboard_action_center_all_clear'),
             'next_game' => $nextGame ? [
                 'name' => $nextGame->name,
-                'date_time' => $nextGame->date_time->toIso8601String(),
+                'date_time' => $nextGame->date_time?->toIso8601String() ?? '',
                 'url' => route('games.show', $nextGame->id),
             ] : null,
         ];
@@ -98,6 +98,8 @@ class ActionCenterService
 
     /**
      * Games where the user is waitlisted and confirmation is expiring within 2 hours.
+     *
+     * @return array<int, ActionItem>
      */
     private function getWaitlistConfirmations(User $user): array
     {
@@ -113,16 +115,16 @@ class ActionCenterService
         return $confirmations->map(fn (GameParticipant $p) => new ActionItem(
             type: 'waitlist_confirmation',
             priority: 'critical',
-            title: __('profile.dashboard_action_waitlist_title', ['game' => $p->game->name]),
+            title: __('profile.dashboard_action_waitlist_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_waitlist_desc'),
-            actionUrl: route('games.show', $p->game->id),
+            actionUrl: $p->game ? route('games.show', $p->game->id) : '#',
             actionLabel: __('profile.dashboard_action_waitlist_action'),
             icon: 'schedule',
-            createdAt: $p->waitlisted_at ?? $p->created_at,
+            createdAt: $p->waitlisted_at ?? $p->created_at ?? now(),
             metadata: [
-                'expires_at' => $p->confirmation_expires_at->toIso8601String(),
+                'expires_at' => $p->confirmation_expires_at?->toIso8601String(),
                 'entity_type' => 'game',
-                'entity_id' => $p->game->id,
+                'entity_id' => $p->game?->id,
             ],
         ))->all();
     }
@@ -132,6 +134,8 @@ class ActionCenterService
     /**
      * Games the user owns that are scheduled within 48h but have fewer
      * approved participants than the minimum (default min_players = 2).
+     *
+     * @return array<int, ActionItem>
      */
     private function getBelowMinPlayerWarnings(User $user): array
     {
@@ -158,7 +162,7 @@ class ActionCenterService
             actionUrl: route('games.manage-participants', $g->id),
             actionLabel: __('profile.dashboard_action_min_players_action'),
             icon: 'warning',
-            createdAt: $g->created_at,
+            createdAt: $g->created_at ?? now(),
             metadata: [
                 'count' => $g->approved_count,
                 'entity_type' => 'game',
@@ -172,6 +176,8 @@ class ActionCenterService
     /**
      * Games the user owns that have participants in Pending status.
      * Grouped per game with a count of pending applicants.
+     *
+     * @return array<int, ActionItem>
      */
     private function getPendingApplications(User $user): array
     {
@@ -190,13 +196,13 @@ class ActionCenterService
             type: 'pending_applications',
             priority: 'high',
             title: __('profile.dashboard_action_applications_title', ['game' => $g->name]),
-            description: trans_choice('profile.dashboard_action_applications_desc', $g->pending_count, [
-                'count' => $g->pending_count,
+            description: trans_choice('profile.dashboard_action_applications_desc', $g->pending_count ?? 0, [
+                'count' => $g->pending_count ?? 0,
             ]),
             actionUrl: route('games.manage-participants', $g->id),
             actionLabel: __('profile.dashboard_action_applications_action'),
             icon: 'group_add',
-            createdAt: $g->created_at,
+            createdAt: $g->created_at ?? now(),
             metadata: [
                 'count' => $g->pending_count,
                 'entity_type' => 'game',
@@ -210,6 +216,8 @@ class ActionCenterService
     /**
      * Games where the user was invited (role=invited, status=pending).
      * Falls back to status=Pending when role isn't set.
+     *
+     * @return array<int, ActionItem>
      */
     private function getPendingInvitations(User $user): array
     {
@@ -226,15 +234,15 @@ class ActionCenterService
         return $invitations->map(fn (GameParticipant $p) => new ActionItem(
             type: 'pending_invitation',
             priority: 'high',
-            title: __('profile.dashboard_action_invitation_title', ['game' => $p->game->name]),
+            title: __('profile.dashboard_action_invitation_title', ['game' => $p->game->name ?? '']),
             description: __('profile.dashboard_action_invitation_desc'),
-            actionUrl: route('games.show', $p->game->id),
+            actionUrl: $p->game ? route('games.show', $p->game->id) : '#',
             actionLabel: __('profile.dashboard_action_invitation_action'),
             icon: 'mail',
-            createdAt: $p->created_at,
+            createdAt: $p->created_at ?? now(),
             metadata: [
                 'entity_type' => 'game',
-                'entity_id' => $p->game->id,
+                'entity_id' => $p->game?->id,
             ],
         ))->all();
     }
@@ -249,6 +257,8 @@ class ActionCenterService
      * attendance window is currently open, user is an approved participant,
      * and no AttendanceReport exists from this user.
      * Disappears once the user submits their report.
+     *
+     * @return array<int, ActionItem>
      */
     private function getUnreportedAttendance(User $user): array
     {
@@ -276,7 +286,7 @@ class ActionCenterService
             actionUrl: route('games.show', $g->id),
             actionLabel: __('profile.dashboard_action_attendance_action'),
             icon: 'event_note',
-            createdAt: $g->updated_at,
+            createdAt: $g->updated_at ?? now(),
             metadata: [
                 'entity_type' => 'game',
                 'entity_id' => $g->id,
@@ -284,10 +294,12 @@ class ActionCenterService
         ))->all();
     }
 
-    // ── 6. Missing Recaps (medium) ─────────────────────
+    // ── 6. Missing Recaps (medium)
 
     /**
      * Games the user owns that are completed but have no recap, within 7 days.
+     *
+     * @return array<int, ActionItem>
      */
     private function getMissingRecaps(User $user): array
     {
@@ -306,7 +318,7 @@ class ActionCenterService
             actionUrl: route('games.show', $g->id),
             actionLabel: __('profile.dashboard_action_recap_action'),
             icon: 'edit_note',
-            createdAt: $g->updated_at,
+            createdAt: $g->updated_at ?? now(),
             metadata: [
                 'entity_type' => 'game',
                 'entity_id' => $g->id,
@@ -314,11 +326,13 @@ class ActionCenterService
         ))->all();
     }
 
-    // ── 7. Available Debriefings (medium) ──────────────
+    // ── 7. Available Debriefings (medium)
 
     /**
      * Completed games with debriefing tools where the user participated
      * but hasn't submitted a debriefing.
+     *
+     * @return array<int, ActionItem>
      */
     private function getAvailableDebriefings(User $user): array
     {
@@ -346,7 +360,7 @@ class ActionCenterService
             actionUrl: route('games.show', $g->id),
             actionLabel: __('profile.dashboard_action_debriefing_action'),
             icon: 'auto_stories',
-            createdAt: $g->updated_at,
+            createdAt: $g->updated_at ?? now(),
             metadata: [
                 'entity_type' => 'game',
                 'entity_id' => $g->id,
@@ -354,13 +368,15 @@ class ActionCenterService
         ))->all();
     }
 
-    // ── 8. New Reviews (medium) ─────────────────────────
+    // ── 8. New Reviews (medium)
 
     /**
      * Reviews on the user's GM profile from the last 7 days.
      *
      * Note: "not yet viewed" tracking is not currently available in the
      * schema, so we surface all reviews from the last 7 days.
+     *
+     * @return array<int, ActionItem>
      */
     private function getNewReviews(User $user): array
     {
@@ -382,13 +398,13 @@ class ActionCenterService
             priority: 'medium',
             title: __('profile.dashboard_action_review_title', [
                 'rating' => $r->rating,
-                'reviewer' => $r->reviewer?->name ?? __('Someone'),
+                'reviewer' => $r->reviewer->name ?? __('Someone'),
             ]),
             description: $r->body ? Str::limit($r->body, 100) : __('profile.dashboard_action_review_no_comment'),
             actionUrl: route('profile.public', ['user' => $user]),
             actionLabel: __('profile.dashboard_action_review_action'),
             icon: 'rate_review',
-            createdAt: $r->created_at,
+            createdAt: $r->created_at ?? now(),
             metadata: [
                 'entity_type' => 'review',
                 'entity_id' => $r->id,
@@ -401,6 +417,8 @@ class ActionCenterService
     /**
      * Users who started following the current user within the last 7 days.
      * Includes count of shared game systems.
+     *
+     * @return array<int, ActionItem>
      */
     private function getNewFollowers(User $user): array
     {
@@ -412,22 +430,30 @@ class ActionCenterService
             ->orderByDesc('created_at')
             ->get();
 
-        $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')->toArray();
+        $userSystemIds = $user->gameSystemPreferences()->pluck('game_system_id')
+            ->filter(fn (mixed $id) => is_string($id))->values()->toArray();
+        /** @var array<string> $userSystemIds */
 
         // Bulk-load follower preferences to avoid N+1
-        $followerUserIds = $followers->pluck('user_id')->filter()->unique()->values()->toArray();
+        $followerUserIds = $followers->pluck('user_id')
+            ->filter(fn (mixed $id) => is_string($id))
+            ->unique()->values()->toArray();
+        /** @var array<string> $followerUserIds */
         $followerSystemMap = $this->bulkLoadGameSystemPreferences($followerUserIds);
 
         return $followers->map(function (UserRelationship $rel) use ($userSystemIds, $followerSystemMap) {
             $followerUser = $rel->user;
-            $followerSystemIds = $followerSystemMap[$followerUser?->id] ?? [];
+            $rawIds = $followerSystemMap[(string) $followerUser?->id] ?? [];
+            $followerSystemIds = is_array($rawIds)
+                ? array_values(array_filter($rawIds, fn (mixed $v) => is_string($v)))
+                : [];
             $sharedCount = count(array_intersect($userSystemIds, $followerSystemIds));
 
             return new ActionItem(
                 type: 'new_follower',
                 priority: 'low',
                 title: __('profile.dashboard_action_follower_title', [
-                    'name' => $followerUser?->name ?? __('Someone'),
+                    'name' => $followerUser->name ?? __('Someone'),
                 ]),
                 description: $sharedCount > 0
                     ? trans_choice('profile.dashboard_action_follower_shared', $sharedCount, ['count' => $sharedCount])
@@ -435,11 +461,11 @@ class ActionCenterService
                 actionUrl: $followerUser ? route('profile.public', ['user' => $followerUser]) : '#',
                 actionLabel: __('profile.dashboard_action_follower_action'),
                 icon: 'person_add',
-                createdAt: $rel->created_at,
+                createdAt: $rel->created_at ?? now(),
                 metadata: [
                     'shared_systems_count' => $sharedCount,
                     'entity_type' => 'user',
-                    'entity_id' => $followerUser?->id,
+                    'entity_id' => $followerUser->id ?? '',
                 ],
             );
         })->all();
@@ -453,6 +479,8 @@ class ActionCenterService
      *
      * Note: "hasn't viewed" tracking is not available, so we surface
      * campaigns with recently-added sessions.
+     *
+     * @return array<int, ActionItem>
      */
     private function getCampaignSessionAlerts(User $user): array
     {
@@ -480,7 +508,7 @@ class ActionCenterService
             actionUrl: route('campaigns.show', $c->id),
             actionLabel: __('profile.dashboard_action_campaign_session_action'),
             icon: 'campaign',
-            createdAt: $c->updated_at ?? $c->created_at,
+            createdAt: $c->updated_at ?? $c->created_at ?? now(),
             metadata: [
                 'entity_type' => 'campaign',
                 'entity_id' => $c->id,
@@ -494,6 +522,8 @@ class ActionCenterService
      * Active bulletins from games where the user is an approved participant.
      * Only shows bulletins that are not expired and were created within the last 24h.
      * The host (owner) does not see their own bulletins here — they see them on the game page.
+     *
+     * @return array<int, ActionItem>
      */
     private function getHostBulletins(User $user): array
     {
@@ -513,16 +543,16 @@ class ActionCenterService
         return $bulletins->map(fn (GameBulletin $b) => new ActionItem(
             type: 'host_bulletin',
             priority: 'medium',
-            title: __('profile.dashboard_action_bulletin_title', ['game' => $b->game->name]),
+            title: __('profile.dashboard_action_bulletin_title', ['game' => $b->game->name ?? '']),
             description: Str::limit($b->content, 100),
-            actionUrl: route('games.show', $b->game->id),
+            actionUrl: $b->game ? route('games.show', $b->game->id) : '#',
             actionLabel: __('profile.dashboard_action_bulletin_action'),
             icon: 'campaign',
-            createdAt: $b->created_at,
+            createdAt: $b->created_at ?? now(),
             metadata: [
                 'bulletin_id' => $b->id,
                 'entity_type' => 'game',
-                'entity_id' => $b->game->id,
+                'entity_id' => $b->game?->id,
                 'host_name' => $b->user?->name,
             ],
         ))->all();
@@ -547,5 +577,4 @@ class ActionCenterService
             ->orderBy('date_time')
             ->first();
     }
-
 }

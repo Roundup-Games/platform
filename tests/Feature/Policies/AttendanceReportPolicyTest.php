@@ -1,13 +1,12 @@
 <?php
 
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
 use App\Models\AttendanceReport;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
 use App\Policies\AttendanceReportPolicy;
-use App\Enums\ParticipantRole;
-use App\Enums\ParticipantStatus;
-use Illuminate\Support\Facades\Gate;
 
 beforeEach(function () {
     seedPermissions();
@@ -30,7 +29,7 @@ beforeEach(function () {
     $this->admin->assignRole('Platform Admin');
     $this->admin->unsetRelations();
 
-    $this->policy = new AttendanceReportPolicy();
+    $this->policy = new AttendanceReportPolicy;
 
     setPermissionsTeamId(1);
 });
