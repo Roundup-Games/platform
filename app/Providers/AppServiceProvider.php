@@ -212,11 +212,10 @@ class AppServiceProvider extends ServiceProvider
         // PostHog PHP SDK — initialize when API key is configured
         $apiKey = config('posthog.api_key');
         if (config('posthog.enabled', true) && is_string($apiKey)) {
+            $host = config('posthog.host', 'https://eu.i.posthog.com');
             PostHog::init(
                 $apiKey,
-                [
-                    'host' => config('posthog.host', 'https://eu.i.posthog.com'),
-                ],
+                ['host' => is_string($host) ? $host : 'https://eu.i.posthog.com'],
             );
         }
         // SEO: inject locale alternates (en/de/x-default) and canonical URL on every page
